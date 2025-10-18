@@ -37,6 +37,27 @@ Raven captures file changes, system metrics, and API events in real time — wit
 
 **⚠️ Requires system dependencies to run** (see [docs/SETUP.md](docs/SETUP.md))
 
+## ⚡ Quick Start
+
+```bash
+# Start both backend and frontend (fast!)
+./start.sh
+
+# Stop all servers
+./stop.sh
+
+# Restart everything
+./restart.sh
+```
+
+**URLs:**
+- Backend: http://localhost:3030
+- Frontend: http://localhost:5173
+
+**Logs:**
+- Backend: `tail -f /tmp/raven-backend.log`
+- Frontend: `tail -f /tmp/raven-frontend.log`
+
 ## 🎯 Features
 
 ### Phase 0 - Foundation ✅
@@ -92,20 +113,17 @@ Raven captures file changes, system metrics, and API events in real time — wit
 
 See [docs/SETUP.md](docs/SETUP.md) for detailed installation instructions.
 
-**Quick start:**
+**First-time setup:**
 
 ```bash
-# Terminal 1: Start backend server
-cd backend
-npm install
-npm start
+# Install backend dependencies
+cd backend && npm install && cd ..
 
-# Terminal 2: Start frontend dev server
-cd frontend
-npm install
-npm run dev
+# Install frontend dependencies
+cd frontend && npm install && cd ..
 
-# Visit http://localhost:5173
+# Start everything
+./start.sh
 ```
 
 ## 🛠️ Tech Stack
