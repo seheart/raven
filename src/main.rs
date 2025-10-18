@@ -6,17 +6,14 @@ mod commands;
 mod state;
 mod watcher;
 
-use std::path::PathBuf;
 use tracing::{info, error};
 use tracing_subscriber;
+use tauri::Manager;
 
 fn main() {
     // Initialize tracing
     tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::INFO.into())
-        )
+        .with_max_level(tracing::Level::INFO)
         .init();
 
     info!("🦅 Raven starting...");

@@ -2,16 +2,13 @@
 name = "raven"
 version = "0.6.0"
 edition = "2021"
+default-run = "raven"
 authors = ["Seth Eheart <seth@example.com>"]
 description = "Local-first, lightning-fast monitoring tool for AI coding agents"
 repository = "https://github.com/seheart/raven"
 license = "MIT"
 keywords = ["ai", "monitoring", "development", "tauri"]
 categories = ["development-tools"]
-
-[[bin]]
-name = "raven"
-path = "src/bin/raven-cli.rs"
 
 [dependencies]
 tauri = { version = "2.1", features = ["devtools"] }
