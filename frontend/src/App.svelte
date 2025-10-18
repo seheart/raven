@@ -1,25 +1,17 @@
 <script>
   import { invoke } from '@tauri-apps/api/core';
   import { onMount, onDestroy } from 'svelte';
-  import EventFeed from './lib/EventFeed.svelte';
-  import MetricsPanel from './lib/MetricsPanel.svelte';
-  import FileBrowser from './lib/FileBrowser.svelte';
+  import Dashboard from './lib/Dashboard.svelte';
+  import SessionReplay from './lib/SessionReplay.svelte';
+  import PerformancePanel from './lib/PerformancePanel.svelte';
+  import TriggersPanel from './lib/TriggersPanel.svelte';
+  import AgentsPanel from './lib/AgentsPanel.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import { keyboard } from './lib/keyboardService.js';
 
-  let greetMsg = '';
-  let name = 'Claude';
   let sessionId = 'Loading...';
   let showShortcuts = false;
-
-  async function greet() {
-    try {
-      greetMsg = await invoke('greet', { name });
-    } catch (error) {
-      greetMsg = 'Backend not connected (running in browser mode)';
-      console.error(error);
-    }
-  }
+  let currentView = 'dashboard'; // dashboard, replay, performance, triggers, agents
 
   async function loadSessionId() {
     try {
@@ -34,6 +26,10 @@
     showShortcuts = !showShortcuts;
   }
 
+  function switchView(view) {
+    currentView = view;
+  }
+
   onMount(() => {
     loadSessionId();
 
@@ -42,6 +38,13 @@
     keyboard.register('Escape', () => {
       showShortcuts = false;
     });
+
+    // View switching shortcuts
+    keyboard.register('1', () => switchView('dashboard'));
+    keyboard.register('2', () => switchView('replay'));
+    keyboard.register('3', () => switchView('performance'));
+    keyboard.register('4', () => switchView('triggers'));
+    keyboard.register('5', () => switchView('agents'));
   });
 
   onDestroy(() => {
@@ -55,7 +58,7 @@
       <div class="header-left">
         <h1>🦅 Raven</h1>
         <div class="header-info">
-          <p class="subtitle">AI Agent Monitor - Phase 3</p>
+          <p class="subtitle">AI Agent Monitor - Phase II Complete</p>
           <p class="session-id">Session: {sessionId}</p>
         </div>
       </div>
@@ -65,29 +68,56 @@
     </div>
   </header>
 
-  <div class="test-section">
-    <input bind:value={name} placeholder="Enter name..." />
-    <button on:click={greet}>Test Connection</button>
-    {#if greetMsg}
-      <p class="greeting">{greetMsg}</p>
+  <nav class="view-tabs">
+    <button
+      class="tab"
+      class:active={currentView === 'dashboard'}
+      on:click={() => switchView('dashboard')}
+    >
+      📊 Dashboard <span class="shortcut">1</span>
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'replay'}
+      on:click={() => switchView('replay')}
+    >
+      🎬 Session Replay <span class="shortcut">2</span>
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'performance'}
+      on:click={() => switchView('performance')}
+    >
+      ⚡ Performance <span class="shortcut">3</span>
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'triggers'}
+      on:click={() => switchView('triggers')}
+    >
+      🔔 Triggers <span class="shortcut">4</span>
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'agents'}
+      on:click={() => switchView('agents')}
+    >
+      🤖 Agents <span class="shortcut">5</span>
+    </button>
+  </nav>
+
+  <div class="view-container">
+    {#if currentView === 'dashboard'}
+      <Dashboard />
+    {:else if currentView === 'replay'}
+      <SessionReplay />
+    {:else if currentView === 'performance'}
+      <PerformancePanel />
+    {:else if currentView === 'triggers'}
+      <TriggersPanel />
+    {:else if currentView === 'agents'}
+      <AgentsPanel />
     {/if}
-  </div>
-
-  <div class="dashboard">
-    <div class="panel">
-      <h2>System Metrics</h2>
-      <MetricsPanel />
-    </div>
-
-    <div class="panel main-panel">
-      <h2>Event Feed</h2>
-      <EventFeed />
-    </div>
-
-    <div class="panel files-panel">
-      <h2>Time Travel</h2>
-      <FileBrowser />
-    </div>
   </div>
 </main>
 
@@ -95,19 +125,25 @@
 
 <style>
   main {
-    padding: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 0;
+    max-width: 100%;
+    margin: 0;
+    min-height: 100vh;
+    background: #0f0f0f;
   }
 
   header {
-    margin-bottom: 2rem;
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid #1f1f1f;
+    background: #1a1a1a;
   }
 
   .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    max-width: 1600px;
+    margin: 0 auto;
   }
 
   .header-left {
@@ -121,19 +157,22 @@
   }
 
   h1 {
-    font-size: 3rem;
+    font-size: 2.5rem;
     margin: 0;
-    color: #646cff;
+    background: linear-gradient(135deg, #FF6B35 0%, #F7931A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .subtitle {
-    color: #888;
+    color: #9ca3af;
     margin: 0.25rem 0;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
   }
 
   .session-id {
-    color: #646cff;
+    color: #4ECDC4;
     font-size: 0.85rem;
     margin: 0.25rem 0;
     font-family: 'Courier New', monospace;
@@ -142,10 +181,10 @@
   .help-btn {
     padding: 0.75rem 1.5rem;
     font-size: 0.95rem;
-    background: #2a2a2a;
-    color: #fff;
-    border: 1px solid #646cff;
-    border-radius: 6px;
+    background: #1a1a1a;
+    color: #e5e5e5;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -154,93 +193,85 @@
   }
 
   .help-btn:hover {
-    background: #646cff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(100, 108, 255, 0.3);
-  }
-
-  .test-section {
-    background: #1a1a1a;
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-    text-align: center;
-  }
-
-  input {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    border: 1px solid #646cff;
-    border-radius: 4px;
     background: #2a2a2a;
-    color: white;
-    margin-right: 0.5rem;
+    border-color: #FF6B35;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
   }
 
-  button {
-    padding: 0.5rem 1.5rem;
-    font-size: 1rem;
-    background: #646cff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  button:hover {
-    background: #535bf2;
-  }
-
-  .greeting {
-    margin-top: 1rem;
-    color: #4ade80;
-    font-weight: bold;
-  }
-
-  .dashboard {
-    display: grid;
-    grid-template-columns: 300px 1fr 300px;
-    grid-template-areas:
-      "metrics events files";
-    gap: 1.5rem;
-  }
-
-  .panel {
+  .view-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 2rem;
     background: #1a1a1a;
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 1px solid #333;
+    border-bottom: 2px solid #2a2a2a;
+    overflow-x: auto;
   }
 
-  .panel:nth-child(1) {
-    grid-area: metrics;
+  .tab {
+    padding: 1rem 2rem;
+    background: transparent;
+    color: #9ca3af;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
   }
 
-  .main-panel {
-    grid-area: events;
-    min-height: 500px;
+  .tab:hover {
+    color: #e5e5e5;
+    background: rgba(255, 107, 53, 0.05);
   }
 
-  .files-panel {
-    grid-area: files;
-    min-height: 500px;
+  .tab.active {
+    color: #FF6B35;
+    border-bottom-color: #FF6B35;
+    background: rgba(255, 107, 53, 0.1);
   }
 
-  @media (max-width: 1200px) {
-    .dashboard {
-      grid-template-columns: 1fr;
-      grid-template-areas:
-        "metrics"
-        "events"
-        "files";
+  .shortcut {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #2a2a2a;
+    color: #6b7280;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+  }
+
+  .tab.active .shortcut {
+    background: rgba(255, 107, 53, 0.2);
+    color: #FF6B35;
+  }
+
+  .view-container {
+    padding: 0;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    h1 {
+      font-size: 2rem;
     }
-  }
 
-  h2 {
-    margin-top: 0;
-    color: #fff;
-    font-size: 1.2rem;
-    border-bottom: 2px solid #646cff;
-    padding-bottom: 0.5rem;
+    .view-tabs {
+      padding: 0 1rem;
+    }
+
+    .tab {
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+    }
+
+    .shortcut {
+      display: none;
+    }
   }
 </style>
