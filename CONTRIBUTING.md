@@ -1,379 +1,345 @@
 # Contributing to Raven
 
-Thank you for your interest in contributing to Raven! This document provides guidelines and instructions for contributing.
-
-## Table of Contents
-
-1. [Code of Conduct](#code-of-conduct)
-2. [Getting Started](#getting-started)
-3. [Development Setup](#development-setup)
-4. [Making Changes](#making-changes)
-5. [Testing](#testing)
-6. [Pull Request Process](#pull-request-process)
-7. [Coding Standards](#coding-standards)
-8. [Project Structure](#project-structure)
+Thank you for your interest in contributing to Raven! We welcome contributions from the community and are excited to work with you.
 
 ## Code of Conduct
 
-### Our Pledge
+This project adheres to a Code of Conduct (see CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to seheart@gmail.com.
 
-We pledge to make participation in our project a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
+## How Can I Contribute?
 
-### Our Standards
+### Reporting Bugs
 
-**Positive behavior includes:**
-- Using welcoming and inclusive language
-- Being respectful of differing viewpoints
-- Gracefully accepting constructive criticism
-- Focusing on what is best for the community
-- Showing empathy towards other community members
+Before creating bug reports, please check the existing issues to avoid duplicates. When creating a bug report, include as many details as possible using our bug report template.
 
-**Unacceptable behavior includes:**
-- Harassment, trolling, or derogatory comments
-- Public or private harassment
-- Publishing others' private information without permission
-- Other conduct which could reasonably be considered inappropriate
+**Good bug reports include:**
+- Clear, descriptive title
+- Exact steps to reproduce the issue
+- Expected vs actual behavior
+- Screenshots/logs if applicable
+- Environment details (OS, Node.js version, etc.)
 
-## Getting Started
+### Suggesting Features
 
-### Prerequisites
+Feature requests are welcome! Please use the feature request template and include:
+- Clear use case and problem it solves
+- Proposed solution or API
+- Alternative approaches considered
+- Examples from similar projects (if applicable)
 
-- **Rust 1.70+** - Install from [rustup.rs](https://rustup.rs/)
-- **Node.js 18+** and **npm** - Install from [nodejs.org](https://nodejs.org/)
-- **System dependencies** - See [SETUP.md](SETUP.md) for your platform
+### Pull Requests
 
-### Fork and Clone
-
-1. Fork the repository on GitHub
-2. Clone your fork:
-```bash
-git clone https://github.com/YOUR_USERNAME/raven.git
-cd raven
-```
-
-3. Add upstream remote:
-```bash
-git remote add upstream https://github.com/seheart/raven.git
-```
+1. **Fork the repository** and create your branch from `main`
+2. **Install dependencies:** `npm install` in both `/backend` and `/frontend`
+3. **Make your changes** following our coding standards
+4. **Test your changes** thoroughly
+5. **Update documentation** if needed
+6. **Commit using conventional commits** (see below)
+7. **Open a PR** using our template
 
 ## Development Setup
 
-### Install Dependencies
+### Prerequisites
+
+- Node.js 18+ and npm 9+
+- Git
+
+### Quick Start
 
 ```bash
-# Install frontend dependencies
-cd frontend
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/raven3.git
+cd raven3
+
+# Install backend dependencies
+cd backend
 npm install
-cd ..
 
-# Verify Rust installation
-cargo --version
-```
+# Install frontend dependencies
+cd ../frontend
+npm install
 
-### Run Development Server
+# Start backend (in one terminal)
+cd backend
+npm start
 
-```bash
-# Terminal 1: Frontend dev server
+# Start frontend (in another terminal)
 cd frontend
 npm run dev
 
-# Terminal 2: Tauri development mode
-cargo tauri dev
+# Backend: http://localhost:3030
+# Frontend: http://localhost:5173
 ```
 
-### Database Setup
-
-Raven creates `.raven/` directory automatically on first run:
-```
-.raven/
-├── config.toml      # Configuration
-├── db/              # SQLite database
-└── snapshots/       # File snapshots
-```
-
-## Making Changes
-
-### Branching Strategy
-
-- `main` - Production-ready code
-- `develop` - Development branch
-- `feature/*` - New features
-- `bugfix/*` - Bug fixes
-- `hotfix/*` - Urgent fixes for production
-
-### Create a Feature Branch
-
-```bash
-git checkout develop
-git pull upstream develop
-git checkout -b feature/your-feature-name
-```
-
-### Commit Messages
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+### Project Structure
 
 ```
-type(scope): subject
-
-body
-
-footer
-```
-
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation only
-- `style`: Code style (formatting, no logic change)
-- `refactor`: Code refactoring
-- `perf`: Performance improvement
-- `test`: Add or update tests
-- `chore`: Build process or tooling changes
-
-**Examples:**
-```bash
-git commit -m "feat(watcher): add 50ms debounce for file changes"
-git commit -m "fix(db): resolve concurrent access race condition"
-git commit -m "docs(readme): update installation instructions"
-```
-
-## Testing
-
-### Run Tests
-
-**Rust Tests:**
-```bash
-# Integration tests
-cargo test --test integration_tests
-
-# All tests (requires webkit2gtk)
-cargo test
-```
-
-**Frontend Tests:**
-```bash
-cd frontend
-
-# Run tests in watch mode
-npm run test
-
-# Run tests once
-npm run test:run
-
-# Run with coverage
-npm run test:coverage
-```
-
-### Writing Tests
-
-**Rust Example:**
-```rust
-#[test]
-fn test_database_insert() {
-    let db = setup_test_db();
-    let id = db.insert_event(...).unwrap();
-    assert!(id > 0);
-}
-```
-
-**Frontend Example:**
-```javascript
-describe('Component', () => {
-  it('renders correctly', () => {
-    const { container } = render(Component);
-    expect(container).toBeTruthy();
-  });
-});
-```
-
-### Test Requirements
-
-- All new features must include tests
-- Bug fixes should include regression tests
-- Maintain or improve code coverage
-- All tests must pass before merging
-
-## Pull Request Process
-
-### Before Submitting
-
-1. **Update from upstream:**
-```bash
-git checkout develop
-git pull upstream develop
-git checkout your-feature-branch
-git rebase develop
-```
-
-2. **Run all tests:**
-```bash
-cargo test --test integration_tests
-cd frontend && npm run test:run
-```
-
-3. **Check code formatting:**
-```bash
-cargo fmt -- --check
-cargo clippy -- -D warnings
-```
-
-4. **Build successfully:**
-```bash
-cd frontend && npm run build
-cargo build --release
-```
-
-### Submit Pull Request
-
-1. Push to your fork:
-```bash
-git push origin your-feature-branch
-```
-
-2. Create PR on GitHub:
-   - Base: `develop`
-   - Compare: `your-feature-branch`
-   - Title: Clear, descriptive title
-   - Description: What, why, and how
-
-3. **PR Description Template:**
-```markdown
-## Description
-Brief description of changes
-
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
-
-## Testing
-- [ ] Tests added/updated
-- [ ] All tests passing
-- [ ] Manual testing completed
-
-## Checklist
-- [ ] Code follows project style
-- [ ] Self-review completed
-- [ ] Documentation updated
-- [ ] No new warnings
-```
-
-### Review Process
-
-1. Maintainer reviews PR
-2. Address feedback
-3. Update PR with changes
-4. Re-request review
-5. Once approved, PR is merged
-
-### After Merge
-
-```bash
-git checkout develop
-git pull upstream develop
-git branch -d your-feature-branch
+raven3/
+├── backend/          # Node.js + Express API server
+│   ├── server.js     # Main server with REST + WebSocket
+│   ├── db.js         # SQLite database wrapper
+│   ├── triggers.js   # Alert/trigger engine
+│   └── package.json
+├── frontend/         # Svelte web UI
+│   ├── src/
+│   │   ├── App.svelte
+│   │   └── lib/      # Svelte components
+│   └── package.json
+├── docs/             # Documentation
+└── .github/          # GitHub templates & workflows
 ```
 
 ## Coding Standards
 
-### Rust
+### JavaScript/Node.js
 
-- Follow [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
-- Use `cargo fmt` for formatting
-- Address all `cargo clippy` warnings
-- Add documentation comments (`///`) for public APIs
-- Keep functions focused and small
-- Use descriptive variable names
+- Use ES6+ features (import/export, async/await, etc.)
+- Use **2 spaces** for indentation
+- Use **single quotes** for strings
+- Use **semicolons**
+- Run `npm run lint` before committing (once ESLint is set up)
+- Run `npm run format` to auto-format code (once Prettier is set up)
 
-**Example:**
-```rust
-/// Inserts a new event into the database
-///
-/// # Arguments
-/// * `timestamp` - ISO 8601 timestamp
-/// * `filepath` - Optional file path
-/// * `change_type` - Type of change (created/modified/deleted)
-///
-/// # Returns
-/// The ID of the inserted event
-pub fn insert_event(&self, timestamp: &str, filepath: Option<&str>, change_type: &str) -> Result<i64> {
-    // Implementation
-}
+### Svelte
+
+- Follow [Svelte style guide](https://svelte.dev/docs/svelte/overview)
+- Keep components focused and single-purpose
+- Use props for component communication
+- Use stores for shared state
+- Document props with JSDoc comments
+
+### Commit Messages
+
+We use **Conventional Commits** for clear, semantic commit history:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
 ```
 
-### JavaScript/Svelte
+#### Types
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style/formatting (no logic change)
+- `refactor`: Code refactoring
+- `test`: Adding/updating tests
+- `chore`: Build process, dependencies, tooling
+- `perf`: Performance improvements
 
-- Use ES6+ features
-- Prefer `const` over `let`
-- Use async/await over promises
-- Component names in PascalCase
-- Functions in camelCase
-- Meaningful variable names
+#### Examples
 
-**Example:**
+```bash
+feat(backend): add export JSON/CSV endpoints
+
+Implements API endpoints for exporting file events and agent 
+telemetry to JSON and CSV formats.
+
+Closes #42
+
+---
+
+fix(frontend): prevent WebSocket reconnection loop
+
+Added exponential backoff to WebSocket reconnection logic 
+to prevent rapid reconnection attempts.
+
+Fixes #67
+
+---
+
+docs(api): add REST endpoint documentation
+
+Created comprehensive documentation for all 21 REST API 
+endpoints with examples.
+```
+
+#### Scope
+Use one of: `backend`, `frontend`, `api`, `db`, `ui`, `docs`, `ci`, `deps`
+
+## Testing Requirements
+
+### Before Submitting a PR
+
+- [ ] All existing tests pass
+- [ ] New features include tests
+- [ ] Manual testing completed
+- [ ] No console errors or warnings
+- [ ] Documentation updated
+
+### Running Tests
+
+```bash
+# Backend tests (once test suite is implemented)
+cd backend
+npm test
+
+# Frontend tests (once test suite is implemented)
+cd frontend
+npm test
+
+# Lint check
+npm run lint
+
+# Format check
+npm run format:check
+```
+
+## Pull Request Process
+
+### 1. Create Your Branch
+
+```bash
+git checkout -b feat/your-feature-name
+# or
+git checkout -b fix/bug-description
+```
+
+### 2. Make Changes
+
+- Write clean, documented code
+- Follow coding standards
+- Keep commits atomic and focused
+- Test thoroughly
+
+### 3. Commit Changes
+
+```bash
+# Stage your changes
+git add .
+
+# Commit with conventional commit message
+git commit -m "feat(backend): add new monitoring feature"
+```
+
+### 4. Push to Your Fork
+
+```bash
+git push origin feat/your-feature-name
+```
+
+### 5. Open Pull Request
+
+- Use our PR template
+- Fill out all sections completely
+- Link related issues
+- Add screenshots for UI changes
+- Request review from maintainers
+
+### 6. Code Review
+
+- Address reviewer feedback promptly
+- Push new commits to update the PR
+- Keep discussion professional and constructive
+- Use "Resolves #123" to auto-close issues
+
+### PR Checklist
+
+Before requesting review, ensure:
+
+- [ ] Code follows project style guide
+- [ ] Commits use conventional commit format
+- [ ] Tests pass locally
+- [ ] Documentation updated (README, API docs, etc.)
+- [ ] No merge conflicts with `main`
+- [ ] PR description is clear and complete
+- [ ] Screenshots included (for UI changes)
+- [ ] Breaking changes documented
+- [ ] Migration guide provided (if needed)
+
+## Code Review Guidelines
+
+### As a Reviewer
+
+- Be respectful and constructive
+- Explain the "why" behind suggestions
+- Distinguish between required changes and suggestions
+- Approve when ready, request changes if needed
+- Test the PR locally when possible
+
+### As a Contributor
+
+- Don't take feedback personally
+- Ask questions if unclear
+- Update based on feedback
+- Mark conversations as resolved when addressed
+- Thank reviewers for their time
+
+## Style Guide
+
+### File Naming
+
+- **Backend:** `kebab-case.js` (e.g., `trigger-engine.js`)
+- **Frontend Components:** `PascalCase.svelte` (e.g., `EventFeed.svelte`)
+- **Utilities:** `camelCase.js` (e.g., `formatDate.js`)
+- **Tests:** `*.test.js` or `*.spec.js`
+
+### Code Comments
+
 ```javascript
-// Good
-async function loadRecentEvents() {
-  const events = await invoke('get_recent_events', { limit: 50 });
-  return events;
+// ✅ GOOD: Explains WHY, not WHAT
+// Use exponential backoff to prevent overwhelming the server
+const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
+
+// ❌ BAD: States the obvious
+// Set delay to exponential value
+const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
+```
+
+### Function Documentation
+
+```javascript
+/**
+ * Calculate file hash using SHA-256
+ * @param {string} content - File content to hash
+ * @returns {string} Hex-encoded SHA-256 hash
+ */
+function calculateFileHash(content) {
+  return createHash('sha256').update(content).digest('hex');
 }
-
-// Bad
-async function lre() {
-  let e = await invoke('gre', { l: 50 });
-  return e;
-}
 ```
 
-### File Organization
+## Documentation
 
-- One component per file
-- Group related functions
-- Keep files under 500 lines
-- Extract utilities to separate files
+### When to Update Docs
 
-## Project Structure
+- New features → Update `docs/FEATURES.md`
+- API changes → Update `docs/api/` files
+- Architecture changes → Update `ARCHITECTURE.md`
+- Breaking changes → Update `CHANGELOG.md`
+- New dependencies → Update `package.json` + README
 
-```
-raven/
-├── src/                     # Rust backend
-│   ├── main.rs             # Entry point
-│   ├── modules/            # Core modules
-│   ├── commands/           # Tauri commands
-│   ├── state.rs            # App state
-│   └── watcher.rs          # File watcher
-├── frontend/               # Svelte frontend
-│   └── src/
-│       ├── App.svelte
-│       └── lib/            # Components
-├── tests/                  # Integration tests
-├── scripts/                # Build scripts
-├── .github/workflows/      # CI/CD
-└── docs/                   # Documentation
-```
+### Documentation Standards
 
-### Key Components
-
-- **Database** (`src/modules/db.rs`) - SQLite operations
-- **Event Logger** (`src/modules/event_logger.rs`) - Event persistence
-- **Diff Engine** (`src/modules/diff_engine.rs`) - Diff generation
-- **Metrics** (`src/modules/metrics.rs`) - System metrics
-- **Watcher** (`src/watcher.rs`) - File watching
-- **Commands** (`src/commands/mod.rs`) - Tauri IPC
+- Use **Markdown** for all docs
+- Include code examples
+- Add screenshots for UI features
+- Keep language clear and concise
+- Update table of contents if applicable
 
 ## Getting Help
 
-- **Issues:** [GitHub Issues](https://github.com/seheart/raven/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/seheart/raven/discussions)
-- **Documentation:** [README.md](README.md), [SETUP.md](SETUP.md), [TESTING.md](TESTING.md)
+- **Questions:** Open a [GitHub Discussion](https://github.com/seheart/raven3/discussions)
+- **Bugs:** Open a [Bug Report](https://github.com/seheart/raven3/issues/new?template=bug_report.md)
+- **Features:** Open a [Feature Request](https://github.com/seheart/raven3/issues/new?template=feature_request.md)
+- **Chat:** Email seheart@gmail.com
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the same license as the project (see LICENSE file).
 
 ## Recognition
 
 Contributors will be recognized in:
-- README.md Contributors section
-- Release notes
-- GitHub contributors page
+- `CONTRIBUTORS.md` (alphabetical)
+- Release notes for significant contributions
+- Git history (please use your real name and email)
+
+---
 
 Thank you for contributing to Raven! 🐦‍⬛
+
+Your contributions help make AI agent monitoring better for everyone.

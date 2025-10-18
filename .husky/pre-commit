@@ -1,0 +1,17 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run linters on backend
+echo "🔍 Linting backend..."
+cd backend && npm run lint:fix && cd ..
+
+# Run linters on frontend
+echo "🔍 Linting frontend..."
+cd frontend && npm run lint:fix && cd ..
+
+# Run formatters
+echo "✨ Formatting code..."
+cd backend && npm run format && cd ..
+cd frontend && npm run format && cd ..
+
+echo "✅ Pre-commit checks passed!"
