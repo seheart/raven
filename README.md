@@ -30,7 +30,7 @@ Raven captures file changes, system metrics, and API events in real time — wit
 - [x] **Cross-platform builds (Linux, macOS, Windows)**
 - [x] **Open source ready (LICENSE, CONTRIBUTING)**
 
-**⚠️ Requires system dependencies to run** (see [docs/guides/SETUP.md](docs/guides/SETUP.md))
+**⚠️ Requires system dependencies to run** (see [docs/SETUP.md](docs/SETUP.md))
 
 ## 🎯 Features
 
@@ -85,7 +85,7 @@ Raven captures file changes, system metrics, and API events in real time — wit
 
 ## 📦 Installation
 
-See [docs/guides/SETUP.md](docs/guides/SETUP.md) for detailed installation instructions.
+See [docs/SETUP.md](docs/SETUP.md) for detailed installation instructions.
 
 **Quick start:**
 
@@ -213,17 +213,16 @@ memory_threshold = 85.0
 
 ## 🐛 Troubleshooting
 
-See [docs/guides/SETUP.md](docs/guides/SETUP.md#troubleshooting) for common issues and solutions.
+See [docs/SETUP.md](docs/SETUP.md#troubleshooting) for common issues and solutions.
 
 ## 📚 Documentation
 
 Complete documentation is available in the [docs/](docs/) directory:
 
-- **[Setup Guide](docs/guides/SETUP.md)** - Installation instructions
-- **[Development Plan](docs/guides/RAVEN_DEV_PLAN.md)** - Project roadmap
-- **[Testing Guide](docs/guides/TESTING.md)** - Running tests
-- **[API Documentation](docs/api/)** - Feature-specific docs
-- **[Phase Reports](docs/phases/)** - Development history
+- **[Setup Guide](docs/SETUP.md)** - Installation instructions
+- **[Testing Guide](docs/TESTING.md)** - Running tests
+- **[Development History](docs/HISTORY.md)** - Complete timeline (Phase 0 - II.6)
+- **[API Documentation](docs/api/)** - Feature-specific technical docs
 
 ## 📄 License
 

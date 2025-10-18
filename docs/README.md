@@ -1,100 +1,164 @@
 # Raven Documentation
 
-This directory contains all documentation for the Raven AI Agent Monitor project.
+Complete documentation for the Raven AI Agent Monitor project.
 
-## 📁 Documentation Structure
+**Current Version:** 0.6.0 (Phase II.6)
+**Status:** Production Ready
+**License:** MIT
 
-### `/phases/` - Development Phase Completion Reports
-Complete records of each development phase with detailed accomplishments:
+---
 
-- **Phase 0-5** - Initial development phases (Foundation → Cross-Platform Release)
-- **Phase II.1-6** - Advanced features (Telemetry → User Experience)
+## 📚 Documentation Index
 
-**Files:**
-- `PHASE_0_COMPLETE.md` - Foundation & Project Setup
-- `PHASE_1_COMPLETE.md` - Core Rust Backend
-- `PHASE_2_COMPLETE.md` - Short-Term Memory & Snapshots
-- `PHASE_3_COMPLETE.md` - UI Enhancement
-- `PHASE_4_COMPLETE.md` - Testing & QA
-- `PHASE_5_COMPLETE.md` - Cross-Platform Release
-- `PHASE_II_1_COMPLETE.md` - Telemetry API
-- `PHASE_II_2_COMPLETE.md` - Performance Profiling
-- `PHASE_II_3_COMPLETE.md` - Session Replay
-- `PHASE_II_4_COMPLETE.md` - Custom Triggers
-- `PHASE_II_5_COMPLETE.md` - Multi-Agent Support
-- `PHASE_II_6_COMPLETE.md` - User Experience Enhancements
+### Getting Started
 
-### `/guides/` - Setup & Development Guides
-Practical guides for getting started and contributing:
+**[SETUP.md](SETUP.md)** - Installation & Configuration
+Platform-specific installation instructions, dependencies, and troubleshooting.
 
-- **SETUP.md** - Installation instructions for all platforms
-- **TESTING.md** - Running tests and test coverage
-- **RAVEN_DEV_PLAN.md** - Original development roadmap
-- **RAVEN_DEV_PLAN_PHASE_II.md** - Phase II planning
-- **RAVEN_DEV_PLAN_PHASE_III.md** - Phase III planning (future features)
+**[TESTING.md](TESTING.md)** - Running Tests
+How to run Rust integration tests, frontend unit tests, and stress tests.
 
-### `/api/` - API & Feature Documentation
+---
+
+### Project Information
+
+**[HISTORY.md](HISTORY.md)** - Development Timeline
+Complete development history from Phase 0 through Phase II.6, including:
+- Timeline overview
+- Key achievements per phase
+- Technical implementations
+- Performance benchmarks
+
+---
+
+### API Documentation
+
 Technical documentation for specific features:
 
-- **AGENT_MONITORING.md** - Multi-agent monitoring system
-- **CUSTOM_TRIGGERS.md** - Alert trigger configuration
-- **PERFORMANCE_PROFILING.md** - Performance tracking & correlation
-- **SESSION_REPLAY.md** - Session timeline and replay
-- **TELEMETRY_API.md** - Unix socket telemetry API
-- **USER_EXPERIENCE.md** - UI/UX design documentation
+**[api/TELEMETRY_API.md](api/TELEMETRY_API.md)** - Telemetry Socket API
+- Unix socket connection guide
+- JSON event schema
+- Code examples (Python, curl)
+- Event types and fields
+
+**[api/AGENT_MONITORING.md](api/AGENT_MONITORING.md)** - Multi-Agent System
+- Agent adapter architecture
+- Ollama integration
+- LM Studio integration
+- Adding custom agents
+
+**[api/CUSTOM_TRIGGERS.md](api/CUSTOM_TRIGGERS.md)** - Alert Configuration
+- Trigger types and patterns
+- TOML configuration syntax
+- Cooldown system
+- Examples and use cases
+
+**[api/PERFORMANCE_PROFILING.md](api/PERFORMANCE_PROFILING.md)** - Metrics & Profiling
+- System metrics collection
+- Process tracking
+- Performance correlation analysis
+- Query examples
+
+**[api/SESSION_REPLAY.md](api/SESSION_REPLAY.md)** - Timeline Playback
+- Session recording
+- Playback controls
+- File state reconstruction
+- Timeline navigation
+
+**[api/USER_EXPERIENCE.md](api/USER_EXPERIENCE.md)** - UI/UX Design
+- Dashboard components
+- Keyboard shortcuts
+- Dark theme design system
+- Navigation structure
+
+---
 
 ## 🚀 Quick Start
 
-New to Raven? Start here:
+New to Raven? Follow this path:
 
-1. **[README.md](../README.md)** - Project overview and current status
-2. **[guides/SETUP.md](guides/SETUP.md)** - Installation instructions
-3. **[guides/TESTING.md](guides/TESTING.md)** - Running tests
-4. **[CONTRIBUTING.md](../CONTRIBUTING.md)** - How to contribute
+1. **[README.md](../README.md)** - Project overview
+2. **[SETUP.md](SETUP.md)** - Install Raven
+3. **[api/TELEMETRY_API.md](api/TELEMETRY_API.md)** - Connect your AI agent
+4. **[HISTORY.md](HISTORY.md)** - Understand what's been built
 
-## 📚 For Developers
+---
 
-Want to understand the architecture?
+## 📖 Documentation Structure
 
-1. **[guides/RAVEN_DEV_PLAN.md](guides/RAVEN_DEV_PLAN.md)** - Original vision and architecture
-2. **[phases/PHASE_5_COMPLETE.md](phases/PHASE_5_COMPLETE.md)** - Current state (latest phase)
-3. **[api/TELEMETRY_API.md](api/TELEMETRY_API.md)** - Telemetry system design
-4. **[api/AGENT_MONITORING.md](api/AGENT_MONITORING.md)** - Agent detection system
+```
+docs/
+├── README.md              # This file
+├── SETUP.md               # Installation guide
+├── TESTING.md             # Test documentation
+├── HISTORY.md             # Development timeline
+└── api/
+    ├── AGENT_MONITORING.md
+    ├── CUSTOM_TRIGGERS.md
+    ├── PERFORMANCE_PROFILING.md
+    ├── SESSION_REPLAY.md
+    ├── TELEMETRY_API.md
+    └── USER_EXPERIENCE.md
+```
 
-## 🎯 Feature Documentation
+**Total:** 10 documentation files (clean and focused)
 
-Looking for specific features?
+---
 
-| Feature | Documentation |
-|---------|--------------|
-| File Watching & Diffs | [phases/PHASE_1_COMPLETE.md](phases/PHASE_1_COMPLETE.md) |
-| Snapshots & Time Travel | [phases/PHASE_2_COMPLETE.md](phases/PHASE_2_COMPLETE.md) |
-| Timeline & Export | [phases/PHASE_3_COMPLETE.md](phases/PHASE_3_COMPLETE.md) |
-| Telemetry Socket API | [api/TELEMETRY_API.md](api/TELEMETRY_API.md) |
-| Performance Profiling | [api/PERFORMANCE_PROFILING.md](api/PERFORMANCE_PROFILING.md) |
-| Session Replay | [api/SESSION_REPLAY.md](api/SESSION_REPLAY.md) |
-| Custom Triggers | [api/CUSTOM_TRIGGERS.md](api/CUSTOM_TRIGGERS.md) |
-| Multi-Agent Support | [api/AGENT_MONITORING.md](api/AGENT_MONITORING.md) |
-| UI/UX Design | [api/USER_EXPERIENCE.md](api/USER_EXPERIENCE.md) |
+## 🎯 Find What You Need
 
-## 📝 Contributing
+### Installation & Setup
+→ [SETUP.md](SETUP.md)
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) in the root directory for:
-- Code of Conduct
-- Development workflow
-- Coding standards
-- Pull request process
+### Using the Telemetry API
+→ [api/TELEMETRY_API.md](api/TELEMETRY_API.md)
 
-## 📄 Changelog
+### Configuring Alerts
+→ [api/CUSTOM_TRIGGERS.md](api/CUSTOM_TRIGGERS.md)
 
-See [CHANGELOG.md](../CHANGELOG.md) in the root directory for version history.
+### Running Tests
+→ [TESTING.md](TESTING.md)
+
+### Understanding the Timeline
+→ [HISTORY.md](HISTORY.md)
+
+### UI Features & Shortcuts
+→ [api/USER_EXPERIENCE.md](api/USER_EXPERIENCE.md)
+
+### Multi-Agent Setup
+→ [api/AGENT_MONITORING.md](api/AGENT_MONITORING.md)
+
+### Performance Metrics
+→ [api/PERFORMANCE_PROFILING.md](api/PERFORMANCE_PROFILING.md)
+
+---
+
+## 🔧 For Developers
+
+**Architecture:** See [HISTORY.md](HISTORY.md) Phase 0-1 for system design
+**Contributing:** See [../CONTRIBUTING.md](../CONTRIBUTING.md) in project root
+**Changelog:** See [../CHANGELOG.md](../CHANGELOG.md) in project root
+
+---
+
+## 📝 Contributing to Docs
+
+Found an error or want to improve documentation?
+
+1. Fork the repository
+2. Edit the relevant `.md` file
+3. Submit a pull request
+4. Follow the [contribution guidelines](../CONTRIBUTING.md)
+
+---
 
 ## 📍 Navigation
 
 - [← Back to Project Root](../)
 - [View on GitHub](https://github.com/seheart/raven)
+- [Report Documentation Issue](https://github.com/seheart/raven/issues)
 
 ---
 
 **Last Updated:** 2025-10-18
-**Current Version:** 0.6.0
+**Version:** 0.6.0
