@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use chrono::Utc;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
@@ -10,6 +10,7 @@ use super::telemetry_listener::AgentEvent;
 /// Telemetry processor that consumes events and stores them in the database
 pub struct TelemetryProcessor {
     db: Database,
+    db_path: PathBuf,
     session_id: String,
 }
 
@@ -19,52 +20,58 @@ impl TelemetryProcessor {
         let db = Database::new(db_path)
             .context("Failed to create database connection")?;
 
-        Ok(Self { db, session_id })
+        Ok(Self {
+            db,
+            db_path: db_path.to_path_buf(),
+            session_id
+        })
     }
 
     /// Start processing events from the receiver channel
-    pub async fn start(&self, mut event_rx: mpsc::Receiver<AgentEvent>) -> Result<()> {
+    pub async fn start(mut self, mut event_rx: mpsc::Receiver<AgentEvent>) -> Result<()> {
         info!("Telemetry processor started with session_id: {}", self.session_id);
 
         while let Some(event) = event_rx.recv().await {
-            if let Err(e) = self.process_event(event).await {
-                error!("Failed to process telemetry event: {}", e);
+            // Use spawn_blocking for database operations since SQLite is synchronous
+            let session_id = self.session_id.clone();
+            let db_path = self.db_path.clone();
+
+            if let Err(e) = tokio::task::spawn_blocking(move || {
+                let db = Database::new(&db_path)?;
+                let timestamp = Utc::now().to_rfc3339();
+
+                // Serialize metadata to JSON if present
+                let metadata_json = if let Some(metadata) = &event.metadata {
+                    Some(serde_json::to_string(metadata)?)
+                } else {
+                    None
+                };
+
+                // Insert into database
+                let event_id = db.insert_agent_event(
+                    &timestamp,
+                    &event.agent,
+                    &event.event,
+                    event.file.as_deref(),
+                    event.lines_changed,
+                    event.duration_ms,
+                    &event.message,
+                    metadata_json.as_deref(),
+                    Some(&session_id),
+                )?;
+
+                info!(
+                    "Stored agent event #{} - {} ({}) - {}",
+                    event_id, event.agent, event.event, event.message
+                );
+
+                Ok::<(), anyhow::Error>(())
+            }).await {
+                error!("Failed to process telemetry event: {:?}", e);
             }
         }
 
         info!("Telemetry processor stopped");
-        Ok(())
-    }
-
-    /// Process a single agent event
-    async fn process_event(&self, event: AgentEvent) -> Result<()> {
-        let timestamp = Utc::now().to_rfc3339();
-
-        // Serialize metadata to JSON if present
-        let metadata_json = if let Some(metadata) = &event.metadata {
-            Some(serde_json::to_string(metadata)?)
-        } else {
-            None
-        };
-
-        // Insert into database
-        let event_id = self.db.insert_agent_event(
-            &timestamp,
-            &event.agent,
-            &event.event,
-            event.file.as_deref(),
-            event.lines_changed,
-            event.duration_ms,
-            &event.message,
-            metadata_json.as_deref(),
-            Some(&self.session_id),
-        )?;
-
-        info!(
-            "Stored agent event #{} - {} ({}) - {}",
-            event_id, event.agent, event.event, event.message
-        );
-
         Ok(())
     }
 
