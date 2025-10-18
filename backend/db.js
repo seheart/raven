@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { mkdirSync, existsSync } from 'fs';
+import { dirname } from 'path';
 
 export class RavenDB {
   constructor(dbPath) {
