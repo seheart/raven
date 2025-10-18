@@ -6,7 +6,11 @@ import { RavenDB } from './db.js';
 import { MetricsCollector } from './metrics-collector.js';
 import { TriggerEngine } from './trigger-engine.js';
 import { randomUUID } from 'crypto';
-import { join } from 'path';
+import { join, dirname, basename, relative } from 'path';
+import chokidar from 'chokidar';
+import fs from 'fs';
+import { createHash } from 'crypto';
+import * as Diff from 'diff';
 
 const app = express();
 const httpServer = createServer(app);
@@ -28,10 +32,15 @@ app.use(express.json({ limit: '50mb' })); // Allow large telemetry payloads
 // Initialize database (use parent directory since we're in backend/)
 const DB_PATH = join(process.cwd(), '..', '.raven', 'db', 'raven.db');
 const RAVEN_DIR = join(process.cwd(), '..', '.raven');
+const WATCH_PATH = join(process.cwd(), '..', 'test_workspace');
+const SNAPSHOTS_DIR = join(RAVEN_DIR, 'snapshots');
 const db = new RavenDB(DB_PATH);
 
 // Session ID (generated once per server start)
 const SESSION_ID = randomUUID();
+
+// File cache for tracking previous states (for diff generation)
+const fileCache = new Map();
 
 // Initialize metrics collector (io will be set later after it's created)
 let metricsCollector;
@@ -57,6 +66,124 @@ function getAgentColor(agentName) {
     if (lowerName.includes(key)) return color;
   }
   return AGENT_COLORS.default;
+}
+
+// ==================== File Watching Helper Functions ====================
+
+function calculateFileHash(content) {
+  return createHash('sha256').update(content).digest('hex');
+}
+
+function generateDiff(oldContent, newContent) {
+  const diff = Diff.createPatch('file', oldContent, newContent, '', '');
+  return diff;
+}
+
+async function saveSnapshot(filepath, content) {
+  try {
+    // Create snapshot filename: filepath_timestamp.ext
+    const timestamp = Date.now();
+    const relPath = relative(WATCH_PATH, filepath);
+    const snapshotName = `${relPath.replace(/\//g, '_')}_${timestamp}`;
+    const snapshotPath = join(SNAPSHOTS_DIR, snapshotName);
+
+    // Ensure snapshots directory exists
+    await fs.promises.mkdir(SNAPSHOTS_DIR, { recursive: true });
+
+    // Save snapshot
+    await fs.promises.writeFile(snapshotPath, content, 'utf8');
+
+    console.log(`💾 Snapshot saved: ${snapshotName}`);
+    return snapshotPath;
+  } catch (error) {
+    console.error('❌ Snapshot save error:', error);
+    return null;
+  }
+}
+
+async function handleFileChange(eventType, filepath) {
+  try {
+    const relPath = relative(WATCH_PATH, filepath);
+    const timestamp = new Date().toISOString();
+
+    let diff = null;
+    let fileHash = null;
+    let eventSize = 0;
+    let content = '';
+
+    // Read file content for 'add' and 'change' events
+    if (eventType === 'add' || eventType === 'change') {
+      try {
+        content = await fs.promises.readFile(filepath, 'utf8');
+        eventSize = content.length;
+        fileHash = calculateFileHash(content);
+
+        // Generate diff for 'change' events
+        if (eventType === 'change' && fileCache.has(filepath)) {
+          const oldContent = fileCache.get(filepath);
+          diff = generateDiff(oldContent, content);
+        }
+
+        // Save snapshot
+        await saveSnapshot(filepath, content);
+
+        // Update cache
+        fileCache.set(filepath, content);
+      } catch (readError) {
+        console.error(`❌ Error reading file ${relPath}:`, readError.message);
+        return;
+      }
+    } else if (eventType === 'unlink') {
+      // File deleted - remove from cache
+      fileCache.delete(filepath);
+    }
+
+    // Get system metrics
+    const si = await import('systeminformation');
+    const cpuLoad = await si.currentLoad();
+    const memInfo = await si.mem();
+    const cpuPercent = cpuLoad.currentLoad || 0;
+    const memPercent = (memInfo.used / memInfo.total) * 100;
+
+    // Insert event into database
+    const eventId = db.insertEvent(
+      timestamp,
+      relPath,
+      eventType,
+      diff,
+      cpuPercent,
+      memPercent,
+      SESSION_ID,
+      fileHash,
+      eventSize
+    );
+
+    console.log(`📁 File ${eventType}: ${relPath} (${eventSize} bytes)`);
+
+    // Emit real-time event via WebSocket
+    io.emit('file-changed', {
+      id: eventId,
+      timestamp,
+      filepath: relPath,
+      change_type: eventType,
+      event_size: eventSize,
+      file_hash: fileHash
+    });
+
+    // Check if this event triggers any alerts
+    const triggerEvent = {
+      file: relPath,
+      lines_changed: diff ? diff.split('\n').length : 0,
+      event_type: eventType,
+      cpu_percent: cpuPercent,
+      memory_percent: memPercent,
+      event_size: eventSize
+    };
+    triggerEngine.evaluate(triggerEvent);
+
+  } catch (error) {
+    console.error('❌ File change handler error:', error);
+  }
 }
 
 // ==================== Telemetry Endpoint ====================
@@ -322,6 +449,77 @@ app.get('/api/events-by-session/:sessionId', (req, res) => {
   }
 });
 
+// Get snapshots for a file
+app.get('/api/snapshots/:filepath', async (req, res) => {
+  try {
+    const { filepath } = req.params;
+
+    // List all snapshots for this file
+    const files = await fs.promises.readdir(SNAPSHOTS_DIR);
+    const filePattern = filepath.replace(/\//g, '_');
+    const snapshots = files
+      .filter(f => f.startsWith(filePattern))
+      .map(f => {
+        const timestamp = parseInt(f.split('_').pop());
+        return {
+          filename: f,
+          timestamp: timestamp,
+          date: new Date(timestamp).toISOString(),
+          path: join(SNAPSHOTS_DIR, f)
+        };
+      })
+      .sort((a, b) => b.timestamp - a.timestamp);
+
+    res.json(snapshots);
+  } catch (error) {
+    console.error('❌ Snapshots error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Restore a file from snapshot
+app.post('/api/restore', async (req, res) => {
+  try {
+    const { filepath, snapshot } = req.body;
+
+    if (!filepath || !snapshot) {
+      return res.status(400).json({ error: 'Missing filepath or snapshot' });
+    }
+
+    // Read snapshot content
+    const snapshotPath = join(SNAPSHOTS_DIR, snapshot);
+    const content = await fs.promises.readFile(snapshotPath, 'utf8');
+
+    // Restore to original location
+    const targetPath = join(WATCH_PATH, filepath);
+    await fs.promises.writeFile(targetPath, content, 'utf8');
+
+    console.log(`🔄 Restored ${filepath} from snapshot ${snapshot}`);
+
+    res.json({
+      success: true,
+      message: `File ${filepath} restored from snapshot`,
+      snapshot: snapshot
+    });
+  } catch (error) {
+    console.error('❌ Restore error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get file events (from events table)
+app.get('/api/file-events', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const includeDiff = req.query.diff === 'true';
+    const events = db.getRecentFileEvents(limit, includeDiff);
+    res.json(events);
+  } catch (error) {
+    console.error('❌ File events error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== Custom Triggers API ====================
 
 app.get('/api/triggers-config', (req, res) => {
@@ -422,11 +620,58 @@ httpServer.listen(PORT, () => {
 
   // Start real-time metrics collection
   metricsCollector.start();
+
+  // Initialize file watcher
+  console.log(`📁 Watching directory: ${WATCH_PATH}`);
+  const watcher = chokidar.watch(WATCH_PATH, {
+    ignored: [
+      /(^|[\/\\])\../,  // Ignore dotfiles
+      '**/node_modules/**',
+      '**/.git/**',
+      '**/target/**',
+      '**/.raven/**',
+      '**/*.log',
+      '**/dist/**',
+      '**/.cache/**'
+    ],
+    persistent: true,
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 100,
+      pollInterval: 50
+    }
+  });
+
+  watcher
+    .on('add', filepath => {
+      console.log(`📄 File added: ${relative(WATCH_PATH, filepath)}`);
+      handleFileChange('add', filepath);
+    })
+    .on('change', filepath => {
+      console.log(`✏️  File changed: ${relative(WATCH_PATH, filepath)}`);
+      handleFileChange('change', filepath);
+    })
+    .on('unlink', filepath => {
+      console.log(`🗑️  File deleted: ${relative(WATCH_PATH, filepath)}`);
+      handleFileChange('unlink', filepath);
+    })
+    .on('error', error => {
+      console.error('❌ Watcher error:', error);
+    })
+    .on('ready', () => {
+      console.log('✅ File watcher ready');
+    });
+
+  // Store watcher for cleanup
+  global.fileWatcher = watcher;
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n🛑 Shutting down Raven backend...');
+  if (global.fileWatcher) {
+    global.fileWatcher.close();
+  }
   metricsCollector.stop();
   db.close();
   process.exit(0);

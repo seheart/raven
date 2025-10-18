@@ -149,14 +149,29 @@ export class RavenDB {
 
   // ==================== File Events ====================
 
-  insertEvent(timestamp, filepath, change_type, diff, cpu, mem, session_id) {
+  insertEvent(timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size) {
     const stmt = this.db.prepare(`
-      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(timestamp, filepath, change_type, diff, cpu, mem, session_id);
+    const result = stmt.run(timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size);
     return result.lastInsertRowid;
+  }
+
+  getRecentFileEvents(limit = 100, includeDiff = false) {
+    const fields = includeDiff
+      ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff'
+      : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem';
+
+    const stmt = this.db.prepare(`
+      SELECT ${fields}
+      FROM events
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+
+    return stmt.all(limit);
   }
 
   getEventsBySession(session_id) {

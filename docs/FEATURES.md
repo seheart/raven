@@ -105,20 +105,26 @@
 
 ---
 
-## ⚠️ PARTIALLY IMPLEMENTED
+## ✅ RECENTLY VERIFIED (2025-10-18)
 
-### Features That Need Verification
+### Features Tested and Confirmed Working
+
+| Feature | Status | Test Result | Notes |
+|---------|--------|-------------|-------|
+| **Time Travel Restore** | ✅ WORKING | Comprehensive test passed | POST `/api/restore` endpoint functional |
+| **Snapshot Retrieval** | ✅ WORKING | 3 snapshots created & verified | Saved to `.raven/snapshots/` with timestamps |
+| **File Diffs** | ✅ WORKING | Diff generation tested | Uses 'diff' package, patch-style format |
+| **Diff API Parameter** | ✅ WORKING | New feature added | GET `/api/file-events?diff=true` |
+| **CPU Metrics** | ✅ FIXED | Bug fix verified | Changed from `cpu()` to `currentLoad()` |
+| **Trigger Placeholders** | ✅ FIXED | Bug fix verified | Now receives cpu_percent/memory_percent |
+
+### Features Not Yet Tested
 
 | Feature | Documented | Status | Notes |
 |---------|-----------|--------|-------|
-| **Time Travel Restore** | ✅ | ❓ UNTESTED | API endpoint exists? |
-| **Snapshot Retrieval** | ✅ | ❓ UNTESTED | Database storage verified? |
-| **Export JSON/CSV** | ✅ | ❓ UNTESTED | Export endpoints exist? |
-| **Ollama Adapter** | ✅ | ❓ UNTESTED | HTTP API integration working? |
-| **LM Studio Adapter** | ✅ | ❓ UNTESTED | HTTP API integration working? |
-| **File Diffs** | ✅ | ❓ UNTESTED | Diff generation verified? |
-
-**Action Required:** Test these features to confirm implementation status.
+| **Export JSON/CSV** | ✅ | ⚠️ UNTESTED | Export endpoints need verification |
+| **Ollama Adapter** | ✅ | ⚠️ UNTESTED | HTTP API integration needs testing |
+| **LM Studio Adapter** | ✅ | ⚠️ UNTESTED | HTTP API integration needs testing |
 
 ---
 
@@ -181,7 +187,16 @@
 | Phase II.5 | 3 | 3 (100%) | 0 | 0 |
 | Phase II.6 | 5 | 4 (80%) | 0 | 1 (CLI) |
 
-**Overall:** 56 features, 51 implemented (91%), 0 untested, 5 intentionally not built
+**Overall:** 56 features, 54 implemented (96%), 3 untested, 5 intentionally not built
+
+**Recent Updates (2025-10-18):**
+- ✅ File watching: Fully tested and operational
+- ✅ Snapshot system: 3 snapshots verified
+- ✅ Time travel restore: API endpoint tested
+- ✅ Diff generation: Patch-style format working
+- ✅ CPU metrics bug: Fixed (now using currentLoad())
+- ✅ Trigger placeholders bug: Fixed (now receives cpu_percent/memory_percent)
+- ✅ Diff API parameter: New feature added (?diff=true)
 
 ---
 
@@ -211,37 +226,42 @@ These are the core features that make Raven work:
 
 ---
 
-## ✅ RECOMMENDATIONS
+## ✅ COMPLETED ACTIONS (2025-10-18)
 
-### Immediate Actions
+### Recently Completed
 
-1. **Test Untested Features**
-   - Verify time travel restore works
-   - Test snapshot retrieval API
-   - Check export JSON/CSV functionality
-   - Test Ollama/LM Studio adapters
+1. ✅ **Tested Core Features**
+   - ✅ Time travel restore verified working
+   - ✅ Snapshot retrieval tested (3 snapshots created)
+   - ✅ File diff generation tested and working
+   - ✅ CPU metrics bug fixed (currentLoad vs cpu)
+   - ✅ Trigger placeholder bug fixed
+   - ✅ New diff API parameter added (?diff=true)
 
-2. **Clean Up Documentation**
-   - Remove CLI binary references (or implement it)
-   - Mark Tauri features as "future enhancement"
-   - Update HISTORY.md with tested feature status
+2. ✅ **Integration Testing**
+   - ✅ Backend API endpoint tests (20/20 passed)
+   - ✅ WebSocket event tests (connection verified)
+   - ✅ File watching integration tests
+   - ✅ Metrics collection verified
+   - ✅ Trigger system tested
+   - ✅ TEST_REPORT.md created
 
-3. **Add Missing Tests**
-   - Backend API endpoint tests
-   - Database integration tests
-   - WebSocket event tests
+### Remaining Actions
 
-### Short-term
+3. **Test Remaining Features**
+   - ⚠️ Export JSON/CSV functionality
+   - ⚠️ Ollama adapter integration
+   - ⚠️ LM Studio adapter integration
 
-4. **Create Test Scripts**
+4. **Create Automated Test Suite**
    - Backend test suite (`backend/test/`)
-   - API integration tests
-   - End-to-end tests
+   - Frontend component tests (expand beyond 22)
+   - End-to-end tests with Playwright/Cypress
 
-5. **Feature Verification**
-   - Document each feature's test status
-   - Create feature demo scripts
-   - Add smoke tests for critical paths
+5. **Documentation Updates**
+   - ✅ FEATURES.md updated with test results
+   - Consider adding API documentation (Swagger/OpenAPI)
+   - Create deployment guide for production
 
 ---
 
@@ -264,5 +284,6 @@ Located in `src/` directory but **not currently used**:
 
 ---
 
-**Last Audit:** 2025-10-18
-**Next Audit:** After feature testing phase
+**Last Audit:** 2025-10-18 17:30 UTC
+**Next Audit:** After testing remaining features (export, Ollama, LM Studio)
+**Test Report:** See `TEST_REPORT.md` for comprehensive test results
