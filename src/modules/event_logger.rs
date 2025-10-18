@@ -138,12 +138,12 @@ impl EventLogger {
 
     /// Get file history for a specific path
     pub fn get_file_history(&self, filepath: &str) -> Result<Vec<super::db::Event>> {
-        self.db.get_file_history(filepath)
+        Ok(self.db.get_file_history(filepath)?)
     }
 
     /// List all tracked files
     pub fn get_tracked_files(&self) -> Result<Vec<String>> {
-        self.db.get_tracked_files()
+        Ok(self.db.get_tracked_files()?)
     }
 }
 

@@ -14,7 +14,7 @@ impl MetricsCollector {
     /// Create a new metrics collector
     pub fn new() -> Self {
         let system = System::new_with_specifics(
-            RefreshKind::new()
+            RefreshKind::nothing()
                 .with_cpu(CpuRefreshKind::everything())
                 .with_memory(MemoryRefreshKind::everything()),
         );
@@ -65,7 +65,7 @@ impl MetricsCollector {
 
     /// Discover and track processes by name
     pub fn discover_processes(&mut self, process_names: &[&str]) {
-        self.system.refresh_processes(ProcessRefreshKind::everything(), false);
+        self.system.refresh_all();
 
         for (pid, process) in self.system.processes() {
             let process_name = process.name().to_string_lossy().to_lowercase();
@@ -88,7 +88,7 @@ impl MetricsCollector {
     pub fn get_process_stats(&mut self, agent_name: &str) -> Option<ProcessStats> {
         let pid = self.tracked_processes.get(agent_name)?;
 
-        self.system.refresh_process(*pid);
+        self.system.refresh_all();
         let process = self.system.process(*pid)?;
 
         Some(ProcessStats {
@@ -115,7 +115,7 @@ impl MetricsCollector {
 
     /// Get network statistics (bytes sent/received)
     pub fn get_network_stats(&mut self) -> NetworkStats {
-        self.networks.refresh();
+        self.networks.refresh(true);
 
         let mut total_received = 0;
         let mut total_transmitted = 0;
@@ -135,7 +135,7 @@ impl MetricsCollector {
 
     /// Get disk I/O statistics
     pub fn get_disk_stats(&mut self) -> Vec<DiskStats> {
-        self.disks.refresh();
+        self.disks.refresh(true);
 
         self.disks
             .iter()

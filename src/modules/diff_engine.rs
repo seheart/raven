@@ -13,7 +13,7 @@ pub fn generate_diff(old_content: &str, new_content: &str, context_lines: usize)
         }
 
         for op in group {
-            for change in diff.iter_inline_changes(op) {
+            for change in diff.iter_changes(op) {
                 let (sign, style) = match change.tag() {
                     ChangeTag::Delete => ("-", "red"),
                     ChangeTag::Insert => ("+", "green"),
@@ -31,7 +31,7 @@ pub fn generate_diff(old_content: &str, new_content: &str, context_lines: usize)
 /// Calculate similarity ratio between two strings
 pub fn similarity_ratio(old: &str, new: &str) -> f64 {
     let diff = TextDiff::from_lines(old, new);
-    diff.ratio()
+    diff.ratio() as f64
 }
 
 #[cfg(test)]

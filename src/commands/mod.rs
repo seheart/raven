@@ -790,7 +790,7 @@ pub async fn get_longest_edits(
     let db = state.db.lock().await;
 
     // Query agent events for longest operations
-    let agent_events = db.get_all_agent_events()
+    let agent_events = db.get_recent_agent_events(10000)
         .map_err(|e| format!("Failed to get agent events: {}", e))?;
 
     let mut edits: Vec<LongestEditData> = agent_events.iter()

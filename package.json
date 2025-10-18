@@ -17,5 +17,8 @@
     "ai-agents"
   ],
   "author": "Seth Eheart",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.4"
+  }
 }

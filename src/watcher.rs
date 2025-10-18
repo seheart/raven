@@ -4,7 +4,7 @@ use std::sync::Arc;
 use notify::{Event, EventKind, RecursiveMode, Watcher};
 use notify_debouncer_full::{new_debouncer, DebounceEventResult, Debouncer, FileIdMap};
 use std::time::Duration;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Mutex;
 use tracing::{info, warn, error, debug};
 use anyhow::Result;
