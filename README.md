@@ -30,7 +30,7 @@ Raven captures file changes, system metrics, and API events in real time — wit
 - [x] **Cross-platform builds (Linux, macOS, Windows)**
 - [x] **Open source ready (LICENSE, CONTRIBUTING)**
 
-**⚠️ Requires system dependencies to run** (see [SETUP.md](SETUP.md))
+**⚠️ Requires system dependencies to run** (see [docs/guides/SETUP.md](docs/guides/SETUP.md))
 
 ## 🎯 Features
 
@@ -85,7 +85,7 @@ Raven captures file changes, system metrics, and API events in real time — wit
 
 ## 📦 Installation
 
-See [SETUP.md](SETUP.md) for detailed installation instructions.
+See [docs/guides/SETUP.md](docs/guides/SETUP.md) for detailed installation instructions.
 
 **Quick start:**
 
@@ -213,18 +213,28 @@ memory_threshold = 85.0
 
 ## 🐛 Troubleshooting
 
-See [SETUP.md](SETUP.md#troubleshooting) for common issues and solutions.
+See [docs/guides/SETUP.md](docs/guides/SETUP.md#troubleshooting) for common issues and solutions.
+
+## 📚 Documentation
+
+Complete documentation is available in the [docs/](docs/) directory:
+
+- **[Setup Guide](docs/guides/SETUP.md)** - Installation instructions
+- **[Development Plan](docs/guides/RAVEN_DEV_PLAN.md)** - Project roadmap
+- **[Testing Guide](docs/guides/TESTING.md)** - Running tests
+- **[API Documentation](docs/api/)** - Feature-specific docs
+- **[Phase Reports](docs/phases/)** - Development history
 
 ## 📄 License
 
-MIT License - See LICENSE file
+MIT License - See [LICENSE](LICENSE) file
 
 ## 👤 Author
 
 **Seth Eheart**
 Codename: Raven
-Version: 0.5.0 (Phase 5 Complete)
+Version: 0.6.0 (Phase II.6 Complete)
 
 ---
 
-**Status:** Phase 5 complete! Ready for cross-platform release with CI/CD, build automation, and full open source infrastructure 🚀
+**Status:** Phase II.6 complete! Ready for cross-platform release with CI/CD, build automation, and full open source infrastructure 🚀
