@@ -1,10 +1,5 @@
 import Database from 'better-sqlite3';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { mkdirSync, existsSync } from 'fs';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export class RavenDB {
   constructor(dbPath) {
@@ -88,7 +83,17 @@ export class RavenDB {
 
   // ==================== Agent Events ====================
 
-  insertAgentEvent(timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id) {
+  insertAgentEvent(
+    timestamp,
+    agent,
+    event_type,
+    file,
+    lines_changed,
+    duration_ms,
+    message,
+    metadata,
+    session_id
+  ) {
     const stmt = this.db.prepare(`
       INSERT INTO agent_events (timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -155,7 +160,17 @@ export class RavenDB {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size);
+    const result = stmt.run(
+      timestamp,
+      filepath,
+      change_type,
+      diff,
+      cpu,
+      mem,
+      session_id,
+      file_hash,
+      event_size
+    );
     return result.lastInsertRowid;
   }
 
@@ -209,7 +224,16 @@ export class RavenDB {
 
   // ==================== System Metrics ====================
 
-  insertSystemMetrics(timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes, session_id) {
+  insertSystemMetrics(
+    timestamp,
+    cpu_percent,
+    memory_percent,
+    memory_used_mb,
+    memory_total_mb,
+    network_rx_bytes,
+    network_tx_bytes,
+    session_id
+  ) {
     const stmt = this.db.prepare(`
       INSERT INTO raven_metrics (timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -252,18 +276,31 @@ export class RavenDB {
       WHERE timestamp BETWEEN ? AND ?
     `);
 
-    return stmt.get(start_time, end_time) || {
-      avg_cpu_percent: 0,
-      max_cpu_percent: 0,
-      avg_memory_percent: 0,
-      max_memory_percent: 0,
-      sample_count: 0
-    };
+    return (
+      stmt.get(start_time, end_time) || {
+        avg_cpu_percent: 0,
+        max_cpu_percent: 0,
+        avg_memory_percent: 0,
+        max_memory_percent: 0,
+        sample_count: 0
+      }
+    );
   }
 
   // ==================== Process Metrics ====================
 
-  insertProcessMetrics(timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, status, session_id) {
+  insertProcessMetrics(
+    timestamp,
+    agent_name,
+    pid,
+    cpu_usage,
+    memory_mb,
+    virtual_memory_mb,
+    disk_read_bytes,
+    disk_write_bytes,
+    status,
+    session_id
+  ) {
     const stmt = this.db.prepare(`
       INSERT INTO process_metrics (timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, status, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -349,7 +386,7 @@ export class RavenDB {
         }
 
         fileStats[event.filepath].edit_count++;
-        fileStats[event.filepath].total_lines_changed += (event.lines_changed || 0);
+        fileStats[event.filepath].total_lines_changed += event.lines_changed || 0;
 
         // Update last modified
         if (event.timestamp > fileStats[event.filepath].last_modified) {

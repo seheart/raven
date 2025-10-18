@@ -1,6 +1,5 @@
 // Real-time system metrics collector
 import si from 'systeminformation';
-import { RavenDB } from './db.js';
 
 export class MetricsCollector {
   constructor(db, sessionId, io = null) {
@@ -42,7 +41,9 @@ export class MetricsCollector {
         this.sessionId
       );
 
-      console.log(`📊 System metrics: CPU ${cpu_percent.toFixed(1)}% | RAM ${memory_percent.toFixed(1)}% (${memory_used_mb}MB/${memory_total_mb}MB)`);
+      console.log(
+        `📊 System metrics: CPU ${cpu_percent.toFixed(1)}% | RAM ${memory_percent.toFixed(1)}% (${memory_used_mb}MB/${memory_total_mb}MB)`
+      );
 
       // Emit real-time metrics via WebSocket
       if (this.io) {
@@ -75,11 +76,12 @@ export class MetricsCollector {
       ];
 
       for (const { pattern, name } of agentPatterns) {
-        const matchingProcs = processes.list.filter(p =>
-          pattern.test(p.name) || pattern.test(p.command)
+        const matchingProcs = processes.list.filter(
+          p => pattern.test(p.name) || pattern.test(p.command)
         );
 
-        for (const proc of matchingProcs.slice(0, 1)) { // Just track the first match
+        for (const proc of matchingProcs.slice(0, 1)) {
+          // Just track the first match
           const cpu_usage = proc.cpu || 0;
           const memory_mb = Math.floor(proc.mem / (1024 * 1024));
           const virtual_memory_mb = Math.floor((proc.memVsz || 0) / 1024);
@@ -97,7 +99,9 @@ export class MetricsCollector {
             this.sessionId
           );
 
-          console.log(`🤖 Process metrics: ${name} (PID ${proc.pid}) - CPU ${cpu_usage.toFixed(1)}% | RAM ${memory_mb}MB`);
+          console.log(
+            `🤖 Process metrics: ${name} (PID ${proc.pid}) - CPU ${cpu_usage.toFixed(1)}% | RAM ${memory_mb}MB`
+          );
         }
       }
     } catch (error) {
@@ -116,7 +120,9 @@ export class MetricsCollector {
       return;
     }
 
-    console.log(`🚀 Starting real-time metrics collector (every ${this.collectionInterval}ms = ${this.collectionInterval/1000}s)`);
+    console.log(
+      `🚀 Starting real-time metrics collector (every ${this.collectionInterval}ms = ${this.collectionInterval / 1000}s)`
+    );
     this.isRunning = true;
 
     // Collect immediately

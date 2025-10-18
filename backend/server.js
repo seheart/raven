@@ -6,7 +6,7 @@ import { RavenDB } from './db.js';
 import { MetricsCollector } from './metrics-collector.js';
 import { TriggerEngine } from './trigger-engine.js';
 import { randomUUID } from 'crypto';
-import { join, dirname, basename, relative } from 'path';
+import { join, relative } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
 import { createHash } from 'crypto';
@@ -16,8 +16,8 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
     credentials: true
   },
   allowEIO3: true,
@@ -53,11 +53,11 @@ const agentRegistry = new Map();
 
 // Agent type color mapping
 const AGENT_COLORS = {
-  'claude': '#FF6B35',
-  'gpt': '#10A37F',
-  'gemini': '#4285F4',
-  'ollama': '#F39C12',
-  'default': '#6b7280'
+  claude: '#FF6B35',
+  gpt: '#10A37F',
+  gemini: '#4285F4',
+  ollama: '#F39C12',
+  default: '#6b7280'
 };
 
 function getAgentColor(agentName) {
@@ -180,7 +180,6 @@ async function handleFileChange(eventType, filepath) {
       event_size: eventSize
     };
     triggerEngine.evaluate(triggerEvent);
-
   } catch (error) {
     console.error('❌ File change handler error:', error);
   }
@@ -190,16 +189,7 @@ async function handleFileChange(eventType, filepath) {
 
 app.post('/telemetry', (req, res) => {
   try {
-    const {
-      agent,
-      event,
-      file,
-      lines_changed,
-      duration_ms,
-      message,
-      metadata,
-      auth_token
-    } = req.body;
+    const { agent, event, file, lines_changed, duration_ms, message, metadata } = req.body;
 
     // Validate required fields
     if (!agent || !event || !message) {
@@ -282,7 +272,7 @@ app.post('/telemetry', (req, res) => {
 // ==================== Dashboard API ====================
 
 app.get('/api/session-id', (req, res) => {
-  res.json(SESSION_ID);
+  res.json({ session_id: SESSION_ID });
 });
 
 app.get('/api/dashboard-stats', (req, res) => {
@@ -401,11 +391,12 @@ app.get('/api/process-metrics/:agent', (req, res) => {
 
 app.get('/api/metrics-stats', (req, res) => {
   try {
-    const { start_time, end_time } = req.query;
+    // Default to last 24 hours if not specified
+    const now = Date.now();
+    const dayAgo = now - 24 * 60 * 60 * 1000;
 
-    if (!start_time || !end_time) {
-      return res.status(400).json({ error: 'start_time and end_time are required' });
-    }
+    const start_time = req.query.start_time || new Date(dayAgo).toISOString();
+    const end_time = req.query.end_time || new Date(now).toISOString();
 
     const stats = db.getMetricsStats(start_time, end_time);
     res.json(stats);
@@ -525,7 +516,7 @@ app.get('/api/file-events', (req, res) => {
 app.get('/api/triggers-config', (req, res) => {
   try {
     const triggers = triggerEngine.getTriggersConfig();
-    res.json(triggers);
+    res.json({ rules: triggers });
   } catch (error) {
     console.error('❌ Triggers config error:', error);
     res.status(500).json({ error: error.message });
@@ -587,7 +578,7 @@ app.get('/health', (req, res) => {
 
 // ==================== WebSocket Connections ====================
 
-io.on('connection', (socket) => {
+io.on('connection', socket => {
   console.log('🔌 WebSocket client connected:', socket.id);
 
   socket.on('disconnect', () => {
@@ -625,7 +616,7 @@ httpServer.listen(PORT, () => {
   console.log(`📁 Watching directory: ${WATCH_PATH}`);
   const watcher = chokidar.watch(WATCH_PATH, {
     ignored: [
-      /(^|[\/\\])\../,  // Ignore dotfiles
+      /(^|[\/\\])\../, // Ignore dotfiles
       '**/node_modules/**',
       '**/.git/**',
       '**/target/**',

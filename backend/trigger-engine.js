@@ -1,11 +1,6 @@
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import toml from 'toml';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export class TriggerEngine {
   constructor(configPath, io = null) {
@@ -183,10 +178,7 @@ cooldown_seconds = 300
 
   matchPattern(filename, pattern) {
     // Simple glob pattern matching
-    const regex = pattern
-      .replace(/\./g, '\\.')
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.');
+    const regex = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.');
 
     return new RegExp(`^${regex}$`).test(filename);
   }
@@ -199,12 +191,18 @@ cooldown_seconds = 300
     const thresholdNum = parseFloat(threshold);
 
     switch (operator) {
-      case '>': return value > thresholdNum;
-      case '<': return value < thresholdNum;
-      case '>=': return value >= thresholdNum;
-      case '<=': return value <= thresholdNum;
-      case '==': return value === thresholdNum;
-      default: return false;
+      case '>':
+        return value > thresholdNum;
+      case '<':
+        return value < thresholdNum;
+      case '>=':
+        return value >= thresholdNum;
+      case '<=':
+        return value <= thresholdNum;
+      case '==':
+        return value === thresholdNum;
+      default:
+        return false;
     }
   }
 
