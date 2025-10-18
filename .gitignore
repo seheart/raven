@@ -1,0 +1,48 @@
+# Rust
+/target
+Cargo.lock
+
+# Tauri
+/src-tauri/target
+
+# Runtime data
+/.raven/db/*.db
+/.raven/db/*.db-shm
+/.raven/db/*.db-wal
+/.raven/snapshots/*
+/.raven/*.log
+
+# Keep .raven structure
+!/.raven/.gitkeep
+!/.raven/db/.gitkeep
+!/.raven/snapshots/.gitkeep
+
+# Frontend
+/frontend/node_modules
+/frontend/dist
+/frontend/.svelte-kit
+/frontend/build
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test workspace changes (optional - comment out if you want to track test changes)
+# /test_workspace/**
+# !/test_workspace/README.md

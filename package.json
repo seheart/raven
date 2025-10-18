@@ -1,0 +1,21 @@
+{
+  "name": "raven",
+  "version": "0.1.0",
+  "description": "Local-first AI agent monitoring tool",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "tauri": "cargo tauri",
+    "tauri:dev": "cargo tauri dev",
+    "tauri:build": "cargo tauri build"
+  },
+  "keywords": [
+    "tauri",
+    "svelte",
+    "rust",
+    "monitoring",
+    "ai-agents"
+  ],
+  "author": "Seth Eheart",
+  "license": "MIT"
+}

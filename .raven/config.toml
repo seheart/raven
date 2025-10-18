@@ -1,0 +1,78 @@
+# Raven Configuration File
+# Phase 0 - Basic settings for local monitoring
+
+[general]
+# Application name
+app_name = "Raven"
+version = "0.1.0"
+
+[monitoring]
+# Directory to watch for changes
+watch_path = "../test_workspace"
+
+# File patterns to ignore (glob patterns)
+ignore_patterns = [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/target/**",
+    "**/.raven/**",
+    "**/*.log",
+    "**/dist/**",
+    "**/.cache/**"
+]
+
+# Debounce delay in milliseconds
+debounce_ms = 50
+
+# Maximum number of events to keep in memory
+max_events = 1000
+
+[database]
+# SQLite database path (relative to .raven directory)
+db_path = "db/raven.db"
+
+[snapshots]
+# Directory for storing file snapshots
+snapshots_dir = "snapshots"
+
+# Enable automatic snapshots
+enabled = true
+
+# Maximum snapshot size in MB
+max_snapshot_size_mb = 10
+
+# Retention period in days (0 = keep forever)
+retention_days = 7
+
+[metrics]
+# Enable system metrics collection
+enabled = true
+
+# Metrics collection interval in seconds
+interval_seconds = 2
+
+# CPU usage threshold for alerts (percentage)
+cpu_threshold = 80.0
+
+# Memory usage threshold for alerts (percentage)
+memory_threshold = 85.0
+
+[ui]
+# Auto-refresh interval in milliseconds
+refresh_interval_ms = 1000
+
+# Maximum events to display in feed
+max_displayed_events = 100
+
+# Theme (dark/light)
+theme = "dark"
+
+[logging]
+# Log level (trace, debug, info, warn, error)
+level = "info"
+
+# Log to file
+log_to_file = false
+
+# Log file path
+log_file = "raven.log"
