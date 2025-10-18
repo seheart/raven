@@ -1,4 +1,4 @@
-# 🦅 Raven Development Plan — Phase III (Persistent Memory + Git Integration)
+# 🐦‍⬛ Raven Development Plan — Phase III (Persistent Memory + Git Integration)
 
 **Purpose:**  
 Raven now evolves from a local telemetry monitor into a full **project-aware**, **Git-integrated**, and **memory-persistent** development companion.  

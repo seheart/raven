@@ -1,4 +1,4 @@
-# 🦅 Raven - AI Agent Monitor
+# 🐦‍⬛ Raven - AI Agent Monitor
 
 > **Local-first, lightning-fast monitoring tool for AI coding agents**
 

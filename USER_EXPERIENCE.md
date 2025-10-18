@@ -214,7 +214,7 @@ raven status [OPTIONS]
 **Example Output:**
 
 ```
-🦅 Raven Status
+🐦‍⬛ Raven Status
 
 📊 Session Statistics:
    Tracked Files: 56
@@ -234,7 +234,7 @@ raven status --verbose
 ```
 
 ```
-🦅 Raven Status
+🐦‍⬛ Raven Status
 
 📊 Session Statistics:
    Tracked Files: 56

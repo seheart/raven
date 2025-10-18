@@ -367,6 +367,6 @@ All time-travel features implemented and ready to test once webkit2gtk is instal
 
 ---
 
-**🦅 Raven Phase 2: Time-travel capabilities unlocked!**
+**🐦‍⬛ Raven Phase 2: Time-travel capabilities unlocked!**
 
 You can now travel through time, viewing and restoring any file to any previous state captured by Raven. Every edit is preserved, every moment is reachable. 🚀⏰

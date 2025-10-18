@@ -10,32 +10,18 @@
       items: [
         { keys: ['?'], description: 'Show/hide this help' },
         { keys: ['Esc'], description: 'Close modals and dialogs' },
-        { keys: ['Ctrl', 'K'], description: 'Focus search input' },
       ]
     },
     {
-      category: 'Event Feed',
+      category: 'Navigation',
       items: [
-        { keys: ['1'], description: 'Toggle Created filter' },
-        { keys: ['2'], description: 'Toggle Modified filter' },
-        { keys: ['3'], description: 'Toggle Deleted filter' },
-        { keys: ['C'], description: 'Clear all events' },
-        { keys: ['R'], description: 'Refresh events' },
-      ]
-    },
-    {
-      category: 'File Browser',
-      items: [
-        { keys: ['↑', '↓'], description: 'Navigate files' },
-        { keys: ['Enter'], description: 'View file history' },
-      ]
-    },
-    {
-      category: 'File History',
-      items: [
-        { keys: ['V'], description: 'View snapshot' },
-        { keys: ['D'], description: 'View diff' },
-        { keys: ['Ctrl', 'R'], description: 'Restore to point' },
+        { keys: ['1'], description: 'Dashboard view' },
+        { keys: ['2'], description: 'Session Replay view' },
+        { keys: ['3'], description: 'Performance view' },
+        { keys: ['4'], description: 'Triggers view' },
+        { keys: ['5'], description: 'Agents view' },
+        { keys: ['6'], description: 'Status view' },
+        { keys: ['7'], description: 'About view' },
       ]
     }
   ];

@@ -16,7 +16,7 @@ fn main() {
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    info!("🦅 Raven starting...");
+    info!("🐦‍⬛ Raven starting...");
 
     // Determine paths
     let project_dir = std::env::current_dir().expect("Failed to get current directory");

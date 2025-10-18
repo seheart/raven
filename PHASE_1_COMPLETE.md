@@ -221,7 +221,7 @@ RUST_LOG=debug cargo tauri dev
 
 ### Check Logs:
 ```
-2025-10-17T19:30:00 INFO raven: 🦅 Raven starting...
+2025-10-17T19:30:00 INFO raven: 🐦‍⬛ Raven starting...
 2025-10-17T19:30:00 INFO raven::watcher: Watching directory: "test_workspace"
 2025-10-17T19:30:00 INFO raven::watcher: File watcher active
 2025-10-17T19:30:05 INFO raven::watcher: File modified: "test_workspace/src/example.py"
@@ -296,6 +296,6 @@ All core backend functionality is implemented and ready to test. The only blocke
 
 ---
 
-**🦅 Raven Phase 1: Core backend operational!**
+**🐦‍⬛ Raven Phase 1: Core backend operational!**
 
 The foundation is solid, the backend is live, and real-time monitoring is ready. Phase 2 will add time-travel capabilities! 🚀

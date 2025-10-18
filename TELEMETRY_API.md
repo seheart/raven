@@ -1,4 +1,4 @@
-# 🦅 Raven Telemetry API Documentation
+# 🐦‍⬛ Raven Telemetry API Documentation
 
 **Version:** Phase II.1 - Agent Telemetry API
 **Status:** ✅ Fully Implemented

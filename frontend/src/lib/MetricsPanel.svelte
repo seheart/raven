@@ -1,6 +1,8 @@
 <script>
-  import { invoke } from '@tauri-apps/api/core';
   import { onMount, onDestroy } from 'svelte';
+  import { websocketService } from './websocket.js';
+
+  const API_BASE = 'http://localhost:3030/api';
 
   let cpu = 0;
   let memory = 0;
@@ -10,18 +12,18 @@
 
   async function updateMetrics() {
     try {
-      const metrics = await invoke('get_metrics');
-      cpu = metrics.cpu;
-      memory = metrics.memory;
-      memoryUsed = metrics.memory_used_mb;
-      memoryTotal = metrics.memory_total_mb;
+      const response = await fetch(`${API_BASE}/system-metrics?limit=1`);
+      const metrics = await response.json();
+
+      if (metrics && metrics.length > 0) {
+        const latest = metrics[0];
+        cpu = latest.cpu_percent;
+        memory = latest.memory_percent;
+        memoryUsed = latest.memory_used_mb;
+        memoryTotal = latest.memory_total_mb;
+      }
     } catch (error) {
       console.error('Failed to get metrics:', error);
-      // Fallback to mock data if Tauri not available
-      cpu = Math.random() * 100;
-      memory = Math.random() * 100;
-      memoryUsed = Math.floor(Math.random() * 8000);
-      memoryTotal = 16000;
     }
   }
 
@@ -29,14 +31,28 @@
     // Initial fetch
     updateMetrics();
 
-    // Update every 2 seconds
-    intervalId = setInterval(updateMetrics, 2000);
+    // Connect to WebSocket for real-time system metrics
+    websocketService.connect();
+
+    // Listen for real-time system metrics
+    websocketService.on('system-metrics', (metrics) => {
+      cpu = metrics.cpu_percent;
+      memory = metrics.memory_percent;
+      memoryUsed = metrics.memory_used_mb;
+      memoryTotal = metrics.memory_total_mb;
+    });
+
+    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
+    intervalId = setInterval(updateMetrics, 30000);
   });
 
   onDestroy(() => {
     if (intervalId) {
       clearInterval(intervalId);
     }
+
+    // Clean up WebSocket listeners
+    websocketService.off('system-metrics');
   });
 </script>
 

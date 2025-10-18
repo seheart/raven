@@ -27,7 +27,7 @@ def send_event(sock, event):
 
 def main():
     """Main test function"""
-    print("🦅 Raven Telemetry Test Sender")
+    print("🐦‍⬛ Raven Telemetry Test Sender")
     print(f"Socket path: {SOCKET_PATH}")
     print("-" * 60)
 

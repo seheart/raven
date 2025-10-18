@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🦅 Raven Linux Build Script"
+echo "🐦‍⬛ Raven Linux Build Script"
 echo "============================"
 echo ""
 

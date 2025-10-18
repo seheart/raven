@@ -1,4 +1,4 @@
-# 🦅 Raven Development Plan — Phase II (Advanced Features)
+# 🐦‍⬛ Raven Development Plan — Phase II (Advanced Features)
 **Purpose:**  
 Expand Raven beyond core logging into a full-fledged local telemetry and analysis platform for AI coding agents.  
 This version omits any VS Code integration and focuses entirely on open, local, and model-agnostic extensions.

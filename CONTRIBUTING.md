@@ -376,4 +376,4 @@ Contributors will be recognized in:
 - Release notes
 - GitHub contributors page
 
-Thank you for contributing to Raven! 🦅
+Thank you for contributing to Raven! 🐦‍⬛

@@ -1,6 +1,8 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
+  import { websocketService } from './websocket.js';
+
+  const API_BASE = 'http://localhost:3030/api';
 
   let stats = {
     total_events: 0,
@@ -18,23 +20,45 @@
 
   onMount(async () => {
     await loadAllData();
-    // Auto-refresh every 5 seconds
-    refreshInterval = setInterval(loadAllData, 5000);
+
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+
+    // Listen for real-time agent events (triggers stats reload)
+    websocketService.on('agent-event', async () => {
+      // Reload dashboard stats when new events come in
+      const statsData = await fetch(`${API_BASE}/dashboard-stats`).then(r => r.json());
+      stats = statsData;
+    });
+
+    // Listen for real-time agent stats
+    websocketService.on('agent-stats', async () => {
+      // Reload agents status when stats update
+      const agentsData = await fetch(`${API_BASE}/agents-status`).then(r => r.json());
+      agents = agentsData;
+    });
+
+    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
+    refreshInterval = setInterval(loadAllData, 30000);
   });
 
   onDestroy(() => {
     if (refreshInterval) {
       clearInterval(refreshInterval);
     }
+
+    // Clean up WebSocket listeners
+    websocketService.off('agent-event');
+    websocketService.off('agent-stats');
   });
 
   async function loadAllData() {
     try {
       const [statsData, filesData, editsData, agentsData] = await Promise.all([
-        invoke('get_dashboard_stats'),
-        invoke('get_top_modified_files', { limit: 10 }),
-        invoke('get_longest_edits', { limit: 10 }),
-        invoke('get_agents_status')
+        fetch(`${API_BASE}/dashboard-stats`).then(r => r.json()),
+        fetch(`${API_BASE}/top-modified-files?limit=10`).then(r => r.json()),
+        fetch(`${API_BASE}/longest-edits?limit=10`).then(r => r.json()),
+        fetch(`${API_BASE}/agents-status`).then(r => r.json())
       ]);
 
       stats = statsData;
@@ -68,7 +92,7 @@
 
 <div class="dashboard">
   <div class="header">
-    <h1>🦅 Raven Dashboard</h1>
+    <h1>🐦‍⬛ Raven Dashboard</h1>
     <button on:click={loadAllData} class="btn-refresh">
       ↻ Refresh
     </button>
@@ -235,13 +259,14 @@
 
 <style>
   .dashboard {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 0;
+    width: 100%;
+    margin: 0;
     font-family: 'Inter', sans-serif;
     background-color: #0f0f0f;
-    min-height: 100vh;
+    min-height: calc(100vh - 200px);
     color: #e5e5e5;
+    position: relative;
   }
 
   .header {
@@ -249,6 +274,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
+    padding: 20px;
     padding-bottom: 20px;
     border-bottom: 2px solid #1f1f1f;
   }
@@ -293,6 +319,7 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
+    padding: 0 20px;
   }
 
   .stat-card {
@@ -344,8 +371,10 @@
   /* Content Grid */
   .content-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
     gap: 20px;
+    width: 100%;
+    padding: 0 20px 20px 20px;
   }
 
   .panel {

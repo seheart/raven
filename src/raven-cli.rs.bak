@@ -63,7 +63,7 @@ fn status_command(verbose: bool) -> Result<()> {
     use raven::modules::ollama_adapter::OllamaAdapter;
     use raven::modules::lmstudio_adapter::LMStudioAdapter;
 
-    println!("🦅 Raven Status\n");
+    println!("🐦‍⬛ Raven Status\n");
 
     // Get database path
     let project_dir = std::env::current_dir()

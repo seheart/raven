@@ -1,24 +1,30 @@
 <script>
-  import { invoke } from '@tauri-apps/api/core';
   import { onMount, onDestroy } from 'svelte';
   import Dashboard from './lib/Dashboard.svelte';
   import SessionReplay from './lib/SessionReplay.svelte';
   import PerformancePanel from './lib/PerformancePanel.svelte';
   import TriggersPanel from './lib/TriggersPanel.svelte';
   import AgentsPanel from './lib/AgentsPanel.svelte';
+  import StatusPanel from './lib/StatusPanel.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
+  import Footer from './lib/Footer.svelte';
+  import AboutPage from './lib/AboutPage.svelte';
+  import ChangelogPage from './lib/ChangelogPage.svelte';
   import { keyboard } from './lib/keyboardService.js';
+
+  const API_BASE = 'http://localhost:3030/api';
 
   let sessionId = 'Loading...';
   let showShortcuts = false;
-  let currentView = 'dashboard'; // dashboard, replay, performance, triggers, agents
+  let currentView = 'dashboard'; // dashboard, replay, performance, triggers, agents, status, about, changelog
 
   async function loadSessionId() {
     try {
-      sessionId = await invoke('get_session_id');
+      const response = await fetch(`${API_BASE}/session-id`);
+      sessionId = await response.json();
     } catch (error) {
-      sessionId = 'Browser Mode';
-      console.error(error);
+      sessionId = 'Offline';
+      console.error('Failed to load session ID:', error);
     }
   }
 
@@ -45,6 +51,8 @@
     keyboard.register('3', () => switchView('performance'));
     keyboard.register('4', () => switchView('triggers'));
     keyboard.register('5', () => switchView('agents'));
+    keyboard.register('6', () => switchView('status'));
+    keyboard.register('7', () => switchView('about'));
   });
 
   onDestroy(() => {
@@ -56,9 +64,8 @@
   <header>
     <div class="header-content">
       <div class="header-left">
-        <h1>🦅 Raven</h1>
+        <h1>🐦‍⬛ Raven</h1>
         <div class="header-info">
-          <p class="subtitle">AI Agent Monitor - Phase II Complete</p>
           <p class="session-id">Session: {sessionId}</p>
         </div>
       </div>
@@ -104,46 +111,72 @@
     >
       🤖 Agents <span class="shortcut">5</span>
     </button>
+    <button
+      class="tab"
+      class:active={currentView === 'status'}
+      on:click={() => switchView('status')}
+    >
+      🏥 Status <span class="shortcut">6</span>
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'about'}
+      on:click={() => switchView('about')}
+    >
+      ℹ️ About <span class="shortcut">7</span>
+    </button>
   </nav>
 
   <div class="view-container">
-    {#if currentView === 'dashboard'}
-      <Dashboard />
-    {:else if currentView === 'replay'}
-      <SessionReplay />
-    {:else if currentView === 'performance'}
-      <PerformancePanel />
-    {:else if currentView === 'triggers'}
-      <TriggersPanel />
-    {:else if currentView === 'agents'}
-      <AgentsPanel />
-    {/if}
+    {#key currentView}
+      {#if currentView === 'dashboard'}
+        <Dashboard />
+      {:else if currentView === 'replay'}
+        <SessionReplay />
+      {:else if currentView === 'performance'}
+        <PerformancePanel />
+      {:else if currentView === 'triggers'}
+        <TriggersPanel />
+      {:else if currentView === 'agents'}
+        <AgentsPanel />
+      {:else if currentView === 'status'}
+        <StatusPanel />
+      {:else if currentView === 'about'}
+        <AboutPage />
+      {:else if currentView === 'changelog'}
+        <ChangelogPage />
+      {/if}
+    {/key}
   </div>
 </main>
 
 <KeyboardShortcuts visible={showShortcuts} onClose={() => showShortcuts = false} />
+<Footer onAboutClick={() => switchView('about')} onChangelogClick={() => switchView('changelog')} />
 
 <style>
   main {
     padding: 0;
-    max-width: 100%;
+    width: 100%;
+    max-width: 100vw;
     margin: 0;
     min-height: 100vh;
     background: #0f0f0f;
+    overflow-x: hidden;
   }
 
   header {
     padding: 1.5rem 2rem;
     border-bottom: 2px solid #1f1f1f;
     background: #1a1a1a;
+    position: relative;
+    z-index: 10;
   }
 
   .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1600px;
-    margin: 0 auto;
+    width: 100%;
   }
 
   .header-left {
@@ -206,6 +239,8 @@
     background: #1a1a1a;
     border-bottom: 2px solid #2a2a2a;
     overflow-x: auto;
+    position: relative;
+    z-index: 10;
   }
 
   .tab {
@@ -222,6 +257,7 @@
     align-items: center;
     gap: 0.5rem;
     white-space: nowrap;
+    pointer-events: auto;
   }
 
   .tab:hover {
@@ -251,9 +287,11 @@
   }
 
   .view-container {
-    padding: 0;
+    padding: 0 0 80px 0;
     max-width: 100%;
     margin: 0;
+    position: relative;
+    z-index: 1;
   }
 
   @media (max-width: 768px) {

@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🦅 Raven Memory Profiling Tool"
+echo "🐦‍⬛ Raven Memory Profiling Tool"
 echo "================================"
 echo ""
 

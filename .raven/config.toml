@@ -76,3 +76,25 @@ log_to_file = false
 
 # Log file path
 log_file = "raven.log"
+
+# ==================== Custom Triggers ====================
+
+[triggers.large_edit]
+file = "*.js"
+lines_changed = ">100"
+action = "log"
+message = "Large edit detected: {file} ({lines_changed} lines)"
+cooldown_seconds = 60
+
+[triggers.slow_operation]
+agent = "claude"
+duration_ms = ">5000"
+action = "log"
+message = "Slow {agent} operation: {file} took {duration_ms}ms"
+cooldown_seconds = 120
+
+[triggers.high_cpu]
+cpu_percent = ">80"
+action = "log"
+message = "High CPU usage: {cpu_percent}%"
+cooldown_seconds = 300

@@ -1,4 +1,4 @@
-# 🦅 Raven Development Plan
+# 🐦‍⬛ Raven Development Plan
 **Purpose:**  
 Build a local-first, lightning-fast monitoring and short-term memory tool for AI coding agents (starting with Claude Code).  
 Raven captures file changes, system metrics, and API events in real time — without relying on GitHub.

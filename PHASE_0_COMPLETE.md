@@ -300,7 +300,7 @@ cargo tauri build
 
 ---
 
-**🦅 Raven Phase 0: Complete!**
+**🐦‍⬛ Raven Phase 0: Complete!**
 
 Ready to proceed to Phase 1 - Core Backend Implementation.
 

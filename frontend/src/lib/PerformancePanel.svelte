@@ -1,26 +1,40 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
+  import { websocketService } from './websocket.js';
+
+  const API_BASE = 'http://localhost:3030/api';
 
   let systemMetrics = [];
   let processMetrics = [];
-  let correlations = [];
   let stats = null;
-  let selectedAgent = 'claude';
+  let selectedAgent = 'claude-sonnet-3.5';
   let refreshInterval = null;
   let loading = true;
   let error = null;
 
-  // Auto-refresh every 5 seconds
   onMount(() => {
     fetchAllData();
-    refreshInterval = setInterval(fetchAllData, 5000);
+
+    // Connect to WebSocket for real-time system metrics
+    websocketService.connect();
+
+    // Listen for real-time system metrics
+    websocketService.on('system-metrics', (metrics) => {
+      // Add new metrics to the beginning of the array
+      systemMetrics = [metrics, ...systemMetrics].slice(0, 20);
+    });
+
+    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
+    refreshInterval = setInterval(fetchAllData, 30000);
   });
 
   onDestroy(() => {
     if (refreshInterval) {
       clearInterval(refreshInterval);
     }
+
+    // Clean up WebSocket listeners
+    websocketService.off('system-metrics');
   });
 
   async function fetchAllData() {
@@ -29,28 +43,20 @@
       error = null;
 
       // Fetch system metrics
-      systemMetrics = await invoke('get_system_metrics', { limit: 20 });
+      const systemResponse = await fetch(`${API_BASE}/system-metrics?limit=20`);
+      systemMetrics = await systemResponse.json();
 
       // Fetch process metrics for selected agent
       if (selectedAgent) {
-        processMetrics = await invoke('get_process_metrics', {
-          agentName: selectedAgent,
-          limit: 20
-        });
+        const processResponse = await fetch(`${API_BASE}/process-metrics/${selectedAgent}?limit=20`);
+        processMetrics = await processResponse.json();
       }
-
-      // Fetch performance correlations
-      correlations = await invoke('get_performance_correlations', {
-        timeWindowSeconds: 5
-      });
 
       // Fetch stats for last hour
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-      stats = await invoke('get_metrics_stats', {
-        startTime: oneHourAgo.toISOString(),
-        endTime: now.toISOString()
-      });
+      const statsResponse = await fetch(`${API_BASE}/metrics-stats?start_time=${oneHourAgo.toISOString()}&end_time=${now.toISOString()}`);
+      stats = await statsResponse.json();
 
       loading = false;
     } catch (err) {
@@ -76,21 +82,12 @@
 
   // Get most recent process metrics
   $: latestProcessMetrics = processMetrics.length > 0 ? processMetrics[0] : null;
-
-  // Agents with correlations
-  $: availableAgents = [...new Set(correlations.map(c => c.agent))];
 </script>
 
 <div class="performance-panel">
   <div class="panel-header">
     <h2>⚡ Performance Profiling</h2>
     <div class="header-controls">
-      <select bind:value={selectedAgent} on:change={fetchAllData}>
-        <option value="">All Agents</option>
-        {#each availableAgents as agent}
-          <option value={agent}>{agent}</option>
-        {/each}
-      </select>
       <button on:click={fetchAllData} class="refresh-btn">
         🔄 Refresh
       </button>
@@ -184,15 +181,15 @@
       {:else}
         <div class="metric-card empty">
           <h3>📊 Process Metrics</h3>
-          <p>No process metrics available for "{selectedAgent}"</p>
-          <p class="hint">Make sure the process is running and tracked</p>
+          <p>No process metrics available</p>
+          <p class="hint">Start monitoring to collect data</p>
         </div>
       {/if}
 
       <!-- Statistics Card -->
       {#if stats && stats.sample_count > 0}
         <div class="metric-card">
-          <h3>📈 Hourly Statistics</h3>
+          <h3>📈 Last Hour Stats</h3>
           <div class="metric-row">
             <span class="label">Avg CPU:</span>
             <span class="value">{stats.avg_cpu_percent.toFixed(1)}%</span>
@@ -216,45 +213,10 @@
         </div>
       {/if}
     </div>
-
-    <!-- Performance Correlations -->
-    {#if correlations.length > 0}
-      <div class="correlations-section">
-        <h3>🔗 Performance Correlations</h3>
-        <div class="correlation-list">
-          {#each correlations.slice(0, 10) as corr}
-            <div class="correlation-item">
-              <div class="correlation-header">
-                <span class="agent-badge">{corr.agent}</span>
-                <span class="event-type">{corr.event_type}</span>
-                {#if corr.duration_ms}
-                  <span class="duration">{corr.duration_ms}ms</span>
-                {/if}
-              </div>
-              <div class="correlation-metrics">
-                {#if corr.system_cpu_percent !== null}
-                  <span class="mini-metric">CPU: {corr.system_cpu_percent.toFixed(1)}%</span>
-                {/if}
-                {#if corr.system_memory_percent !== null}
-                  <span class="mini-metric">Mem: {corr.system_memory_percent.toFixed(1)}%</span>
-                {/if}
-                {#if corr.process_cpu_percent !== null}
-                  <span class="mini-metric">Process CPU: {corr.process_cpu_percent.toFixed(1)}%</span>
-                {/if}
-                {#if corr.process_memory_mb !== null}
-                  <span class="mini-metric">Process Mem: {corr.process_memory_mb}MB</span>
-                {/if}
-              </div>
-              <div class="correlation-timestamp">{formatTimestamp(corr.event_timestamp)}</div>
-            </div>
-          {/each}
-        </div>
-      </div>
-    {/if}
   {:else if !loading}
     <div class="empty-state">
       <p>No performance data available yet.</p>
-      <p>Metrics are collected every 5 seconds automatically.</p>
+      <p>Metrics are collected automatically when monitoring is active.</p>
     </div>
   {/if}
 </div>
@@ -262,10 +224,12 @@
 <style>
   .performance-panel {
     padding: 20px;
-    background: #1a1a1a;
+    background: #0f0f0f;
     color: #e0e0e0;
-    border-radius: 8px;
     min-height: 400px;
+    width: 100%;
+    position: relative;
+    font-family: 'Inter', sans-serif;
   }
 
   .panel-header {
@@ -288,15 +252,6 @@
     gap: 10px;
   }
 
-  select {
-    background: #2a2a2a;
-    color: #e0e0e0;
-    border: 1px solid #444;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-
   .refresh-btn {
     background: #ffa500;
     color: #000;
@@ -314,7 +269,7 @@
 
   .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     gap: 20px;
     margin-bottom: 20px;
   }
@@ -368,6 +323,11 @@
     color: #44ff44;
   }
 
+  .status-running {
+    color: #44ff44;
+    text-transform: capitalize;
+  }
+
   .timestamp {
     margin-top: 10px;
     font-size: 12px;
@@ -384,77 +344,6 @@
     font-size: 12px;
     color: #999;
     margin-top: 5px;
-  }
-
-  .correlations-section {
-    margin-top: 30px;
-  }
-
-  .correlations-section h3 {
-    color: #ffa500;
-    margin-bottom: 15px;
-  }
-
-  .correlation-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .correlation-item {
-    background: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 6px;
-    padding: 15px;
-  }
-
-  .correlation-header {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-
-  .agent-badge {
-    background: #ffa500;
-    color: #000;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: bold;
-  }
-
-  .event-type {
-    color: #999;
-    font-size: 14px;
-  }
-
-  .duration {
-    margin-left: auto;
-    color: #44ff44;
-    font-weight: bold;
-    font-size: 14px;
-  }
-
-  .correlation-metrics {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    margin-bottom: 5px;
-  }
-
-  .mini-metric {
-    font-size: 12px;
-    color: #ccc;
-    background: #333;
-    padding: 4px 8px;
-    border-radius: 4px;
-  }
-
-  .correlation-timestamp {
-    font-size: 11px;
-    color: #666;
-    text-align: right;
   }
 
   .loading, .error, .empty-state {

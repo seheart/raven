@@ -1,7 +1,10 @@
 <script>
-  import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
+  import { onMount, onDestroy } from 'svelte';
+  import { websocketService } from './websocket.js';
 
+  const API_BASE = 'http://localhost:3030/api';
+
+  let activeTab = 'rules'; // 'rules', 'events', 'stats'
   let triggers = [];
   let triggeredEvents = [];
   let stats = {
@@ -11,27 +14,57 @@
   };
   let loading = true;
   let error = null;
-
-  // Selected tab
-  let selectedTab = 'rules'; // 'rules' | 'events' | 'stats'
-
-  // Reload message
-  let reloadMessage = '';
+  let successMessage = null;
+  let refreshInterval;
 
   onMount(async () => {
-    await loadData();
+    await loadAllData();
+
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+
+    // Listen for real-time trigger events
+    websocketService.on('trigger-fired', (event) => {
+      // Add new event to the beginning of the list
+      triggeredEvents = [event, ...triggeredEvents].slice(0, 100);
+    });
+
+    // Listen for real-time stats updates
+    websocketService.on('trigger-stats', (newStats) => {
+      stats = newStats;
+    });
+
+    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
+    refreshInterval = setInterval(loadAllData, 30000);
   });
 
-  async function loadData() {
+  onDestroy(() => {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+    }
+
+    // Clean up WebSocket listeners
+    websocketService.off('trigger-fired');
+    websocketService.off('trigger-stats');
+  });
+
+  async function loadAllData() {
     loading = true;
     error = null;
 
     try {
-      triggers = await invoke('get_triggers_config');
-      triggeredEvents = await invoke('get_triggered_events', { limit: 100 });
-      stats = await invoke('get_trigger_stats');
+      // Load all trigger data in parallel
+      const [triggersRes, eventsRes, statsRes] = await Promise.all([
+        fetch(`${API_BASE}/triggers-config`),
+        fetch(`${API_BASE}/triggered-events?limit=100`),
+        fetch(`${API_BASE}/trigger-stats`)
+      ]);
+
+      triggers = await triggersRes.json();
+      triggeredEvents = await eventsRes.json();
+      stats = await statsRes.json();
     } catch (e) {
-      error = `Failed to load triggers: ${e}`;
+      error = `Failed to load triggers data: ${e}`;
       console.error(error);
     } finally {
       loading = false;
@@ -40,31 +73,36 @@
 
   async function reloadConfig() {
     try {
-      const message = await invoke('reload_triggers_config');
-      reloadMessage = message;
-      setTimeout(() => reloadMessage = '', 3000);
-      await loadData();
+      const response = await fetch(`${API_BASE}/triggers-reload`, { method: 'POST' });
+      const data = await response.json();
+      successMessage = data.message;
+      setTimeout(() => successMessage = null, 3000);
+      await loadAllData();
     } catch (e) {
       error = `Failed to reload config: ${e}`;
+      console.error(error);
     }
   }
 
   async function clearCooldowns() {
     try {
-      const message = await invoke('clear_trigger_cooldowns');
-      reloadMessage = message;
-      setTimeout(() => reloadMessage = '', 3000);
+      const response = await fetch(`${API_BASE}/triggers-clear-cooldowns`, { method: 'POST' });
+      const data = await response.json();
+      successMessage = data.message;
+      setTimeout(() => successMessage = null, 3000);
     } catch (e) {
       error = `Failed to clear cooldowns: ${e}`;
+      console.error(error);
     }
   }
 
   function formatTimestamp(timestamp) {
+    // timestamp is Unix timestamp in seconds
     return new Date(timestamp * 1000).toLocaleString();
   }
 
   function getActionIcon(action) {
-    switch (action) {
+    switch(action.toLowerCase()) {
       case 'notify': return '🔔';
       case 'log': return '📝';
       case 'command': return '⚙️';
@@ -72,34 +110,37 @@
     }
   }
 
-  function getActionColor(action) {
-    switch (action) {
-      case 'notify': return '#3b82f6'; // blue
-      case 'log': return '#10b981'; // green
-      case 'command': return '#f59e0b'; // amber
-      default: return '#6b7280'; // gray
-    }
+  function getConditionsList(trigger) {
+    const conditions = [];
+    if (trigger.file) conditions.push(`File: ${trigger.file}`);
+    if (trigger.agent) conditions.push(`Agent: ${trigger.agent}`);
+    if (trigger.event_type) conditions.push(`Type: ${trigger.event_type}`);
+    if (trigger.lines_changed) conditions.push(`Lines: ${trigger.lines_changed}`);
+    if (trigger.duration_ms) conditions.push(`Duration: ${trigger.duration_ms}ms`);
+    if (trigger.cpu_percent) conditions.push(`CPU: ${trigger.cpu_percent}%`);
+    if (trigger.memory_percent) conditions.push(`Memory: ${trigger.memory_percent}%`);
+    return conditions;
   }
 </script>
 
 <div class="triggers-panel">
   <div class="header">
     <h2>🎯 Custom Triggers</h2>
-    <div class="actions">
-      <button on:click={reloadConfig} class="btn-reload">
+    <div class="header-actions">
+      <button on:click={reloadConfig} class="btn-action" title="Reload .raven/config.toml">
         🔄 Reload Config
       </button>
-      <button on:click={clearCooldowns} class="btn-clear">
+      <button on:click={clearCooldowns} class="btn-action" title="Clear all trigger cooldowns">
         ⏰ Clear Cooldowns
       </button>
-      <button on:click={loadData} class="btn-refresh">
+      <button on:click={loadAllData} class="btn-refresh">
         ↻ Refresh
       </button>
     </div>
   </div>
 
-  {#if reloadMessage}
-    <div class="message success">{reloadMessage}</div>
+  {#if successMessage}
+    <div class="message success">{successMessage}</div>
   {/if}
 
   {#if error}
@@ -108,200 +149,155 @@
 
   <div class="tabs">
     <button
-      class:active={selectedTab === 'rules'}
-      on:click={() => selectedTab = 'rules'}
+      class="tab"
+      class:active={activeTab === 'rules'}
+      on:click={() => activeTab = 'rules'}
     >
       📋 Trigger Rules ({triggers.length})
     </button>
     <button
-      class:active={selectedTab === 'events'}
-      on:click={() => selectedTab = 'events'}
+      class="tab"
+      class:active={activeTab === 'events'}
+      on:click={() => activeTab = 'events'}
     >
       🔔 Triggered Events ({triggeredEvents.length})
     </button>
     <button
-      class:active={selectedTab === 'stats'}
-      on:click={() => selectedTab = 'stats'}
+      class="tab"
+      class:active={activeTab === 'stats'}
+      on:click={() => activeTab = 'stats'}
     >
       📊 Statistics
     </button>
   </div>
 
-  {#if loading}
-    <div class="loading">Loading triggers...</div>
-  {:else}
-    <div class="content">
-      {#if selectedTab === 'rules'}
-        <div class="rules-list">
-          {#if triggers.length === 0}
-            <div class="empty">
-              <p>No triggers configured.</p>
-              <p class="hint">Edit <code>.raven/config.toml</code> to add trigger rules.</p>
-            </div>
-          {:else}
-            {#each triggers as trigger}
-              <div class="trigger-rule">
-                <div class="rule-header">
-                  <span class="action-icon" style="color: {getActionColor(trigger.action)}">
-                    {getActionIcon(trigger.action)}
-                  </span>
-                  <h3>{trigger.name}</h3>
-                  <span class="action-badge" style="background-color: {getActionColor(trigger.action)}">
-                    {trigger.action}
-                  </span>
-                </div>
+  <div class="tab-content">
+    {#if loading}
+      <div class="loading">Loading triggers...</div>
+    {:else if activeTab === 'rules'}
+      <!-- Trigger Rules Tab -->
+      {#if triggers.length === 0}
+        <div class="empty">
+          <div class="icon">📝</div>
+          <h3>No Triggers Configured</h3>
+          <p>Create triggers in <code>.raven/config.toml</code> to get started.</p>
+          <p class="hint">Example triggers are created automatically when Raven first runs.</p>
+        </div>
+      {:else}
+        <div class="rules-grid">
+          {#each triggers as trigger}
+            <div class="trigger-card">
+              <div class="trigger-header">
+                <span class="trigger-name">{trigger.name}</span>
+                <span class="trigger-action">
+                  {getActionIcon(trigger.action)} {trigger.action}
+                </span>
+              </div>
 
-                <div class="rule-conditions">
-                  {#if trigger.file}
-                    <div class="condition">
-                      <span class="label">File:</span>
-                      <code>{trigger.file}</code>
-                    </div>
-                  {/if}
-                  {#if trigger.agent}
-                    <div class="condition">
-                      <span class="label">Agent:</span>
-                      <code>{trigger.agent}</code>
-                    </div>
-                  {/if}
-                  {#if trigger.event_type}
-                    <div class="condition">
-                      <span class="label">Event:</span>
-                      <code>{trigger.event_type}</code>
-                    </div>
-                  {/if}
-                  {#if trigger.lines_changed}
-                    <div class="condition">
-                      <span class="label">Lines:</span>
-                      <code>{trigger.lines_changed}</code>
-                    </div>
-                  {/if}
-                  {#if trigger.duration_ms}
-                    <div class="condition">
-                      <span class="label">Duration:</span>
-                      <code>{trigger.duration_ms}ms</code>
-                    </div>
-                  {/if}
-                  {#if trigger.cpu_percent}
-                    <div class="condition">
-                      <span class="label">CPU:</span>
-                      <code>{trigger.cpu_percent}%</code>
-                    </div>
-                  {/if}
-                  {#if trigger.memory_percent}
-                    <div class="condition">
-                      <span class="label">Memory:</span>
-                      <code>{trigger.memory_percent}%</code>
-                    </div>
-                  {/if}
-                </div>
+              <div class="trigger-details">
+                {#if getConditionsList(trigger).length > 0}
+                  <div class="conditions">
+                    <span class="label">Conditions:</span>
+                    <ul>
+                      {#each getConditionsList(trigger) as condition}
+                        <li>{condition}</li>
+                      {/each}
+                    </ul>
+                  </div>
+                {/if}
 
                 {#if trigger.message}
-                  <div class="rule-message">
+                  <div class="message-preview">
                     <span class="label">Message:</span>
-                    <span class="message-text">{trigger.message}</span>
+                    <span class="value">{trigger.message}</span>
                   </div>
                 {/if}
 
                 {#if trigger.command}
-                  <div class="rule-command">
+                  <div class="command-preview">
                     <span class="label">Command:</span>
-                    <code>{trigger.command}</code>
+                    <code class="value">{trigger.command}</code>
                   </div>
                 {/if}
 
-                <div class="rule-footer">
-                  <span class="cooldown">
-                    ⏱️ Cooldown: {trigger.cooldown_seconds}s
+                <div class="cooldown">
+                  <span class="label">Cooldown:</span>
+                  <span class="value">
+                    {trigger.cooldown_seconds === 0 ? 'None' : `${trigger.cooldown_seconds}s`}
                   </span>
-                  {#if stats.trigger_counts[trigger.name]}
-                    <span class="trigger-count">
-                      Triggered: {stats.trigger_counts[trigger.name]} times
-                    </span>
-                  {/if}
                 </div>
               </div>
-            {/each}
-          {/if}
+            </div>
+          {/each}
         </div>
       {/if}
 
-      {#if selectedTab === 'events'}
+    {:else if activeTab === 'events'}
+      <!-- Triggered Events Tab -->
+      {#if triggeredEvents.length === 0}
+        <div class="empty">
+          <div class="icon">🔕</div>
+          <h3>No Triggered Events</h3>
+          <p>Trigger events will appear here when conditions are met.</p>
+        </div>
+      {:else}
         <div class="events-list">
-          {#if triggeredEvents.length === 0}
-            <div class="empty">
-              <p>No triggers have fired yet.</p>
-              <p class="hint">Triggers will appear here when conditions are met.</p>
-            </div>
-          {:else}
-            {#each triggeredEvents as event}
-              <div class="triggered-event">
-                <div class="event-header">
-                  <span class="action-icon" style="color: {getActionColor(event.action)}">
-                    {getActionIcon(event.action)}
-                  </span>
-                  <h4>{event.trigger_name}</h4>
-                  <span class="timestamp">{formatTimestamp(event.timestamp)}</span>
-                </div>
+          {#each triggeredEvents as event}
+            <div class="event-row">
+              <span class="event-icon">{getActionIcon(event.action)}</span>
+              <div class="event-details">
+                <div class="event-trigger-name">{event.trigger_name}</div>
                 <div class="event-message">{event.message}</div>
               </div>
-            {/each}
-          {/if}
+              <div class="event-meta">
+                <span class="event-action">{event.action}</span>
+                <span class="event-time">{formatTimestamp(event.timestamp)}</span>
+              </div>
+            </div>
+          {/each}
         </div>
       {/if}
 
-      {#if selectedTab === 'stats'}
-        <div class="stats-panel">
-          <div class="stat-card">
-            <div class="stat-value">{stats.active_triggers}</div>
-            <div class="stat-label">Active Triggers</div>
-          </div>
+    {:else if activeTab === 'stats'}
+      <!-- Statistics Tab -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">{stats.total_triggers}</div>
+          <div class="stat-label">Total Triggers Fired</div>
+        </div>
 
-          <div class="stat-card">
-            <div class="stat-value">{stats.total_triggers}</div>
-            <div class="stat-label">Total Fired</div>
-          </div>
+        <div class="stat-card">
+          <div class="stat-value">{stats.active_triggers}</div>
+          <div class="stat-label">Active Trigger Rules</div>
+        </div>
 
-          <div class="stat-card">
-            <div class="stat-value">
-              {Object.keys(stats.trigger_counts).length}
-            </div>
-            <div class="stat-label">Unique Triggers</div>
-          </div>
-
-          {#if Object.keys(stats.trigger_counts).length > 0}
+        {#if Object.keys(stats.trigger_counts).length > 0}
+          <div class="stat-card full-width">
+            <h3>Trigger Fire Counts</h3>
             <div class="trigger-counts">
-              <h3>Trigger Counts</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Trigger Name</th>
-                    <th>Times Fired</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each Object.entries(stats.trigger_counts).sort((a, b) => b[1] - a[1]) as [name, count]}
-                    <tr>
-                      <td>{name}</td>
-                      <td class="count-cell">{count}</td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
+              {#each Object.entries(stats.trigger_counts).sort((a, b) => b[1] - a[1]) as [name, count]}
+                <div class="count-row">
+                  <span class="count-name">{name}</span>
+                  <span class="count-value">{count}</span>
+                </div>
+              {/each}
             </div>
-          {/if}
-        </div>
-      {/if}
-    </div>
-  {/if}
+          </div>
+        {/if}
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>
   .triggers-panel {
     padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
     font-family: 'Inter', sans-serif;
+    background: #0f0f0f;
+    color: #e5e5e5;
+    position: relative;
   }
 
   .header {
@@ -317,339 +313,349 @@
     font-weight: 600;
   }
 
-  .actions {
+  .header-actions {
     display: flex;
     gap: 10px;
   }
 
-  button {
+  .btn-action,
+  .btn-refresh {
     padding: 8px 16px;
-    border: none;
+    background: #1a1a1a;
+    border: 1px solid #333;
     border-radius: 6px;
+    color: #e5e5e5;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .btn-action:hover,
+  .btn-refresh:hover {
+    background: #2a2a2a;
+    border-color: #444;
+  }
+
+  .message {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  .message.success {
+    background: #1a3a1a;
+    border: 1px solid #2a5a2a;
+    color: #5afa5a;
+  }
+
+  .message.error {
+    background: #3a1a1a;
+    border: 1px solid #5a2a2a;
+    color: #fa5a5a;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #2a2a2a;
+  }
+
+  .tab {
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #9ca3af;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
     transition: all 0.2s;
   }
 
-  .btn-reload {
-    background-color: #3b82f6;
-    color: white;
+  .tab:hover {
+    color: #e5e5e5;
+    background: #1a1a1a;
   }
 
-  .btn-reload:hover {
-    background-color: #2563eb;
+  .tab.active {
+    color: #ffa500;
+    border-bottom-color: #ffa500;
   }
 
-  .btn-clear {
-    background-color: #f59e0b;
-    color: white;
-  }
-
-  .btn-clear:hover {
-    background-color: #d97706;
-  }
-
-  .btn-refresh {
-    background-color: #10b981;
-    color: white;
-  }
-
-  .btn-refresh:hover {
-    background-color: #059669;
-  }
-
-  .message {
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    font-size: 14px;
-  }
-
-  .message.success {
-    background-color: #d1fae5;
-    color: #065f46;
-    border: 1px solid #6ee7b7;
-  }
-
-  .message.error {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fca5a5;
-  }
-
-  .tabs {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #e5e7eb;
-  }
-
-  .tabs button {
-    padding: 10px 20px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    color: #6b7280;
-    font-weight: 500;
-  }
-
-  .tabs button.active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
-  }
-
-  .tabs button:hover {
-    background-color: #f3f4f6;
+  .tab-content {
+    min-height: 400px;
   }
 
   .loading {
     text-align: center;
-    padding: 40px;
-    color: #6b7280;
+    padding: 60px 20px;
+    color: #9ca3af;
+    font-size: 16px;
   }
 
   .empty {
     text-align: center;
-    padding: 40px;
-    color: #6b7280;
+    padding: 60px 20px;
+    color: #9ca3af;
+  }
+
+  .empty .icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+  }
+
+  .empty h3 {
+    color: #e5e5e5;
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .empty p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+
+  .empty code {
+    background: #1a1a1a;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #ffa500;
+    font-family: 'Courier New', monospace;
   }
 
   .empty .hint {
     font-size: 14px;
-    margin-top: 10px;
+    color: #6b7280;
+    font-style: italic;
   }
 
-  .empty code {
-    background-color: #f3f4f6;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'Fira Code', monospace;
-  }
-
-  /* Trigger Rules */
-  .rules-list {
+  /* Trigger Rules Tab */
+  .rules-grid {
     display: grid;
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
   }
 
-  .trigger-rule {
-    background-color: #f9fafb;
-    border: 1px solid #e5e7eb;
+  .trigger-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
     border-radius: 8px;
     padding: 16px;
+    transition: all 0.2s;
   }
 
-  .rule-header {
+  .trigger-card:hover {
+    border-color: #ffa500;
+    box-shadow: 0 4px 12px rgba(255, 165, 0, 0.1);
+  }
+
+  .trigger-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
     margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #2a2a2a;
   }
 
-  .action-icon {
-    font-size: 20px;
+  .trigger-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #e5e5e5;
   }
 
-  .rule-header h3 {
-    margin: 0;
-    font-size: 18px;
-    flex: 1;
-  }
-
-  .action-badge {
+  .trigger-action {
+    background: #2a2a2a;
     padding: 4px 12px;
     border-radius: 12px;
-    color: white;
     font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
+    color: #ffa500;
+    text-transform: capitalize;
   }
 
-  .rule-conditions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  .condition {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .label {
-    font-size: 13px;
-    color: #6b7280;
-    font-weight: 500;
-  }
-
-  code {
-    background-color: #e5e7eb;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-family: 'Fira Code', monospace;
-    font-size: 13px;
-  }
-
-  .rule-message {
-    padding: 8px 12px;
-    background-color: #eff6ff;
-    border-left: 3px solid #3b82f6;
-    border-radius: 4px;
-    margin-bottom: 12px;
-    display: flex;
-    gap: 8px;
-  }
-
-  .message-text {
-    flex: 1;
+  .trigger-details {
     font-size: 14px;
   }
 
-  .rule-command {
-    padding: 8px 12px;
-    background-color: #fef3c7;
-    border-left: 3px solid #f59e0b;
-    border-radius: 4px;
+  .trigger-details .label {
+    color: #9ca3af;
+    font-weight: 500;
+    margin-right: 8px;
+  }
+
+  .trigger-details .value {
+    color: #e5e5e5;
+  }
+
+  .conditions {
     margin-bottom: 12px;
+  }
+
+  .conditions ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+    list-style: disc;
+  }
+
+  .conditions li {
+    color: #e5e5e5;
+    margin: 4px 0;
+    font-size: 13px;
+  }
+
+  .message-preview,
+  .command-preview,
+  .cooldown {
+    margin-top: 8px;
+  }
+
+  .command-preview code {
+    background: #0a0a0a;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #5afa5a;
+    display: block;
+    margin-top: 4px;
+    overflow-x: auto;
+  }
+
+  /* Triggered Events Tab */
+  .events-list {
     display: flex;
+    flex-direction: column;
     gap: 8px;
   }
 
-  .rule-footer {
-    display: flex;
-    justify-content: space-between;
-    padding-top: 8px;
-    border-top: 1px solid #e5e7eb;
-    font-size: 13px;
-    color: #6b7280;
-  }
-
-  .cooldown {
+  .event-row {
     display: flex;
     align-items: center;
-    gap: 4px;
-  }
-
-  .trigger-count {
-    font-weight: 500;
-    color: #3b82f6;
-  }
-
-  /* Triggered Events */
-  .events-list {
-    display: grid;
-    gap: 12px;
-  }
-
-  .triggered-event {
-    background-color: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    gap: 16px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
     padding: 12px 16px;
+    transition: all 0.2s;
   }
 
-  .event-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
+  .event-row:hover {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
   }
 
-  .event-header h4 {
-    margin: 0;
-    font-size: 16px;
+  .event-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .event-details {
     flex: 1;
   }
 
-  .timestamp {
-    font-size: 13px;
-    color: #6b7280;
+  .event-trigger-name {
+    font-weight: 600;
+    color: #ffa500;
+    font-size: 14px;
+    margin-bottom: 4px;
   }
 
   .event-message {
-    font-size: 14px;
-    color: #374151;
-    padding-left: 30px;
+    color: #e5e5e5;
+    font-size: 13px;
   }
 
-  /* Statistics */
-  .stats-panel {
+  .event-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .event-action {
+    background: #2a2a2a;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: capitalize;
+  }
+
+  .event-time {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  /* Statistics Tab */
+  .stats-grid {
     display: grid;
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
   }
 
   .stat-card {
-    background-color: #f9fafb;
-    border: 1px solid #e5e7eb;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
     border-radius: 8px;
-    padding: 20px;
+    padding: 24px;
     text-align: center;
   }
 
+  .stat-card.full-width {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
   .stat-value {
-    font-size: 36px;
+    font-size: 48px;
     font-weight: 700;
-    color: #3b82f6;
+    color: #ffa500;
     margin-bottom: 8px;
   }
 
   .stat-label {
     font-size: 14px;
-    color: #6b7280;
+    color: #9ca3af;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+  }
+
+  .stat-card h3 {
+    color: #e5e5e5;
+    font-size: 18px;
+    margin-bottom: 16px;
   }
 
   .trigger-counts {
-    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
-  .trigger-counts h3 {
-    margin-bottom: 15px;
-    font-size: 18px;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: white;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  thead {
-    background-color: #f3f4f6;
-  }
-
-  th {
+  .count-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 12px;
-    text-align: left;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    background: #0a0a0a;
+    border-radius: 6px;
   }
 
-  td {
-    padding: 12px;
-    border-top: 1px solid #e5e7eb;
+  .count-name {
+    color: #e5e5e5;
     font-size: 14px;
+    font-weight: 500;
   }
 
-  .count-cell {
-    text-align: center;
-    font-weight: 600;
-    color: #3b82f6;
-  }
-
-  @media (min-width: 768px) {
-    .stats-panel {
-      grid-template-columns: repeat(3, 1fr);
-    }
+  .count-value {
+    background: #2a2a2a;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffa500;
   }
 </style>

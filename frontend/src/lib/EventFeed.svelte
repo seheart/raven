@@ -1,12 +1,11 @@
 <script>
-  import { invoke } from '@tauri-apps/api/core';
-  import { listen } from '@tauri-apps/api/event';
   import { onMount, onDestroy } from 'svelte';
-  import { keyboard } from './keyboardService.js';
+  import { websocketService } from './websocket.js';
   import TimelineSlider from './TimelineSlider.svelte';
 
+  const API_BASE = 'http://localhost:3030/api';
+
   let events = [];
-  let unlisten = null;
   let pollIntervalId = null;
   let searchQuery = '';
   let selectedTypes = {
@@ -24,18 +23,6 @@
 
   function clearEvents() {
     events = [];
-  }
-
-  function toggleCreated() {
-    selectedTypes.created = !selectedTypes.created;
-  }
-
-  function toggleModified() {
-    selectedTypes.modified = !selectedTypes.modified;
-  }
-
-  function toggleDeleted() {
-    selectedTypes.deleted = !selectedTypes.deleted;
   }
 
   function refreshEvents() {
@@ -121,14 +108,16 @@
 
   async function loadRecentEvents() {
     try {
-      const recentEvents = await invoke('get_recent_events', { limit: 50 });
+      const response = await fetch(`${API_BASE}/agent-events?limit=50`);
+      const recentEvents = await response.json();
+
       events = recentEvents.map(e => ({
         id: e.id,
         timestamp: e.timestamp,
-        filepath: e.filepath || 'unknown',
-        changeType: e.change_type,
-        cpu: e.cpu,
-        mem: e.mem
+        filepath: e.file || 'unknown',
+        changeType: e.event_type || 'modified',
+        cpu: 0, // CPU/memory metrics would need to be correlated from system metrics
+        mem: 0
       }));
     } catch (error) {
       console.error('Failed to load events:', error);
@@ -139,58 +128,33 @@
     // Load initial events from database
     await loadRecentEvents();
 
-    // Register keyboard shortcuts
-    keyboard.register('1', toggleCreated);
-    keyboard.register('2', toggleModified);
-    keyboard.register('3', toggleDeleted);
-    keyboard.register('c', clearEvents);
-    keyboard.register('r', refreshEvents);
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
 
-    // Listen for real-time file events
-    try {
-      unlisten = await listen('file-event', (event) => {
-        const fileEvent = event.payload;
+    // Listen for real-time agent events
+    websocketService.on('agent-event', (event) => {
+      // Add new event to the top of the list
+      events = [{
+        id: event.id,
+        timestamp: event.timestamp,
+        filepath: event.file || 'unknown',
+        changeType: event.event_type || 'modified',
+        cpu: 0,
+        mem: 0
+      }, ...events].slice(0, 100); // Keep last 100 events
+    });
 
-        // Add new event to the top of the list
-        events = [{
-          id: Date.now(), // Temporary ID until we reload from DB
-          timestamp: fileEvent.timestamp,
-          filepath: fileEvent.filepath,
-          changeType: fileEvent.changeType,
-          cpu: 0, // Will be updated on next poll
-          mem: 0
-        }, ...events].slice(0, 100); // Keep last 100 events
-      });
-
-      // Poll database every 5 seconds to get full event data with metrics
-      pollIntervalId = setInterval(loadRecentEvents, 5000);
-    } catch (error) {
-      console.error('Failed to setup event listener:', error);
-
-      // Fallback to mock data if Tauri not available
-      const mockEventInterval = setInterval(() => {
-        const files = ['src/main.rs', 'src/modules/db.rs', 'frontend/src/App.svelte', 'Cargo.toml'];
-        const types = ['modified', 'created', 'deleted'];
-
-        events = [{
-          id: events.length + 1,
-          timestamp: new Date().toISOString(),
-          filepath: files[Math.floor(Math.random() * files.length)],
-          changeType: types[Math.floor(Math.random() * types.length)],
-          cpu: Math.random() * 100,
-          mem: Math.random() * 100
-        }, ...events].slice(0, 50);
-      }, 5000);
-    }
+    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
+    pollIntervalId = setInterval(loadRecentEvents, 30000);
   });
 
   onDestroy(() => {
-    if (unlisten) {
-      unlisten();
-    }
     if (pollIntervalId) {
       clearInterval(pollIntervalId);
     }
+
+    // Clean up WebSocket listeners
+    websocketService.off('agent-event');
   });
 
   function formatTime(timestamp) {

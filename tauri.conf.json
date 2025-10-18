@@ -4,10 +4,10 @@
   "version": "0.5.0",
   "identifier": "io.raven.dev",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "cd frontend && npm run dev",
+    "beforeBuildCommand": "cd frontend && npm run build",
     "devUrl": "http://localhost:5173",
-    "frontendDist": "../frontend/dist"
+    "frontendDist": "frontend/dist"
   },
   "bundle": {
     "active": true,
@@ -38,7 +38,8 @@
         "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "devtools": true
       }
     ],
     "security": {
