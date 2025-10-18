@@ -155,7 +155,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: color-mix(in srgb, var(--bg) 80%, black);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -163,36 +163,36 @@
   }
 
   .modal-content {
-    background: #1a1a1a;
-    border: 1px solid #333;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
     width: 90%;
     max-width: 900px;
     max-height: 90vh;
     overflow-y: auto;
-    padding: 2rem;
+    padding: 12px;
   }
 
   .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 8px;
     padding-bottom: 1rem;
-    border-bottom: 2px solid #646cff;
+    border-bottom: 2px solid var(--info);
   }
 
   h2 {
     margin: 0;
-    color: #fff;
-    font-size: 1.5rem;
+    color: var(--text);
+    font-size: 12px;
   }
 
   .close-btn {
     background: none;
     border: none;
-    font-size: 2rem;
-    color: #888;
+    font-size: 13px;
+    color: var(--muted);
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -200,22 +200,22 @@
   }
 
   .close-btn:hover {
-    color: #fff;
+    color: var(--text);
   }
 
   .file-path {
     font-family: 'Courier New', monospace;
-    color: #646cff;
-    margin-bottom: 1.5rem;
-    padding: 0.75rem;
-    background: #2a2a2a;
+    color: var(--info);
+    margin-bottom: 10px;
+    padding: 8px;
+    background: var(--surface-2);
     border-radius: 4px;
   }
 
   .loading, .empty {
     text-align: center;
-    padding: 3rem;
-    color: #888;
+    padding: 16px;
+    color: var(--muted);
   }
 
   .timeline {
@@ -230,12 +230,12 @@
     top: 0;
     bottom: 0;
     width: 2px;
-    background: #333;
+    background: var(--surface-2);
   }
 
   .timeline-event {
     position: relative;
-    margin-bottom: 2rem;
+    margin-bottom: 10px;
   }
 
   .event-marker {
@@ -245,39 +245,39 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: #646cff;
-    border: 2px solid #1a1a1a;
+    background: var(--info);
+    border: 2px solid var(--surface);
   }
 
   .timeline-event.change-created .event-marker {
-    background: #4ade80;
+    background: var(--success);
   }
 
   .timeline-event.change-modified .event-marker {
-    background: #f59e0b;
+    background: var(--warning);
   }
 
   .timeline-event.change-deleted .event-marker {
-    background: #ef4444;
+    background: var(--error);
   }
 
   .event-content {
-    background: #2a2a2a;
-    padding: 1rem;
+    background: var(--surface-2);
+    padding: 10px;
     border-radius: 6px;
-    border-left: 3px solid #646cff;
+    border-left: 3px solid var(--info);
   }
 
   .timeline-event.change-created .event-content {
-    border-left-color: #4ade80;
+    border-left-color: var(--success);
   }
 
   .timeline-event.change-modified .event-content {
-    border-left-color: #f59e0b;
+    border-left-color: var(--warning);
   }
 
   .timeline-event.change-deleted .event-content {
-    border-left-color: #ef4444;
+    border-left-color: var(--error);
   }
 
   .event-header {
@@ -288,43 +288,43 @@
   }
 
   .badge {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 4px 0.5rem;
+    font-size: 11px;
     border-radius: 3px;
     text-transform: uppercase;
     font-weight: 600;
   }
 
   .badge.modified {
-    background: #f59e0b33;
-    color: #f59e0b;
+    background: var(--warning)33;
+    color: var(--warning);
   }
 
   .badge.created {
-    background: #4ade8033;
-    color: #4ade80;
+    background: var(--success)33;
+    color: var(--success);
   }
 
   .badge.deleted {
-    background: #ef444433;
-    color: #ef4444;
+    background: var(--error)33;
+    color: var(--error);
   }
 
   .time {
-    color: #888;
-    font-size: 0.9rem;
+    color: var(--muted);
+    font-size: 12px;
   }
 
   .event-meta {
     display: flex;
-    gap: 1rem;
+    gap: 10px;
     margin-bottom: 0.75rem;
-    font-size: 0.85rem;
-    color: #666;
+    font-size: 11px;
+    color: var(--muted);
   }
 
   .event-id {
-    color: #646cff;
+    color: var(--info);
   }
 
   .event-actions {
@@ -333,8 +333,8 @@
   }
 
   .btn-view, .btn-diff, .btn-restore {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+    padding: 6px 1rem;
+    font-size: 11px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -342,34 +342,34 @@
   }
 
   .btn-view {
-    background: #2a2a2a;
-    color: #646cff;
-    border: 1px solid #646cff;
+    background: var(--surface-2);
+    color: var(--info);
+    border: 1px solid var(--info);
   }
 
   .btn-view:hover {
-    background: #646cff;
+    background: var(--info);
     color: white;
   }
 
   .btn-diff {
-    background: #2a2a2a;
-    color: #f59e0b;
-    border: 1px solid #f59e0b;
+    background: var(--surface-2);
+    color: var(--warning);
+    border: 1px solid var(--warning);
   }
 
   .btn-diff:hover {
-    background: #f59e0b;
-    color: #000;
+    background: var(--warning);
+    color: var(--text-heading);
   }
 
   .btn-restore {
-    background: #4ade80;
-    color: #000;
+    background: var(--success);
+    color: var(--text-heading);
   }
 
   .btn-restore:hover {
-    background: #22c55e;
+    background: var(--success);
   }
 
   .snapshot-viewer {
@@ -377,10 +377,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: #1a1a1a;
-    border: 1px solid #333;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 1.5rem;
+    padding: 12px;
     max-width: 800px;
     max-height: 80vh;
     overflow-y: auto;
@@ -391,36 +391,36 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 8px;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border);
   }
 
   .snapshot-header h3 {
     margin: 0;
-    color: #fff;
+    color: var(--text);
   }
 
   .snapshot-header button {
-    background: #2a2a2a;
-    color: #888;
-    border: 1px solid #444;
-    padding: 0.5rem 1rem;
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 1rem;
     border-radius: 4px;
     cursor: pointer;
   }
 
   .snapshot-header button:hover {
-    background: #333;
-    color: #fff;
+    background: var(--surface-2);
+    color: var(--text);
   }
 
   .snapshot-content {
     font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    color: #ddd;
-    background: #0a0a0a;
-    padding: 1rem;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    padding: 10px;
     border-radius: 4px;
     overflow-x: auto;
     white-space: pre-wrap;

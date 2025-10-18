@@ -169,41 +169,41 @@
 
 <style>
   .timeline-slider {
-    padding: 1rem;
-    background: #2a2a2a;
+    padding: 10px;
+    background: var(--surface-2);
     border-radius: 6px;
-    margin-bottom: 1rem;
+    margin-bottom: 8px;
   }
 
   .timeline-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 8px;
   }
 
   .timeline-label {
     font-weight: 600;
-    color: #fff;
-    font-size: 0.9rem;
+    color: var(--text);
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   .reset-btn {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.75rem;
-    background: #1a1a1a;
-    color: #888;
-    border: 1px solid #444;
+    padding: 4px 0.75rem;
+    font-size: 11px;
+    background: var(--surface);
+    color: var(--muted);
+    border: 1px solid var(--border);
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .reset-btn:hover {
-    background: #333;
-    color: #fff;
+    background: var(--surface-2);
+    color: var(--text);
   }
 
   .slider-container {
@@ -225,7 +225,7 @@
 
   .density-bar {
     flex: 1;
-    background: #646cff;
+    background: var(--info);
     align-self: flex-end;
     border-radius: 2px 2px 0 0;
     transition: opacity 0.2s;
@@ -235,9 +235,9 @@
     position: absolute;
     top: 0;
     height: 100%;
-    background: rgba(100, 108, 255, 0.2);
-    border-left: 2px solid #646cff;
-    border-right: 2px solid #646cff;
+    background: color-mix(in srgb, var(--info) 20%, transparent);
+    border-left: 2px solid var(--info);
+    border-right: 2px solid var(--info);
     pointer-events: none;
   }
 
@@ -247,7 +247,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: #444;
+    background: var(--surface-2);
     border-radius: 2px;
     transform: translateY(-50%);
   }
@@ -257,8 +257,8 @@
     top: 50%;
     width: 16px;
     height: 24px;
-    background: #646cff;
-    border: 2px solid #fff;
+    background: var(--info);
+    border: 2px solid var(--text);
     border-radius: 4px;
     transform: translate(-50%, -50%);
     cursor: grab;
@@ -267,7 +267,7 @@
   }
 
   .slider-handle:hover {
-    background: #535bf2;
+    background: var(--info);
   }
 
   .slider-handle:active {
@@ -279,12 +279,12 @@
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    padding: 0.25rem 0.5rem;
-    background: #1a1a1a;
-    border: 1px solid #646cff;
+    padding: 4px 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--info);
     border-radius: 4px;
-    font-size: 0.7rem;
-    color: #fff;
+    font-size: 11px;
+    color: var(--text);
     white-space: nowrap;
     margin-bottom: 0.5rem;
     pointer-events: none;
@@ -302,7 +302,7 @@
   }
 
   .info-text {
-    color: #888;
-    font-size: 0.85rem;
+    color: var(--muted);
+    font-size: 11px;
   }
 </style>

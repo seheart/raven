@@ -124,7 +124,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: color-mix(in srgb, var(--bg) 90%, black);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -132,8 +132,8 @@
   }
 
   .diff-modal-content {
-    background: #1a1a1a;
-    border: 1px solid #333;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
     width: 95%;
     max-width: 1400px;
@@ -147,21 +147,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
-    border-bottom: 2px solid #646cff;
+    padding: 12px;
+    border-bottom: 2px solid var(--info);
   }
 
   h2 {
     margin: 0;
-    color: #fff;
-    font-size: 1.5rem;
+    color: var(--text);
+    font-size: 12px;
   }
 
   .close-btn {
     background: none;
     border: none;
-    font-size: 2rem;
-    color: #888;
+    font-size: 13px;
+    color: var(--muted);
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -169,18 +169,18 @@
   }
 
   .close-btn:hover {
-    color: #fff;
+    color: var(--text);
   }
 
   .unified-diff {
     flex: 1;
     overflow: auto;
-    padding: 1rem;
+    padding: 10px;
   }
 
   .diff-content {
     font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
+    font-size: 12px;
     margin: 0;
     white-space: pre;
   }
@@ -191,17 +191,17 @@
   }
 
   .diff-line.line-add {
-    background: #1a3a1a;
-    color: #4ade80;
+    background: color-mix(in srgb, var(--success) 15%, var(--surface));
+    color: var(--success);
   }
 
   .diff-line.line-remove {
-    background: #3a1a1a;
-    color: #ef4444;
+    background: color-mix(in srgb, var(--error) 15%, var(--surface));
+    color: var(--error);
   }
 
   .diff-line.line-context {
-    color: #ddd;
+    color: var(--text);
   }
 
   .side-by-side {
@@ -218,23 +218,23 @@
   }
 
   .pane-header {
-    background: #2a2a2a;
-    padding: 0.75rem 1rem;
+    background: var(--surface-2);
+    padding: 8px 1rem;
     font-weight: 600;
-    color: #fff;
-    border-bottom: 1px solid #333;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
   }
 
   .pane-content {
     flex: 1;
     overflow: auto;
     font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
+    font-size: 12px;
   }
 
   .diff-divider {
     width: 2px;
-    background: #333;
+    background: var(--surface-2);
   }
 
   .code-line {
@@ -244,11 +244,11 @@
   }
 
   .code-line.line-add {
-    background: #1a3a1a;
+    background: color-mix(in srgb, var(--success) 15%, var(--surface));
   }
 
   .code-line.line-remove {
-    background: #3a1a1a;
+    background: color-mix(in srgb, var(--error) 15%, var(--surface));
   }
 
   .line-num {
@@ -256,29 +256,29 @@
     width: 50px;
     text-align: right;
     padding-right: 1rem;
-    color: #666;
+    color: var(--muted);
     user-select: none;
     flex-shrink: 0;
   }
 
   .line-content {
     flex: 1;
-    color: #ddd;
+    color: var(--text);
     white-space: pre;
     padding-right: 1rem;
   }
 
   .code-line.line-add .line-content {
-    color: #4ade80;
+    color: var(--success);
   }
 
   .code-line.line-remove .line-content {
-    color: #ef4444;
+    color: var(--error);
   }
 
   .empty {
     text-align: center;
-    padding: 3rem;
-    color: #888;
+    padding: 16px;
+    color: var(--muted);
   }
 </style>

@@ -6,7 +6,12 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "start:ts": "node dist/server.js",
     "dev": "node --watch server.js",
+    "dev:ts": "tsc && node --watch dist/server.js",
+    "build": "rm -rf dist && tsc",
+    "build:watch": "tsc --watch",
+    "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -18,14 +23,22 @@
     "cors": "^2.8.5",
     "diff": "^8.0.2",
     "express": "^4.21.2",
+    "simple-git": "^3.28.0",
     "socket.io": "^4.8.1",
     "systeminformation": "^5.27.11",
     "toml": "^3.0.0",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.8.1",
     "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   }
 }

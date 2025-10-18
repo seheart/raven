@@ -3,21 +3,53 @@
 
   const API_BASE = 'http://localhost:3030/api';
   let events = [];
+  let allSessions = [];
+  let selectedSession = 'all'; // 'all' or a specific session ID
   let loading = true;
 
   onMount(async () => {
+    await loadSessions();
     await loadEvents();
   });
 
+  async function loadSessions() {
+    try {
+      const response = await fetch(`${API_BASE}/session-id`);
+      const data = await response.json();
+      const currentSessionId = data.session_id;
+
+      // For now, just show current session (could be expanded to show multiple sessions)
+      allSessions = [
+        { id: 'all', label: 'All Sessions' },
+        { id: currentSessionId, label: `Current Session (${currentSessionId.slice(0, 8)}...)` }
+      ];
+    } catch (e) {
+      console.error('Failed to load sessions:', e);
+      allSessions = [{ id: 'all', label: 'All Sessions' }];
+    }
+  }
+
   async function loadEvents() {
     try {
-      const response = await fetch(`${API_BASE}/agent-events?limit=50`);
+      loading = true;
+      let url = `${API_BASE}/agent-events?limit=50`;
+
+      // If a specific session is selected, use the session filter endpoint
+      if (selectedSession !== 'all') {
+        url = `${API_BASE}/events-by-session/${selectedSession}`;
+      }
+
+      const response = await fetch(url);
       events = await response.json();
       loading = false;
     } catch (e) {
       console.error('Failed to load events:', e);
       loading = false;
     }
+  }
+
+  async function onSessionChange() {
+    await loadEvents();
   }
 
   function formatTimestamp(timestamp) {
@@ -28,9 +60,24 @@
 <div class="session-replay">
   <div class="header">
     <h2>🎬 Session Replay</h2>
-    <button on:click={loadEvents} class="btn-refresh">
-      ↻ Refresh
-    </button>
+    <div class="header-controls">
+      <div class="filter-group">
+        <label for="session-filter">Session:</label>
+        <select
+          id="session-filter"
+          bind:value={selectedSession}
+          on:change={onSessionChange}
+          class="session-select"
+        >
+          {#each allSessions as session}
+            <option value={session.id}>{session.label}</option>
+          {/each}
+        </select>
+      </div>
+      <button on:click={loadEvents} class="btn-refresh">
+        ↻ Refresh
+      </button>
+    </div>
   </div>
 
   {#if loading}
@@ -72,11 +119,11 @@
 
 <style>
   .session-replay {
-    padding: 0;
-    background: #0f0f0f;
+    padding: 12px;
+    background: var(--bg);
     min-height: 80vh;
-    color: #e5e5e5;
-    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    font-family: var(--mono);
     width: 100%;
     position: relative;
   }
@@ -85,43 +132,77 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-    padding: 20px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #1f1f1f;
+    margin-bottom: 10px;
   }
 
   h2 {
     margin: 0;
-    font-size: 28px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #FF6B35 0%, #F7931A 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-size: 13px;
+    font-weight: 600;
   }
 
   .btn-refresh {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
+    font-size: 12px;
     transition: all 0.2s;
   }
 
   .btn-refresh:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    background: var(--surface-2);
+    border-color: var(--border);
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .filter-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .session-select {
+    padding: 8px 16px;
+    border: 1px solid var(--surface-2);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .session-select:hover {
+    border-color: var(--surface-2);
+    background: var(--surface-2);
+  }
+
+  .session-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
   }
 
   .loading, .empty-state {
     text-align: center;
-    padding: 60px;
-    color: #6b7280;
-    font-size: 16px;
+    padding: 16px;
+    color: var(--muted);
+    font-size: 12px;
   }
 
   .timeline {
@@ -130,30 +211,30 @@
   }
 
   h3 {
-    font-size: 20px;
-    margin-bottom: 20px;
-    color: #e5e5e5;
+    font-size: 12px;
+    margin-bottom: 10px;
+    color: var(--text);
   }
 
   .events-list {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    padding-bottom: 20px;
+    padding-bottom: 10px;
   }
 
   .event-item {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
-    border-left: 4px solid #FF6B35;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    border-left: 4px solid var(--accent);
     border-radius: 8px;
-    padding: 20px;
+    padding: 12px;
     transition: all 0.2s;
   }
 
   .event-item:hover {
-    background: #1f1f1f;
-    border-left-color: #F7931A;
+    background: var(--border);
+    border-left-color: var(--accent-2);
     transform: translateX(4px);
   }
 
@@ -166,15 +247,15 @@
   }
 
   .timestamp {
-    color: #4ECDC4;
+    color: var(--accent-2);
     font-size: 13px;
     font-family: 'Courier New', monospace;
   }
 
   .agent {
     padding: 4px 12px;
-    background: rgba(255, 107, 53, 0.2);
-    color: #FF6B35;
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    color: var(--accent);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
@@ -182,8 +263,8 @@
 
   .event-type {
     padding: 4px 12px;
-    background: rgba(78, 205, 196, 0.2);
-    color: #4ECDC4;
+    background: color-mix(in srgb, var(--accent-2) 20%, transparent);
+    color: var(--accent-2);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
@@ -196,13 +277,13 @@
   }
 
   .message {
-    color: #e5e5e5;
-    font-size: 14px;
+    color: var(--text);
+    font-size: 12px;
     margin: 0;
   }
 
   .file, .lines, .duration {
-    color: #9ca3af;
+    color: var(--muted);
     font-size: 13px;
     margin: 0;
   }

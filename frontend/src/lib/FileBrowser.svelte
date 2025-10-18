@@ -106,29 +106,29 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 8px;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border);
   }
 
   h3 {
     margin: 0;
-    color: #fff;
-    font-size: 1rem;
+    color: var(--text);
+    font-size: 12px;
   }
 
   .refresh-btn {
-    background: #2a2a2a;
-    color: #646cff;
-    border: 1px solid #646cff;
-    padding: 0.4rem 0.8rem;
+    background: var(--surface-2);
+    color: var(--info);
+    border: 1px solid var(--info);
+    padding: 6px 0.8rem;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 11px;
   }
 
   .refresh-btn:hover:not(:disabled) {
-    background: #646cff;
+    background: var(--info);
     color: white;
   }
 
@@ -139,14 +139,14 @@
 
   .loading {
     text-align: center;
-    padding: 2rem;
-    color: #888;
+    padding: 12px;
+    color: var(--muted);
   }
 
   .empty {
     text-align: center;
-    padding: 3rem 1rem;
-    color: #666;
+    padding: 16px 1rem;
+    color: var(--muted);
   }
 
   .empty p {
@@ -154,8 +154,8 @@
   }
 
   .hint {
-    font-size: 0.9rem;
-    color: #555;
+    font-size: 12px;
+    color: var(--muted);
   }
 
   .file-list {
@@ -168,20 +168,20 @@
   .file-item {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 0.75rem;
-    background: #2a2a2a;
+    gap: 10px;
+    padding: 8px;
+    background: var(--surface-2);
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.2s;
   }
 
   .file-item:hover {
-    background: #333;
+    background: var(--surface-2);
   }
 
   .file-icon {
-    font-size: 1.5rem;
+    font-size: 12px;
   }
 
   .file-info {
@@ -190,7 +190,7 @@
   }
 
   .file-name {
-    color: #fff;
+    color: var(--text);
     font-weight: 500;
     font-family: 'Courier New', monospace;
     white-space: nowrap;
@@ -199,8 +199,8 @@
   }
 
   .file-path {
-    color: #666;
-    font-size: 0.85rem;
+    color: var(--muted);
+    font-size: 11px;
     font-family: 'Courier New', monospace;
     white-space: nowrap;
     overflow: hidden;
@@ -208,8 +208,8 @@
   }
 
   .view-btn {
-    color: #646cff;
-    font-size: 0.85rem;
+    color: var(--info);
+    font-size: 11px;
     white-space: nowrap;
   }
 </style>

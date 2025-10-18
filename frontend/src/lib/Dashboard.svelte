@@ -86,13 +86,13 @@
 
   function getAgentColor(agentName) {
     const agent = agents.find(a => a.agent_name === agentName);
-    return agent ? agent.color : '#6b7280';
+    return agent ? agent.color : 'var(--muted)';
   }
 </script>
 
 <div class="dashboard">
   <div class="header">
-    <h1>🐦‍⬛ Raven Dashboard</h1>
+    <h2>Raven Dashboard</h2>
     <button on:click={loadAllData} class="btn-refresh">
       ↻ Refresh
     </button>
@@ -259,13 +259,13 @@
 
 <style>
   .dashboard {
-    padding: 0;
+    padding: 12px;
     width: 100%;
     margin: 0;
-    font-family: 'Inter', sans-serif;
-    background-color: #0f0f0f;
+    font-family: var(--mono);
+    background-color: var(--bg);
     min-height: calc(100vh - 200px);
-    color: #e5e5e5;
+    color: var(--text);
     position: relative;
   }
 
@@ -273,81 +273,72 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-    padding: 20px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #1f1f1f;
+    margin-bottom: 10px;
   }
 
-  h1 {
+  h2 {
     margin: 0;
-    font-size: 32px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #FF6B35 0%, #F7931A 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-size: 13px;
+    font-weight: 600;
   }
 
   .btn-refresh {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
+    font-size: 12px;
     transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   }
 
   .btn-refresh:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    background: var(--surface-2);
+    border-color: var(--border);
   }
 
   .loading {
     text-align: center;
-    padding: 60px;
-    font-size: 18px;
-    color: #6b7280;
+    padding: 16px;
+    font-size: 12px;
+    color: var(--muted);
   }
 
   /* Stats Grid */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
+    gap: 12px;
+    margin-bottom: 10px;
     padding: 0 20px;
   }
 
   .stat-card {
-    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    padding: 24px;
+    background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     transition: all 0.2s;
   }
 
   .stat-card:hover {
-    border-color: #3a3a3a;
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-color: var(--accent);
+    background: var(--surface-2);
   }
 
   .stat-icon {
-    font-size: 36px;
+    font-size: 13px;
     width: 56px;
     height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 107, 53, 0.1);
-    border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-radius: var(--radius);
   }
 
   .stat-content {
@@ -355,15 +346,15 @@
   }
 
   .stat-value {
-    font-size: 28px;
+    font-size: 13px;
     font-weight: 700;
-    color: #FF6B35;
+    color: var(--accent);
     margin-bottom: 4px;
   }
 
   .stat-label {
     font-size: 13px;
-    color: #9ca3af;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -372,22 +363,22 @@
   .content-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
-    gap: 20px;
+    gap: 12px;
     width: 100%;
     padding: 0 20px 20px 20px;
   }
 
   .panel {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
   .panel-header {
-    padding: 20px 24px;
-    background: #0f0f0f;
-    border-bottom: 1px solid #2a2a2a;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -395,16 +386,16 @@
 
   .panel-header h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
-    color: #e5e5e5;
+    color: var(--text);
   }
 
   .panel-count {
     padding: 4px 12px;
-    background: rgba(255, 107, 53, 0.2);
-    color: #FF6B35;
-    border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    color: var(--accent);
+    border-radius: var(--radius);
     font-size: 13px;
     font-weight: 600;
   }
@@ -414,10 +405,10 @@
   }
 
   .empty-state {
-    padding: 60px 24px;
+    padding: 16px 24px;
     text-align: center;
-    color: #6b7280;
-    font-size: 14px;
+    color: var(--muted);
+    font-size: 12px;
   }
 
   /* Table */
@@ -431,11 +422,11 @@
     grid-template-columns: 2fr 1fr 1.5fr;
     gap: 12px;
     padding: 16px 24px;
-    background: #0f0f0f;
-    border-bottom: 1px solid #2a2a2a;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
     font-size: 12px;
     font-weight: 600;
-    color: #9ca3af;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -445,12 +436,12 @@
     grid-template-columns: 2fr 1fr 1.5fr;
     gap: 12px;
     padding: 16px 24px;
-    border-bottom: 1px solid #1f1f1f;
+    border-bottom: 1px solid var(--border);
     transition: all 0.2s;
   }
 
   .table-row:hover {
-    background: rgba(255, 107, 53, 0.05);
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
   }
 
   .table-row:last-child {
@@ -465,7 +456,7 @@
   }
 
   .file-icon {
-    font-size: 16px;
+    font-size: 12px;
     flex-shrink: 0;
   }
 
@@ -473,8 +464,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 14px;
-    color: #e5e5e5;
+    font-size: 12px;
+    color: var(--text);
   }
 
   .col-count {
@@ -487,26 +478,26 @@
     display: flex;
     align-items: center;
     font-size: 13px;
-    color: #9ca3af;
+    color: var(--muted);
   }
 
   .badge {
     padding: 4px 12px;
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-    border-radius: 12px;
+    background: color-mix(in srgb, var(--info) 20%, transparent);
+    color: var(--info);
+    border-radius: var(--radius);
     font-size: 13px;
     font-weight: 600;
   }
 
   .badge.lines {
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
+    background: color-mix(in srgb, var(--success) 20%, transparent);
+    color: var(--success);
   }
 
   .agent-badge {
     padding: 4px 12px;
-    border-radius: 12px;
+    border-radius: var(--radius);
     font-size: 12px;
     font-weight: 600;
     text-transform: capitalize;
@@ -514,7 +505,7 @@
   }
 
   .agent-badge.unknown {
-    background: #374151;
+    background: var(--muted);
   }
 
   /* Agents Panel */
@@ -527,10 +518,10 @@
     align-items: center;
     gap: 12px;
     padding: 16px;
-    background: #0f0f0f;
-    border: 1px solid #2a2a2a;
+    background: var(--bg);
+    border: 1px solid var(--border);
     border-left-width: 4px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     margin-bottom: 12px;
     transition: all 0.2s;
   }
@@ -540,12 +531,12 @@
   }
 
   .agent-item:hover {
-    background: #1a1a1a;
+    background: var(--surface);
     transform: translateX(4px);
   }
 
   .agent-status {
-    font-size: 16px;
+    font-size: 12px;
   }
 
   .agent-info {
@@ -553,16 +544,16 @@
   }
 
   .agent-name {
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 600;
-    color: #e5e5e5;
+    color: var(--text);
     text-transform: capitalize;
     margin-bottom: 4px;
   }
 
   .agent-meta {
     font-size: 13px;
-    color: #6b7280;
+    color: var(--muted);
   }
 
   @media (max-width: 1200px) {

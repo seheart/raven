@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
 
+  export let sessionId = 'Loading...';
   export let onAboutClick = () => {};
   export let onChangelogClick = () => {};
 
@@ -38,9 +39,11 @@
 <footer class="footer">
   <div class="footer-content">
     <div class="footer-left">
-      <span class="footer-brand">🐦‍⬛ Raven v{version}</span>
+      <span class="footer-brand">Raven v{version}</span>
       <span class="footer-divider">|</span>
-      <span class="footer-uptime">Session: {sessionUptime}</span>
+      <span class="footer-uptime">Uptime: {sessionUptime}</span>
+      <span class="footer-divider">|</span>
+      <span class="footer-session">Session: {sessionId}</span>
     </div>
 
     <div class="footer-right">
@@ -70,11 +73,11 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: #1a1a1a;
-    border-top: 1px solid #2a2a2a;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
     padding: 12px 24px;
     z-index: 100;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--mono);
   }
 
   .footer-content {
@@ -93,21 +96,27 @@
   }
 
   .footer-brand {
-    color: #FF6B35;
+    color: var(--accent);
     font-weight: 600;
   }
 
   .footer-uptime {
-    color: #9ca3af;
-    font-family: 'Courier New', monospace;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .footer-session {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
   }
 
   .footer-divider {
-    color: #4b5563;
+    color: var(--muted);
   }
 
   .footer-link {
-    color: #9ca3af;
+    color: var(--muted);
     text-decoration: none;
     cursor: pointer;
     transition: color 0.2s;
@@ -119,21 +128,21 @@
   }
 
   .footer-link:hover {
-    color: #FF6B35;
+    color: var(--accent);
   }
 
   .footer-status {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #10b981;
+    color: var(--success);
     font-size: 12px;
   }
 
   .status-dot {
     width: 8px;
     height: 8px;
-    background: #10b981;
+    background: var(--success);
     border-radius: 50%;
     animation: pulse 2s infinite;
   }

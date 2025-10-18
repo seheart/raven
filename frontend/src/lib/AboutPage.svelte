@@ -8,7 +8,8 @@
   async function loadSessionId() {
     try {
       const response = await fetch(`${API_BASE}/session-id`);
-      sessionId = await response.json();
+      const data = await response.json();
+      sessionId = data.session_id || 'Unknown';
     } catch (error) {
       sessionId = 'Offline';
     }
@@ -24,7 +25,7 @@
 <div class="about-page">
   <div class="about-container">
     <div class="about-header">
-      <h1>🐦‍⬛ About Raven</h1>
+      <h1>About Raven</h1>
       <p class="tagline">Real-Time AI Agent Monitoring Dashboard</p>
     </div>
 
@@ -120,9 +121,8 @@
             </div>
             <div class="info-item">
               <span class="info-label">Session ID</span>
-              <span class="info-value mono">{sessionId.slice(0, 8)}...</span>
-            </div>
-            <div class="info-item">
+              <span class="info-value mono">{typeof sessionId === 'string' ? sessionId.slice(0, 8) + '...' : 'Loading...'}</span>
+            </div>            <div class="info-item">
               <span class="info-label">Backend URL</span>
               <span class="info-value mono">http://localhost:3030</span>
             </div>
@@ -171,12 +171,12 @@
 
 <style>
   .about-page {
-    padding: 40px 20px 100px 20px;
+    padding: 16px 20px 100px 20px;
     width: 100%;
-    background: #0f0f0f;
-    color: #e5e5e5;
+    background: var(--bg);
+    color: var(--text);
     min-height: calc(100vh - 200px);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--mono);
   }
 
   .about-container {
@@ -188,22 +188,20 @@
     text-align: center;
     margin-bottom: 60px;
     padding-bottom: 30px;
-    border-bottom: 2px solid #1f1f1f;
+    border-bottom: 2px solid var(--border);
   }
 
   .about-header h1 {
     margin: 0 0 16px 0;
-    font-size: 48px;
+    font-size: 13px;
     font-weight: 700;
-    background: linear-gradient(135deg, #FF6B35 0%, #F7931A 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text);
   }
 
   .tagline {
     margin: 0;
-    font-size: 20px;
-    color: #9ca3af;
+    font-size: 12px;
+    color: var(--muted);
     font-weight: 500;
   }
 
@@ -230,62 +228,60 @@
 
   .about-section h2 {
     margin: 0 0 24px 0;
-    font-size: 28px;
-    color: #FF6B35;
+    font-size: 13px;
+    color: var(--accent);
     font-weight: 600;
   }
 
   .about-section p {
-    color: #d1d5db;
-    line-height: 1.8;
-    font-size: 16px;
-    margin-bottom: 16px;
+    color: var(--text);
+    line-height: 1.4;
+    font-size: 12px;
+    margin-bottom: 10px;
   }
 
   .about-section strong {
-    color: #e5e5e5;
+    color: var(--text);
     font-weight: 600;
   }
 
   .features-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
+    gap: 12px;
     margin-top: 24px;
   }
 
   .feature-card {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
     border-radius: 12px;
-    padding: 32px 24px;
+    padding: 12px 24px;
     transition: all 0.3s;
   }
 
   .feature-card:hover {
-    background: #1f1f1f;
-    border-color: #FF6B35;
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.2);
+    background: var(--surface-2);
+    border-color: var(--accent);
   }
 
   .feature-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+    font-size: 13px;
+    margin-bottom: 10px;
   }
 
   .feature-card h3 {
     margin: 0 0 12px 0;
-    font-size: 20px;
-    color: #e5e5e5;
+    font-size: 12px;
+    color: var(--text);
     font-weight: 600;
   }
 
   .feature-card p {
     margin: 0;
-    font-size: 14px;
-    color: #9ca3af;
-    line-height: 1.6;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
   }
 
   .tech-stack {
@@ -297,8 +293,8 @@
 
   .tech-category h3 {
     margin: 0 0 16px 0;
-    font-size: 18px;
-    color: #9ca3af;
+    font-size: 12px;
+    color: var(--muted);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -312,33 +308,33 @@
 
   .tech-badge {
     padding: 10px 20px;
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
     border-radius: 8px;
-    font-size: 14px;
-    color: #e5e5e5;
+    font-size: 12px;
+    color: var(--text);
     font-weight: 500;
     transition: all 0.2s;
   }
 
   .tech-badge:hover {
-    background: #2a2a2a;
-    border-color: #FF6B35;
-    color: #FF6B35;
+    background: var(--surface-2);
+    border-color: var(--accent);
+    color: var(--accent);
   }
 
   .session-info {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
     border-radius: 12px;
-    padding: 32px;
+    padding: 12px;
     margin-top: 24px;
   }
 
   .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
+    gap: 12px;
   }
 
   .info-item {
@@ -349,21 +345,21 @@
 
   .info-label {
     font-size: 12px;
-    color: #9ca3af;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 600;
   }
 
   .info-value {
-    font-size: 16px;
-    color: #e5e5e5;
+    font-size: 12px;
+    color: var(--text);
     font-weight: 600;
   }
 
   .info-value.mono {
     font-family: 'Courier New', monospace;
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .info-value.status {
@@ -373,11 +369,11 @@
   }
 
   .info-value.status.online {
-    color: #10b981;
+    color: var(--success);
   }
 
   .info-value.status.offline {
-    color: #ef4444;
+    color: var(--error);
   }
 
   .use-cases {
@@ -388,11 +384,11 @@
 
   .use-cases li {
     padding: 16px 0 16px 32px;
-    border-bottom: 1px solid #1f1f1f;
+    border-bottom: 1px solid var(--border);
     position: relative;
-    color: #d1d5db;
-    font-size: 16px;
-    line-height: 1.6;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   .use-cases li:last-child {
@@ -403,50 +399,48 @@
     content: "▸";
     position: absolute;
     left: 0;
-    color: #FF6B35;
-    font-size: 20px;
+    color: var(--accent);
+    font-size: 12px;
   }
 
   .footer-section {
     text-align: center;
     padding-top: 40px;
-    border-top: 2px solid #1f1f1f;
+    border-top: 2px solid var(--border);
   }
 
   .built-with {
-    font-size: 18px;
-    color: #6b7280;
+    font-size: 12px;
+    color: var(--muted);
     font-style: italic;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
   }
 
   .github-link a {
     display: inline-block;
     padding: 12px 32px;
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
     border-radius: 8px;
-    color: #FF6B35;
+    color: var(--accent);
     text-decoration: none;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 12px;
     transition: all 0.2s;
   }
 
   .github-link a:hover {
-    background: #2a2a2a;
-    border-color: #FF6B35;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    background: var(--surface-2);
+    border-color: var(--accent);
   }
 
   @media (max-width: 768px) {
     .about-header h1 {
-      font-size: 36px;
+      font-size: 13px;
     }
 
     .tagline {
-      font-size: 16px;
+      font-size: 12px;
     }
 
     .features-grid {

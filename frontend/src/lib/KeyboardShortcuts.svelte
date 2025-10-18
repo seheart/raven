@@ -21,7 +21,6 @@
         { keys: ['4'], description: 'Triggers view' },
         { keys: ['5'], description: 'Agents view' },
         { keys: ['6'], description: 'Status view' },
-        { keys: ['7'], description: 'About view' },
       ]
     }
   ];
@@ -83,7 +82,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: color-mix(in srgb, var(--bg) 85%, black);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -91,39 +90,39 @@
   }
 
   .shortcuts-modal {
-    background: #1a1a1a;
-    border: 1px solid #333;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
     width: 90%;
     max-width: 700px;
     max-height: 85vh;
     overflow-y: auto;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: none;
   }
 
   .shortcuts-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
-    border-bottom: 2px solid #646cff;
+    padding: 12px;
+    border-bottom: 2px solid var(--info);
     position: sticky;
     top: 0;
-    background: #1a1a1a;
+    background: var(--surface);
     z-index: 1;
   }
 
   h2 {
     margin: 0;
-    color: #fff;
-    font-size: 1.5rem;
+    color: var(--text);
+    font-size: 12px;
   }
 
   .close-btn {
     background: none;
     border: none;
-    font-size: 2rem;
-    color: #888;
+    font-size: 13px;
+    color: var(--muted);
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -131,15 +130,15 @@
   }
 
   .close-btn:hover {
-    color: #fff;
+    color: var(--text);
   }
 
   .shortcuts-content {
-    padding: 1.5rem;
+    padding: 12px;
   }
 
   .shortcuts-section {
-    margin-bottom: 2rem;
+    margin-bottom: 10px;
   }
 
   .shortcuts-section:last-child {
@@ -148,8 +147,8 @@
 
   h3 {
     margin: 0 0 1rem 0;
-    color: #646cff;
-    font-size: 1.1rem;
+    color: var(--info);
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -165,14 +164,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    background: #2a2a2a;
+    padding: 8px;
+    background: var(--surface-2);
     border-radius: 6px;
     transition: background 0.2s;
   }
 
   .shortcut-item:hover {
-    background: #333;
+    background: var(--surface-2);
   }
 
   .shortcut-keys {
@@ -183,31 +182,31 @@
 
   .key {
     display: inline-block;
-    padding: 0.25rem 0.6rem;
-    background: #1a1a1a;
-    border: 1px solid #444;
+    padding: 4px 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 4px;
     font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
+    font-size: 11px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text);
     box-shadow: 0 2px 0 #222;
     min-width: 28px;
     text-align: center;
   }
 
   .shortcut-desc {
-    color: #aaa;
-    font-size: 0.9rem;
+    color: var(--muted);
+    font-size: 12px;
   }
 
   .shortcuts-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid #333;
+    padding: 10px 1.5rem;
+    border-top: 1px solid var(--border);
     text-align: center;
-    color: #888;
-    font-size: 0.9rem;
-    background: #1a1a1a;
+    color: var(--muted);
+    font-size: 12px;
+    background: var(--surface);
     position: sticky;
     bottom: 0;
   }

@@ -291,12 +291,12 @@
 
 <style>
   .triggers-panel {
-    padding: 20px;
+    padding: 12px;
     width: 100%;
     margin: 0;
-    font-family: 'Inter', sans-serif;
-    background: #0f0f0f;
-    color: #e5e5e5;
+    font-family: var(--mono);
+    background: var(--bg);
+    color: var(--text);
     position: relative;
   }
 
@@ -304,12 +304,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
 
   h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 13px;
     font-weight: 600;
   }
 
@@ -321,45 +321,45 @@
   .btn-action,
   .btn-refresh {
     padding: 8px 16px;
-    background: #1a1a1a;
-    border: 1px solid #333;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
-    color: #e5e5e5;
+    color: var(--text);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
     transition: all 0.2s;
   }
 
   .btn-action:hover,
   .btn-refresh:hover {
-    background: #2a2a2a;
-    border-color: #444;
+    background: var(--surface-2);
+    border-color: var(--border);
   }
 
   .message {
     padding: 12px;
     border-radius: 6px;
-    margin-bottom: 16px;
-    font-size: 14px;
+    margin-bottom: 10px;
+    font-size: 12px;
   }
 
   .message.success {
-    background: #1a3a1a;
-    border: 1px solid #2a5a2a;
-    color: #5afa5a;
+    background: color-mix(in srgb, var(--success) 15%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--success) 25%, var(--surface));
+    color: var(--success);
   }
 
   .message.error {
-    background: #3a1a1a;
-    border: 1px solid #5a2a2a;
-    color: #fa5a5a;
+    background: color-mix(in srgb, var(--error) 15%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--error) 25%, var(--surface));
+    color: var(--error);
   }
 
   .tabs {
     display: flex;
     gap: 4px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #2a2a2a;
+    margin-bottom: 10px;
+    border-bottom: 2px solid var(--surface-2);
   }
 
   .tab {
@@ -367,21 +367,21 @@
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
-    color: #9ca3af;
+    color: var(--muted);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     transition: all 0.2s;
   }
 
   .tab:hover {
-    color: #e5e5e5;
-    background: #1a1a1a;
+    color: var(--text);
+    background: var(--surface);
   }
 
   .tab.active {
-    color: #ffa500;
-    border-bottom-color: #ffa500;
+    color: var(--warning);
+    border-bottom-color: var(--warning);
   }
 
   .tab-content {
@@ -390,45 +390,45 @@
 
   .loading {
     text-align: center;
-    padding: 60px 20px;
-    color: #9ca3af;
-    font-size: 16px;
+    padding: 16px 20px;
+    color: var(--muted);
+    font-size: 12px;
   }
 
   .empty {
     text-align: center;
-    padding: 60px 20px;
-    color: #9ca3af;
+    padding: 16px 20px;
+    color: var(--muted);
   }
 
   .empty .icon {
-    font-size: 64px;
-    margin-bottom: 20px;
+    font-size: 13px;
+    margin-bottom: 10px;
   }
 
   .empty h3 {
-    color: #e5e5e5;
-    font-size: 24px;
+    color: var(--text);
+    font-size: 13px;
     margin-bottom: 12px;
   }
 
   .empty p {
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: 12px;
+    line-height: 1.4;
     margin-bottom: 8px;
   }
 
   .empty code {
-    background: #1a1a1a;
+    background: var(--surface);
     padding: 2px 8px;
     border-radius: 4px;
-    color: #ffa500;
+    color: var(--warning);
     font-family: 'Courier New', monospace;
   }
 
   .empty .hint {
-    font-size: 14px;
-    color: #6b7280;
+    font-size: 12px;
+    color: var(--muted);
     font-style: italic;
   }
 
@@ -436,20 +436,20 @@
   .rules-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 16px;
+    gap: 12px;
   }
 
   .trigger-card {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
     border-radius: 8px;
     padding: 16px;
     transition: all 0.2s;
   }
 
   .trigger-card:hover {
-    border-color: #ffa500;
-    box-shadow: 0 4px 12px rgba(255, 165, 0, 0.1);
+    border-color: var(--warning);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--warning) 10%, transparent);
   }
 
   .trigger-header {
@@ -458,36 +458,36 @@
     align-items: center;
     margin-bottom: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #2a2a2a;
+    border-bottom: 1px solid var(--surface-2);
   }
 
   .trigger-name {
     font-weight: 600;
-    font-size: 16px;
-    color: #e5e5e5;
+    font-size: 12px;
+    color: var(--text);
   }
 
   .trigger-action {
-    background: #2a2a2a;
+    background: var(--surface-2);
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
-    color: #ffa500;
+    color: var(--warning);
     text-transform: capitalize;
   }
 
   .trigger-details {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .trigger-details .label {
-    color: #9ca3af;
+    color: var(--muted);
     font-weight: 500;
     margin-right: 8px;
   }
 
   .trigger-details .value {
-    color: #e5e5e5;
+    color: var(--text);
   }
 
   .conditions {
@@ -501,7 +501,7 @@
   }
 
   .conditions li {
-    color: #e5e5e5;
+    color: var(--text);
     margin: 4px 0;
     font-size: 13px;
   }
@@ -513,12 +513,12 @@
   }
 
   .command-preview code {
-    background: #0a0a0a;
+    background: var(--bg);
     padding: 4px 8px;
     border-radius: 4px;
     font-family: 'Courier New', monospace;
     font-size: 12px;
-    color: #5afa5a;
+    color: var(--success);
     display: block;
     margin-top: 4px;
     overflow-x: auto;
@@ -534,21 +534,21 @@
   .event-row {
     display: flex;
     align-items: center;
-    gap: 16px;
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
     border-radius: 6px;
     padding: 12px 16px;
     transition: all 0.2s;
   }
 
   .event-row:hover {
-    background: #2a2a2a;
-    border-color: #3a3a3a;
+    background: var(--surface-2);
+    border-color: var(--surface-2);
   }
 
   .event-icon {
-    font-size: 24px;
+    font-size: 13px;
     flex-shrink: 0;
   }
 
@@ -558,13 +558,13 @@
 
   .event-trigger-name {
     font-weight: 600;
-    color: #ffa500;
-    font-size: 14px;
+    color: var(--warning);
+    font-size: 12px;
     margin-bottom: 4px;
   }
 
   .event-message {
-    color: #e5e5e5;
+    color: var(--text);
     font-size: 13px;
   }
 
@@ -576,31 +576,31 @@
   }
 
   .event-action {
-    background: #2a2a2a;
+    background: var(--surface-2);
     padding: 2px 8px;
     border-radius: 8px;
     font-size: 11px;
-    color: #9ca3af;
+    color: var(--muted);
     text-transform: capitalize;
   }
 
   .event-time {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--muted);
   }
 
   /* Statistics Tab */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 16px;
+    gap: 12px;
   }
 
   .stat-card {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
     border-radius: 8px;
-    padding: 24px;
+    padding: 12px;
     text-align: center;
   }
 
@@ -610,23 +610,23 @@
   }
 
   .stat-value {
-    font-size: 48px;
+    font-size: 13px;
     font-weight: 700;
-    color: #ffa500;
+    color: var(--warning);
     margin-bottom: 8px;
   }
 
   .stat-label {
-    font-size: 14px;
-    color: #9ca3af;
+    font-size: 12px;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   .stat-card h3 {
-    color: #e5e5e5;
-    font-size: 18px;
-    margin-bottom: 16px;
+    color: var(--text);
+    font-size: 12px;
+    margin-bottom: 10px;
   }
 
   .trigger-counts {
@@ -640,22 +640,22 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px;
-    background: #0a0a0a;
+    background: var(--bg);
     border-radius: 6px;
   }
 
   .count-name {
-    color: #e5e5e5;
-    font-size: 14px;
+    color: var(--text);
+    font-size: 12px;
     font-weight: 500;
   }
 
   .count-value {
-    background: #2a2a2a;
+    background: var(--surface-2);
     padding: 4px 12px;
     border-radius: 12px;
-    font-size: 16px;
+    font-size: 12px;
     font-weight: 700;
-    color: #ffa500;
+    color: var(--warning);
   }
 </style>

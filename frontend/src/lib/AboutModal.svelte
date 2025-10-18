@@ -13,7 +13,7 @@
   <div class="modal-backdrop" on:click={handleBackdropClick}>
     <div class="modal">
       <div class="modal-header">
-        <h2>🐦‍⬛ About Raven</h2>
+        <h2>About Raven</h2>
         <button class="close-btn" on:click={onClose}>✕</button>
       </div>
 
@@ -99,13 +99,13 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: color-mix(in srgb, var(--bg) 80%, black);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: 20px;
+    padding: 12px;
     animation: fadeIn 0.2s ease;
   }
 
@@ -119,8 +119,8 @@
   }
 
   .modal {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
     border-radius: 12px;
     max-width: 700px;
     width: 100%;
@@ -144,21 +144,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px;
-    border-bottom: 1px solid #2a2a2a;
+    padding: 12px;
+    border-bottom: 1px solid var(--surface-2);
   }
 
   .modal-header h2 {
     margin: 0;
-    font-size: 24px;
-    color: #e5e5e5;
+    font-size: 13px;
+    color: var(--text);
   }
 
   .close-btn {
     background: none;
     border: none;
-    color: #9ca3af;
-    font-size: 24px;
+    color: var(--muted);
+    font-size: 13px;
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -171,12 +171,12 @@
   }
 
   .close-btn:hover {
-    background: #2a2a2a;
-    color: #FF6B35;
+    background: var(--surface-2);
+    color: var(--accent);
   }
 
   .modal-content {
-    padding: 24px;
+    padding: 12px;
   }
 
   .section {
@@ -189,18 +189,18 @@
 
   .section h3 {
     margin: 0 0 12px 0;
-    font-size: 18px;
-    color: #FF6B35;
+    font-size: 12px;
+    color: var(--accent);
   }
 
   .section p {
-    color: #d1d5db;
-    line-height: 1.6;
+    color: var(--text);
+    line-height: 1.4;
     margin: 0;
   }
 
   .section strong {
-    color: #e5e5e5;
+    color: var(--text);
   }
 
   .section ul {
@@ -210,7 +210,7 @@
   }
 
   .section ul li {
-    color: #d1d5db;
+    color: var(--text);
     margin: 8px 0;
     position: relative;
     padding-left: 20px;
@@ -220,7 +220,7 @@
     content: "▸";
     position: absolute;
     left: 0;
-    color: #FF6B35;
+    color: var(--accent);
   }
 
   .tech-grid {
@@ -231,32 +231,32 @@
   }
 
   .tech-item {
-    background: #0f0f0f;
+    background: var(--bg);
     padding: 12px;
     border-radius: 6px;
-    border: 1px solid #2a2a2a;
+    border: 1px solid var(--surface-2);
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
 
   .tech-item strong {
-    color: #9ca3af;
+    color: var(--muted);
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   .tech-item span {
-    color: #e5e5e5;
-    font-size: 14px;
+    color: var(--text);
+    font-size: 12px;
   }
 
   .session-info {
-    background: #0f0f0f;
+    background: var(--bg);
     padding: 16px;
     border-radius: 8px;
-    border: 1px solid #2a2a2a;
+    border: 1px solid var(--surface-2);
     margin-top: 12px;
   }
 
@@ -264,7 +264,7 @@
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid #1f1f1f;
+    border-bottom: 1px solid var(--border);
   }
 
   .info-row:last-child {
@@ -272,29 +272,29 @@
   }
 
   .info-row .label {
-    color: #9ca3af;
-    font-size: 14px;
+    color: var(--muted);
+    font-size: 12px;
   }
 
   .info-row .value {
-    color: #e5e5e5;
-    font-size: 14px;
+    color: var(--text);
+    font-size: 12px;
     font-family: 'Courier New', monospace;
   }
 
   .info-row .value.status-online {
-    color: #10b981;
+    color: var(--success);
   }
 
   .footer-section {
     text-align: center;
     padding-top: 20px;
-    border-top: 1px solid #2a2a2a;
+    border-top: 1px solid var(--surface-2);
   }
 
   .built-with {
-    color: #6b7280;
-    font-size: 14px;
+    color: var(--muted);
+    font-size: 12px;
     font-style: italic;
   }
 

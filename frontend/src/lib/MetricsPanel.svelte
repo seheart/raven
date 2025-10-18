@@ -84,7 +84,7 @@
   .metrics {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 12px;
   }
 
   .metric {
@@ -94,38 +94,38 @@
   }
 
   .label {
-    color: #888;
-    font-size: 0.9rem;
+    color: var(--muted);
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .value {
-    font-size: 1.8rem;
+    font-size: 13px;
     font-weight: bold;
-    color: #4ade80;
+    color: var(--success);
   }
 
   .bar {
     height: 8px;
-    background: #2a2a2a;
+    background: var(--surface-2);
     border-radius: 4px;
     overflow: hidden;
   }
 
   .fill {
     height: 100%;
-    background: #646cff;
+    background: var(--info);
     transition: width 0.3s ease;
   }
 
   .fill.memory {
-    background: #f59e0b;
+    background: var(--warning);
   }
 
   .detail {
-    font-size: 0.8rem;
-    color: #666;
+    font-size: 11px;
+    color: var(--muted);
   }
 
   .status {
@@ -134,14 +134,14 @@
     gap: 0.5rem;
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid #333;
+    border-top: 1px solid var(--border);
   }
 
   .status-indicator {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #4ade80;
+    background: var(--success);
     animation: pulse 2s infinite;
   }
 
@@ -151,7 +151,7 @@
   }
 
   .status span {
-    color: #888;
-    font-size: 0.9rem;
+    color: var(--muted);
+    font-size: 12px;
   }
 </style>
