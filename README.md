@@ -1,10 +1,15 @@
 # 🐦‍⬛ Raven - AI Agent Monitor
 
-> **Local-first, lightning-fast monitoring tool for AI coding agents**
+> **Local-first, web-based monitoring tool for AI coding agents**
 
 Raven captures file changes, system metrics, and API events in real time — without relying on GitHub. Built for Claude Code and other local AI development tools.
 
-## 🚀 Current Status: Phase 5 Complete
+**Architecture:** Web Application (Node.js + Svelte)
+**Status:** Production Ready
+
+> **📝 Note:** Originally planned as Tauri desktop app. Built as web application for faster iteration and easier deployment. See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
+
+## 🚀 Current Status: Phase II.6 Complete
 
 ✅ **Ready for cross-platform release!**
 
@@ -90,75 +95,84 @@ See [docs/SETUP.md](docs/SETUP.md) for detailed installation instructions.
 **Quick start:**
 
 ```bash
-# Install system dependencies (Arch Linux)
-sudo pacman -S webkit2gtk-4.1 base-devel curl wget file openssl gtk3
+# Terminal 1: Start backend server
+cd backend
+npm install
+npm start
 
-# Install frontend dependencies
-cd frontend && npm install && cd ..
+# Terminal 2: Start frontend dev server
+cd frontend
+npm install
+npm run dev
 
-# Run development server
-cargo tauri dev
+# Visit http://localhost:5173
 ```
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Rust 1.90+ with Tokio async runtime
-- **UI Framework:** Tauri 2.1 (Rust + Svelte)
-- **Frontend:** Svelte + Vite
-- **Database:** SQLite (rusqlite)
-- **File Watching:** notify + notify-debouncer-full
-- **Diff Engine:** similar crate
-- **Metrics:** sysinfo crate
+**Current Architecture:** Web Application (Client-Server)
+
+- **Backend:** Node.js + Express (REST API + Socket.IO)
+- **Frontend:** Svelte + Vite (browser-based UI)
+- **Database:** SQLite (better-sqlite3)
+- **File Watching:** chokidar
+- **Metrics:** systeminformation
+- **Real-time:** Socket.IO WebSockets
+
+**Note:** Original plan included Tauri desktop app (Rust backend). Current implementation uses web architecture for faster iteration and easier deployment. Rust/Tauri code preserved in `src/` for future use.
 
 ## 📂 Project Structure
 
 ```
 raven3/
-├── src/                    # Rust backend
-│   ├── main.rs            # Entry point
-│   ├── modules/           # Core modules
-│   │   ├── repo_watcher.rs    # File system watching
-│   │   ├── event_logger.rs    # Event persistence
-│   │   ├── diff_engine.rs     # Diff generation
-│   │   ├── metrics.rs         # System metrics
-│   │   └── db.rs              # SQLite operations
-│   └── commands/          # Tauri IPC commands
-├── frontend/              # Svelte UI
-│   └── src/
-│       ├── App.svelte
-│       └── lib/
-│           ├── EventFeed.svelte
-│           ├── MetricsPanel.svelte
-│           ├── FileBrowser.svelte
-│           ├── FileHistory.svelte
-│           ├── DiffViewer.svelte
-│           ├── TimelineSlider.svelte
-│           ├── KeyboardShortcuts.svelte
-│           └── keyboardService.js
-├── .raven/                # Runtime data
-│   ├── config.toml       # Configuration
-│   ├── db/               # SQLite database
-│   └── snapshots/        # File snapshots
-└── test_workspace/        # Test directory
+├── backend/                   # Node.js Express Server ⭐ ACTIVE
+│   ├── server.js             # Main server (port 3030)
+│   ├── db.js                 # SQLite database wrapper
+│   ├── metrics-collector.js  # System metrics
+│   ├── trigger-engine.js     # Alert system
+│   └── package.json          # Dependencies
+│
+├── frontend/                  # Svelte Web UI ⭐ ACTIVE
+│   ├── src/
+│   │   ├── App.svelte        # Main application
+│   │   └── lib/              # 18 UI components
+│   │       ├── Dashboard.svelte
+│   │       ├── AgentsPanel.svelte
+│   │       ├── MetricsPanel.svelte
+│   │       ├── SessionReplay.svelte
+│   │       └── ...
+│   └── package.json
+│
+├── .raven/                    # Runtime data
+│   ├── config.toml           # Configuration
+│   ├── db/raven.db          # SQLite database
+│   └── snapshots/           # File snapshots
+│
+├── docs/                      # Documentation
+├── test_workspace/           # Monitored directory
+│
+└── src/                      # ⚠️ Rust/Tauri prototype (unused)
+    ├── main.rs              # Theoretical implementation
+    └── modules/             # Preserved for future use
 ```
 
 ## 🧪 Development
 
 ```bash
-# Check Rust code
-cargo check
+# Backend development
+cd backend
+npm install
+npm start                    # Start server on port 3030
 
-# Run tests
-cargo test
+# Frontend development
+cd frontend
+npm install
+npm run dev                  # Start dev server on port 5173
+npm test                     # Run Vitest tests
+npm run build                # Build for production
 
-# Format code
-cargo fmt
-
-# Run with debug logging
-RUST_LOG=debug cargo tauri dev
-
-# Build for production
-cargo tauri build
+# Full stack
+npm run dev                  # Starts both backend and frontend (if configured)
 ```
 
 ## 🎨 UI Preview

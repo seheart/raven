@@ -9,6 +9,29 @@ Complete development timeline of the Raven AI Agent Monitor project.
 
 ---
 
+## ⚠️ IMPORTANT: Architecture Change
+
+**Original Plan (Documented):** Tauri desktop application with Rust backend
+
+**Actual Implementation (Built):** Web application with Node.js backend
+
+**Why the Change:**
+- Faster iteration during development
+- Easier deployment (standard web hosting)
+- Cross-platform via browser (no installers needed)
+- Remote access capability
+- Simpler tech stack for initial release
+
+**Current State:**
+- ✅ **Backend:** Node.js Express server (port 3030)
+- ✅ **Frontend:** Svelte web application (port 5173)
+- ✅ **Database:** SQLite
+- ⚠️ **Rust/Tauri:** Code exists in `src/` but unused (preserved for future)
+
+See [ARCHITECTURE.md](../ARCHITECTURE.md) for complete technical details.
+
+---
+
 ## Timeline Overview
 
 | Phase | Name | Completion | Key Deliverable |

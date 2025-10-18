@@ -1,0 +1,21 @@
+{
+  "name": "raven-backend",
+  "version": "1.0.0",
+  "description": "Node.js backend for Raven AI monitoring",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "chokidar": "^4.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "systeminformation": "^5.27.11",
+    "toml": "^3.0.0",
+    "uuid": "^11.0.5"
+  }
+}
