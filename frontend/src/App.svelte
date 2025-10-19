@@ -1,23 +1,28 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import Dashboard from './lib/Dashboard.svelte';
+  import GitPanel from './lib/GitPanel.svelte';
   import SessionReplay from './lib/SessionReplay.svelte';
   import PerformancePanel from './lib/PerformancePanel.svelte';
   import TriggersPanel from './lib/TriggersPanel.svelte';
   import AgentsPanel from './lib/AgentsPanel.svelte';
   import StatusPanel from './lib/StatusPanel.svelte';
+  import APIHealthMonitor from './lib/APIHealthMonitor.svelte';
+  import LiveCodeFeed from './lib/LiveCodeFeed.svelte';
+  import ActivityLog from './lib/ActivityLog.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import Footer from './lib/Footer.svelte';
   import AboutPage from './lib/AboutPage.svelte';
   import ChangelogPage from './lib/ChangelogPage.svelte';
   import RavenLogo from './lib/RavenLogo.svelte';
+  import ProjectSelector from './lib/ProjectSelector.svelte';
   import { keyboard } from './lib/keyboardService.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
   let sessionId = 'Loading...';
   let showShortcuts = false;
-  let currentView = 'dashboard'; // dashboard, replay, performance, triggers, agents, status, about, changelog
+  let currentView = 'dashboard'; // dashboard, git, replay, performance, triggers, agents, status, about, changelog
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
 
   async function loadSessionId() {
@@ -60,11 +65,12 @@
 
     // View switching shortcuts
     keyboard.register('1', () => switchView('dashboard'));
-    keyboard.register('2', () => switchView('replay'));
-    keyboard.register('3', () => switchView('performance'));
-    keyboard.register('4', () => switchView('triggers'));
-    keyboard.register('5', () => switchView('agents'));
-    keyboard.register('6', () => switchView('status'));
+    keyboard.register('2', () => switchView('git'));
+    keyboard.register('3', () => switchView('replay'));
+    keyboard.register('4', () => switchView('performance'));
+    keyboard.register('5', () => switchView('triggers'));
+    keyboard.register('6', () => switchView('agents'));
+    keyboard.register('7', () => switchView('status'));
   });
 
   onDestroy(() => {
@@ -82,6 +88,7 @@
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 12px;">
+        <ProjectSelector />
         <div class="theme-switch">
           <button
             class:is-active={theme === 'theme--day'}
@@ -119,6 +126,20 @@
     </button>
     <button
       class="tab"
+      class:active={currentView === 'live-feed'}
+      on:click={() => switchView('live-feed')}
+    >
+      🔴 Live Feed
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'git'}
+      on:click={() => switchView('git')}
+    >
+      🌳 Git
+    </button>
+    <button
+      class="tab"
       class:active={currentView === 'replay'}
       on:click={() => switchView('replay')}
     >
@@ -152,11 +173,29 @@
     >
       🏥 Status
     </button>
+    <button
+      class="tab"
+      class:active={currentView === 'api-health'}
+      on:click={() => switchView('api-health')}
+    >
+      🔌 API Health
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'activity-log'}
+      on:click={() => switchView('activity-log')}
+    >
+      📜 Activity Log
+    </button>
   </nav>
 
   <div class="view-container">
     {#if currentView === 'dashboard'}
       <Dashboard />
+    {:else if currentView === 'live-feed'}
+      <LiveCodeFeed />
+    {:else if currentView === 'git'}
+      <GitPanel />
     {:else if currentView === 'replay'}
       <SessionReplay />
     {:else if currentView === 'performance'}
@@ -167,6 +206,10 @@
       <AgentsPanel />
     {:else if currentView === 'status'}
       <StatusPanel />
+    {:else if currentView === 'api-health'}
+      <APIHealthMonitor />
+    {:else if currentView === 'activity-log'}
+      <ActivityLog />
     {:else if currentView === 'about'}
       <AboutPage />
     {:else if currentView === 'changelog'}

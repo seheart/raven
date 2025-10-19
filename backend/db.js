@@ -444,12 +444,179 @@ export class RavenDB {
       }
     }
 
+    // Get breakdown from file events table
+    const breakdownStmt = this.db.prepare(`
+      SELECT
+        change_type,
+        COUNT(*) as count
+      FROM events
+      WHERE session_id = ?
+      GROUP BY change_type
+    `);
+    const breakdown = breakdownStmt.all(session_id);
+
+    // Build breakdown object
+    const creates = breakdown.find(b => b.change_type === 'add')?.count || 0;
+    const edits = breakdown.find(b => b.change_type === 'change')?.count || 0;
+    const deletes = breakdown.find(b => b.change_type === 'unlink')?.count || 0;
+    const total_changes = creates + edits + deletes;
+
     return {
       total_events: events.length,
       total_files: trackedFiles.size,
       total_agents: 0, // Will be updated by agent registry
       session_duration_seconds,
-      active_files_today: activeToday.size
+      active_files_today: activeToday.size,
+      total_changes,
+      creates,
+      edits,
+      deletes
+    };
+  }
+
+  // ==================== Unified Activity Log ====================
+
+  /**
+   * Get all activity from all tables in a unified format
+   * Returns events sorted by timestamp with search and filter capabilities
+   */
+  getActivityLog(options = {}) {
+    const {
+      limit = 500,
+      offset = 0,
+      search = '',
+      eventType = 'all', // all, file, agent, system
+      startDate = null,
+      endDate = null
+    } = options;
+
+    let activities = [];
+
+    // Get file change events
+    if (eventType === 'all' || eventType === 'file') {
+      const fileEvents = this.db.prepare(`
+        SELECT
+          id,
+          timestamp,
+          'file' as category,
+          change_type as type,
+          filepath as target,
+          event_size as size,
+          file_hash as hash,
+          cpu,
+          mem,
+          diff,
+          session_id
+        FROM events
+        ORDER BY timestamp DESC
+        LIMIT 1000
+      `).all();
+
+      activities.push(...fileEvents.map(e => ({
+        ...e,
+        description: `File ${e.type}: ${e.target}`,
+        metadata: {
+          size: e.size,
+          hash: e.hash,
+          cpu: e.cpu,
+          mem: e.mem,
+          hasDiff: !!e.diff
+        }
+      })));
+    }
+
+    // Get agent events
+    if (eventType === 'all' || eventType === 'agent') {
+      const agentEvents = this.db.prepare(`
+        SELECT
+          id,
+          timestamp,
+          'agent' as category,
+          event_type as type,
+          agent as target,
+          file,
+          lines_changed,
+          duration_ms,
+          message,
+          metadata,
+          session_id
+        FROM agent_events
+        ORDER BY timestamp DESC
+        LIMIT 1000
+      `).all();
+
+      activities.push(...agentEvents.map(e => ({
+        ...e,
+        description: e.message || `${e.target} - ${e.type}`,
+        metadata: {
+          file: e.file,
+          linesChanged: e.lines_changed,
+          durationMs: e.duration_ms,
+          ...(e.metadata ? JSON.parse(e.metadata) : {})
+        }
+      })));
+    }
+
+    // Get system metrics (sample, not all)
+    if (eventType === 'all' || eventType === 'system') {
+      const systemEvents = this.db.prepare(`
+        SELECT
+          id,
+          timestamp,
+          'system' as category,
+          'metrics' as type,
+          'System' as target,
+          cpu_percent,
+          memory_percent,
+          memory_used_mb,
+          session_id
+        FROM raven_metrics
+        ORDER BY timestamp DESC
+        LIMIT 100
+      `).all();
+
+      activities.push(...systemEvents.map(e => ({
+        ...e,
+        description: `System Metrics: CPU ${e.cpu_percent?.toFixed(1)}%, Memory ${e.memory_percent?.toFixed(1)}%`,
+        metadata: {
+          cpu: e.cpu_percent,
+          memory: e.memory_percent,
+          memoryUsedMb: e.memory_used_mb
+        }
+      })));
+    }
+
+    // Sort by timestamp (most recent first)
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      activities = activities.filter(a =>
+        a.description?.toLowerCase().includes(searchLower) ||
+        a.target?.toLowerCase().includes(searchLower) ||
+        a.type?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply date range filter
+    if (startDate) {
+      activities = activities.filter(a => new Date(a.timestamp) >= new Date(startDate));
+    }
+    if (endDate) {
+      activities = activities.filter(a => new Date(a.timestamp) <= new Date(endDate));
+    }
+
+    // Apply pagination
+    const total = activities.length;
+    const paginated = activities.slice(offset, offset + limit);
+
+    return {
+      activities: paginated,
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total
     };
   }
 
