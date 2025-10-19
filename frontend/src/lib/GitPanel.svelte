@@ -176,6 +176,28 @@
     currentFile = '';
   }
 
+  // WebSocket event handlers
+  const handleGitStatusUpdated = (data) => {
+    console.log('🔀 Git status updated via WebSocket');
+    gitStatus = {
+      available: true,
+      branch: data.branch || 'unknown',
+      modified: data.modified || [],
+      created: data.created || [],
+      deleted: data.deleted || [],
+      branches: gitStatus.branches, // Keep existing branches
+      commits: gitStatus.commits, // Keep existing commits
+      ahead: data.ahead || 0,
+      behind: data.behind || 0
+    };
+  };
+
+  const handleProjectSwitched = () => {
+    console.log('📡 Project switched, refreshing git status');
+    loadRepositoryName();
+    checkGitStatus();
+  };
+
   onMount(async () => {
     isMounted = true;
     await loadRepositoryName();
@@ -187,27 +209,10 @@
     }, 5000);
 
     // Listen for real-time git status updates
-    websocketService.on('git-status-updated', (data) => {
-      console.log('🔀 Git status updated via WebSocket');
-      gitStatus = {
-        available: true,
-        branch: data.branch || 'unknown',
-        modified: data.modified || [],
-        created: data.created || [],
-        deleted: data.deleted || [],
-        branches: gitStatus.branches, // Keep existing branches
-        commits: gitStatus.commits, // Keep existing commits
-        ahead: data.ahead || 0,
-        behind: data.behind || 0
-      };
-    });
+    websocketService.on('git-status-updated', handleGitStatusUpdated);
 
     // Listen for project switches
-    websocketService.on('project-switched', () => {
-      console.log('📡 Project switched, refreshing git status');
-      loadRepositoryName();
-      checkGitStatus();
-    });
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
@@ -215,6 +220,10 @@
     if (refreshInterval) {
       clearInterval(refreshInterval);
     }
+
+    // Clean up WebSocket listeners
+    websocketService.off('git-status-updated', handleGitStatusUpdated);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 </script>
 

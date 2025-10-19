@@ -1,60 +1,38 @@
-# Raven Setup Guide - Phase 0
+# Raven Setup Guide
 
-## System Dependencies (Linux/Arch)
+## Prerequisites
 
-Tauri requires several system libraries to be installed. Run this command:
+- Node.js 18+ (`node --version`)
+- npm 9+ (`npm --version`)
+
+## Quick Start
 
 ```bash
-sudo pacman -S --needed \
-  webkit2gtk-4.1 \
-  base-devel \
-  curl \
-  wget \
-  file \
-  openssl \
-  gtk3 \
-  libappindicator-gtk3 \
-  librsvg
+# Clone the repository
+git clone https://github.com/seheart/raven.git
+cd raven
+
+# Start both backend and frontend
+./start.sh
+
+# Open browser to http://localhost:5173
 ```
 
-### Alternative Package Managers
+**That's it!** The start script handles everything automatically.
 
-**Ubuntu/Debian:**
+## Manual Setup
+
+If you prefer to set up manually or the start script doesn't work:
+
+### 1. Install Backend Dependencies
+
 ```bash
-sudo apt install \
-  libwebkit2gtk-4.1-dev \
-  build-essential \
-  curl \
-  wget \
-  file \
-  libssl-dev \
-  libgtk-3-dev \
-  libayatana-appindicator3-dev \
-  librsvg2-dev
+cd backend
+npm install
+cd ..
 ```
 
-**Fedora:**
-```bash
-sudo dnf install \
-  webkit2gtk4.1-devel \
-  openssl-devel \
-  curl \
-  wget \
-  file \
-  libappindicator-gtk3-devel \
-  librsvg2-devel
-```
-
-## Development Tools
-
-Ensure you have:
-- Rust (1.70+): `rustc --version`
-- Node.js (18+): `node --version`
-- npm (9+): `npm --version`
-
-## Project Setup
-
-### 1. Install Frontend Dependencies
+### 2. Install Frontend Dependencies
 
 ```bash
 cd frontend
@@ -62,131 +40,220 @@ npm install
 cd ..
 ```
 
-### 2. Verify Rust Build
+### 3. Start Backend Server
 
 ```bash
-cargo check
+cd backend
+npm start
+# Server runs on http://localhost:3030
 ```
 
-This will download and compile all Rust dependencies.
+### 4. Start Frontend Dev Server
 
-### 3. Run Development Server
+In a new terminal:
 
 ```bash
-cargo tauri dev
-```
-
-Or use the npm script:
-```bash
-npm run tauri:dev
+cd frontend
+npm run dev
+# UI runs on http://localhost:5173
 ```
 
 ## Project Structure
 
 ```
-raven3/
-├── src/                    # Rust backend
-│   ├── main.rs            # Entry point
-│   ├── modules/           # Core modules
-│   │   ├── repo_watcher.rs
-│   │   ├── event_logger.rs
-│   │   ├── diff_engine.rs
-│   │   ├── metrics.rs
-│   │   └── db.rs
-│   └── commands/          # Tauri commands
-│       └── mod.rs
-├── frontend/              # Svelte UI
+raven/
+├── backend/                   # Node.js Express Server
+│   ├── server.js             # Main server (port 3030)
+│   ├── db.js                 # SQLite database wrapper
+│   ├── metrics-collector.js  # System metrics
+│   ├── trigger-engine.js     # Alert system
+│   └── package.json          # Backend dependencies
+│
+├── frontend/                  # Svelte Web UI
 │   ├── src/
-│   │   ├── App.svelte
-│   │   └── lib/
-│   │       ├── EventFeed.svelte
-│   │       └── MetricsPanel.svelte
-│   └── package.json
-├── .raven/                # Runtime data
-│   ├── config.toml       # Configuration
-│   ├── db/               # SQLite database
-│   └── snapshots/        # File snapshots
-├── test_workspace/        # Test directory for monitoring
-├── Cargo.toml            # Rust dependencies
-├── tauri.conf.json       # Tauri configuration
-└── package.json          # Root npm scripts
-
+│   │   ├── App.svelte        # Main application
+│   │   └── lib/              # UI components
+│   │       ├── Dashboard.svelte
+│   │       ├── AgentsPanel.svelte
+│   │       ├── PerformancePanel.svelte
+│   │       └── ...
+│   ├── package.json          # Frontend dependencies
+│   └── vite.config.js
+│
+├── .raven/                    # Runtime data
+│   ├── config.toml           # Configuration
+│   ├── db/                   # SQLite databases
+│   └── snapshots/            # File snapshots
+│
+├── docs/                      # Documentation
+├── scripts/                   # Helper scripts
+├── start.sh                   # Start both servers
+├── stop.sh                    # Stop all servers
+└── restart.sh                 # Restart everything
 ```
 
-## Testing Raven
+## Verifying Installation
 
-1. **Start the application:**
-   ```bash
-   cargo tauri dev
-   ```
+### 1. Check Backend
 
-2. **Test the UI:**
-   - Click "Test Connection" button
-   - Should see: "Hello, Claude! Raven is watching..."
+```bash
+curl http://localhost:3030/api/session-id
+```
 
-3. **Test file watching** (Phase 1):
-   - Edit files in `test_workspace/`
-   - Watch events appear in the UI
+Expected output:
+```json
+{"session_id":"..."}
+```
+
+### 2. Check Frontend
+
+Open http://localhost:5173 in your browser. You should see the Raven dashboard.
+
+### 3. Test Real-Time Updates
+
+1. Open the Dashboard tab
+2. Create/edit a file in the monitored project
+3. Watch events appear in real-time
+
+## Configuration
+
+Edit `.raven/config.toml` to customize:
+
+```toml
+[monitoring]
+watch_path = "../test_workspace"  # Directory to monitor
+debounce_ms = 50                  # File change debounce
+
+[metrics]
+enabled = true
+interval_seconds = 1              # Metrics collection frequency
+
+[projects]
+active = "raven"                  # Active project name
+```
 
 ## Troubleshooting
 
-### Build Errors
+### Backend won't start
 
-**Error:** `webkit2gtk-4.1` not found
-- **Solution:** Install webkit2gtk-4.1 package (see above)
+**Error:** `Cannot find module`
+- **Solution:** Run `cd backend && npm install`
 
-**Error:** `cargo: command not found`
-- **Solution:** Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+**Error:** `Port 3030 already in use`
+- **Solution:** Kill the existing process or change port in `backend/server.js`
 
-**Error:** Frontend build fails
+### Frontend won't start
+
+**Error:** `Cannot find module`
 - **Solution:** Run `cd frontend && npm install`
 
-### Runtime Issues
+**Error:** `Port 5173 already in use`
+- **Solution:** Vite will automatically try port 5174
 
-**App doesn't start:**
-- Check logs: `RUST_LOG=debug cargo tauri dev`
-- Verify all system dependencies are installed
+### WebSocket connection fails
 
-**Events not showing:**
-- Phase 1 implementation not complete yet (file watching not active)
-- Current UI shows mock data only
+**Symptom:** Real-time updates not working
+- **Solution:** Ensure backend is running on port 3030
+- Check browser console for WebSocket errors
+- Verify CORS is enabled in `backend/server.js`
 
-## Next Steps (Phase 1)
+### Database errors
 
-- [ ] Implement async file watcher integration
-- [ ] Connect event logger to UI via Tauri events
-- [ ] Add real-time system metrics
-- [ ] Test with actual Claude Code sessions
+**Error:** `Database locked` or `SQLITE_BUSY`
+- **Solution:** Stop all Raven instances and restart
+- If persists: `rm .raven/db/*.db-wal .raven/db/*.db-shm`
 
 ## Development Commands
 
 ```bash
-# Check Rust code
-cargo check
+# Start everything
+./start.sh
 
-# Run tests
-cargo test
+# Stop everything
+./stop.sh
 
-# Format code
-cargo fmt
+# Restart everything
+./restart.sh
 
-# Run frontend dev server only
+# Backend only (manual)
+cd backend && npm start
+
+# Frontend only (manual)
 cd frontend && npm run dev
 
-# Build for production
-cargo tauri build
+# Build frontend for production
+cd frontend && npm run build
 
-# Run with debug logging
-RUST_LOG=debug cargo tauri dev
+# View backend logs
+tail -f /tmp/raven-backend.log
+
+# View frontend logs
+tail -f /tmp/raven-frontend.log
 ```
 
-## Contributing
+## Testing File Monitoring
 
-This is Phase 0 - foundation complete!
-- ✅ Project structure
-- ✅ Rust modules (stubs)
-- ✅ Svelte UI
-- ✅ Configuration system
-- ✅ Test workspace
+1. **Start Raven:**
+   ```bash
+   ./start.sh
+   ```
 
-Next: Phase 1 - Core backend implementation
+2. **Open the UI:**
+   - Navigate to http://localhost:5173
+   - Click on "Live Feed" tab
+
+3. **Test file changes:**
+   - Edit any file in your monitored project
+   - Watch real-time updates appear immediately
+   - Check snapshots in `.raven/snapshots/`
+
+## Next Steps
+
+- ✅ Installation complete
+- ✅ Servers running
+- 📖 Read [ARCHITECTURE.md](ARCHITECTURE.md) for system design
+- 📖 Read [TELEMETRY_API.md](./api/TELEMETRY_API.md) for API docs
+- 📖 Read [USER_EXPERIENCE.md](./api/USER_EXPERIENCE.md) for UI features
+- 🚀 Start monitoring your AI coding sessions!
+
+## System Requirements
+
+### Minimum
+- Node.js 18+
+- 2GB RAM
+- 500MB disk space
+
+### Recommended
+- Node.js 20+
+- 4GB RAM
+- 2GB disk space (for snapshots)
+- Modern browser (Chrome, Firefox, Edge)
+
+## Production Deployment
+
+For production use:
+
+1. **Build frontend:**
+   ```bash
+   cd frontend
+   npm run build
+   ```
+
+2. **Serve via backend:**
+   Backend automatically serves built frontend from `frontend/dist/`
+
+3. **Run as service:**
+   ```bash
+   # Using systemd (Linux)
+   sudo systemctl start raven
+   ```
+
+4. **Configure reverse proxy (optional):**
+   - Use nginx or Apache to proxy port 3030
+   - Enable HTTPS with Let's Encrypt
+
+## Support
+
+- Issues: https://github.com/seheart/raven/issues
+- Discussions: https://github.com/seheart/raven/discussions
+- Email: seheart@gmail.com

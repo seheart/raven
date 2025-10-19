@@ -74,10 +74,75 @@ try {
   process.exit(1);
 }
 
+// ==================== Project Auto-Discovery ====================
+
+/**
+ * Auto-discover all projects in the parent directory
+ * @returns {Array} Array of project objects with name, path, and description
+ */
+function discoverProjects() {
+  try {
+    // Backend is in /home/seth/Projects/raven/backend
+    // We want to scan /home/seth/Projects/ (two levels up)
+    const projectsDir = join(process.cwd(), '..', '..');
+    const entries = fs.readdirSync(projectsDir, { withFileTypes: true });
+
+    const projects = entries
+      .filter(entry => {
+        // Only include directories
+        if (!entry.isDirectory()) return false;
+
+        // Exclude hidden folders, node_modules, and system folders
+        if (entry.name.startsWith('.')) return false;
+        if (entry.name === 'node_modules') return false;
+
+        return true;
+      })
+      .map(entry => ({
+        name: entry.name,
+        path: entry.name,
+        description: `Project: ${entry.name}`
+      }));
+
+    console.log(`📂 Auto-discovered ${projects.length} projects in ${projectsDir}`);
+    return projects;
+  } catch (error) {
+    console.error('❌ Error discovering projects:', error.message);
+    return [];
+  }
+}
+
+// Auto-discover projects or use config
+const discoveredProjects = discoverProjects();
+const availableProjects = discoveredProjects.length > 0
+  ? discoveredProjects
+  : (config.projects?.available || []);
+
+// Determine active project
+let activeProjectName = config.projects?.active;
+
+// Validate that configured active project exists
+if (activeProjectName) {
+  const projectExists = availableProjects.find(p => p.name === activeProjectName);
+  if (!projectExists) {
+    console.log(`⚠️ Configured project "${activeProjectName}" not found, using first available project`);
+    activeProjectName = availableProjects.length > 0 ? availableProjects[0].name : null;
+  }
+} else if (availableProjects.length > 0) {
+  // No configured project, default to first discovered
+  activeProjectName = availableProjects[0].name;
+}
+
+// Default to 'raven' if it exists, otherwise first project
+if (!activeProjectName && availableProjects.length > 0) {
+  const ravenProject = availableProjects.find(p => p.name === 'raven');
+  activeProjectName = ravenProject ? ravenProject.name : availableProjects[0].name;
+}
+
 // Global state for active project
 const projectState = {
-  activeProject: config.projects?.active || 'raven3',
-  availableProjects: config.projects?.available || [],
+  activeProject: activeProjectName,
+  availableProjects: availableProjects,
   watchPath: null,
   dbPath: null,
   snapshotsDir: null,
@@ -255,7 +320,8 @@ function initializeProject(projectName) {
 
   // Set project paths
   projectState.activeProject = projectName;
-  projectState.watchPath = join(process.cwd(), '..', project.path);
+  // Backend is in raven/backend, so go up two levels to get to Projects/, then add project path
+  projectState.watchPath = join(process.cwd(), '..', '..', project.path);
   projectState.dbPath = join(RAVEN_DIR, 'db', `${projectName}.db`);
   projectState.snapshotsDir = join(RAVEN_DIR, 'snapshots', projectName);
 
@@ -1116,6 +1182,41 @@ app.get('/api/projects/list', (req, res) => {
   }
 });
 
+app.post('/api/projects/refresh', (req, res) => {
+  try {
+    // Re-scan for projects
+    const newProjects = discoverProjects();
+
+    if (newProjects.length > 0) {
+      projectState.availableProjects = newProjects;
+
+      // If current active project no longer exists, switch to first available
+      const activeExists = newProjects.find(p => p.name === projectState.activeProject);
+      if (!activeExists && newProjects.length > 0) {
+        projectState.activeProject = newProjects[0].name;
+      }
+
+      console.log(`✅ Refreshed projects: ${newProjects.length} found`);
+      res.json({
+        success: true,
+        projects: newProjects.map(p => p.name),
+        active: projectState.activeProject,
+        message: `Found ${newProjects.length} projects`
+      });
+    } else {
+      res.json({
+        success: false,
+        message: 'No projects found',
+        projects: [],
+        active: projectState.activeProject
+      });
+    }
+  } catch (error) {
+    console.error('❌ Projects refresh error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/projects/select', async (req, res) => {
   try {
     const { project } = req.body;
@@ -1333,6 +1434,106 @@ app.get('/api/git/diff', async (req, res) => {
   }
 });
 
+// ==================== Documentation API ====================
+
+/**
+ * GET /api/docs/list
+ * Get list of all available documentation files
+ */
+app.get('/api/docs/list', (req, res) => {
+  try {
+    const docsDir = join(process.cwd(), '..', 'docs');
+
+    const getMarkdownFiles = (dir, baseDir = dir) => {
+      const files = [];
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          // Recursively get files from subdirectories
+          files.push(...getMarkdownFiles(fullPath, baseDir));
+        } else if (entry.name.endsWith('.md')) {
+          // Get relative path from docs directory
+          const relativePath = fullPath.replace(baseDir + '/', '');
+          files.push({
+            path: relativePath,
+            name: entry.name,
+            title: entry.name.replace(/\.md$/, ''),
+            category: relativePath.includes('/') ? relativePath.split('/')[0] : 'root'
+          });
+        }
+      }
+
+      return files;
+    };
+
+    const docs = getMarkdownFiles(docsDir);
+
+    // Organize by category
+    const organized = {
+      root: [],
+      api: [],
+      guides: [],
+      other: []
+    };
+
+    docs.forEach(doc => {
+      if (doc.category === 'root') {
+        organized.root.push(doc);
+      } else if (doc.category === 'api') {
+        organized.api.push(doc);
+      } else {
+        organized.other.push(doc);
+      }
+    });
+
+    res.json({
+      total: docs.length,
+      docs: organized,
+      all: docs
+    });
+  } catch (error) {
+    console.error('❌ Documentation list error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/docs/README.md
+ * Get a specific documentation file
+ */
+app.get('/api/docs/:filepath(*)', async (req, res) => {
+  try {
+    const { filepath } = req.params;
+
+    // Security: only allow .md files in docs/ directory
+    if (!filepath.endsWith('.md')) {
+      return res.status(400).json({ error: 'Only markdown files allowed' });
+    }
+
+    const docsPath = join(process.cwd(), '..', 'docs', filepath);
+
+    // Check if file exists
+    if (!fs.existsSync(docsPath)) {
+      return res.status(404).json({ error: 'Documentation file not found' });
+    }
+
+    // Read markdown file
+    const markdown = fs.readFileSync(docsPath, 'utf8');
+
+    res.json({
+      filepath,
+      markdown,
+      title: filepath.replace(/\.md$/, '').replace(/\//g, ' / ')
+    });
+  } catch (error) {
+    console.error('❌ Documentation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== WebSocket Connections ====================
 
 io.on('connection', socket => {
@@ -1350,7 +1551,7 @@ export { io };
 httpServer.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════════════╗
-║           🐦‍⬛ Raven Backend Server              ║
+║           Raven Backend Server                 ║
 ╠════════════════════════════════════════════════╣
 ║  Port:       ${PORT}                              ║
 ║  WebSocket:  ✅ Enabled                         ║

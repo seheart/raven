@@ -43,7 +43,7 @@ async function testEndpoint(method, path, expectedStatus = 200, body = null) {
 }
 
 async function runDiagnostics() {
-  console.log('🐦‍⬛ Raven Comprehensive Diagnostic Test\n');
+  console.log('Raven Comprehensive Diagnostic Test\n');
   console.log('=' .repeat(60));
   console.log('SYSTEM HEALTH CHECKS');
   console.log('='.repeat(60) + '\n');

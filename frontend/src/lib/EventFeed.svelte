@@ -124,6 +124,19 @@
     }
   }
 
+  // WebSocket event handler
+  const handleAgentEvent = (event) => {
+    // Add new event to the top of the list
+    events = [{
+      id: event.id,
+      timestamp: event.timestamp,
+      filepath: event.file || 'unknown',
+      changeType: event.event_type || 'modified',
+      cpu: 0,
+      mem: 0
+    }, ...events].slice(0, 100); // Keep last 100 events
+  };
+
   onMount(async () => {
     // Load initial events from database
     await loadRecentEvents();
@@ -132,17 +145,7 @@
     websocketService.connect();
 
     // Listen for real-time agent events
-    websocketService.on('agent-event', (event) => {
-      // Add new event to the top of the list
-      events = [{
-        id: event.id,
-        timestamp: event.timestamp,
-        filepath: event.file || 'unknown',
-        changeType: event.event_type || 'modified',
-        cpu: 0,
-        mem: 0
-      }, ...events].slice(0, 100); // Keep last 100 events
-    });
+    websocketService.on('agent-event', handleAgentEvent);
 
     // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
     pollIntervalId = setInterval(loadRecentEvents, 30000);
@@ -154,7 +157,7 @@
     }
 
     // Clean up WebSocket listeners
-    websocketService.off('agent-event');
+    websocketService.off('agent-event', handleAgentEvent);
   });
 
   function formatTime(timestamp) {

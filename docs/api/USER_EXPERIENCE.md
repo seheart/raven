@@ -214,7 +214,7 @@ raven status [OPTIONS]
 **Example Output:**
 
 ```
-🐦‍⬛ Raven Status
+Raven Status
 
 📊 Session Statistics:
    Tracked Files: 56
@@ -234,7 +234,7 @@ raven status --verbose
 ```
 
 ```
-🐦‍⬛ Raven Status
+Raven Status
 
 📊 Session Statistics:
    Tracked Files: 56
@@ -300,7 +300,7 @@ Opening replay at timestamp: 2025-10-17T14:30:00Z
    Use the Session Replay panel to view timeline
 
 ⚠️  GUI auto-launch not yet implemented
-   Run: cargo tauri dev
+   Run: ./start.sh
 ```
 
 **Use Cases:**
@@ -369,8 +369,6 @@ raven-export.tar.gz
 - Transfer data between machines
 
 ---
-
-## 🎯 Tauri Commands (Dashboard)
 
 ### 1. Get Dashboard Statistics
 
@@ -503,8 +501,8 @@ stats.sort_by(|a, b| b.1.cmp(&a.1));
 
 1. **Start Raven:**
    ```bash
-   cd /home/seth/Projects/raven3
-   cargo tauri dev
+   cd /home/seth/Projects/raven
+   ./start.sh
    ```
 
 2. **Open Dashboard:**
@@ -624,7 +622,7 @@ Store archive for future reference.
 - [SESSION_REPLAY.md](SESSION_REPLAY.md) - Session replay
 - [CUSTOM_TRIGGERS.md](CUSTOM_TRIGGERS.md) - Custom triggers
 - [PERFORMANCE_PROFILING.md](PERFORMANCE_PROFILING.md) - Performance metrics
-- [RAVEN_DEV_PLAN_PHASE_II.md](RAVEN_DEV_PLAN_PHASE_II.md) - Full roadmap
+- [HISTORY.md](../HISTORY.md) - Complete development history
 
 ---
 

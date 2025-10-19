@@ -42,7 +42,7 @@ Raven's Session Replay feature enables visual playback of your entire coding ses
 │                  ↓                                           │
 │        Combined Timeline Entries                            │
 └──────────────────┬──────────────────────────────────────────┘
-                   │ Tauri IPC
+                   │ REST API + WebSocket
                    ↓
 ┌─────────────────────────────────────────────────────────────┐
 │              SessionReplay.svelte                            │
@@ -164,8 +164,6 @@ type MetricsSnapshot = {
 ```
 
 ---
-
-## 🎯 Tauri Commands
 
 ### 1. Get Session Timeline
 
@@ -468,7 +466,7 @@ const timeline = await invoke('get_session_timeline', {
 
 ```bash
 # Start Raven and make some file changes
-cargo tauri dev
+./start.sh
 
 # In another terminal, query database
 sqlite3 .raven/db/raven.db "
@@ -478,13 +476,9 @@ SELECT COUNT(*) FROM raven_metrics; -- Metrics
 "
 ```
 
-### Test Tauri Commands
-
 ```javascript
 // In browser console (Raven UI)
-const sessionId = await window.__TAURI__.invoke('get_session_id');
 
-const timeline = await window.__TAURI__.invoke('get_session_timeline', {
   sessionId,
   limit: 50
 });
@@ -492,7 +486,6 @@ const timeline = await window.__TAURI__.invoke('get_session_timeline', {
 console.table(timeline);
 
 // Test stats
-const stats = await window.__TAURI__.invoke('get_timeline_stats', { sessionId });
 console.log(stats);
 ```
 
@@ -556,7 +549,7 @@ console.log(stats);
 
 - [TELEMETRY_API.md](TELEMETRY_API.md) - Agent telemetry integration
 - [PERFORMANCE_PROFILING.md](PERFORMANCE_PROFILING.md) - Performance metrics
-- [RAVEN_DEV_PLAN_PHASE_II.md](RAVEN_DEV_PLAN_PHASE_II.md) - Full Phase II roadmap
+- [HISTORY.md](../HISTORY.md) - Complete development history including Phase II
 - [README.md](README.md) - Project overview
 
 ---

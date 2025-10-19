@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
 
   const API_BASE = 'http://localhost:3030/api';
@@ -147,17 +147,25 @@
     }
   }
 
+  // WebSocket event handler
+  const handleFileChanged = () => {
+    // Reload if on first page
+    if (offset === 0) {
+      loadActivities();
+    }
+  };
+
   onMount(() => {
     loadActivities();
 
     // Listen for real-time updates
     websocketService.connect();
-    websocketService.on('file-changed', () => {
-      // Reload if on first page
-      if (offset === 0) {
-        loadActivities();
-      }
-    });
+    websocketService.on('file-changed', handleFileChanged);
+  });
+
+  onDestroy(() => {
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
   });
 </script>
 

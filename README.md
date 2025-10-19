@@ -1,4 +1,4 @@
-# 🐦‍⬛ Raven - AI Agent Monitor
+# Raven - AI Agent Monitor
 
 > **Local-first, web-based monitoring tool for AI coding agents**
 
@@ -7,11 +7,9 @@ Raven captures file changes, system metrics, and API events in real time — wit
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready
 
-> **📝 Note:** Originally planned as Tauri desktop app. Built as web application for faster iteration and easier deployment. See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
+## 🚀 Current Status: Phase II.7 Complete - Code Optimized
 
-## 🚀 Current Status: Phase II.6 Complete
-
-✅ **Ready for cross-platform release!**
+✅ **Production-ready with optimized performance!**
 
 - [x] Async file watcher with 50ms debounce
 - [x] Event logging to SQLite with diffs
@@ -34,6 +32,9 @@ Raven captures file changes, system metrics, and API events in real time — wit
 - [x] **GitHub Actions CI/CD**
 - [x] **Cross-platform builds (Linux, macOS, Windows)**
 - [x] **Open source ready (LICENSE, CONTRIBUTING)**
+- [x] **🆕 WebSocket memory leak fixes (11 components)**
+- [x] **🆕 Code optimization and cleanup**
+- [x] **🆕 Zero breaking changes, 100% backward compatible**
 
 **⚠️ Requires system dependencies to run** (see [docs/SETUP.md](docs/SETUP.md))
 
@@ -137,12 +138,10 @@ cd frontend && npm install && cd ..
 - **Metrics:** systeminformation
 - **Real-time:** Socket.IO WebSockets
 
-**Note:** Original plan included Tauri desktop app (Rust backend). Current implementation uses web architecture for faster iteration and easier deployment. Rust/Tauri code preserved in `src/` for future use.
-
 ## 📂 Project Structure
 
 ```
-raven3/
+raven/
 ├── backend/                   # Node.js Express Server ⭐ ACTIVE
 │   ├── server.js             # Main server (port 3030)
 │   ├── db.js                 # SQLite database wrapper
@@ -167,11 +166,7 @@ raven3/
 │   └── snapshots/           # File snapshots
 │
 ├── docs/                      # Documentation
-├── test_workspace/           # Monitored directory
-│
-└── src/                      # ⚠️ Rust/Tauri prototype (unused)
-    ├── main.rs              # Theoretical implementation
-    └── modules/             # Preserved for future use
+└── test_workspace/           # Monitored directory
 ```
 
 ## 🧪 Development
@@ -264,8 +259,8 @@ MIT License - See [LICENSE](LICENSE) file
 
 **Seth Eheart**
 Codename: Raven
-Version: 0.6.0 (Phase II.6 Complete)
+Version: 0.6.1 (Phase II.7 Complete - Code Optimized)
 
 ---
 
-**Status:** Phase II.6 complete! Ready for cross-platform release with CI/CD, build automation, and full open source infrastructure 🚀
+**Status:** Phase II.7 complete! Production-ready with optimized performance, zero memory leaks, and 100% backward compatibility 🚀

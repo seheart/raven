@@ -51,7 +51,7 @@ Raven's Agent Monitoring feature enables automatic discovery and tracking of mul
          │  - poll_all_events()               │
          │  - get_all_status()                │
          └────────────────┬───────────────────┘
-                          │ Tauri IPC
+                          │ REST API + WebSocket
                           ↓
          ┌────────────────────────────────────┐
          │       AgentsPanel.svelte           │
@@ -239,8 +239,6 @@ pub struct AgentStatus {
 ```
 
 ---
-
-## 🎯 Tauri Commands
 
 ### 1. Get Agents Status
 
@@ -468,8 +466,8 @@ registry.register(custom);
 
 3. **Start Raven:**
    ```bash
-   cd /home/seth/Projects/raven3
-   cargo tauri dev
+   cd /home/seth/Projects/raven
+   ./start.sh
    ```
 
 4. **Open AgentsPanel:**
@@ -588,7 +586,7 @@ Quick visual check of agent cards:
 - [PERFORMANCE_PROFILING.md](PERFORMANCE_PROFILING.md) - Performance metrics
 - [SESSION_REPLAY.md](SESSION_REPLAY.md) - Session timeline
 - [CUSTOM_TRIGGERS.md](CUSTOM_TRIGGERS.md) - Custom triggers
-- [RAVEN_DEV_PLAN_PHASE_II.md](RAVEN_DEV_PLAN_PHASE_II.md) - Full Phase II roadmap
+- [HISTORY.md](../HISTORY.md) - Complete development history including Phase II
 
 ---
 

@@ -14,6 +14,7 @@
   import Footer from './lib/Footer.svelte';
   import AboutPage from './lib/AboutPage.svelte';
   import ChangelogPage from './lib/ChangelogPage.svelte';
+  import DocsViewer from './lib/DocsViewer.svelte';
   import RavenLogo from './lib/RavenLogo.svelte';
   import ProjectSelector from './lib/ProjectSelector.svelte';
   import { keyboard } from './lib/keyboardService.js';
@@ -22,7 +23,7 @@
 
   let sessionId = 'Loading...';
   let showShortcuts = false;
-  let currentView = 'dashboard'; // dashboard, git, replay, performance, triggers, agents, status, about, changelog
+  let currentView = 'dashboard'; // dashboard, git, replay, performance, triggers, agents, status, docs, about, changelog
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
 
   async function loadSessionId() {
@@ -210,6 +211,8 @@
       <APIHealthMonitor />
     {:else if currentView === 'activity-log'}
       <ActivityLog />
+    {:else if currentView === 'docs'}
+      <DocsViewer />
     {:else if currentView === 'about'}
       <AboutPage />
     {:else if currentView === 'changelog'}
@@ -218,7 +221,12 @@
   </div></main>
 
 <KeyboardShortcuts visible={showShortcuts} onClose={() => showShortcuts = false} />
-<Footer sessionId={sessionId} onAboutClick={() => switchView('about')} onChangelogClick={() => switchView('changelog')} />
+<Footer
+  sessionId={sessionId}
+  onAboutClick={() => switchView('about')}
+  onChangelogClick={() => switchView('changelog')}
+  onDocsClick={() => switchView('docs')}
+/>
 
 <style>
   main {

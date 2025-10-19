@@ -136,7 +136,7 @@
 |---------|--------------|--------|--------|
 | **CLI Binary** | HISTORY.md Phase II.6 | ❌ MISSING | Mentioned but never built |
 | **Rust Backend** | HISTORY.md Phase 1 | ❌ UNUSED | Exists in `src/` but not used |
-| **Tauri Desktop App** | HISTORY.md Phase 5 | ❌ NOT BUILT | Changed to web app |
+| **Web Application** | HISTORY.md Phase 5 | ❌ NOT BUILT | Changed to web app |
 | **Desktop Installers** | HISTORY.md Phase 5 | ❌ NOT BUILT | Web app doesn't need them |
 
 ### Features Planned but Not Started
@@ -269,18 +269,19 @@ These are the core features that make Raven work:
 
 ### Architecture Clarification
 
-- **Backend:** Node.js + Express (NOT Rust + Tauri)
-- **Frontend:** Svelte web app (NOT Tauri embedded)
-- **Deployment:** Web hosting (NOT desktop installers)
+- **Backend:** Node.js + Express (web server)
+- **Frontend:** Svelte web app (browser-based)
+- **Deployment:** Web hosting (accessible via browser)
 
-### Rust/Tauri Code
+### Core Backend Files
 
-Located in `src/` directory but **not currently used**:
-- `src/main.rs` - Tauri entry point
-- `src/modules/` - Rust module implementations
-- `src/commands/` - Tauri IPC commands
+Located in `backend/` directory:
+- `server.js` - Express server entry point with REST API and WebSocket
+- `db.js` - SQLite database wrapper
+- `metrics-collector.js` - System metrics collection
+- `trigger-engine.js` - Alert/trigger system
 
-**Status:** Preserved for future migration if desired.
+**Status:** Production-ready web application.
 
 ---
 

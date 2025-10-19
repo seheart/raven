@@ -77,6 +77,16 @@ log_to_file = false
 # Log file path
 log_file = "raven.log"
 
+# ==================== Projects ====================
+
+[projects]
+active = "raven"
+
+[[projects.available]]
+name = "raven"
+path = "raven"
+description = "Raven monitoring project"
+
 # ==================== Custom Triggers ====================
 
 [triggers.large_edit]

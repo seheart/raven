@@ -35,7 +35,7 @@ npm run dev
 ```
 Backend Terminal:
 ╔════════════════════════════════════════════════╗
-║           🐦‍⬛ Raven Backend Server              ║
+║           Raven Backend Server                 ║
 ╠════════════════════════════════════════════════╣
 ║  Port:       3030                              ║
 ║  WebSocket:  ✅ Enabled                         ║
@@ -680,7 +680,7 @@ npm run build -- --mode production
 ## 🔗 Additional Resources
 
 - **Documentation:** [docs/](.)
-- **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md)
+- **Architecture:** [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Setup Guide:** [SETUP.md](SETUP.md)
 - **Testing Guide:** [TESTING.md](TESTING.md)
 - **Feature Audit:** [FEATURES.md](FEATURES.md)
@@ -691,7 +691,7 @@ npm run build -- --mode production
 
 For deployment issues:
 1. Check this guide
-2. Review [ARCHITECTURE.md](../ARCHITECTURE.md)
+2. Review [ARCHITECTURE.md](ARCHITECTURE.md)
 3. Check GitHub Issues
 4. Contact maintainer
 

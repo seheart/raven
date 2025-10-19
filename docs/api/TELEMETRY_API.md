@@ -1,4 +1,4 @@
-# 🐦‍⬛ Raven Telemetry API Documentation
+# Raven Telemetry API Documentation
 
 **Version:** Phase II.1 - Agent Telemetry API
 **Status:** ✅ Fully Implemented
@@ -369,8 +369,6 @@ WHERE timestamp BETWEEN '2025-10-17T00:00:00Z' AND '2025-10-18T00:00:00Z'
 ORDER BY timestamp ASC;
 ```
 
-### Tauri Commands (for UI integration)
-
 ```javascript
 // Get recent agent events
 const events = await invoke('get_agent_events', { limit: 100 });
@@ -398,7 +396,7 @@ const status = await invoke('get_telemetry_status');
 
 **Python test sender** (sends 8 sample events):
 ```bash
-cd /home/seth/Projects/raven3
+cd /home/seth/Projects/raven
 ./scripts/test_telemetry.py
 ```
 
@@ -414,7 +412,7 @@ cd /home/seth/Projects/raven3
 sqlite3 .raven/db/raven.db "SELECT * FROM agent_events ORDER BY id DESC LIMIT 10;"
 
 # Or use the Raven UI
-cargo tauri dev
+./start.sh
 # Open Raven UI → Telemetry panel
 ```
 
@@ -430,9 +428,9 @@ cargo tauri dev
 
 **Solution:** Make sure Raven is running:
 ```bash
-cargo tauri dev
+./start.sh
 # Or
-cargo tauri build
+npm run build
 ./target/release/raven
 ```
 
@@ -444,7 +442,7 @@ cargo tauri build
 
 **Solution:** Check Raven logs for telemetry server startup errors:
 ```bash
-RUST_LOG=debug cargo tauri dev
+RUST_LOG=debug ./start.sh
 ```
 
 ### Events not appearing in UI
@@ -502,7 +500,7 @@ chmod 666 /tmp/raven-telemetry.sock
 
 ## 📚 Related Documentation
 
-- [RAVEN_DEV_PLAN_PHASE_II.md](RAVEN_DEV_PLAN_PHASE_II.md) - Full Phase II roadmap
+- [HISTORY.md](../HISTORY.md) - Complete development history including Phase II
 - [README.md](README.md) - Project overview
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
 

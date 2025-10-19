@@ -71,7 +71,7 @@ async function getAgentStats() {
 }
 
 async function runTests() {
-  console.log('🐦‍⬛ Raven Multi-Agent Telemetry Test\n');
+  console.log('Raven Multi-Agent Telemetry Test\n');
   console.log('Testing passive telemetry API with multiple agent types...\n');
 
   try {

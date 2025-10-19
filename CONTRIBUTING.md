@@ -2,10 +2,6 @@
 
 Thank you for your interest in contributing to Raven! We welcome contributions from the community and are excited to work with you.
 
-## Code of Conduct
-
-This project adheres to a Code of Conduct (see CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to seheart@gmail.com.
-
 ## How Can I Contribute?
 
 ### Reporting Bugs
@@ -48,8 +44,8 @@ Feature requests are welcome! Please use the feature request template and includ
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/raven3.git
-cd raven3
+git clone https://github.com/YOUR_USERNAME/raven.git
+cd raven
 
 # Install backend dependencies
 cd backend
@@ -74,7 +70,7 @@ npm run dev
 ### Project Structure
 
 ```
-raven3/
+raven/
 ├── backend/          # Node.js + Express API server
 │   ├── server.js     # Main server with REST + WebSocket
 │   ├── db.js         # SQLite database wrapper
@@ -322,9 +318,9 @@ function calculateFileHash(content) {
 
 ## Getting Help
 
-- **Questions:** Open a [GitHub Discussion](https://github.com/seheart/raven3/discussions)
-- **Bugs:** Open a [Bug Report](https://github.com/seheart/raven3/issues/new?template=bug_report.md)
-- **Features:** Open a [Feature Request](https://github.com/seheart/raven3/issues/new?template=feature_request.md)
+- **Questions:** Open a [GitHub Discussion](https://github.com/seheart/raven/discussions)
+- **Bugs:** Open a [Bug Report](https://github.com/seheart/raven/issues/new?template=bug_report.md)
+- **Features:** Open a [Feature Request](https://github.com/seheart/raven/issues/new?template=feature_request.md)
 - **Chat:** Email seheart@gmail.com
 
 ## License
@@ -340,6 +336,6 @@ Contributors will be recognized in:
 
 ---
 
-Thank you for contributing to Raven! 🐦‍⬛
+Thank you for contributing to Raven!
 
 Your contributions help make AI agent monitoring better for everyone.

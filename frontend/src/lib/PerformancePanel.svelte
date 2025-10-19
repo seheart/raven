@@ -14,6 +14,12 @@
   let loading = true;
   let error = null;
 
+  // WebSocket event handler
+  const handleSystemMetrics = (metrics) => {
+    // Add new metrics to the beginning of the array
+    systemMetrics = [metrics, ...systemMetrics].slice(0, 20);
+  };
+
   onMount(() => {
     fetchAllData();
 
@@ -21,10 +27,7 @@
     websocketService.connect();
 
     // Listen for real-time system metrics
-    websocketService.on('system-metrics', (metrics) => {
-      // Add new metrics to the beginning of the array
-      systemMetrics = [metrics, ...systemMetrics].slice(0, 20);
-    });
+    websocketService.on('system-metrics', handleSystemMetrics);
 
     // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
     refreshInterval = setInterval(fetchAllData, 30000);
@@ -36,7 +39,7 @@
     }
 
     // Clean up WebSocket listeners
-    websocketService.off('system-metrics');
+    websocketService.off('system-metrics', handleSystemMetrics);
   });
 
   async function fetchAllData() {

@@ -13,22 +13,31 @@
   let loading = true;
   let refreshInterval;
   let flatItems = [];
-  let reloadTimeout;
 
-  // Debounce function
-  function debounce(fn, delay) {
+  // Debounce utility function (moved outside reactive scope)
+  const debounce = (fn, delay) => {
     let timeoutId;
     return function (...args) {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => fn.apply(this, args), delay);
     };
-  }
+  };
 
   // Debounced reload functions
   const debouncedLoadChanges = debounce(async () => {
     await loadCodeChanges();
     await loadRecentActivity();
   }, 300);
+
+  // WebSocket event handlers
+  const handleFileChanged = (data) => {
+    console.log('File change detected:', data);
+    debouncedLoadChanges();
+  };
+
+  const handleAgentEvent = () => {
+    debouncedLoadChanges();
+  };
 
   onMount(async () => {
     await loadAllData();
@@ -37,15 +46,10 @@
     websocketService.connect();
 
     // Listen for file change events (debounced)
-    websocketService.on('file-change', (data) => {
-      console.log('File change detected:', data);
-      debouncedLoadChanges();
-    });
+    websocketService.on('file-changed', handleFileChanged);
 
     // Listen for agent events (debounced)
-    websocketService.on('agent-event', () => {
-      debouncedLoadChanges();
-    });
+    websocketService.on('agent-event', handleAgentEvent);
 
     // Refresh every 30 seconds (reduced frequency)
     refreshInterval = setInterval(loadAllData, 30000);
@@ -55,8 +59,8 @@
     if (refreshInterval) {
       clearInterval(refreshInterval);
     }
-    websocketService.off('file-change');
-    websocketService.off('agent-event');
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('agent-event', handleAgentEvent);
   });
 
   async function loadAllData() {

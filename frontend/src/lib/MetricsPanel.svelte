@@ -27,6 +27,14 @@
     }
   }
 
+  // WebSocket event handler
+  const handleSystemMetrics = (metrics) => {
+    cpu = metrics.cpu_percent;
+    memory = metrics.memory_percent;
+    memoryUsed = metrics.memory_used_mb;
+    memoryTotal = metrics.memory_total_mb;
+  };
+
   onMount(() => {
     // Initial fetch
     updateMetrics();
@@ -35,12 +43,7 @@
     websocketService.connect();
 
     // Listen for real-time system metrics
-    websocketService.on('system-metrics', (metrics) => {
-      cpu = metrics.cpu_percent;
-      memory = metrics.memory_percent;
-      memoryUsed = metrics.memory_used_mb;
-      memoryTotal = metrics.memory_total_mb;
-    });
+    websocketService.on('system-metrics', handleSystemMetrics);
 
     // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
     intervalId = setInterval(updateMetrics, 30000);
@@ -52,7 +55,7 @@
     }
 
     // Clean up WebSocket listeners
-    websocketService.off('system-metrics');
+    websocketService.off('system-metrics', handleSystemMetrics);
   });
 </script>
 

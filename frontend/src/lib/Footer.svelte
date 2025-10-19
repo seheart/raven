@@ -4,6 +4,7 @@
   export let sessionId = 'Loading...';
   export let onAboutClick = () => {};
   export let onChangelogClick = () => {};
+  export let onDocsClick = () => {};
 
   let version = '0.0.1';
   let sessionUptime = '0s';
@@ -53,6 +54,10 @@
       <span class="footer-divider">|</span>
       <button class="footer-link" on:click={onChangelogClick}>
         Changelog
+      </button>
+      <span class="footer-divider">|</span>
+      <button class="footer-link" on:click={onDocsClick}>
+        Docs
       </button>
       <span class="footer-divider">|</span>
       <a class="footer-link" href="https://github.com" target="_blank" rel="noopener noreferrer">

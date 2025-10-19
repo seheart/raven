@@ -23,6 +23,7 @@
     "cors": "^2.8.5",
     "diff": "^8.0.2",
     "express": "^4.21.2",
+    "marked": "^16.4.1",
     "simple-git": "^3.28.0",
     "socket.io": "^4.8.1",
     "systeminformation": "^5.27.11",

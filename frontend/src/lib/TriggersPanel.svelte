@@ -17,6 +17,16 @@
   let successMessage = null;
   let refreshInterval;
 
+  // WebSocket event handlers
+  const handleTriggerFired = (event) => {
+    // Add new event to the beginning of the list
+    triggeredEvents = [event, ...triggeredEvents].slice(0, 100);
+  };
+
+  const handleTriggerStats = (newStats) => {
+    stats = newStats;
+  };
+
   onMount(async () => {
     await loadAllData();
 
@@ -24,15 +34,10 @@
     websocketService.connect();
 
     // Listen for real-time trigger events
-    websocketService.on('trigger-fired', (event) => {
-      // Add new event to the beginning of the list
-      triggeredEvents = [event, ...triggeredEvents].slice(0, 100);
-    });
+    websocketService.on('trigger-fired', handleTriggerFired);
 
     // Listen for real-time stats updates
-    websocketService.on('trigger-stats', (newStats) => {
-      stats = newStats;
-    });
+    websocketService.on('trigger-stats', handleTriggerStats);
 
     // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
     refreshInterval = setInterval(loadAllData, 30000);
@@ -44,8 +49,8 @@
     }
 
     // Clean up WebSocket listeners
-    websocketService.off('trigger-fired');
-    websocketService.off('trigger-stats');
+    websocketService.off('trigger-fired', handleTriggerFired);
+    websocketService.off('trigger-stats', handleTriggerStats);
   });
 
   async function loadAllData() {

@@ -239,7 +239,7 @@ du -h .raven/snapshots/
 **Workaround:**
 1. Install webkit2gtk-4.1 (see SETUP.md)
 2. Use integration tests: `cargo test --test integration_tests`
-3. Tests are comprehensive but don't require Tauri runtime
+3. Tests are comprehensive but don't require web application runtime
 
 **Coverage:**
 - ✅ Database operations
@@ -272,7 +272,7 @@ Svelte error: lifecycle_function_unavailable
 **Workaround:**
 1. Keyboard service tests work (pure JavaScript)
 2. Manual component testing via dev server
-3. End-to-end testing when Tauri backend available
+3. End-to-end testing when web application backend available
 
 **Future:**
 - Wait for @testing-library/svelte Svelte 5 support
@@ -392,7 +392,7 @@ npm run test:run -- --reporter=verbose
 2. ✅ Frontend keyboard service tests complete
 3. ✅ Memory profiling tools created
 4. ⚠️ Wait for Svelte 5 testing library support
-5. 📋 Add E2E tests when Tauri backend available
+5. 📋 Add E2E tests when web application backend available
 6. 📋 Set up CI/CD pipeline
 7. 📋 Add code coverage reporting
 
@@ -408,5 +408,5 @@ When adding new features:
 
 - [Vitest Documentation](https://vitest.dev/)
 - [Svelte Testing Library](https://testing-library.com/docs/svelte-testing-library/intro/)
-- [Rust Testing](https://doc.rust-lang.org/book/ch11-00-testing.html)
-- [Tauri Testing](https://tauri.app/v1/guides/testing/introduction/)
+- [Node.js Testing Best Practices](https://github.com/goldbergyoni/nodebestpractices#testing-and-overall-quality-practices)
+- [Express Testing Guide](https://expressjs.com/en/guide/testing.html)

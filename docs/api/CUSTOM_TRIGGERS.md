@@ -42,7 +42,7 @@ Raven's Custom Triggers feature enables you to define rules that automatically r
 │  - Executes actions (notify/log/command)                    │
 │  - Tracks trigger history                                   │
 └──────────────────────┬──────────────────────────────────────┘
-                       │ Tauri IPC
+                       │ REST API + WebSocket
                        ↓
 ┌─────────────────────────────────────────────────────────────┐
 │              TriggersPanel.svelte                            │
@@ -327,8 +327,6 @@ cooldown_seconds = 120
 
 ---
 
-## 🎯 Tauri Commands
-
 ### 1. Get Triggers Configuration
 
 ```javascript
@@ -512,8 +510,8 @@ pub struct TriggerRule {
 
 1. **Start Raven:**
    ```bash
-   cd /home/seth/Projects/raven3
-   cargo tauri dev
+   cd /home/seth/Projects/raven
+   ./start.sh
    ```
 
 2. **Edit `.raven/config.toml`:**
@@ -712,7 +710,7 @@ Always test triggers with `cooldown_seconds = 0` first, then adjust.
 - [TELEMETRY_API.md](TELEMETRY_API.md) - Agent telemetry events
 - [PERFORMANCE_PROFILING.md](PERFORMANCE_PROFILING.md) - Performance metrics
 - [SESSION_REPLAY.md](SESSION_REPLAY.md) - Session timeline
-- [RAVEN_DEV_PLAN_PHASE_II.md](RAVEN_DEV_PLAN_PHASE_II.md) - Full Phase II roadmap
+- [HISTORY.md](../HISTORY.md) - Complete development history including Phase II
 
 ---
 

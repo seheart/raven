@@ -21,6 +21,16 @@
     'default': 'var(--muted)'
   };
 
+  // WebSocket event handlers
+  const handleAgentEvent = (event) => {
+    // Add to events list
+    agentEvents = [event, ...agentEvents].slice(0, 20);
+  };
+
+  const handleAgentStats = (stats) => {
+    agentStats = stats;
+  };
+
   onMount(async () => {
     // Initial data load
     await loadAllData();
@@ -29,15 +39,10 @@
     websocketService.connect();
 
     // Listen for real-time agent events
-    websocketService.on('agent-event', (event) => {
-      // Add to events list
-      agentEvents = [event, ...agentEvents].slice(0, 20);
-    });
+    websocketService.on('agent-event', handleAgentEvent);
 
     // Listen for real-time agent stats
-    websocketService.on('agent-stats', (stats) => {
-      agentStats = stats;
-    });
+    websocketService.on('agent-stats', handleAgentStats);
 
     // Fallback: refresh every 30 seconds (much slower since WebSocket handles real-time)
     refreshInterval = setInterval(loadAllData, 30000);
@@ -49,8 +54,8 @@
     }
 
     // Remove WebSocket listeners
-    websocketService.off('agent-event');
-    websocketService.off('agent-stats');
+    websocketService.off('agent-event', handleAgentEvent);
+    websocketService.off('agent-stats', handleAgentStats);
   });
 
   async function loadAllData() {

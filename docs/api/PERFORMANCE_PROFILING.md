@@ -51,7 +51,7 @@ Raven's Performance Profiling system automatically collects and correlates syste
 │  └──────────────────┘  └──────────────────┘                │
 └──────────────────────────────┬──────────────────────────────┘
                                │
-                               │ Tauri IPC Commands
+                               │ REST API + WebSocket Commands
                                ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                   Raven UI (Svelte)                          │
@@ -118,8 +118,6 @@ CREATE TABLE process_metrics (
 - Process status (Running, Sleeping, etc.)
 
 ---
-
-## 🎯 Tauri Commands
 
 ### 1. Get System Metrics
 
@@ -420,7 +418,7 @@ tracked_processes: vec![
 
 ```bash
 # Start Raven
-cargo tauri dev
+./start.sh
 
 # Wait 10-15 seconds for metrics to be collected
 
@@ -429,24 +427,19 @@ sqlite3 .raven/db/raven.db "SELECT * FROM raven_metrics ORDER BY id DESC LIMIT 5
 sqlite3 .raven/db/raven.db "SELECT * FROM process_metrics ORDER BY id DESC LIMIT 5;"
 ```
 
-### Test Tauri Commands
-
 In browser console (Raven UI):
 
 ```javascript
 // Get system metrics
-const systemMetrics = await window.__TAURI__.invoke('get_system_metrics', { limit: 10 });
 console.log(systemMetrics);
 
 // Get process metrics
-const processMetrics = await window.__TAURI__.invoke('get_process_metrics', {
   agentName: 'claude',
   limit: 10
 });
 console.log(processMetrics);
 
 // Get correlations
-const correlations = await window.__TAURI__.invoke('get_performance_correlations', {
   timeWindowSeconds: 5
 });
 console.log(correlations);
@@ -549,7 +542,7 @@ ORDER BY avg_cpu DESC;
 ## 📚 Related Documentation
 
 - [TELEMETRY_API.md](TELEMETRY_API.md) - Agent telemetry integration
-- [RAVEN_DEV_PLAN_PHASE_II.md](RAVEN_DEV_PLAN_PHASE_II.md) - Full Phase II roadmap
+- [HISTORY.md](../HISTORY.md) - Complete development history including Phase II
 - [README.md](README.md) - Project overview
 
 ---

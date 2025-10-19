@@ -42,57 +42,52 @@ Implement world-class governance, security, testing, and developer experience to
   - Code review checklist
   - **Verification:** ✅ File exists at root
 
-- [x] **4. Code of Conduct (CODE_OF_CONDUCT.md)**
-  - Community standards
-  - Enforcement policy
-  - **Verification:** ✅ Note created (add via GitHub)
-
-- [x] **5. Issue Templates**
+- [x] **4. Issue Templates**
   - Bug report template
   - Feature request template
   - **Verification:** ✅ Files in `.github/ISSUE_TEMPLATE/`
 
-- [x] **6. Pull Request Template**
+- [x] **5. Pull Request Template**
   - PR checklist
   - Testing requirements
   - **Verification:** ✅ File at `.github/PULL_REQUEST_TEMPLATE.md`
 
-- [x] **7. GitHub Actions CI Workflow**
+- [x] **6. GitHub Actions CI Workflow**
   - Backend tests
   - Frontend tests
   - Linting
   - Security scanning
   - **Verification:** ✅ File at `.github/workflows/ci.yml`, workflow runs
 
-- [x] **8. Dependabot Configuration**
+- [x] **7. Dependabot Configuration**
   - Backend npm dependencies
   - Frontend npm dependencies
   - GitHub Actions updates
   - **Verification:** ✅ File at `.github/dependabot.yml`
 
-- [x] **9. ESLint Configuration**
+- [x] **8. ESLint Configuration**
   - Backend linting rules
   - Frontend linting rules (Svelte support)
   - **Verification:** ✅ `eslint.config.js` exists, `npm run lint` works
 
-- [x] **10. Prettier Configuration**
+- [x] **9. Prettier Configuration**
   - Code formatting rules
   - Integration with ESLint
   - **Verification:** ✅ `.prettierrc` exists, `npm run format:check` works
 
-- [x] **11. Pre-commit Hooks (Husky)**
+- [x] **10. Pre-commit Hooks (Husky)**
   - Run linters before commit
   - Run tests before commit
   - Prevent bad commits
   - **Verification:** ✅ `.husky/pre-commit` exists, hooks run on commit
 
-- [x] **12. Verify All Governance Items**
+- [x] **11. Verify All Governance Items**
   - Test all templates
   - Verify CI workflow syntax
   - Check all documentation links
   - **Verification:** ✅ Manual review + linters tested
 
-- [x] **13. Commit and Push**
+- [x] **12. Commit and Push**
   - Commit all governance files
   - Push to GitHub
   - Verify GitHub displays templates

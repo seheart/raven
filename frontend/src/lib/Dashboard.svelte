@@ -18,6 +18,19 @@
   let loading = true;
   let refreshInterval;
 
+  // WebSocket event handlers
+  const handleAgentEvent = async () => {
+    // Reload dashboard stats when new events come in
+    const statsData = await fetch(`${API_BASE}/dashboard-stats`).then(r => r.json());
+    stats = statsData;
+  };
+
+  const handleAgentStats = async () => {
+    // Reload agents status when stats update
+    const agentsData = await fetch(`${API_BASE}/agents-status`).then(r => r.json());
+    agents = agentsData;
+  };
+
   onMount(async () => {
     await loadAllData();
 
@@ -25,18 +38,10 @@
     websocketService.connect();
 
     // Listen for real-time agent events (triggers stats reload)
-    websocketService.on('agent-event', async () => {
-      // Reload dashboard stats when new events come in
-      const statsData = await fetch(`${API_BASE}/dashboard-stats`).then(r => r.json());
-      stats = statsData;
-    });
+    websocketService.on('agent-event', handleAgentEvent);
 
     // Listen for real-time agent stats
-    websocketService.on('agent-stats', async () => {
-      // Reload agents status when stats update
-      const agentsData = await fetch(`${API_BASE}/agents-status`).then(r => r.json());
-      agents = agentsData;
-    });
+    websocketService.on('agent-stats', handleAgentStats);
 
     // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
     refreshInterval = setInterval(loadAllData, 30000);
@@ -48,8 +53,8 @@
     }
 
     // Clean up WebSocket listeners
-    websocketService.off('agent-event');
-    websocketService.off('agent-stats');
+    websocketService.off('agent-event', handleAgentEvent);
+    websocketService.off('agent-stats', handleAgentStats);
   });
 
   async function loadAllData() {

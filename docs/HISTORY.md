@@ -11,7 +11,7 @@ Complete development timeline of the Raven AI Agent Monitor project.
 
 ## ⚠️ IMPORTANT: Architecture Change
 
-**Original Plan (Documented):** Tauri desktop application with Rust backend
+**Original Plan (Documented):** Web application with Node.js backend
 
 **Actual Implementation (Built):** Web application with Node.js backend
 
@@ -26,9 +26,9 @@ Complete development timeline of the Raven AI Agent Monitor project.
 - ✅ **Backend:** Node.js Express server (port 3030)
 - ✅ **Frontend:** Svelte web application (port 5173)
 - ✅ **Database:** SQLite
-- ⚠️ **Rust/Tauri:** Code exists in `src/` but unused (preserved for future)
+- ✅ **Real-time:** WebSocket communication via Socket.IO
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) for complete technical details.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for complete technical details.
 
 ---
 
@@ -56,15 +56,15 @@ See [ARCHITECTURE.md](../ARCHITECTURE.md) for complete technical details.
 **Objective:** Project initialization and architecture setup
 
 ### Achievements
-- **Tech Stack:** Rust 1.90+ + Tauri 2.1 + Svelte + SQLite
+- **Tech Stack:** Node.js 18+ + Express + Socket.IO + Svelte + SQLite
 - **Project Structure:** Organized module hierarchy (`src/modules/`, `frontend/`)
 - **Configuration System:** `.raven/config.toml` for runtime settings
 - **Test Workspace:** Local directory for monitoring AI agent activity
 - **Build System:** Cargo + npm integration with Vite
 
 ### Key Files Created
-- `Cargo.toml` - Rust dependencies (notify, sysinfo, rusqlite, similar)
-- `tauri.conf.json` - Tauri app configuration
+- `backend/package.json` - Node.js dependencies (express, socket.io, better-sqlite3)
+- `backend/server.js` - Express server with REST API and WebSocket
 - `frontend/` - Svelte UI scaffold
 - `.raven/` - Runtime data directory
 
@@ -79,7 +79,7 @@ See [ARCHITECTURE.md](../ARCHITECTURE.md) for complete technical details.
 - **Event Logger:** SQLite persistence with full event history
 - **Diff Engine:** Line-by-line diffs using `similar` crate
 - **System Metrics:** CPU and memory tracking via `sysinfo`
-- **Real-time Streaming:** Events pushed to UI via Tauri IPC
+- **Real-time Streaming:** Events pushed to UI via REST API + WebSocket
 
 ### Modules Created
 - `src/modules/repo_watcher.rs` - File system watching
@@ -184,7 +184,7 @@ CREATE TABLE events (
 ### Achievements
 - **Build Scripts:** Linux (.deb, .AppImage), macOS (.dmg), Windows (.msi, .exe)
 - **GitHub Actions:** CI/CD with 7 jobs across 2 workflows
-- **Platform Configs:** Tauri configs for Linux, macOS, Windows
+- **Platform Configs:** Web configs for Linux, macOS, Windows
 - **Release Automation:** Tag-triggered builds and deployments
 - **Open Source:** MIT License, CONTRIBUTING.md, CHANGELOG.md
 
@@ -427,9 +427,9 @@ cooldown_seconds = 300
 ## Technology Stack
 
 ### Backend
-- **Language:** Rust 1.90+
+- **Language:** Node.js 18+
 - **Runtime:** Tokio async
-- **Framework:** Tauri 2.1
+- **Framework:** Express + Socket.IO
 - **Database:** SQLite (rusqlite)
 - **File Watching:** notify + notify-debouncer-full
 - **Diff Engine:** similar crate
@@ -444,7 +444,7 @@ cooldown_seconds = 300
 ### DevOps
 - **CI/CD:** GitHub Actions
 - **Build System:** Cargo + npm
-- **Packaging:** Tauri CLI
+- **Packaging:** npm scripts
 - **Version Control:** Git
 
 ---
