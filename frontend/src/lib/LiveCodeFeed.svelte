@@ -39,6 +39,11 @@
     debouncedLoadChanges();
   };
 
+  const handleProjectSwitched = (data) => {
+    console.log('📡 Project switched, reloading data:', data.project);
+    loadAllData();
+  };
+
   onMount(async () => {
     await loadAllData();
 
@@ -51,6 +56,9 @@
     // Listen for agent events (debounced)
     websocketService.on('agent-event', handleAgentEvent);
 
+    // Listen for project switch events
+    websocketService.on('project-switched', handleProjectSwitched);
+
     // Refresh every 30 seconds (reduced frequency)
     refreshInterval = setInterval(loadAllData, 30000);
   });
@@ -61,6 +69,7 @@
     }
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('agent-event', handleAgentEvent);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadAllData() {

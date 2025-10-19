@@ -106,6 +106,13 @@
     });
   }
 
+  // WebSocket event handler for project switches
+  const handleProjectSwitched = async (data) => {
+    console.log('📡 Project switched, reloading status panel:', data.project);
+    await checkBackendHealth();
+    await checkGitStatus();
+  };
+
   onMount(async () => {
     isMounted = true;
 
@@ -123,6 +130,9 @@
       websocketStatus.connected = websocketService.isConnected();
     };
 
+    // Listen for project switch events
+    websocketService.on('project-switched', handleProjectSwitched);
+
     // Refresh every 5 seconds (1s is too frequent for git)
     refreshInterval = setInterval(() => {
       if (!isMounted) return;
@@ -138,6 +148,9 @@
       clearInterval(refreshInterval);
       refreshInterval = null;
     }
+
+    // Clean up WebSocket listeners
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 </script>
 

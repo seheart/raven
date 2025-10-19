@@ -31,6 +31,11 @@
     agentStats = stats;
   };
 
+  const handleProjectSwitched = async (data) => {
+    console.log('📡 Project switched, reloading agents data:', data.project);
+    await loadAllData();
+  };
+
   onMount(async () => {
     // Initial data load
     await loadAllData();
@@ -44,6 +49,9 @@
     // Listen for real-time agent stats
     websocketService.on('agent-stats', handleAgentStats);
 
+    // Listen for project switch events
+    websocketService.on('project-switched', handleProjectSwitched);
+
     // Fallback: refresh every 30 seconds (much slower since WebSocket handles real-time)
     refreshInterval = setInterval(loadAllData, 30000);
   });
@@ -56,6 +64,7 @@
     // Remove WebSocket listeners
     websocketService.off('agent-event', handleAgentEvent);
     websocketService.off('agent-stats', handleAgentStats);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadAllData() {

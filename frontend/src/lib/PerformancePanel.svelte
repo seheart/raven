@@ -14,10 +14,15 @@
   let loading = true;
   let error = null;
 
-  // WebSocket event handler
+  // WebSocket event handlers
   const handleSystemMetrics = (metrics) => {
     // Add new metrics to the beginning of the array
     systemMetrics = [metrics, ...systemMetrics].slice(0, 20);
+  };
+
+  const handleProjectSwitched = async (data) => {
+    console.log('📡 Project switched, reloading performance data:', data.project);
+    await fetchAllData();
   };
 
   onMount(() => {
@@ -28,6 +33,9 @@
 
     // Listen for real-time system metrics
     websocketService.on('system-metrics', handleSystemMetrics);
+
+    // Listen for project switch events
+    websocketService.on('project-switched', handleProjectSwitched);
 
     // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
     refreshInterval = setInterval(fetchAllData, 30000);
@@ -40,6 +48,7 @@
 
     // Clean up WebSocket listeners
     websocketService.off('system-metrics', handleSystemMetrics);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function fetchAllData() {

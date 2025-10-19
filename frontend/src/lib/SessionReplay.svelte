@@ -1,5 +1,6 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { websocketService } from './websocket.js';
 
   const API_BASE = 'http://localhost:3030/api';
   let events = [];
@@ -10,6 +11,15 @@
   onMount(async () => {
     await loadSessions();
     await loadEvents();
+
+    // Connect to WebSocket and listen for project switches
+    websocketService.connect();
+    websocketService.on('project-switched', handleProjectSwitched);
+  });
+
+  onDestroy(() => {
+    // Clean up WebSocket listeners
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadSessions() {
@@ -51,6 +61,13 @@
   async function onSessionChange() {
     await loadEvents();
   }
+
+  // WebSocket event handler for project switches
+  const handleProjectSwitched = async (data) => {
+    console.log('📡 Project switched, reloading session replay data:', data.project);
+    await loadSessions();
+    await loadEvents();
+  };
 
   function formatTimestamp(timestamp) {
     return new Date(timestamp).toLocaleString();

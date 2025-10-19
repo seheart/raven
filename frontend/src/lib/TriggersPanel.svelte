@@ -27,6 +27,11 @@
     stats = newStats;
   };
 
+  const handleProjectSwitched = async (data) => {
+    console.log('📡 Project switched, reloading triggers data:', data.project);
+    await loadAllData();
+  };
+
   onMount(async () => {
     await loadAllData();
 
@@ -38,6 +43,9 @@
 
     // Listen for real-time stats updates
     websocketService.on('trigger-stats', handleTriggerStats);
+
+    // Listen for project switch events
+    websocketService.on('project-switched', handleProjectSwitched);
 
     // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
     refreshInterval = setInterval(loadAllData, 30000);
@@ -51,6 +59,7 @@
     // Clean up WebSocket listeners
     websocketService.off('trigger-fired', handleTriggerFired);
     websocketService.off('trigger-stats', handleTriggerStats);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadAllData() {

@@ -124,7 +124,7 @@
     }
   }
 
-  // WebSocket event handler
+  // WebSocket event handlers
   const handleAgentEvent = (event) => {
     // Add new event to the top of the list
     events = [{
@@ -137,6 +137,11 @@
     }, ...events].slice(0, 100); // Keep last 100 events
   };
 
+  const handleProjectSwitched = async (data) => {
+    console.log('📡 Project switched, reloading events:', data.project);
+    await loadRecentEvents();
+  };
+
   onMount(async () => {
     // Load initial events from database
     await loadRecentEvents();
@@ -146,6 +151,9 @@
 
     // Listen for real-time agent events
     websocketService.on('agent-event', handleAgentEvent);
+
+    // Listen for project switch events
+    websocketService.on('project-switched', handleProjectSwitched);
 
     // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
     pollIntervalId = setInterval(loadRecentEvents, 30000);
@@ -158,6 +166,7 @@
 
     // Clean up WebSocket listeners
     websocketService.off('agent-event', handleAgentEvent);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   function formatTime(timestamp) {

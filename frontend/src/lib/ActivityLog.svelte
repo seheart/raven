@@ -98,6 +98,13 @@
     });
   }
 
+  // WebSocket event handler for project switches
+  const handleProjectSwitched = async (data) => {
+    console.log('📡 Project switched, reloading activity log:', data.project);
+    offset = 0;
+    await loadActivities();
+  };
+
   function formatRelativeTime(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
@@ -161,11 +168,13 @@
     // Listen for real-time updates
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 </script>
 

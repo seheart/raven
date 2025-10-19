@@ -13,6 +13,10 @@ import fs from 'fs';
 import { createHash } from 'crypto';
 import * as Diff from 'diff';
 import toml from 'toml';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 const app = express();
 const httpServer = createServer(app);
@@ -709,9 +713,24 @@ app.get('/api/performance-correlations', (req, res) => {
 
 // ==================== File Events API ====================
 
-app.get('/api/tracked-files', (req, res) => {
+app.get('/api/tracked-files', async (req, res) => {
   try {
-    const files = projectState.db.getTrackedFiles();
+    let files = projectState.db.getTrackedFiles();
+
+    // If no files tracked yet (fresh project), try to get files from Git
+    if (files.length === 0 && projectState.watchPath) {
+      try {
+        const { stdout } = await execAsync('git ls-files', {
+          cwd: projectState.watchPath,
+          maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large repos
+        });
+        files = stdout.split('\n').filter(f => f.trim() !== '');
+        console.log(`📂 Populated file list from Git: ${files.length} files`);
+      } catch (gitError) {
+        console.log('ℹ️  No Git repository or git ls-files failed, showing empty list');
+      }
+    }
+
     res.json(files);
   } catch (error) {
     console.error('❌ Tracked files error:', error);
@@ -1242,6 +1261,20 @@ app.post('/api/projects/select', async (req, res) => {
 
     // Switch to the new project
     await switchProject(project);
+
+    // Persist the active project to config file
+    try {
+      const configContent = fs.readFileSync(CONFIG_PATH, 'utf8');
+      const updatedConfig = configContent.replace(
+        /^active\s*=\s*".*"$/m,
+        `active = "${project}"`
+      );
+      fs.writeFileSync(CONFIG_PATH, updatedConfig, 'utf8');
+      console.log(`💾 Persisted active project: ${project}`);
+    } catch (configError) {
+      console.error('⚠️  Failed to persist project selection:', configError.message);
+      // Don't fail the request if we can't persist - the switch still worked
+    }
 
     res.json({
       success: true,
