@@ -1567,6 +1567,380 @@ app.get('/api/docs/:filepath(*)', async (req, res) => {
   }
 });
 
+// ==================== Error Logging API ====================
+
+/**
+ * POST /api/errors
+ * Log an error from the frontend
+ */
+app.post('/api/errors', (req, res) => {
+  try {
+    const {
+      error_type,
+      message,
+      stack,
+      component,
+      user_agent,
+      url,
+      metadata,
+      severity
+    } = req.body;
+
+    // Validate required fields
+    if (!error_type || !message) {
+      return res.status(400).json({ error: 'Missing required fields: error_type, message' });
+    }
+
+    const timestamp = new Date().toISOString();
+
+    // Insert into database
+    const errorId = projectState.db.insertErrorLog(
+      timestamp,
+      error_type,
+      message,
+      stack,
+      component,
+      user_agent,
+      url,
+      metadata,
+      SESSION_ID,
+      severity || 'error'
+    );
+
+    console.log(`❌ Error logged: ${error_type} - ${message}`);
+
+    // Create notification for errors (not warnings or info)
+    if (severity === 'error' || !severity) {
+      const notificationId = projectState.db.insertNotification(
+        timestamp,
+        'error',
+        'critical',
+        `${error_type}: ${message.substring(0, 80)}`,
+        message,
+        { component, error_id: errorId, stack: stack?.substring(0, 500) },
+        SESSION_ID
+      );
+
+      io.emit('notification', {
+        id: notificationId,
+        timestamp,
+        type: 'error',
+        severity: 'critical',
+        title: `${error_type}: ${message.substring(0, 80)}`,
+        message,
+        read: false,
+        metadata: { component, error_id: errorId }
+      });
+    }
+
+    // Emit real-time event via WebSocket
+    io.emit('error-logged', {
+      id: errorId,
+      timestamp,
+      error_type,
+      message,
+      component,
+      severity: severity || 'error'
+    });
+
+    res.json({
+      success: true,
+      error_id: errorId
+    });
+  } catch (error) {
+    console.error('❌ Error logging endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/errors
+ * Get error logs with search and filter
+ */
+app.get('/api/errors', (req, res) => {
+  try {
+    const options = {
+      limit: parseInt(req.query.limit) || 100,
+      offset: parseInt(req.query.offset) || 0,
+      search: req.query.search || '',
+      severity: req.query.severity || 'all',
+      startDate: req.query.startDate || null,
+      endDate: req.query.endDate || null
+    };
+
+    const result = projectState.db.getErrorLogs(options);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Get errors endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/errors/stats
+ * Get error statistics
+ */
+app.get('/api/errors/stats', (req, res) => {
+  try {
+    const stats = projectState.db.getErrorStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error stats endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/errors
+ * Clear error logs
+ */
+app.delete('/api/errors', (req, res) => {
+  try {
+    const olderThanDays = req.query.olderThanDays ? parseInt(req.query.olderThanDays) : null;
+    const deletedCount = projectState.db.clearErrorLogs(olderThanDays);
+
+    console.log(`🗑️  Cleared ${deletedCount} error logs`);
+
+    res.json({
+      success: true,
+      deletedCount,
+      message: olderThanDays
+        ? `Deleted ${deletedCount} errors older than ${olderThanDays} days`
+        : `Deleted all ${deletedCount} errors`
+    });
+  } catch (error) {
+    console.error('❌ Clear errors endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Notification endpoints ====================
+
+app.get('/api/notifications', (req, res) => {
+  try {
+    const options = {
+      limit: parseInt(req.query.limit) || 50,
+      offset: parseInt(req.query.offset) || 0,
+      type: req.query.type || 'all',
+      severity: req.query.severity || 'all',
+      unread_only: req.query.unread_only === 'true'
+    };
+
+    const result = projectState.db.getNotifications(options);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+app.get('/api/notifications/stats', (req, res) => {
+  try {
+    const stats = projectState.db.getNotificationStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error fetching notification stats:', error);
+    res.status(500).json({ error: 'Failed to fetch notification stats' });
+  }
+});
+
+app.post('/api/notifications/:id/read', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    projectState.db.markNotificationAsRead(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Error marking notification as read:', error);
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
+app.post('/api/notifications/mark-all-read', (req, res) => {
+  try {
+    projectState.db.markAllNotificationsAsRead();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Error marking all notifications as read:', error);
+    res.status(500).json({ error: 'Failed to mark all notifications as read' });
+  }
+});
+
+app.delete('/api/notifications/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    projectState.db.deleteNotification(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Error deleting notification:', error);
+    res.status(500).json({ error: 'Failed to delete notification' });
+  }
+});
+
+app.delete('/api/notifications', (req, res) => {
+  try {
+    const olderThanDays = req.query.olderThanDays ? parseInt(req.query.olderThanDays) : null;
+    const result = projectState.db.clearNotifications(olderThanDays);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error clearing notifications:', error);
+    res.status(500).json({ error: 'Failed to clear notifications' });
+  }
+});
+
+// ==================== Storage Statistics ====================
+
+// GET /api/storage - Get comprehensive storage statistics
+app.get('/api/storage', async (req, res) => {
+  try {
+    const dbDir = join(RAVEN_DIR, 'db');
+    const snapshotsDir = join(RAVEN_DIR, 'snapshots');
+
+    // Get all database files
+    const databases = [];
+    const dbFiles = fs.readdirSync(dbDir).filter(f => f.endsWith('.db'));
+
+    for (const dbFile of dbFiles) {
+      const dbPath = join(dbDir, dbFile);
+      const stats = fs.statSync(dbPath);
+      const dbName = dbFile.replace('.db', '');
+
+      // Try to get record counts
+      let recordCounts = {};
+      let tableStats = [];
+      try {
+        const Database = (await import('better-sqlite3')).default;
+        const db = new Database(dbPath, { readonly: true });
+
+        // Get record counts for each table
+        const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+        let totalRecords = 0;
+
+        for (const table of tables) {
+          const count = db.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get();
+          recordCounts[table.name] = count.count;
+          totalRecords += count.count;
+
+          // Get table size
+          const sizeQuery = db.prepare(`SELECT SUM(pgsize) as size FROM dbstat WHERE name = ?`).get(table.name);
+          tableStats.push({
+            name: table.name,
+            records: count.count,
+            size: sizeQuery?.size || 0
+          });
+        }
+
+        db.close();
+
+        databases.push({
+          name: dbName,
+          filename: dbFile,
+          size: stats.size,
+          totalRecords,
+          recordCounts,
+          tableStats: tableStats.sort((a, b) => b.size - a.size),
+          modified: stats.mtime,
+          isActive: dbName === projectState.activeProject
+        });
+      } catch (err) {
+        databases.push({
+          name: dbName,
+          filename: dbFile,
+          size: stats.size,
+          totalRecords: 0,
+          recordCounts: {},
+          tableStats: [],
+          modified: stats.mtime,
+          isActive: dbName === projectState.activeProject,
+          error: 'Failed to read database'
+        });
+      }
+    }
+
+    // Get snapshot directory stats
+    const snapshots = [];
+    if (fs.existsSync(snapshotsDir)) {
+      const snapshotProjects = fs.readdirSync(snapshotsDir);
+
+      for (const project of snapshotProjects) {
+        const projectSnapshotPath = join(snapshotsDir, project);
+        const stat = fs.statSync(projectSnapshotPath);
+
+        if (stat.isDirectory()) {
+          const files = fs.readdirSync(projectSnapshotPath);
+          let totalSize = 0;
+          let oldestFile = null;
+          let newestFile = null;
+
+          for (const file of files) {
+            const filePath = join(projectSnapshotPath, file);
+            const fileStat = fs.statSync(filePath);
+            totalSize += fileStat.size;
+
+            if (!oldestFile || fileStat.mtime < oldestFile) {
+              oldestFile = fileStat.mtime;
+            }
+            if (!newestFile || fileStat.mtime > newestFile) {
+              newestFile = fileStat.mtime;
+            }
+          }
+
+          snapshots.push({
+            project,
+            files: files.length,
+            size: totalSize,
+            oldest: oldestFile,
+            newest: newestFile
+          });
+        }
+      }
+    }
+
+    // Get total .raven directory size
+    const getRavenDirSize = (dirPath) => {
+      let totalSize = 0;
+      const items = fs.readdirSync(dirPath);
+
+      for (const item of items) {
+        const itemPath = join(dirPath, item);
+        const stat = fs.statSync(itemPath);
+
+        if (stat.isDirectory()) {
+          totalSize += getRavenDirSize(itemPath);
+        } else {
+          totalSize += stat.size;
+        }
+      }
+
+      return totalSize;
+    };
+
+    const totalSize = getRavenDirSize(RAVEN_DIR);
+
+    // Get other files
+    const configSize = fs.existsSync(join(RAVEN_DIR, 'config.toml'))
+      ? fs.statSync(join(RAVEN_DIR, 'config.toml')).size
+      : 0;
+    const triggersLogSize = fs.existsSync(join(RAVEN_DIR, 'triggers.log'))
+      ? fs.statSync(join(RAVEN_DIR, 'triggers.log')).size
+      : 0;
+
+    res.json({
+      totalSize,
+      databases: databases.sort((a, b) => b.size - a.size),
+      snapshots: snapshots.sort((a, b) => b.size - a.size),
+      otherFiles: {
+        config: configSize,
+        triggersLog: triggersLogSize
+      },
+      ravenDir: RAVEN_DIR,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Error getting storage stats:', error);
+    res.status(500).json({ error: 'Failed to get storage statistics' });
+  }
+});
+
 // ==================== WebSocket Connections ====================
 
 io.on('connection', socket => {
@@ -1597,7 +1971,7 @@ httpServer.listen(PORT, () => {
   initializeProject(projectState.activeProject);
 
   // Initialize trigger engine with io instance
-  triggerEngine = new TriggerEngine(RAVEN_DIR, io);
+  triggerEngine = new TriggerEngine(RAVEN_DIR, io, projectState.db);
 
   // Initialize metrics collector with io instance
   metricsCollector = new MetricsCollector(projectState.db, SESSION_ID, io);

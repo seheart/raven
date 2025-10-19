@@ -80,6 +80,38 @@ export class RavenDB {
         session_id TEXT
       )
     `);
+
+    // Error logs table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS error_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        error_type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        stack TEXT,
+        component TEXT,
+        user_agent TEXT,
+        url TEXT,
+        metadata TEXT,
+        session_id TEXT,
+        severity TEXT DEFAULT 'error'
+      )
+    `);
+
+    // Notifications table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        read INTEGER DEFAULT 0,
+        metadata TEXT,
+        session_id TEXT
+      )
+    `);
   }
 
   // ==================== Agent Events ====================
@@ -474,6 +506,151 @@ export class RavenDB {
     };
   }
 
+  // ==================== Error Logs ====================
+
+  insertErrorLog(
+    timestamp,
+    error_type,
+    message,
+    stack,
+    component,
+    user_agent,
+    url,
+    metadata,
+    session_id,
+    severity = 'error'
+  ) {
+    const stmt = this.db.prepare(`
+      INSERT INTO error_logs (timestamp, error_type, message, stack, component, user_agent, url, metadata, session_id, severity)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      error_type,
+      message,
+      stack || null,
+      component || null,
+      user_agent || null,
+      url || null,
+      metadata ? JSON.stringify(metadata) : null,
+      session_id || null,
+      severity
+    );
+
+    return result.lastInsertRowid;
+  }
+
+  getErrorLogs(options = {}) {
+    const {
+      limit = 100,
+      offset = 0,
+      search = '',
+      severity = 'all',
+      startDate = null,
+      endDate = null
+    } = options;
+
+    let query = `
+      SELECT id, timestamp, error_type, message, stack, component, user_agent, url, metadata, severity
+      FROM error_logs
+      WHERE 1=1
+    `;
+    const params = [];
+
+    // Apply severity filter
+    if (severity !== 'all') {
+      query += ` AND severity = ?`;
+      params.push(severity);
+    }
+
+    // Apply search filter
+    if (search) {
+      query += ` AND (message LIKE ? OR error_type LIKE ? OR component LIKE ?)`;
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    // Apply date range filter
+    if (startDate) {
+      query += ` AND timestamp >= ?`;
+      params.push(startDate);
+    }
+    if (endDate) {
+      query += ` AND timestamp <= ?`;
+      params.push(endDate);
+    }
+
+    // Order by timestamp descending
+    query += ` ORDER BY timestamp DESC`;
+
+    // Count total before pagination
+    const countQuery = query.replace(
+      'SELECT id, timestamp, error_type, message, stack, component, user_agent, url, metadata, severity',
+      'SELECT COUNT(*) as count'
+    );
+    const totalCount = this.db.prepare(countQuery).get(...params)?.count || 0;
+
+    // Apply pagination
+    query += ` LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const stmt = this.db.prepare(query);
+    const errors = stmt.all(...params);
+
+    // Parse metadata JSON
+    const parsedErrors = errors.map(err => ({
+      ...err,
+      metadata: err.metadata ? JSON.parse(err.metadata) : null
+    }));
+
+    return {
+      errors: parsedErrors,
+      total: totalCount,
+      limit,
+      offset,
+      hasMore: offset + limit < totalCount
+    };
+  }
+
+  getErrorStats() {
+    const stmt = this.db.prepare(`
+      SELECT
+        severity,
+        COUNT(*) as count,
+        MAX(timestamp) as last_occurrence
+      FROM error_logs
+      GROUP BY severity
+    `);
+
+    const stats = stmt.all();
+    const total = stats.reduce((sum, s) => sum + s.count, 0);
+
+    return {
+      total,
+      by_severity: stats,
+      recent_count: this.db.prepare(`
+        SELECT COUNT(*) as count
+        FROM error_logs
+        WHERE timestamp >= datetime('now', '-1 hour')
+      `).get()?.count || 0
+    };
+  }
+
+  clearErrorLogs(olderThanDays = null) {
+    let query = 'DELETE FROM error_logs';
+    const params = [];
+
+    if (olderThanDays) {
+      query += ` WHERE timestamp < datetime('now', '-' || ? || ' days')`;
+      params.push(olderThanDays);
+    }
+
+    const stmt = this.db.prepare(query);
+    const result = stmt.run(...params);
+    return result.changes;
+  }
+
   // ==================== Unified Activity Log ====================
 
   /**
@@ -618,6 +795,148 @@ export class RavenDB {
       offset,
       hasMore: offset + limit < total
     };
+  }
+
+  // ==================== Notifications ====================
+
+  insertNotification(timestamp, type, severity, title, message, metadata, session_id) {
+    const stmt = this.db.prepare(`
+      INSERT INTO notifications (timestamp, type, severity, title, message, metadata, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      type,
+      severity,
+      title,
+      message,
+      metadata ? JSON.stringify(metadata) : null,
+      session_id || null
+    );
+
+    return result.lastInsertRowid;
+  }
+
+  getNotifications(options = {}) {
+    const {
+      limit = 50,
+      offset = 0,
+      type = 'all',
+      severity = 'all',
+      unread_only = false
+    } = options;
+
+    let query = 'SELECT * FROM notifications WHERE 1=1';
+    const params = [];
+
+    if (type !== 'all') {
+      query += ' AND type = ?';
+      params.push(type);
+    }
+
+    if (severity !== 'all') {
+      query += ' AND severity = ?';
+      params.push(severity);
+    }
+
+    if (unread_only) {
+      query += ' AND read = 0';
+    }
+
+    // Count total
+    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countStmt = this.db.prepare(countQuery);
+    const { count: total } = countStmt.get(...params);
+
+    // Get paginated results
+    query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const stmt = this.db.prepare(query);
+    const notifications = stmt.all(...params);
+
+    return {
+      notifications: notifications.map(n => ({
+        ...n,
+        read: Boolean(n.read),
+        metadata: n.metadata ? JSON.parse(n.metadata) : null
+      })),
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total
+    };
+  }
+
+  getNotificationStats() {
+    const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM notifications');
+    const unreadStmt = this.db.prepare('SELECT COUNT(*) as count FROM notifications WHERE read = 0');
+
+    const byTypeStmt = this.db.prepare(`
+      SELECT type, COUNT(*) as count
+      FROM notifications
+      GROUP BY type
+    `);
+
+    const bySeverityStmt = this.db.prepare(`
+      SELECT severity, COUNT(*) as count
+      FROM notifications
+      GROUP BY severity
+    `);
+
+    const { count: total } = totalStmt.get();
+    const { count: unread } = unreadStmt.get();
+    const byType = byTypeStmt.all();
+    const bySeverity = bySeverityStmt.all();
+
+    const by_type = {};
+    for (const row of byType) {
+      by_type[row.type] = row.count;
+    }
+
+    const by_severity = {};
+    for (const row of bySeverity) {
+      by_severity[row.severity] = row.count;
+    }
+
+    return {
+      total,
+      unread,
+      by_type,
+      by_severity
+    };
+  }
+
+  markNotificationAsRead(id) {
+    const stmt = this.db.prepare('UPDATE notifications SET read = 1 WHERE id = ?');
+    stmt.run(id);
+  }
+
+  markAllNotificationsAsRead() {
+    const stmt = this.db.prepare('UPDATE notifications SET read = 1');
+    stmt.run();
+  }
+
+  deleteNotification(id) {
+    const stmt = this.db.prepare('DELETE FROM notifications WHERE id = ?');
+    stmt.run(id);
+  }
+
+  clearNotifications(olderThanDays = null) {
+    if (olderThanDays) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+      const cutoffISO = cutoffDate.toISOString();
+
+      const stmt = this.db.prepare('DELETE FROM notifications WHERE timestamp < ?');
+      const result = stmt.run(cutoffISO);
+      return { deleted: result.changes };
+    } else {
+      const stmt = this.db.prepare('DELETE FROM notifications');
+      const result = stmt.run();
+      return { deleted: result.changes };
+    }
   }
 
   close() {

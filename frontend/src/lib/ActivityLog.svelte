@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { formatDateTime } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -88,14 +89,7 @@
   }
 
   function formatTimestamp(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return formatDateTime(timestamp);
   }
 
   // WebSocket event handler for project switches

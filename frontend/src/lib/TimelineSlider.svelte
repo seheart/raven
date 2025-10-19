@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { formatShortDateTime } from './timeFormat.js';
 
   export let events = [];
   export let onTimeRangeChange = (start, end) => {};
@@ -90,13 +91,7 @@
   }
 
   function formatDate(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatShortDateTime(timestamp);
   }
 
   onMount(() => {

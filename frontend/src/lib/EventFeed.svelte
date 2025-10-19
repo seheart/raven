@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { formatTime as formatTimeString } from './timeFormat.js';
   import TimelineSlider from './TimelineSlider.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
@@ -170,8 +171,7 @@
   });
 
   function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString();
+    return formatTimeString(timestamp);
   }
 
   function getChangeClass(type) {

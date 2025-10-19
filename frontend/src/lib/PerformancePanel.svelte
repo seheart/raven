@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { formatTime } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -94,8 +95,7 @@
   }
 
   function formatTimestamp(ts) {
-    const date = new Date(ts);
-    return date.toLocaleTimeString();
+    return formatTime(ts);
   }
 
   function formatBytes(bytes) {

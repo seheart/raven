@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { formatUnixDateTime } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -112,7 +113,7 @@
 
   function formatTimestamp(timestamp) {
     // timestamp is Unix timestamp in seconds
-    return new Date(timestamp * 1000).toLocaleString();
+    return formatUnixDateTime(timestamp);
   }
 
   function getActionIcon(action) {

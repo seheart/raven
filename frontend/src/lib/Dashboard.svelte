@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { formatDateTime } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -95,7 +96,7 @@
   }
 
   function formatTimestamp(timestamp) {
-    return new Date(timestamp).toLocaleString();
+    return formatDateTime(timestamp);
   }
 
   function getAgentColor(agentName) {

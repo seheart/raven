@@ -1,0 +1,729 @@
+<script>
+  import { onMount, onDestroy } from 'svelte';
+  import { websocketService } from './websocket.js';
+  import { formatDateTime, formatRelativeTime } from './timeFormat.js';
+
+  const API_BASE = 'http://localhost:3030/api';
+
+  let notifications = [];
+  let stats = {
+    total: 0,
+    unread: 0,
+    by_type: {},
+    by_severity: {}
+  };
+  let loading = true;
+  let filterType = 'all'; // all, error, trigger, performance, git, agent, file, system
+  let filterSeverity = 'all'; // all, critical, warning, info
+  let showUnreadOnly = false;
+  let expandedNotification = null;
+
+  // Pagination
+  let limit = 50;
+  let offset = 0;
+  let hasMore = false;
+
+  onMount(async () => {
+    await loadNotifications();
+    await loadStats();
+
+    // Connect to WebSocket for real-time notifications
+    websocketService.connect();
+    websocketService.on('notification', handleNewNotification);
+    websocketService.on('error-logged', handleErrorLogged);
+    websocketService.on('trigger-fired', handleTriggerFired);
+    websocketService.on('project-switched', handleProjectSwitched);
+  });
+
+  onDestroy(() => {
+    websocketService.off('notification', handleNewNotification);
+    websocketService.off('error-logged', handleErrorLogged);
+    websocketService.off('trigger-fired', handleTriggerFired);
+    websocketService.off('project-switched', handleProjectSwitched);
+  });
+
+  async function loadNotifications() {
+    try {
+      loading = true;
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString(),
+        type: filterType,
+        severity: filterSeverity,
+        unread_only: showUnreadOnly.toString()
+      });
+
+      const res = await fetch(`${API_BASE}/notifications?${params}`);
+      const data = await res.json();
+
+      if (offset === 0) {
+        notifications = data.notifications;
+      } else {
+        notifications = [...notifications, ...data.notifications];
+      }
+
+      hasMore = data.hasMore;
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API_BASE}/notifications/stats`);
+      stats = await res.json();
+    } catch (error) {
+      console.error('Failed to load notification stats:', error);
+    }
+  }
+
+  async function markAsRead(id) {
+    try {
+      await fetch(`${API_BASE}/notifications/${id}/read`, { method: 'POST' });
+      notifications = notifications.map(n =>
+        n.id === id ? { ...n, read: true } : n
+      );
+      stats.unread = Math.max(0, stats.unread - 1);
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  }
+
+  async function markAllAsRead() {
+    try {
+      await fetch(`${API_BASE}/notifications/mark-all-read`, { method: 'POST' });
+      notifications = notifications.map(n => ({ ...n, read: true }));
+      stats.unread = 0;
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  }
+
+  async function clearNotification(id) {
+    try {
+      await fetch(`${API_BASE}/notifications/${id}`, { method: 'DELETE' });
+      notifications = notifications.filter(n => n.id !== id);
+      stats.total = Math.max(0, stats.total - 1);
+      await loadStats();
+    } catch (error) {
+      console.error('Failed to clear notification:', error);
+    }
+  }
+
+  async function clearAll() {
+    if (!confirm('Clear all notifications? This cannot be undone.')) return;
+
+    try {
+      await fetch(`${API_BASE}/notifications`, { method: 'DELETE' });
+      notifications = [];
+      stats = { total: 0, unread: 0, by_type: {}, by_severity: {} };
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error);
+    }
+  }
+
+  function handleNewNotification(notification) {
+    notifications = [notification, ...notifications];
+    stats.unread += 1;
+    stats.total += 1;
+    loadStats();
+  }
+
+  function handleErrorLogged(data) {
+    const notification = {
+      id: Date.now(),
+      type: 'error',
+      severity: data.severity || 'warning',
+      title: `${data.error_type}: ${data.message}`,
+      message: data.message,
+      timestamp: new Date().toISOString(),
+      read: false,
+      metadata: {
+        component: data.component,
+        stack: data.stack
+      }
+    };
+    handleNewNotification(notification);
+  }
+
+  function handleTriggerFired(data) {
+    const notification = {
+      id: Date.now(),
+      type: 'trigger',
+      severity: 'warning',
+      title: `Trigger: ${data.trigger_name}`,
+      message: data.message || `Trigger "${data.trigger_name}" was fired`,
+      timestamp: new Date().toISOString(),
+      read: false,
+      metadata: data
+    };
+    handleNewNotification(notification);
+  }
+
+  async function handleProjectSwitched(data) {
+    offset = 0;
+    await loadNotifications();
+    await loadStats();
+  }
+
+  function toggleExpand(notification) {
+    if (expandedNotification?.id === notification.id) {
+      expandedNotification = null;
+    } else {
+      expandedNotification = notification;
+      if (!notification.read) {
+        markAsRead(notification.id);
+      }
+    }
+  }
+
+  function getNotificationIcon(type) {
+    switch(type) {
+      case 'error': return '⚠️';
+      case 'trigger': return '🔔';
+      case 'performance': return '⚡';
+      case 'git': return '🌳';
+      case 'agent': return '🤖';
+      case 'file': return '📁';
+      case 'system': return '⚙️';
+      default: return '📝';
+    }
+  }
+
+  function getSeverityClass(severity) {
+    switch(severity) {
+      case 'critical': return 'severity-critical';
+      case 'warning': return 'severity-warning';
+      case 'info': return 'severity-info';
+      default: return '';
+    }
+  }
+
+  async function applyFilters() {
+    offset = 0;
+    await loadNotifications();
+  }
+
+  async function loadMore() {
+    offset += limit;
+    await loadNotifications();
+  }
+
+  $: filteredCount = notifications.length;
+</script>
+
+<div class="notifications-panel">
+  <div class="header">
+    <div class="header-left">
+      <h1>📬 Notifications</h1>
+      <p class="subtitle">System alerts and activity updates</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-secondary" on:click={markAllAsRead} disabled={stats.unread === 0}>
+        Mark All Read
+      </button>
+      <button class="btn-secondary" on:click={clearAll} disabled={stats.total === 0}>
+        Clear All
+      </button>
+      <button class="btn-primary" on:click={() => { offset = 0; loadNotifications(); loadStats(); }}>
+        🔄 Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Total</div>
+      <div class="stat-value">{stats.total}</div>
+    </div>
+    <div class="stat-card unread-stat">
+      <div class="stat-label">Unread</div>
+      <div class="stat-value">{stats.unread}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Errors</div>
+      <div class="stat-value">{stats.by_type?.error || 0}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Triggers</div>
+      <div class="stat-value">{stats.by_type?.trigger || 0}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Performance</div>
+      <div class="stat-value">{stats.by_type?.performance || 0}</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>Type:</label>
+      <select bind:value={filterType} on:change={applyFilters}>
+        <option value="all">All Types</option>
+        <option value="error">Errors</option>
+        <option value="trigger">Triggers</option>
+        <option value="performance">Performance</option>
+        <option value="git">Git</option>
+        <option value="agent">Agents</option>
+        <option value="file">Files</option>
+        <option value="system">System</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Severity:</label>
+      <select bind:value={filterSeverity} on:change={applyFilters}>
+        <option value="all">All Severities</option>
+        <option value="critical">Critical</option>
+        <option value="warning">Warning</option>
+        <option value="info">Info</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="checkbox-label">
+        <input type="checkbox" bind:checked={showUnreadOnly} on:change={applyFilters} />
+        <span>Unread Only</span>
+      </label>
+    </div>
+
+    <div class="filter-results">
+      Showing {filteredCount} of {stats.total} notifications
+    </div>
+  </div>
+
+  <!-- Notifications List -->
+  <div class="notifications-list">
+    {#if loading && offset === 0}
+      <div class="loading">Loading notifications...</div>
+    {:else if notifications.length === 0}
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">No notifications</div>
+        <div class="empty-message">
+          {#if filterType !== 'all' || filterSeverity !== 'all' || showUnreadOnly}
+            Try adjusting your filters
+          {:else}
+            You're all caught up!
+          {/if}
+        </div>
+      </div>
+    {:else}
+      {#each notifications as notification (notification.id)}
+        <div
+          class="notification-item {getSeverityClass(notification.severity)}"
+          class:unread={!notification.read}
+          class:expanded={expandedNotification?.id === notification.id}
+          on:click={() => toggleExpand(notification)}
+        >
+          <div class="notification-header">
+            <div class="notification-left">
+              <span class="notification-icon">{getNotificationIcon(notification.type)}</span>
+              <div class="notification-info">
+                <div class="notification-title">{notification.title}</div>
+                <div class="notification-meta">
+                  <span class="notification-type">{notification.type}</span>
+                  <span class="notification-time">{formatRelativeTime(notification.timestamp)}</span>
+                  {#if !notification.read}
+                    <span class="unread-badge">NEW</span>
+                  {/if}
+                </div>
+              </div>
+            </div>
+            <div class="notification-actions">
+              <button
+                class="btn-icon"
+                on:click|stopPropagation={() => clearNotification(notification.id)}
+                title="Clear notification"
+              >
+                🗑️
+              </button>
+              {#if !notification.read}
+                <button
+                  class="btn-icon"
+                  on:click|stopPropagation={() => markAsRead(notification.id)}
+                  title="Mark as read"
+                >
+                  ✓
+                </button>
+              {/if}
+            </div>
+          </div>
+
+          {#if expandedNotification?.id === notification.id}
+            <div class="notification-details">
+              <div class="detail-section">
+                <div class="detail-label">Message</div>
+                <div class="detail-value">{notification.message}</div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Timestamp</div>
+                <div class="detail-value">{formatDateTime(notification.timestamp)}</div>
+              </div>
+              {#if notification.metadata}
+                <div class="detail-section">
+                  <div class="detail-label">Details</div>
+                  <pre class="detail-metadata">{JSON.stringify(notification.metadata, null, 2)}</pre>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/each}
+
+      {#if hasMore}
+        <div class="load-more">
+          <button class="btn-secondary" on:click={loadMore} disabled={loading}>
+            {loading ? 'Loading...' : 'Load More'}
+          </button>
+        </div>
+      {/if}
+    {/if}
+  </div>
+</div>
+
+<style>
+  .notifications-panel {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    gap: 2rem;
+  }
+
+  .header-left h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn-primary, .btn-secondary {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--mono);
+    border: none;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .btn-primary:disabled, .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 3px solid var(--border);
+  }
+
+  .stat-card.unread-stat {
+    border-left-color: var(--accent);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-weight: 700;
+  }
+
+  .filters {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .filter-group label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .filter-group select {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--mono);
+    cursor: pointer;
+  }
+
+  .filter-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    cursor: pointer;
+  }
+
+  .filter-results {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .notification-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid var(--border);
+  }
+
+  .notification-item:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .notification-item.unread {
+    border-left-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  }
+
+  .notification-item.severity-critical {
+    border-left-color: var(--error);
+  }
+
+  .notification-item.severity-warning {
+    border-left-color: var(--warning);
+  }
+
+  .notification-item.severity-info {
+    border-left-color: var(--info);
+  }
+
+  .notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .notification-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .notification-icon {
+    font-size: 20px;
+  }
+
+  .notification-info {
+    flex: 1;
+  }
+
+  .notification-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+  }
+
+  .notification-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .notification-type {
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .unread-badge {
+    padding: 2px 6px;
+    background: var(--accent);
+    color: white;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .notification-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-icon {
+    padding: 6px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .btn-icon:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .notification-details {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .detail-section {
+    margin-bottom: 1rem;
+  }
+
+  .detail-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .detail-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .detail-value {
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .detail-metadata {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text);
+    overflow-x: auto;
+    font-family: var(--mono);
+  }
+
+  .loading, .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--muted);
+  }
+
+  .empty-state {
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 1rem;
+  }
+
+  .empty-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-message {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .load-more {
+    text-align: center;
+    padding: 1rem;
+  }
+</style>

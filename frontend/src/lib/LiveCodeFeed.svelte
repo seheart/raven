@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { formatTime as formatTimeString } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -289,7 +290,7 @@
   }
 
   function formatTime(timestamp) {
-    return new Date(timestamp).toLocaleTimeString();
+    return formatTimeString(timestamp);
   }
 
   function truncatePath(path, maxLength = 40) {

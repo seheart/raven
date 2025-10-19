@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { formatShortDateTime } from './timeFormat.js';
   import DiffViewer from './DiffViewer.svelte';
 
   const API_BASE = 'http://localhost:3030';
@@ -36,12 +37,7 @@
   let fileDiffs = new Map(); // Cache diffs for expanded files
 
   function formatCommitDate(date) {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatShortDateTime(date);
   }
 
   async function loadRepositoryName() {

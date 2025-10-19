@@ -1,6 +1,7 @@
 <script>
   import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
+  import { formatDateTime } from './timeFormat.js';
   import DiffViewer from './DiffViewer.svelte';
 
   export let onClose = () => {};
@@ -72,8 +73,7 @@
   }
 
   function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+    return formatDateTime(timestamp);
   }
 
   function getChangeClass(type) {

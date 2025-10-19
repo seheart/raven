@@ -17,13 +17,17 @@
   import DocsViewer from './lib/DocsViewer.svelte';
   import RavenLogo from './lib/RavenLogo.svelte';
   import ProjectSelector from './lib/ProjectSelector.svelte';
+  import ErrorLog from './lib/ErrorLog.svelte';
+  import NotificationsPanel from './lib/NotificationsPanel.svelte';
+  import StoragePanel from './lib/StoragePanel.svelte';
   import { keyboard } from './lib/keyboardService.js';
+  import { setupGlobalErrorHandler } from './lib/errorLogger.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
   let sessionId = 'Loading...';
   let showShortcuts = false;
-  let currentView = 'dashboard'; // dashboard, git, replay, performance, triggers, agents, status, docs, about, changelog
+  let currentView = 'dashboard'; // dashboard, git, replay, performance, triggers, agents, status, docs, about, changelog, notifications, storage
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
 
   async function loadSessionId() {
@@ -58,6 +62,9 @@
     theme = localStorage.getItem('raven-theme') || 'theme--night';
     document.body.className = theme;
 
+    // Setup global error handler
+    setupGlobalErrorHandler();
+
     // Register global keyboard shortcuts
     keyboard.register('?', toggleShortcuts, { shiftKey: true });
     keyboard.register('Escape', () => {
@@ -72,6 +79,9 @@
     keyboard.register('5', () => switchView('triggers'));
     keyboard.register('6', () => switchView('agents'));
     keyboard.register('7', () => switchView('status'));
+    keyboard.register('8', () => switchView('error-log'));
+    keyboard.register('9', () => switchView('notifications'));
+    keyboard.register('0', () => switchView('storage'));
   });
 
   onDestroy(() => {
@@ -188,6 +198,27 @@
     >
       📜 Activity Log
     </button>
+    <button
+      class="tab"
+      class:active={currentView === 'error-log'}
+      on:click={() => switchView('error-log')}
+    >
+      ⚠️ Error Log
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'notifications'}
+      on:click={() => switchView('notifications')}
+    >
+      📬 Notifications
+    </button>
+    <button
+      class="tab"
+      class:active={currentView === 'storage'}
+      on:click={() => switchView('storage')}
+    >
+      💾 Storage
+    </button>
   </nav>
 
   <div class="view-container">
@@ -211,6 +242,12 @@
       <APIHealthMonitor />
     {:else if currentView === 'activity-log'}
       <ActivityLog />
+    {:else if currentView === 'error-log'}
+      <ErrorLog />
+    {:else if currentView === 'notifications'}
+      <NotificationsPanel />
+    {:else if currentView === 'storage'}
+      <StoragePanel />
     {:else if currentView === 'docs'}
       <DocsViewer />
     {:else if currentView === 'about'}

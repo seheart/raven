@@ -4,9 +4,10 @@ import { execSync } from 'child_process';
 import toml from 'toml';
 
 export class TriggerEngine {
-  constructor(configPath, io = null) {
+  constructor(configPath, io = null, db = null) {
     this.configPath = configPath;
     this.io = io;
+    this.db = db;
     this.triggers = new Map();
     this.triggeredEvents = [];
     this.cooldowns = new Map();
@@ -16,6 +17,10 @@ export class TriggerEngine {
 
   setIo(io) {
     this.io = io;
+  }
+
+  setDb(db) {
+    this.db = db;
   }
 
   loadConfig() {
@@ -115,6 +120,33 @@ cooldown_seconds = 300
         this.triggerCounts.set(name, (this.triggerCounts.get(name) || 0) + 1);
 
         results.push(triggerEvent);
+
+        // Create notification in database
+        if (this.db) {
+          const notificationId = this.db.insertNotification(
+            new Date().toISOString(),
+            'trigger',
+            'warning',
+            `Trigger: ${name}`,
+            message,
+            { trigger_name: name, action: trigger.action, event },
+            null // session_id
+          );
+
+          // Emit notification event
+          if (this.io) {
+            this.io.emit('notification', {
+              id: notificationId,
+              timestamp: new Date().toISOString(),
+              type: 'trigger',
+              severity: 'warning',
+              title: `Trigger: ${name}`,
+              message,
+              read: false,
+              metadata: { trigger_name: name, action: trigger.action }
+            });
+          }
+        }
 
         // Emit real-time trigger event via WebSocket
         if (this.io) {
