@@ -259,7 +259,7 @@
 
 <style>
   .storage-panel {
-    padding: 2rem;
+    padding: 24px;
     max-width: 1400px;
     margin: 0 auto;
   }

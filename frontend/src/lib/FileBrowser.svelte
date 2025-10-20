@@ -101,35 +101,35 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    padding: 24px;
   }
 
   .browser-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 0.5rem;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
-  }
-
-  .browser-header {
-    padding: 0 8px;
   }
 
   h3 {
     margin: 0;
     color: var(--text);
-    font-size: 15px;
+    font-size: 16px;
+    font-family: var(--mono);
+    font-weight: 600;
   }
 
   .refresh-btn {
     background: var(--surface-2);
     color: var(--info);
     border: 1px solid var(--info);
-    padding: 6px 0.8rem;
+    padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
+    transition: all 0.2s;
   }
 
   .refresh-btn:hover:not(:disabled) {
@@ -144,13 +144,15 @@
 
   .loading {
     text-align: center;
-    padding: 12px;
+    padding: 24px;
     color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
   }
 
   .empty {
     text-align: center;
-    padding: 16px 1rem;
+    padding: 32px 16px;
     color: var(--muted);
   }
 
@@ -166,38 +168,45 @@
   .file-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 12px;
     overflow-y: auto;
   }
 
   .file-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px;
+    gap: 14px;
+    padding: 14px 16px;
     background: var(--surface-2);
     border-radius: 6px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    border: 1px solid transparent;
   }
 
   .file-item:hover {
-    background: var(--surface-2);
+    background: var(--surface);
+    border-color: var(--accent);
+    transform: translateX(2px);
   }
 
   .file-icon {
-    font-size: 12px;
+    font-size: 20px;
   }
 
   .file-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .file-name {
     color: var(--text);
     font-weight: 500;
     font-family: 'Courier New', monospace;
+    font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -210,11 +219,21 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-top: 2px;
   }
 
   .view-btn {
     color: var(--info);
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 500;
     white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .file-item:hover .view-btn {
+    background: var(--info);
+    color: white;
   }
 </style>

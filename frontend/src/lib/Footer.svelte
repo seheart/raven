@@ -1,40 +1,11 @@
 <script>
-  import { onMount } from 'svelte';
-
-  export let sessionId = 'Loading...';
+  export let theme = 'theme--night';
+  export let onThemeChange = () => {};
   export let onAboutClick = () => {};
   export let onChangelogClick = () => {};
   export let onDocsClick = () => {};
 
   let version = '0.8.0';
-  let sessionUptime = '0s';
-  let uptimeInterval;
-
-  const startTime = Date.now();
-
-  function updateUptime() {
-    const seconds = Math.floor((Date.now() - startTime) / 1000);
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-      sessionUptime = `${hours}h ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      sessionUptime = `${minutes}m ${secs}s`;
-    } else {
-      sessionUptime = `${secs}s`;
-    }
-  }
-
-  onMount(() => {
-    updateUptime();
-    uptimeInterval = setInterval(updateUptime, 1000);
-
-    return () => {
-      if (uptimeInterval) clearInterval(uptimeInterval);
-    };
-  });
 </script>
 
 <footer class="footer">
@@ -42,9 +13,32 @@
     <div class="footer-left">
       <span class="footer-brand">Raven v{version}</span>
       <span class="footer-divider">|</span>
-      <span class="footer-uptime">Uptime: {sessionUptime}</span>
-      <span class="footer-divider">|</span>
-      <span class="footer-session">Session: {sessionId}</span>
+      <div class="theme-selector" role="group" aria-label="Theme selector">
+        <button
+          class="theme-button"
+          class:active={theme === 'theme--day'}
+          on:click={() => onThemeChange('theme--day')}
+          aria-label="Day theme"
+        >
+          Day
+        </button>
+        <button
+          class="theme-button"
+          class:active={theme === 'theme--dusk'}
+          on:click={() => onThemeChange('theme--dusk')}
+          aria-label="Dusk theme"
+        >
+          Dusk
+        </button>
+        <button
+          class="theme-button"
+          class:active={theme === 'theme--night'}
+          on:click={() => onThemeChange('theme--night')}
+          aria-label="Night theme"
+        >
+          Night
+        </button>
+      </div>
     </div>
 
     <div class="footer-right">
@@ -105,17 +99,6 @@
     font-weight: 600;
   }
 
-  .footer-uptime {
-    color: var(--muted);
-    font-family: var(--mono);
-  }
-
-  .footer-session {
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 12px;
-  }
-
   .footer-divider {
     color: var(--muted);
   }
@@ -134,6 +117,39 @@
 
   .footer-link:hover {
     color: var(--accent);
+  }
+
+  .theme-selector {
+    display: flex;
+    gap: 0;
+    align-items: center;
+  }
+
+  .theme-button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: color 0.2s;
+    font-weight: 500;
+  }
+
+  .theme-button:hover {
+    color: var(--text);
+  }
+
+  .theme-button.active {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .theme-button:not(:last-child)::after {
+    content: '·';
+    color: var(--muted);
+    margin-left: 8px;
   }
 
   .footer-status {

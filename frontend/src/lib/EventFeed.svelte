@@ -265,7 +265,9 @@
     </div>
   </div>
 
-  <TimelineSlider events={events} onTimeRangeChange={handleTimeRangeChange} />
+  <div class="timeline-container">
+    <TimelineSlider events={events} onTimeRangeChange={handleTimeRangeChange} />
+  </div>
 
   {#if filteredEvents.length > 0}
     <div class="events">
@@ -309,30 +311,31 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    padding: 24px;
   }
 
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 0 8px;
-    padding-bottom: 0.5rem;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
   }
 
   .count {
     color: var(--muted);
-    font-size: 12px;
+    font-size: 13px;
+    font-family: var(--mono);
   }
 
   .header-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 8px;
   }
 
   .export-btn {
-    padding: 4px 0.75rem;
+    padding: 6px 12px;
     font-size: 11px;
     background: var(--surface-2);
     color: var(--info);
@@ -348,7 +351,7 @@
   }
 
   .clear-btn {
-    padding: 4px 0.75rem;
+    padding: 6px 12px;
     font-size: 11px;
     background: var(--surface-2);
     color: var(--error);
@@ -368,12 +371,12 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 12px;
   }
 
   .event {
     background: var(--surface-2);
-    padding: 10px;
+    padding: 14px 16px;
     border-radius: 6px;
     border-left: 3px solid var(--info);
     transition: background 0.2s;
@@ -399,7 +402,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 10px;
   }
 
   .filepath {
@@ -415,14 +418,14 @@
 
   .event-details {
     display: flex;
-    gap: 0.75rem;
+    gap: 12px;
     align-items: center;
   }
 
   .badge {
-    padding: 4px 0.5rem;
+    padding: 5px 10px;
     font-size: 11px;
-    border-radius: 3px;
+    border-radius: 4px;
     text-transform: uppercase;
     font-weight: 600;
   }
@@ -468,15 +471,15 @@
   .filters {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 8px;
-    padding-bottom: 1rem;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
   }
 
   .search-input {
     width: 100%;
-    padding: 6px 0.75rem;
+    padding: 10px 12px;
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 4px;
@@ -497,14 +500,14 @@
 
   .type-filters {
     display: flex;
-    gap: 10px;
+    gap: 20px;
     flex-wrap: wrap;
   }
 
   .filter-checkbox {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
     cursor: pointer;
     user-select: none;
   }
@@ -519,8 +522,8 @@
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    padding: 4px 0.5rem;
-    border-radius: 3px;
+    padding: 5px 10px;
+    border-radius: 4px;
   }
 
   .filter-label.created {
@@ -536,5 +539,9 @@
   .filter-label.deleted {
     background: var(--error)33;
     color: var(--error);
+  }
+
+  .timeline-container {
+    margin-bottom: 24px;
   }
 </style>

@@ -38,14 +38,30 @@
   const API_BASE = 'http://localhost:3030/api';
 
   let sessionId = 'Loading...';
-  let activeTab = 'overview'; // New consolidated tabs: overview, agents, activity, analysis, system
+  let sessionUptime = '0s';
+  let activeTab = 'overview'; // New consolidated tabs: overview, agents, activity, analysis, system, about, changelog, docs
   let currentSubView = ''; // For sub-views within tabs
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
   let showHelp = false;
   let showWelcome = false;
-  let showAbout = false;
-  let showChangelog = false;
-  let showDocs = false;
+
+  const startTime = Date.now();
+  let uptimeInterval;
+
+  function updateUptime() {
+    const seconds = Math.floor((Date.now() - startTime) / 1000);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      sessionUptime = `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      sessionUptime = `${minutes}m ${secs}s`;
+    } else {
+      sessionUptime = `${secs}s`;
+    }
+  }
 
   async function loadSessionId() {
     try {
@@ -75,6 +91,10 @@
   onMount(() => {
     loadSessionId();
 
+    // Start uptime tracking
+    updateUptime();
+    uptimeInterval = setInterval(updateUptime, 1000);
+
     // Load saved theme from localStorage
     theme = localStorage.getItem('raven-theme') || 'theme--night';
     document.body.className = theme;
@@ -90,9 +110,6 @@
     keyboard.register('Escape', () => {
       showHelp = false;
       showWelcome = false;
-      showAbout = false;
-      showChangelog = false;
-      showDocs = false;
     });
 
     // Show welcome screen for first-time users
@@ -109,6 +126,7 @@
 
   onDestroy(() => {
     keyboard.clear();
+    if (uptimeInterval) clearInterval(uptimeInterval);
   });
 </script>
 
@@ -123,32 +141,6 @@
       </div>
       <div class="header-right">
         <ProjectSelector />
-        <div class="theme-switch" role="group" aria-label="Theme switcher">
-          <button
-            class:is-active={theme === 'theme--day'}
-            on:click={() => switchTheme('theme--day')}
-            aria-label="Day theme"
-            tabindex="0"
-          >
-            ☀️
-          </button>
-          <button
-            class:is-active={theme === 'theme--dusk'}
-            on:click={() => switchTheme('theme--dusk')}
-            aria-label="Dusk theme"
-            tabindex="0"
-          >
-            🌆
-          </button>
-          <button
-            class:is-active={theme === 'theme--night'}
-            on:click={() => switchTheme('theme--night')}
-            aria-label="Night theme"
-            tabindex="0"
-          >
-            🌙
-          </button>
-        </div>
         <button
           class="help-button"
           on:click={() => showHelp = !showHelp}
@@ -168,7 +160,7 @@
   <div class="view-container" role="main">
     {#if activeTab === 'overview'}
       <!-- Overview: Dashboard + Metrics + Git Status -->
-      <OverviewPanel />
+      <OverviewPanel {sessionId} {sessionUptime} />
     {:else if activeTab === 'agents'}
       <!-- Agents: All AI agent related views -->
       <div class="tab-content">
@@ -323,6 +315,15 @@
           <APIHealthMonitor />
         {/if}
       </div>
+    {:else if activeTab === 'about'}
+      <!-- About Page -->
+      <AboutPage on:close={() => activeTab = 'overview'} />
+    {:else if activeTab === 'changelog'}
+      <!-- Changelog Page -->
+      <ChangelogPage on:close={() => activeTab = 'overview'} />
+    {:else if activeTab === 'docs'}
+      <!-- Docs Page -->
+      <DocsViewer on:close={() => activeTab = 'overview'} />
     {/if}
   </div></main>
 
@@ -339,26 +340,12 @@
   <KeyboardShortcuts on:close={() => showHelp = false} />
 {/if}
 
-<!-- About Modal -->
-{#if showAbout}
-  <AboutPage on:close={() => showAbout = false} />
-{/if}
-
-<!-- Changelog Modal -->
-{#if showChangelog}
-  <ChangelogPage on:close={() => showChangelog = false} />
-{/if}
-
-<!-- Docs Modal -->
-{#if showDocs}
-  <DocsViewer on:close={() => showDocs = false} />
-{/if}
-
 <Footer
-  sessionId={sessionId}
-  onAboutClick={() => showAbout = true}
-  onChangelogClick={() => showChangelog = true}
-  onDocsClick={() => showDocs = true}
+  theme={theme}
+  onThemeChange={switchTheme}
+  onAboutClick={() => activeTab = 'about'}
+  onChangelogClick={() => activeTab = 'changelog'}
+  onDocsClick={() => activeTab = 'docs'}
 />
 
 <style>
@@ -408,38 +395,6 @@
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2, var(--accent)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-  }
-
-  .theme-switch {
-    display: flex;
-    gap: 4px;
-    padding: 4px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-  }
-
-  .theme-switch button {
-    padding: 6px 10px;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .theme-switch button:hover {
-    background: var(--surface-2);
-  }
-
-  .theme-switch button.is-active {
-    background: var(--accent);
-  }
-
-  .theme-switch button:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
   }
 
   .help-button {

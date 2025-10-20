@@ -52,9 +52,7 @@
   }
 </script>
 
-<div class="modal-overlay" transition:fade={{ duration: 200 }} on:click={close}>
-<div class="changelog-page" on:click|stopPropagation transition:fade={{ duration: 300 }}>
-  <button class="close-btn" on:click={close} aria-label="Close changelog">×</button>
+<div class="changelog-page" transition:fade={{ duration: 300 }}>
   <div class="changelog-container">
     <div class="changelog-header">
       <h1>📋 Changelog</h1>
@@ -111,59 +109,15 @@
     </div>
   </div>
 </div>
-</div>
 
 <style>
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    padding: var(--space-lg);
-    overflow-y: auto;
-  }
-
-  .close-btn {
-    position: absolute;
-    top: var(--space-md);
-    right: var(--space-md);
-    width: 32px;
-    height: 32px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-round);
-    color: var(--text);
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-fast);
-    z-index: 10;
-  }
-
-  .close-btn:hover {
-    background: var(--error);
-    color: white;
-    transform: scale(1.1);
-  }
   .changelog-page {
     position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    max-width: 800px;
+    background: var(--bg);
     width: 100%;
-    max-height: 80vh;
+    min-height: 100vh;
     overflow-y: auto;
-    padding: var(--space-xl);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    padding: 48px 24px;
     color: var(--text);
     font-family: var(--mono);
   }

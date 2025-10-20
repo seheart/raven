@@ -166,9 +166,7 @@
   $: organizedDocs = cachedOrganizedResult;
 </script>
 
-<div class="modal-overlay" transition:fade={{ duration: 200 }} on:click={close}>
-<div class="docs-viewer" on:click|stopPropagation transition:fade={{ duration: 300 }}>
-  <button class="close-btn" on:click={close} aria-label="Close documentation">×</button>
+<div class="docs-viewer" transition:fade={{ duration: 300 }}>
   <div class="docs-sidebar">
     <div class="sidebar-header">
       <h2>📚 Documentation</h2>
@@ -228,58 +226,15 @@
     {/if}
   </div>
 </div>
-</div>
 
 <style>
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    padding: var(--space-lg);
-  }
-
-  .close-btn {
-    position: absolute;
-    top: var(--space-sm);
-    right: var(--space-sm);
-    width: 32px;
-    height: 32px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-round);
-    color: var(--text);
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-fast);
-    z-index: 10;
-  }
-
-  .close-btn:hover {
-    background: var(--error);
-    color: white;
-    transform: scale(1.1);
-  }
   .docs-viewer {
     position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    max-width: 1200px;
-    width: 90vw;
-    height: 80vh;
+    background: var(--bg);
+    width: 100%;
+    min-height: 100vh;
     display: grid;
     grid-template-columns: 300px 1fr;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     color: var(--text);
     font-family: var(--mono);
     overflow: hidden;

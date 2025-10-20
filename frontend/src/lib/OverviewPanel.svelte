@@ -5,6 +5,9 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { toasts } from './toastStore.js';
 
+  export let sessionId = 'Loading...';
+  export let sessionUptime = '0s';
+
   const API_BASE = 'http://localhost:3030/api';
 
   // Combined state from Dashboard, Metrics, and Git
@@ -141,7 +144,16 @@
   <!-- Personalized Greeting -->
   <div class="greeting-section">
     <h2 class="greeting-text">{getGreeting()}</h2>
-    <p class="greeting-subtitle">Session ID: {loading ? '...' : stats.session_id || 'Unknown'}</p>
+    <div class="session-info">
+      <div class="session-detail">
+        <span class="session-label">Session ID:</span>
+        <span class="session-value">{sessionId}</span>
+      </div>
+      <div class="session-detail">
+        <span class="session-label">Uptime:</span>
+        <span class="session-value">{sessionUptime}</span>
+      </div>
+    </div>
   </div>
 
   <!-- Main Stats Grid -->
@@ -331,13 +343,38 @@
     font-size: 20px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 8px 0;
+    margin: 0 0 12px 0;
   }
 
-  .greeting-subtitle {
+  .session-info {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .session-detail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .session-label {
     font-family: var(--mono);
     font-size: 12px;
     color: var(--muted);
+    font-weight: 500;
+  }
+
+  .session-value {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 600;
+    background: var(--surface);
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
   }
 
   .stats-grid {

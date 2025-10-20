@@ -353,7 +353,7 @@
 
 <style>
   .status-panel {
-    padding: 12px;
+    padding: 24px;
     width: 100%;
     margin: 0;
     font-family: var(--mono);

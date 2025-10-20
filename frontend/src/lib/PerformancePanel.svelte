@@ -317,7 +317,7 @@
 
 <style>
   .performance-panel {
-    padding: 12px;
+    padding: 24px;
     background: var(--bg);
     color: var(--text);
     min-height: 400px;
