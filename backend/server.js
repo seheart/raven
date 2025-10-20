@@ -7,6 +7,7 @@ import { MetricsCollector } from './metrics-collector.js';
 import { TriggerEngine } from './trigger-engine.js';
 import { GitMonitor } from './dist/modules/git.js';
 import { randomUUID } from 'crypto';
+import * as SyncService from './sync-service.js';
 import { join, relative, normalize } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
@@ -2369,6 +2370,139 @@ app.get('/api/storage', async (req, res) => {
   }
 });
 
+// ==================== Server Sync API ====================
+
+// Get sync configuration
+app.get('/api/sync/config', async (req, res) => {
+  try {
+    const data = await SyncService.loadConfig();
+    res.json(data);
+  } catch (error) {
+    console.error('❌ Error loading sync config:', error);
+    res.status(500).json({ error: 'Failed to load sync configuration' });
+  }
+});
+
+// Save sync configuration
+app.post('/api/sync/config', async (req, res) => {
+  try {
+    const config = req.body;
+
+    if (!config) {
+      return res.status(400).json({ error: 'Configuration is required' });
+    }
+
+    const result = await SyncService.saveConfig(config);
+
+    if (result.success) {
+      res.json({ success: true, message: 'Configuration saved' });
+    } else {
+      res.status(500).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ Error saving sync config:', error);
+    res.status(500).json({ error: 'Failed to save sync configuration' });
+  }
+});
+
+// Test SSH connection
+app.post('/api/sync/test', async (req, res) => {
+  try {
+    const config = req.body;
+
+    if (!config || !config.host || !config.user) {
+      return res.status(400).json({ success: false, error: 'Host and user are required' });
+    }
+
+    const result = await SyncService.testConnection(config);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error testing connection:', error);
+    res.status(500).json({ success: false, error: 'Connection test failed' });
+  }
+});
+
+// Trigger sync
+app.post('/api/sync/trigger', async (req, res) => {
+  try {
+    const config = req.body;
+
+    if (!config || !config.host || !config.user || !config.path) {
+      return res.status(400).json({ success: false, error: 'Host, user, and path are required' });
+    }
+
+    // Get current project path
+    const projectPath = process.cwd();
+
+    const result = await SyncService.performSync(config, projectPath);
+
+    if (result.success) {
+      // Emit sync event via WebSocket
+      io.emit('sync-complete', {
+        timestamp: new Date().toISOString(),
+        size: result.size,
+        files: result.files,
+        duration: result.duration
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error performing sync:', error);
+    res.status(500).json({ success: false, error: 'Sync failed' });
+  }
+});
+
+// Check SSH setup
+app.get('/api/sync/ssh-status', async (req, res) => {
+  try {
+    const status = await SyncService.checkSSHSetup();
+    res.json(status);
+  } catch (error) {
+    console.error('❌ Error checking SSH status:', error);
+    res.status(500).json({ error: 'Failed to check SSH status' });
+  }
+});
+
+// Get remote storage statistics
+app.post('/api/sync/remote-stats', async (req, res) => {
+  try {
+    const config = req.body;
+
+    if (!config || !config.host || !config.user || !config.path) {
+      return res.status(400).json({ success: false, error: 'Host, user, and path are required' });
+    }
+
+    const stats = await SyncService.getRemoteStorageStats(config);
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error getting remote stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to get remote storage statistics' });
+  }
+});
+
+// Cancel ongoing sync
+app.post('/api/sync/cancel', async (req, res) => {
+  try {
+    const result = await SyncService.cancelSync();
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error cancelling sync:', error);
+    res.status(500).json({ success: false, error: 'Failed to cancel sync' });
+  }
+});
+
+// Check if rsync is installed
+app.get('/api/sync/rsync-status', async (req, res) => {
+  try {
+    const status = await SyncService.checkRsyncInstalled();
+    res.json(status);
+  } catch (error) {
+    console.error('❌ Error checking rsync status:', error);
+    res.status(500).json({ error: 'Failed to check rsync status' });
+  }
+});
+
 // ==================== WebSocket Connections ====================
 
 io.on('connection', socket => {
@@ -2394,6 +2528,14 @@ httpServer.listen(PORT, () => {
 ║  Status:     ✅ Ready to receive telemetry     ║
 ╚════════════════════════════════════════════════╝
   `);
+
+  // Check if rsync is installed (required for server sync feature)
+  SyncService.checkRsyncInstalled().then(result => {
+    if (!result.installed) {
+      console.log('⚠️  WARNING: rsync not installed - server sync will not work');
+      console.log('   Install with: sudo pacman -S rsync (or apt/yum/brew)');
+    }
+  });
 
   // Initialize default project
   initializeProject(projectState.activeProject);

@@ -4,6 +4,11 @@
 
 - Node.js 18+ (`node --version`)
 - npm 9+ (`npm --version`)
+- **rsync** (for Server Sync feature)
+  - Arch Linux: `sudo pacman -S rsync`
+  - Ubuntu/Debian: `sudo apt install rsync`
+  - macOS: `brew install rsync` (usually pre-installed)
+  - Windows: Install via WSL or [Cygwin](https://www.cygwin.com/)
 
 ## Quick Start
 

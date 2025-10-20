@@ -30,6 +30,7 @@
   import ErrorLog from './lib/ErrorLog.svelte';
   import NotificationsPanel from './lib/NotificationsPanel.svelte';
   import StoragePanel from './lib/StoragePanel.svelte';
+  import ServerSyncPanel from './lib/ServerSyncPanel.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
@@ -283,6 +284,13 @@
           </button>
           <button
             class="sub-tab"
+            class:active={currentSubView === 'sync'}
+            on:click={() => currentSubView = 'sync'}
+          >
+            Server Sync
+          </button>
+          <button
+            class="sub-tab"
             class:active={currentSubView === 'notifications'}
             on:click={() => currentSubView = 'notifications'}
           >
@@ -307,6 +315,8 @@
           <StatusPanel />
         {:else if currentSubView === 'storage'}
           <StoragePanel />
+        {:else if currentSubView === 'sync'}
+          <ServerSyncPanel />
         {:else if currentSubView === 'notifications'}
           <NotificationsPanel />
         {:else if currentSubView === 'errors'}
