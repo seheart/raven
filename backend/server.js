@@ -7,7 +7,7 @@ import { MetricsCollector } from './metrics-collector.js';
 import { TriggerEngine } from './trigger-engine.js';
 import { GitMonitor } from './dist/modules/git.js';
 import { randomUUID } from 'crypto';
-import { join, relative } from 'path';
+import { join, relative, normalize } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
 import { createHash } from 'crypto';
@@ -1148,63 +1148,100 @@ app.post('/api/triggers-clear-cooldowns', (req, res) => {
 
 app.get('/api/changelog', async (req, res) => {
   try {
-    // Get git log with simple format (just hash, date, subject)
-    const { stdout } = await execAsync(
-      'git log --pretty=format:"%H|%ad|%s" --date=short',
-      { cwd: process.cwd(), maxBuffer: 10 * 1024 * 1024 }
-    );
+    // Read CHANGELOG.md file
+    const changelogPath = join(process.cwd(), '..', 'docs', 'CHANGELOG.md');
 
-    const commits = stdout.trim().split('\n').filter(line => line.length > 0);
+    if (!fs.existsSync(changelogPath)) {
+      return res.status(404).json({ error: 'CHANGELOG.md not found', changelog: [] });
+    }
 
-    // Parse commits and group by week
-    const changesByWeek = {};
+    const changelogContent = fs.readFileSync(changelogPath, 'utf8');
 
-    commits.forEach(line => {
-      const parts = line.split('|');
-      if (parts.length < 3) return; // Skip malformed lines
+    // Parse the changelog
+    const releases = [];
+    const lines = changelogContent.split('\n');
 
-      const [hash, date, ...subjectParts] = parts;
-      const subject = subjectParts.join('|').trim(); // Handle pipes in subject
+    let currentRelease = null;
+    let currentSection = null;
 
-      // Skip if no subject
-      if (!subject || subject.length === 0) return;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
 
-      // Determine week key for grouping
-      const weekKey = getWeekKey(date);
+      // Match version headers: ## [0.8.0] - 2025-10-20
+      const versionMatch = line.match(/^##\s+\[([^\]]+)\]\s+-\s+(\d{4}-\d{2}-\d{2})/);
+      if (versionMatch) {
+        // Save previous release
+        if (currentRelease) {
+          releases.push(currentRelease);
+        }
 
-      if (!changesByWeek[weekKey]) {
-        changesByWeek[weekKey] = {
-          date: date,
-          commits: []
+        // Start new release
+        currentRelease = {
+          version: versionMatch[1],
+          date: versionMatch[2],
+          title: null,
+          changes: []
         };
+        currentSection = null;
+        continue;
       }
 
-      // Detect change type from commit message
-      const type = detectChangeType(subject, '');
+      // Match section headers: ### Added, ### Fixed, etc.
+      const sectionMatch = line.match(/^###\s+(.+)/);
+      if (sectionMatch && currentRelease) {
+        currentSection = sectionMatch[1].toLowerCase();
+        continue;
+      }
 
-      // Extract clean description (remove type prefixes)
-      const description = cleanDescription(subject);
+      // Match bullet points with emoji: - ✨ **Feature Name**
+      const bulletMatch = line.match(/^-\s+([🎉✨🐛📝🚀🔒🏗️⚡])\s+(.+)/);
+      if (bulletMatch && currentRelease) {
+        const emoji = bulletMatch[1];
+        const description = bulletMatch[2].replace(/\*\*/g, ''); // Remove bold markdown
 
-      changesByWeek[weekKey].commits.push({
-        type,
-        description,
-        hash: hash.substring(0, 7)
-      });
-    });
+        // Map emoji to type
+        let type = 'improvement';
+        if (emoji === '✨') type = 'feature';
+        else if (emoji === '🐛') type = 'fix';
+        else if (emoji === '📝') type = 'docs';
+        else if (emoji === '🚀' || emoji === '⚡') type = 'improvement';
+        else if (emoji === '🔒') type = 'security';
+        else if (emoji === '🏗️') type = 'feature';
+        else if (emoji === '🎉') type = 'feature';
 
-    // Convert to array and assign versions
-    const weeks = Object.keys(changesByWeek).sort().reverse();
-    const changelog = weeks.map((week, index) => {
-      const data = changesByWeek[week];
-      return {
-        version: `0.${weeks.length - index}.0`,
-        date: data.date,
-        title: `Development Week of ${data.date}`,
-        changes: data.commits
-      };
-    });
+        currentRelease.changes.push({
+          type,
+          description
+        });
+        continue;
+      }
 
-    res.json(changelog);
+      // Match regular bullet points: - Text
+      const simpleBulletMatch = line.match(/^-\s+(.+)/);
+      if (simpleBulletMatch && currentRelease && currentSection) {
+        let description = simpleBulletMatch[1].replace(/\*\*/g, ''); // Remove bold markdown
+
+        // Map section to type
+        let type = 'improvement';
+        if (currentSection === 'added') type = 'feature';
+        else if (currentSection === 'fixed') type = 'fix';
+        else if (currentSection === 'changed') type = 'improvement';
+        else if (currentSection === 'performance') type = 'improvement';
+        else if (currentSection === 'security') type = 'security';
+
+        currentRelease.changes.push({
+          type,
+          description
+        });
+      }
+    }
+
+    // Don't forget the last release
+    if (currentRelease) {
+      releases.push(currentRelease);
+    }
+
+    res.json(releases);
   } catch (error) {
     console.error('❌ Changelog error:', error);
     res.status(500).json({ error: error.message, changelog: [] });
@@ -1931,8 +1968,8 @@ app.get('/api/docs/:filepath(*)', async (req, res) => {
     }
 
     // Security: Prevent path traversal attacks
-    const docsDir = path.normalize(join(process.cwd(), '..', 'docs'));
-    const docsPath = path.normalize(join(process.cwd(), '..', 'docs', filepath));
+    const docsDir = normalize(join(process.cwd(), '..', 'docs'));
+    const docsPath = normalize(join(process.cwd(), '..', 'docs', filepath));
 
     // Ensure the resolved path is still within the docs directory
     if (!docsPath.startsWith(docsDir)) {
