@@ -1,5 +1,14 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  // New consolidated components
+  import TabNavigation from './lib/TabNavigation.svelte';
+  import OverviewPanel from './lib/OverviewPanel.svelte';
+  import ToastContainer from './lib/ToastContainer.svelte';
+  import LoadingSkeleton from './lib/LoadingSkeleton.svelte';
+  import ConfirmDialog from './lib/ConfirmDialog.svelte';
+  import WelcomeScreen from './lib/WelcomeScreen.svelte';
+
+  // Existing components for consolidated views
   import Dashboard from './lib/Dashboard.svelte';
   import GitPanel from './lib/GitPanel.svelte';
   import SessionReplay from './lib/SessionReplay.svelte';
@@ -10,6 +19,8 @@
   import APIHealthMonitor from './lib/APIHealthMonitor.svelte';
   import LiveCodeFeed from './lib/LiveCodeFeed.svelte';
   import ActivityLog from './lib/ActivityLog.svelte';
+  import EventFeed from './lib/EventFeed.svelte';
+  import FileBrowser from './lib/FileBrowser.svelte';
   import Footer from './lib/Footer.svelte';
   import AboutPage from './lib/AboutPage.svelte';
   import ChangelogPage from './lib/ChangelogPage.svelte';
@@ -19,14 +30,22 @@
   import ErrorLog from './lib/ErrorLog.svelte';
   import NotificationsPanel from './lib/NotificationsPanel.svelte';
   import StoragePanel from './lib/StoragePanel.svelte';
+  import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
+  import { toasts } from './lib/toastStore.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
   let sessionId = 'Loading...';
-  let currentView = 'dashboard'; // dashboard, git, replay, performance, triggers, agents, status, docs, about, changelog, notifications, storage
+  let activeTab = 'overview'; // New consolidated tabs: overview, agents, activity, analysis, system
+  let currentSubView = ''; // For sub-views within tabs
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
+  let showHelp = false;
+  let showWelcome = false;
+  let showAbout = false;
+  let showChangelog = false;
+  let showDocs = false;
 
   async function loadSessionId() {
     try {
@@ -39,15 +58,18 @@
     }
   }
 
-  function switchView(view) {
-    currentView = view;
-    localStorage.setItem('raven-current-view', view);
+  function handleTabChange(newTab) {
+    activeTab = newTab;
+    currentSubView = '';
+    localStorage.setItem('raven-active-tab', newTab);
+    toasts.info(`Switched to ${newTab} view`);
   }
 
   function switchTheme(newTheme) {
     theme = newTheme;
     document.body.className = theme;
     localStorage.setItem('raven-theme', theme);
+    toasts.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
   onMount(() => {
@@ -57,23 +79,32 @@
     theme = localStorage.getItem('raven-theme') || 'theme--night';
     document.body.className = theme;
 
-    // Load saved view from localStorage
-    currentView = localStorage.getItem('raven-current-view') || 'dashboard';
+    // Load saved tab from localStorage
+    activeTab = localStorage.getItem('raven-active-tab') || 'overview';
 
     // Setup global error handler
     setupGlobalErrorHandler();
 
-    // View switching shortcuts
-    keyboard.register('1', () => switchView('dashboard'));
-    keyboard.register('2', () => switchView('git'));
-    keyboard.register('3', () => switchView('replay'));
-    keyboard.register('4', () => switchView('performance'));
-    keyboard.register('5', () => switchView('triggers'));
-    keyboard.register('6', () => switchView('agents'));
-    keyboard.register('7', () => switchView('status'));
-    keyboard.register('8', () => switchView('error-log'));
-    keyboard.register('9', () => switchView('notifications'));
-    keyboard.register('0', () => switchView('storage'));
+    // Register help shortcut
+    keyboard.register('?', () => showHelp = !showHelp);
+    keyboard.register('Escape', () => {
+      showHelp = false;
+      showWelcome = false;
+      showAbout = false;
+      showChangelog = false;
+      showDocs = false;
+    });
+
+    // Show welcome screen for first-time users
+    if (!localStorage.getItem('raven-welcome-seen')) {
+      showWelcome = true;
+    } else if (!localStorage.getItem('raven-visited')) {
+      // Show toast for returning users who haven't seen the new UI
+      setTimeout(() => {
+        toasts.info('Welcome back! Press ? for keyboard shortcuts', 5000);
+        localStorage.setItem('raven-visited', 'true');
+      }, 1000);
+    }
   });
 
   onDestroy(() => {
@@ -82,7 +113,7 @@
 </script>
 
 <main>
-  <header>
+  <header role="banner">
     <div class="header-content">
       <div class="header-left">
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -90,167 +121,244 @@
           <h1>Raven</h1>
         </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="header-right">
         <ProjectSelector />
-        <div class="theme-switch">
+        <div class="theme-switch" role="group" aria-label="Theme switcher">
           <button
             class:is-active={theme === 'theme--day'}
             on:click={() => switchTheme('theme--day')}
+            aria-label="Day theme"
+            tabindex="0"
           >
-            Day
+            ☀️
           </button>
           <button
             class:is-active={theme === 'theme--dusk'}
             on:click={() => switchTheme('theme--dusk')}
+            aria-label="Dusk theme"
+            tabindex="0"
           >
-            Dusk
+            🌆
           </button>
           <button
             class:is-active={theme === 'theme--night'}
             on:click={() => switchTheme('theme--night')}
+            aria-label="Night theme"
+            tabindex="0"
           >
-            Night
+            🌙
           </button>
         </div>
+        <button
+          class="help-button"
+          on:click={() => showHelp = !showHelp}
+          aria-label="Show keyboard shortcuts"
+          tabindex="0"
+        >
+          ?
+        </button>
       </div>
     </div>
   </header>
 
-  <nav class="view-tabs">
-    <button
-      class="tab"
-      class:active={currentView === 'dashboard'}
-      on:click={() => switchView('dashboard')}
-    >
-      📊 Dashboard
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'live-feed'}
-      on:click={() => switchView('live-feed')}
-    >
-      🔴 Live Feed
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'git'}
-      on:click={() => switchView('git')}
-    >
-      🌳 Git
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'replay'}
-      on:click={() => switchView('replay')}
-    >
-      🎬 Session Replay
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'performance'}
-      on:click={() => switchView('performance')}
-    >
-      ⚡️ Performance
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'triggers'}
-      on:click={() => switchView('triggers')}
-    >
-      🔔 Triggers
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'agents'}
-      on:click={() => switchView('agents')}
-    >
-      🤖 Agents
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'status'}
-      on:click={() => switchView('status')}
-    >
-      🏥 Status
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'api-health'}
-      on:click={() => switchView('api-health')}
-    >
-      🔌 API Health
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'activity-log'}
-      on:click={() => switchView('activity-log')}
-    >
-      📜 Activity Log
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'error-log'}
-      on:click={() => switchView('error-log')}
-    >
-      ⚠️ Error Log
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'notifications'}
-      on:click={() => switchView('notifications')}
-    >
-      📬 Notifications
-    </button>
-    <button
-      class="tab"
-      class:active={currentView === 'storage'}
-      on:click={() => switchView('storage')}
-    >
-      💾 Storage
-    </button>
-  </nav>
+  <!-- New Tab Navigation -->
+  <TabNavigation {activeTab} onTabChange={handleTabChange} />
 
-  <div class="view-container">
-    {#if currentView === 'dashboard'}
-      <Dashboard />
-    {:else if currentView === 'live-feed'}
-      <LiveCodeFeed />
-    {:else if currentView === 'git'}
-      <GitPanel />
-    {:else if currentView === 'replay'}
-      <SessionReplay />
-    {:else if currentView === 'performance'}
-      <PerformancePanel />
-    {:else if currentView === 'triggers'}
-      <TriggersPanel />
-    {:else if currentView === 'agents'}
-      <AgentsPanel />
-    {:else if currentView === 'status'}
-      <StatusPanel />
-    {:else if currentView === 'api-health'}
-      <APIHealthMonitor />
-    {:else if currentView === 'activity-log'}
-      <ActivityLog />
-    {:else if currentView === 'error-log'}
-      <ErrorLog />
-    {:else if currentView === 'notifications'}
-      <NotificationsPanel />
-    {:else if currentView === 'storage'}
-      <StoragePanel />
-    {:else if currentView === 'docs'}
-      <DocsViewer />
-    {:else if currentView === 'about'}
-      <AboutPage />
-    {:else if currentView === 'changelog'}
-      <ChangelogPage />
+  <!-- Consolidated View Container -->
+  <div class="view-container" role="main">
+    {#if activeTab === 'overview'}
+      <!-- Overview: Dashboard + Metrics + Git Status -->
+      <OverviewPanel />
+    {:else if activeTab === 'agents'}
+      <!-- Agents: All AI agent related views -->
+      <div class="tab-content">
+        <div class="sub-navigation">
+          <button
+            class="sub-tab"
+            class:active={!currentSubView}
+            on:click={() => currentSubView = ''}
+          >
+            Monitor
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'events'}
+            on:click={() => currentSubView = 'events'}
+          >
+            Events
+          </button>
+        </div>
+        {#if !currentSubView}
+          <AgentsPanel />
+        {:else if currentSubView === 'events'}
+          <EventFeed agentFilter={true} />
+        {/if}
+      </div>
+    {:else if activeTab === 'activity'}
+      <!-- Activity: Events + Files + Live Code -->
+      <div class="tab-content">
+        <div class="sub-navigation">
+          <button
+            class="sub-tab"
+            class:active={!currentSubView}
+            on:click={() => currentSubView = ''}
+          >
+            Live Feed
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'events'}
+            on:click={() => currentSubView = 'events'}
+          >
+            Event Log
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'files'}
+            on:click={() => currentSubView = 'files'}
+          >
+            Files
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'activity'}
+            on:click={() => currentSubView = 'activity'}
+          >
+            Activity Log
+          </button>
+        </div>
+        {#if !currentSubView}
+          <LiveCodeFeed />
+        {:else if currentSubView === 'events'}
+          <EventFeed />
+        {:else if currentSubView === 'files'}
+          <FileBrowser />
+        {:else if currentSubView === 'activity'}
+          <ActivityLog />
+        {/if}
+      </div>
+    {:else if activeTab === 'analysis'}
+      <!-- Analysis: Performance + Triggers + Session Replay -->
+      <div class="tab-content">
+        <div class="sub-navigation">
+          <button
+            class="sub-tab"
+            class:active={!currentSubView}
+            on:click={() => currentSubView = ''}
+          >
+            Performance
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'triggers'}
+            on:click={() => currentSubView = 'triggers'}
+          >
+            Triggers
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'replay'}
+            on:click={() => currentSubView = 'replay'}
+          >
+            Session Replay
+          </button>
+        </div>
+        {#if !currentSubView}
+          <PerformancePanel />
+        {:else if currentSubView === 'triggers'}
+          <TriggersPanel />
+        {:else if currentSubView === 'replay'}
+          <SessionReplay />
+        {/if}
+      </div>
+    {:else if activeTab === 'system'}
+      <!-- System: Status + Storage + Notifications + Errors + API Health -->
+      <div class="tab-content">
+        <div class="sub-navigation">
+          <button
+            class="sub-tab"
+            class:active={!currentSubView}
+            on:click={() => currentSubView = ''}
+          >
+            Status
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'storage'}
+            on:click={() => currentSubView = 'storage'}
+          >
+            Storage
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'notifications'}
+            on:click={() => currentSubView = 'notifications'}
+          >
+            Notifications
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'errors'}
+            on:click={() => currentSubView = 'errors'}
+          >
+            Errors
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'api'}
+            on:click={() => currentSubView = 'api'}
+          >
+            API Health
+          </button>
+        </div>
+        {#if !currentSubView}
+          <StatusPanel />
+        {:else if currentSubView === 'storage'}
+          <StoragePanel />
+        {:else if currentSubView === 'notifications'}
+          <NotificationsPanel />
+        {:else if currentSubView === 'errors'}
+          <ErrorLog />
+        {:else if currentSubView === 'api'}
+          <APIHealthMonitor />
+        {/if}
+      </div>
     {/if}
   </div></main>
 
+<!-- Toast Notifications -->
+<ToastContainer />
+
+<!-- Welcome Screen for First-Time Users -->
+{#if showWelcome}
+  <WelcomeScreen on:close={() => showWelcome = false} />
+{/if}
+
+<!-- Keyboard Shortcuts Help Modal -->
+{#if showHelp}
+  <KeyboardShortcuts on:close={() => showHelp = false} />
+{/if}
+
+<!-- About Modal -->
+{#if showAbout}
+  <AboutPage on:close={() => showAbout = false} />
+{/if}
+
+<!-- Changelog Modal -->
+{#if showChangelog}
+  <ChangelogPage on:close={() => showChangelog = false} />
+{/if}
+
+<!-- Docs Modal -->
+{#if showDocs}
+  <DocsViewer on:close={() => showDocs = false} />
+{/if}
+
 <Footer
   sessionId={sessionId}
-  onAboutClick={() => switchView('about')}
-  onChangelogClick={() => switchView('changelog')}
-  onDocsClick={() => switchView('docs')}
+  onAboutClick={() => showAbout = true}
+  onChangelogClick={() => showChangelog = true}
+  onDocsClick={() => showDocs = true}
 />
 
 <style>
@@ -265,11 +373,12 @@
   }
 
   header {
-    padding: 12px 2rem;
-    border-bottom: 2px solid var(--border);
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
     background: var(--surface);
-    position: relative;
-    z-index: 10;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
   }
 
   .header-content {
@@ -285,103 +394,163 @@
     gap: 12px;
   }
 
-  .header-info {
-    text-align: left;
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
 
   h1 {
-    font-size: 13px;
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
     margin: 0;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2, var(--accent)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
-  .session-id {
-    color: var(--accent);
-    font-size: 11px;
-    margin: 0.25rem 0;
-    font-family: var(--mono);
-  }
-
-  .view-tabs {
+  .theme-switch {
     display: flex;
-    gap: 0;
-    padding: 0 2rem;
-    background: var(--surface);
-    border-bottom: 2px solid var(--border);
-    overflow-x: auto;
-    position: relative;
-    z-index: 10;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
   }
 
-  .tab {
-    padding: 10px 2rem;
+  .theme-switch button {
+    padding: 6px 10px;
     background: transparent;
-    color: var(--muted);
     border: none;
-    border-bottom: 3px solid transparent;
+    border-radius: 6px;
+    font-size: 16px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    white-space: nowrap;
-    pointer-events: auto;
+    transition: all 0.2s ease;
   }
 
-  .tab:hover {
-    color: var(--text);
-    background: color-mix(in srgb, var(--accent) 5%, transparent);
-  }
-
-  .tab.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
-  }
-
-  .shortcut {
-    display: inline-block;
-    padding: 2px 6px;
+  .theme-switch button:hover {
     background: var(--surface-2);
-    color: var(--muted);
-    border-radius: var(--radius);
-    font-size: 11px;
-    font-family: var(--mono);
   }
 
-  .tab.active .shortcut {
-    background: color-mix(in srgb, var(--accent) 20%, transparent);
-    color: var(--accent);
+  .theme-switch button.is-active {
+    background: var(--accent);
+  }
+
+  .theme-switch button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .help-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .help-button:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .help-button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .view-container {
-    padding: 0 0 80px 0;
+    padding: 0;
     max-width: 100%;
     margin: 0;
-    position: relative;
-    z-index: 1;
+    min-height: calc(100vh - 120px);
+  }
+
+  .tab-content {
+    width: 100%;
+  }
+
+  .sub-navigation {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sub-tab {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .sub-tab:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .sub-tab.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .sub-tab:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Focus indicators for accessibility */
+  *:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Smooth transitions for alive feeling */
+  * {
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
   }
 
   @media (max-width: 768px) {
+    header {
+      padding: 8px 16px;
+    }
+
     h1 {
-      font-size: 13px;
+      font-size: 16px;
     }
 
-    .view-tabs {
-      padding: 0 1rem;
-    }
-
-    .tab {
-      padding: 8px 1rem;
-      font-size: 11px;
-    }
-
-    .shortcut {
+    .theme-switch {
       display: none;
+    }
+
+    .sub-navigation {
+      padding: 12px 16px;
+      overflow-x: auto;
+    }
+
+    .sub-tab {
+      white-space: nowrap;
     }
   }
 </style>

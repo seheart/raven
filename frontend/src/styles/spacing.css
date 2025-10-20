@@ -1,0 +1,241 @@
+/*
+ * Raven Design System - Spacing Standards
+ * Use only these spacing values for consistency
+ */
+
+:root {
+  /* Base spacing units (4px based) */
+  --space-xs: 4px;   /* Tight spacing */
+  --space-sm: 8px;   /* Small gaps */
+  --space-md: 16px;  /* Default spacing */
+  --space-lg: 24px;  /* Large sections */
+  --space-xl: 32px;  /* Extra large */
+  --space-2xl: 48px; /* Huge spacing */
+
+  /* Standard component padding */
+  --padding-card: var(--space-md);
+  --padding-button: 10px 20px;
+  --padding-input: 10px 16px;
+  --padding-section: var(--space-lg);
+
+  /* Standard gaps */
+  --gap-tight: var(--space-xs);
+  --gap-small: var(--space-sm);
+  --gap-normal: var(--space-md);
+  --gap-large: var(--space-lg);
+
+  /* Standard border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-round: 50%;
+
+  /* Standard transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+}
+
+/* Standard Card Component */
+.standard-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--padding-card);
+  transition: all var(--transition-normal);
+}
+
+.standard-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Standard Button */
+.standard-button {
+  padding: var(--padding-button);
+  border-radius: var(--radius-md);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border: none;
+  outline: none;
+}
+
+.standard-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.standard-button:active {
+  transform: translateY(0);
+}
+
+.standard-button:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Standard Input */
+.standard-input {
+  padding: var(--padding-input);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  transition: all var(--transition-normal);
+}
+
+.standard-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.standard-input::placeholder {
+  color: var(--muted);
+}
+
+/* Standard Section */
+.standard-section {
+  padding: var(--padding-section);
+  margin-bottom: var(--space-lg);
+}
+
+.standard-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.standard-section-title {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+/* Standard List */
+.standard-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-small);
+}
+
+.standard-list-item {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
+}
+
+.standard-list-item:hover {
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
+
+/* Standard Grid */
+.standard-grid {
+  display: grid;
+  gap: var(--gap-normal);
+}
+
+.standard-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.standard-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.standard-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* Standard Flex */
+.standard-flex {
+  display: flex;
+  gap: var(--gap-normal);
+}
+
+.standard-flex-center {
+  align-items: center;
+  justify-content: center;
+}
+
+.standard-flex-between {
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Standard Badge */
+.standard-badge {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+/* Utility Classes */
+.p-xs { padding: var(--space-xs); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.p-xl { padding: var(--space-xl); }
+
+.m-xs { margin: var(--space-xs); }
+.m-sm { margin: var(--space-sm); }
+.m-md { margin: var(--space-md); }
+.m-lg { margin: var(--space-lg); }
+.m-xl { margin: var(--space-xl); }
+
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.gap-xl { gap: var(--space-xl); }
+
+/* Alive feeling - subtle animations */
+@keyframes gentlePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-pulse {
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

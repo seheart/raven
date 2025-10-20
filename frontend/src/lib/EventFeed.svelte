@@ -3,6 +3,8 @@
   import { websocketService } from './websocket.js';
   import { formatTime as formatTimeString } from './timeFormat.js';
   import TimelineSlider from './TimelineSlider.svelte';
+  import VirtualScroll from './VirtualScroll.svelte';
+  import { debounceInput } from './utils/debounce.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -16,10 +18,20 @@
   };
   let timeRangeStart = 0;
   let timeRangeEnd = Date.now();
+  let virtualScroll; // Reference to virtual scroll component
 
   function handleTimeRangeChange(start, end) {
     timeRangeStart = start;
     timeRangeEnd = end;
+  }
+
+  // Debounced search handler
+  function handleDebouncedSearch(event) {
+    searchQuery = event.detail;
+    // Reset scroll position when searching
+    if (virtualScroll) {
+      virtualScroll.scrollToItem(0);
+    }
   }
 
   function clearEvents() {
@@ -234,7 +246,8 @@
       type="text"
       class="search-input"
       placeholder="Search by filename..."
-      bind:value={searchQuery}
+      use:debounceInput={{ delay: 300 }}
+      on:debounced={handleDebouncedSearch}
     />
     <div class="type-filters">
       <label class="filter-checkbox" title="Toggle created events (1)">
@@ -254,28 +267,41 @@
 
   <TimelineSlider events={events} onTimeRangeChange={handleTimeRangeChange} />
 
-  <div class="events">
-    {#each filteredEvents || [] as event (event.id)}
-      <div class="event {getChangeClass(event.changeType)}">
-        <div class="event-header">
-          <span class="filepath">{event.filepath}</span>
-          <span class="time">{formatTime(event.timestamp)}</span>
+  {#if filteredEvents.length > 0}
+    <div class="events">
+      <VirtualScroll
+        bind:this={virtualScroll}
+        items={filteredEvents}
+        itemHeight={70}
+        containerHeight={400}
+        overscan={3}
+        getKey={event => event.id}
+        let:item
+      >
+        <div class="event {getChangeClass(item.changeType)}">
+          <div class="event-header">
+            <span class="filepath">{item.filepath}</span>
+            <span class="time">{formatTime(item.timestamp)}</span>
+          </div>
+          <div class="event-details">
+            <span class="badge {item.changeType}">{item.changeType}</span>
+            <span class="metric">CPU: {(item.cpu ?? 0).toFixed(1)}%</span>
+            <span class="metric">MEM: {(item.mem ?? 0).toFixed(1)}%</span>
+          </div>
         </div>
-        <div class="event-details">
-          <span class="badge {event.changeType}">{event.changeType}</span>
-          <span class="metric">CPU: {(event.cpu ?? 0).toFixed(1)}%</span>
-          <span class="metric">MEM: {(event.mem ?? 0).toFixed(1)}%</span>
-        </div>
-      </div>
-    {/each}
-
-    {#if events.length === 0}
-      <div class="empty">
-        <p>No events yet...</p>
-        <p class="hint">Waiting for file changes to be detected</p>
-      </div>
-    {/if}
-  </div>
+      </VirtualScroll>
+    </div>
+  {:else if events.length === 0}
+    <div class="empty">
+      <p>No events yet...</p>
+      <p class="hint">Waiting for file changes to be detected</p>
+    </div>
+  {:else}
+    <div class="empty">
+      <p>No events match your filters</p>
+      <p class="hint">Try adjusting your search or filters</p>
+    </div>
+  {/if}
 </div>
 
 <style>

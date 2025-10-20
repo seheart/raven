@@ -3,6 +3,8 @@
   import { fetchErrorLogs, fetchErrorStats, clearErrorLogs, logError } from './errorLogger.js';
   import { formatDateTime } from './timeFormat.js';
   import io from 'socket.io-client';
+  import VirtualScroll from './VirtualScroll.svelte';
+  import { debounceInput } from './utils/debounce.js';
 
   let errors = [];
   let stats = { total: 0, by_severity: [], recent_count: 0 };
@@ -13,6 +15,7 @@
   let selectedError = null;
   let socket = null;
   let loadErrorsTimeout = null;
+  let virtualScroll; // Reference to virtual scroll component
 
   // Pagination
   let currentPage = 0;
@@ -113,6 +116,17 @@
   async function handleSearch() {
     currentPage = 0;
     await loadErrors();
+  }
+
+  // Debounced search handler
+  async function handleDebouncedSearch(event) {
+    searchQuery = event.detail;
+    currentPage = 0;
+    await loadErrors();
+    // Reset scroll position when searching
+    if (virtualScroll) {
+      virtualScroll.scrollToItem(0);
+    }
   }
 
   async function handleSeverityFilter(severity) {
@@ -288,8 +302,8 @@
       <input
         type="text"
         placeholder="Search errors..."
-        bind:value={searchQuery}
-        on:keydown={(e) => e.key === 'Enter' && handleSearch()}
+        use:debounceInput={{ delay: 300 }}
+        on:debounced={handleDebouncedSearch}
       />
       <button on:click={handleSearch}>🔍 Search</button>
     </div>
@@ -351,88 +365,103 @@
         <p>Your application is running smoothly!</p>
       </div>
     {:else}
-      {#each errors as err (err.id)}
-        <div class="error-item" class:expanded={selectedError?.id === err.id}>
-          <div class="error-header" on:click={() => toggleError(err)}>
+      <VirtualScroll
+        bind:this={virtualScroll}
+        items={errors}
+        itemHeight={100}
+        containerHeight={500}
+        overscan={3}
+        getKey={err => err.id}
+        let:item
+      >
+        <div class="error-item" class:expanded={selectedError?.id === item.id}>
+          <button
+            class="error-header"
+            on:click={() => toggleError(item)}
+            on:keydown={(e) => e.key === 'Enter' && toggleError(item)}
+            aria-expanded={selectedError?.id === item.id}
+            aria-label="Toggle error details for {item.message}"
+            tabindex="0"
+          >
             <div class="error-left">
-              <span class="expand-arrow">{selectedError?.id === err.id ? '▼' : '▶'}</span>
-              <span class="error-icon" style="color: {getSeverityColor(err.severity)}">
-                {getSeverityIcon(err.severity)}
+              <span class="expand-arrow">{selectedError?.id === item.id ? '▼' : '▶'}</span>
+              <span class="error-icon" style="color: {getSeverityColor(item.severity)}">
+                {getSeverityIcon(item.severity)}
               </span>
               <div class="error-info">
-                <div class="error-message">{err.message}</div>
+                <div class="error-message">{item.message}</div>
                 <div class="error-meta">
-                  <span class="meta-item">{err.error_type}</span>
+                  <span class="meta-item">{item.error_type}</span>
                   <span class="meta-separator">•</span>
-                  <span class="meta-item">{err.component || 'Unknown'}</span>
+                  <span class="meta-item">{item.component || 'Unknown'}</span>
                   <span class="meta-separator">•</span>
-                  <span class="meta-item">{formatRelativeTime(err.timestamp)}</span>
+                  <span class="meta-item">{formatRelativeTime(item.timestamp)}</span>
                 </div>
               </div>
             </div>
             <div class="error-right">
-              <span class="error-time">{formatTimestamp(err.timestamp)}</span>
-              <span class="error-severity" style="border-color: {getSeverityColor(err.severity)}; color: {getSeverityColor(err.severity)}">
-                {err.severity}
+              <span class="error-time">{formatTimestamp(item.timestamp)}</span>
+              <span class="error-severity" style="border-color: {getSeverityColor(item.severity)}; color: {getSeverityColor(item.severity)}">
+                {item.severity}
               </span>
             </div>
-          </div>
+          </button>
 
-          {#if selectedError?.id === err.id}
+          {#if selectedError?.id === item.id}
             <div class="error-details">
               <div class="details-grid">
                 <div class="detail-item">
                   <span class="detail-label">ID:</span>
-                  <span class="detail-value">{err.id}</span>
+                  <span class="detail-value">{item.id}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Type:</span>
-                  <span class="detail-value">{err.error_type}</span>
+                  <span class="detail-value">{item.error_type}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Severity:</span>
-                  <span class="detail-value" style="color: {getSeverityColor(err.severity)}">{err.severity}</span>
+                  <span class="detail-value" style="color: {getSeverityColor(item.severity)}">{item.severity}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Component:</span>
-                  <span class="detail-value">{err.component || 'Unknown'}</span>
+                  <span class="detail-value">{item.component || 'Unknown'}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Timestamp:</span>
-                  <span class="detail-value">{err.timestamp}</span>
+                  <span class="detail-value">{item.timestamp}</span>
                 </div>
-                {#if err.url}
+                {#if item.url}
                   <div class="detail-item">
                     <span class="detail-label">URL:</span>
-                    <span class="detail-value url">{err.url}</span>
+                    <span class="detail-value url">{item.url}</span>
                   </div>
                 {/if}
               </div>
 
-              {#if err.stack}
+              {#if item.stack}
                 <div class="stack-section">
                   <h4>Stack Trace</h4>
-                  <pre class="stack-code">{err.stack}</pre>
+                  <pre class="stack-code">{item.stack}</pre>
                 </div>
               {/if}
 
-              {#if err.metadata}
+              {#if item.metadata}
                 <div class="metadata-section">
                   <h4>Metadata</h4>
-                  <pre class="metadata-code">{JSON.stringify(err.metadata, null, 2)}</pre>
+                  <pre class="metadata-code">{JSON.stringify(item.metadata, null, 2)}</pre>
                 </div>
               {/if}
 
-              {#if err.user_agent}
+              {#if item.user_agent}
                 <div class="metadata-section">
                   <h4>User Agent</h4>
-                  <pre class="metadata-code">{err.user_agent}</pre>
+                  <pre class="metadata-code">{item.user_agent}</pre>
                 </div>
               {/if}
             </div>
           {/if}
         </div>
-      {/each}
+      </VirtualScroll>
 
       <!-- Pagination -->
       <div class="pagination">
@@ -716,13 +745,24 @@
     border-color: var(--accent);
   }
 
-  .error-header {
+  button.error-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
     cursor: pointer;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    font-family: inherit;
     user-select: none;
+  }
+
+  button.error-header:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    background: var(--surface-2);
   }
 
   .error-left {

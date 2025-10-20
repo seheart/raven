@@ -1,6 +1,9 @@
 /* Raven Brand Theme System */
 /* Three themes: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night) */
 
+/* Import standardized spacing system */
+@import './styles/spacing.css';
+
 :root {
   --radius: 4px;
   --shadow: none;

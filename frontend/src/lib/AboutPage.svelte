@@ -1,9 +1,16 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, createEventDispatcher } from 'svelte';
+  import { fade } from 'svelte/transition';
+  import RavenLogo from './RavenLogo.svelte';
 
+  const dispatch = createEventDispatcher();
   const API_BASE = 'http://localhost:3030/api';
   let sessionId = 'Loading...';
   let websocketConnected = false;
+
+  function close() {
+    dispatch('close');
+  }
 
   async function loadSessionId() {
     try {
@@ -22,11 +29,14 @@
   });
 </script>
 
-<div class="about-page">
+<div class="modal-overlay" transition:fade={{ duration: 200 }} on:click={close}>
+<div class="about-page" on:click|stopPropagation transition:fade={{ duration: 300 }}>
+  <button class="close-btn" on:click={close} aria-label="Close about dialog">×</button>
   <div class="about-container">
     <div class="about-header">
+      <RavenLogo size={48} />
       <h1>About Raven</h1>
-      <p class="tagline">Real-Time AI Agent Monitoring Dashboard</p>
+      <p class="tagline">Your AI Coding Companion That Learns Who You Are</p>
     </div>
 
     <div class="about-content">
@@ -168,14 +178,60 @@
     </div>
   </div>
 </div>
+</div>
 
 <style>
-  .about-page {
-    padding: 16px 20px 100px 20px;
-    width: 100%;
-    background: var(--bg);
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: var(--space-lg);
+    overflow-y: auto;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    width: 32px;
+    height: 32px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-round);
     color: var(--text);
-    min-height: calc(100vh - 200px);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    z-index: 10;
+  }
+
+  .close-btn:hover {
+    background: var(--error);
+    color: white;
+    transform: scale(1.1);
+  }
+  .about-page {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    max-width: 900px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: var(--space-xl);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    color: var(--text);
     font-family: var(--mono);
   }
 
