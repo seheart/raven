@@ -29,9 +29,7 @@
   });
 </script>
 
-<div class="modal-overlay" transition:fade={{ duration: 200 }} on:click={close}>
-<div class="about-page" on:click|stopPropagation transition:fade={{ duration: 300 }}>
-  <button class="close-btn" on:click={close} aria-label="Close about dialog">×</button>
+<div class="about-page" transition:fade={{ duration: 300 }}>
   <div class="about-container">
     <div class="about-header">
       <RavenLogo size={48} />
@@ -127,7 +125,7 @@
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">Version</span>
-              <span class="info-value">0.0.1</span>
+              <span class="info-value">0.8.0</span>
             </div>
             <div class="info-item">
               <span class="info-label">Session ID</span>
@@ -178,59 +176,15 @@
     </div>
   </div>
 </div>
-</div>
 
 <style>
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    padding: var(--space-lg);
-    overflow-y: auto;
-  }
-
-  .close-btn {
-    position: absolute;
-    top: var(--space-md);
-    right: var(--space-md);
-    width: 32px;
-    height: 32px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-round);
-    color: var(--text);
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-fast);
-    z-index: 10;
-  }
-
-  .close-btn:hover {
-    background: var(--error);
-    color: white;
-    transform: scale(1.1);
-  }
   .about-page {
     position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    max-width: 900px;
+    background: var(--bg);
     width: 100%;
-    max-height: 80vh;
+    min-height: 100vh;
     overflow-y: auto;
-    padding: var(--space-xl);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    padding: 48px 24px;
     color: var(--text);
     font-family: var(--mono);
   }

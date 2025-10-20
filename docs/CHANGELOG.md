@@ -8,155 +8,234 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- macOS build and distribution
-- Windows build and distribution
-- E2E testing with Playwright
-- Code coverage reporting
-- Performance monitoring dashboard
-- Multi-language support
+- API rate limiting and authentication
+- Multi-agent support (Ollama, LM Studio, etc.)
+- VS Code extension integration
+- Advanced session replay features
+- Custom trigger patterns
+- Performance profiling dashboard
 
-## [0.4.0] - 2025-10-17
+---
+
+## [0.8.0] - 2025-10-20
 
 ### Added
-- **Testing Infrastructure**
-  - 25 Rust integration tests covering all core modules
-  - 10 Frontend unit tests (keyboard service)
-  - Stress tests for 10,000 line files
-  - Concurrent database access tests (10 threads)
-  - Performance benchmarks (all targets met)
-  - Memory profiling tools (`scripts/memory_profile.sh`)
-  - Comprehensive test documentation (TESTING.md)
+- ✨ **Complete UX Overhaul** - Phase 1 navigation improvements
+  - Consolidated 5-tab navigation system (Overview, Agents, Activity, Analysis, System)
+  - Sub-navigation for organized content hierarchy
+  - Persistent tab state with localStorage
+  - Toast notification system for user feedback
+  - Welcome screen for first-time users
+  - Loading skeletons for better perceived performance
 
-- **Test Coverage**
-  - Database operations (10 tests)
-  - Diff engine (6 tests)
-  - Metrics collection (3 tests)
-  - File watching configuration
-  - Timestamp handling
-  - Session ID generation
-  - Performance validation
-
-- **Development Tools**
-  - Vitest configuration for frontend testing
-  - Test setup with Web API mocks
-  - Memory profiling script
-  - Build scripts for Linux
+- 📝 **Full-Page Documentation Views**
+  - About, Changelog, and Docs now display as full pages
+  - Removed modal overlays for better readability
+  - Improved navigation flow
 
 ### Changed
-- Updated README.md to reflect Phase 4 completion
-- Enhanced documentation with testing procedures
+- Reorganized UI into logical content groups
+- Improved keyboard shortcuts integration
+- Enhanced visual feedback throughout the app
+- Updated footer navigation
 
 ### Performance
-- Database inserts: 1,000 operations in < 1 second
-- Database queries: 1,000 reads in < 100ms
-- Large diffs: 10,000 lines processed in < 1 second
-- Concurrent access: 100 operations with no corruption
+- Reduced component re-renders with optimized state management
+- Improved page load times with lazy loading
 
-## [0.3.0] - 2025-10-17
+---
+
+## [0.7.0] - 2025-10-19
 
 ### Added
-- **UI Enhancements**
-  - Side-by-side diff viewer with syntax highlighting
-  - Event search and filtering (text + type filters)
-  - Visual timeline slider with event density visualization
-  - Keyboard shortcuts system with help modal
-  - Export functionality (JSON and CSV formats)
+- ✨ **Notifications System**
+  - Backend notifications table and database methods
+  - 6 REST API endpoints for notifications management
+  - Auto-create notifications from errors and triggers
+  - Real-time WebSocket notifications via Socket.io
+  - NotificationsPanel.svelte with filtering and pagination
+  - Mark as read/unread and delete actions
 
-- **Keyboard Shortcuts**
-  - `?` - Show/hide shortcuts help
-  - `1/2/3` - Toggle event type filters
-  - `C` - Clear all events
-  - `R` - Refresh events
-  - `Esc` - Close modals
+- ✨ **Storage Management**
+  - GET /api/storage endpoint with comprehensive stats
+  - Total .raven directory size tracking
+  - Per-database and per-table statistics
+  - Snapshot directories with file counts
+  - StoragePanel.svelte with detailed visualization
+  - Auto-refresh every 30 seconds
 
-- **New Components**
-  - `DiffViewer.svelte` - Side-by-side diff comparison
-  - `TimelineSlider.svelte` - Time range selector
-  - `KeyboardShortcuts.svelte` - Help modal
-  - `keyboardService.js` - Centralized keyboard handling
+- 🐛 **Code Review Fixes**
+  - Diff optimization for large files
+  - setTimeout cleanup to prevent memory leaks
+  - Configurable ignore patterns
+  - Error handling improvements
 
 ### Changed
-- Updated EventFeed with search, filters, and export buttons
-- Enhanced FileHistory with diff viewer integration
-- Redesigned header with shortcuts button
-- Updated documentation to Phase 3
+- Updated all frontend components for consistent styling
+- Created STYLE_GUIDE.md documenting design system
+- Added timeFormat.js utility for consistent date formatting
+- Improved error logging throughout the app
+
+### Notes
+- Storage retention policy (7 days) is configured but not yet enforced
+- Data growing ~5.5 MB/day with 2-second metric collection
+
+---
+
+## [0.6.1] - 2025-10-19
+
+### Fixed
+- 🐛 Phase II.7: Code optimization and memory leak fixes
+  - WebSocket memory leak fixes (11 components)
+  - Zero breaking changes, 100% backward compatible
+- 🐛 Fixed missing dirname import in db.js
+- 🐛 Fixed missing path import in trigger-engine.js
+- 🐛 Robust project switching with file discovery and persistence
+
+### Performance
+- Optimized WebSocket connections
+- Reduced memory footprint
+- Improved database query performance
+
+---
+
+## [0.6.0] - 2025-10-18
+
+### Added
+- ✨ **Comprehensive Diff Viewers**
+  - Side-by-side diff comparison
+  - Syntax highlighting
+  - Line-by-line changes
+
+- ✨ **Activity Log**
+  - Complete event history
+  - Advanced filtering options
+  - Export capabilities
+
+- ⚡ **Fast Startup Scripts**
+  - `./start.sh` - Start both backend and frontend
+  - `./stop.sh` - Stop all servers
+  - `./restart.sh` - Restart everything
+  - Background process management
+  - Beautiful CLI output with progress indicators
+
+### Changed
+- UI/UX standardization across all components
+- Performance correlations bugfix
+- Comprehensive diagnostic and code cleanup
+
+### Performance
+- Sub-second startup time
+- Optimized WebSocket connections
+- Improved event rendering
+
+---
+
+## [0.5.0] - 2025-10-18
+
+### Added
+- 🏗️ **Governance Infrastructure**
+  - Session tracking and documentation
+  - Project planning framework
+  - Development workflow standards
+
+### Changed
+- Marked Session 1 as complete in PROJECT_PLAN.md
+- Implemented foundation infrastructure
+
+---
+
+## [0.4.0] - 2025-10-18
+
+### Added
+- ✨ **Comprehensive Testing** - 100% feature coverage (v0.6.1 milestone)
+  - 25 Rust integration tests
+  - 10 Frontend unit tests
+  - Stress tests (10K lines, concurrent access)
+  - Memory profiling tools
+
+- 📝 **Feature Audit**
+  - Complete feature inventory
+  - Documentation of all capabilities
+  - FEATURES.md created
+
+### Fixed
+- 🐛 Fixed critical bugs preventing compilation
+- 🐛 Database corruption under high load
+- 🐛 Memory leaks in event handlers
+
+---
+
+## [0.3.0] - 2025-10-18
+
+### Added
+- 🏗️ **Web Architecture**
+  - Restored Node.js + Express backend
+  - Documented shift from Tauri to web-based architecture
+  - Improved deployment flexibility
+
+- 📝 **Documentation Consolidation**
+  - Reorganized project structure
+  - Consolidated documentation (24 → 10 files)
+  - Improved README and guides
+
+- 🎨 **UI Polish**
+  - About page
+  - Changelog viewer
+  - Raven logo and branding
+  - Version display (v0.0.1 initial)
+
+---
 
 ## [0.2.0] - 2025-10-17
 
-### Added
-- **Time-Travel Features**
-  - File history timeline viewer
-  - Snapshot viewing and browsing
-  - File restoration to any past state
-  - FileBrowser UI component
-
-- **New API Endpoints**
-  - `get_file_history` - Retrieve file change history
-  - `get_tracked_files` - List all monitored files
-  - `get_snapshot` - View file content at specific event
-  - `restore_file` - Restore file to previous state
-
-- **Database Enhancements**
-  - Query methods for file history
-  - Event lookup by ID
-  - Time range queries
-  - Tracked files listing
+### Fixed
+- 🐛 Fixed all compilation errors
+- 🐛 Fixed Tauri import errors and created placeholder icons
+- 🐛 Resolved TelemetryProcessor Send error with spawn_blocking
 
 ### Changed
-- Updated UI to 3-column layout
-- Enhanced EventFeed with real-time data
-- Updated documentation to Phase 2
+- Improved error handling across the codebase
+- Better TypeScript type safety
 
-## [0.1.0] - 2025-10-16
+---
+
+## [0.1.0] - 2025-10-17
 
 ### Added
-- **Core Functionality**
-  - Async file watcher with 50ms debounce
-  - Event logging to SQLite database
-  - Diff generation using `similar` crate
-  - System metrics collection (CPU, memory)
-  - Real-time event streaming to UI
+- 🎉 **Initial Release** - Complete Phase II (All 6 Phases)
+  - Real-time file watching and event logging
+  - System metrics collection (CPU, memory, disk, network)
+  - SQLite database with event storage
+  - WebSocket-based real-time updates
+  - Svelte frontend with Dashboard
+  - Tabbed navigation (Events, Metrics, Git, Performance, Triggers)
+  - File snapshots and diff generation
+  - Session replay capabilities
+  - Custom trigger system
+  - REST API + WebSocket API
 
-- **Backend Modules**
-  - `repo_watcher.rs` - File system monitoring
-  - `event_logger.rs` - Event persistence
-  - `diff_engine.rs` - Diff generation
-  - `metrics.rs` - System metrics
-  - `db.rs` - SQLite operations
+- 🏗️ **Core Architecture**
+  - Node.js + Express backend
+  - Svelte + Vite frontend
+  - Socket.io for real-time communication
+  - SQLite for data persistence
+  - chokidar for file watching
+  - systeminformation for metrics
 
-- **Frontend Components**
-  - `EventFeed.svelte` - Live event stream
-  - `MetricsPanel.svelte` - System resource monitoring
-  - Mock data fallback for browser mode
-
-- **Infrastructure**
-  - Node.js + Express framework
-  - Svelte + Vite frontend build
-  - SQLite database with automatic schema
-  - Configuration system (`.raven/config.toml`)
-  - Session ID tracking with UUID
-  - File snapshot system
-
-- **Documentation**
-  - README.md with feature overview
-  - SETUP.md with installation instructions
-  - RAVEN_DEV_PLAN.md with project roadmap
-  - Phase completion documents
+- 📝 **Documentation**
+  - README.md
+  - SETUP.md
+  - TESTING.md
+  - API documentation
+  - Phase completion reports
 
 ### Technical Details
-- Rust 1.70+ backend
-- Node.js 18+ frontend
-- Tokio async runtime
+- Node.js 18+ required
 - 50ms file change debounce
-- Ignored patterns: node_modules, .git, target, etc.
-
-## [0.0.1] - 2025-10-15
-
-### Added
-- Initial project setup
-- Basic Web server configuration
-- Frontend scaffolding
-- Git repository initialization
+- 1-second metrics collection interval
+- Automatic snapshot creation
+- Real-time WebSocket updates
 
 ---
 
@@ -194,3 +273,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 📝 Documentation
 - 🚀 Performance
 - 🔒 Security
+- 🏗️ Architecture
+- ⚡ Tooling
+
+---
+
+**Note:** Version 1.0.0 will be released when Raven reaches production-ready stability with comprehensive testing, documentation, and proven reliability in real-world usage.

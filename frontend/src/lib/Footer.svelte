@@ -6,7 +6,7 @@
   export let onChangelogClick = () => {};
   export let onDocsClick = () => {};
 
-  let version = '0.0.1';
+  let version = '0.8.0';
   let sessionUptime = '0s';
   let uptimeInterval;
 
