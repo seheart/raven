@@ -40,6 +40,7 @@
   }
 
   function getFileIcon(filepath) {
+    if (!filepath) return '📄';
     if (filepath.endsWith('.py')) return '🐍';
     if (filepath.endsWith('.js') || filepath.endsWith('.jsx')) return '📜';
     if (filepath.endsWith('.ts') || filepath.endsWith('.tsx')) return '📘';
@@ -51,11 +52,11 @@
   }
 
   function getFileName(filepath) {
-    return filepath.split('/').pop();
+    return filepath?.split('/')?.pop() || '';
   }
 
   function getFilePath(filepath) {
-    const parts = filepath.split('/');
+    const parts = filepath?.split('/') || [];
     return parts.slice(0, -1).join('/');
   }
 </script>
@@ -77,7 +78,7 @@
     </div>
   {:else}
     <div class="file-list">
-      {#each files as filepath (filepath)}
+      {#each files || [] as filepath (filepath)}
         <div class="file-item" on:click={() => viewFileHistory(filepath)}>
           <div class="file-icon">{getFileIcon(filepath)}</div>
           <div class="file-info">
@@ -111,10 +112,14 @@
     border-bottom: 1px solid var(--border);
   }
 
+  .browser-header {
+    padding: 0 8px;
+  }
+
   h3 {
     margin: 0;
     color: var(--text);
-    font-size: 12px;
+    font-size: 15px;
   }
 
   .refresh-btn {

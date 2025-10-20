@@ -60,7 +60,7 @@
         Docs
       </button>
       <span class="footer-divider">|</span>
-      <a class="footer-link" href="https://github.com" target="_blank" rel="noopener noreferrer">
+      <a class="footer-link" href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer">
         GitHub
       </a>
       <span class="footer-divider">|</span>

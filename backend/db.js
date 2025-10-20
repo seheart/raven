@@ -112,6 +112,44 @@ export class RavenDB {
         session_id TEXT
       )
     `);
+
+    // Create indexes for performance (prevents full table scans)
+    this.db.exec(`
+      -- Events table indexes
+      CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
+      CREATE INDEX IF NOT EXISTS idx_events_filepath ON events(filepath);
+      CREATE INDEX IF NOT EXISTS idx_events_change_type ON events(change_type);
+
+      -- Agent events indexes
+      CREATE INDEX IF NOT EXISTS idx_agent_events_timestamp ON agent_events(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_agent_events_agent ON agent_events(agent);
+      CREATE INDEX IF NOT EXISTS idx_agent_events_session ON agent_events(session_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_events_type ON agent_events(event_type);
+
+      -- Raven metrics indexes
+      CREATE INDEX IF NOT EXISTS idx_raven_metrics_timestamp ON raven_metrics(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_raven_metrics_session ON raven_metrics(session_id);
+
+      -- Process metrics indexes
+      CREATE INDEX IF NOT EXISTS idx_process_metrics_timestamp ON process_metrics(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_process_metrics_agent ON process_metrics(agent_name);
+      CREATE INDEX IF NOT EXISTS idx_process_metrics_session ON process_metrics(session_id);
+
+      -- Error logs indexes
+      CREATE INDEX IF NOT EXISTS idx_error_logs_timestamp ON error_logs(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_error_logs_severity ON error_logs(severity);
+      CREATE INDEX IF NOT EXISTS idx_error_logs_session ON error_logs(session_id);
+
+      -- Notifications indexes
+      CREATE INDEX IF NOT EXISTS idx_notifications_timestamp ON notifications(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+      CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+      CREATE INDEX IF NOT EXISTS idx_notifications_severity ON notifications(severity);
+    `);
+
+    // Add WAL checkpoint management for better performance
+    this.db.pragma('wal_autocheckpoint = 1000'); // Checkpoint every 1000 pages
   }
 
   // ==================== Agent Events ====================
@@ -180,6 +218,23 @@ export class RavenDB {
       FROM agent_events
       GROUP BY agent
       ORDER BY event_count DESC
+    `);
+
+    return stmt.all();
+  }
+
+  // Get historical agents with last_seen and request counts (for agents panel)
+  getHistoricalAgents() {
+    const stmt = this.db.prepare(`
+      SELECT
+        agent as agent_name,
+        agent as agent_type,
+        MAX(timestamp) as last_seen,
+        COUNT(*) as requests_handled,
+        0 as errors
+      FROM agent_events
+      GROUP BY agent
+      ORDER BY last_seen DESC
     `);
 
     return stmt.all();
@@ -401,37 +456,22 @@ export class RavenDB {
 
   // ==================== Dashboard Statistics ====================
 
-  getTopModifiedFiles(session_id, limit = 10) {
-    const events = this.getAgentEventsBySession(session_id);
+  getTopModifiedFiles(session_id = null, limit = 10) {
+    // Optimized: Use SQL aggregation instead of loading all events into memory
+    const stmt = this.db.prepare(`
+      SELECT
+        file as filepath,
+        COUNT(*) as edit_count,
+        SUM(COALESCE(lines_changed, 0)) as total_lines_changed,
+        MAX(timestamp) as last_modified
+      FROM agent_events
+      WHERE file IS NOT NULL
+      GROUP BY file
+      ORDER BY edit_count DESC
+      LIMIT ?
+    `);
 
-    // Count edits per file
-    const fileStats = {};
-
-    for (const event of events) {
-      if (event.filepath) {
-        if (!fileStats[event.filepath]) {
-          fileStats[event.filepath] = {
-            filepath: event.filepath,
-            edit_count: 0,
-            total_lines_changed: event.lines_changed || 0,
-            last_modified: event.timestamp
-          };
-        }
-
-        fileStats[event.filepath].edit_count++;
-        fileStats[event.filepath].total_lines_changed += event.lines_changed || 0;
-
-        // Update last modified
-        if (event.timestamp > fileStats[event.filepath].last_modified) {
-          fileStats[event.filepath].last_modified = event.timestamp;
-        }
-      }
-    }
-
-    // Convert to array and sort
-    return Object.values(fileStats)
-      .sort((a, b) => b.edit_count - a.edit_count)
-      .slice(0, limit);
+    return stmt.all(limit);
   }
 
   getLongestEdits(limit = 10) {
@@ -446,8 +486,14 @@ export class RavenDB {
     return stmt.all(limit);
   }
 
-  getDashboardStats(session_id) {
-    const events = this.getAgentEventsBySession(session_id);
+  getDashboardStats(session_id = null) {
+    // Get all agent events (not filtered by session for all-time stats)
+    const stmt = this.db.prepare(`
+      SELECT id, timestamp, agent, event_type as change_type, file as filepath, lines_changed, duration_ms, message
+      FROM agent_events
+      ORDER BY timestamp ASC
+    `);
+    const events = stmt.all();
 
     // Get unique files from agent events
     const trackedFiles = new Set();
@@ -457,7 +503,15 @@ export class RavenDB {
       }
     }
 
-    // Calculate session duration
+    // Get unique agents from agent events (all-time)
+    const agentsStmt = this.db.prepare(`
+      SELECT COUNT(DISTINCT agent) as agent_count
+      FROM agent_events
+    `);
+    const agentsResult = agentsStmt.get();
+    const total_agents = agentsResult?.agent_count || 0;
+
+    // Calculate total duration (all-time)
     let session_duration_seconds = 0;
     if (events.length > 0) {
       const first = new Date(events[0].timestamp);
@@ -465,10 +519,11 @@ export class RavenDB {
       session_duration_seconds = Math.floor((last - first) / 1000);
     }
 
-    // Count active files today
+    // Count active files today from both agent_events and file events
     const today = new Date().toISOString().split('T')[0];
     const activeToday = new Set();
 
+    // Add files from agent_events
     for (const event of events) {
       const eventDate = event.timestamp.split('T')[0];
       if (eventDate === today && event.filepath) {
@@ -476,16 +531,27 @@ export class RavenDB {
       }
     }
 
-    // Get breakdown from file events table
+    // Also add files from file system events (events table)
+    const todayFilesStmt = this.db.prepare(`
+      SELECT DISTINCT filepath
+      FROM events
+      WHERE SUBSTR(timestamp, 1, 10) = ?
+      AND filepath IS NOT NULL
+    `);
+    const todayFiles = todayFilesStmt.all(today);
+    for (const row of todayFiles) {
+      activeToday.add(row.filepath);
+    }
+
+    // Get breakdown from file events table (all-time)
     const breakdownStmt = this.db.prepare(`
       SELECT
         change_type,
         COUNT(*) as count
       FROM events
-      WHERE session_id = ?
       GROUP BY change_type
     `);
-    const breakdown = breakdownStmt.all(session_id);
+    const breakdown = breakdownStmt.all();
 
     // Build breakdown object
     const creates = breakdown.find(b => b.change_type === 'add')?.count || 0;
@@ -496,7 +562,7 @@ export class RavenDB {
     return {
       total_events: events.length,
       total_files: trackedFiles.size,
-      total_agents: 0, // Will be updated by agent registry
+      total_agents: total_agents,
       session_duration_seconds,
       active_files_today: activeToday.size,
       total_changes,
@@ -667,129 +733,212 @@ export class RavenDB {
       endDate = null
     } = options;
 
-    let activities = [];
+    // Build WHERE clauses for filtering (applied in SQL for performance)
+    const whereConditions = [];
+    const params = [];
 
-    // Get file change events
+    if (search) {
+      // Search will be applied per-query type since fields differ
+      whereConditions.push('search');
+      params.push(`%${search}%`);
+    }
+    if (startDate) {
+      whereConditions.push('startDate');
+      params.push(startDate);
+    }
+    if (endDate) {
+      whereConditions.push('endDate');
+      params.push(endDate);
+    }
+
+    // Build UNION query combining all event types with SQL-based filtering
+    const queries = [];
+
+    // File events
     if (eventType === 'all' || eventType === 'file') {
-      const fileEvents = this.db.prepare(`
+      let fileQuery = `
         SELECT
           id,
           timestamp,
           'file' as category,
           change_type as type,
           filepath as target,
+          'File ' || change_type || ': ' || filepath as description,
           event_size as size,
           file_hash as hash,
           cpu,
           mem,
           diff,
-          session_id
+          session_id,
+          NULL as file,
+          NULL as lines_changed,
+          NULL as duration_ms,
+          NULL as message,
+          NULL as metadata_json,
+          NULL as cpu_percent,
+          NULL as memory_percent,
+          NULL as memory_used_mb
         FROM events
-        ORDER BY timestamp DESC
-        LIMIT 1000
-      `).all();
-
-      activities.push(...fileEvents.map(e => ({
-        ...e,
-        description: `File ${e.type}: ${e.target}`,
-        metadata: {
-          size: e.size,
-          hash: e.hash,
-          cpu: e.cpu,
-          mem: e.mem,
-          hasDiff: !!e.diff
-        }
-      })));
+        WHERE 1=1
+      `;
+      if (search) fileQuery += ` AND (filepath LIKE ? OR change_type LIKE ?)`;
+      if (startDate) fileQuery += ` AND timestamp >= ?`;
+      if (endDate) fileQuery += ` AND timestamp <= ?`;
+      queries.push(fileQuery);
     }
 
-    // Get agent events
+    // Agent events
     if (eventType === 'all' || eventType === 'agent') {
-      const agentEvents = this.db.prepare(`
+      let agentQuery = `
         SELECT
           id,
           timestamp,
           'agent' as category,
           event_type as type,
           agent as target,
+          COALESCE(message, agent || ' - ' || event_type) as description,
+          NULL as size,
+          NULL as hash,
+          NULL as cpu,
+          NULL as mem,
+          NULL as diff,
+          session_id,
           file,
           lines_changed,
           duration_ms,
           message,
-          metadata,
-          session_id
+          metadata as metadata_json,
+          NULL as cpu_percent,
+          NULL as memory_percent,
+          NULL as memory_used_mb
         FROM agent_events
-        ORDER BY timestamp DESC
-        LIMIT 1000
-      `).all();
-
-      activities.push(...agentEvents.map(e => ({
-        ...e,
-        description: e.message || `${e.target} - ${e.type}`,
-        metadata: {
-          file: e.file,
-          linesChanged: e.lines_changed,
-          durationMs: e.duration_ms,
-          ...(e.metadata ? JSON.parse(e.metadata) : {})
-        }
-      })));
+        WHERE 1=1
+      `;
+      if (search) agentQuery += ` AND (message LIKE ? OR agent LIKE ? OR event_type LIKE ?)`;
+      if (startDate) agentQuery += ` AND timestamp >= ?`;
+      if (endDate) agentQuery += ` AND timestamp <= ?`;
+      queries.push(agentQuery);
     }
 
-    // Get system metrics (sample, not all)
+    // System metrics (limited sample)
     if (eventType === 'all' || eventType === 'system') {
-      const systemEvents = this.db.prepare(`
+      let systemQuery = `
         SELECT
           id,
           timestamp,
           'system' as category,
           'metrics' as type,
           'System' as target,
+          'System Metrics: CPU ' || ROUND(cpu_percent, 1) || '%, Memory ' || ROUND(memory_percent, 1) || '%' as description,
+          NULL as size,
+          NULL as hash,
+          NULL as cpu,
+          NULL as mem,
+          NULL as diff,
+          session_id,
+          NULL as file,
+          NULL as lines_changed,
+          NULL as duration_ms,
+          NULL as message,
+          NULL as metadata_json,
           cpu_percent,
           memory_percent,
-          memory_used_mb,
-          session_id
+          memory_used_mb
         FROM raven_metrics
-        ORDER BY timestamp DESC
-        LIMIT 100
-      `).all();
+        WHERE 1=1
+      `;
+      if (search) systemQuery += ` AND ('System' LIKE ? OR 'metrics' LIKE ?)`;
+      if (startDate) systemQuery += ` AND timestamp >= ?`;
+      if (endDate) systemQuery += ` AND timestamp <= ?`;
+      queries.push(systemQuery);
+    }
 
-      activities.push(...systemEvents.map(e => ({
-        ...e,
-        description: `System Metrics: CPU ${e.cpu_percent?.toFixed(1)}%, Memory ${e.memory_percent?.toFixed(1)}%`,
-        metadata: {
+    // Combine queries with UNION ALL and apply ORDER BY, LIMIT, OFFSET at the end
+    const unionQuery = `
+      WITH combined AS (
+        ${queries.join(' UNION ALL ')}
+      )
+      SELECT * FROM combined
+      ORDER BY timestamp DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    // Build parameter array (search params repeated for each query type, then limit/offset)
+    const queryParams = [];
+
+    // For file events
+    if (eventType === 'all' || eventType === 'file') {
+      if (search) queryParams.push(`%${search}%`, `%${search}%`);
+      if (startDate) queryParams.push(startDate);
+      if (endDate) queryParams.push(endDate);
+    }
+
+    // For agent events
+    if (eventType === 'all' || eventType === 'agent') {
+      if (search) queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      if (startDate) queryParams.push(startDate);
+      if (endDate) queryParams.push(endDate);
+    }
+
+    // For system events
+    if (eventType === 'all' || eventType === 'system') {
+      if (search) queryParams.push(`%${search}%`, `%${search}%`);
+      if (startDate) queryParams.push(startDate);
+      if (endDate) queryParams.push(endDate);
+    }
+
+    // Add limit and offset
+    queryParams.push(limit, offset);
+
+    // Execute query
+    const activities = this.db.prepare(unionQuery).all(...queryParams);
+
+    // Get total count (without limit/offset) for pagination
+    const countQuery = `
+      WITH combined AS (
+        ${queries.join(' UNION ALL ')}
+      )
+      SELECT COUNT(*) as total FROM combined
+    `;
+
+    // Same params but without limit/offset
+    const countParams = queryParams.slice(0, -2);
+    const totalResult = this.db.prepare(countQuery).get(...countParams);
+    const total = totalResult.total;
+
+    // Transform results to add metadata objects
+    const formattedActivities = activities.map(e => {
+      const activity = { ...e };
+
+      // Build metadata object based on category
+      if (e.category === 'file') {
+        activity.metadata = {
+          size: e.size,
+          hash: e.hash,
+          cpu: e.cpu,
+          mem: e.mem,
+          hasDiff: !!e.diff
+        };
+      } else if (e.category === 'agent') {
+        activity.metadata = {
+          file: e.file,
+          linesChanged: e.lines_changed,
+          durationMs: e.duration_ms,
+          ...(e.metadata_json ? JSON.parse(e.metadata_json) : {})
+        };
+      } else if (e.category === 'system') {
+        activity.metadata = {
           cpu: e.cpu_percent,
           memory: e.memory_percent,
           memoryUsedMb: e.memory_used_mb
-        }
-      })));
-    }
+        };
+      }
 
-    // Sort by timestamp (most recent first)
-    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-    // Apply search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      activities = activities.filter(a =>
-        a.description?.toLowerCase().includes(searchLower) ||
-        a.target?.toLowerCase().includes(searchLower) ||
-        a.type?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply date range filter
-    if (startDate) {
-      activities = activities.filter(a => new Date(a.timestamp) >= new Date(startDate));
-    }
-    if (endDate) {
-      activities = activities.filter(a => new Date(a.timestamp) <= new Date(endDate));
-    }
-
-    // Apply pagination
-    const total = activities.length;
-    const paginated = activities.slice(offset, offset + limit);
+      return activity;
+    });
 
     return {
-      activities: paginated,
+      activities: formattedActivities,
       total,
       limit,
       offset,

@@ -10,7 +10,6 @@
   import APIHealthMonitor from './lib/APIHealthMonitor.svelte';
   import LiveCodeFeed from './lib/LiveCodeFeed.svelte';
   import ActivityLog from './lib/ActivityLog.svelte';
-  import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import Footer from './lib/Footer.svelte';
   import AboutPage from './lib/AboutPage.svelte';
   import ChangelogPage from './lib/ChangelogPage.svelte';
@@ -26,7 +25,6 @@
   const API_BASE = 'http://localhost:3030/api';
 
   let sessionId = 'Loading...';
-  let showShortcuts = false;
   let currentView = 'dashboard'; // dashboard, git, replay, performance, triggers, agents, status, docs, about, changelog, notifications, storage
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
 
@@ -41,12 +39,9 @@
     }
   }
 
-  function toggleShortcuts() {
-    showShortcuts = !showShortcuts;
-  }
-
   function switchView(view) {
     currentView = view;
+    localStorage.setItem('raven-current-view', view);
   }
 
   function switchTheme(newTheme) {
@@ -62,14 +57,11 @@
     theme = localStorage.getItem('raven-theme') || 'theme--night';
     document.body.className = theme;
 
+    // Load saved view from localStorage
+    currentView = localStorage.getItem('raven-current-view') || 'dashboard';
+
     // Setup global error handler
     setupGlobalErrorHandler();
-
-    // Register global keyboard shortcuts
-    keyboard.register('?', toggleShortcuts, { shiftKey: true });
-    keyboard.register('Escape', () => {
-      showShortcuts = false;
-    });
 
     // View switching shortcuts
     keyboard.register('1', () => switchView('dashboard'));
@@ -120,9 +112,6 @@
             Night
           </button>
         </div>
-        <button class="help-btn" on:click={toggleShortcuts} title="Keyboard shortcuts (?)">
-          ⌨️ Shortcuts
-        </button>
       </div>
     </div>
   </header>
@@ -161,7 +150,7 @@
       class:active={currentView === 'performance'}
       on:click={() => switchView('performance')}
     >
-      ⚡ Performance
+      ⚡️ Performance
     </button>
     <button
       class="tab"
@@ -257,7 +246,6 @@
     {/if}
   </div></main>
 
-<KeyboardShortcuts visible={showShortcuts} onClose={() => showShortcuts = false} />
 <Footer
   sessionId={sessionId}
   onAboutClick={() => switchView('about')}
@@ -314,27 +302,6 @@
     font-size: 11px;
     margin: 0.25rem 0;
     font-family: var(--mono);
-  }
-
-  .help-btn {
-    padding: 8px 1.5rem;
-    font-size: 12px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .help-btn:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
   }
 
   .view-tabs {

@@ -1,59 +1,30 @@
 <script>
-  const changelog = [
-    {
-      version: '0.0.1',
-      date: '2025-10-18',
-      title: 'Initial Development - Phase II Complete',
-      changes: [
-        {
-          type: 'feature',
-          description: 'Real-time WebSocket architecture with 1-second metrics collection'
-        },
-        {
-          type: 'feature',
-          description: 'Dashboard with live agent activity and system metrics'
-        },
-        {
-          type: 'feature',
-          description: 'Performance panel with CPU, memory, and network monitoring'
-        },
-        {
-          type: 'feature',
-          description: 'Triggers system with TOML-based configuration'
-        },
-        {
-          type: 'feature',
-          description: 'Agents panel for AI agent tracking and telemetry'
-        },
-        {
-          type: 'feature',
-          description: 'Status page for backend health monitoring'
-        },
-        {
-          type: 'feature',
-          description: 'Session Replay placeholder for future development'
-        },
-        {
-          type: 'feature',
-          description: 'Keyboard shortcuts for navigation (1-7 keys)'
-        },
-        {
-          type: 'feature',
-          description: 'Dark theme with orange accent colors'
-        },
-        {
-          type: 'feature',
-          description: 'Footer with About and Changelog pages'
-        }
-      ]
+  import { onMount } from 'svelte';
+
+  const API_BASE = 'http://localhost:3030/api';
+
+  let changelog = [];
+  let loading = true;
+  let error = null;
+
+  onMount(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/changelog`);
+      const data = await response.json();
+      changelog = data;
+      loading = false;
+    } catch (err) {
+      console.error('Failed to load changelog:', err);
+      error = 'Failed to load changelog';
+      loading = false;
     }
-  ];
+  });
 
   function getTypeIcon(type) {
     switch (type) {
       case 'feature': return '✨';
       case 'fix': return '🐛';
-      case 'improvement': return '⚡';
+      case 'improvement': return '⚡️';
       case 'breaking': return '💥';
       case 'security': return '🔒';
       case 'docs': return '📝';
@@ -82,7 +53,21 @@
     </div>
 
     <div class="changelog-content">
-      {#each changelog as release}
+      {#if loading}
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading changelog from git history...</p>
+        </div>
+      {:else if error}
+        <div class="error-state">
+          <p>⚠️ {error}</p>
+        </div>
+      {:else if changelog.length === 0}
+        <div class="empty-state">
+          <p>No changelog entries found</p>
+        </div>
+      {:else}
+        {#each changelog as release}
         <div class="release-section">
           <div class="release-header">
             <div class="release-title">
@@ -108,11 +93,12 @@
             {/each}
           </div>
         </div>
-      {/each}
+        {/each}
 
-      <div class="changelog-footer">
-        <p>More updates coming soon! 🚀</p>
-      </div>
+        <div class="changelog-footer">
+          <p>More updates coming soon! 🚀</p>
+        </div>
+      {/if}
     </div>
   </div>
 </div>
@@ -141,8 +127,8 @@
 
   .changelog-header h1 {
     margin: 0 0 16px 0;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--text);
   }
 
@@ -189,7 +175,7 @@
 
   .release-title h2 {
     margin: 0;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--accent);
     font-weight: 600;
   }
@@ -255,9 +241,45 @@
     margin: 0;
   }
 
+  .loading-state,
+  .error-state,
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+  }
+
+  .loading-state p,
+  .error-state p,
+  .empty-state p {
+    margin: 16px 0 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .error-state p {
+    color: var(--error);
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--surface-2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
   @media (max-width: 768px) {
     .changelog-header h1 {
-      font-size: 13px;
+      font-size: 18px;
     }
 
     .tagline {
@@ -270,7 +292,7 @@
     }
 
     .release-title h2 {
-      font-size: 13px;
+      font-size: 15px;
     }
   }
 </style>

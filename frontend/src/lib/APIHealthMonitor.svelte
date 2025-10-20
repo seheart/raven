@@ -59,8 +59,8 @@
     setTimeout(() => { realtimeActive = false; }, 1000);
 
     // Re-check critical endpoints on events
-    const criticalEndpoints = apiEndpoints.filter(e =>
-      e.category === 'Core' || e.category === 'Dashboard'
+    const criticalEndpoints = (apiEndpoints || []).filter(e =>
+      e?.category === 'Core' || e?.category === 'Dashboard'
     );
 
     criticalEndpoints.forEach(endpoint => {
@@ -203,7 +203,7 @@
         <div class="category-section">
           <h3 class="category-title">{category}</h3>
           <div class="endpoints-list">
-            {#each endpoints as endpoint}
+            {#each endpoints || [] as endpoint}
               {@const status = healthStatus[endpoint.path]}
               <div class="endpoint-row" class:healthy={status?.status === 'healthy'} class:error={status?.status === 'error'}>
                 <div class="endpoint-status">
@@ -242,7 +242,7 @@
 
                 <div class="endpoint-actions">
                   <button on:click={() => checkEndpoint(endpoint)} class="btn-test" title="Test endpoint">
-                    ⚡
+                    ⚡️
                   </button>
                 </div>
               </div>
@@ -269,12 +269,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-    padding: 0 4px;
+    padding: 0 8px;
   }
 
   h2 {
     margin: 0 0 4px 0;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 600;
   }
 
@@ -350,7 +350,7 @@
   .category-title {
     margin: 0;
     padding: 10px 16px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     background: var(--bg);
     border-bottom: 1px solid var(--border);

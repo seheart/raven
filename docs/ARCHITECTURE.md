@@ -387,7 +387,7 @@ VITE_API_URL=http://localhost:3030  # API base URL
 
 ---
 
-## ⚡ Feature Modules
+## ⚡️ Feature Modules
 
 ### File Watcher (`chokidar`)
 

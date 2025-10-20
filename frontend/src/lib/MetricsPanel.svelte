@@ -17,10 +17,10 @@
 
       if (metrics && metrics.length > 0) {
         const latest = metrics[0];
-        cpu = latest.cpu_percent;
-        memory = latest.memory_percent;
-        memoryUsed = latest.memory_used_mb;
-        memoryTotal = latest.memory_total_mb;
+        cpu = latest?.cpu_percent || 0;
+        memory = latest?.memory_percent || 0;
+        memoryUsed = latest?.memory_used_mb || 0;
+        memoryTotal = latest?.memory_total_mb || 0;
       }
     } catch (error) {
       console.error('Failed to get metrics:', error);
@@ -29,10 +29,10 @@
 
   // WebSocket event handler
   const handleSystemMetrics = (metrics) => {
-    cpu = metrics.cpu_percent;
-    memory = metrics.memory_percent;
-    memoryUsed = metrics.memory_used_mb;
-    memoryTotal = metrics.memory_total_mb;
+    cpu = metrics?.cpu_percent || 0;
+    memory = metrics?.memory_percent || 0;
+    memoryUsed = metrics?.memory_used_mb || 0;
+    memoryTotal = metrics?.memory_total_mb || 0;
   };
 
   onMount(() => {
@@ -62,19 +62,19 @@
 <div class="metrics">
   <div class="metric">
     <div class="label">CPU Usage</div>
-    <div class="value">{cpu.toFixed(1)}%</div>
+    <div class="value">{(cpu || 0).toFixed(1)}%</div>
     <div class="bar">
-      <div class="fill" style="width: {cpu}%"></div>
+      <div class="fill" style="width: {cpu || 0}%"></div>
     </div>
   </div>
 
   <div class="metric">
     <div class="label">Memory Usage</div>
-    <div class="value">{memory.toFixed(1)}%</div>
+    <div class="value">{(memory || 0).toFixed(1)}%</div>
     <div class="bar">
-      <div class="fill memory" style="width: {memory}%"></div>
+      <div class="fill memory" style="width: {memory || 0}%"></div>
     </div>
-    <div class="detail">{memoryUsed} MB / {memoryTotal} MB</div>
+    <div class="detail">{memoryUsed || 0} MB / {memoryTotal || 0} MB</div>
   </div>
 
   <div class="status">

@@ -15,25 +15,82 @@ import * as Diff from 'diff';
 import toml from 'toml';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as si from 'systeminformation';
+import { gzip, gunzip } from 'zlib';
 
 const execAsync = promisify(exec);
+const gzipAsync = promisify(gzip);
+const gunzipAsync = promisify(gunzip);
 
 const app = express();
 const httpServer = createServer(app);
+
+// Configuration: Load from environment variables with fallback defaults
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const PORT = parseInt(process.env.PORT) || 3030;
+
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: CORS_ORIGIN,
     methods: ['GET', 'POST'],
     credentials: true
   },
   allowEIO3: true,
   transports: ['websocket', 'polling']
 });
-const PORT = 3030;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // Allow large telemetry payloads
+// Configuration: JSON payload limit (configurable via environment)
+const JSON_LIMIT = process.env.JSON_PAYLOAD_LIMIT || '50mb';
+app.use(express.json({ limit: JSON_LIMIT }));
+
+// Simple rate limiting middleware (per-IP tracking)
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX) || 100;
+
+function rateLimiter(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+
+  if (!rateLimitMap.has(ip)) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+
+  const record = rateLimitMap.get(ip);
+
+  if (now > record.resetTime) {
+    // Window expired, reset
+    record.count = 1;
+    record.resetTime = now + RATE_LIMIT_WINDOW_MS;
+    return next();
+  }
+
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return res.status(429).json({
+      error: 'Too many requests',
+      retryAfter: Math.ceil((record.resetTime - now) / 1000)
+    });
+  }
+
+  record.count++;
+  next();
+}
+
+// Apply rate limiting to telemetry endpoint
+app.use('/telemetry', rateLimiter);
+
+// Cleanup rate limit map periodically (every 5 minutes)
+const rateLimitCleanupInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimitMap.entries()) {
+    if (now > record.resetTime) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
 
 // Performance tracking
 const performanceStats = {
@@ -143,6 +200,48 @@ if (!activeProjectName && availableProjects.length > 0) {
   activeProjectName = ravenProject ? ravenProject.name : availableProjects[0].name;
 }
 
+// Simple async mutex for protecting projectState from race conditions
+class AsyncMutex {
+  constructor() {
+    this.locked = false;
+    this.queue = [];
+  }
+
+  async acquire() {
+    if (!this.locked) {
+      this.locked = true;
+      return;
+    }
+
+    // Wait in queue
+    return new Promise(resolve => {
+      this.queue.push(resolve);
+    });
+  }
+
+  release() {
+    if (this.queue.length > 0) {
+      // Wake up next waiter
+      const resolve = this.queue.shift();
+      resolve();
+    } else {
+      this.locked = false;
+    }
+  }
+
+  async runExclusive(fn) {
+    await this.acquire();
+    try {
+      return await fn();
+    } finally {
+      this.release();
+    }
+  }
+}
+
+// Mutex for protecting projectState during project switches
+const projectStateMutex = new AsyncMutex();
+
 // Global state for active project
 const projectState = {
   activeProject: activeProjectName,
@@ -161,6 +260,9 @@ const SESSION_ID = randomUUID();
 // File cache for tracking previous states (for diff generation)
 const fileCache = new Map();
 
+// Track files currently being processed to prevent race conditions
+const filesInProgress = new Set();
+
 // Watcher statistics
 const watcherStats = {
   totalFilesWatched: 0,
@@ -176,6 +278,57 @@ let triggerEngine;
 
 // In-memory agent registry
 const agentRegistry = new Map();
+
+// Cleanup inactive agents periodically (every hour, remove agents not seen in 24 hours)
+const agentCleanupInterval = setInterval(() => {
+  const now = Date.now();
+  const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  let removed = 0;
+
+  for (const [agentName, agentData] of agentRegistry.entries()) {
+    const lastSeen = new Date(agentData.last_seen).getTime();
+    if (now - lastSeen > TTL_MS) {
+      agentRegistry.delete(agentName);
+      removed++;
+    }
+  }
+
+  if (removed > 0) {
+    console.log(`🧹 Cleaned up ${removed} inactive agents from registry`);
+  }
+}, 60 * 60 * 1000); // Run every hour
+
+// Cleanup old snapshots periodically (daily, remove snapshots older than 30 days)
+const snapshotCleanupInterval = setInterval(async () => {
+  try {
+    const SNAPSHOT_TTL_MS = parseInt(process.env.SNAPSHOT_TTL_DAYS || '30') * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let removed = 0;
+
+    // Check if snapshots directory exists
+    if (!fs.existsSync(projectState.snapshotsDir)) {
+      return;
+    }
+
+    const files = await fs.promises.readdir(projectState.snapshotsDir);
+
+    for (const file of files) {
+      const filePath = join(projectState.snapshotsDir, file);
+      const stats = await fs.promises.stat(filePath);
+
+      if (now - stats.mtimeMs > SNAPSHOT_TTL_MS) {
+        await fs.promises.unlink(filePath);
+        removed++;
+      }
+    }
+
+    if (removed > 0) {
+      console.log(`🧹 Cleaned up ${removed} old snapshots (>${process.env.SNAPSHOT_TTL_DAYS || '30'} days)`);
+    }
+  } catch (error) {
+    console.error('❌ Error cleaning snapshots:', error.message);
+  }
+}, 24 * 60 * 60 * 1000); // Run daily
 
 // Agent type color mapping
 const AGENT_COLORS = {
@@ -201,25 +354,33 @@ function calculateFileHash(content) {
 }
 
 function generateDiff(oldContent, newContent) {
-  const diff = Diff.createPatch('file', oldContent, newContent, '', '');
+  // Optimized: Use minimal context (3 lines) instead of default to reduce diff size
+  const diff = Diff.createPatch('file', oldContent, newContent, '', '', { context: 3 });
   return diff;
 }
 
 async function saveSnapshot(filepath, content) {
   try {
-    // Create snapshot filename: filepath_timestamp.ext
+    // Create snapshot filename: filepath_timestamp.gz (compressed)
     const timestamp = Date.now();
     const relPath = relative(projectState.watchPath, filepath);
-    const snapshotName = `${relPath.replace(/\//g, '_')}_${timestamp}`;
+    const snapshotName = `${relPath.replace(/\//g, '_')}_${timestamp}.gz`;
     const snapshotPath = join(projectState.snapshotsDir, snapshotName);
 
     // Ensure snapshots directory exists
     await fs.promises.mkdir(projectState.snapshotsDir, { recursive: true });
 
-    // Save snapshot
-    await fs.promises.writeFile(snapshotPath, content, 'utf8');
+    // Compress content using gzip (saves ~60-80% space for text files)
+    const compressed = await gzipAsync(content);
 
-    console.log(`💾 Snapshot saved: ${snapshotName}`);
+    // Save compressed snapshot
+    await fs.promises.writeFile(snapshotPath, compressed);
+
+    const originalSize = Buffer.byteLength(content, 'utf8');
+    const compressedSize = compressed.length;
+    const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+
+    console.log(`💾 Snapshot saved: ${snapshotName} (${originalSize} → ${compressedSize} bytes, ${ratio}% reduction)`);
     return snapshotPath;
   } catch (error) {
     console.error('❌ Snapshot save error:', error);
@@ -228,6 +389,15 @@ async function saveSnapshot(filepath, content) {
 }
 
 async function handleFileChange(eventType, filepath) {
+  // Prevent race conditions: skip if file is already being processed
+  if (filesInProgress.has(filepath)) {
+    console.log(`⏭️  Skipping ${filepath} - already processing`);
+    return;
+  }
+
+  // Mark file as being processed
+  filesInProgress.add(filepath);
+
   try {
     const relPath = relative(projectState.watchPath, filepath);
     const timestamp = new Date().toISOString();
@@ -265,26 +435,31 @@ async function handleFileChange(eventType, filepath) {
     }
 
     // Get system metrics
-    const si = await import('systeminformation');
     const cpuLoad = await si.currentLoad();
     const memInfo = await si.mem();
     const cpuPercent = cpuLoad.currentLoad || 0;
     const memPercent = (memInfo.used / memInfo.total) * 100;
 
-    // Insert event into database
-    const eventId = projectState.db.insertEvent(
-      timestamp,
-      relPath,
-      eventType,
-      diff,
-      cpuPercent,
-      memPercent,
-      SESSION_ID,
-      fileHash,
-      eventSize
-    );
-
-    console.log(`📁 File ${eventType}: ${relPath} (${eventSize} bytes)`);
+    // Insert event into database with error handling
+    let eventId;
+    try {
+      eventId = projectState.db.insertEvent(
+        timestamp,
+        relPath,
+        eventType,
+        diff,
+        cpuPercent,
+        memPercent,
+        SESSION_ID,
+        fileHash,
+        eventSize
+      );
+      console.log(`📁 File ${eventType}: ${relPath} (${eventSize} bytes)`);
+    } catch (dbError) {
+      console.error('❌ Database insert failed (continuing processing):', dbError.message);
+      // Continue processing even if database insert fails
+      eventId = null;
+    }
 
     // Emit real-time event via WebSocket
     io.emit('file-changed', {
@@ -308,6 +483,9 @@ async function handleFileChange(eventType, filepath) {
     triggerEngine.evaluate(triggerEvent);
   } catch (error) {
     console.error('❌ File change handler error:', error);
+  } finally {
+    // Always remove file from in-progress set to prevent deadlock
+    filesInProgress.delete(filepath);
   }
 }
 
@@ -398,17 +576,25 @@ async function emitGitStatusUpdate() {
  * Initialize file watcher for the current project
  */
 function initializeWatcher() {
+  // Default ignore patterns (can be extended via CHOKIDAR_IGNORE_PATTERNS env var)
+  const defaultIgnored = [
+    /(^|[\/\\])\../, // Ignore dotfiles
+    '**/node_modules/**',
+    '**/.git/**',
+    '**/target/**',
+    '**/.raven/**',
+    '**/*.log',
+    '**/dist/**',
+    '**/.cache/**'
+  ];
+
+  // Allow custom ignore patterns via environment variable (comma-separated)
+  const customIgnored = process.env.CHOKIDAR_IGNORE_PATTERNS
+    ? process.env.CHOKIDAR_IGNORE_PATTERNS.split(',').map(p => p.trim())
+    : [];
+
   const watcher = chokidar.watch(projectState.watchPath, {
-    ignored: [
-      /(^|[\/\\])\../, // Ignore dotfiles
-      '**/node_modules/**',
-      '**/.git/**',
-      '**/target/**',
-      '**/.raven/**',
-      '**/*.log',
-      '**/dist/**',
-      '**/.cache/**'
-    ],
+    ignored: [...defaultIgnored, ...customIgnored],
     persistent: true,
     ignoreInitial: true,
     awaitWriteFinish: {
@@ -445,38 +631,47 @@ function initializeWatcher() {
 
 /**
  * Switch to a different project
+ * Protected by mutex to prevent race conditions during concurrent switches
  */
 async function switchProject(projectName) {
-  console.log(`🔄 Switching to project: ${projectName}`);
+  return await projectStateMutex.runExclusive(async () => {
+    console.log(`🔄 Switching to project: ${projectName}`);
 
-  // Close existing watcher
-  if (projectState.watcher) {
-    await projectState.watcher.close();
-    console.log('✅ Closed previous watcher');
-  }
+    // Close existing watcher
+    if (projectState.watcher) {
+      await projectState.watcher.close();
+      console.log('✅ Closed previous watcher');
+    }
 
-  // Clear file cache
-  fileCache.clear();
+    // Clear file cache
+    fileCache.clear();
 
-  // Initialize new project
-  initializeProject(projectName);
+    // Initialize new project
+    initializeProject(projectName);
 
-  // Update metrics collector database reference
-  if (metricsCollector) {
-    metricsCollector.db = projectState.db;
-    console.log('✅ Updated metrics collector database reference');
-  }
+    // Update metrics collector database reference
+    if (metricsCollector) {
+      metricsCollector.db = projectState.db;
+      console.log('✅ Updated metrics collector database reference');
+    }
 
-  // Initialize new watcher
-  projectState.watcher = initializeWatcher();
+    // Update trigger engine database reference
+    if (triggerEngine) {
+      triggerEngine.setDb(projectState.db);
+      console.log('✅ Updated trigger engine database reference');
+    }
 
-  // Emit event to all connected clients
-  io.emit('project-switched', {
-    project: projectName,
-    timestamp: new Date().toISOString()
+    // Initialize new watcher
+    projectState.watcher = initializeWatcher();
+
+    // Emit event to all connected clients
+    io.emit('project-switched', {
+      project: projectName,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`✅ Switched to project: ${projectName}`);
   });
-
-  console.log(`✅ Switched to project: ${projectName}`);
 }
 
 // ==================== Telemetry Endpoint ====================
@@ -488,6 +683,26 @@ app.post('/telemetry', (req, res) => {
     // Validate required fields
     if (!agent || !event || !message) {
       return res.status(400).json({ error: 'Missing required fields: agent, event, message' });
+    }
+
+    // Validate field types and sanitize
+    if (typeof agent !== 'string' || agent.length > 100) {
+      return res.status(400).json({ error: 'Invalid agent: must be string ≤100 chars' });
+    }
+    if (typeof event !== 'string' || event.length > 100) {
+      return res.status(400).json({ error: 'Invalid event: must be string ≤100 chars' });
+    }
+    if (typeof message !== 'string' || message.length > 1000) {
+      return res.status(400).json({ error: 'Invalid message: must be string ≤1000 chars' });
+    }
+    if (file !== undefined && typeof file !== 'string') {
+      return res.status(400).json({ error: 'Invalid file: must be string' });
+    }
+    if (lines_changed !== undefined && (typeof lines_changed !== 'number' || lines_changed < 0 || lines_changed > 1000000)) {
+      return res.status(400).json({ error: 'Invalid lines_changed: must be number 0-1000000' });
+    }
+    if (duration_ms !== undefined && (typeof duration_ms !== 'number' || duration_ms < 0 || duration_ms > 3600000)) {
+      return res.status(400).json({ error: 'Invalid duration_ms: must be number 0-3600000 (1 hour max)' });
     }
 
     const timestamp = new Date().toISOString();
@@ -572,7 +787,7 @@ app.get('/api/session-id', (req, res) => {
 app.get('/api/dashboard-stats', (req, res) => {
   try {
     const stats = projectState.db.getDashboardStats(SESSION_ID);
-    stats.total_agents = agentRegistry.size;
+    // total_agents is now calculated from database in getDashboardStats()
     res.json(stats);
   } catch (error) {
     console.error('❌ Dashboard stats error:', error);
@@ -605,17 +820,42 @@ app.get('/api/longest-edits', (req, res) => {
 app.get('/api/agents-status', (req, res) => {
   try {
     const now = new Date();
-    const agents = Array.from(agentRegistry.values()).map(agent => {
-      // Mark agent as not running if last seen > 30 seconds ago
+
+    // Get historical agents from database
+    const historicalAgents = projectState.db.getHistoricalAgents();
+
+    // Create a map of agents with their historical data
+    const agentsMap = new Map();
+
+    // First, add historical agents from database
+    for (const agent of historicalAgents) {
       const lastSeen = new Date(agent.last_seen);
       const secondsSinceLastSeen = (now - lastSeen) / 1000;
 
-      return {
-        ...agent,
-        is_running: secondsSinceLastSeen < 30
-      };
-    });
+      agentsMap.set(agent.agent_name, {
+        agent_name: agent.agent_name,
+        agent_type: agent.agent_type,
+        last_seen: agent.last_seen,
+        requests_handled: agent.requests_handled,
+        errors: agent.errors,
+        is_running: secondsSinceLastSeen < 30,
+        models_available: [],
+        color: getAgentColor(agent.agent_name)
+      });
+    }
 
+    // Then, update with any current agents from registry (will be more recent)
+    for (const [agentName, agentData] of agentRegistry.entries()) {
+      const lastSeen = new Date(agentData.last_seen);
+      const secondsSinceLastSeen = (now - lastSeen) / 1000;
+
+      agentsMap.set(agentName, {
+        ...agentData,
+        is_running: secondsSinceLastSeen < 30
+      });
+    }
+
+    const agents = Array.from(agentsMap.values());
     res.json(agents);
   } catch (error) {
     console.error('❌ Agents status error:', error);
@@ -788,7 +1028,18 @@ app.post('/api/restore', async (req, res) => {
 
     // Read snapshot content
     const snapshotPath = join(projectState.snapshotsDir, snapshot);
-    const content = await fs.promises.readFile(snapshotPath, 'utf8');
+
+    // Read snapshot (may be compressed or uncompressed for backwards compatibility)
+    const data = await fs.promises.readFile(snapshotPath);
+
+    // Decompress if it's a .gz file, otherwise treat as plain text
+    let content;
+    if (snapshot.endsWith('.gz')) {
+      const decompressed = await gunzipAsync(data);
+      content = decompressed.toString('utf8');
+    } else {
+      content = data.toString('utf8');
+    }
 
     // Restore to original location
     const targetPath = join(projectState.watchPath, filepath);
@@ -893,12 +1144,122 @@ app.post('/api/triggers-clear-cooldowns', (req, res) => {
   }
 });
 
+// ==================== Changelog ====================
+
+app.get('/api/changelog', async (req, res) => {
+  try {
+    // Get git log with simple format (just hash, date, subject)
+    const { stdout } = await execAsync(
+      'git log --pretty=format:"%H|%ad|%s" --date=short',
+      { cwd: process.cwd(), maxBuffer: 10 * 1024 * 1024 }
+    );
+
+    const commits = stdout.trim().split('\n').filter(line => line.length > 0);
+
+    // Parse commits and group by week
+    const changesByWeek = {};
+
+    commits.forEach(line => {
+      const parts = line.split('|');
+      if (parts.length < 3) return; // Skip malformed lines
+
+      const [hash, date, ...subjectParts] = parts;
+      const subject = subjectParts.join('|').trim(); // Handle pipes in subject
+
+      // Skip if no subject
+      if (!subject || subject.length === 0) return;
+
+      // Determine week key for grouping
+      const weekKey = getWeekKey(date);
+
+      if (!changesByWeek[weekKey]) {
+        changesByWeek[weekKey] = {
+          date: date,
+          commits: []
+        };
+      }
+
+      // Detect change type from commit message
+      const type = detectChangeType(subject, '');
+
+      // Extract clean description (remove type prefixes)
+      const description = cleanDescription(subject);
+
+      changesByWeek[weekKey].commits.push({
+        type,
+        description,
+        hash: hash.substring(0, 7)
+      });
+    });
+
+    // Convert to array and assign versions
+    const weeks = Object.keys(changesByWeek).sort().reverse();
+    const changelog = weeks.map((week, index) => {
+      const data = changesByWeek[week];
+      return {
+        version: `0.${weeks.length - index}.0`,
+        date: data.date,
+        title: `Development Week of ${data.date}`,
+        changes: data.commits
+      };
+    });
+
+    res.json(changelog);
+  } catch (error) {
+    console.error('❌ Changelog error:', error);
+    res.status(500).json({ error: error.message, changelog: [] });
+  }
+});
+
+// Helper functions for changelog
+function getWeekKey(dateStr) {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const week = getWeekNumber(date);
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function detectChangeType(subject, body) {
+  const text = (subject + ' ' + body).toLowerCase();
+
+  // Check for explicit type markers
+  if (text.match(/^(feat|feature):/i)) return 'feature';
+  if (text.match(/^fix:/i)) return 'fix';
+  if (text.match(/^improve|improvement|perf|performance:/i)) return 'improvement';
+  if (text.match(/^breaking:/i)) return 'breaking';
+  if (text.match(/^security|sec:/i)) return 'security';
+  if (text.match(/^docs?:/i)) return 'docs';
+
+  // Infer from content
+  if (text.includes('add') || text.includes('implement') || text.includes('create')) return 'feature';
+  if (text.includes('fix') || text.includes('bug') || text.includes('issue')) return 'fix';
+  if (text.includes('improve') || text.includes('enhance') || text.includes('update') || text.includes('polish')) return 'improvement';
+  if (text.includes('break') || text.includes('remove')) return 'breaking';
+  if (text.includes('security') || text.includes('vulnerability')) return 'security';
+  if (text.includes('doc') || text.includes('readme')) return 'docs';
+
+  return 'improvement'; // Default
+}
+
+function cleanDescription(subject) {
+  // Remove common prefixes
+  return subject
+    .replace(/^(feat|feature|fix|improve|improvement|perf|performance|breaking|security|sec|docs?):\s*/i, '')
+    .trim();
+}
+
 // ==================== Health Check ====================
 
 app.get('/health', async (req, res) => {
   try {
-    const si = await import('systeminformation');
-
     // Get memory usage (process)
     const memUsage = process.memoryUsage();
 
@@ -951,22 +1312,31 @@ app.get('/health', async (req, res) => {
     };
 
     try {
-      // Get all events for analytics
-      const allEvents = projectState.db.getRecentFileEvents(999999, false);
-      dbAnalytics.totalEvents = allEvents.length;
-      dbAnalytics.recentEvents = Math.min(1000, allEvents.length);
+      // Optimized: Use SQL COUNT queries instead of loading all events
+      const totalCount = projectState.db.db.prepare('SELECT COUNT(*) as count FROM events').get();
+      dbAnalytics.totalEvents = totalCount.count;
+      dbAnalytics.recentEvents = Math.min(1000, totalCount.count);
 
-      if (allEvents.length > 0) {
-        dbAnalytics.oldestEventDate = allEvents[allEvents.length - 1].timestamp;
-        dbAnalytics.newestEventDate = allEvents[0].timestamp;
+      // Get date range efficiently
+      const dateRange = projectState.db.db.prepare(
+        'SELECT MIN(timestamp) as oldest, MAX(timestamp) as newest FROM events'
+      ).get();
 
-        // Count event types
-        allEvents.forEach(event => {
-          if (event.change_type === 'add') dbAnalytics.eventBreakdown.add++;
-          else if (event.change_type === 'change') dbAnalytics.eventBreakdown.change++;
-          else if (event.change_type === 'unlink') dbAnalytics.eventBreakdown.unlink++;
-        });
+      if (dateRange.oldest) {
+        dbAnalytics.oldestEventDate = dateRange.oldest;
+        dbAnalytics.newestEventDate = dateRange.newest;
       }
+
+      // Count event types efficiently
+      const eventTypes = projectState.db.db.prepare(
+        'SELECT change_type, COUNT(*) as count FROM events GROUP BY change_type'
+      ).all();
+
+      eventTypes.forEach(row => {
+        if (row.change_type === 'add') dbAnalytics.eventBreakdown.add = row.count;
+        else if (row.change_type === 'change') dbAnalytics.eventBreakdown.change = row.count;
+        else if (row.change_type === 'unlink') dbAnalytics.eventBreakdown.unlink = row.count;
+      });
     } catch (error) {
       console.error('Error getting database analytics:', error);
     }
@@ -1115,10 +1485,18 @@ app.post('/api/database/clear-old/:days', (req, res) => {
     const cutoffTimestamp = cutoffDate.getTime();
 
     // Delete from all tables
+    // Security: Whitelist of allowed tables to prevent SQL injection
+    const ALLOWED_TABLES = ['events', 'agent_events', 'raven_metrics', 'process_metrics', 'error_logs', 'notifications'];
     const tables = ['events', 'agent_events', 'raven_metrics', 'process_metrics'];
     let totalDeleted = 0;
 
     for (const table of tables) {
+      // Security: Validate table name is in whitelist
+      if (!ALLOWED_TABLES.includes(table)) {
+        console.error(`❌ Security: Attempted to delete from non-whitelisted table: ${table}`);
+        continue;
+      }
+
       const deleteStmt = projectState.db.db.prepare(`
         DELETE FROM ${table} WHERE timestamp < ?
       `);
@@ -1143,16 +1521,19 @@ app.post('/api/database/clear-old/:days', (req, res) => {
 
 app.post('/api/control/restart-watcher', async (req, res) => {
   try {
-    console.log('🔄 Restarting file watcher...');
+    // Protected by mutex to prevent race conditions with project switching
+    await projectStateMutex.runExclusive(async () => {
+      console.log('🔄 Restarting file watcher...');
 
-    // Close existing watcher
-    if (projectState.watcher) {
-      await projectState.watcher.close();
-      console.log('✅ Closed watcher');
-    }
+      // Close existing watcher
+      if (projectState.watcher) {
+        await projectState.watcher.close();
+        console.log('✅ Closed watcher');
+      }
 
-    // Reinitialize watcher
-    projectState.watcher = initializeWatcher();
+      // Reinitialize watcher
+      projectState.watcher = initializeWatcher();
+    });
 
     res.json({
       success: true,
@@ -1201,19 +1582,22 @@ app.get('/api/projects/list', (req, res) => {
   }
 });
 
-app.post('/api/projects/refresh', (req, res) => {
+app.post('/api/projects/refresh', async (req, res) => {
   try {
     // Re-scan for projects
     const newProjects = discoverProjects();
 
     if (newProjects.length > 0) {
-      projectState.availableProjects = newProjects;
+      // Protected by mutex to prevent race conditions with project switching
+      await projectStateMutex.runExclusive(async () => {
+        projectState.availableProjects = newProjects;
 
-      // If current active project no longer exists, switch to first available
-      const activeExists = newProjects.find(p => p.name === projectState.activeProject);
-      if (!activeExists && newProjects.length > 0) {
-        projectState.activeProject = newProjects[0].name;
-      }
+        // If current active project no longer exists, switch to first available
+        const activeExists = newProjects.find(p => p.name === projectState.activeProject);
+        if (!activeExists && newProjects.length > 0) {
+          projectState.activeProject = newProjects[0].name;
+        }
+      });
 
       console.log(`✅ Refreshed projects: ${newProjects.length} found`);
       res.json({
@@ -1546,7 +1930,14 @@ app.get('/api/docs/:filepath(*)', async (req, res) => {
       return res.status(400).json({ error: 'Only markdown files allowed' });
     }
 
-    const docsPath = join(process.cwd(), '..', 'docs', filepath);
+    // Security: Prevent path traversal attacks
+    const docsDir = path.normalize(join(process.cwd(), '..', 'docs'));
+    const docsPath = path.normalize(join(process.cwd(), '..', 'docs', filepath));
+
+    // Ensure the resolved path is still within the docs directory
+    if (!docsPath.startsWith(docsDir)) {
+      return res.status(403).json({ error: 'Access denied: Path traversal attempt detected' });
+    }
 
     // Check if file exists
     if (!fs.existsSync(docsPath)) {
@@ -1987,14 +2378,39 @@ httpServer.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n🛑 Shutting down Raven backend...');
+
+  // Clear all interval timers
+  if (rateLimitCleanupInterval) {
+    clearInterval(rateLimitCleanupInterval);
+    console.log('✅ Stopped rate limit cleanup');
+  }
+  if (agentCleanupInterval) {
+    clearInterval(agentCleanupInterval);
+    console.log('✅ Stopped agent cleanup');
+  }
+  if (snapshotCleanupInterval) {
+    clearInterval(snapshotCleanupInterval);
+    console.log('✅ Stopped snapshot cleanup');
+  }
+
+  // Close file watcher
   if (projectState.watcher) {
     projectState.watcher.close();
+    console.log('✅ Closed file watcher');
   }
+
+  // Stop metrics collection
   if (metricsCollector) {
     metricsCollector.stop();
+    console.log('✅ Stopped metrics collector');
   }
+
+  // Close database
   if (projectState.db) {
     projectState.db.close();
+    console.log('✅ Closed database');
   }
+
+  console.log('👋 Goodbye!');
   process.exit(0);
 });

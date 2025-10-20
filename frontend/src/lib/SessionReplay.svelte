@@ -32,7 +32,7 @@
       // For now, just show current session (could be expanded to show multiple sessions)
       allSessions = [
         { id: 'all', label: 'All Sessions' },
-        { id: currentSessionId, label: `Current Session (${currentSessionId.slice(0, 8)}...)` }
+        { id: currentSessionId, label: `Current Session (${currentSessionId?.slice(0, 8)}...)` }
       ];
     } catch (e) {
       console.error('Failed to load sessions:', e);
@@ -87,7 +87,7 @@
           on:change={onSessionChange}
           class="session-select"
         >
-          {#each allSessions as session}
+          {#each allSessions || [] as session}
             <option value={session.id}>{session.label}</option>
           {/each}
         </select>
@@ -109,7 +109,7 @@
     <div class="timeline">
       <h3>Recent Activity ({events.length} events)</h3>
       <div class="events-list">
-        {#each events as event}
+        {#each events || [] as event}
           <div class="event-item">
             <div class="event-header">
               <span class="timestamp">{formatTimestamp(event.timestamp)}</span>
@@ -151,11 +151,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    padding: 0 8px;
   }
 
   h2 {
     margin: 0;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
   }
 
@@ -229,7 +230,7 @@
   }
 
   h3 {
-    font-size: 12px;
+    font-size: 15px;
     margin-bottom: 10px;
     color: var(--text);
   }

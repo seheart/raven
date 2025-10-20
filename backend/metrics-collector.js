@@ -8,7 +8,9 @@ export class MetricsCollector {
     this.io = io;
     this.interval = null;
     this.isRunning = false;
-    this.collectionInterval = 1000; // Collect every 1 second for real-time monitoring
+    // Changed from 1s to 10s to reduce database load by 90% (from 86,400 to 8,640 records/day)
+    // Environment variable allows customization: METRICS_INTERVAL_MS=5000 for 5-second intervals
+    this.collectionInterval = parseInt(process.env.METRICS_INTERVAL_MS) || 10000;
   }
 
   async collectSystemMetrics() {

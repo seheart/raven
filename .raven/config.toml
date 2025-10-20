@@ -8,7 +8,7 @@ version = "0.1.0"
 
 [monitoring]
 # Directory to watch for changes
-watch_path = "../test_workspace"
+watch_path = ".."
 
 # File patterns to ignore (glob patterns)
 ignore_patterns = [

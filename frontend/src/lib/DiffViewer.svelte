@@ -18,8 +18,8 @@
 
   function parseDiff(diffText) {
     // Parse unified diff format
-    const lines = diffText.split('\n');
-    diffLines = lines.map(line => {
+    const lines = (diffText || '').split('\n');
+    diffLines = lines.filter(line => line != null).map(line => {
       if (line.startsWith('+') && !line.startsWith('+++')) {
         return { type: 'add', content: line.substring(1) };
       } else if (line.startsWith('-') && !line.startsWith('---')) {
@@ -78,7 +78,7 @@
     {#if diffLines.length > 0}
       <!-- Unified diff view -->
       <div class="unified-diff">
-        <pre class="diff-content">{#each diffLines as line}
+        <pre class="diff-content">{#each diffLines || [] as line}
 <span class="diff-line {getLineClass(line.type)}">{line.content}
 </span>{/each}</pre>
       </div>
@@ -88,7 +88,7 @@
         <div class="diff-pane">
           <div class="pane-header">Before</div>
           <div class="pane-content">
-            {#each leftLines as line}
+            {#each leftLines || [] as line}
               <div class="code-line {getLineClass(line.type)}">
                 <span class="line-num">{line.lineNum}</span>
                 <span class="line-content">{line.content || ' '}</span>
@@ -102,7 +102,7 @@
         <div class="diff-pane">
           <div class="pane-header">After</div>
           <div class="pane-content">
-            {#each rightLines as line}
+            {#each rightLines || [] as line}
               <div class="code-line {getLineClass(line.type)}">
                 <span class="line-num">{line.lineNum}</span>
                 <span class="line-content">{line.content || ' '}</span>
@@ -151,10 +151,14 @@
     border-bottom: 2px solid var(--info);
   }
 
+  .diff-header {
+    padding: 0 8px;
+  }
+
   h2 {
     margin: 0;
     color: var(--text);
-    font-size: 12px;
+    font-size: 18px;
   }
 
   .close-btn {

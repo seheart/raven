@@ -560,7 +560,7 @@ osascript -e 'display notification "Test" with title "Raven"'
 
 ---
 
-## ⚡ Performance
+## ⚡️ Performance
 
 ### Trigger Evaluation
 

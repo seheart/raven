@@ -117,19 +117,46 @@
     loadDocsList();
   });
 
-  $: filteredDocs = docs.filter(doc =>
-    doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Memoization cache for filtered docs
+  let cachedDocs = null;
+  let cachedSearchTerm = '';
+  let cachedFilteredDocs = [];
 
-  // Organize docs by category
-  $: organizedDocs = filteredDocs.reduce((acc, doc) => {
-    if (!acc[doc.category]) {
-      acc[doc.category] = [];
+  // Optimized: Only filter when docs or searchTerm changes
+  $: {
+    if (docs !== cachedDocs || searchTerm !== cachedSearchTerm) {
+      cachedDocs = docs;
+      cachedSearchTerm = searchTerm;
+
+      const lowerSearch = searchTerm.toLowerCase();
+      cachedFilteredDocs = docs.filter(doc =>
+        doc.name.toLowerCase().includes(lowerSearch) ||
+        doc.title.toLowerCase().includes(lowerSearch)
+      );
     }
-    acc[doc.category].push(doc);
-    return acc;
-  }, {});
+  }
+
+  $: filteredDocs = cachedFilteredDocs;
+
+  // Memoization cache for organized docs
+  let cachedOrgDocs = null;
+  let cachedOrganizedResult = {};
+
+  // Organize docs by category (memoized)
+  $: {
+    if (filteredDocs !== cachedOrgDocs) {
+      cachedOrgDocs = filteredDocs;
+      cachedOrganizedResult = filteredDocs.reduce((acc, doc) => {
+        if (!acc[doc.category]) {
+          acc[doc.category] = [];
+        }
+        acc[doc.category].push(doc);
+        return acc;
+      }, {});
+    }
+  }
+
+  $: organizedDocs = cachedOrganizedResult;
 </script>
 
 <div class="docs-viewer">
@@ -220,8 +247,8 @@
 
   .sidebar-header h2 {
     margin: 0 0 12px 0;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 600;
     color: var(--accent);
   }
 

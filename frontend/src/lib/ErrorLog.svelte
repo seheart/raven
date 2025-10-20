@@ -12,6 +12,7 @@
   let error = null;
   let selectedError = null;
   let socket = null;
+  let loadErrorsTimeout = null;
 
   // Pagination
   let currentPage = 0;
@@ -36,6 +37,11 @@
     if (socket) {
       socket.disconnect();
     }
+
+    // Clean up pending timeout
+    if (loadErrorsTimeout) {
+      clearTimeout(loadErrorsTimeout);
+    }
   });
 
   function setupWebSocket() {
@@ -47,8 +53,12 @@
 
     socket.on('error-logged', (errorData) => {
       console.log('📥 New error received:', errorData);
-      loadErrors();
-      loadStats();
+      // Debounce to prevent race conditions from rapid events
+      clearTimeout(loadErrorsTimeout);
+      loadErrorsTimeout = setTimeout(() => {
+        loadErrors();
+        loadStats();
+      }, 300);
     });
 
     socket.on('disconnect', () => {
@@ -91,7 +101,9 @@
       };
 
       stats.by_severity?.forEach(s => {
-        severityStats[s.severity] = s.count;
+        if (s.severity && severityStats.hasOwnProperty(s.severity)) {
+          severityStats[s.severity] = s.count;
+        }
       });
     } catch (err) {
       console.error('Failed to load error stats:', err);
@@ -452,13 +464,13 @@
 
   .header-title h1 {
     margin: 0 0 4px 0;
-    font-size: 28px;
+    font-size: 18px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
-    font-size: 14px;
+    font-size: 12px;
     color: var(--muted);
   }
 
@@ -532,7 +544,7 @@
   }
 
   .stat-value {
-    font-size: 24px;
+    font-size: 13px;
     color: var(--text);
     font-family: var(--mono);
     font-weight: 700;
@@ -561,7 +573,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 12px;
     font-family: var(--mono);
   }
 
@@ -676,13 +688,13 @@
 
   .empty-icon,
   .error-icon {
-    font-size: 64px;
+    font-size: 13px;
     margin-bottom: 16px;
   }
 
   .empty-state h2,
   .error-state h2 {
-    font-size: 24px;
+    font-size: 18px;
     margin: 0 0 8px 0;
     color: var(--text);
   }
@@ -729,7 +741,7 @@
   }
 
   .error-icon {
-    font-size: 20px;
+    font-size: 13px;
     flex-shrink: 0;
   }
 
@@ -739,7 +751,7 @@
   }
 
   .error-message {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text);
     font-weight: 500;
     margin-bottom: 4px;
@@ -830,7 +842,7 @@
   .stack-section h4,
   .metadata-section h4 {
     margin: 0 0 8px 0;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--muted);
     text-transform: uppercase;
   }

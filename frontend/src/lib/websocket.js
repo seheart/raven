@@ -5,6 +5,7 @@ class WebSocketService {
     this.socket = null;
     this.connected = false;
     this.listeners = new Map();
+    this.reconnectCallbacks = [];
   }
 
   connect() {
@@ -16,7 +17,8 @@ class WebSocketService {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity // Keep trying to reconnect
     });
 
     this.socket.on('connect', () => {
@@ -24,8 +26,8 @@ class WebSocketService {
       this.connected = true;
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('🔌 WebSocket disconnected');
+    this.socket.on('disconnect', (reason) => {
+      console.log('🔌 WebSocket disconnected:', reason);
       this.connected = false;
     });
 
@@ -33,7 +35,46 @@ class WebSocketService {
       console.error('🔌 WebSocket connection error:', error);
     });
 
+    // Handle successful reconnection
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`🔌 WebSocket reconnected after ${attemptNumber} attempts`);
+      this.connected = true;
+
+      // Notify all registered reconnect callbacks
+      for (const callback of this.reconnectCallbacks) {
+        try {
+          callback();
+        } catch (error) {
+          console.error('Error in reconnect callback:', error);
+        }
+      }
+    });
+
+    // Track reconnection attempts
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`🔌 Attempting to reconnect (${attemptNumber})...`);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('🔌 WebSocket reconnection failed - max attempts reached');
+    });
+
     return this.socket;
+  }
+
+  // Register a callback to be called when reconnection succeeds
+  onReconnect(callback) {
+    if (typeof callback === 'function') {
+      this.reconnectCallbacks.push(callback);
+    }
+  }
+
+  // Remove a reconnect callback
+  offReconnect(callback) {
+    const index = this.reconnectCallbacks.indexOf(callback);
+    if (index > -1) {
+      this.reconnectCallbacks.splice(index, 1);
+    }
   }
 
   on(event, callback) {

@@ -57,14 +57,18 @@
   });
 
   onDestroy(() => {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-    }
+    try {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
 
-    // Clean up WebSocket listeners
-    websocketService.off('agent-event', handleAgentEvent);
-    websocketService.off('agent-stats', handleAgentStats);
-    websocketService.off('project-switched', handleProjectSwitched);
+      // Clean up WebSocket listeners
+      websocketService.off('agent-event', handleAgentEvent);
+      websocketService.off('agent-stats', handleAgentStats);
+      websocketService.off('project-switched', handleProjectSwitched);
+    } catch (error) {
+      console.error('Error during Dashboard cleanup:', error);
+    }
   });
 
   async function loadAllData() {
@@ -177,7 +181,7 @@
                 <div class="col-count">Edits</div>
                 <div class="col-time">Last Modified</div>
               </div>
-              {#each topFiles as file}
+              {#each topFiles || [] as file}
                 <div class="table-row">
                   <div class="col-file" title={file.filepath}>
                     <span class="file-icon">📄</span>
@@ -212,7 +216,7 @@
                 <div class="col-count">Lines</div>
                 <div class="col-agent">Agent</div>
               </div>
-              {#each longestEdits as edit}
+              {#each longestEdits || [] as edit}
                 <div class="table-row">
                   <div class="col-file" title={edit.filepath}>
                     <span class="file-icon">📄</span>
@@ -241,23 +245,23 @@
       <div class="panel agents-panel">
         <div class="panel-header">
           <h2>🤖 Active Agents</h2>
-          <span class="panel-count">{agents.filter(a => a.is_running).length} / {agents.length}</span>
+          <span class="panel-count">{agents.filter(a => a?.is_running).length} / {agents.length}</span>
         </div>
         <div class="panel-content">
           {#if agents.length === 0}
             <div class="empty-state">No agents detected</div>
           {:else}
             <div class="agents-list">
-              {#each agents as agent}
-                <div class="agent-item" style="border-left-color: {agent.color}">
-                  <div class="agent-status" class:running={agent.is_running}>
-                    {agent.is_running ? '🟢' : '🔴'}
+              {#each agents || [] as agent}
+                <div class="agent-item" style="border-left-color: {agent?.color}">
+                  <div class="agent-status" class:running={agent?.is_running}>
+                    {agent?.is_running ? '🟢' : '🔴'}
                   </div>
                   <div class="agent-info">
-                    <div class="agent-name">{agent.agent_name}</div>
+                    <div class="agent-name">{agent?.agent_name || 'Unknown'}</div>
                     <div class="agent-meta">
-                      {agent.models_available.length} models
-                      {#if agent.requests_handled > 0}
+                      {agent?.models_available?.length || 0} models
+                      {#if agent?.requests_handled > 0}
                         · {agent.requests_handled} requests
                       {/if}
                     </div>
@@ -289,11 +293,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    padding: 0 8px;
   }
 
   h2 {
     margin: 0;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
   }
 
@@ -401,7 +406,7 @@
 
   .panel-header h2 {
     margin: 0;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
   }

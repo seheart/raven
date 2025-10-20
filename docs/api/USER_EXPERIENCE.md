@@ -523,7 +523,7 @@ stats.sort_by(|a, b| b.1.cmp(&a.1));
 
 ---
 
-## ⚡ Performance
+## ⚡️ Performance
 
 ### Dashboard Rendering
 - **Initial load:** <100ms

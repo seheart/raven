@@ -5,6 +5,12 @@
 
   const API_BASE = 'http://localhost:3030/api';
 
+  // ID counter for generating unique notification IDs
+  let notificationIdCounter = Date.now();
+  function generateNotificationId() {
+    return notificationIdCounter++;
+  }
+
   let notifications = [];
   let stats = {
     total: 0,
@@ -133,16 +139,16 @@
 
   function handleErrorLogged(data) {
     const notification = {
-      id: Date.now(),
+      id: generateNotificationId(),
       type: 'error',
-      severity: data.severity || 'warning',
-      title: `${data.error_type}: ${data.message}`,
-      message: data.message,
+      severity: data?.severity || 'warning',
+      title: `${data?.error_type || 'Error'}: ${data?.message || 'Unknown error'}`,
+      message: data?.message || 'Unknown error',
       timestamp: new Date().toISOString(),
       read: false,
       metadata: {
-        component: data.component,
-        stack: data.stack
+        component: data?.component,
+        stack: data?.stack
       }
     };
     handleNewNotification(notification);
@@ -150,7 +156,7 @@
 
   function handleTriggerFired(data) {
     const notification = {
-      id: Date.now(),
+      id: generateNotificationId(),
       type: 'trigger',
       severity: 'warning',
       title: `Trigger: ${data.trigger_name}`,
@@ -183,7 +189,7 @@
     switch(type) {
       case 'error': return '⚠️';
       case 'trigger': return '🔔';
-      case 'performance': return '⚡';
+      case 'performance': return '⚡️';
       case 'git': return '🌳';
       case 'agent': return '🤖';
       case 'file': return '📁';
@@ -400,16 +406,20 @@
     gap: 2rem;
   }
 
+  .header {
+    padding: 0 8px;
+  }
+
   .header-left h1 {
-    font-size: 28px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--text);
     margin: 0 0 0.5rem 0;
   }
 
   .subtitle {
     color: var(--muted);
-    font-size: 14px;
+    font-size: 12px;
     margin: 0;
   }
 
@@ -483,7 +493,7 @@
   }
 
   .stat-value {
-    font-size: 24px;
+    font-size: 13px;
     color: var(--text);
     font-family: var(--mono);
     font-weight: 700;
@@ -599,7 +609,7 @@
   }
 
   .notification-icon {
-    font-size: 20px;
+    font-size: 13px;
   }
 
   .notification-info {
@@ -607,7 +617,7 @@
   }
 
   .notification-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text);
     margin-bottom: 0.25rem;
@@ -647,6 +657,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    color: var(--success);
     transition: all 0.2s;
   }
 
@@ -706,19 +717,19 @@
   }
 
   .empty-icon {
-    font-size: 48px;
+    font-size: 13px;
     margin-bottom: 1rem;
   }
 
   .empty-title {
-    font-size: 18px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text);
     margin-bottom: 0.5rem;
   }
 
   .empty-message {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--muted);
   }
 

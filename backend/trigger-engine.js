@@ -111,7 +111,8 @@ cooldown_seconds = 300
         };
 
         this.triggeredEvents.unshift(triggerEvent);
-        if (this.triggeredEvents.length > 1000) {
+        // Keep only last 100 events in memory to prevent memory leak (rest are in database)
+        if (this.triggeredEvents.length > 100) {
           this.triggeredEvents.pop();
         }
 
@@ -302,7 +303,32 @@ cooldown_seconds = 300
   executeCommand(command, event) {
     try {
       const formattedCommand = this.formatMessage(command, event);
-      execSync(formattedCommand);
+
+      // Security: Whitelist of allowed command prefixes to prevent arbitrary code execution
+      const ALLOWED_COMMANDS = [
+        'echo',
+        'notify-send',
+        'osascript', // macOS notifications
+        'powershell.exe', // Windows notifications (must be followed by specific params)
+        'logger', // System logger
+        'wall', // Write to all users
+      ];
+
+      // Extract the base command (first word)
+      const baseCommand = formattedCommand.trim().split(/\s+/)[0];
+
+      // Check if command is whitelisted
+      const isAllowed = ALLOWED_COMMANDS.some(allowed =>
+        baseCommand === allowed || baseCommand.endsWith(`/${allowed}`) || baseCommand.endsWith(`\\${allowed}`)
+      );
+
+      if (!isAllowed) {
+        console.error(`❌ Command execution blocked: '${baseCommand}' is not in whitelist. Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
+        console.error(`⚠️  To enable custom commands, add them to the ALLOWED_COMMANDS whitelist in trigger-engine.js`);
+        return;
+      }
+
+      execSync(formattedCommand, { timeout: 5000 }); // Add 5-second timeout
       console.log(`⚙️  Executed command: ${formattedCommand}`);
     } catch (error) {
       console.error(`❌ Failed to execute command: ${error}`);

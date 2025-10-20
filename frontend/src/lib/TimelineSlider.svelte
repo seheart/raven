@@ -13,12 +13,24 @@
   let dragStartX = 0;
   let dragStartValue = 0;
 
-  $: sortedEvents = [...events].sort((a, b) =>
-    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
+  // Memoization cache for sorted events (avoids re-sorting on every reactive update)
+  let cachedEvents = null;
+  let cachedSortedEvents = [];
 
-  $: minTime = sortedEvents.length > 0 ? new Date(sortedEvents[0].timestamp).getTime() : Date.now();
-  $: maxTime = sortedEvents.length > 0 ? new Date(sortedEvents[sortedEvents.length - 1].timestamp).getTime() : Date.now();
+  // Optimized: Only sort when events array actually changes
+  $: {
+    if (events !== cachedEvents) {
+      cachedEvents = events;
+      cachedSortedEvents = [...(events || [])].sort((a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+    }
+  }
+
+  $: sortedEvents = cachedSortedEvents;
+
+  $: minTime = sortedEvents.length > 0 && sortedEvents[0]?.timestamp ? new Date(sortedEvents[0].timestamp).getTime() : Date.now();
+  $: maxTime = sortedEvents.length > 0 ? new Date(sortedEvents[sortedEvents.length - 1]?.timestamp).getTime() : Date.now();
   $: timeRange = maxTime - minTime || 1;
 
   $: startTime = minTime + (startHandle / 100) * timeRange;
@@ -29,16 +41,32 @@
     onTimeRangeChange(startTime, endTime);
   }
 
-  // Calculate event density for visualization
-  $: eventDensity = calculateDensity(sortedEvents, 100);
+  // Memoization cache for event density
+  let cachedDensityEvents = null;
+  let cachedDensityResult = [];
+  let cachedMinTime = null;
+  let cachedTimeRange = null;
 
-  function calculateDensity(events, buckets) {
+  // Calculate event density for visualization (memoized)
+  $: {
+    // Only recalculate if events, minTime, or timeRange changed
+    if (sortedEvents !== cachedDensityEvents || minTime !== cachedMinTime || timeRange !== cachedTimeRange) {
+      cachedDensityEvents = sortedEvents;
+      cachedMinTime = minTime;
+      cachedTimeRange = timeRange;
+      cachedDensityResult = calculateDensity(sortedEvents, 100, minTime, timeRange);
+    }
+  }
+
+  $: eventDensity = cachedDensityResult;
+
+  function calculateDensity(events, buckets, min, range) {
     if (events.length === 0) return new Array(buckets).fill(0);
 
     const density = new Array(buckets).fill(0);
     events.forEach(event => {
       const timestamp = new Date(event.timestamp).getTime();
-      const position = ((timestamp - minTime) / timeRange) * buckets;
+      const position = ((timestamp - min) / range) * buckets;
       const bucket = Math.min(Math.floor(position), buckets - 1);
       density[bucket]++;
     });
@@ -116,7 +144,7 @@
   <div class="slider-container" bind:this={sliderRef}>
     <!-- Event density visualization -->
     <div class="density-bars">
-      {#each eventDensity as density, i}
+      {#each eventDensity || [] as density, i}
         <div
           class="density-bar"
           style="height: {density * 100}%; left: {i}%; opacity: {density * 0.8 + 0.2}"
@@ -154,7 +182,7 @@
 
   <div class="timeline-info">
     <span class="info-text">
-      Showing {sortedEvents.filter(e => {
+      Showing {(sortedEvents || []).filter(e => {
         const t = new Date(e.timestamp).getTime();
         return t >= startTime && t <= endTime;
       }).length} of {sortedEvents.length} events
@@ -177,10 +205,14 @@
     margin-bottom: 8px;
   }
 
+  .timeline-header {
+    padding: 0 8px;
+  }
+
   .timeline-label {
     font-weight: 600;
     color: var(--text);
-    font-size: 12px;
+    font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }

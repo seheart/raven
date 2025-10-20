@@ -93,7 +93,7 @@
       const events = await eventsRes.json();
 
       // Track changed files
-      changedFiles = new Set(events.map(e => e.filepath).filter(Boolean));
+      changedFiles = new Set((events || []).map(e => e?.filepath).filter(Boolean));
 
       // Build tree structure
       fileTree = buildTree(files);
@@ -128,8 +128,8 @@
 
       // Combine and sort by timestamp
       const combined = [
-        ...fileEvents.map(e => ({ ...e, type: 'file' })),
-        ...agentEvents.map(e => ({ ...e, type: 'agent' }))
+        ...(fileEvents || []).map(e => ({ ...e, type: 'file' })),
+        ...(agentEvents || []).map(e => ({ ...e, type: 'agent' }))
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       recentActivity = combined.slice(0, 30);
@@ -302,14 +302,6 @@
 </script>
 
 <div class="live-code-feed">
-  <div class="feed-header">
-    <h2>🔴 Live Code Feed</h2>
-    <div class="header-actions">
-      <span class="live-indicator">● LIVE</span>
-      <button on:click={loadAllData} class="btn-refresh">↻ Refresh</button>
-    </div>
-  </div>
-
   <div class="feed-layout">
     <!-- Left Column: File Tree -->
     <div class="file-tree-column">
@@ -325,7 +317,7 @@
           </div>
         {:else}
           <div class="file-list">
-            {#each flatItems as item}
+            {#each flatItems || [] as item}
               {#if item.type === 'folder'}
                 <div
                   class="tree-item folder"
@@ -347,7 +339,7 @@
                   <span class="file-icon">📄</span>
                   <span class="item-name">{item.name}</span>
                   {#if item.hasChanges}
-                    <span class="change-indicator">●</span>
+                    <div class="change-indicator"></div>
                   {/if}
                 </div>
               {/if}
@@ -373,7 +365,7 @@
           </div>
         {:else}
           <div class="changes-list">
-            {#each codeChanges as change}
+            {#each codeChanges || [] as change}
               <div class="change-item">
                 <div class="change-header">
                   <div class="change-meta">
@@ -419,7 +411,7 @@
     <!-- Right Column: Recent Activity -->
     <div class="activity-column">
       <div class="column-header">
-        <h3>⚡ Recent Activity</h3>
+        <h3>⚡️ Recent Activity</h3>
       </div>
       <div class="activity-content">
         {#if loading}
@@ -430,7 +422,7 @@
           </div>
         {:else}
           <div class="activity-list">
-            {#each recentActivity as activity}
+            {#each recentActivity || [] as activity}
               <div class="activity-item" class:file={activity.type === 'file'} class:agent={activity.type === 'agent'}>
                 <div class="activity-icon">
                   {#if activity.type === 'file'}
@@ -469,7 +461,7 @@
 <style>
   .live-code-feed {
     width: 100%;
-    height: calc(100vh - 150px);
+    height: calc(100vh - 180px);
     display: flex;
     flex-direction: column;
     background: var(--bg);
@@ -477,58 +469,9 @@
     font-family: var(--mono);
   }
 
-  .feed-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-  }
-
-  .feed-header h2 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .live-indicator {
-    color: var(--error);
-    font-size: 11px;
-    font-weight: 600;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-
-  .btn-refresh {
-    padding: 6px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.2s;
-  }
-
-  .btn-refresh:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
   .feed-layout {
     display: grid;
-    grid-template-columns: 200px 1fr 280px;
+    grid-template-columns: 350px 1fr 280px;
     gap: 0;
     height: 100%;
     overflow: hidden;
@@ -558,7 +501,7 @@
 
   .column-header h3 {
     margin: 0;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -608,7 +551,7 @@
   }
 
   .tree-item.file.has-changes {
-    background: color-mix(in srgb, var(--warning) 5%, transparent);
+    /* Background removed - circle indicator is sufficient */
   }
 
   .folder-arrow {
@@ -640,9 +583,13 @@
   }
 
   .change-indicator {
-    color: var(--warning);
-    font-size: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warning);
     margin-left: auto;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px var(--warning);
   }
 
   /* Legacy file-item support */

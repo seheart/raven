@@ -409,15 +409,16 @@ Three distinct themes with complete semantic palettes.
 
 ### Type Scale
 
+**Compact hierarchy for data-dense interfaces:**
+
 | Element | Size | Weight | Usage |
 |---------|------|--------|-------|
-| `<h1>` | 28px | 700 | Page titles |
-| `<h2>` | 24px | 700 | Section headers |
-| `<h3>` | 20px | 600 | Subsections |
-| `<h4>` | 16px | 600 | Component titles |
-| `<p>` | 14px | 400 | Body text |
-| `<small>` | 12px | 400 | Meta info |
-| `.tiny` | 11px | 400 | Labels |
+| `<h1>`, `<h2>` | 18px | 600 | Page titles |
+| `<h3>` | 15px | 600 | Section/card headers |
+| `<h4>`, `.section-title` | 14px | 600 | Subsections |
+| `<p>`, data text | 12-13px | 400 | Body text, values |
+| `<small>`, labels | 11-12px | 400 | Meta info, labels |
+| `.tiny` | 11px | 400 | Badges, timestamps |
 | `<code>` | 13px | 400 | Code inline |
 | `<pre>` | 12px | 400 | Code blocks |
 
@@ -425,34 +426,47 @@ Three distinct themes with complete semantic palettes.
 
 <div style="display: flex; flex-direction: column; gap: 16px; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0;">
   <div style="font-family: var(--mono); color: var(--text);">
-    <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">Heading 1</div>
-    <div style="font-size: 11px; color: var(--muted);">28px, bold – Page titles</div>
+    <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">Page Title (H1/H2)</div>
+    <div style="font-size: 11px; color: var(--muted);">18px, semibold – Main page heading with breathing room (padding: 0 8px)</div>
   </div>
   <div style="font-family: var(--mono); color: var(--text);">
-    <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">Heading 2</div>
-    <div style="font-size: 11px; color: var(--muted);">24px, bold – Section headers</div>
+    <div style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">Section Header (H3)</div>
+    <div style="font-size: 11px; color: var(--muted);">15px, semibold – Card titles, panel headers</div>
   </div>
   <div style="font-family: var(--mono); color: var(--text);">
-    <div style="font-size: 20px; font-weight: 600; margin-bottom: 4px;">Heading 3</div>
-    <div style="font-size: 11px; color: var(--muted);">20px, semibold – Subsections</div>
+    <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">Subsection (H4)</div>
+    <div style="font-size: 11px; color: var(--muted);">14px, semibold – Within-card sections</div>
   </div>
   <div style="font-family: var(--mono); color: var(--text);">
-    <div style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Heading 4</div>
-    <div style="font-size: 11px; color: var(--muted);">16px, semibold – Component titles</div>
+    <div style="font-size: 13px; font-weight: 400; margin-bottom: 4px;">Data text: metrics, values, content</div>
+    <div style="font-size: 11px; color: var(--muted);">12-13px, normal – Body text (keep compact)</div>
   </div>
   <div style="font-family: var(--mono); color: var(--text);">
-    <div style="font-size: 14px; font-weight: 400; margin-bottom: 4px;">Body text for paragraphs and general content</div>
-    <div style="font-size: 11px; color: var(--muted);">14px, normal – Body text</div>
+    <div style="font-size: 12px; font-weight: 400; margin-bottom: 4px;">Small text for metadata and labels</div>
+    <div style="font-size: 11px; color: var(--muted);">11-12px, normal – Meta info</div>
   </div>
   <div style="font-family: var(--mono); color: var(--text);">
-    <div style="font-size: 12px; font-weight: 400; margin-bottom: 4px;">Small text for metadata and timestamps</div>
-    <div style="font-size: 11px; color: var(--muted);">12px, normal – Meta info</div>
-  </div>
-  <div style="font-family: var(--mono); color: var(--text);">
-    <div style="font-size: 11px; font-weight: 400; margin-bottom: 4px;">Tiny text for labels and badges</div>
-    <div style="font-size: 11px; color: var(--muted);">11px, normal – Labels</div>
+    <div style="font-size: 11px; font-weight: 400; margin-bottom: 4px;">Tiny text for badges and timestamps</div>
+    <div style="font-size: 11px; color: var(--muted);">11px, normal – Labels, badges</div>
   </div>
 </div>
+
+### Heading Hierarchy Guidelines
+
+**Principle:** Clear structure with compact data
+
+✅ **DO:**
+- Use 18px for page titles with `padding: 0 8px` on header container
+- Use 15px for major section breaks (cards, panels)
+- Use 14px for subsections within cards
+- Keep all data/content at 11-13px for density
+- Maintain visual hierarchy through size, not bold weights
+
+❌ **DON'T:**
+- Use font sizes >18px (too large for data-dense UIs)
+- Use bold (700) weights (prefer 600 for headings, 400 for data)
+- Make data text >13px (sacrifices information density)
+- Skip hierarchy levels (confuses structure)
 
 ---
 
@@ -720,7 +734,7 @@ Three distinct themes with complete semantic palettes.
 
 ---
 
-## ⚡ Animations
+## ⚡️ Animations
 
 **Minimal by design** - performance first!
 

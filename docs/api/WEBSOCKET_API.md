@@ -492,7 +492,7 @@ onDestroy(() => {
 
 ---
 
-## ⚡ Performance Considerations
+## ⚡️ Performance Considerations
 
 ### Event Frequency
 

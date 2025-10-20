@@ -179,15 +179,15 @@
           </div>
           <div class="info-row">
             <span class="label">Session ID:</span>
-            <span class="value mono">{backendStatus.session_id.slice(0, 8)}...</span>
+            <span class="value mono">{backendStatus?.session_id?.slice(0, 8) || 'N/A'}...</span>
           </div>
           <div class="info-row">
             <span class="label">Active Agents:</span>
-            <span class="value">{backendStatus.active_agents}</span>
+            <span class="value">{backendStatus?.active_agents || 0}</span>
           </div>
           <div class="info-row">
             <span class="label">Database:</span>
-            <span class="value mono small">{backendStatus.database.split('/').slice(-3).join('/')}</span>
+            <span class="value mono small">{backendStatus?.database?.split('/')?.slice(-3)?.join('/') || 'N/A'}</span>
           </div>
         {:else}
           <div class="error-message">
@@ -264,13 +264,13 @@
           </div>
 
           <!-- All Branches -->
-          {#if gitStatus.branches.length > 0}
+          {#if gitStatus?.branches?.length > 0}
             <div class="git-section">
-              <h4 class="section-title">🌿 All Branches ({gitStatus.branches.length})</h4>
+              <h4 class="section-title">🌿 All Branches ({gitStatus?.branches?.length || 0})</h4>
               <div class="branches-list">
-                {#each gitStatus.branches as branch}
-                  <span class="branch-tag" class:active={branch === gitStatus.branch}>
-                    {branch === gitStatus.branch ? '● ' : ''}{branch}
+                {#each gitStatus?.branches || [] as branch}
+                  <span class="branch-tag" class:active={branch === gitStatus?.branch}>
+                    {branch === gitStatus?.branch ? '● ' : ''}{branch}
                   </span>
                 {/each}
               </div>
@@ -278,18 +278,18 @@
           {/if}
 
           <!-- Recent Commits -->
-          {#if gitStatus.commits.length > 0}
+          {#if gitStatus?.commits?.length > 0}
             <div class="git-section">
               <h4 class="section-title">📜 Recent Commits</h4>
               <div class="commits-list">
-                {#each gitStatus.commits as commit}
+                {#each gitStatus?.commits || [] as commit}
                   <div class="commit-item">
                     <div class="commit-header">
-                      <span class="commit-hash">{commit.hash.slice(0, 7)}</span>
-                      <span class="commit-date">{formatCommitDate(commit.date)}</span>
+                      <span class="commit-hash">{commit?.hash?.slice(0, 7) || 'unknown'}</span>
+                      <span class="commit-date">{formatCommitDate(commit?.date)}</span>
                     </div>
-                    <div class="commit-message">{commit.message}</div>
-                    <div class="commit-author">{commit.author_name}</div>
+                    <div class="commit-message">{commit?.message || 'No message'}</div>
+                    <div class="commit-author">{commit?.author_name || 'Unknown'}</div>
                   </div>
                 {/each}
               </div>
@@ -367,11 +367,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    padding: 0 8px;
   }
 
   h2 {
     margin: 0;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
   }
 
@@ -419,7 +420,7 @@
 
   h3 {
     margin: 0;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
   }
@@ -581,7 +582,7 @@
   }
 
   .section-title {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text);
     margin: 0 0 12px 0;

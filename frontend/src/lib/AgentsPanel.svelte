@@ -131,17 +131,18 @@
   }
 
   function getTotalEvents() {
-    return agentStats.reduce((sum, stat) => sum + stat.event_count, 0);
+    return agentStats.reduce((sum, stat) => sum + (stat?.event_count || 0), 0);
   }
 
   function getTotalLinesChanged() {
-    return agentStats.reduce((sum, stat) => sum + (stat.total_lines_changed || 0), 0);
+    return agentStats.reduce((sum, stat) => sum + (stat?.total_lines_changed || 0), 0);
   }
 
   function getAverageResponseTime() {
-    if (agentStats.length === 0) return 0;
+    const length = agentStats.length;
+    if (length === 0) return 0;
     const total = agentStats.reduce((sum, stat) => sum + (stat.avg_duration_ms || 0), 0);
-    return Math.round(total / agentStats.length);
+    return Math.round(total / length);
   }
 </script>
 
@@ -198,7 +199,7 @@
       class:active={activeTab === 'performance'}
       on:click={() => activeTab = 'performance'}
     >
-      ⚡ Performance
+      ⚡️ Performance
     </button>
   </div>
 
@@ -291,7 +292,7 @@
       <!-- Performance Tab -->
       {#if agentStats.length === 0}
         <div class="empty">
-          <div class="icon">⚡</div>
+          <div class="icon">⚡️</div>
           <h3>No Performance Data</h3>
           <p>Performance metrics will appear here once agents are active.</p>
         </div>
@@ -321,7 +322,7 @@
             <h3>Activity Distribution</h3>
             <div class="performance-bars">
               {#each agentStats.sort((a, b) => b.event_count - a.event_count) as stat}
-                {@const maxEvents = Math.max(...agentStats.map(s => s.event_count))}
+                {@const maxEvents = agentStats.length > 0 ? Math.max(...agentStats.map(s => s?.event_count || 0)) : 1}
                 <div class="bar-row">
                   <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
                     {stat.agent}
@@ -342,7 +343,7 @@
             <h3>Code Impact</h3>
             <div class="performance-bars">
               {#each agentStats.sort((a, b) => (b.total_lines_changed || 0) - (a.total_lines_changed || 0)) as stat}
-                {@const maxLines = Math.max(...agentStats.map(s => s.total_lines_changed || 0))}
+                {@const maxLines = agentStats.length > 0 ? Math.max(...agentStats.map(s => s?.total_lines_changed || 0)) : 1}
                 <div class="bar-row">
                   <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
                     {stat.agent}
@@ -387,11 +388,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    padding: 0 8px;
   }
 
   h2 {
     margin: 0;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
   }
 
@@ -508,7 +510,7 @@
 
   .empty h3 {
     color: var(--text);
-    font-size: 13px;
+    font-size: 15px;
     margin-bottom: 12px;
   }
 
@@ -573,7 +575,7 @@
 
   .agent-info h3 {
     margin: 0 0 4px 0;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
   }
@@ -706,7 +708,7 @@
 
   .performance-card h3 {
     color: var(--text);
-    font-size: 12px;
+    font-size: 15px;
     margin-bottom: 10px;
     font-weight: 600;
   }

@@ -22,9 +22,9 @@
       if (!res.ok) throw new Error('Failed to fetch projects');
 
       const data = await res.json();
-      availableProjects.set(data.projects);
-      activeProject.set(data.active);
-      selectedProject = data.active;
+      availableProjects.set(data?.projects || []);
+      activeProject.set(data?.active || '');
+      selectedProject = data?.active || '';
     } catch (err) {
       console.error('Error fetching projects:', err);
       projectStatus.set({ loading: false, error: err.message });
@@ -46,11 +46,11 @@
       if (!res.ok) throw new Error('Failed to refresh projects');
 
       const data = await res.json();
-      availableProjects.set(data.projects);
-      activeProject.set(data.active);
-      selectedProject = data.active;
+      availableProjects.set(data?.projects || []);
+      activeProject.set(data?.active || '');
+      selectedProject = data?.active || '';
 
-      console.log(`✅ ${data.message}`);
+      console.log(`✅ ${data?.message || 'Projects refreshed'}`);
       projectStatus.set({ loading: false, error: null });
     } catch (err) {
       console.error('Error refreshing projects:', err);
@@ -103,9 +103,9 @@
 
   // WebSocket event handler
   const handleProjectSwitched = (data) => {
-    console.log('📡 Project switched via WebSocket:', data.project);
-    activeProject.set(data.project);
-    selectedProject = data.project;
+    console.log('📡 Project switched via WebSocket:', data?.project);
+    activeProject.set(data?.project || '');
+    selectedProject = data?.project || '';
   };
 
   onMount(() => {
@@ -130,7 +130,7 @@
     disabled={isLoading}
     class:loading={isLoading}
   >
-    {#each $availableProjects as project}
+    {#each $availableProjects || [] as project}
       <option value={project}>{project}</option>
     {/each}
   </select>

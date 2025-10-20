@@ -227,9 +227,11 @@
   <div class="panel-header">
     <div class="header-title">
       <h1>🌳 Git Repository</h1>
-      <div class="repo-name">{repositoryName}</div>
-      <div class="status-badge" class:available={gitStatus.available} class:unavailable={!gitStatus.available}>
-        {gitStatus.available ? '🟢 Available' : '⚫ Not a Git Repo'}
+      <div class="header-title-row">
+        <div class="repo-name">{repositoryName}</div>
+        <div class="status-badge" class:available={gitStatus.available} class:unavailable={!gitStatus.available}>
+          {gitStatus.available ? '🟢 Available' : '⚫ Not a Git Repo'}
+        </div>
       </div>
     </div>
     <div class="header-stats">
@@ -302,7 +304,7 @@
           </div>
           <div class="section-content">
             <div class="files-list">
-              {#each gitStatus.modified as file}
+              {#each gitStatus?.modified || [] as file}
                 <div class="file-wrapper">
                   <div class="file-item modified" class:expanded={expandedFile === file} on:click={() => showFileDiff(file)}>
                     <span class="expand-arrow">{expandedFile === file ? '▼' : '▶'}</span>
@@ -322,7 +324,7 @@
                   {/if}
                 </div>
               {/each}
-              {#each gitStatus.created as file}
+              {#each gitStatus?.created || [] as file}
                 <div class="file-wrapper">
                   <div class="file-item created" class:expanded={expandedFile === file} on:click={() => showFileDiff(file)}>
                     <span class="expand-arrow">{expandedFile === file ? '▼' : '▶'}</span>
@@ -342,7 +344,7 @@
                   {/if}
                 </div>
               {/each}
-              {#each gitStatus.deleted as file}
+              {#each gitStatus?.deleted || [] as file}
                 <div class="file-item deleted">
                   <span class="file-icon">🗑️</span>
                   <span class="file-path">{file}</span>
@@ -363,7 +365,7 @@
           </div>
           <div class="section-content">
             <div class="branches-grid">
-              {#each gitStatus.branches as branch}
+              {#each gitStatus?.branches || [] as branch}
                 <div class="branch-tag" class:active={branch === gitStatus.branch}>
                   {branch === gitStatus.branch ? '● ' : ''}{branch}
                 </div>
@@ -378,18 +380,18 @@
         <section class="git-section">
           <div class="section-header">
             <h2>📜 Recent Commits</h2>
-            <span class="count-badge">{gitStatus.commits.length}</span>
+            <span class="count-badge">{gitStatus?.commits?.length || 0}</span>
           </div>
           <div class="section-content">
             <div class="commits-list">
-              {#each gitStatus.commits as commit}
+              {#each gitStatus?.commits || [] as commit}
                 <div class="commit-item">
                   <div class="commit-header">
-                    <span class="commit-hash">{commit.hash.slice(0, 7)}</span>
-                    <span class="commit-date">{formatCommitDate(commit.date)}</span>
+                    <span class="commit-hash">{commit?.hash?.slice(0, 7) || 'unknown'}</span>
+                    <span class="commit-date">{formatCommitDate(commit?.date)}</span>
                   </div>
-                  <div class="commit-message">{commit.message}</div>
-                  <div class="commit-author">{commit.author}</div>
+                  <div class="commit-message">{commit?.message || 'No message'}</div>
+                  <div class="commit-author">{commit?.author || 'Unknown'}</div>
                 </div>
               {/each}
             </div>
@@ -414,22 +416,22 @@
   .panel-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 24px;
-    padding-bottom: 16px;
+    padding: 0 8px 16px 8px;
     border-bottom: 2px solid var(--border);
   }
 
   .header-title {
     display: flex;
-    align-items: center;
-    gap: 16px;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .header-stats {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 12px;
   }
 
   .header-stat {
@@ -452,7 +454,7 @@
   }
 
   .stat-value {
-    font-size: 24px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
@@ -464,13 +466,20 @@
 
   .header-title h1 {
     margin: 0;
-    font-size: 28px;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--text);
+  }
+
+  .header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .repo-name {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 12px;
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 10%, transparent);
     padding: 6px 14px;
@@ -524,18 +533,18 @@
   }
 
   .empty-icon {
-    font-size: 64px;
+    font-size: 13px;
     margin-bottom: 16px;
   }
 
   .empty-state h2 {
-    font-size: 24px;
+    font-size: 15px;
     margin: 0 0 8px 0;
     color: var(--text);
   }
 
   .empty-state p {
-    font-size: 14px;
+    font-size: 12px;
     margin: 0;
   }
 
@@ -563,7 +572,7 @@
 
   .section-header h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     color: var(--text);
   }
 
@@ -599,7 +608,7 @@
   }
 
   .value {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text);
   }
 
@@ -635,7 +644,7 @@
   }
 
   .stat-icon {
-    font-size: 32px;
+    font-size: 13px;
   }
 
   .stat-details {
@@ -644,7 +653,7 @@
   }
 
   .stat-value {
-    font-size: 28px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text);
   }
@@ -728,7 +737,7 @@
   }
 
   .file-icon {
-    font-size: 20px;
+    font-size: 13px;
     flex-shrink: 0;
   }
 
@@ -837,7 +846,7 @@
   }
 
   .commit-message {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text);
     margin-bottom: 6px;
     line-height: 1.4;

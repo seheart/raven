@@ -117,7 +117,7 @@
   }
 
   function getActionIcon(action) {
-    switch(action.toLowerCase()) {
+    switch(action?.toLowerCase()) {
       case 'notify': return '🔔';
       case 'log': return '📝';
       case 'command': return '⚙️';
@@ -168,14 +168,14 @@
       class:active={activeTab === 'rules'}
       on:click={() => activeTab = 'rules'}
     >
-      📋 Trigger Rules ({triggers.length})
+      📋 Trigger Rules ({triggers?.length || 0})
     </button>
     <button
       class="tab"
       class:active={activeTab === 'events'}
       on:click={() => activeTab = 'events'}
     >
-      🔔 Triggered Events ({triggeredEvents.length})
+      🔔 Triggered Events ({triggeredEvents?.length || 0})
     </button>
     <button
       class="tab"
@@ -200,7 +200,7 @@
         </div>
       {:else}
         <div class="rules-grid">
-          {#each triggers as trigger}
+          {#each triggers || [] as trigger}
             <div class="trigger-card">
               <div class="trigger-header">
                 <span class="trigger-name">{trigger.name}</span>
@@ -214,7 +214,7 @@
                   <div class="conditions">
                     <span class="label">Conditions:</span>
                     <ul>
-                      {#each getConditionsList(trigger) as condition}
+                      {#each getConditionsList(trigger) || [] as condition}
                         <li>{condition}</li>
                       {/each}
                     </ul>
@@ -257,7 +257,7 @@
         </div>
       {:else}
         <div class="events-list">
-          {#each triggeredEvents as event}
+          {#each triggeredEvents || [] as event}
             <div class="event-row">
               <span class="event-icon">{getActionIcon(event.action)}</span>
               <div class="event-details">
@@ -286,11 +286,11 @@
           <div class="stat-label">Active Trigger Rules</div>
         </div>
 
-        {#if Object.keys(stats.trigger_counts).length > 0}
+        {#if Object.keys(stats?.trigger_counts || {}).length > 0}
           <div class="stat-card full-width">
             <h3>Trigger Fire Counts</h3>
             <div class="trigger-counts">
-              {#each Object.entries(stats.trigger_counts).sort((a, b) => b[1] - a[1]) as [name, count]}
+              {#each Object.entries(stats?.trigger_counts || {}).sort((a, b) => b[1] - a[1]) as [name, count]}
                 <div class="count-row">
                   <span class="count-name">{name}</span>
                   <span class="count-value">{count}</span>
@@ -320,11 +320,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    padding: 0 8px;
   }
 
   h2 {
     margin: 0;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
   }
 
@@ -640,7 +641,7 @@
 
   .stat-card h3 {
     color: var(--text);
-    font-size: 12px;
+    font-size: 15px;
     margin-bottom: 10px;
   }
 

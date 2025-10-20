@@ -34,7 +34,7 @@
   }
 
   function formatBytes(bytes) {
-    if (bytes === 0) return '0 B';
+    if (!bytes || bytes <= 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -56,12 +56,12 @@
   }
 
   function getPercentage(size, total) {
-    if (total === 0) return 0;
-    return ((size / total) * 100).toFixed(1);
+    if (!size || !total || total === 0) return 0;
+    return parseFloat(((size / total) * 100).toFixed(1));
   }
 
-  $: totalDatabaseSize = storageData?.databases.reduce((sum, db) => sum + db.size, 0) || 0;
-  $: totalSnapshotsSize = storageData?.snapshots.reduce((sum, snap) => snap + snap.size, 0) || 0;
+  $: totalDatabaseSize = storageData?.databases?.reduce((sum, db) => sum + (db?.size || 0), 0) || 0;
+  $: totalSnapshotsSize = storageData?.snapshots?.reduce((sum, snap) => sum + (snap?.size || 0), 0) || 0;
 </script>
 
 <div class="storage-panel">
@@ -77,9 +77,16 @@
       <button on:click={loadStorageData}>Retry</button>
     </div>
   {:else if storageData}
+    <!-- Header Section -->
+    <div class="header">
+      <div class="header-left">
+        <h1>💾 Storage Overview</h1>
+        <p class="subtitle">Database and snapshot storage management</p>
+      </div>
+    </div>
+
     <!-- Overview Section -->
     <section class="overview">
-      <h2>💾 Storage Overview</h2>
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-value">{formatBytes(storageData.totalSize)}</div>
@@ -120,7 +127,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each storageData.databases as db}
+            {#each storageData?.databases || [] as db}
               <tr class:active={db.isActive} class:expanded={expandedDatabase === db.name}>
                 <td>
                   <strong>{db.filename}</strong>
@@ -188,7 +195,7 @@
     <!-- Snapshots Section -->
     <section class="snapshots">
       <h2>📸 Snapshots</h2>
-      {#if storageData.snapshots.length > 0}
+      {#if storageData?.snapshots?.length > 0}
         <div class="table-container">
           <table>
             <thead>
@@ -201,7 +208,7 @@
               </tr>
             </thead>
             <tbody>
-              {#each storageData.snapshots as snapshot}
+              {#each storageData?.snapshots || [] as snapshot}
                 <tr>
                   <td><strong>{snapshot.project}</strong></td>
                   <td>{formatNumber(snapshot.files)}</td>
@@ -265,18 +272,38 @@
     border: 1px solid var(--border);
   }
 
-  h2 {
-    margin: 0 0 1.5rem 0;
-    font-size: 1.25rem;
-    color: var(--text);
+  .header {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding: 0 8px;
+    gap: 2rem;
+  }
+
+  .header-left h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0;
+  }
+
+  h2 {
+    margin: 0 0 1rem 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
   }
 
   h4 {
     margin: 0 0 1rem 0;
-    font-size: 0.95rem;
+    font-size: 14px;
     color: var(--muted);
   }
 
@@ -297,14 +324,14 @@
   }
 
   .stat-value {
-    font-size: 1.75rem;
+    font-size: 13px;
     font-weight: 600;
     color: var(--accent);
     margin-bottom: 0.5rem;
   }
 
   .stat-label {
-    font-size: 0.875rem;
+    font-size: 12px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;

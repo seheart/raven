@@ -35,7 +35,7 @@
     showSnapshot = true;
 
     try {
-      const filename = filepath.split('/').pop();
+      const filename = filepath?.split('/')?.pop() || '';
       snapshotContent = await invoke('get_snapshot', {
         eventId: event.id,
         filename
@@ -100,7 +100,7 @@
       <div class="empty">No history found for this file</div>
     {:else}
       <div class="timeline">
-        {#each history as event (event.id)}
+        {#each history || [] as event (event.id)}
           <div class="timeline-event {getChangeClass(event.change_type)}">
             <div class="event-marker"></div>
             <div class="event-content">
@@ -109,8 +109,8 @@
                 <span class="time">{formatTime(event.timestamp)}</span>
               </div>
               <div class="event-meta">
-                <span class="metric">CPU: {event.cpu.toFixed(1)}%</span>
-                <span class="metric">MEM: {event.mem.toFixed(1)}%</span>
+                <span class="metric">CPU: {(event.cpu ?? 0).toFixed(1)}%</span>
+                <span class="metric">MEM: {(event.mem ?? 0).toFixed(1)}%</span>
                 <span class="event-id">Event #{event.id}</span>
               </div>
               <div class="event-actions">
@@ -135,7 +135,7 @@
     {#if showSnapshot}
       <div class="snapshot-viewer">
         <div class="snapshot-header">
-          <h3>Snapshot - Event #{selectedEvent.id}</h3>
+          <h3>Snapshot - Event #{selectedEvent?.id || 'N/A'}</h3>
           <button on:click={() => showSnapshot = false}>Close</button>
         </div>
         <pre class="snapshot-content">{snapshotContent}</pre>
@@ -182,10 +182,14 @@
     border-bottom: 2px solid var(--info);
   }
 
+  .modal-header {
+    padding: 0 8px;
+  }
+
   h2 {
     margin: 0;
     color: var(--text);
-    font-size: 12px;
+    font-size: 18px;
   }
 
   .close-btn {
@@ -399,6 +403,7 @@
   .snapshot-header h3 {
     margin: 0;
     color: var(--text);
+    font-size: 15px;
   }
 
   .snapshot-header button {

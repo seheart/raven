@@ -113,7 +113,7 @@
 
 <div class="performance-panel">
   <div class="header">
-    <h2>⚡ Performance Profiling</h2>
+    <h2><span class="lightning-icon">⚡️</span> Performance Profiling</h2>
     <button on:click={fetchAllData} class="btn-refresh">
       ↻ Refresh
     </button>
@@ -331,12 +331,20 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    padding: 0 8px;
   }
 
   h2 {
     margin: 0;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
+  }
+
+  .lightning-icon {
+    font-size: 20px;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
   }
 
   .btn-refresh {
@@ -371,7 +379,7 @@
 
   .metric-card h3 {
     margin: 0 0 15px 0;
-    font-size: 12px;
+    font-size: 15px;
     color: var(--warning);
     border-bottom: 1px solid var(--border);
     padding-bottom: 10px;
@@ -491,7 +499,7 @@
 
   .section-header h3 {
     margin: 0 0 8px 0;
-    font-size: 12px;
+    font-size: 15px;
     color: var(--warning);
   }
 

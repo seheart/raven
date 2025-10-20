@@ -56,7 +56,7 @@
             <p>Monitor AI agent activity, events, and telemetry in real-time</p>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">⚡</div>
+            <div class="feature-icon">⚡️</div>
             <h3>Performance Profiling</h3>
             <p>CPU, memory, network, and process-level metrics with charts</p>
           </div>
@@ -160,7 +160,7 @@
           Built with ❤️ for real-time AI agent monitoring
         </p>
         <p class="github-link">
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer">
             View on GitHub →
           </a>
         </p>
@@ -193,8 +193,8 @@
 
   .about-header h1 {
     margin: 0 0 16px 0;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--text);
   }
 
@@ -228,7 +228,7 @@
 
   .about-section h2 {
     margin: 0 0 24px 0;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--accent);
     font-weight: 600;
   }
@@ -436,7 +436,7 @@
 
   @media (max-width: 768px) {
     .about-header h1 {
-      font-size: 13px;
+      font-size: 18px;
     }
 
     .tagline {

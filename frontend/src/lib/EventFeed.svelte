@@ -63,8 +63,8 @@
       e.timestamp,
       e.filepath,
       e.changeType,
-      e.cpu.toFixed(2),
-      e.mem.toFixed(2)
+      (e.cpu ?? 0).toFixed(2),
+      (e.mem ?? 0).toFixed(2)
     ]);
 
     const csvContent = [
@@ -87,25 +87,55 @@
     URL.revokeObjectURL(url);
   }
 
-  $: filteredEvents = events.filter(event => {
-    // Filter by search query
-    if (searchQuery && !event.filepath.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
+  // Memoization cache for filtered events (avoids re-filtering on unrelated reactive changes)
+  let cachedFilterEvents = null;
+  let cachedFilterQuery = '';
+  let cachedFilterTypes = null;
+  let cachedFilterStartTime = 0;
+  let cachedFilterEndTime = 0;
+  let cachedFilteredResult = [];
 
-    // Filter by event type
-    if (!selectedTypes[event.changeType]) {
-      return false;
-    }
+  // Optimized: Only filter when dependencies actually change
+  $: {
+    const typesKey = JSON.stringify(selectedTypes);
 
-    // Filter by time range
-    const eventTime = new Date(event.timestamp).getTime();
-    if (eventTime < timeRangeStart || eventTime > timeRangeEnd) {
-      return false;
-    }
+    if (events !== cachedFilterEvents ||
+        searchQuery !== cachedFilterQuery ||
+        typesKey !== cachedFilterTypes ||
+        timeRangeStart !== cachedFilterStartTime ||
+        timeRangeEnd !== cachedFilterEndTime) {
 
-    return true;
-  });
+      cachedFilterEvents = events;
+      cachedFilterQuery = searchQuery;
+      cachedFilterTypes = typesKey;
+      cachedFilterStartTime = timeRangeStart;
+      cachedFilterEndTime = timeRangeEnd;
+
+      const lowerQuery = searchQuery.toLowerCase();
+
+      cachedFilteredResult = events.filter(event => {
+        // Filter by search query
+        if (searchQuery && !event.filepath?.toLowerCase().includes(lowerQuery)) {
+          return false;
+        }
+
+        // Filter by event type
+        if (!selectedTypes[event.changeType]) {
+          return false;
+        }
+
+        // Filter by time range
+        const eventTime = new Date(event.timestamp).getTime();
+        if (eventTime < timeRangeStart || eventTime > timeRangeEnd) {
+          return false;
+        }
+
+        return true;
+      });
+    }
+  }
+
+  $: filteredEvents = cachedFilteredResult;
 
   async function loadRecentEvents() {
     try {
@@ -225,7 +255,7 @@
   <TimelineSlider events={events} onTimeRangeChange={handleTimeRangeChange} />
 
   <div class="events">
-    {#each filteredEvents as event (event.id)}
+    {#each filteredEvents || [] as event (event.id)}
       <div class="event {getChangeClass(event.changeType)}">
         <div class="event-header">
           <span class="filepath">{event.filepath}</span>
@@ -233,8 +263,8 @@
         </div>
         <div class="event-details">
           <span class="badge {event.changeType}">{event.changeType}</span>
-          <span class="metric">CPU: {event.cpu.toFixed(1)}%</span>
-          <span class="metric">MEM: {event.mem.toFixed(1)}%</span>
+          <span class="metric">CPU: {(event.cpu ?? 0).toFixed(1)}%</span>
+          <span class="metric">MEM: {(event.mem ?? 0).toFixed(1)}%</span>
         </div>
       </div>
     {/each}
@@ -260,6 +290,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+    padding: 0 8px;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border);
   }

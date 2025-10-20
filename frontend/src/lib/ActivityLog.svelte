@@ -58,9 +58,9 @@
 
   function calculateStats() {
     stats = {
-      file: activities.filter(a => a.category === 'file').length,
-      agent: activities.filter(a => a.category === 'agent').length,
-      system: activities.filter(a => a.category === 'system').length
+      file: activities.filter(a => a?.category === 'file').length,
+      agent: activities.filter(a => a?.category === 'agent').length,
+      system: activities.filter(a => a?.category === 'system').length
     };
   }
 
@@ -338,19 +338,19 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
-    padding-bottom: 16px;
+    padding: 0 8px 24px 8px;
     border-bottom: 2px solid var(--border);
   }
 
   .header-title h1 {
     margin: 0 0 4px 0;
-    font-size: 28px;
+    font-size: 18px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
-    font-size: 14px;
+    font-size: 12px;
     color: var(--muted);
   }
 
@@ -393,7 +393,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 12px;
     font-family: var(--mono);
   }
 
@@ -479,12 +479,12 @@
   }
 
   .empty-icon {
-    font-size: 64px;
+    font-size: 13px;
     margin-bottom: 16px;
   }
 
   .empty-state h2 {
-    font-size: 24px;
+    font-size: 15px;
     margin: 0 0 8px 0;
     color: var(--text);
   }
@@ -531,7 +531,7 @@
   }
 
   .activity-icon {
-    font-size: 20px;
+    font-size: 13px;
     flex-shrink: 0;
   }
 
@@ -541,7 +541,7 @@
   }
 
   .activity-description {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text);
     font-weight: 500;
     margin-bottom: 4px;
@@ -633,7 +633,7 @@
   .metadata-section h4,
   .diff-section h4 {
     margin: 0 0 8px 0;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--muted);
     text-transform: uppercase;
   }
