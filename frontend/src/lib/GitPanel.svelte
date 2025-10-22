@@ -3,6 +3,7 @@
   import { websocketService } from './websocket.js';
   import { formatShortDateTime } from './timeFormat.js';
   import DiffViewer from './DiffViewer.svelte';
+  import { projectFilter, availableProjects } from './projectFilterStore.js';
 
   const API_BASE = 'http://localhost:3030';
 
@@ -25,7 +26,6 @@
   let refreshInterval;
   let isMounted = false;
   let isRefreshing = false;
-  let repositoryName = 'Loading...';
 
   // Diff viewer state
   let showDiffViewer = false;
@@ -36,32 +36,52 @@
   let expandedFile = null;
   let fileDiffs = new Map(); // Cache diffs for expanded files
 
+  // Race condition prevention
+  let requestId = 0;
+  let activeController = null;
+
+  // Reactive: Get current project being displayed
+  $: currentProject = $projectFilter === 'all' ? ($availableProjects[0] || 'raven') : $projectFilter;
+  $: repositoryName = currentProject;
+
+  // Reload git status when project filter changes
+  $: if (isMounted && currentProject) {
+    checkGitStatus();
+  }
+
   function formatCommitDate(date) {
     return formatShortDateTime(date);
   }
 
-  async function loadRepositoryName() {
-    try {
-      const res = await fetch(`${API_BASE}/api/projects/list`);
-      const data = await res.json();
-      repositoryName = data.active || 'Unknown';
-    } catch (error) {
-      repositoryName = 'Unknown';
-      console.error('Error loading repository name:', error);
-    }
-  }
-
   async function checkGitStatus() {
     if (!isMounted) return;
+
+    // Cancel any previous request
+    if (activeController) {
+      activeController.abort();
+    }
+
+    // Create new request ID and controller
+    const thisRequestId = ++requestId;
+    const controller = new AbortController();
+    activeController = controller;
+
     try {
-      const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
+      const projectParam = currentProject ? `?project=${encodeURIComponent(currentProject)}` : '';
+
       const [statusRes, branchesRes, historyRes] = await Promise.all([
-        fetch(`${API_BASE}/api/git/status`, { signal: controller.signal }),
-        fetch(`${API_BASE}/api/git/branches`, { signal: controller.signal }),
-        fetch(`${API_BASE}/api/git/history?limit=10`, { signal: controller.signal })
+        fetch(`${API_BASE}/api/git/status${projectParam}`, { signal: controller.signal }),
+        fetch(`${API_BASE}/api/git/branches${projectParam}`, { signal: controller.signal }),
+        fetch(`${API_BASE}/api/git/history${projectParam ? projectParam + '&' : '?'}limit=10`, { signal: controller.signal })
       ]).finally(() => clearTimeout(timeoutId));
+
+      // Only update if this is still the latest request
+      if (thisRequestId !== requestId) {
+        console.log('Ignoring stale git status response');
+        return;
+      }
 
       const statusData = await statusRes.json();
       const branchesData = await branchesRes.json();
@@ -79,7 +99,21 @@
         behind: statusData.behind || 0
       };
     } catch (error) {
-      gitStatus.available = false;
+      // Ignore abort errors (they're intentional)
+      if (error.name === 'AbortError') {
+        console.log('Git status request cancelled');
+        return;
+      }
+
+      // Only update status if this is still the latest request
+      if (thisRequestId === requestId) {
+        gitStatus.available = false;
+      }
+    } finally {
+      // Clear active controller if this was the latest request
+      if (thisRequestId === requestId) {
+        activeController = null;
+      }
     }
   }
 
@@ -102,7 +136,8 @@
     // Fetch diff if not cached
     if (!fileDiffs.has(filepath)) {
       try {
-        const res = await fetch(`${API_BASE}/api/git/diff/${encodeURIComponent(filepath)}`);
+        const projectParam = currentProject ? `?project=${encodeURIComponent(currentProject)}` : '';
+        const res = await fetch(`${API_BASE}/api/git/diff/${encodeURIComponent(filepath)}${projectParam}`);
         const data = await res.json();
         fileDiffs.set(filepath, data.diff || '');
         fileDiffs = fileDiffs; // Trigger reactivity
@@ -190,13 +225,11 @@
 
   const handleProjectSwitched = () => {
     console.log('📡 Project switched, refreshing git status');
-    loadRepositoryName();
     checkGitStatus();
   };
 
   onMount(async () => {
     isMounted = true;
-    await loadRepositoryName();
     await checkGitStatus();
     websocketService.connect();
 

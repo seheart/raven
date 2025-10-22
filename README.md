@@ -1,15 +1,31 @@
-# Raven - AI Agent Monitor
+# Raven - Global AI Agent Monitor
 
-> **Local-first, web-based monitoring tool for AI coding agents**
+> **Local-first, multi-project monitoring platform for AI coding agents**
 
-Raven captures file changes, system metrics, and API events in real time — without relying on GitHub. Built for Claude Code and other local AI development tools.
+Raven monitors **all your AI agent projects simultaneously** from a single, elegant dashboard. Track file changes, system metrics, and events across 13+ projects in real time — no GitHub required. Built for Claude Code and other local AI development tools.
 
 **Architecture:** Web Application (Node.js + Svelte)
-**Status:** Production Ready
+**Status:** Production Ready 🚀
+**Version:** 0.9.0 - Global Multi-Project Monitoring
 
-## 🚀 Current Status: Phase II.7 Complete - Code Optimized
+## 🚀 Current Status: Phase III.1 Complete - Multi-Project Transformation
 
-✅ **Production-ready with optimized performance!**
+✅ **Production-ready global monitoring platform!**
+
+### 🆕 What's New in 0.9.0
+
+**Global Multi-Project Monitoring:**
+- [x] Monitor 13+ projects simultaneously
+- [x] Instant project filtering dropdown
+- [x] Color-coded project badges
+- [x] Recent projects quick access (★)
+- [x] Keyboard shortcuts (p, Shift+P)
+- [x] Visual feedback animations
+- [x] Standardized empty states
+- [x] Race condition prevention
+- [x] Real-time project activity stats
+
+**Previous Features (Still Awesome):**
 
 - [x] Async file watcher with 50ms debounce
 - [x] Event logging to SQLite with diffs
@@ -104,6 +120,20 @@ Raven captures file changes, system metrics, and API events in real time — wit
 - [x] Version management and metadata
 - [x] Production startup/shutdown scripts
 
+### Phase 6 - Global Multi-Project Monitoring ✅ 🆕
+- [x] Monitor 13+ projects simultaneously from single dashboard
+- [x] Global project filter in header with dropdown
+- [x] Color-coded project badges (10-color Tokyo Night palette)
+- [x] Recent projects quick access with ★ icons
+- [x] Keyboard shortcuts: `p` (cycle), `Shift+P` (view all)
+- [x] Visual feedback animations on filter change
+- [x] Standardized empty states with context-aware messaging
+- [x] Race condition prevention in Git panel
+- [x] Real-time project activity aggregation
+- [x] localStorage validation and auto-reset
+- [x] Reusable ProjectBadge component
+- [x] Shared project filter utilities library
+
 ## 📦 Installation
 
 See [docs/SETUP.md](docs/SETUP.md) for detailed installation instructions.
@@ -184,13 +214,27 @@ npm run dev                  # Starts both backend and frontend (if configured)
 
 ## 🎨 UI Preview
 
-Current UI includes:
-- **System Metrics Panel** - Real-time CPU and memory usage
-- **Event Feed** - Live file change events with search, filters, and timeline
-- **Time Travel Panel** - Browse tracked files and view history
+**🆕 Global Multi-Project Dashboard** featuring:
+
+**Header:**
+- **Project Filter Dropdown** - 👁️ Switch between 13+ projects instantly
+- **Recent Projects** - Quick access with ★ icons
+- **Visual Feedback** - Pulse animation on filter change
+
+**Panels (All Project-Aware):**
+- **Overview Panel** - Multi-project grid with activity status
+- **System Metrics** - Real-time CPU and memory per project
+- **Event Feed** - Live file changes with color-coded project badges
+- **Live Code Feed** - Real-time diffs and changes per project
+- **Git Panel** - Per-project repository status
+- **Triggers Panel** - Project-specific alert events
+- **Status Panel** - Quick-switch between monitored projects
+
+**Power User Features:**
+- **Keyboard Shortcuts** - Press `?` for help, `p` to cycle projects, `Shift+P` for all
+- **Time Travel Panel** - Browse tracked files with project context
 - **Diff Viewer** - Side-by-side comparison of changes
-- **Keyboard Shortcuts** - Press `?` to see all shortcuts
-- **Export Tools** - Download events as JSON or CSV
+- **Export Tools** - Download filtered events as JSON or CSV
 
 ## 🔮 Future Enhancements
 
@@ -206,12 +250,14 @@ Current UI includes:
 ## 🧭 Philosophy
 
 Raven is:
+- **Global by Default** - Monitor your entire AI project portfolio simultaneously
 - **Local-first** - All data stays on your machine
 - **Open source** - Transparent and auditable
 - **Lightweight** - Target <50 MB memory footprint
 - **Privacy-focused** - No telemetry, no cloud dependency
+- **Developer-centric** - Keyboard shortcuts, color coding, instant filtering
 
-Every line of code an AI agent touches can be traced, replayed, and understood.
+**Vision:** Every line of code an AI agent touches across *all your projects* can be traced, compared, and understood from a single elegant interface.
 
 ## 📝 Configuration
 
@@ -253,8 +299,8 @@ MIT License - See [LICENSE](LICENSE) file
 
 **Seth Eheart**
 Codename: Raven
-Version: 0.8.0 (UX Overhaul Complete)
+Version: 0.9.0 (Global Multi-Project Monitoring)
 
 ---
 
-**Status:** Complete UX overhaul! Consolidated navigation, notifications system, storage management, and full-page documentation views 🚀
+**Status:** 🚀 Global multi-project monitoring platform! Monitor 13+ AI agent projects simultaneously with color-coded badges, keyboard shortcuts, and instant filtering. Every project, one dashboard.

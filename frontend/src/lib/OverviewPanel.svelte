@@ -4,6 +4,7 @@
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { notifications } from './notificationService.js';
+  import ProjectsOverview from './ProjectsOverview.svelte';
 
   export let sessionId = 'Loading...';
   export let sessionUptime = '0s';
@@ -159,6 +160,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Multi-Project Overview -->
+  <ProjectsOverview />
 
   <!-- Main Stats Grid -->
   <div class="stats-grid">

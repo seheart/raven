@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatShortDateTime } from './timeFormat.js';
+  import { projectFilter, availableProjects } from './projectFilterStore.js';
 
   const API_BASE = 'http://localhost:3030';
 
@@ -229,6 +230,36 @@
             <p class="hint">Falling back to HTTP polling</p>
           </div>
         {/if}
+      </div>
+    </div>
+
+    <!-- Monitored Projects Card -->
+    <div class="status-card full-width">
+      <div class="card-header">
+        <h3>👁️ Monitored Projects</h3>
+        <div class="status-indicator online">
+          🟢 {$availableProjects.length} Active
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="projects-list">
+          {#each $availableProjects as project}
+            <button
+              class="project-item"
+              class:selected={$projectFilter === project}
+              on:click={() => projectFilter.set(project)}
+            >
+              <div class="project-status-dot"></div>
+              <span class="project-name">{project}</span>
+              {#if $projectFilter === project}
+                <span class="project-badge">viewing</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+        <div class="info-message">
+          ✅ Global multi-project monitoring active
+        </div>
       </div>
     </div>
 
@@ -665,6 +696,72 @@
     font-size: 11px;
     color: var(--muted);
     font-style: italic;
+  }
+
+  /* Projects List Styles */
+  .projects-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .project-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    text-align: left;
+  }
+
+  .project-item:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  .project-item.selected {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .project-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 4px var(--success);
+    flex-shrink: 0;
+  }
+
+  .project-name {
+    flex: 1;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .project-item.selected .project-name {
+    color: var(--accent);
+  }
+
+  .project-badge {
+    padding: 2px 8px;
+    background: var(--accent);
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   @media (max-width: 768px) {

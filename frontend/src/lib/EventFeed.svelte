@@ -5,6 +5,9 @@
   import TimelineSlider from './TimelineSlider.svelte';
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
+  import { projectFilter, matchesFilter } from './projectFilterStore.js';
+  import { getEmptyStateMessage } from './utils/projectFilter.js';
+  import ProjectBadge from './ProjectBadge.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -105,6 +108,7 @@
   let cachedFilterTypes = null;
   let cachedFilterStartTime = 0;
   let cachedFilterEndTime = 0;
+  let cachedFilterProject = '';
   let cachedFilteredResult = [];
 
   // Optimized: Only filter when dependencies actually change
@@ -115,17 +119,24 @@
         searchQuery !== cachedFilterQuery ||
         typesKey !== cachedFilterTypes ||
         timeRangeStart !== cachedFilterStartTime ||
-        timeRangeEnd !== cachedFilterEndTime) {
+        timeRangeEnd !== cachedFilterEndTime ||
+        $projectFilter !== cachedFilterProject) {
 
       cachedFilterEvents = events;
       cachedFilterQuery = searchQuery;
       cachedFilterTypes = typesKey;
       cachedFilterStartTime = timeRangeStart;
       cachedFilterEndTime = timeRangeEnd;
+      cachedFilterProject = $projectFilter;
 
       const lowerQuery = searchQuery.toLowerCase();
 
       cachedFilteredResult = events.filter(event => {
+        // Filter by project
+        if (event.project && !matchesFilter(event.project, $projectFilter)) {
+          return false;
+        }
+
         // Filter by search query
         if (searchQuery && !event.filepath?.toLowerCase().includes(lowerQuery)) {
           return false;
@@ -159,6 +170,7 @@
         timestamp: e.timestamp,
         filepath: e.file || 'unknown',
         changeType: e.event_type || 'modified',
+        project: e.project || null,
         cpu: 0, // CPU/memory metrics would need to be correlated from system metrics
         mem: 0
       }));
@@ -175,6 +187,7 @@
       timestamp: event.timestamp,
       filepath: event.file || 'unknown',
       changeType: event.event_type || 'modified',
+      project: event.project || null,
       cpu: 0,
       mem: 0
     }, ...events].slice(0, 100); // Keep last 100 events
@@ -283,6 +296,9 @@
         <div class="event {getChangeClass(item.changeType)}">
           <div class="event-header">
             <span class="filepath">{item.filepath}</span>
+            {#if item.project}
+              <ProjectBadge project={item.project} size="small" />
+            {/if}
             <span class="time">{formatTime(item.timestamp)}</span>
           </div>
           <div class="event-details">
@@ -299,9 +315,10 @@
       <p class="hint">Waiting for file changes to be detected</p>
     </div>
   {:else}
+    {@const emptyMsg = getEmptyStateMessage('events', $projectFilter, events.length)}
     <div class="empty">
-      <p>No events match your filters</p>
-      <p class="hint">Try adjusting your search or filters</p>
+      <p>{emptyMsg.primary}</p>
+      <p class="hint">{emptyMsg.hint}</p>
     </div>
   {/if}
 </div>
@@ -409,6 +426,18 @@
     font-family: 'Courier New', monospace;
     color: var(--text);
     font-weight: 500;
+  }
+
+  .project-badge {
+    padding: 2px 6px;
+    background: var(--accent);
+    color: white;
+    font-size: 9px;
+    font-weight: 600;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
   }
 
   .time {

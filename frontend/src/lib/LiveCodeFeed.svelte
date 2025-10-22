@@ -2,6 +2,9 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatTime as formatTimeString } from './timeFormat.js';
+  import { projectFilter, matchesFilter } from './projectFilterStore.js';
+  import { getEmptyStateMessage } from './utils/projectFilter.js';
+  import ProjectBadge from './ProjectBadge.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -14,6 +17,23 @@
   let loading = true;
   let refreshInterval;
   let flatItems = [];
+
+  // Filter code changes and activity based on current project filter
+  $: filteredCodeChanges = codeChanges.filter(change => {
+    if (change.project) {
+      return matchesFilter(change.project, $projectFilter);
+    }
+    // If no project field, show it in "all" view only
+    return $projectFilter === 'all';
+  });
+
+  $: filteredActivity = recentActivity.filter(activity => {
+    if (activity.project) {
+      return matchesFilter(activity.project, $projectFilter);
+    }
+    // If no project field, show it in "all" view only
+    return $projectFilter === 'all';
+  });
 
   // Debounce utility function (moved outside reactive scope)
   const debounce = (fn, delay) => {
@@ -128,8 +148,8 @@
 
       // Combine and sort by timestamp
       const combined = [
-        ...(fileEvents || []).map(e => ({ ...e, type: 'file' })),
-        ...(agentEvents || []).map(e => ({ ...e, type: 'agent' }))
+        ...(fileEvents || []).map(e => ({ ...e, type: 'file', project: e.project || null })),
+        ...(agentEvents || []).map(e => ({ ...e, type: 'agent', project: e.project || null }))
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       recentActivity = combined.slice(0, 30);
@@ -353,19 +373,20 @@
     <div class="code-changes-column">
       <div class="column-header">
         <h3>📊 Code Changes</h3>
-        <span class="change-count">{codeChanges.length} events</span>
+        <span class="change-count">{filteredCodeChanges.length} events</span>
       </div>
       <div class="code-changes-content">
         {#if loading}
           <div class="loading">Loading changes...</div>
-        {:else if codeChanges.length === 0}
+        {:else if filteredCodeChanges.length === 0}
+          {@const emptyMsg = getEmptyStateMessage('changes', $projectFilter, codeChanges.length)}
           <div class="empty-state">
-            <p>No code changes yet</p>
-            <p class="empty-hint">Changes will appear here in real-time</p>
+            <p>{emptyMsg.primary}</p>
+            <p class="empty-hint">{emptyMsg.hint}</p>
           </div>
         {:else}
           <div class="changes-list">
-            {#each codeChanges || [] as change}
+            {#each filteredCodeChanges || [] as change}
               <div class="change-item">
                 <div class="change-header">
                   <div class="change-meta">
@@ -375,6 +396,9 @@
                     <span class="change-type" style="color: {getChangeTypeColor(change.change_type)}">
                       {change.change_type.toUpperCase()}
                     </span>
+                    {#if change.project}
+                      <ProjectBadge project={change.project} size="small" />
+                    {/if}
                     <span class="change-time">{formatTime(change.timestamp)}</span>
                   </div>
                   <button class="btn-copy" title="Copy">📋</button>
@@ -416,13 +440,15 @@
       <div class="activity-content">
         {#if loading}
           <div class="loading">Loading activity...</div>
-        {:else if recentActivity.length === 0}
+        {:else if filteredActivity.length === 0}
+          {@const emptyMsg = getEmptyStateMessage('activity', $projectFilter, recentActivity.length)}
           <div class="empty-state">
-            <p>No activity yet</p>
+            <p>{emptyMsg.primary}</p>
+            <p class="empty-hint">{emptyMsg.hint}</p>
           </div>
         {:else}
           <div class="activity-list">
-            {#each recentActivity || [] as activity}
+            {#each filteredActivity || [] as activity}
               <div class="activity-item" class:file={activity.type === 'file'} class:agent={activity.type === 'agent'}>
                 <div class="activity-icon">
                   {#if activity.type === 'file'}
@@ -663,6 +689,17 @@
   .change-type {
     font-size: 10px;
     font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .project-badge {
+    padding: 2px 6px;
+    background: var(--accent);
+    color: white;
+    font-size: 9px;
+    font-weight: 600;
+    border-radius: 3px;
+    text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 

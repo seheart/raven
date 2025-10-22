@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
   // New consolidated components
   import TabNavigation from './lib/TabNavigation.svelte';
   import OverviewPanel from './lib/OverviewPanel.svelte';
@@ -26,7 +27,6 @@
   import ChangelogPage from './lib/ChangelogPage.svelte';
   import DocsViewer from './lib/DocsViewer.svelte';
   import RavenLogo from './lib/RavenLogo.svelte';
-  import ProjectSelector from './lib/ProjectSelector.svelte';
   import ErrorLog from './lib/ErrorLog.svelte';
   import NotificationsPanel from './lib/NotificationsPanel.svelte';
   import StoragePanel from './lib/StoragePanel.svelte';
@@ -40,6 +40,8 @@
   import { setupNotificationListeners } from './lib/notificationListener.js';
   import { websocketService } from './lib/websocket.js';
   import { checkServerHealth } from './lib/apiClient.js';
+  import { projectFilter, availableProjects } from './lib/projectFilterStore.js';
+  import { getRecentProjects } from './lib/utils/projectFilter.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -50,6 +52,7 @@
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
   let showHelp = false;
   let showWelcome = false;
+  let filterChanging = false;
 
   const startTime = Date.now();
   let uptimeInterval;
@@ -81,6 +84,42 @@
     }
   }
 
+  async function loadAvailableProjects() {
+    try {
+      const response = await fetch(`${API_BASE}/projects/list`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.projects && Array.isArray(data.projects)) {
+        availableProjects.set(data.projects);
+
+        if (data.projects.length === 0) {
+          notifications.warning('No projects configured', {
+            title: 'Project Filter',
+            duration: 5000
+          });
+        }
+      } else {
+        throw new Error('Invalid response format: missing projects array');
+      }
+    } catch (error) {
+      console.error('Failed to load available projects:', error);
+
+      // Fallback: set empty array
+      availableProjects.set([]);
+
+      // Notify user of the failure
+      toasts.error(`Failed to load projects: ${error.message}`, {
+        title: 'Connection Error',
+        duration: 8000
+      });
+    }
+  }
+
   function handleTabChange(newTab) {
     activeTab = newTab;
     currentSubView = '';
@@ -95,8 +134,18 @@
     notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
+  // Get recent projects for quick access
+  $: recentProjects = getRecentProjects(5).filter(p => $availableProjects.includes(p));
+
+  // Watch for project filter changes and trigger visual feedback
+  $: if ($projectFilter) {
+    filterChanging = true;
+    setTimeout(() => { filterChanging = false; }, 600);
+  }
+
   onMount(() => {
     loadSessionId();
+    loadAvailableProjects();
 
     // Start uptime tracking
     updateUptime();
@@ -133,6 +182,33 @@
       showWelcome = false;
     });
 
+    // Register project filter shortcuts
+    keyboard.register('p', () => {
+      // Cycle through projects
+      const projects = get(availableProjects);
+      if (projects.length === 0) return;
+
+      const currentIndex = projects.indexOf(get(projectFilter));
+      let nextIndex;
+
+      if (currentIndex === -1 || get(projectFilter) === 'all') {
+        // Start with first project
+        nextIndex = 0;
+      } else {
+        // Move to next project (wrap around)
+        nextIndex = (currentIndex + 1) % projects.length;
+      }
+
+      projectFilter.set(projects[nextIndex]);
+      notifications.info(`Viewing project: ${projects[nextIndex]}`);
+    });
+
+    keyboard.register('P', () => {
+      // Shift+P: Reset to "All Projects"
+      projectFilter.set('all');
+      notifications.info('Viewing all projects');
+    });
+
     // Show welcome screen for first-time users
     if (!localStorage.getItem('raven-welcome-seen')) {
       showWelcome = true;
@@ -166,7 +242,28 @@
         </div>
       </div>
       <div class="header-right">
-        <ProjectSelector />
+        <div class="project-filter-container" class:filter-changing={filterChanging}>
+          <span class="filter-icon">👁️</span>
+          <select
+            class="project-filter-select"
+            bind:value={$projectFilter}
+            aria-label="Filter by project"
+          >
+            <option value="all">All Projects ({$availableProjects.length})</option>
+
+            {#if recentProjects.length > 0}
+              <option disabled>─────</option>
+              {#each recentProjects as project}
+                <option value={project}>★ {project}</option>
+              {/each}
+              <option disabled>─────</option>
+            {/if}
+
+            {#each $availableProjects as project}
+              <option value={project}>{project}</option>
+            {/each}
+          </select>
+        </div>
         <button
           class="help-button"
           on:click={() => showHelp = !showHelp}
@@ -429,6 +526,70 @@
     display: flex;
     align-items: center;
     gap: 16px;
+  }
+
+  .project-filter-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--mono);
+    transition: all 0.2s ease;
+  }
+
+  .project-filter-container:hover {
+    border-color: var(--accent);
+    background: var(--surface-3);
+  }
+
+  .project-filter-container.filter-changing {
+    animation: filterPulse 0.6s ease-out;
+  }
+
+  @keyframes filterPulse {
+    0% {
+      box-shadow: 0 0 0 0 var(--accent);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent);
+      transform: scale(1.02);
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+      transform: scale(1);
+    }
+  }
+
+  .filter-icon {
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text-2);
+  }
+
+  .project-filter-select {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    padding: 2px 4px;
+  }
+
+  .project-filter-select:hover {
+    color: var(--accent-bright);
+  }
+
+  .project-filter-select option {
+    background: var(--surface);
+    color: var(--text);
+    padding: 4px 8px;
   }
 
   h1 {

@@ -2,6 +2,9 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatUnixDateTime } from './timeFormat.js';
+  import { projectFilter, availableProjects, matchesFilter } from './projectFilterStore.js';
+  import { getEmptyStateMessage } from './utils/projectFilter.js';
+  import ProjectBadge from './ProjectBadge.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -17,6 +20,16 @@
   let error = null;
   let successMessage = null;
   let refreshInterval;
+
+  // Filter triggered events based on current project filter
+  $: filteredEvents = triggeredEvents.filter(event => {
+    // If event has a project field, use it for filtering
+    if (event.project) {
+      return matchesFilter(event.project, $projectFilter);
+    }
+    // If no project field, show it in "all" view only
+    return $projectFilter === 'all';
+  });
 
   // WebSocket event handlers
   const handleTriggerFired = (event) => {
@@ -175,7 +188,7 @@
       class:active={activeTab === 'events'}
       on:click={() => activeTab = 'events'}
     >
-      🔔 Triggered Events ({triggeredEvents?.length || 0})
+      🔔 Triggered Events ({filteredEvents?.length || 0})
     </button>
     <button
       class="tab"
@@ -249,19 +262,26 @@
 
     {:else if activeTab === 'events'}
       <!-- Triggered Events Tab -->
-      {#if triggeredEvents.length === 0}
+      {#if filteredEvents.length === 0}
+        {@const emptyMsg = getEmptyStateMessage('trigger events', $projectFilter, triggeredEvents.length)}
         <div class="empty">
           <div class="icon">🔕</div>
           <h3>No Triggered Events</h3>
-          <p>Trigger events will appear here when conditions are met.</p>
+          <p>{emptyMsg.primary}</p>
+          <p class="hint">{emptyMsg.hint}</p>
         </div>
       {:else}
         <div class="events-list">
-          {#each triggeredEvents || [] as event}
+          {#each filteredEvents || [] as event}
             <div class="event-row">
               <span class="event-icon">{getActionIcon(event.action)}</span>
               <div class="event-details">
-                <div class="event-trigger-name">{event.trigger_name}</div>
+                <div class="event-header-row">
+                  <div class="event-trigger-name">{event.trigger_name}</div>
+                  {#if event.project}
+                    <ProjectBadge project={event.project} size="small" />
+                  {/if}
+                </div>
                 <div class="event-message">{event.message}</div>
               </div>
               <div class="event-meta">
@@ -572,11 +592,29 @@
     flex: 1;
   }
 
+  .event-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
   .event-trigger-name {
     font-weight: 600;
     color: var(--warning);
     font-size: 12px;
-    margin-bottom: 4px;
+  }
+
+  .event-project {
+    padding: 2px 8px;
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: lowercase;
+    font-family: var(--mono);
   }
 
   .event-message {

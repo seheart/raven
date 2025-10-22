@@ -3,6 +3,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { RavenDB } from './db.js';
+import DeveloperDB from './developer-db.js';
 import { MetricsCollector } from './metrics-collector.js';
 import { TriggerEngine } from './trigger-engine.js';
 import { GitMonitor } from './dist/modules/git.js';
@@ -176,30 +177,6 @@ function discoverProjects() {
 
 // Auto-discover projects or use config
 const discoveredProjects = discoverProjects();
-const availableProjects = discoveredProjects.length > 0
-  ? discoveredProjects
-  : (config.projects?.available || []);
-
-// Determine active project
-let activeProjectName = config.projects?.active;
-
-// Validate that configured active project exists
-if (activeProjectName) {
-  const projectExists = availableProjects.find(p => p.name === activeProjectName);
-  if (!projectExists) {
-    console.log(`⚠️ Configured project "${activeProjectName}" not found, using first available project`);
-    activeProjectName = availableProjects.length > 0 ? availableProjects[0].name : null;
-  }
-} else if (availableProjects.length > 0) {
-  // No configured project, default to first discovered
-  activeProjectName = availableProjects[0].name;
-}
-
-// Default to 'raven' if it exists, otherwise first project
-if (!activeProjectName && availableProjects.length > 0) {
-  const ravenProject = availableProjects.find(p => p.name === 'raven');
-  activeProjectName = ravenProject ? ravenProject.name : availableProjects[0].name;
-}
 
 // Simple async mutex for protecting projectState from race conditions
 class AsyncMutex {
@@ -243,17 +220,22 @@ class AsyncMutex {
 // Mutex for protecting projectState during project switches
 const projectStateMutex = new AsyncMutex();
 
-// Global state for active project
-const projectState = {
-  activeProject: activeProjectName,
-  availableProjects: availableProjects,
-  watchPath: null,
-  dbPath: null,
-  snapshotsDir: null,
-  db: null,
-  watcher: null,
-  gitMonitor: null
-};
+// Initialize Developer Persona Database (global across all projects)
+const DEVELOPER_DB_PATH = join(RAVEN_DIR, 'db', 'developer.db');
+const developerDB = new DeveloperDB(DEVELOPER_DB_PATH);
+console.log(`✅ Developer persona database ready at ${DEVELOPER_DB_PATH}`);
+
+// Multi-project state: Maps for managing all projects simultaneously
+const projectWatchers = new Map();      // projectName -> chokidar watcher
+const projectDatabases = new Map();     // projectName -> RavenDB instance
+const projectGitMonitors = new Map();   // projectName -> GitMonitor instance
+const projectPaths = new Map();         // projectName -> absolute path
+const projectSnapshotDirs = new Map();  // projectName -> snapshots directory
+
+// Available projects list
+const availableProjects = discoveredProjects.length > 0
+  ? discoveredProjects
+  : (config.projects?.available || []);
 
 // Session ID (generated once per server start)
 const SESSION_ID = randomUUID();
@@ -420,16 +402,93 @@ function generateDiff(oldContent, newContent) {
   return diff;
 }
 
-async function saveSnapshot(filepath, content) {
+function detectLanguage(filepath) {
+  const ext = filepath.split('.').pop().toLowerCase();
+  const languageMap = {
+    js: 'javascript',
+    jsx: 'javascript',
+    ts: 'typescript',
+    tsx: 'typescript',
+    py: 'python',
+    rs: 'rust',
+    go: 'go',
+    java: 'java',
+    c: 'c',
+    cpp: 'c++',
+    cc: 'c++',
+    h: 'c',
+    hpp: 'c++',
+    cs: 'csharp',
+    rb: 'ruby',
+    php: 'php',
+    swift: 'swift',
+    kt: 'kotlin',
+    scala: 'scala',
+    r: 'r',
+    m: 'objective-c',
+    sh: 'shell',
+    bash: 'shell',
+    sql: 'sql',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    sass: 'sass',
+    vue: 'vue',
+    svelte: 'svelte',
+    json: 'json',
+    xml: 'xml',
+    yaml: 'yaml',
+    yml: 'yaml',
+    toml: 'toml',
+    md: 'markdown',
+    txt: 'text'
+  };
+  return languageMap[ext] || 'unknown';
+}
+
+/**
+ * Detect which project a file belongs to based on its path
+ * @param {string} filepath - Absolute file path
+ * @returns {string|null} - Project name or null if not found
+ */
+function detectProjectFromPath(filepath) {
+  const normalizedPath = normalize(filepath);
+
+  // Sort projects by path length (longest first) to avoid substring matching issues
+  // e.g., "ant312" should match before "ant"
+  const sortedProjects = Array.from(projectPaths.entries()).sort((a, b) => {
+    return b[1].length - a[1].length;
+  });
+
+  for (const [projectName, projectPath] of sortedProjects) {
+    const normalizedProjectPath = normalize(projectPath);
+    if (normalizedPath.startsWith(normalizedProjectPath + '/') || normalizedPath === normalizedProjectPath) {
+      return projectName;
+    }
+  }
+
+  return null;
+}
+
+async function saveSnapshot(filepath, content, projectName) {
   try {
+    // Get project-specific paths
+    const projectPath = projectPaths.get(projectName);
+    const snapshotsDir = projectSnapshotDirs.get(projectName);
+
+    if (!projectPath || !snapshotsDir) {
+      console.error(`❌ Project paths not found for ${projectName}`);
+      return null;
+    }
+
     // Create snapshot filename: filepath_timestamp.gz (compressed)
     const timestamp = Date.now();
-    const relPath = relative(projectState.watchPath, filepath);
+    const relPath = relative(projectPath, filepath);
     const snapshotName = `${relPath.replace(/\//g, '_')}_${timestamp}.gz`;
-    const snapshotPath = join(projectState.snapshotsDir, snapshotName);
+    const snapshotPath = join(snapshotsDir, snapshotName);
 
     // Ensure snapshots directory exists
-    await fs.promises.mkdir(projectState.snapshotsDir, { recursive: true });
+    await fs.promises.mkdir(snapshotsDir, { recursive: true });
 
     // Compress content using gzip (saves ~60-80% space for text files)
     const compressed = await gzipAsync(content);
@@ -441,10 +500,10 @@ async function saveSnapshot(filepath, content) {
     const compressedSize = compressed.length;
     const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
 
-    console.log(`💾 Snapshot saved: ${snapshotName} (${originalSize} → ${compressedSize} bytes, ${ratio}% reduction)`);
+    console.log(`💾 Snapshot saved [${projectName}]: ${snapshotName} (${originalSize} → ${compressedSize} bytes, ${ratio}% reduction)`);
     return snapshotPath;
   } catch (error) {
-    console.error('❌ Snapshot save error:', error);
+    console.error(`❌ Snapshot save error [${projectName}]:`, error);
     return null;
   }
 }
@@ -460,7 +519,24 @@ async function handleFileChange(eventType, filepath) {
   filesInProgress.add(filepath);
 
   try {
-    const relPath = relative(projectState.watchPath, filepath);
+    // Detect which project this file belongs to
+    const projectName = detectProjectFromPath(filepath);
+    if (!projectName) {
+      console.warn(`⚠️  Could not determine project for file: ${filepath}`);
+      return;
+    }
+
+    // Get project-specific resources
+    const projectPath = projectPaths.get(projectName);
+    const db = projectDatabases.get(projectName);
+    const gitMonitor = projectGitMonitors.get(projectName);
+
+    if (!db || !projectPath) {
+      console.error(`❌ Project resources not found for ${projectName}`);
+      return;
+    }
+
+    const relPath = relative(projectPath, filepath);
     const timestamp = new Date().toISOString();
 
     let diff = null;
@@ -481,13 +557,13 @@ async function handleFileChange(eventType, filepath) {
           diff = generateDiff(oldContent, content);
         }
 
-        // Save snapshot
-        await saveSnapshot(filepath, content);
+        // Save snapshot (project-specific)
+        await saveSnapshot(filepath, content, projectName);
 
         // Update cache
         fileCache.set(filepath, content);
       } catch (readError) {
-        console.error(`❌ Error reading file ${relPath}:`, readError.message);
+        console.error(`❌ Error reading file [${projectName}] ${relPath}:`, readError.message);
         return;
       }
     } else if (eventType === 'unlink') {
@@ -501,10 +577,10 @@ async function handleFileChange(eventType, filepath) {
     const cpuPercent = cpuLoad.currentLoad || 0;
     const memPercent = (memInfo.used / memInfo.total) * 100;
 
-    // Insert event into database with error handling
+    // Insert event into project-specific database
     let eventId;
     try {
-      eventId = projectState.db.insertEvent(
+      eventId = db.insertEvent(
         timestamp,
         relPath,
         eventType,
@@ -515,17 +591,32 @@ async function handleFileChange(eventType, filepath) {
         fileHash,
         eventSize
       );
-      console.log(`📁 File ${eventType}: ${relPath} (${eventSize} bytes)`);
+      console.log(`📁 [${projectName}] File ${eventType}: ${relPath} (${eventSize} bytes)`);
+
+      // ALSO log to global developer persona database
+      const language = detectLanguage(filepath);
+      const linesAdded = diff ? (diff.match(/^\+/gm) || []).length : 0;
+      const linesRemoved = diff ? (diff.match(/^-/gm) || []).length : 0;
+
+      developerDB.logCodePattern({
+        project: projectName,
+        language,
+        file_type: filepath.split('.').pop(),
+        edit_type: eventType === 'add' ? 'create' : eventType === 'unlink' ? 'delete' : 'modify',
+        lines_added: linesAdded,
+        lines_removed: linesRemoved,
+        timestamp
+      });
     } catch (dbError) {
-      console.error('❌ Database insert failed (continuing processing):', dbError.message);
-      // Continue processing even if database insert fails
+      console.error(`❌ Database insert failed [${projectName}] (continuing processing):`, dbError.message);
       eventId = null;
     }
 
-    // Emit real-time event via WebSocket
+    // Emit real-time event via WebSocket (include project name)
     io.emit('file-changed', {
       id: eventId,
       timestamp,
+      project: projectName,
       filepath: relPath,
       change_type: eventType,
       event_size: eventSize,
@@ -539,9 +630,15 @@ async function handleFileChange(eventType, filepath) {
       event_type: eventType,
       cpu_percent: cpuPercent,
       memory_percent: memPercent,
-      event_size: eventSize
+      event_size: eventSize,
+      project: projectName
     };
     triggerEngine.evaluate(triggerEvent);
+
+    // Emit git status update for this project
+    if (gitMonitor) {
+      await emitGitStatusUpdate(projectName);
+    }
   } catch (error) {
     console.error('❌ File change handler error:', error);
   } finally {
@@ -553,71 +650,108 @@ async function handleFileChange(eventType, filepath) {
 // ==================== Project Management Functions ====================
 
 /**
- * Initialize paths and database for a project
+ * Initialize a single project (database, paths, git monitor)
+ * @param {string} projectName - Name of the project to initialize
+ * @returns {boolean} - True if successful, false otherwise
  */
 function initializeProject(projectName) {
-  const project = projectState.availableProjects.find(p => p.name === projectName);
-  if (!project) {
-    throw new Error(`Project "${projectName}" not found in config`);
+  try {
+    const project = availableProjects.find(p => p.name === projectName);
+    if (!project) {
+      console.error(`❌ Project "${projectName}" not found`);
+      return false;
+    }
+
+    // Set project paths
+    // Backend is in raven/backend, so go up two levels to get to Projects/, then add project path
+    const projectPath = join(process.cwd(), '..', '..', project.path);
+    const dbPath = join(RAVEN_DIR, 'db', `${projectName}.db`);
+    const snapshotsDir = join(RAVEN_DIR, 'snapshots', projectName);
+
+    // Store paths in Maps
+    projectPaths.set(projectName, projectPath);
+    projectSnapshotDirs.set(projectName, snapshotsDir);
+
+    // Initialize database
+    const db = new RavenDB(dbPath);
+    projectDatabases.set(projectName, db);
+
+    // Ensure snapshots directory exists
+    fs.mkdirSync(snapshotsDir, { recursive: true });
+
+    // Initialize GitMonitor
+    const gitMonitor = new GitMonitor({
+      repoPath: projectPath,
+      pollIntervalMs: 2000,
+      enableAutoPoll: false // Manual polling only, no auto-commits
+    });
+    projectGitMonitors.set(projectName, gitMonitor);
+
+    console.log(`✅ Initialized project: ${projectName}`);
+    console.log(`   Watch Path: ${projectPath}`);
+    console.log(`   Database: ${dbPath}`);
+    console.log(`   Snapshots: ${snapshotsDir}`);
+
+    return true;
+  } catch (error) {
+    console.error(`❌ Error initializing project ${projectName}:`, error);
+    return false;
   }
-
-  // Set project paths
-  projectState.activeProject = projectName;
-  // Backend is in raven/backend, so go up two levels to get to Projects/, then add project path
-  projectState.watchPath = join(process.cwd(), '..', '..', project.path);
-  projectState.dbPath = join(RAVEN_DIR, 'db', `${projectName}.db`);
-  projectState.snapshotsDir = join(RAVEN_DIR, 'snapshots', projectName);
-
-  // Initialize database
-  if (projectState.db) {
-    projectState.db.close();
-  }
-  projectState.db = new RavenDB(projectState.dbPath);
-
-  // Ensure snapshots directory exists
-  fs.mkdirSync(projectState.snapshotsDir, { recursive: true });
-
-  // Initialize GitMonitor
-  if (projectState.gitMonitor) {
-    projectState.gitMonitor.stop();
-  }
-  projectState.gitMonitor = new GitMonitor({
-    repoPath: projectState.watchPath,
-    pollIntervalMs: 2000,
-    enableAutoPoll: false // Manual polling only, no auto-commits
-  });
-
-  console.log(`✅ Initialized project: ${projectName}`);
-  console.log(`   Watch Path: ${projectState.watchPath}`);
-  console.log(`   Database: ${projectState.dbPath}`);
-  console.log(`   Snapshots: ${projectState.snapshotsDir}`);
 }
 
 /**
- * Emit real-time git status update via WebSocket
+ * Initialize ALL discovered projects for global monitoring
  */
-async function emitGitStatusUpdate() {
-  if (!projectState.gitMonitor) {
+function initializeAllProjects() {
+  console.log(`\n🚀 Initializing ${availableProjects.length} projects for global monitoring...\n`);
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const project of availableProjects) {
+    const success = initializeProject(project.name);
+    if (success) {
+      successCount++;
+    } else {
+      failCount++;
+    }
+  }
+
+  console.log(`\n✅ Project initialization complete:`);
+  console.log(`   Successful: ${successCount}`);
+  console.log(`   Failed: ${failCount}`);
+  console.log(`   Total: ${availableProjects.length}\n`);
+
+  return { successCount, failCount };
+}
+
+/**
+ * Emit real-time git status update via WebSocket for a specific project
+ */
+async function emitGitStatusUpdate(projectName) {
+  const gitMonitor = projectGitMonitors.get(projectName);
+  if (!gitMonitor) {
     return;
   }
 
   try {
-    const isRepo = await projectState.gitMonitor.isGitRepo();
+    const isRepo = await gitMonitor.isGitRepo();
     if (!isRepo) return;
 
     // Force a fresh status check by temporarily clearing lastStatus
-    const previousStatus = projectState.gitMonitor.lastStatus;
-    projectState.gitMonitor.lastStatus = null;
+    const previousStatus = gitMonitor.lastStatus;
+    gitMonitor.lastStatus = null;
 
-    const status = await projectState.gitMonitor.checkStatus();
+    const status = await gitMonitor.checkStatus();
 
     // Restore the previous status to avoid repeated emissions
     if (!status && previousStatus) {
-      projectState.gitMonitor.lastStatus = previousStatus;
+      gitMonitor.lastStatus = previousStatus;
     }
 
     if (status) {
       io.emit('git-status-updated', {
+        project: projectName,
         branch: status.branch,
         modified: status.modified,
         created: status.created,
@@ -626,17 +760,25 @@ async function emitGitStatusUpdate() {
         behind: status.behind || 0,
         timestamp: new Date().toISOString()
       });
-      console.log('🔀 Git status emitted via WebSocket');
+      console.log(`🔀 [${projectName}] Git status emitted via WebSocket`);
     }
   } catch (error) {
-    console.error('❌ Error emitting git status:', error);
+    console.error(`❌ Error emitting git status [${projectName}]:`, error);
   }
 }
 
 /**
- * Initialize file watcher for the current project
+ * Initialize file watcher for a specific project
+ * @param {string} projectName - Name of the project to watch
+ * @returns {object|null} - Chokidar watcher instance or null if failed
  */
-function initializeWatcher() {
+function initializeWatcher(projectName) {
+  const projectPath = projectPaths.get(projectName);
+  if (!projectPath) {
+    console.error(`❌ Cannot create watcher for ${projectName}: path not found`);
+    return null;
+  }
+
   // Default ignore patterns (can be extended via CHOKIDAR_IGNORE_PATTERNS env var)
   const defaultIgnored = [
     /(^|[\/\\])\../, // Ignore dotfiles
@@ -654,7 +796,7 @@ function initializeWatcher() {
     ? process.env.CHOKIDAR_IGNORE_PATTERNS.split(',').map(p => p.trim())
     : [];
 
-  const watcher = chokidar.watch(projectState.watchPath, {
+  const watcher = chokidar.watch(projectPath, {
     ignored: [...defaultIgnored, ...customIgnored],
     persistent: true,
     ignoreInitial: true,
@@ -666,87 +808,123 @@ function initializeWatcher() {
 
   watcher
     .on('add', filepath => {
-      console.log(`📄 File added: ${relative(projectState.watchPath, filepath)}`);
       handleFileChange('add', filepath);
-      emitGitStatusUpdate();
     })
     .on('change', filepath => {
-      console.log(`✏️  File changed: ${relative(projectState.watchPath, filepath)}`);
       handleFileChange('change', filepath);
-      emitGitStatusUpdate();
     })
     .on('unlink', filepath => {
-      console.log(`🗑️  File deleted: ${relative(projectState.watchPath, filepath)}`);
       handleFileChange('unlink', filepath);
-      emitGitStatusUpdate();
     })
     .on('error', error => {
-      console.error('❌ Watcher error:', error);
+      console.error(`❌ Watcher error [${projectName}]:`, error);
 
       // Emit file watcher error via WebSocket
       io.emit('file-watcher-error', {
+        project: projectName,
         timestamp: new Date().toISOString(),
         message: error.message || 'File watcher encountered an error',
         error: error.toString()
       });
     })
     .on('ready', () => {
-      console.log('✅ File watcher ready');
+      console.log(`✅ File watcher ready [${projectName}]`);
     });
 
   return watcher;
 }
 
 /**
- * Switch to a different project
- * Protected by mutex to prevent race conditions during concurrent switches
+ * Initialize watchers for ALL projects
  */
-async function switchProject(projectName) {
-  return await projectStateMutex.runExclusive(async () => {
-    console.log(`🔄 Switching to project: ${projectName}`);
+function initializeAllWatchers() {
+  console.log(`\n👀 Starting file watchers for all projects...\n`);
 
-    // Close existing watcher
-    if (projectState.watcher) {
-      await projectState.watcher.close();
-      console.log('✅ Closed previous watcher');
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const [projectName, projectPath] of projectPaths.entries()) {
+    const watcher = initializeWatcher(projectName);
+    if (watcher) {
+      projectWatchers.set(projectName, watcher);
+      successCount++;
+    } else {
+      failCount++;
     }
+  }
 
-    // Clear file cache
-    fileCache.clear();
+  console.log(`\n✅ Watcher initialization complete:`);
+  console.log(`   Watching: ${successCount} projects`);
+  console.log(`   Failed: ${failCount}\n`);
 
-    // Initialize new project
-    initializeProject(projectName);
-
-    // Update metrics collector database reference
-    if (metricsCollector) {
-      metricsCollector.db = projectState.db;
-      console.log('✅ Updated metrics collector database reference');
-    }
-
-    // Update trigger engine database reference
-    if (triggerEngine) {
-      triggerEngine.setDb(projectState.db);
-      console.log('✅ Updated trigger engine database reference');
-    }
-
-    // Initialize new watcher
-    projectState.watcher = initializeWatcher();
-
-    // Emit event to all connected clients
-    io.emit('project-switched', {
-      project: projectName,
-      timestamp: new Date().toISOString()
-    });
-
-    console.log(`✅ Switched to project: ${projectName}`);
-  });
+  return { successCount, failCount };
 }
+
+// NOTE: switchProject() function removed - now watching all projects simultaneously
+// The old single-project switching model is deprecated
+
+/**
+ * Get default project database (for legacy API endpoints)
+ * Prefers 'raven' project if it exists, otherwise first available
+ */
+function getDefaultProjectDb() {
+  const ravenDb = projectDatabases.get('raven');
+  if (ravenDb) return ravenDb;
+
+  return projectDatabases.values().next().value;
+}
+
+/**
+ * Get default project name (for legacy API endpoints)
+ */
+function getDefaultProjectName() {
+  if (projectDatabases.has('raven')) return 'raven';
+
+  const firstProject = projectPaths.keys().next().value;
+  return firstProject || null;
+}
+
+/**
+ * Compatibility shim: Provides backward-compatible projectState object
+ * for legacy API endpoints during transition to multi-project architecture
+ */
+const projectState = {
+  get activeProject() {
+    return getDefaultProjectName();
+  },
+  get availableProjects() {
+    return availableProjects;
+  },
+  get db() {
+    return getDefaultProjectDb();
+  },
+  get watchPath() {
+    const defaultProject = getDefaultProjectName();
+    return defaultProject ? projectPaths.get(defaultProject) : null;
+  },
+  get dbPath() {
+    const defaultProject = getDefaultProjectName();
+    return defaultProject ? join(RAVEN_DIR, 'db', `${defaultProject}.db`) : null;
+  },
+  get snapshotsDir() {
+    const defaultProject = getDefaultProjectName();
+    return defaultProject ? projectSnapshotDirs.get(defaultProject) : null;
+  },
+  get watcher() {
+    const defaultProject = getDefaultProjectName();
+    return defaultProject ? projectWatchers.get(defaultProject) : null;
+  },
+  get gitMonitor() {
+    const defaultProject = getDefaultProjectName();
+    return defaultProject ? projectGitMonitors.get(defaultProject) : null;
+  }
+};
 
 // ==================== Telemetry Endpoint ====================
 
 app.post('/telemetry', (req, res) => {
   try {
-    const { agent, event, file, lines_changed, duration_ms, message, metadata } = req.body;
+    const { agent, event, file, lines_changed, duration_ms, message, metadata, project } = req.body;
 
     // Validate required fields
     if (!agent || !event || !message) {
@@ -775,8 +953,23 @@ app.post('/telemetry', (req, res) => {
 
     const timestamp = new Date().toISOString();
 
-    // Insert into database
-    const eventId = projectState.db.insertAgentEvent(
+    // Determine which project this telemetry is for
+    let projectName = project; // Use explicit project if provided
+    if (!projectName && availableProjects.length > 0) {
+      // Default to 'raven' if it exists, otherwise first project
+      const ravenProject = availableProjects.find(p => p.name === 'raven');
+      projectName = ravenProject ? ravenProject.name : availableProjects[0].name;
+    }
+
+    // Get project database (or use first available)
+    const db = projectName ? projectDatabases.get(projectName) : projectDatabases.values().next().value;
+
+    if (!db) {
+      return res.status(500).json({ error: 'No project database available' });
+    }
+
+    // Insert into project-specific database
+    const eventId = db.insertAgentEvent(
       timestamp,
       agent,
       event,
@@ -788,11 +981,29 @@ app.post('/telemetry', (req, res) => {
       SESSION_ID
     );
 
+    // ALSO log to global developer persona database
+    try {
+      developerDB.logAgentInteraction({
+        timestamp,
+        project: projectName,
+        agent_name: agent,
+        event_type: event,
+        file_path: file,
+        lines_changed,
+        message,
+        session_id: SESSION_ID,
+        prompt_type: metadata?.prompt_type,
+        metadata: JSON.stringify(metadata)
+      });
+    } catch (devDbError) {
+      console.error('❌ Failed to log to developer DB:', devDbError.message);
+    }
+
     // Update agent registry
     if (!agentRegistry.has(agent)) {
       agentRegistry.set(agent, {
         agent_name: agent,
-        agent_type: agent, // Simplified - could parse this better
+        agent_type: agent,
         is_running: true,
         last_seen: timestamp,
         models_available: [],
@@ -813,16 +1024,18 @@ app.post('/telemetry', (req, res) => {
       agent: agent,
       event_type: event,
       lines_changed: lines_changed,
-      duration_ms: duration_ms
+      duration_ms: duration_ms,
+      project: projectName
     };
     triggerEngine.evaluate(triggerEvent);
 
-    console.log(`📡 Telemetry: ${agent} - ${event} - ${message}`);
+    console.log(`📡 [${projectName}] Telemetry: ${agent} - ${event} - ${message}`);
 
-    // Emit real-time event via WebSocket
+    // Emit real-time event via WebSocket (include project)
     io.emit('agent-event', {
       id: eventId,
       timestamp,
+      project: projectName,
       agent,
       event_type: event,
       file,
@@ -833,12 +1046,13 @@ app.post('/telemetry', (req, res) => {
     });
 
     // Emit updated agent stats
-    io.emit('agent-stats', projectState.db.getAgentStats());
+    io.emit('agent-stats', db.getAgentStats());
 
     res.json({
       success: true,
       event_id: eventId,
-      session_id: SESSION_ID
+      session_id: SESSION_ID,
+      project: projectName
     });
   } catch (error) {
     console.error('❌ Telemetry error:', error);
@@ -2798,21 +3012,30 @@ httpServer.listen(PORT, () => {
     }
   });
 
-  // Initialize default project
-  initializeProject(projectState.activeProject);
+  // Initialize ALL projects for global monitoring
+  initializeAllProjects();
 
-  // Initialize trigger engine with io instance
-  triggerEngine = new TriggerEngine(RAVEN_DIR, io, projectState.db);
+  // Get first project database for trigger engine and metrics collector
+  // (They'll work across all projects via events)
+  const firstDb = projectDatabases.values().next().value;
 
-  // Initialize metrics collector with io instance
-  metricsCollector = new MetricsCollector(projectState.db, SESSION_ID, io);
+  if (firstDb) {
+    // Initialize trigger engine with io instance
+    triggerEngine = new TriggerEngine(RAVEN_DIR, io, firstDb);
 
-  // Start real-time metrics collection
-  metricsCollector.start();
+    // Initialize metrics collector with io instance
+    metricsCollector = new MetricsCollector(firstDb, SESSION_ID, io);
 
-  // Initialize file watcher for the active project
-  console.log(`📁 Watching directory: ${projectState.watchPath}`);
-  projectState.watcher = initializeWatcher();
+    // Start real-time metrics collection
+    metricsCollector.start();
+  } else {
+    console.error('❌ No databases available - trigger engine and metrics collector not started');
+  }
+
+  // Initialize file watchers for ALL projects
+  initializeAllWatchers();
+
+  console.log('\n🎉 Global multi-project monitoring is active!\n');
 });
 
 // Graceful shutdown
@@ -2832,11 +3055,21 @@ process.on('SIGINT', () => {
     clearInterval(snapshotCleanupInterval);
     console.log('✅ Stopped snapshot cleanup');
   }
+  if (performanceMonitorInterval) {
+    clearInterval(performanceMonitorInterval);
+    console.log('✅ Stopped performance monitor');
+  }
 
-  // Close file watcher
-  if (projectState.watcher) {
-    projectState.watcher.close();
-    console.log('✅ Closed file watcher');
+  // Close all file watchers
+  console.log(`\n🔒 Closing ${projectWatchers.size} file watchers...`);
+  for (const [projectName, watcher] of projectWatchers.entries()) {
+    watcher.close();
+    console.log(`✅ Closed watcher: ${projectName}`);
+  }
+
+  // Stop all git monitors
+  for (const [projectName, gitMonitor] of projectGitMonitors.entries()) {
+    gitMonitor.stop();
   }
 
   // Stop metrics collection
@@ -2845,12 +3078,19 @@ process.on('SIGINT', () => {
     console.log('✅ Stopped metrics collector');
   }
 
-  // Close database
-  if (projectState.db) {
-    projectState.db.close();
-    console.log('✅ Closed database');
+  // Close all project databases
+  console.log(`\n🔒 Closing ${projectDatabases.size} project databases...`);
+  for (const [projectName, db] of projectDatabases.entries()) {
+    db.close();
+    console.log(`✅ Closed database: ${projectName}`);
   }
 
-  console.log('👋 Goodbye!');
+  // Close developer persona database
+  if (developerDB) {
+    developerDB.close();
+    console.log('✅ Closed developer persona database');
+  }
+
+  console.log('\n👋 Goodbye!');
   process.exit(0);
 });
