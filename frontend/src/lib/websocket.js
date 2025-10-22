@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { notifications } from './notificationService.js';
 
 class WebSocketService {
   constructor() {
@@ -24,21 +25,29 @@ class WebSocketService {
     this.socket.on('connect', () => {
       console.log('🔌 WebSocket connected');
       this.connected = true;
+      notifications.websocketConnected();
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('🔌 WebSocket disconnected:', reason);
       this.connected = false;
+      notifications.websocketDisconnected();
     });
 
     this.socket.on('connect_error', (error) => {
       console.error('🔌 WebSocket connection error:', error);
+      notifications.error(`WebSocket error: ${error.message || 'Connection failed'}`, {
+        title: 'WebSocket Error'
+      });
     });
 
     // Handle successful reconnection
     this.socket.on('reconnect', (attemptNumber) => {
       console.log(`🔌 WebSocket reconnected after ${attemptNumber} attempts`);
       this.connected = true;
+      notifications.success(`Reconnected after ${attemptNumber} attempt(s)`, {
+        title: 'WebSocket Reconnected'
+      });
 
       // Notify all registered reconnect callbacks
       for (const callback of this.reconnectCallbacks) {
@@ -53,10 +62,17 @@ class WebSocketService {
     // Track reconnection attempts
     this.socket.on('reconnect_attempt', (attemptNumber) => {
       console.log(`🔌 Attempting to reconnect (${attemptNumber})...`);
+      if (attemptNumber % 5 === 0) { // Only notify every 5 attempts to avoid spam
+        notifications.websocketReconnecting(attemptNumber);
+      }
     });
 
     this.socket.on('reconnect_failed', () => {
       console.error('🔌 WebSocket reconnection failed - max attempts reached');
+      notifications.error('Failed to reconnect to server', {
+        title: 'Connection Failed',
+        duration: 0 // Don't auto-dismiss
+      });
     });
 
     return this.socket;

@@ -3,7 +3,7 @@
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
-  import { toasts } from './toastStore.js';
+  import { notifications } from './notificationService.js';
 
   export let sessionId = 'Loading...';
   export let sessionUptime = '0s';
@@ -89,10 +89,14 @@
       topFiles = filesData.files || [];
 
       loading = false;
-      toasts.success('Dashboard refreshed');
+      notifications.success('Dashboard refreshed', {
+        title: 'Overview Updated'
+      });
     } catch (error) {
       console.error('Failed to load overview data:', error);
-      toasts.error('Failed to load dashboard data');
+      notifications.error('Failed to load dashboard data', {
+        title: 'Dashboard Error'
+      });
       loading = false;
     }
   }

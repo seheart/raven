@@ -331,6 +331,66 @@ const snapshotCleanupInterval = setInterval(async () => {
   }
 }, 24 * 60 * 60 * 1000); // Run daily
 
+// Performance monitoring - check every 30 seconds
+let lastPerformanceAlert = 0;
+const PERFORMANCE_ALERT_COOLDOWN = 5 * 60 * 1000; // 5 minutes between alerts
+
+const performanceMonitorInterval = setInterval(async () => {
+  try {
+    const os = await import('os');
+    const now = Date.now();
+
+    // Skip if we recently sent an alert (avoid spam)
+    if (now - lastPerformanceAlert < PERFORMANCE_ALERT_COOLDOWN) {
+      return;
+    }
+
+    // Memory usage
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+    const memoryPercent = (usedMemory / totalMemory) * 100;
+
+    // Process memory
+    const processMemory = process.memoryUsage();
+    const heapPercent = (processMemory.heapUsed / processMemory.heapTotal) * 100;
+
+    // Check for critical conditions
+    if (memoryPercent > 90) {
+      io.emit('performance-alert', {
+        type: 'memory',
+        severity: 'critical',
+        title: 'Critical System Memory',
+        message: `System memory usage is critically high: ${memoryPercent.toFixed(1)}%`,
+        value: memoryPercent.toFixed(1)
+      });
+      lastPerformanceAlert = now;
+      console.warn(`⚠️ Critical system memory: ${memoryPercent.toFixed(1)}%`);
+    } else if (heapPercent > 90) {
+      io.emit('performance-alert', {
+        type: 'heap',
+        severity: 'warning',
+        title: 'High Heap Memory',
+        message: `Process heap usage is high: ${heapPercent.toFixed(1)}%`,
+        value: heapPercent.toFixed(1)
+      });
+      lastPerformanceAlert = now;
+      console.warn(`⚠️ High heap usage: ${heapPercent.toFixed(1)}%`);
+    } else if (memoryPercent > 85) {
+      io.emit('performance-alert', {
+        type: 'memory',
+        severity: 'warning',
+        title: 'High System Memory',
+        message: `System memory usage is high: ${memoryPercent.toFixed(1)}%`,
+        value: memoryPercent.toFixed(1)
+      });
+      lastPerformanceAlert = now;
+    }
+  } catch (error) {
+    console.error('❌ Performance monitoring error:', error.message);
+  }
+}, 30 * 1000); // Check every 30 seconds
+
 // Agent type color mapping
 const AGENT_COLORS = {
   claude: '#FF6B35',
@@ -622,6 +682,13 @@ function initializeWatcher() {
     })
     .on('error', error => {
       console.error('❌ Watcher error:', error);
+
+      // Emit file watcher error via WebSocket
+      io.emit('file-watcher-error', {
+        timestamp: new Date().toISOString(),
+        message: error.message || 'File watcher encountered an error',
+        error: error.toString()
+      });
     })
     .on('ready', () => {
       console.log('✅ File watcher ready');
@@ -783,6 +850,119 @@ app.post('/telemetry', (req, res) => {
 
 app.get('/api/session-id', (req, res) => {
   res.json({ session_id: SESSION_ID });
+});
+
+/**
+ * GET /api/health
+ * Health check endpoint with system metrics and storage monitoring
+ */
+app.get('/api/health', async (req, res) => {
+  try {
+    const os = await import('os');
+
+    // Memory usage
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+    const memoryPercent = (usedMemory / totalMemory) * 100;
+
+    // Process memory
+    const processMemory = process.memoryUsage();
+
+    // Calculate .raven directory size
+    const getRavenDirSize = (dirPath) => {
+      let totalSize = 0;
+      try {
+        const items = fs.readdirSync(dirPath);
+        for (const item of items) {
+          const itemPath = join(dirPath, item);
+          const stat = fs.statSync(itemPath);
+          if (stat.isDirectory()) {
+            totalSize += getRavenDirSize(itemPath);
+          } else {
+            totalSize += stat.size;
+          }
+        }
+      } catch (err) {
+        console.error('Error calculating directory size:', err);
+      }
+      return totalSize;
+    };
+
+    const ravenSize = getRavenDirSize(RAVEN_DIR);
+
+    // Estimate disk usage (assume 100GB available for now)
+    // In production, you'd use a library like 'diskusage' for accurate stats
+    const estimatedDiskTotal = 100 * 1024 * 1024 * 1024; // 100GB
+    const diskUsePercent = (ravenSize / estimatedDiskTotal) * 100;
+
+    // Determine health status
+    let status = 'healthy';
+    const issues = [];
+
+    if (memoryPercent > 90) {
+      status = 'warning';
+      issues.push('High system memory usage');
+    }
+
+    if (processMemory.heapUsed / processMemory.heapTotal > 0.9) {
+      status = 'warning';
+      issues.push('High process heap usage');
+    }
+
+    if (diskUsePercent > 95) {
+      status = 'critical';
+      issues.push('Critical storage usage');
+
+      // Emit storage warning
+      io.emit('storage-warning', {
+        percentage: diskUsePercent.toFixed(1),
+        size: ravenSize,
+        critical: true
+      });
+    } else if (diskUsePercent > 85) {
+      status = 'warning';
+      issues.push('High storage usage');
+
+      // Emit storage warning
+      io.emit('storage-warning', {
+        percentage: diskUsePercent.toFixed(1),
+        size: ravenSize,
+        critical: false
+      });
+    }
+
+    res.json({
+      status,
+      issues,
+      uptime: process.uptime(),
+      memory: {
+        system: {
+          total: totalMemory,
+          free: freeMemory,
+          used: usedMemory,
+          percent: memoryPercent.toFixed(1)
+        },
+        process: {
+          heapTotal: processMemory.heapTotal,
+          heapUsed: processMemory.heapUsed,
+          external: processMemory.external,
+          rss: processMemory.rss
+        }
+      },
+      storage: {
+        ravenSize,
+        diskUsePercent: diskUsePercent.toFixed(1)
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Health check error:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
 });
 
 app.get('/api/dashboard-stats', (req, res) => {
@@ -1293,6 +1473,71 @@ function cleanDescription(subject) {
     .replace(/^(feat|feature|fix|improve|improvement|perf|performance|breaking|security|sec|docs?):\s*/i, '')
     .trim();
 }
+
+// ==================== User Preferences ====================
+
+// Simple in-memory storage for user preferences (could be moved to DB later)
+const userPreferences = new Map();
+
+// GET user preferences
+app.get('/api/preferences', (req, res) => {
+  try {
+    const userId = req.query.userId || 'default';
+    const preferences = userPreferences.get(userId) || {
+      notifications: {
+        enabled: true,
+        showToasts: true,
+        soundEnabled: false,
+        desktopNotifications: false,
+        types: {
+          errors: true,
+          warnings: true,
+          triggers: true,
+          performance: false,
+          info: true
+        }
+      },
+      ui: {
+        theme: 'theme--night',
+        compactMode: false,
+        animationsEnabled: true,
+        autoRefresh: true,
+        refreshInterval: 10
+      },
+      performance: {
+        enableMetrics: true,
+        metricsInterval: 10,
+        enableFileWatcher: true,
+        maxEventsDisplay: 100
+      }
+    };
+
+    res.json(preferences);
+  } catch (error) {
+    console.error('❌ Failed to get preferences:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST user preferences (save/update)
+app.post('/api/preferences', (req, res) => {
+  try {
+    const userId = req.body.userId || 'default';
+    const preferences = req.body.preferences;
+
+    if (!preferences) {
+      return res.status(400).json({ error: 'Preferences data required' });
+    }
+
+    userPreferences.set(userId, preferences);
+
+    console.log(`💾 Saved preferences for user: ${userId}`);
+    res.json({ success: true, message: 'Preferences saved successfully' });
+  } catch (error) {
+    console.error('❌ Failed to save preferences:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // ==================== Health Check ====================
 
@@ -2437,18 +2682,34 @@ app.post('/api/sync/trigger', async (req, res) => {
     const result = await SyncService.performSync(config, projectPath);
 
     if (result.success) {
-      // Emit sync event via WebSocket
+      // Emit sync success event via WebSocket
       io.emit('sync-complete', {
+        success: true,
         timestamp: new Date().toISOString(),
         size: result.size,
         files: result.files,
         duration: result.duration
+      });
+    } else {
+      // Emit sync failure event via WebSocket
+      io.emit('sync-complete', {
+        success: false,
+        timestamp: new Date().toISOString(),
+        error: result.error || 'Unknown error'
       });
     }
 
     res.json(result);
   } catch (error) {
     console.error('❌ Error performing sync:', error);
+
+    // Emit sync failure event
+    io.emit('sync-complete', {
+      success: false,
+      timestamp: new Date().toISOString(),
+      error: error.message || 'Sync failed'
+    });
+
     res.status(500).json({ success: false, error: 'Sync failed' });
   }
 });

@@ -31,10 +31,15 @@
   import NotificationsPanel from './lib/NotificationsPanel.svelte';
   import StoragePanel from './lib/StoragePanel.svelte';
   import ServerSyncPanel from './lib/ServerSyncPanel.svelte';
+  import SettingsPanel from './lib/SettingsPanel.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
   import { toasts } from './lib/toastStore.js';
+  import { notifications } from './lib/notificationService.js';
+  import { setupNotificationListeners } from './lib/notificationListener.js';
+  import { websocketService } from './lib/websocket.js';
+  import { checkServerHealth } from './lib/apiClient.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -48,6 +53,7 @@
 
   const startTime = Date.now();
   let uptimeInterval;
+  let healthCheckInterval;
 
   function updateUptime() {
     const seconds = Math.floor((Date.now() - startTime) / 1000);
@@ -79,14 +85,14 @@
     activeTab = newTab;
     currentSubView = '';
     localStorage.setItem('raven-active-tab', newTab);
-    toasts.info(`Switched to ${newTab} view`);
+    notifications.info(`Switched to ${newTab} view`);
   }
 
   function switchTheme(newTheme) {
     theme = newTheme;
     document.body.className = theme;
     localStorage.setItem('raven-theme', theme);
-    toasts.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
+    notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
   onMount(() => {
@@ -106,6 +112,20 @@
     // Setup global error handler
     setupGlobalErrorHandler();
 
+    // Initialize WebSocket connection and notification listeners
+    websocketService.connect();
+    setupNotificationListeners();
+
+    // Start periodic health checks (every 60 seconds)
+    checkServerHealth(); // Initial check
+    healthCheckInterval = setInterval(checkServerHealth, 60000);
+
+    // Check health on WebSocket reconnect
+    websocketService.onReconnect(() => {
+      console.log('🏥 Running health check after reconnect...');
+      checkServerHealth();
+    });
+
     // Register help shortcut
     keyboard.register('?', () => showHelp = !showHelp);
     keyboard.register('Escape', () => {
@@ -117,9 +137,12 @@
     if (!localStorage.getItem('raven-welcome-seen')) {
       showWelcome = true;
     } else if (!localStorage.getItem('raven-visited')) {
-      // Show toast for returning users who haven't seen the new UI
+      // Show notification for returning users who haven't seen the new UI
       setTimeout(() => {
-        toasts.info('Welcome back! Press ? for keyboard shortcuts', 5000);
+        notifications.info('Welcome back! Press ? for keyboard shortcuts', {
+          title: 'Welcome',
+          duration: 5000
+        });
         localStorage.setItem('raven-visited', 'true');
       }, 1000);
     }
@@ -128,6 +151,8 @@
   onDestroy(() => {
     keyboard.clear();
     if (uptimeInterval) clearInterval(uptimeInterval);
+    if (healthCheckInterval) clearInterval(healthCheckInterval);
+    websocketService.disconnect();
   });
 </script>
 
@@ -310,6 +335,13 @@
           >
             API Health
           </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'settings'}
+            on:click={() => currentSubView = 'settings'}
+          >
+            Settings
+          </button>
         </div>
         {#if !currentSubView}
           <StatusPanel />
@@ -323,6 +355,8 @@
           <ErrorLog />
         {:else if currentSubView === 'api'}
           <APIHealthMonitor />
+        {:else if currentSubView === 'settings'}
+          <SettingsPanel />
         {/if}
       </div>
     {:else if activeTab === 'about'}

@@ -1,0 +1,345 @@
+import { toasts } from './toastStore.js';
+
+/**
+ * Centralized notification service that respects user preferences
+ * Handles: toasts, browser notifications, and sounds
+ */
+class NotificationService {
+  constructor() {
+    this.settings = this.loadSettings();
+    this.browserPermission = 'default';
+    this.requestBrowserPermission();
+
+    // Rate limiting: track recent notifications to avoid duplicates
+    this.recentNotifications = new Map(); // key -> timestamp
+    this.rateLimitWindow = 5000; // 5 seconds
+  }
+
+  // Load settings from localStorage
+  loadSettings() {
+    const saved = localStorage.getItem('raven-settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse notification settings:', e);
+      }
+    }
+    return {
+      notifications: {
+        enabled: true,
+        showToasts: true,
+        soundEnabled: false,
+        desktopNotifications: false,
+        types: {
+          errors: true,
+          warnings: true,
+          triggers: true,
+          performance: false,
+          info: true
+        }
+      }
+    };
+  }
+
+  // Refresh settings (call this when settings change)
+  refreshSettings() {
+    this.settings = this.loadSettings();
+  }
+
+  // Check if notification should be rate-limited
+  isRateLimited(key) {
+    const now = Date.now();
+    const lastShown = this.recentNotifications.get(key);
+
+    if (lastShown && (now - lastShown) < this.rateLimitWindow) {
+      return true; // Too soon, rate limit
+    }
+
+    // Update timestamp and clean old entries
+    this.recentNotifications.set(key, now);
+
+    // Clean up old entries (older than rate limit window)
+    for (const [k, timestamp] of this.recentNotifications.entries()) {
+      if (now - timestamp > this.rateLimitWindow) {
+        this.recentNotifications.delete(k);
+      }
+    }
+
+    return false;
+  }
+
+  // Request browser notification permission
+  async requestBrowserPermission() {
+    if ('Notification' in window) {
+      this.browserPermission = Notification.permission;
+      if (this.browserPermission === 'default') {
+        this.browserPermission = await Notification.requestPermission();
+      }
+    }
+  }
+
+  // Check if notification type should be shown based on user preferences
+  shouldShow(type) {
+    if (!this.settings.notifications.enabled) return false;
+
+    const typeMap = {
+      'error': 'errors',
+      'warning': 'warnings',
+      'trigger': 'triggers',
+      'performance': 'performance',
+      'info': 'info',
+      'success': 'info' // Map success to info
+    };
+
+    const settingKey = typeMap[type] || 'info';
+    return this.settings.notifications.types[settingKey] !== false;
+  }
+
+  // Play notification sound with different tones for different types
+  playSound(type = 'info') {
+    if (!this.settings.notifications.soundEnabled) return;
+
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioContext.currentTime;
+
+      // Different sound patterns for different notification types
+      const soundPatterns = {
+        error: [
+          { freq: 400, duration: 0.1, delay: 0 },
+          { freq: 300, duration: 0.1, delay: 0.12 },
+          { freq: 200, duration: 0.2, delay: 0.24 }
+        ],
+        warning: [
+          { freq: 600, duration: 0.08, delay: 0 },
+          { freq: 500, duration: 0.08, delay: 0.1 }
+        ],
+        success: [
+          { freq: 523, duration: 0.06, delay: 0 },      // C5
+          { freq: 659, duration: 0.06, delay: 0.08 },   // E5
+          { freq: 784, duration: 0.12, delay: 0.16 }    // G5
+        ],
+        trigger: [
+          { freq: 800, duration: 0.05, delay: 0 },
+          { freq: 1000, duration: 0.05, delay: 0.06 },
+          { freq: 800, duration: 0.05, delay: 0.12 }
+        ],
+        info: [
+          { freq: 800, duration: 0.1, delay: 0 }
+        ]
+      };
+
+      const pattern = soundPatterns[type] || soundPatterns.info;
+
+      pattern.forEach(note => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = note.freq;
+        oscillator.type = 'sine';
+
+        const startTime = now + note.delay;
+        const endTime = startTime + note.duration;
+
+        gainNode.gain.setValueAtTime(0.15, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
+
+        oscillator.start(startTime);
+        oscillator.stop(endTime);
+      });
+    } catch (e) {
+      console.warn('Failed to play notification sound:', e);
+    }
+  }
+
+  // Show browser notification
+  showBrowserNotification(title, message, type = 'info') {
+    if (!this.settings.notifications.desktopNotifications) return;
+    if (!('Notification' in window)) return;
+    if (this.browserPermission !== 'granted') return;
+
+    try {
+      const icon = type === 'error' ? '🔴' :
+                   type === 'warning' ? '⚠️' :
+                   type === 'success' ? '✅' : 'ℹ️';
+
+      new Notification(`${icon} ${title}`, {
+        body: message,
+        icon: '/raven-icon.svg',
+        badge: '/raven-icon.svg',
+        tag: `raven-${type}`,
+        requireInteraction: type === 'error'
+      });
+    } catch (e) {
+      console.warn('Failed to show browser notification:', e);
+    }
+  }
+
+  // Main notification method
+  notify(message, type = 'info', options = {}) {
+    // Check if this notification type should be shown
+    if (!this.shouldShow(type)) return;
+
+    const {
+      title = 'Raven',
+      duration,
+      browserNotification = false,
+      playSound = type === 'error' || type === 'warning'
+    } = options;
+
+    // Show toast notification
+    if (this.settings.notifications.showToasts) {
+      if (type === 'error') {
+        toasts.error(message, duration);
+      } else if (type === 'warning') {
+        toasts.warning(message, duration);
+      } else if (type === 'success') {
+        toasts.success(message, duration);
+      } else {
+        toasts.info(message, duration);
+      }
+    }
+
+    // Show browser notification if requested
+    if (browserNotification) {
+      this.showBrowserNotification(title, message, type);
+    }
+
+    // Play sound if requested
+    if (playSound) {
+      this.playSound(type);
+    }
+  }
+
+  // Convenience methods
+  error(message, options = {}) {
+    this.notify(message, 'error', {
+      ...options,
+      browserNotification: true,
+      playSound: true
+    });
+  }
+
+  warning(message, options = {}) {
+    this.notify(message, 'warning', {
+      ...options,
+      browserNotification: options.critical || false
+    });
+  }
+
+  success(message, options = {}) {
+    this.notify(message, 'success', options);
+  }
+
+  info(message, options = {}) {
+    this.notify(message, 'info', options);
+  }
+
+  trigger(message, options = {}) {
+    this.notify(message, 'trigger', {
+      ...options,
+      title: 'Trigger Alert'
+    });
+  }
+
+  performance(message, options = {}) {
+    this.notify(message, 'performance', {
+      ...options,
+      title: 'Performance Alert'
+    });
+  }
+
+  // System-level notifications
+  websocketConnected() {
+    this.success('WebSocket connected', { title: 'Connection Established' });
+  }
+
+  websocketDisconnected() {
+    this.error('WebSocket disconnected - Real-time updates paused', {
+      title: 'Connection Lost',
+      duration: 0 // Don't auto-dismiss
+    });
+  }
+
+  websocketReconnecting(attempt) {
+    this.warning(`Reconnecting to server... (Attempt ${attempt})`, {
+      title: 'Reconnecting',
+      duration: 3000
+    });
+  }
+
+  serverHealthy() {
+    this.success('Server health check passed', { title: 'Server Healthy' });
+  }
+
+  serverUnhealthy(reason) {
+    this.error(`Server health check failed: ${reason}`, {
+      title: 'Server Unhealthy',
+      duration: 0
+    });
+  }
+
+  apiError(endpoint, error) {
+    // Rate limit API errors to avoid spam (same endpoint + error)
+    const rateLimitKey = `api-error:${endpoint}:${error.substring(0, 50)}`;
+    if (this.isRateLimited(rateLimitKey)) {
+      console.warn(`Rate limited API error: ${endpoint}`);
+      return;
+    }
+
+    this.error(`API error on ${endpoint}: ${error}`, {
+      title: 'API Error',
+      browserNotification: true
+    });
+  }
+
+  storageWarning(percentage) {
+    this.warning(`Storage at ${percentage}% capacity`, {
+      title: 'Storage Warning',
+      critical: percentage >= 90
+    });
+  }
+
+  storageCritical(percentage) {
+    this.error(`Storage critically full: ${percentage}%`, {
+      title: 'Storage Critical',
+      duration: 0
+    });
+  }
+
+  syncComplete() {
+    this.success('Server sync completed successfully', { title: 'Sync Complete' });
+  }
+
+  syncFailed(error) {
+    this.error(`Server sync failed: ${error}`, { title: 'Sync Failed' });
+  }
+
+  fileWatcherError(error) {
+    this.error(`File watcher error: ${error}`, {
+      title: 'File Watcher Error',
+      browserNotification: true
+    });
+  }
+
+  agentStatusChange(agentName, status) {
+    const message = `Agent "${agentName}" is now ${status}`;
+    if (status === 'running') {
+      this.info(message, { title: 'Agent Started' });
+    } else if (status === 'stopped' || status === 'failed') {
+      this.warning(message, { title: 'Agent Stopped' });
+    }
+  }
+}
+
+// Export singleton instance
+export const notifications = new NotificationService();
+
+// Allow external refresh of settings
+window.addEventListener('storage', () => {
+  notifications.refreshSettings();
+});

@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { toasts } from './toastStore.js';
+  import { notifications } from './notificationService.js';
   import { formatDateTime } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030/api';
@@ -67,25 +67,33 @@
       }
 
       saveStatus = 'success';
-      toasts.success('Configuration saved');
+      notifications.success('Configuration saved', {
+        title: 'Server Config'
+      });
 
       setTimeout(() => saveStatus = null, 3000);
     } catch (error) {
       console.error('Failed to save config:', error);
       saveStatus = 'error';
-      toasts.error('Failed to save configuration');
+      notifications.error('Failed to save configuration', {
+        title: 'Config Error'
+      });
     }
   }
 
   async function testConnection() {
     if (!config.host || !config.user) {
-      toasts.error('Please enter host and user');
+      notifications.error('Please enter host and user', {
+        title: 'Missing Configuration'
+      });
       return;
     }
 
     try {
       connectionStatus = 'testing';
-      toasts.info('Testing connection...');
+      notifications.info('Testing connection...', {
+        title: 'Connection Test'
+      });
 
       const response = await fetch(`${API_BASE}/sync/test`, {
         method: 'POST',
@@ -98,15 +106,21 @@
       if (result.success) {
         connectionStatus = 'success';
         lastConnectionTest = new Date().toISOString();
-        toasts.success('Connection successful!');
+        notifications.success('Connection successful!', {
+          title: 'Connection Test'
+        });
       } else {
         connectionStatus = 'failed';
-        toasts.error(`Connection failed: ${result.error || 'Unknown error'}`);
+        notifications.error(`Connection failed: ${result.error || 'Unknown error'}`, {
+          title: 'Connection Failed'
+        });
       }
     } catch (error) {
       console.error('Connection test failed:', error);
       connectionStatus = 'failed';
-      toasts.error('Connection test failed');
+      notifications.error('Connection test failed', {
+        title: 'Connection Error'
+      });
     }
   }
 
@@ -143,18 +157,24 @@
 
   async function syncNow() {
     if (!config.host || !config.user) {
-      toasts.error('Please configure server first');
+      notifications.error('Please configure server first', {
+        title: 'Missing Configuration'
+      });
       return;
     }
 
     if (connectionStatus !== 'success') {
-      toasts.warning('Please test connection first');
+      notifications.warning('Please test connection first', {
+        title: 'Connection Not Tested'
+      });
       return;
     }
 
     try {
       syncing = true;
-      toasts.info('Starting sync...');
+      notifications.info('Starting sync...', {
+        title: 'Server Sync'
+      });
 
       const response = await fetch(`${API_BASE}/sync/trigger`, {
         method: 'POST',
@@ -174,19 +194,25 @@
 
         syncHistory = [lastSync, ...syncHistory].slice(0, 10);
 
-        toasts.success(`Sync complete! Uploaded ${formatSize(result.size)}`);
+        notifications.success(`Sync complete! Uploaded ${formatSize(result.size)}`, {
+          title: 'Sync Successful'
+        });
 
         // Reload remote stats after successful sync
         await loadRemoteStats();
       } else {
-        toasts.error(`Sync failed: ${result.error || 'Unknown error'}`);
+        notifications.error(`Sync failed: ${result.error || 'Unknown error'}`, {
+          title: 'Sync Failed'
+        });
       }
 
       syncing = false;
     } catch (error) {
       console.error('Sync failed:', error);
       syncing = false;
-      toasts.error('Sync failed');
+      notifications.error('Sync failed', {
+        title: 'Sync Error'
+      });
     }
   }
 
