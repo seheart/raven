@@ -1,5 +1,4 @@
 <script>
-  import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
   import FileHistory from './FileHistory.svelte';
 
@@ -15,7 +14,8 @@
   async function loadFiles() {
     try {
       loading = true;
-      files = await invoke('get_tracked_files');
+      const response = await fetch('http://localhost:3030/api/files');
+      files = await response.json();
       loading = false;
     } catch (error) {
       console.error('Failed to load tracked files:', error);

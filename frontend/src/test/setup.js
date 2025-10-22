@@ -1,55 +1,73 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-// Mock Tauri API
-global.__TAURI__ = {
-  invoke: vi.fn(),
-  event: {
-    listen: vi.fn(),
-  },
-};
-
-// Mock @tauri-apps/api/core
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn((cmd, args) => {
-    // Mock responses for different commands
-    switch (cmd) {
-      case 'greet':
-        return Promise.resolve('Hello, Test!');
-      case 'get_session_id':
-        return Promise.resolve('test-session-123');
-      case 'get_metrics':
-        return Promise.resolve({
-          cpu: 25.5,
-          memory: 45.2,
-          memory_used_mb: 4096,
-          memory_total_mb: 16384,
-        });
-      case 'get_recent_events':
-        return Promise.resolve([
-          {
-            id: 1,
-            timestamp: '2025-10-17T12:00:00Z',
-            filepath: 'test.rs',
-            change_type: 'created',
-            cpu: 10.0,
-            mem: 20.0,
-          },
-        ]);
-      case 'get_tracked_files':
-        return Promise.resolve(['file1.rs', 'file2.rs']);
-      default:
-        return Promise.reject(new Error(`Unknown command: ${cmd}`));
-    }
-  }),
-}));
-
-// Mock @tauri-apps/api/event
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn((event, handler) => {
-    return Promise.resolve(() => {});
-  }),
-}));
+// Mock fetch for API calls
+global.fetch = vi.fn((url) => {
+  // Mock responses for different API endpoints
+  if (url.includes('/health')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', session_id: 'test-session-123' })
+    });
+  }
+  if (url.includes('/api/system-metrics')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve([{
+        cpu_percent: 25.5,
+        memory_percent: 45.2,
+        memory_used_mb: 4096,
+        memory_total_mb: 16384,
+        timestamp: '2025-10-17T12:00:00Z'
+      }])
+    });
+  }
+  if (url.includes('/api/agent-events')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve([
+        {
+          id: 1,
+          timestamp: '2025-10-17T12:00:00Z',
+          agent_name: 'test-agent',
+          event_type: 'file_change',
+          filepath: 'test.js',
+          change_type: 'created',
+        },
+      ])
+    });
+  }
+  if (url.includes('/api/tracked-files')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve(['file1.js', 'file2.js'])
+    });
+  }
+  if (url.includes('/api/dashboard-stats')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        total_events: 100,
+        total_files: 10,
+        total_agents: 2
+      })
+    });
+  }
+  if (url.includes('/api/agents-status')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve([
+        { agent_name: 'test-agent', is_running: true }
+      ])
+    });
+  }
+  // Default success for other endpoints
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve([]),
+    text: () => Promise.resolve('')
+  });
+});
 
 // Add custom matchers
 expect.extend({

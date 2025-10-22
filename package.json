@@ -1,27 +1,25 @@
 {
   "name": "raven",
   "version": "0.6.0",
-  "description": "Local-first AI agent monitoring tool",
+  "description": "Local-first AI agent monitoring tool - Web version",
   "scripts": {
     "dev": "concurrently -n backend,frontend -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm start",
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
-    "tauri": "cargo tauri",
-    "tauri:dev": "cargo tauri dev",
-    "tauri:build": "cargo tauri build"
+    "start": "./start.sh",
+    "stop": "./stop.sh"
   },
   "keywords": [
-    "tauri",
     "svelte",
-    "rust",
+    "nodejs",
     "monitoring",
-    "ai-agents"
+    "ai-agents",
+    "web-app"
   ],
   "author": "Seth Eheart",
   "license": "MIT",
   "devDependencies": {
-    "@tauri-apps/cli": "^2.8.4",
     "concurrently": "^9.1.2"
   }
 }

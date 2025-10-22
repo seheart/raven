@@ -1,5 +1,4 @@
 <script>
-  import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
   import { formatDateTime } from './timeFormat.js';
   import DiffViewer from './DiffViewer.svelte';
@@ -22,7 +21,8 @@
   async function loadHistory() {
     try {
       loading = true;
-      history = await invoke('get_file_history', { filepath });
+      const response = await fetch(`http://localhost:3030/api/files/${encodeURIComponent(filepath)}/history`);
+      history = await response.json();
       loading = false;
     } catch (error) {
       console.error('Failed to load file history:', error);
@@ -36,10 +36,8 @@
 
     try {
       const filename = filepath?.split('/')?.pop() || '';
-      snapshotContent = await invoke('get_snapshot', {
-        eventId: event.id,
-        filename
-      });
+      const response = await fetch(`http://localhost:3030/api/snapshot/${event.id}/${encodeURIComponent(filename)}`);
+      snapshotContent = await response.text();
     } catch (error) {
       console.error('Failed to load snapshot:', error);
       snapshotContent = `Error loading snapshot: ${error}`;
@@ -52,10 +50,12 @@
     }
 
     try {
-      const result = await invoke('restore_file', {
-        eventId: event.id,
-        targetPath: filepath
+      const response = await fetch(`http://localhost:3030/api/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: event.id, targetPath: filepath })
       });
+      const result = await response.text();
       alert(result);
       onClose();
     } catch (error) {
