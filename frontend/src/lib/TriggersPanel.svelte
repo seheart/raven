@@ -155,20 +155,24 @@
 <div class="triggers-panel">
   <PageInfo
     title="Triggers & Alerts"
-    description="Smart monitoring rules that automatically notify you when specific conditions are met. Set up alerts for high CPU usage, frequent file changes, error patterns, and more."
+    description="This is your automated monitoring system - think of triggers like smoke detectors in your house, but for your code. Triggers are **smart rules** that continuously watch for specific conditions (like high CPU, too many errors, rapid file changes) and automatically alert you when thresholds are breached. Instead of manually checking dashboards, triggers do the watching for you and send notifications when something needs your attention."
     keyPoints={[
-      'Triggers run continuously in the background',
-      'Configure custom thresholds for your workflow',
-      'Real-time notifications when conditions are met',
-      'View trigger history to see what fired and when',
-      'Enable/disable triggers individually',
-      'Test triggers before activating them'
+      '**Rules Tab** - Shows all configured trigger rules. Each rule has: Name (what it is called), Condition (what it watches for like "CPU > 80%"), Action (what happens when triggered like "Send notification"), Status (🟢 Enabled / ⚫ Disabled toggle). Click a rule to edit thresholds, enable/disable, or delete it.',
+      '**Recent Events Tab** - Live feed of trigger activations. When a trigger fires, it appears here with: Trigger name, Timestamp when it fired, Condition that was met, Message describing what happened, Project badge if applicable. Example: "High CPU Alert fired at 2:34 PM - CPU usage 87% exceeded threshold 80%".',
+      '**Stats Tab** - Summary metrics: Total Triggers (how many rules exist), Active Triggers (how many are currently enabled), Trigger Counts (how often each trigger has fired). Helps identify noisy triggers that fire too often.',
+      '**Example Triggers** - "High CPU": Fires when system CPU > 80% for 30 seconds. "Rapid File Changes": Fires when >10 files modified in 60 seconds (might indicate build system or AI going wild). "Error Spike": Fires when >5 errors logged in 5 minutes. "Low Memory": Fires when RAM < 500MB available.',
+      '**Creating Triggers** - Click "Add Rule" button (if available). Choose condition type (CPU, memory, file changes, errors, custom). Set threshold value. Choose action (notification, webhook, log). Give it a descriptive name. Enable it.',
+      '**Trigger Actions** - Notification: Shows in-app toast and optional desktop notification. Webhook: Posts data to external URL (for integration with Slack, Discord, etc.). Log: Writes to trigger log file for later review. Multiple actions can run for one trigger.',
+      '**Testing Triggers** - Some triggers have a "Test" button that simulates the condition to verify the action works correctly before enabling. Example: Testing "High CPU" trigger will not wait for actual high CPU - it\'ll fire the notification immediately as if CPU was high.'
     ]}
-    whenToCheck="Configure triggers when you want automated alerts for specific conditions, or review trigger history to see what has been firing."
+    whenToCheck="Configure triggers **when first setting up Raven** (to establish baseline alerts), **when you notice recurring issues** (like frequent crashes - set up memory/CPU alerts), **for unattended monitoring** (so you get notified even when not looking at dashboard), or **to review trigger history** after an incident to see what fired."
     warnings={[
-      'Too many trigger fires might need threshold adjustment',
-      'No triggers firing could mean conditions aren\'t being met or triggers are misconfigured',
-      'Overlapping triggers might cause notification spam'
+      '**Too many fires (>100 per hour for one trigger)** - Threshold is too sensitive or condition is too common. Raise the threshold (e.g., CPU from >60% to >80%) or increase the time window. Excessive firing causes notification fatigue.',
+      '**No triggers firing despite issues** - Thresholds might be too high, conditions are not being checked correctly, or triggers are disabled. Check Rules tab to verify triggers are 🟢 Enabled. Test triggers manually to verify they work.',
+      '**Overlapping triggers causing spam** - Multiple triggers watching similar conditions fire simultaneously. Example: Both "High CPU 70%" and "High CPU 80%" triggers active - you will get two notifications when CPU hits 85%. Consolidate or disable redundant triggers.',
+      '**Triggers firing for wrong project** - If using project filters, verify trigger conditions include project context. Some triggers are global (system CPU/memory) and fire regardless of which project is active.',
+      '**Notification fatigue** - Getting too many alerts makes you ignore them all. Be selective: Only create triggers for actionable issues you actually want to respond to. Disable noisy triggers after initial testing.',
+      '**Webhooks failing silently** - If webhook action is configured but not working, check: Webhook URL is accessible from Raven backend, API endpoint accepts POST requests, No firewall blocking. Check backend logs for webhook errors.'
     ]}
   />
 

@@ -272,20 +272,25 @@
 <div class="server-sync-panel">
   <PageInfo
     title="Server Sync & Backups"
-    description="Manage remote server synchronization and database backups. Configure auto-sync schedules, push/pull databases manually, and restore from backups."
+    description="This is your Raven backup system - think of it like Time Machine or cloud backup for your Raven data, but to **your own server** via SSH. Server Sync lets you automatically or manually copy Raven databases, snapshots, and config files to a remote server for safekeeping. If your local machine crashes or you lose data, you can restore everything from the server backup. All transfers happen over secure SSH (encrypted)."
     keyPoints={[
-      'Configure remote server credentials (SSH)',
-      'Set up automatic sync schedules',
-      'Manual push/pull of databases',
-      'View sync history and status',
-      'Restore from server backups',
-      'Monitor sync errors and warnings'
+      '**SSH Configuration Section** - Enter your server details: Host (server IP or domain like "backup.example.com"), Port (usually 22 for SSH), User (SSH username like "seth"), Path (where to store backups like "/home/seth/raven-backups"). What to sync checkboxes: Databases (.db files), Snapshots (project snapshots), Config (settings). Click "Test Connection" to verify SSH works before saving.',
+      '**Connection Status Indicator** - Shows: 🔄 Testing (actively checking connection), ✅ Success (SSH connection works), ❌ Failed (cannot connect - check credentials/firewall). Green = ready to sync. Red = fix connection first.',
+      '**Manual Sync Buttons** - "Push to Server" uploads current local Raven data to the remote server (local → remote backup). "Pull from Server" downloads server backup to local machine (remote backup → local, useful for restoring). "Sync Now" does both: uploads new local data, downloads new remote data (bidirectional).',
+      '**Sync History Table** - Shows recent sync operations with: Timestamp, Direction (Push/Pull/Bidirectional), Files transferred count, Total size, Status (Success/Failed), Duration. Helps track when backups ran and if they succeeded.',
+      '**Remote Server Stats** - If connected, shows: Total space used on server, Number of backup files, Last backup date. Lets you monitor how much server storage Raven is consuming.',
+      '**How Sync Works** - When you click "Push to Server", Raven uses `rsync` over SSH to efficiently copy only changed files to the server. It does not re-upload everything - just new/modified files. This is fast and bandwidth-efficient. Pull works the same in reverse.',
+      '**SSH Key Authentication** - For security, Raven uses SSH keys (not passwords). Your SSH private key must be in `~/.ssh/id_rsa` or configured in SSH config. If you get "Permission denied", run `ssh-copy-id user@host` first to set up key authentication.'
     ]}
-    whenToCheck="Use this page to set up server backups, manually sync data to/from remote servers, or restore from backups after data loss."
+    whenToCheck="Set up Server Sync **when first configuring Raven** (to establish automatic backups), **before making risky changes** (manually push current state), **after data loss** (pull from server to restore), or **periodically** (verify backups are still working by checking sync history)."
     warnings={[
-      'Sync failures might indicate SSH connection issues or permission problems',
-      'Large databases may take significant time to sync',
-      'Always test restores to ensure backups are valid'
+      '**Connection test fails** - Most common causes: (1) SSH not configured - run `ssh user@host` in terminal to test manually first. (2) SSH key not authorized - run `ssh-copy-id user@host`. (3) Firewall blocking port 22. (4) Wrong host/user/port. (5) Server is down. Fix SSH access before configuring sync.',
+      '**Large databases take forever to sync (>5 minutes)** - First sync is slow because it uploads everything. Subsequent syncs are faster (only changes). Consider: Reducing database size (clean old data first), Using faster internet connection, Compressing backups. Progress is not shown - be patient.',
+      '**"Permission denied" errors** - Server user does not have write access to the backup path. SSH into server manually: `ssh user@host`, then create directory: `mkdir -p /path/to/backups` and verify you can write: `touch /path/to/backups/test.txt`. Fix permissions with `chmod` if needed.',
+      '**Sync history shows failures** - Check Sync History table for error messages. Common issues: Network timeout (retry), Disk full on server (free up space or change path), SSH key expired (re-run ssh-copy-id). Failed syncs do not hurt anything - just retry.',
+      '**No automatic sync schedule visible** - Auto-sync feature might not be implemented yet (buttons say "coming soon"). For now, manually click "Push to Server" periodically, or set up a cron job to run `curl http://localhost:3030/api/sync/push` daily.',
+      '**Pulled backup is outdated** - Make sure you\'re syncing regularly. If last backup is from 2 weeks ago, pulling will not help recover today\'s data. Set up frequent auto-syncs or push manually before risky operations.',
+      '**Restoring wipes local data** - Pull from server OVERWRITES your local Raven databases. If you pull by accident, your recent local changes will be lost (replaced with older server backup). Always push current state first before pulling, or make a manual local backup to `/tmp/`.'
     ]}
   />
 

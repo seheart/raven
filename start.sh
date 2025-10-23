@@ -41,8 +41,12 @@ FRONTEND_PID=$!
 echo $FRONTEND_PID > /tmp/raven-frontend.pid
 cd ..
 
-# Step 4: Wait for both servers to be ready
-echo -e "${YELLOW}[4/4]${NC} Waiting for servers to be ready..."
+# Step 4: Start Claude telemetry bridge
+echo -e "${YELLOW}[4/5]${NC} Starting Claude telemetry bridge..."
+./scripts/start-claude-bridge.sh > /dev/null 2>&1 || echo -e "${YELLOW}⚠${NC}  Telemetry bridge failed to start (non-critical)"
+
+# Step 5: Wait for both servers to be ready
+echo -e "${YELLOW}[5/5]${NC} Waiting for servers to be ready..."
 
 # Wait for backend (max 10 seconds)
 for i in {1..20}; do
@@ -88,6 +92,7 @@ echo ""
 echo -e "${BLUE}Logs:${NC}"
 echo -e "  Backend:  ${YELLOW}tail -f /tmp/raven-backend.log${NC}"
 echo -e "  Frontend: ${YELLOW}tail -f /tmp/raven-frontend.log${NC}"
+echo -e "  Bridge:   ${YELLOW}tail -f /tmp/claude-telemetry-bridge.log${NC}"
 echo ""
 echo -e "${BLUE}Stop:${NC}     ${YELLOW}./stop.sh${NC}"
 echo -e "${BLUE}Restart:${NC}  ${YELLOW}./restart.sh${NC}"

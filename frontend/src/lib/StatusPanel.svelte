@@ -155,20 +155,25 @@
 <div class="status-panel">
   <PageInfo
     title="System Status"
-    description="Real-time health monitoring of the Raven system. View backend status, database connections, file watchers, WebSocket connections, and overall system health."
+    description="This is your Raven health dashboard - like checking the vital signs of a patient, but for your monitoring system. The Status page shows whether all parts of Raven (backend server, database, WebSocket, file watchers, git monitoring) are working correctly. Think of it as a diagnostics panel that tells you **why** something might not be working when you notice problems elsewhere in Raven."
     keyPoints={[
-      'Backend status shows if Raven server is running',
-      'Database health indicates SQLite connection status',
-      'File watcher count shows active directory monitors',
-      'WebSocket status tracks real-time connection health',
-      'System uptime shows how long Raven has been running'
+      '**Backend Server Card (🟢 Online / 🔴 Offline)** - Shows if the Node.js backend is running on port 3030. Displays: Status (healthy/unhealthy), Uptime (how long since restart like "2h 15m 30s"), Session ID (unique ID for this run, first 8 chars shown), Active Agents (number of AI tools currently connected), Database path (where SQLite file is stored). If 🔴 Offline, Raven cannot monitor anything.',
+      '**WebSocket Connection Card (🟢 Connected / 🔴 Disconnected)** - Shows if the real-time Socket.io connection between frontend and backend is working. When 🟢 Connected, you get live updates without refreshing. When 🔴 Disconnected, the UI falls back to HTTP polling (slower, uses more bandwidth). Connection drops are usually temporary.',
+      '**Monitored Projects Card** - Lists ALL projects Raven is watching with green dots next to each. Shows total count like "🟢 3 Active". Click a project name to filter the dashboard to that project only (the selected one gets a "viewing" badge). Says "Global multi-project monitoring active" when all are visible.',
+      '**Git Repository Card (🟢 Available / ⚫ Not a Git Repo)** - Only shown if Raven is monitoring a git repository. Shows: Current branch name, Number of modified/new/deleted files, List of all branches (current branch marked with ● dot), Recent 5 commits with hash, author, date, and message. If ⚫ Not a Git Repo, git integration is disabled.',
+      '**Available Endpoints Card** - Technical reference showing all API endpoints Raven exposes: GET = blue (read data), POST = green (write data), WS = orange (WebSocket). Shows path and description for each. Useful for debugging API calls.',
+      '**Session ID** - Example: "a3b7f12d..." - This is a UUID generated when backend starts. Changes every time you restart Raven. Helps correlate events to specific Raven runs in the database.',
+      '**Uptime Format** - Shown as hours/minutes/seconds: "2h 15m 30s" means backend has been running for 2 hours, 15 minutes, 30 seconds without restart. Resets to "0s" when you run `./restart.sh`.'
     ]}
-    whenToCheck="Check this page when Raven seems unresponsive, when data isn't updating, or to verify all systems are operational."
+    whenToCheck="Check this page **when Raven stops updating** (to see if backend crashed), **when real-time updates lag** (to verify WebSocket connected), **before reporting bugs** (to gather system status), or **after restarting Raven** (to confirm everything came back online)."
     warnings={[
-      'Backend offline means Raven isn\'t monitoring anything',
-      'Database errors indicate corruption or permission issues',
-      'Zero file watchers means no directories are being monitored',
-      'WebSocket disconnected means no real-time updates'
+      '**Backend 🔴 Offline** - CRITICAL! Raven backend is not running. Nothing works when this happens. Fix: Run `./start.sh` or `./restart.sh` from terminal in the Raven directory. Check `/tmp/raven-backend.log` for crash errors.',
+      '**WebSocket 🔴 Disconnected** - Real-time updates broken. Frontend will show stale data until refreshed. Usually auto-reconnects within 5-10 seconds. If stuck disconnected >30 seconds, refresh browser or restart backend.',
+      '**Uptime shows "5s" but you haven\'t restarted** - Backend crashed and auto-restarted (if using a process manager), or someone else restarted it. Check logs to see why it crashed. Loss of session data possible.',
+      '**"0 Active" projects / Empty project list** - Raven is not auto-discovering projects. Check that `/Users/seth/projects/` exists and contains subdirectories. See SETUP.md for project discovery requirements.',
+      '**Git shows "Not a Git Repo"** - Either: (1) The current project is not using git, (2) Git monitoring is disabled, (3) .git folder is missing. This is OK if you do not use git - Raven still works.',
+      '**Modified files count stuck at same number** - Git status is not refreshing (cached). Click the ↻ Refresh button to force update. Auto-refreshes every 5 seconds normally.',
+      '**All endpoints show but API calls fail** - Backend is running but endpoints are crashing. Check backend logs with `tail -f /tmp/raven-backend.log`. Likely a database or permission error.'
     ]}
   />
 

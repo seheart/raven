@@ -205,6 +205,25 @@ active = "raven"                  # Active project name
 **Performance issue:** System metrics collection slow
 - **Note:** This is normal on macOS. The `systeminformation` library is slightly slower on macOS compared to Linux due to system API differences. All functionality works correctly.
 
+**Error:** `EMFILE: too many open files` when watching projects
+- **Root cause:** macOS has a default soft limit of 256 file descriptors. Large projects with node_modules can exceed this.
+- **Solution (Automatic):** Raven now automatically:
+  1. Excludes itself (`raven` project) from auto-discovery to prevent watching its own `node_modules`
+  2. Uses macOS FSEvents API (`useFsEvents: true`) for more efficient file watching
+  3. Applies ignore patterns to skip `node_modules`, `.git`, and other large directories
+- **Manual workaround (if needed):**
+  ```bash
+  # Increase file descriptor limit for current session
+  ulimit -n 10240
+
+  # Make permanent: Add to ~/.zshrc or ~/.bash_profile
+  echo "ulimit -n 10240" >> ~/.zshrc
+  ```
+- **Verify fix:** Check backend logs for successful watcher initialization without EMFILE errors:
+  ```bash
+  tail -f /tmp/raven-backend.log | grep "File watcher ready"
+  ```
+
 ## Development Commands
 
 ```bash

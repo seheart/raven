@@ -16,6 +16,15 @@
       showModal = false;
     }
   }
+
+  // Simple markdown parser for basic formatting
+  function parseMarkdown(text) {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // **bold**
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')              // *italic*
+      .replace(/`(.+?)`/g, '<code>$1</code>')             // `code`
+      .replace(/\n/g, '<br>');                            // newlines
+  }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -35,7 +44,7 @@
       <div class="modal-body">
         <section class="info-section">
           <h3>What this page is</h3>
-          <p>{description}</p>
+          <p>{@html parseMarkdown(description)}</p>
         </section>
 
         {#if keyPoints.length > 0}
@@ -43,7 +52,7 @@
             <h3>What to look for</h3>
             <ul>
               {#each keyPoints as point}
-                <li>{point}</li>
+                <li>{@html parseMarkdown(point)}</li>
               {/each}
             </ul>
           </section>
@@ -52,7 +61,7 @@
         {#if whenToCheck}
           <section class="info-section">
             <h3>When to check it</h3>
-            <p>{whenToCheck}</p>
+            <p>{@html parseMarkdown(whenToCheck)}</p>
           </section>
         {/if}
 
@@ -61,7 +70,7 @@
             <h3>⚠️ Warning signs</h3>
             <ul>
               {#each warnings as warning}
-                <li>{warning}</li>
+                <li>{@html parseMarkdown(warning)}</li>
               {/each}
             </ul>
           </section>
@@ -73,26 +82,28 @@
 
 <style>
   .info-button {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 32px;
-    height: 32px;
+    position: fixed !important;
+    top: 73px !important;
+    right: 24px !important;
+    width: 32px !important;
+    height: 32px !important;
     border-radius: 50%;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
+    z-index: 150;
+    opacity: 0.7;
   }
 
   .info-button:hover {
     background: var(--accent);
     transform: scale(1.1);
+    opacity: 1;
   }
 
   .modal-overlay {
@@ -199,6 +210,20 @@
 
   .info-section li:last-child {
     margin-bottom: 0;
+  }
+
+  .info-section strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .info-section code {
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
   }
 
   .info-section.warning {

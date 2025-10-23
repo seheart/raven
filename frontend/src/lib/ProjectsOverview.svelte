@@ -15,8 +15,8 @@
       const projectsJson = await projectsRes.json();
       availableProjects = projectsJson.projects || [];
 
-      // Fetch recent events to determine project activity
-      const eventsRes = await fetch(`${API_BASE}/agent-events?limit=500`);
+      // Fetch recent file events to determine project activity
+      const eventsRes = await fetch(`${API_BASE}/all-file-events?limit=500`);
       const events = await eventsRes.json();
 
       // Aggregate stats per project
@@ -71,6 +71,8 @@
   }
 
   function formatRelativeTime(timestamp) {
+    if (!timestamp) return 'no activity';
+
     const now = Date.now();
     const then = new Date(timestamp).getTime();
     const diff = now - then;

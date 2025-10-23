@@ -788,7 +788,13 @@ function initializeWatcher(projectName) {
     '**/.raven/**',
     '**/*.log',
     '**/dist/**',
-    '**/.cache/**'
+    '**/build/**',
+    '**/.cache/**',
+    '**/.next/**',
+    '**/.turbo/**',
+    '**/.svelte-kit/**',
+    '**/coverage/**',
+    '**/.DS_Store'
   ];
 
   // Allow custom ignore patterns via environment variable (comma-separated)
@@ -796,14 +802,35 @@ function initializeWatcher(projectName) {
     ? process.env.CHOKIDAR_IGNORE_PATTERNS.split(',').map(p => p.trim())
     : [];
 
-  const watcher = chokidar.watch(projectPath, {
+  // macOS-optimized configuration for file watching
+  const isMacOS = process.platform === 'darwin';
+
+  // Special handling for raven project to avoid watching its own node_modules
+  const isRavenProject = projectName === 'raven';
+
+  // For raven project, only watch specific directories to avoid node_modules
+  const watchPaths = isRavenProject ? [
+    join(projectPath, 'docs'),
+    join(projectPath, 'test_workspace'),
+    join(projectPath, 'backend/*.js'),      // Only .js files in backend root
+    join(projectPath, 'frontend/src'),      // Only src directory
+    join(projectPath, '*.md'),              // Root markdown files
+    join(projectPath, '*.sh'),              // Shell scripts
+  ] : projectPath;
+
+  const watcher = chokidar.watch(watchPaths, {
     ignored: [...defaultIgnored, ...customIgnored],
     persistent: true,
     ignoreInitial: true,
     awaitWriteFinish: {
       stabilityThreshold: 100,
       pollInterval: 50
-    }
+    },
+    // macOS-specific optimizations
+    usePolling: false,           // Use native FSEvents on macOS
+    useFsEvents: isMacOS,         // Enable FSEvents API on macOS for better performance
+    depth: 99,
+    ignorePermissionErrors: true  // Ignore permission errors on macOS
   });
 
   watcher
@@ -1181,9 +1208,44 @@ app.get('/api/health', async (req, res) => {
 
 app.get('/api/dashboard-stats', (req, res) => {
   try {
-    const stats = projectState.db.getDashboardStats(SESSION_ID);
-    // total_agents is now calculated from database in getDashboardStats()
-    res.json(stats);
+    // Aggregate stats from ALL projects
+    let aggregatedStats = {
+      total_events: 0,
+      total_files: 0,
+      total_agents: 0,
+      session_duration_seconds: 0,
+      active_files_today: 0,
+      total_changes: 0,
+      creates: 0,
+      edits: 0,
+      deletes: 0,
+      unique_files_modified: 0
+    };
+
+    // Get session start time from the first project that has it
+    let sessionStartTime = null;
+
+    for (const [projectName, db] of projectDatabases.entries()) {
+      const projectStats = db.getDashboardStats(SESSION_ID);
+
+      aggregatedStats.total_events += projectStats.total_events || 0;
+      aggregatedStats.total_files += projectStats.total_files || 0;
+      aggregatedStats.total_agents += projectStats.total_agents || 0;
+      aggregatedStats.active_files_today += projectStats.active_files_today || 0;
+      aggregatedStats.total_changes += projectStats.total_changes || 0;
+      aggregatedStats.creates += projectStats.creates || 0;
+      aggregatedStats.edits += projectStats.edits || 0;
+      aggregatedStats.deletes += projectStats.deletes || 0;
+      aggregatedStats.unique_files_modified += projectStats.unique_files_modified || 0;
+
+      // Use the earliest session start time
+      if (projectStats.session_duration_seconds > 0 &&
+          (sessionStartTime === null || projectStats.session_duration_seconds > aggregatedStats.session_duration_seconds)) {
+        aggregatedStats.session_duration_seconds = projectStats.session_duration_seconds;
+      }
+    }
+
+    res.json(aggregatedStats);
   } catch (error) {
     console.error('❌ Dashboard stats error:', error);
     res.status(500).json({ error: error.message });
@@ -1193,8 +1255,24 @@ app.get('/api/dashboard-stats', (req, res) => {
 app.get('/api/top-modified-files', (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
-    const files = projectState.db.getTopModifiedFiles(SESSION_ID, limit);
-    res.json(files);
+
+    // Aggregate top files from ALL projects
+    const allFiles = [];
+
+    for (const [projectName, db] of projectDatabases.entries()) {
+      const projectFiles = db.getTopModifiedFiles(SESSION_ID, limit);
+      // Add project name to each file
+      projectFiles.files.forEach(file => {
+        file.project = projectName;
+      });
+      allFiles.push(...projectFiles.files);
+    }
+
+    // Sort by change count (descending) and take top N
+    allFiles.sort((a, b) => b.change_count - a.change_count);
+    const topFiles = allFiles.slice(0, limit);
+
+    res.json({ files: topFiles });
   } catch (error) {
     console.error('❌ Top files error:', error);
     res.status(500).json({ error: error.message });
@@ -1462,6 +1540,34 @@ app.get('/api/file-events', (req, res) => {
     res.json(events);
   } catch (error) {
     console.error('❌ File events error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get file events from ALL projects (multi-project aggregation)
+app.get('/api/all-file-events', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const includeDiff = req.query.diff === 'true';
+
+    // Collect events from all projects
+    const allEvents = [];
+    for (const [projectName, db] of projectDatabases.entries()) {
+      const events = db.getRecentFileEvents(limit, includeDiff);
+      // Add project name to each event
+      events.forEach(event => {
+        event.project = projectName;
+      });
+      allEvents.push(...events);
+    }
+
+    // Sort by timestamp (newest first) and limit
+    allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const limitedEvents = allEvents.slice(0, limit);
+
+    res.json(limitedEvents);
+  } catch (error) {
+    console.error('❌ All file events error:', error);
     res.status(500).json({ error: error.message });
   }
 });

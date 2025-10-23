@@ -260,20 +260,26 @@
 <div class="error-log">
   <PageInfo
     title="Error Log"
-    description="Comprehensive error tracking for Raven system errors, JavaScript exceptions, and API failures. View stack traces, filter by severity, and export error data for debugging."
+    description="This is your Raven crash log - think of it like the error console in browser DevTools, but for **all errors** across Raven's backend and frontend. The Error Log captures JavaScript exceptions, API failures, database errors, file watcher crashes, and any other problems that occur during operation. Each error includes a full stack trace showing exactly where the error happened in the code, making debugging much easier."
     keyPoints={[
-      'Errors auto-categorized by severity (critical, error, warning, info)',
-      'Full stack traces for debugging',
-      'Search and filter by component, error type, or severity',
-      'Stats dashboard shows error distribution',
-      'Export errors to JSON for external analysis',
-      'Clear all errors with one click'
+      '**Stats Dashboard** - Error overview showing: Total errors logged, Errors by severity (Critical/Error/Warning/Info counts with color-coded bars), Errors by component (which part of Raven had issues like "Backend", "Database", "FileWatcher", "Frontend"), Most frequent error types. Example: "Total: 42, Critical: 3, Backend: 25, Frontend: 17, Top: TypeError (15 occurrences)".',
+      '**Severity Levels Explained** - 🔴 **Critical** (fatal errors that crash Raven or break core features): Database corruption, Backend crash, Out of memory. 🟠 **Error** (non-fatal but significant problems): API request failed, File read error, WebSocket disconnect. 🟡 **Warning** (potential issues that do not break things): Deprecated API usage, Missing optional config, Slow query. 🔵 **Info** (logged for reference, not actual errors): Startup messages, Configuration changes.',
+      '**Error List Table** - Shows each error with: Timestamp (when it happened), Severity (colored icon), Component (Backend/Frontend/Database/etc.), Message (short description like "TypeError: Cannot read property \'x\' of undefined"), Count (if error occurred multiple times). Click any row to expand full details.',
+      '**Expanded Error Details** - Click an error to see: Full error message, Complete stack trace (line numbers and file paths showing where error originated), Context (request URL, user action that triggered it, related data), Occurrence count (how many times this exact error happened), First/Last seen timestamps. Copy button for sharing stack trace.',
+      '**Filter Controls** - Severity dropdown: Filter to show only Critical, Error, Warning, or Info. Component dropdown: Show errors from specific components only (Backend, Frontend, Database, FileWatcher, API, Triggers). Search box: Find errors containing specific text. Clear filters button.',
+      '**Action Buttons** - "Export Errors" downloads all filtered errors as JSON file with full stack traces (useful for bug reports or external analysis). "Clear All Errors" deletes all error logs (asks confirmation). Clearing does not fix the underlying bugs - just cleans the UI.',
+      '**Stack Trace Reading** - Stack traces show function call chain from error source to top. Format: `at functionName (file.js:line:column)`. Read **bottom-up**: Bottom line = where error actually happened. Top line = where error was caught. Focus on files in your code (not node_modules).'
     ]}
-    whenToCheck="Check this page when you see error notifications, when Raven behaves unexpectedly, or to review system health."
+    whenToCheck="Check Error Log **when you see error notifications** (to get full details), **when Raven behaves unexpectedly** (unexplained crashes, features not working), **when reporting bugs** (export errors to include in bug report), **after major changes** (verify no new errors introduced), or **periodically** (catch errors you might have missed)."
     warnings={[
-      'Critical errors require immediate investigation',
-      'Repeated errors from same component indicate a bug',
-      'Many errors might mean system instability - consider restarting Raven'
+      '**Any Critical errors** - STOP and investigate immediately. Critical errors mean core functionality is broken. Don\'t ignore these. Common critical errors: "Database locked" (another process accessing DB), "ENOSPC: no space left on device" (disk full), "ENOMEM: Cannot allocate memory" (out of RAM), "Segmentation fault" (backend crashed). Fix before continuing work.',
+      '**Same error repeating 100+ times** - Indicates a loop or recurring trigger. Example: If you see "Failed to watch /some/path" appearing 500 times, the file watcher is repeatedly failing and retrying. Find the root cause in the error message/stack trace and fix (often: bad path, permissions, or infinite loop in trigger).',
+      '**Errors from same component clustered together** - If 20 consecutive errors all say "Backend", the backend might be unhealthy or about to crash. Check Status page, review backend logs (`tail -f /tmp/raven-backend.log`), consider restarting backend.',
+      '**Frontend errors about "undefined" or "null"** - Usually indicates API returned unexpected data structure. Example: "Cannot read property \'name\' of undefined" means frontend expected an object with a `name` field but got undefined/null instead. Check API responses. Might be backend bug or network issue.',
+      '**Database errors "SQLITE_BUSY" or "database is locked"** - Another process has the SQLite database open with exclusive lock. Solutions: Close any SQLite browser tools (DB Browser for SQLite, etc.), Check if another Raven instance is running (kill duplicates), Restart Raven. Persistent locks might indicate corruption - see Storage page.',
+      '**"Mixed Content" errors** - Frontend trying to load HTTP resource from HTTPS page (or vice versa). Usually means API_BASE URL is wrong. Check that frontend is configured to use `http://localhost:3030` (not https). Verify in browser DevTools Network tab.',
+      '**Many errors but system seems fine** - Some errors might be expected/handled (like network timeouts that retry successfully). If Raven works normally despite errors, they might be non-critical. Still worth investigating to reduce noise.',
+      '**No errors showing despite crashes** - Error logging might be broken, or errors happening before logging initializes. Check: Browser console for frontend errors, Backend logs (`/tmp/raven-backend.log`) for backend errors, Terminal output if running Raven directly.'
     ]}
   />
 

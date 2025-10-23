@@ -10,6 +10,9 @@ NC='\033[0m' # No Color
 
 echo -e "${YELLOW}🛑 Stopping Raven servers...${NC}"
 
+# Stop telemetry bridge first
+./scripts/stop-claude-bridge.sh > /dev/null 2>&1 || true
+
 # Kill by PID files if they exist
 if [ -f /tmp/raven-backend.pid ]; then
   BACKEND_PID=$(cat /tmp/raven-backend.pid)

@@ -22,7 +22,8 @@
     total_changes: 0,
     creates: 0,
     edits: 0,
-    deletes: 0
+    deletes: 0,
+    unique_files_modified: 0
   };
 
 
@@ -73,7 +74,7 @@
       const [statsData, metricsData, activityData, filesData] = await Promise.all([
         fetch(`${API_BASE}/dashboard-stats`).then(r => r.json()),
         fetch(`${API_BASE}/system-metrics?limit=1`).then(r => r.json()),
-        fetch(`${API_BASE}/file-events?limit=5`).then(r => r.json()),
+        fetch(`${API_BASE}/all-file-events?limit=5`).then(r => r.json()),
         fetch(`${API_BASE}/top-modified-files?limit=5`).then(r => r.json())
       ]);
 
@@ -103,7 +104,7 @@
 
   const handleFileChanged = async () => {
     // Reload activity on file changes
-    const activityData = await fetch(`${API_BASE}/file-events?limit=5`).then(r => r.json());
+    const activityData = await fetch(`${API_BASE}/all-file-events?limit=5`).then(r => r.json());
     recentActivity = activityData || [];
   };
 
@@ -134,20 +135,24 @@
 
 <div class="overview-panel">
   <PageInfo
-    title="Overview"
-    description="Your central dashboard showing all active projects, session statistics, and system metrics. This is your at-a-glance view of everything Raven is monitoring."
+    title="Overview Dashboard"
+    description="This is your main control center - think of it like the dashboard in your car that shows speed, fuel, temperature, etc. The Overview page shows real-time information about all your coding projects that Raven is watching, what's happening right now, and how your system is performing."
     keyPoints={[
-      'Projects with green indicators have been active in the last hour',
-      'Recent Activity shows the latest file changes across all projects',
-      'System Metrics update in real-time via WebSocket',
-      'Flow State indicates your current coding rhythm and productivity',
-      'Raven Session ID resets when you restart the server (./restart.sh)'
+      '**Raven Session ID** - A unique identifier (like a serial number) for this specific run of Raven. Every time you restart Raven with ./restart.sh, you get a new Session ID. This helps separate different monitoring sessions in the database.',
+      '**Server Uptime** - Shows how long Raven has been running continuously without a restart. Example: "2h 15m" means Raven started 2 hours and 15 minutes ago. Resets to 0 when you restart.',
+      '**Projects List** - Shows all projects Raven is monitoring (like raven, recall, wrap). A green dot means files were modified recently. Click a project name to filter the dashboard to show only that project.',
+      '**Current Session Card** - Duration: How long this monitoring session has been active. Files touched: Total number of unique files that were modified. AI interactions: How many times AI tools (like Claude) made changes. Current flow: Your coding rhythm (🔥 Hot = very active, 🌊 Steady = consistent, ❄️ Cold = quiet).',
+      '**System Health Card** - CPU: Shows processor usage as a percentage (0-100%). Green bar = healthy (<50%), Yellow = busy (50-80%), Red = overloaded (>80%). Memory: Shows RAM usage in MB. If the bar is red, your computer is running low on memory.',
+      '**Live Activity Stream** - Real-time feed of file changes happening RIGHT NOW across all your projects. Each entry shows: Project badge (like [RAVEN]), the file path that changed, and the type of change (➕ add = new file, ✏️ change = file edited, 🗑️ unlink = file deleted). Updates automatically via WebSocket - no refresh needed!',
+      '**Most Active Files** - Top 5 files with the most changes during this session. Higher change counts might indicate files you\'re actively working on, or files that are being modified by AI tools frequently.'
     ]}
-    whenToCheck="Check this page first when opening Raven to see what's active, or when you want a quick overview of all monitored projects."
+    whenToCheck="Check this page when you first open Raven to get oriented, or when you want to see what\'s happening across all your projects at once. It\'s your starting point before diving into specific pages like Agents, Activity, or System."
     warnings={[
-      'If Projects shows (0), Raven may not be watching any directories',
-      'No Recent Activity might mean Raven isn\'t detecting file changes',
-      'High CPU/Memory could indicate a system issue or runaway process'
+      'If you see 0 projects listed, Raven might not be watching any directories. Check that backend/server.js is discovering projects correctly in /Users/seth/projects/',
+      'No Recent Activity usually means no files have been modified yet. Try editing a file in one of your watched projects to see it appear here.',
+      'CPU above 80% (red bar) or Memory above 85% (red bar) indicates your system is struggling. Close unused applications or restart Raven to free up resources.',
+      'If Live Activity Stream shows a "💤 No recent activity" message, it means no file changes have been detected in the last few minutes. This is normal if you\'re not actively coding.',
+      'Session Duration not increasing? The backend server might have crashed. Check /tmp/raven-backend.log for errors.'
     ]}
   />
 
@@ -158,14 +163,12 @@
       <div class="session-detail">
         <span class="session-label">
           Raven Session ID:
-          <span class="tooltip-icon" title="Unique ID for this Raven server run. Resets when you restart Raven (./restart.sh). Used to separate data from different monitoring sessions.">ℹ️</span>
         </span>
         <span class="session-value">{sessionId}</span>
       </div>
       <div class="session-detail">
         <span class="session-label">
           Server Uptime:
-          <span class="tooltip-icon" title="How long the Raven backend server has been running continuously since last restart.">ℹ️</span>
         </span>
         <span class="session-value">{sessionUptime}</span>
       </div>
@@ -193,11 +196,11 @@
           </div>
           <div class="stat-row">
             <span class="stat-label">Files touched:</span>
-            <span class="stat-value">{stats.total_files}</span>
+            <span class="stat-value">{stats.unique_files_modified}</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">AI interactions:</span>
-            <span class="stat-value">{stats.total_agents}</span>
+            <span class="stat-value">{stats.total_events}</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">Current flow:</span>
@@ -275,7 +278,12 @@
               {/if}
             </span>
             <div class="activity-content">
-              <div class="activity-main">{event.filepath}</div>
+              <div class="activity-main">
+                {#if event.project}
+                  <span class="project-badge">{event.project}</span>
+                {/if}
+                {event.filepath}
+              </div>
               <div class="activity-meta">
                 {event.change_type} • {formatDateTime(event.timestamp)}
               </div>
@@ -351,17 +359,6 @@
     display: flex;
     align-items: center;
     gap: 6px;
-  }
-
-  .tooltip-icon {
-    font-size: 14px;
-    cursor: help;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-  }
-
-  .tooltip-icon:hover {
-    opacity: 1;
   }
 
   .session-value {
@@ -564,6 +561,20 @@
     font-family: var(--mono);
     font-size: 11px;
     color: var(--muted);
+  }
+
+  .project-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    margin-right: 8px;
+    background: var(--accent);
+    color: white;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   /* Files Section */

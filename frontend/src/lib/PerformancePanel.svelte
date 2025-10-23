@@ -115,19 +115,25 @@
 <div class="performance-panel">
   <PageInfo
     title="Performance Analysis"
-    description="Detailed performance metrics and profiling data for your development workflow. Track system resources, operation timing, and identify bottlenecks."
+    description="This is your Raven performance profiler - think of it like Task Manager / Activity Monitor, but specifically tracking **Raven's resource usage and system impact**. The Performance page shows CPU, memory, and disk metrics over time, helping you diagnose slowdowns, identify resource hogs, and optimize Raven's efficiency. It also correlates performance spikes with AI agent activity to see which agents are resource-intensive."
     keyPoints={[
-      'System metrics show CPU, memory, and disk usage',
-      'Operation timing reveals slow file operations',
-      'Performance trends over time',
-      'Resource consumption patterns',
-      'Real-time metric updates'
+      '**Metrics Tab - System Metrics Table** - Real-time stats sampled every 10 seconds showing: CPU Usage (percentage like "23%"), Memory Usage (MB like "512 MB"), Load Average (Unix load like "1.5, 1.2, 0.9" for 1/5/15 min averages), Disk I/O (reads/writes per second), Timestamp (when sampled). Newest entries at top. Shows last 20 data points.',
+      '**Metrics Tab - Stats Summary** - Aggregated statistics for the last hour: Average CPU (mean percentage), Peak CPU (highest spike), Average Memory (typical RAM usage), Peak Memory (max RAM used). Example: "Avg CPU: 15%, Peak: 87%, Avg Memory: 450MB, Peak: 1.2GB". Helps identify if high usage is sustained or just spikes.',
+      '**Correlations Tab** - Matches performance spikes with AI agent events happening at the same time. Shows: Timestamp, Agent name (Claude/GPT/etc.), Event (what the agent did), CPU at that moment, Memory at that moment. Example: "2:45 PM - Claude-Sonnet - edit file - CPU 92%, Memory 1.5GB". Helps answer "Why did CPU spike?" - because Claude was working.',
+      '**Real-Time Updates** - Metrics update automatically every 10 seconds via WebSocket. You\'ll see new rows appear at the top of the table as data comes in. Watch in real-time as CPU/memory change while AI agents work.',
+      '**Agent Performance Comparison** - (If implemented) Charts comparing different AI agents: Which agent uses the most CPU on average, Which agent consumes the most memory, Which agent has longest response times. Useful for choosing efficient agents.',
+      '**Performance Trends** - Line graphs (if implemented) showing CPU/memory over time. Spot patterns like: CPU spikes every 5 minutes (might be a cron job or auto-refresh), Memory steadily increasing (memory leak), Performance degradation over time (needs restart).',
+      '**Understanding Load Average** - Unix-specific metric. Shows CPU queue length averaged over 1/5/15 minutes. Rule of thumb: Load < CPU core count = good. Load = CPU cores = saturated. Load > CPU cores = overloaded. Example: On 4-core machine, load "2.0, 1.5, 1.0" is fine. Load "6.0, 5.5, 5.0" means system is struggling.'
     ]}
-    whenToCheck="Use when system feels slow, or to identify performance issues during heavy development activity."
+    whenToCheck="Check Performance **when Raven feels slow or laggy** (to see if CPU/memory is maxed), **when fans spin up loudly** (indicates high CPU), **after adding new triggers or watchers** (to measure impact), **before/after restarting Raven** (compare performance), or **to optimize AI agent usage** (see which agents are resource-hungry)."
     warnings={[
-      'Consistently high CPU/memory might indicate a runaway process',
-      'Slow file operations could mean disk issues or file watcher overload',
-      'Sudden performance drops warrant investigation'
+      '**Consistently high CPU (>80% sustained for >5 minutes)** - Raven or an AI agent is CPU-bound. Possible causes: File watcher scanning too many files (reduce watched directories), AI agent stuck in loop (check Agents page), Trigger running expensive computation repeatedly, Background task not terminating. Check Agents and Triggers pages. Consider restarting Raven.',
+      '**Memory steadily increasing (memory leak)** - If memory grows from 200MB to 2GB over hours without dropping, there\'s a leak. Memory leaks cause crashes when RAM runs out. Workaround: Restart Raven daily with `./restart.sh`. Long-term: Report as bug with backend logs showing increasing memory.',
+      '**Sudden performance drops (CPU/memory normal but UI laggy)** - Frontend rendering issue, not backend. Possible causes: Very large lists in UI (reduce "max events" in Settings), Browser running low on memory (close other tabs), React/Svelte re-rendering too much. Check browser DevTools performance profiler.',
+      '**Load average >2x CPU core count** - System is overloaded. Raven might be doing too much. Solutions: Reduce number of monitored projects, Increase file watcher ignore patterns, Disable expensive triggers, Check if other processes are competing for CPU.',
+      '**Disk I/O very high (>1000 ops/sec)** - Excessive file watching or database writes. Can slow down the whole system. Check: Are you watching node_modules or other large directories?, Is database being written to constantly?, Is file watcher in a loop?. Exclude large directories in backend ignore patterns.',
+      '**No data showing / "Loading..." stuck** - Backend `/api/system-metrics` endpoint not responding. Check Status page to verify backend is online. Metrics collection might be disabled in Settings → Performance. Enable "Collect metrics" and restart Raven.',
+      '**Correlations show no AI events** - Either: (1) No AI agents have been active, (2) Time window too narrow (correlations look within 10 seconds), (3) Agents not sending telemetry. Check Agents page to see if agents are reporting.'
     ]}
   />
 

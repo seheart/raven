@@ -224,20 +224,25 @@
 <div class="notifications-panel">
   <PageInfo
     title="Notifications Center"
-    description="Central hub for all Raven notifications including error alerts, trigger events, and performance warnings. Filter, search, and manage your notification history."
+    description="This is your Raven inbox - think of it like email or a notification center on your phone, but specifically for **all alerts and events** Raven generates. The Notifications page is where errors, trigger alerts, performance warnings, system events, and agent activity notifications are collected and displayed. Instead of alerts disappearing when you close a toast, they're saved here permanently so you can review them later or investigate what happened."
     keyPoints={[
-      'Stats dashboard shows total, unread, and categorized counts',
-      'Filter by type (error, trigger, performance) or severity',
-      'Mark notifications as read/unread individually or in bulk',
-      'Delete individual notifications or clear all',
-      'Real-time updates via WebSocket',
-      'Expandable detail view for each notification'
+      '**Stats Dashboard at Top** - Four key metrics: Total (all notifications ever), Unread (new ones you haven\'t clicked), By Type (breakdown by category like 47 errors, 12 triggers, 8 performance), By Severity (Critical/Warning/Info split). Example: "Total: 156, Unread: 23, Critical: 5, Warning: 18, Info: 133".',
+      '**Filter Controls** - Type dropdown: "All", "Error" (system errors), "Trigger" (custom trigger fires), "Performance" (CPU/memory alerts), "Git" (git events), "Agent" (AI agent activity), "File" (file change notifications), "System" (Raven internal events). Severity dropdown: "All", "Critical" (red, urgent), "Warning" (yellow, important), "Info" (blue, FYI). "Unread Only" checkbox shows just new notifications.',
+      '**Notification Cards** - Each notification displays: Severity icon (🔴 critical, ⚠️ warning, ℹ️ info), Type badge (colored pill like "ERROR" in red), Title (short summary), Timestamp (when it happened like "2 hours ago"), Message (detailed description), Expand arrow (▼) to show more details. Unread notifications have bold text and colored left border.',
+      '**Expandable Details** - Click any notification to expand and see: Full message with all details, Stack trace (if error), Context data (related files, values), Project badge (which project triggered it), Action buttons (Mark Read/Unread, Delete). Helps diagnose what caused the notification.',
+      '**Bulk Actions** - Header buttons: "Mark All Read" clears all unread badges at once, "Clear All" deletes ALL notifications (asks for confirmation), "Export" downloads notifications as JSON file for external analysis. Useful for cleaning up after reviewing or archiving.',
+      '**Real-Time Updates** - New notifications appear instantly at the top of the list via WebSocket. You\'ll see the list scroll and unread count increment when new alerts arrive. No refresh needed.',
+      '**Notification Types Explained** - Error: Backend errors, frontend exceptions, API failures. Trigger: Custom trigger rules firing (see Triggers page). Performance: CPU/memory/disk thresholds exceeded. Git: Commits, branch switches, merge conflicts. Agent: AI started/stopped, actions taken. File: Unusual file activity (mass deletions, etc.). System: Raven startup, shutdown, configuration changes.'
     ]}
-    whenToCheck="Check this page when you see notification badges, to review recent alerts, or to clear old notifications."
+    whenToCheck="Check Notifications **when you see the unread badge** in navigation (shows notification count), **after trigger alerts fire** (to see what triggered), **when troubleshooting issues** (review error notifications for clues), **to clear old notifications** (keep inbox tidy), or **periodically** (stay aware of what Raven is alerting about)."
     warnings={[
-      'Too many unread notifications might indicate you\'re missing important alerts',
-      'Frequent critical notifications deserve immediate attention',
-      'No notifications firing might mean triggers aren\'t configured'
+      '**Too many unread (>50)** - You\'re either ignoring notifications or getting too many. Review unread to see if there are patterns. Disable noisy triggers in Settings or Triggers page if getting spam. Important alerts might be buried in noise.',
+      '**Frequent critical notifications (>10 per hour)** - Something is seriously wrong. Critical means "needs immediate attention" - do not ignore these. Common causes: Backend repeatedly crashing and restarting, Database corruption causing read errors, Disk full preventing writes, Runaway process consuming all CPU/memory. Investigate immediately.',
+      '**No notifications appearing at all** - Either: (1) Nothing has happened yet (normal for new install), (2) Triggers are not configured (go to Triggers page to set up alerts), (3) Notification system disabled in Settings (check Settings → Notifications), (4) WebSocket disconnected (check Status page). If active for hours with no notifications, something might be broken.',
+      '**Notifications for wrong project** - If monitoring multiple projects, verify project filter in top navigation. Some notifications are global (system CPU/memory) and always appear regardless of project filter.',
+      '**Can\'t mark as read / buttons do not work** - Backend might not be responding. Check Status page to verify backend is online and WebSocket is connected. Try refreshing the page. Check browser console for JavaScript errors.',
+      '**Notification list shows old items repeatedly** - Might be pagination bug or database corruption. Try "Clear All" to reset. If persists, check backend logs. Database might need manual cleanup via Storage page.',
+      '**Export does not download file** - Browser might be blocking downloads. Check browser permissions. Try right-click → "Save Link As" on the export button. Make sure pop-up blocker is not interfering.'
     ]}
   />
 

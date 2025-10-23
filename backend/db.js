@@ -487,13 +487,15 @@ export class RavenDB {
   }
 
   getDashboardStats(session_id = null) {
-    // Get all agent events (not filtered by session for all-time stats)
+    // Get agent events (filtered by session if provided)
+    const whereClause = session_id ? 'WHERE session_id = ?' : '';
     const stmt = this.db.prepare(`
       SELECT id, timestamp, agent, event_type as change_type, file as filepath, lines_changed, duration_ms, message
       FROM agent_events
+      ${whereClause}
       ORDER BY timestamp ASC
     `);
-    const events = stmt.all();
+    const events = session_id ? stmt.all(session_id) : stmt.all();
 
     // Get unique files from agent events
     const trackedFiles = new Set();
@@ -503,12 +505,13 @@ export class RavenDB {
       }
     }
 
-    // Get unique agents from agent events (all-time)
+    // Get unique agents from agent events (filtered by session if provided)
     const agentsStmt = this.db.prepare(`
       SELECT COUNT(DISTINCT agent) as agent_count
       FROM agent_events
+      ${whereClause}
     `);
-    const agentsResult = agentsStmt.get();
+    const agentsResult = session_id ? agentsStmt.get(session_id) : agentsStmt.get();
     const total_agents = agentsResult?.agent_count || 0;
 
     // Calculate total duration (all-time)
@@ -543,21 +546,32 @@ export class RavenDB {
       activeToday.add(row.filepath);
     }
 
-    // Get breakdown from file events table (all-time)
+    // Get breakdown from file events table (filtered by session if provided)
+    const eventWhereClause = session_id ? 'WHERE session_id = ?' : '';
     const breakdownStmt = this.db.prepare(`
       SELECT
         change_type,
         COUNT(*) as count
       FROM events
+      ${eventWhereClause}
       GROUP BY change_type
     `);
-    const breakdown = breakdownStmt.all();
+    const breakdown = session_id ? breakdownStmt.all(session_id) : breakdownStmt.all();
 
     // Build breakdown object
     const creates = breakdown.find(b => b.change_type === 'add')?.count || 0;
     const edits = breakdown.find(b => b.change_type === 'change')?.count || 0;
     const deletes = breakdown.find(b => b.change_type === 'unlink')?.count || 0;
     const total_changes = creates + edits + deletes;
+
+    // Get count of unique files modified (from events table)
+    const uniqueFilesStmt = this.db.prepare(`
+      SELECT COUNT(DISTINCT filepath) as unique_count
+      FROM events
+      ${eventWhereClause}
+    `);
+    const uniqueFilesResult = session_id ? uniqueFilesStmt.get(session_id) : uniqueFilesStmt.get();
+    const unique_files_modified = uniqueFilesResult?.unique_count || 0;
 
     return {
       total_events: events.length,
@@ -568,7 +582,8 @@ export class RavenDB {
       total_changes,
       creates,
       edits,
-      deletes
+      deletes,
+      unique_files_modified
     };
   }
 

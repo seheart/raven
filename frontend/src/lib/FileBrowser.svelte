@@ -65,19 +65,23 @@
 <div class="file-browser">
   <PageInfo
     title="File Browser"
-    description="Browse all files that Raven has tracked across your monitored projects. See change counts, last modified times, and view detailed history for any file."
+    description="This is your project file explorer - like Finder or Windows Explorer, but specifically showing **only files that have changed** while Raven is watching. The File Browser displays every file across ALL your monitored projects that has been created, edited, or deleted. Think of it as a filtered view showing 'what actually got modified' rather than every file in your projects."
     keyPoints={[
-      'Shows all files that have been created, modified, or deleted',
-      'Change count indicates how many times each file was edited',
-      'Last modified timestamp shows most recent activity',
-      'Click any file to see its complete history',
-      'Sorted by most recently modified first'
+      '**File Icons** - Different icons for different file types: 🐍 Python (.py), 📜 JavaScript (.js/.jsx), 📘 TypeScript (.ts/.tsx), 📋 JSON, 📝 Markdown (.md), 🦀 Rust (.rs), ⚙️ TOML config files, 📄 Generic files. Makes it easy to spot file types at a glance.',
+      '**File Name** - Just the filename itself (like `server.js`), shown in monospace font for easy reading. The file name is clickable.',
+      '**File Path** - Shows the directory path where the file lives, displayed below the filename in gray text. Example: test_workspace/backend/src tells you the file is inside that folder structure.',
+      '**View History Button** - Click View History → on any file to open a detailed modal showing: Every change event for that file, timestamps of changes, diffs showing what actually changed, who/what modified it (user or AI agent).',
+      '**Empty State** - If you see No files tracked yet, it means Raven has not detected any file changes since it started. Try editing a file in one of your monitored projects to populate this list.',
+      '**Refresh Button** - Top-right ↻ button reloads the list from the backend. Useful if you suspect Raven missed a change or the list is stale.',
+      '**File Order** - Files are NOT sorted alphabetically - they are sorted by most recently modified first. The file you just edited will appear at the top of the list.'
     ]}
-    whenToCheck="Use this to find which files are changing most frequently, or to browse your project history."
+    whenToCheck="Use this page to **find which files changed during a session**, **identify frequently edited files** (to understand hotspots in your codebase), or **browse file history** before making more changes to understand recent context."
     warnings={[
-      'If no files appear, Raven may not have detected any changes yet',
-      'Deleted files still appear in the list (marked as deleted)',
-      'Very active files might have truncated history'
+      '**No files tracked yet appears** - Raven either: (1) Just started and has not seen changes yet, or (2) Is not watching the correct directories. Check Settings to verify your projects are being monitored. Edit any file to test.',
+      '**Deleted files still showing in list** - This is intentional. Raven tracks ALL file events including deletions. If you see a deleted file, it means Raven recorded its deletion. The file history will show the deletion event.',
+      '**Very active files might have truncated history** - If a file was edited 1000+ times, Raven might only show the most recent 100-500 events to avoid performance issues. The oldest events may be truncated.',
+      '**File path looks incomplete** - Paths are shown relative to the project root. If you see src/lib/utils.js, the full path is project_root/src/lib/utils.js. Raven strips the project path for readability.',
+      '**Refresh button stuck/spinning** - Backend might be slow or not responding. Check Status page to verify backend is online. Try refreshing the entire page if button stays spinning more than 10 seconds.'
     ]}
   />
 

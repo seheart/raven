@@ -68,20 +68,24 @@
 <div class="storage-panel">
   <PageInfo
     title="Storage Management"
-    description="View detailed storage usage across all Raven databases, snapshots, and configuration files. Track data growth, manage retention, and identify space usage patterns."
+    description="This is your Raven disk usage inspector - like the Storage settings on your phone showing how much space each app uses, but for Raven's data files. The Storage page breaks down exactly where Raven is storing data: which databases, how big they are, what's inside them, and how much space snapshots/logs are consuming. All Raven data lives in a hidden `~/.raven/` directory in your home folder."
     keyPoints={[
-      'Total .raven directory size shown at the top',
-      'Per-database statistics with table breakdowns',
-      'Snapshot directories with file counts and dates',
-      'Config and log file sizes',
-      'Active database highlighted',
-      'Auto-refreshes every 30 seconds'
+      '**Overview Stats Cards** - Four summary cards at top: Total Size (all Raven data combined, KB/MB/GB), Databases count (how many SQLite files), Database Storage (total size of .db files), Snapshots Storage (total size of snapshot backups). Example: "Total Size: 15.3 MB, 3 Databases, 12.1 MB Database Storage, 3.2 MB Snapshots".',
+      '**Storage Location Path** - Shows exact directory like `/Users/seth/.raven/`. This is where ALL Raven data is stored. You can navigate there in Finder/Explorer to manually inspect files.',
+      '**Databases Table** - Lists each project\'s SQLite database with columns: Database filename (like `raven_test_workspace.db`), Size (file size in MB), Records (total rows across all tables), Tables (number of tables), Status (OK or Error), Last Modified (timestamp of last write), Actions (▶ Details button to expand). The **Active** badge shows which database is currently being written to.',
+      '**Table Breakdown (Details View)** - Click "▶ Details" to expand and see per-table stats: Table name (like `file_events`, `agent_events`), Records count, Table size, % of Database (progress bar showing proportion). Helps identify which tables are eating space. Example: `file_events` might be 70% of database if you have lots of file changes.',
+      '**Snapshots Section** - Shows backup/snapshot directories per project. Columns: Project name, Files count (number of snapshot files), Size (total space used), Oldest snapshot date, Newest snapshot date. Many snapshots = many saves, might indicate frequent Raven restarts.',
+      '**Other Files Section** - Shows size of configuration and log files: `config.toml` (Raven settings, usually tiny ~1KB), `triggers.log` (trigger execution logs, can grow large). Lets you spot if logs are getting huge.',
+      '**Action Buttons** - 🔄 Refresh Data (reload storage stats from backend), 💾 Export Database (coming soon - will download .db file), 🧹 Clean Old Data (coming soon - will delete old events), ⚙️ Configure Retention (coming soon - set auto-cleanup rules). Currently only Refresh works.'
     ]}
-    whenToCheck="Check this page when disk space is low, to see which databases are growing fastest, or before manual cleanup operations."
+    whenToCheck="Check Storage **when disk space is low** (to see what Raven is consuming), **periodically** (to track data growth over time), **before manual cleanup** (to identify large databases), or **when Raven feels slow** (very large databases can impact performance)."
     warnings={[
-      'Very large databases (>100MB) might slow down Raven',
-      'Many snapshot files indicate frequent crashes or restarts',
-      'No automatic cleanup means data will grow indefinitely until manually managed'
+      '**Very large databases (>100MB per file)** - Can slow down Raven significantly. SQLite performance degrades with huge files. Consider: Manual cleanup of old data, Exporting and archiving old sessions, Deleting databases for inactive projects. Check which tables are large in the Details view.',
+      '**Many snapshot files (>50 per project)** - Indicates Raven or your system is restarting frequently. Each restart might trigger a snapshot. Excessive snapshots waste disk space. Investigate why Raven is restarting so often - check logs for crashes.',
+      '**No automatic cleanup enabled** - Raven NEVER deletes data automatically. Databases will grow indefinitely until you manually clean them or implement retention policies. Plan to periodically review and archive old data.',
+      '**triggers.log over 10MB** - Trigger logs are not rotated automatically. If triggers are firing constantly, logs can balloon. Manually delete or truncate `/Users/seth/.raven/triggers.log` if it is huge.',
+      '**Status shows "Error" on a database** - Database might be corrupted, locked by another process, or have permission issues. Click Details to see if it is readable. May need to delete and recreate the .db file (losing that project\'s history).',
+      '**Storage location empty or missing** - Raven has not created the `.raven` directory yet, or it is in a different location. Check that backend is running and has write permissions to your home directory. The directory should auto-create on first run.'
     ]}
   />
 

@@ -181,20 +181,26 @@
 <div class="api-health">
   <PageInfo
     title="API Health Monitor"
-    description="Real-time monitoring of all Raven REST API endpoints. Track response times, success rates, error counts, and overall API health."
+    description="This is your Raven API diagnostics dashboard - think of it like a **network traffic analyzer** for Raven's REST API endpoints. The API Health Monitor continuously pings every backend endpoint to measure response times, success rates, and availability. If you're experiencing frontend errors or slow performance, this page helps pinpoint which specific API endpoints are failing or slow, so you know exactly where the problem is (backend server, database, file watcher, etc.)."
     keyPoints={[
-      'All endpoints shown with health status',
-      'Response time tracking for performance',
-      'Success/failure rates per endpoint',
-      'Recent request history',
-      'Auto-refreshes health checks',
-      'Color-coded status indicators'
+      '**Endpoint Status Grid** - Table showing all ~20 Raven API endpoints with health metrics: Endpoint path (like `/api/agents-status`, `/api/file-events`), HTTP method (GET/POST), Status (🟢 Healthy / 🟡 Slow / 🔴 Down), Response time (milliseconds like "125ms"), Success rate (percentage like "98.5%"), Last checked timestamp. Color-coded rows: Green = working fine, Yellow = slow but functional, Red = failing.',
+      '**Health Status Indicators** - 🟢 **Healthy** (green): Endpoint responding in <500ms with success. 🟡 **Degraded** (yellow): Endpoint slow (500ms-2000ms) or occasional failures (90-99% success). 🔴 **Down** (red): Endpoint failing (>50% errors) or timeout (>2000ms). ⚫ **Unknown** (gray): Haven\'t checked yet or couldn\'t reach.',
+      '**Response Time Tracking** - Shows average response time in milliseconds for each endpoint. Examples: "45ms" = very fast, "250ms" = good, "800ms" = acceptable but slow, "2500ms" = too slow (indicates problem). Slow endpoints make the UI feel laggy. Target: <200ms for most endpoints.',
+      '**Success Rate Percentage** - Shows what % of recent requests succeeded. Example: "100%" = perfect (all requests worked), "95%" = mostly good (5% failed), "50%" = broken (half failing). Anything below 90% needs investigation. Based on last 100 requests or last hour (whichever implementation).',
+      '**Recent Request History** - (If implemented) Expandable section under each endpoint showing last 10-20 requests: Timestamp, Response time, Status code (200 OK, 500 Error, etc.), Error message if failed. Helps diagnose intermittent failures: "Oh, it fails every 5th request" or "It started failing at 3:15pm".',
+      '**Auto-Refresh** - Health checks run automatically every 30-60 seconds. Page updates in real-time. You can watch response times and status change as backend health fluctuates. Manual "Check All Now" button forces immediate refresh of all endpoints.',
+      '**Critical Endpoints Highlighted** - Some endpoints are more critical than others: `/health` (if this fails, backend is completely down), `/api/file-events` (core feature), `/api/agents-status` (AI monitoring). These might have special visual treatment or warning icons if unhealthy.'
     ]}
-    whenToCheck="Check this page when API calls are failing, to identify slow endpoints, or to verify overall API health."
+    whenToCheck="Check API Health Monitor **when frontend shows errors** (Failed to load data, Network Error), **when pages load slowly or freeze** (see which endpoint is slow), **after backend restarts** (verify all endpoints came back online), **before deploying changes** (establish baseline health), or **when debugging 500 errors** (see which endpoints are returning errors)."
     warnings={[
-      'Red status indicates endpoint failures - check backend logs',
-      'Slow response times (>1000ms) might indicate performance issues',
-      'Many failed requests warrant immediate investigation'
+      '**Any endpoint showing 🔴 Down** - That feature is broken. Examples: `/api/file-events` down → File Browser will not load. `/api/agents-status` down → Agents page broken. `/health` down → Entire backend offline. Fix priority: High. Check Error Log and backend logs (`tail -f /tmp/raven-backend.log`) to see what\'s crashing.',
+      '**Slow response times (>1000ms consistently)** - Backend performance issue. Possible causes: Database query too slow (check Storage page for large databases), High CPU/memory usage (check Performance page), Too many concurrent requests, Network latency (unlikely on localhost). Solutions: Optimize slow queries, Restart backend, Reduce data size (clean old events).',
+      '**Many failed requests (success rate <80%)** - Backend is unstable or database is corrupted. Symptoms: Some requests work, others fail randomly. Common causes: Database locked (another process), Backend running out of memory (crashing intermittently), Race conditions in code. Check backend logs for stack traces. May need to restart Raven or fix database corruption.',
+      '**All endpoints show ⚫ Unknown** - Health monitoring is not running. Possible causes: Frontend cannot reach backend (backend offline or wrong port), Health check requests timing out, JavaScript error in monitoring code. Verify backend is accessible: Open http://localhost:3030/health in new browser tab. Should return JSON. If not, backend is down.',
+      '**Response times spike suddenly** - Temporary performance issue. Watch for patterns: Spikes every 5 minutes = background job running, Spikes during AI activity = AI agent using CPU, Sustained spike = something wrong. Check Performance page for CPU/memory correlation. If sustained >5 minutes, investigate or restart.',
+      '**"CORS error" in browser console** - Backend API is not allowing requests from frontend origin. Usually means backend CORS config is wrong. This is unlikely on localhost but can happen if frontend is on different port. Fix: Check backend CORS settings allow http://localhost:5173 (Vite dev server port).',
+      '**Success rate 100% but frontend still errors** - Health monitor only checks endpoint availability, not correctness. Endpoint might return 200 OK but with invalid data. Example: `/api/file-events` returns 200 but empty array when data should exist. Check browser Network tab for actual response payloads.',
+      '**Auto-refresh stopped** - Timer broke or page backgrounded. Browser might pause timers in background tabs. Bring tab to foreground or refresh page manually. If persists, might be JavaScript error - check browser console.'
     ]}
   />
 

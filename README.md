@@ -25,6 +25,14 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 - [x] Race condition prevention
 - [x] Real-time project activity stats
 
+**🤖 Claude Code Integration:**
+- [x] Automatic telemetry bridge for Claude Code
+- [x] Real-time file operation tracking
+- [x] Agent activity visible in Agents panel
+- [x] Automatic startup/shutdown with Raven
+- [x] Lines changed estimation
+- [x] Session start/end tracking
+
 **Previous Features (Still Awesome):**
 
 - [x] Async file watcher with 50ms debounce
@@ -71,6 +79,27 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 **Logs:**
 - Backend: `tail -f /tmp/raven-backend.log`
 - Frontend: `tail -f /tmp/raven-frontend.log`
+- Claude Bridge: `tail -f /tmp/claude-telemetry-bridge.log`
+
+### 🤖 Claude Code Integration (New!)
+
+Raven now includes **automatic telemetry tracking** for Claude Code! Every file operation is automatically tracked and appears in the Agents panel.
+
+**The telemetry bridge starts automatically with Raven.** All your edits, creates, and deletes will show up in real-time!
+
+**Manual control:**
+```bash
+# Start bridge manually
+./scripts/start-claude-bridge.sh
+
+# Stop bridge
+./scripts/stop-claude-bridge.sh
+
+# View activity
+tail -f /tmp/claude-telemetry-bridge.log
+```
+
+See `scripts/README-CLAUDE-BRIDGE.md` for full documentation.
 
 ## 🎯 Features
 
