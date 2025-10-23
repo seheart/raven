@@ -5,8 +5,6 @@
   import TimelineSlider from './TimelineSlider.svelte';
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
-  import { projectFilter, matchesFilter } from './projectFilterStore.js';
-  import { getEmptyStateMessage } from './utils/projectFilter.js';
   import ProjectBadge from './ProjectBadge.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
@@ -108,7 +106,6 @@
   let cachedFilterTypes = null;
   let cachedFilterStartTime = 0;
   let cachedFilterEndTime = 0;
-  let cachedFilterProject = '';
   let cachedFilteredResult = [];
 
   // Optimized: Only filter when dependencies actually change
@@ -119,23 +116,17 @@
         searchQuery !== cachedFilterQuery ||
         typesKey !== cachedFilterTypes ||
         timeRangeStart !== cachedFilterStartTime ||
-        timeRangeEnd !== cachedFilterEndTime ||
-        $projectFilter !== cachedFilterProject) {
+        timeRangeEnd !== cachedFilterEndTime) {
 
       cachedFilterEvents = events;
       cachedFilterQuery = searchQuery;
       cachedFilterTypes = typesKey;
       cachedFilterStartTime = timeRangeStart;
       cachedFilterEndTime = timeRangeEnd;
-      cachedFilterProject = $projectFilter;
 
       const lowerQuery = searchQuery.toLowerCase();
 
       cachedFilteredResult = events.filter(event => {
-        // Filter by project
-        if (event.project && !matchesFilter(event.project, $projectFilter)) {
-          return false;
-        }
 
         // Filter by search query
         if (searchQuery && !event.filepath?.toLowerCase().includes(lowerQuery)) {
@@ -315,10 +306,9 @@
       <p class="hint">Waiting for file changes to be detected</p>
     </div>
   {:else}
-    {@const emptyMsg = getEmptyStateMessage('events', $projectFilter, events.length)}
     <div class="empty">
-      <p>{emptyMsg.primary}</p>
-      <p class="hint">{emptyMsg.hint}</p>
+      <p>No events match your filters</p>
+      <p class="hint">Try adjusting your search or filter criteria</p>
     </div>
   {/if}
 </div>

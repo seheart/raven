@@ -2,8 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatTime as formatTimeString } from './timeFormat.js';
-  import { projectFilter, matchesFilter } from './projectFilterStore.js';
-  import { getEmptyStateMessage } from './utils/projectFilter.js';
   import ProjectBadge from './ProjectBadge.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
@@ -18,22 +16,6 @@
   let refreshInterval;
   let flatItems = [];
 
-  // Filter code changes and activity based on current project filter
-  $: filteredCodeChanges = codeChanges.filter(change => {
-    if (change.project) {
-      return matchesFilter(change.project, $projectFilter);
-    }
-    // If no project field, show it in "all" view only
-    return $projectFilter === 'all';
-  });
-
-  $: filteredActivity = recentActivity.filter(activity => {
-    if (activity.project) {
-      return matchesFilter(activity.project, $projectFilter);
-    }
-    // If no project field, show it in "all" view only
-    return $projectFilter === 'all';
-  });
 
   // Debounce utility function (moved outside reactive scope)
   const debounce = (fn, delay) => {
@@ -373,20 +355,19 @@
     <div class="code-changes-column">
       <div class="column-header">
         <h3>📊 Code Changes</h3>
-        <span class="change-count">{filteredCodeChanges.length} events</span>
+        <span class="change-count">{codeChanges.length} events</span>
       </div>
       <div class="code-changes-content">
         {#if loading}
           <div class="loading">Loading changes...</div>
-        {:else if filteredCodeChanges.length === 0}
-          {@const emptyMsg = getEmptyStateMessage('changes', $projectFilter, codeChanges.length)}
+        {:else if codeChanges.length === 0}
           <div class="empty-state">
-            <p>{emptyMsg.primary}</p>
-            <p class="empty-hint">{emptyMsg.hint}</p>
+            <p>No recent code changes</p>
+            <p class="empty-hint">Waiting for file modifications to be detected</p>
           </div>
         {:else}
           <div class="changes-list">
-            {#each filteredCodeChanges || [] as change}
+            {#each codeChanges || [] as change}
               <div class="change-item">
                 <div class="change-header">
                   <div class="change-meta">
@@ -440,15 +421,14 @@
       <div class="activity-content">
         {#if loading}
           <div class="loading">Loading activity...</div>
-        {:else if filteredActivity.length === 0}
-          {@const emptyMsg = getEmptyStateMessage('activity', $projectFilter, recentActivity.length)}
+        {:else if recentActivity.length === 0}
           <div class="empty-state">
-            <p>{emptyMsg.primary}</p>
-            <p class="empty-hint">{emptyMsg.hint}</p>
+            <p>No recent activity</p>
+            <p class="empty-hint">File and agent activity will appear here</p>
           </div>
         {:else}
           <div class="activity-list">
-            {#each filteredActivity || [] as activity}
+            {#each recentActivity || [] as activity}
               <div class="activity-item" class:file={activity.type === 'file'} class:agent={activity.type === 'agent'}>
                 <div class="activity-icon">
                   {#if activity.type === 'file'}

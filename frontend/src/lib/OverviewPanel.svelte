@@ -24,12 +24,6 @@
     deletes: 0
   };
 
-  let gitStatus = {
-    branch: 'unknown',
-    uncommitted: [],
-    ahead: 0,
-    behind: 0
-  };
 
   let systemMetrics = {
     cpu_percent: 0,
@@ -75,16 +69,14 @@
       loading = true;
 
       // Load all data in parallel
-      const [statsData, gitData, metricsData, activityData, filesData] = await Promise.all([
+      const [statsData, metricsData, activityData, filesData] = await Promise.all([
         fetch(`${API_BASE}/dashboard-stats`).then(r => r.json()),
-        fetch(`${API_BASE}/git/status`).then(r => r.json()),
         fetch(`${API_BASE}/system-metrics?limit=1`).then(r => r.json()),
         fetch(`${API_BASE}/file-events?limit=5`).then(r => r.json()),
         fetch(`${API_BASE}/top-modified-files?limit=5`).then(r => r.json())
       ]);
 
       stats = statsData;
-      gitStatus = gitData;
       systemMetrics = metricsData.metrics?.[0] || systemMetrics;
       recentActivity = activityData.events || [];
       topFiles = filesData.files || [];
@@ -114,10 +106,6 @@
     recentActivity = activityData.events || [];
   };
 
-  const handleGitStatus = (data) => {
-    gitStatus = data;
-  };
-
   onMount(async () => {
     await loadAllData();
 
@@ -126,7 +114,6 @@
 
     websocketService.on('system-metrics', handleMetricsUpdate);
     websocketService.on('file-changed', handleFileChanged);
-    websocketService.on('git-status', handleGitStatus);
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(loadAllData, 30000);
@@ -139,7 +126,6 @@
   onDestroy(() => {
     websocketService.off('system-metrics', handleMetricsUpdate);
     websocketService.off('file-changed', handleFileChanged);
-    websocketService.off('git-status', handleGitStatus);
   });
 
   $: flowState = getFlowState();
@@ -234,44 +220,6 @@
       {/if}
     </div>
 
-    <!-- Git Status Card -->
-    <div class="stat-card git-card" aria-label="Git repository status">
-      <div class="card-header">
-        <span class="card-icon">🔀</span>
-        <h3>Git Status</h3>
-      </div>
-      {#if loading}
-        <LoadingSkeleton type="text" count={3} />
-      {:else}
-        <div class="git-info">
-          <div class="git-branch">
-            <span class="branch-icon">🌿</span>
-            <span class="branch-name">{gitStatus.branch}</span>
-          </div>
-          {#if gitStatus.uncommitted?.length > 0}
-            <div class="git-warning">
-              <span class="warning-icon">⚠️</span>
-              <span>{gitStatus.uncommitted.length} uncommitted file{gitStatus.uncommitted.length !== 1 ? 's' : ''}</span>
-            </div>
-          {:else}
-            <div class="git-clean">
-              <span class="clean-icon">✅</span>
-              <span>Working tree clean</span>
-            </div>
-          {/if}
-          {#if gitStatus.ahead > 0 || gitStatus.behind > 0}
-            <div class="git-sync">
-              {#if gitStatus.ahead > 0}
-                <span>↑ {gitStatus.ahead} ahead</span>
-              {/if}
-              {#if gitStatus.behind > 0}
-                <span>↓ {gitStatus.behind} behind</span>
-              {/if}
-            </div>
-          {/if}
-        </div>
-      {/if}
-    </div>
   </div>
 
   <!-- Live Activity Stream -->
@@ -491,46 +439,6 @@
     text-align: right;
   }
 
-  /* Git Status */
-  .git-info {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .git-branch {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--text);
-  }
-
-  .git-warning, .git-clean {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--mono);
-    font-size: 12px;
-  }
-
-  .git-warning {
-    color: var(--warning);
-  }
-
-  .git-clean {
-    color: var(--success);
-  }
-
-  .git-sync {
-    display: flex;
-    gap: 12px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-  }
-
   /* Activity Section */
   .activity-section {
     background: var(--surface);
@@ -698,10 +606,5 @@
   .metrics-card {
     animation: gentleFloat 4s ease-in-out infinite;
     animation-delay: 1s;
-  }
-
-  .git-card {
-    animation: gentleFloat 4s ease-in-out infinite;
-    animation-delay: 2s;
   }
 </style>
