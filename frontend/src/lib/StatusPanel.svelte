@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatShortDateTime } from './timeFormat.js';
+  import PageInfo from './PageInfo.svelte';
   import { projectFilter, availableProjects } from './projectFilterStore.js';
 
   const API_BASE = 'http://localhost:3030';
@@ -152,6 +153,25 @@
 </script>
 
 <div class="status-panel">
+  <PageInfo
+    title="System Status"
+    description="Real-time health monitoring of the Raven system. View backend status, database connections, file watchers, WebSocket connections, and overall system health."
+    keyPoints={[
+      'Backend status shows if Raven server is running',
+      'Database health indicates SQLite connection status',
+      'File watcher count shows active directory monitors',
+      'WebSocket status tracks real-time connection health',
+      'System uptime shows how long Raven has been running'
+    ]}
+    whenToCheck="Check this page when Raven seems unresponsive, when data isn't updating, or to verify all systems are operational."
+    warnings={[
+      'Backend offline means Raven isn\'t monitoring anything',
+      'Database errors indicate corruption or permission issues',
+      'Zero file watchers means no directories are being monitored',
+      'WebSocket disconnected means no real-time updates'
+    ]}
+  />
+
   <div class="header">
     <h2>🏥 System Status</h2>
     <button on:click={checkBackendHealth} class="btn-refresh">
@@ -385,6 +405,7 @@
 <style>
   .status-panel {
     padding: 24px;
+    position: relative;
     width: 100%;
     margin: 0;
     font-family: var(--mono);

@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import PageInfo from './PageInfo.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -65,6 +66,25 @@
 </script>
 
 <div class="storage-panel">
+  <PageInfo
+    title="Storage Management"
+    description="View detailed storage usage across all Raven databases, snapshots, and configuration files. Track data growth, manage retention, and identify space usage patterns."
+    keyPoints={[
+      'Total .raven directory size shown at the top',
+      'Per-database statistics with table breakdowns',
+      'Snapshot directories with file counts and dates',
+      'Config and log file sizes',
+      'Active database highlighted',
+      'Auto-refreshes every 30 seconds'
+    ]}
+    whenToCheck="Check this page when disk space is low, to see which databases are growing fastest, or before manual cleanup operations."
+    warnings={[
+      'Very large databases (>100MB) might slow down Raven',
+      'Many snapshot files indicate frequent crashes or restarts',
+      'No automatic cleanup means data will grow indefinitely until manually managed'
+    ]}
+  />
+
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
@@ -260,6 +280,7 @@
 <style>
   .storage-panel {
     padding: 24px;
+    position: relative;
     max-width: 1400px;
     margin: 0 auto;
   }

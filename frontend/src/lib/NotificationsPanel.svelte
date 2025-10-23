@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import PageInfo from './PageInfo.svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime, formatRelativeTime } from './timeFormat.js';
 
@@ -221,6 +222,25 @@
 </script>
 
 <div class="notifications-panel">
+  <PageInfo
+    title="Notifications Center"
+    description="Central hub for all Raven notifications including error alerts, trigger events, and performance warnings. Filter, search, and manage your notification history."
+    keyPoints={[
+      'Stats dashboard shows total, unread, and categorized counts',
+      'Filter by type (error, trigger, performance) or severity',
+      'Mark notifications as read/unread individually or in bulk',
+      'Delete individual notifications or clear all',
+      'Real-time updates via WebSocket',
+      'Expandable detail view for each notification'
+    ]}
+    whenToCheck="Check this page when you see notification badges, to review recent alerts, or to clear old notifications."
+    warnings={[
+      'Too many unread notifications might indicate you\'re missing important alerts',
+      'Frequent critical notifications deserve immediate attention',
+      'No notifications firing might mean triggers aren\'t configured'
+    ]}
+  />
+
   <div class="header">
     <div class="header-left">
       <h1>📬 Notifications</h1>
@@ -394,6 +414,7 @@
 <style>
   .notifications-panel {
     padding: 24px;
+    position: relative;
     max-width: 1400px;
     margin: 0 auto;
   }

@@ -5,6 +5,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { notifications } from './notificationService.js';
   import ProjectsOverview from './ProjectsOverview.svelte';
+  import PageInfo from './PageInfo.svelte';
 
   export let sessionId = 'Loading...';
   export let sessionUptime = '0s';
@@ -78,7 +79,7 @@
 
       stats = statsData;
       systemMetrics = metricsData.metrics?.[0] || systemMetrics;
-      recentActivity = activityData.events || [];
+      recentActivity = activityData || [];
       topFiles = filesData.files || [];
 
       loading = false;
@@ -103,7 +104,7 @@
   const handleFileChanged = async () => {
     // Reload activity on file changes
     const activityData = await fetch(`${API_BASE}/file-events?limit=5`).then(r => r.json());
-    recentActivity = activityData.events || [];
+    recentActivity = activityData || [];
   };
 
   onMount(async () => {
@@ -132,6 +133,24 @@
 </script>
 
 <div class="overview-panel">
+  <PageInfo
+    title="Overview"
+    description="Your central dashboard showing all active projects, session statistics, and system metrics. This is your at-a-glance view of everything Raven is monitoring."
+    keyPoints={[
+      'Projects with green indicators have been active in the last hour',
+      'Recent Activity shows the latest file changes across all projects',
+      'System Metrics update in real-time via WebSocket',
+      'Flow State indicates your current coding rhythm and productivity',
+      'Raven Session ID resets when you restart the server (./restart.sh)'
+    ]}
+    whenToCheck="Check this page first when opening Raven to see what's active, or when you want a quick overview of all monitored projects."
+    warnings={[
+      'If Projects shows (0), Raven may not be watching any directories',
+      'No Recent Activity might mean Raven isn\'t detecting file changes',
+      'High CPU/Memory could indicate a system issue or runaway process'
+    ]}
+  />
+
   <!-- Personalized Greeting -->
   <div class="greeting-section">
     <h2 class="greeting-text">{getGreeting()}</h2>
@@ -296,6 +315,7 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+    position: relative;
   }
 
   .greeting-section {

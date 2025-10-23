@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import FileHistory from './FileHistory.svelte';
+  import PageInfo from './PageInfo.svelte';
 
   let files = [];
   let loading = true;
@@ -62,6 +63,24 @@
 </script>
 
 <div class="file-browser">
+  <PageInfo
+    title="File Browser"
+    description="Browse all files that Raven has tracked across your monitored projects. See change counts, last modified times, and view detailed history for any file."
+    keyPoints={[
+      'Shows all files that have been created, modified, or deleted',
+      'Change count indicates how many times each file was edited',
+      'Last modified timestamp shows most recent activity',
+      'Click any file to see its complete history',
+      'Sorted by most recently modified first'
+    ]}
+    whenToCheck="Use this to find which files are changing most frequently, or to browse your project history."
+    warnings={[
+      'If no files appear, Raven may not have detected any changes yet',
+      'Deleted files still appear in the list (marked as deleted)',
+      'Very active files might have truncated history'
+    ]}
+  />
+
   <div class="browser-header">
     <h3>📂 Tracked Files</h3>
     <button class="refresh-btn" on:click={loadFiles} disabled={loading}>
@@ -102,6 +121,7 @@
     flex-direction: column;
     height: 100%;
     padding: 24px;
+    position: relative;
   }
 
   .browser-header {

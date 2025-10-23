@@ -6,6 +6,7 @@
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
   import ProjectBadge from './ProjectBadge.svelte';
+  import PageInfo from './PageInfo.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -230,6 +231,25 @@
 </script>
 
 <div class="event-feed">
+  <PageInfo
+    title="Event Log"
+    description="Complete chronological log of all file system events (create, edit, delete, rename) across all monitored projects. Search, filter, and export your development history."
+    keyPoints={[
+      'Timeline slider lets you jump to specific time ranges',
+      'Search filters events by file path, event type, or project',
+      'Export to JSON or CSV for external analysis',
+      'Virtual scrolling handles thousands of events smoothly',
+      'Real-time updates as new events occur',
+      'Event types: Create, Edit, Delete, Rename'
+    ]}
+    whenToCheck="Use this to audit changes, find when a specific file was modified, or export data for analysis. Great for debugging unexpected file changes."
+    warnings={[
+      'Very large event counts might slow down filtering - use search to narrow results',
+      'If events stop appearing, check that Raven is still watching directories',
+      'Renamed files appear as both delete and create events'
+    ]}
+  />
+
   <div class="header">
     <span class="count">{filteredEvents.length} / {events.length} events</span>
     <div class="header-actions">
@@ -319,6 +339,7 @@
     flex-direction: column;
     height: 100%;
     padding: 24px;
+    position: relative;
   }
 
   .header {

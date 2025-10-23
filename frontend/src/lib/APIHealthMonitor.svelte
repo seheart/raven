@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import PageInfo from './PageInfo.svelte';
   import { formatTime as formatTimeString } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030';
@@ -178,6 +179,25 @@
 </script>
 
 <div class="api-health">
+  <PageInfo
+    title="API Health Monitor"
+    description="Real-time monitoring of all Raven REST API endpoints. Track response times, success rates, error counts, and overall API health."
+    keyPoints={[
+      'All endpoints shown with health status',
+      'Response time tracking for performance',
+      'Success/failure rates per endpoint',
+      'Recent request history',
+      'Auto-refreshes health checks',
+      'Color-coded status indicators'
+    ]}
+    whenToCheck="Check this page when API calls are failing, to identify slow endpoints, or to verify overall API health."
+    warnings={[
+      'Red status indicates endpoint failures - check backend logs',
+      'Slow response times (>1000ms) might indicate performance issues',
+      'Many failed requests warrant immediate investigation'
+    ]}
+  />
+
   <div class="header">
     <div>
       <h2>🔌 API Health Monitor</h2>

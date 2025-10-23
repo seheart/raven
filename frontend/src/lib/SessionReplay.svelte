@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
+  import PageInfo from './PageInfo.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
   let events = [];
@@ -76,6 +77,25 @@
 </script>
 
 <div class="session-replay">
+  <PageInfo
+    title="Session Replay"
+    description="Time-travel through your development sessions. Replay file changes, agent actions, and system events chronologically to understand exactly what happened during any coding session."
+    keyPoints={[
+      'Visual timeline shows activity patterns over time',
+      'Play/pause controls for step-by-step replay',
+      'Jump to specific events or time ranges',
+      'See file diffs as they happened',
+      'Review agent decisions and actions chronologically',
+      'Filter by event type or file'
+    ]}
+    whenToCheck="Use after debugging sessions to understand what changed, review before/after states when something broke, or share session replays for code review."
+    warnings={[
+      'Long sessions might take time to load all events',
+      'Incomplete sessions might have gaps in timeline',
+      'Very active sessions may have too much detail to parse efficiently'
+    ]}
+  />
+
   <div class="header">
     <h2>🎬 Session Replay</h2>
     <div class="header-controls">

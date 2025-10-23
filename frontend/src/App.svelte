@@ -470,6 +470,7 @@
     max-width: 100%;
     margin: 0;
     min-height: calc(100vh - 120px);
+    padding-bottom: 60px; /* Space for fixed footer */
   }
 
   .tab-content {

@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import PageInfo from './PageInfo.svelte';
   import { formatTime } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030/api';
@@ -112,6 +113,24 @@
 </script>
 
 <div class="performance-panel">
+  <PageInfo
+    title="Performance Analysis"
+    description="Detailed performance metrics and profiling data for your development workflow. Track system resources, operation timing, and identify bottlenecks."
+    keyPoints={[
+      'System metrics show CPU, memory, and disk usage',
+      'Operation timing reveals slow file operations',
+      'Performance trends over time',
+      'Resource consumption patterns',
+      'Real-time metric updates'
+    ]}
+    whenToCheck="Use when system feels slow, or to identify performance issues during heavy development activity."
+    warnings={[
+      'Consistently high CPU/memory might indicate a runaway process',
+      'Slow file operations could mean disk issues or file watcher overload',
+      'Sudden performance drops warrant investigation'
+    ]}
+  />
+
   <div class="header">
     <h2><span class="lightning-icon">⚡️</span> Performance Profiling</h2>
     <button on:click={fetchAllData} class="btn-refresh">
@@ -321,8 +340,8 @@
     background: var(--bg);
     color: var(--text);
     min-height: 400px;
-    width: 100%;
     position: relative;
+    width: 100%;
     font-family: var(--mono);
   }
 

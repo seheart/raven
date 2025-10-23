@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { notifications } from './notificationService.js';
+  import PageInfo from './PageInfo.svelte';
 
   // Default settings
   let settings = {
@@ -130,6 +131,25 @@
 </script>
 
 <div class="settings-panel">
+  <PageInfo
+    title="Settings & Preferences"
+    description="Configure Raven's behavior, appearance, and notification preferences. Customize the interface, set data retention policies, and manage system-wide settings."
+    keyPoints={[
+      'Enable/disable notifications for different event types',
+      'Configure data retention and auto-cleanup schedules',
+      'Customize refresh intervals for real-time updates',
+      'Set file watcher polling rates',
+      'Configure database backup schedules',
+      'Settings saved to localStorage automatically'
+    ]}
+    whenToCheck="Visit this page to customize Raven for your workflow, adjust performance settings, or configure notification preferences."
+    warnings={[
+      'Disabling notifications might cause you to miss important alerts',
+      'Very short refresh intervals can impact performance',
+      'Aggressive retention policies might delete data you need'
+    ]}
+  />
+
   <div class="settings-header">
     <h2>⚙️ User Settings</h2>
     <div class="header-actions">
@@ -412,6 +432,7 @@
     flex-direction: column;
     height: 100%;
     padding: 24px;
+    position: relative;
     overflow: hidden;
   }
 

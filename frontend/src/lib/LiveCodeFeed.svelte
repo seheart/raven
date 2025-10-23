@@ -3,6 +3,7 @@
   import { websocketService } from './websocket.js';
   import { formatTime as formatTimeString } from './timeFormat.js';
   import ProjectBadge from './ProjectBadge.svelte';
+  import PageInfo from './PageInfo.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -304,6 +305,25 @@
 </script>
 
 <div class="live-code-feed">
+  <PageInfo
+    title="Live Code Feed"
+    description="Real-time stream of code changes across all your projects. Watch files being edited, created, and deleted as they happen. Perfect for monitoring AI agent activity and tracking what's changing in your codebase."
+    keyPoints={[
+      'File tree on the left shows all changed files across projects',
+      'Middle column shows the actual diff/changes in real-time',
+      'Right column displays recent activity stream',
+      'Files pulse with color when changed',
+      'Click any file to see its detailed changes',
+      'Updates automatically via WebSocket'
+    ]}
+    whenToCheck="Keep this open while coding to see real-time changes, or check it after an AI session to review what was modified."
+    warnings={[
+      'If no files appear, Raven may not be watching the correct directories',
+      'Empty diffs might mean files were moved or renamed without content changes',
+      'Very rapid updates could indicate a file watcher loop or build system issue'
+    ]}
+  />
+
   <div class="feed-layout">
     <!-- Left Column: File Tree -->
     <div class="file-tree-column">
@@ -471,6 +491,7 @@
     display: flex;
     flex-direction: column;
     background: var(--bg);
+    position: relative;
     color: var(--text);
     font-family: var(--mono);
   }

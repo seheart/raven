@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { notifications } from './notificationService.js';
+  import PageInfo from './PageInfo.svelte';
   import { formatDateTime } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030/api';
@@ -269,6 +270,25 @@
 </script>
 
 <div class="server-sync-panel">
+  <PageInfo
+    title="Server Sync & Backups"
+    description="Manage remote server synchronization and database backups. Configure auto-sync schedules, push/pull databases manually, and restore from backups."
+    keyPoints={[
+      'Configure remote server credentials (SSH)',
+      'Set up automatic sync schedules',
+      'Manual push/pull of databases',
+      'View sync history and status',
+      'Restore from server backups',
+      'Monitor sync errors and warnings'
+    ]}
+    whenToCheck="Use this page to set up server backups, manually sync data to/from remote servers, or restore from backups after data loss."
+    warnings={[
+      'Sync failures might indicate SSH connection issues or permission problems',
+      'Large databases may take significant time to sync',
+      'Always test restores to ensure backups are valid'
+    ]}
+  />
+
   <div class="panel-header">
     <h2>🌐 Server Sync</h2>
     <p class="subtitle">Backup Raven data to your own server via SSH</p>
@@ -538,6 +558,7 @@
 <style>
   .server-sync-panel {
     padding: 24px;
+    position: relative;
     max-width: 1200px;
     margin: 0 auto;
   }

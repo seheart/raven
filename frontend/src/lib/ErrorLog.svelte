@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { fetchErrorLogs, fetchErrorStats, clearErrorLogs, logError } from './errorLogger.js';
+  import PageInfo from './PageInfo.svelte';
   import { formatDateTime } from './timeFormat.js';
   import io from 'socket.io-client';
   import VirtualScroll from './VirtualScroll.svelte';
@@ -257,6 +258,25 @@
 </script>
 
 <div class="error-log">
+  <PageInfo
+    title="Error Log"
+    description="Comprehensive error tracking for Raven system errors, JavaScript exceptions, and API failures. View stack traces, filter by severity, and export error data for debugging."
+    keyPoints={[
+      'Errors auto-categorized by severity (critical, error, warning, info)',
+      'Full stack traces for debugging',
+      'Search and filter by component, error type, or severity',
+      'Stats dashboard shows error distribution',
+      'Export errors to JSON for external analysis',
+      'Clear all errors with one click'
+    ]}
+    whenToCheck="Check this page when you see error notifications, when Raven behaves unexpectedly, or to review system health."
+    warnings={[
+      'Critical errors require immediate investigation',
+      'Repeated errors from same component indicate a bug',
+      'Many errors might mean system instability - consider restarting Raven'
+    ]}
+  />
+
   <div class="log-header">
     <div class="header-title">
       <h1>⚠️ Error Log</h1>
@@ -478,6 +498,7 @@
 <style>
   .error-log {
     padding: 24px;
+    position: relative;
     max-width: 1600px;
     margin: 0 auto;
   }

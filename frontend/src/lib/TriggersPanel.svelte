@@ -3,6 +3,7 @@
   import { websocketService } from './websocket.js';
   import { formatUnixDateTime } from './timeFormat.js';
   import { projectFilter, availableProjects, matchesFilter } from './projectFilterStore.js';
+  import PageInfo from './PageInfo.svelte';
   import { getEmptyStateMessage } from './utils/projectFilter.js';
   import ProjectBadge from './ProjectBadge.svelte';
 
@@ -152,6 +153,25 @@
 </script>
 
 <div class="triggers-panel">
+  <PageInfo
+    title="Triggers & Alerts"
+    description="Smart monitoring rules that automatically notify you when specific conditions are met. Set up alerts for high CPU usage, frequent file changes, error patterns, and more."
+    keyPoints={[
+      'Triggers run continuously in the background',
+      'Configure custom thresholds for your workflow',
+      'Real-time notifications when conditions are met',
+      'View trigger history to see what fired and when',
+      'Enable/disable triggers individually',
+      'Test triggers before activating them'
+    ]}
+    whenToCheck="Configure triggers when you want automated alerts for specific conditions, or review trigger history to see what has been firing."
+    warnings={[
+      'Too many trigger fires might need threshold adjustment',
+      'No triggers firing could mean conditions aren\'t being met or triggers are misconfigured',
+      'Overlapping triggers might cause notification spam'
+    ]}
+  />
+
   <div class="header">
     <h2>🎯 Custom Triggers</h2>
     <div class="header-actions">
@@ -329,10 +349,10 @@
     padding: 24px;
     width: 100%;
     margin: 0;
+    position: relative;
     font-family: var(--mono);
     background: var(--bg);
     color: var(--text);
-    position: relative;
   }
 
   .header {

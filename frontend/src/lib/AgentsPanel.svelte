@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
+  import PageInfo from './PageInfo.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -147,6 +148,24 @@
 </script>
 
 <div class="agents-panel">
+  <PageInfo
+    title="AI Agents Monitor"
+    description="Real-time monitoring of AI agents (Claude, GPT, Gemini, Ollama, etc.) working across your projects. Track what your AI assistants are doing, which files they're editing, and their overall activity patterns."
+    keyPoints={[
+      'Active agents show 🟢 green status indicator',
+      'Event count shows total actions taken by each agent',
+      'Response time indicates agent performance',
+      'Recent events stream shows latest agent actions in real-time',
+      'Lines changed tracks total code modifications by agents'
+    ]}
+    whenToCheck="Check this page when you want to see what AI agents are doing, track their productivity, or verify they're responding properly to your requests."
+    warnings={[
+      'No agents showing means Raven hasn\'t detected any AI activity yet',
+      'Very high event counts might indicate an agent stuck in a loop',
+      'Long response times could mean slow API connections or rate limiting'
+    ]}
+  />
+
   <div class="header">
     <h2>🤖 AI Agents</h2>
     <button on:click={loadAllData} class="btn-refresh">

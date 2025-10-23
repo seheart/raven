@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
+  import PageInfo from './PageInfo.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -173,6 +174,24 @@
 </script>
 
 <div class="activity-log">
+  <PageInfo
+    title="Activity Log"
+    description="Aggregated view of development activity showing file changes, agent actions, and system events in a unified timeline. Perfect for reviewing what happened during a coding session."
+    keyPoints={[
+      'Combines file events, agent actions, and system metrics',
+      'Timeline view shows activity patterns over time',
+      'Pagination for browsing through history',
+      'Activity type indicators (create, edit, delete, agent action)',
+      'Real-time updates as new activity occurs'
+    ]}
+    whenToCheck="Check this after a coding session to review what happened, or when you need a high-level view of recent development activity."
+    warnings={[
+      'If activity seems sparse, check that Raven is monitoring the correct projects',
+      'Very high activity might indicate a build loop or file watcher issue',
+      'Missing agent activity means agents aren\'t being tracked properly'
+    ]}
+  />
+
   <div class="log-header">
     <div class="header-title">
       <h1>📜 Activity Log</h1>
@@ -331,6 +350,7 @@
     padding: 24px;
     max-width: 1600px;
     margin: 0 auto;
+    position: relative;
   }
 
   .log-header {
