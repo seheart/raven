@@ -1,15 +1,20 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { projectFilter, availableProjects } from './projectFilterStore.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
   let projectsData = [];
+  let availableProjects = [];
   let loading = true;
   let refreshInterval;
 
   async function loadProjectsOverview() {
     try {
+      // Fetch available projects
+      const projectsRes = await fetch(`${API_BASE}/projects/list`);
+      const projectsJson = await projectsRes.json();
+      availableProjects = projectsJson.projects || [];
+
       // Fetch recent events to determine project activity
       const eventsRes = await fetch(`${API_BASE}/agent-events?limit=500`);
       const events = await eventsRes.json();
@@ -17,7 +22,7 @@
       // Aggregate stats per project
       const projectStats = {};
 
-      for (const project of $availableProjects) {
+      for (const project of availableProjects) {
         const projectEvents = events.filter(e => e.project === project);
 
         // Get most recent event timestamp
@@ -39,7 +44,7 @@
       }
 
       // Convert to array and sort by last activity (most recent first)
-      projectsData = $availableProjects
+      projectsData = availableProjects
         .map(name => projectStats[name] || {
           name,
           active: false,
@@ -61,7 +66,8 @@
   }
 
   function selectProject(projectName) {
-    projectFilter.set(projectName);
+    // No longer using project filter - Raven shows all projects
+    console.log(`Selected project: ${projectName}`);
   }
 
   function formatRelativeTime(timestamp) {
@@ -91,8 +97,8 @@
 
 <div class="projects-overview">
   <div class="header">
-    <h3>Projects ({$availableProjects.length})</h3>
-    <button class="view-all" on:click={() => projectFilter.set('all')}>
+    <h3>Projects ({availableProjects.length})</h3>
+    <button class="view-all" style="visibility: hidden;">
       View All
     </button>
   </div>
@@ -106,7 +112,6 @@
       {#each projectsData as project}
         <button
           class="project-card"
-          class:selected={$projectFilter === project.name}
           on:click={() => selectProject(project.name)}
         >
           <div class="project-header">

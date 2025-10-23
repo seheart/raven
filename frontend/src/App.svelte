@@ -380,7 +380,7 @@
 
 <!-- Keyboard Shortcuts Help Modal -->
 {#if showHelp}
-  <KeyboardShortcuts on:close={() => showHelp = false} />
+  <KeyboardShortcuts visible={true} onClose={() => showHelp = false} />
 {/if}
 
 <Footer

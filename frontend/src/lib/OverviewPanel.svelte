@@ -137,11 +137,17 @@
     <h2 class="greeting-text">{getGreeting()}</h2>
     <div class="session-info">
       <div class="session-detail">
-        <span class="session-label">Session ID:</span>
+        <span class="session-label">
+          Raven Session ID:
+          <span class="tooltip-icon" title="Unique ID for this Raven server run. Resets when you restart Raven (./restart.sh). Used to separate data from different monitoring sessions.">ℹ️</span>
+        </span>
         <span class="session-value">{sessionId}</span>
       </div>
       <div class="session-detail">
-        <span class="session-label">Uptime:</span>
+        <span class="session-label">
+          Server Uptime:
+          <span class="tooltip-icon" title="How long the Raven backend server has been running continuously since last restart.">ℹ️</span>
+        </span>
         <span class="session-value">{sessionUptime}</span>
       </div>
     </div>
@@ -287,10 +293,12 @@
     padding: 24px;
     max-width: 1400px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
   }
 
   .greeting-section {
-    margin-bottom: 32px;
     text-align: center;
   }
 
@@ -320,6 +328,20 @@
     font-size: 12px;
     color: var(--muted);
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tooltip-icon {
+    font-size: 14px;
+    cursor: help;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+
+  .tooltip-icon:hover {
+    opacity: 1;
   }
 
   .session-value {
@@ -336,8 +358,7 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
+    gap: 20px;
   }
 
   .stat-card {
@@ -445,7 +466,6 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 16px;
-    margin-bottom: 24px;
   }
 
   .section-header {
