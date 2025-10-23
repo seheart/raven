@@ -147,7 +147,6 @@
 | **Cloud Sync** | 📋 PLANNED | Future |
 | **Team Collaboration** | 📋 PLANNED | Future |
 | **Plugin System** | 📋 PLANNED | Future |
-| **Mobile App** | 📋 PLANNED | Future |
 
 ---
 
