@@ -138,9 +138,20 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 See [docs/SETUP.md](docs/SETUP.md) for detailed installation instructions.
 
-**First-time setup:**
+### Platform Support
+
+✅ **Linux** - Fully supported (Arch, Ubuntu, Debian, etc.)
+✅ **macOS** - Fully supported (Intel + Apple Silicon)
+⚠️ **Windows** - Via WSL (not tested natively)
+
+**macOS users:** Requires Xcode Command Line Tools for native module compilation. See [macOS Setup](docs/SETUP.md#macos-specific-requirements).
+
+### First-time setup
 
 ```bash
+# macOS only: Install build tools first
+xcode-select --install
+
 # Install backend dependencies
 cd backend && npm install && cd ..
 

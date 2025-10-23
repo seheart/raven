@@ -2,6 +2,7 @@
 
 ## Prerequisites
 
+### All Platforms
 - Node.js 18+ (`node --version`)
 - npm 9+ (`npm --version`)
 - **rsync** (for Server Sync feature)
@@ -9,6 +10,27 @@
   - Ubuntu/Debian: `sudo apt install rsync`
   - macOS: `brew install rsync` (usually pre-installed)
   - Windows: Install via WSL or [Cygwin](https://www.cygwin.com/)
+
+### macOS-Specific Requirements
+
+Raven uses `better-sqlite3`, a native Node.js module that must be compiled during installation. You'll need:
+
+```bash
+# Install Xcode Command Line Tools (required for native module compilation)
+xcode-select --install
+```
+
+**What this provides:**
+- ✅ C/C++ compiler toolchain
+- ✅ Python (needed by node-gyp for building native modules)
+- ✅ Essential build tools
+
+**Note:** The installation may take a few minutes. After installing, `npm install` will automatically compile the native SQLite module for your Mac.
+
+**Compatibility:**
+- ✅ Intel Macs - Fully supported
+- ✅ Apple Silicon (M1/M2/M3) - Fully supported (native ARM64 builds)
+- ✅ systeminformation - Full macOS support for CPU, memory, and system metrics
 
 ## Quick Start
 
@@ -167,6 +189,21 @@ active = "raven"                  # Active project name
 **Error:** `Database locked` or `SQLITE_BUSY`
 - **Solution:** Stop all Raven instances and restart
 - If persists: `rm .raven/db/*.db-wal .raven/db/*.db-shm`
+
+### macOS-Specific Issues
+
+**Error during `npm install`:** `gyp: No Xcode or CLT version detected!`
+- **Solution:** Install Xcode Command Line Tools: `xcode-select --install`
+- **Verify:** `xcode-select -p` should show `/Library/Developer/CommandLineTools`
+
+**Error:** `node-gyp build failed`
+- **Solution:**
+  1. Update Xcode tools: `softwareupdate --all --install --force`
+  2. Reset tools path: `sudo xcode-select --reset`
+  3. Try install again: `npm install`
+
+**Performance issue:** System metrics collection slow
+- **Note:** This is normal on macOS. The `systeminformation` library is slightly slower on macOS compared to Linux due to system API differences. All functionality works correctly.
 
 ## Development Commands
 
