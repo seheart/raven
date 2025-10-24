@@ -6,13 +6,37 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 0.10.0 - Enterprise-Grade Quality & System Management
+**Version:** 0.10.1 - Professional UX Polish & Frontend Audit
 
-## 🚀 Current Status: Production Quality Release - Code Audit Complete
+## 🚀 Current Status: Production Quality Release - UX Audit Complete
 
-✅ **Enterprise-grade monitoring platform with comprehensive System management!**
+✅ **Enterprise-grade monitoring platform with polished, consistent UX across all pages!**
 
-### 🆕 What's New in 0.10.0
+### 🆕 What's New in 0.10.1 - Frontend UX Audit
+
+**🎨 Consistent Professional UX (59 improvements across 14 components):**
+- [x] **Loading States** - LoadingSkeleton with pulse animations on all pages
+- [x] **Live Timestamps** - Real-time "Updated: Xs ago" displays (1-second refresh)
+- [x] **Visual Feedback** - Spinning refresh icons during operations
+- [x] **API Centralization** - All pages use API_CONFIG (no hardcoded URLs)
+- [x] **Button States** - Proper disabled states during async operations
+- [x] **Consistent Layout** - Unified header patterns across all sections
+- [x] **Professional Polish** - Tokyo Night theme applied uniformly
+
+**🐛 Critical Bug Fixes:**
+- [x] **API Health Monitor** - Fixed crash from parameterized endpoints
+- [x] **Svelte Reactivity** - Fixed grouped endpoints not updating
+- [x] **Glowing Icons** - Removed excessive drop-shadow filters
+- [x] **WebSocket URLs** - Fixed hardcoded localhost in ErrorLog
+- [x] **Empty States** - Better handling of no-data scenarios
+
+**📊 Pages Improved:**
+- System: Status, Storage, Server Sync, Notifications, Errors, API Health, Settings (7 pages)
+- Analysis: Performance, Triggers, Session Replay (3 pages)
+- Activity: Activity Log (1 page)
+- Dashboard: Live Feed, Overview, Agents (3 pages)
+
+### Previous Release: 0.10.0
 
 **🎯 System Section - Complete Overhaul (25+ Features):**
 - [x] **Storage Management** - Export/optimize/clean databases with VACUUM
