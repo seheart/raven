@@ -1,0 +1,344 @@
+<script>
+  import { onMount, onDestroy } from 'svelte';
+  import { websocketService } from './websocket.js';
+  import { formatDateTime } from './timeFormat.js';
+  import PageInfo from './PageInfo.svelte';
+
+  const API_BASE = 'http://localhost:3030/api';
+  let events = [];
+  let allSessions = [];
+  let selectedSession = 'all'; // 'all' or a specific session ID
+  let loading = true;
+
+  onMount(async () => {
+    await loadSessions();
+    await loadEvents();
+
+    // Connect to WebSocket and listen for project switches
+    websocketService.connect();
+    websocketService.on('project-switched', handleProjectSwitched);
+  });
+
+  onDestroy(() => {
+    // Clean up WebSocket listeners
+    websocketService.off('project-switched', handleProjectSwitched);
+  });
+
+  async function loadSessions() {
+    try {
+      const response = await fetch(`${API_BASE}/session-id`);
+      const data = await response.json();
+      const currentSessionId = data.session_id;
+
+      // For now, just show current session (could be expanded to show multiple sessions)
+      allSessions = [
+        { id: 'all', label: 'All Sessions' },
+        { id: currentSessionId, label: `Current Session (${currentSessionId?.slice(0, 8)}...)` }
+      ];
+    } catch (e) {
+      console.error('Failed to load sessions:', e);
+      allSessions = [{ id: 'all', label: 'All Sessions' }];
+    }
+  }
+
+  async function loadEvents() {
+    try {
+      loading = true;
+      let url = `${API_BASE}/agent-events?limit=50`;
+
+      // If a specific session is selected, use the session filter endpoint
+      if (selectedSession !== 'all') {
+        url = `${API_BASE}/events-by-session/${selectedSession}`;
+      }
+
+      const response = await fetch(url);
+      events = await response.json();
+      loading = false;
+    } catch (e) {
+      console.error('Failed to load events:', e);
+      loading = false;
+    }
+  }
+
+  async function onSessionChange() {
+    await loadEvents();
+  }
+
+  // WebSocket event handler for project switches
+  const handleProjectSwitched = async (data) => {
+    console.log('📡 Project switched, reloading session replay data:', data.project);
+    await loadSessions();
+    await loadEvents();
+  };
+
+  function formatTimestamp(timestamp) {
+    return formatDateTime(timestamp);
+  }
+</script>
+
+<div class="session-replay">
+  <PageInfo
+    title="Session Replay"
+    description="This is your Raven time machine - imagine a DVR (digital video recorder) for your coding sessions, letting you rewind and replay everything that happened. Session Replay shows a **chronological timeline** of every AI agent action during a specific monitoring session. Think of each \"session\" as one continuous run of Raven from start to restart - when you run `./restart.sh`, a new session begins with a new Session ID."
+    keyPoints={[
+      '**Session Filter Dropdown** - At the top, select which session to view: "All Sessions" shows events from all historical sessions (can be overwhelming), "Current Session (a3b7f12d...)" shows only events since the last Raven restart (most recent 8 chars of Session ID shown). The current session is usually what you want.',
+      '**Recent Activity Timeline** - Scrollable list of events in reverse chronological order (newest at top). Each event shows: Timestamp (exact date/time like "2025-01-15 14:32:15"), Agent name (which AI did it - Claude, GPT, etc.), Event type (edit/create/delete/read/execute), Message (description of what happened), File path (if applicable), Lines changed (if code edit), Duration (how long it took in milliseconds).',
+      '**Event Types Explained** - `edit` = Modified existing file, `create` = Created new file, `delete` = Removed file, `read` = Opened/analyzed file without changes, `execute` = Ran a command or tool. Each has a corresponding icon in other pages.',
+      '**Event Count** - Shows total events in timeline like "Recent Activity (47 events)". This is the number of distinct actions AI agents took during the selected session(s). Example: 47 events might be 30 edits, 10 reads, 5 creates, 2 deletes.',
+      '**Duration Field** - Shown in milliseconds (ms). Example: "1200ms" = 1.2 seconds. Tells you how long that specific action took from start to finish. Useful for finding slow operations.',
+      '**Empty State** - If you see "No events recorded yet", either: (1) AI agents haven\'t done anything since Raven started, or (2) You selected a session with no activity. Switch to "Current Session" if you\'re actively working.',
+      '**Use Cases** - After an AI coding session: Review what the AI actually did step-by-step. Debugging: Find when a bug was introduced by seeing file edit timestamps. Code review: Share session timeline with team to show AI contributions. Learning: Study how AI agents approach problems by watching their sequence of actions.'
+    ]}
+    whenToCheck="Check Session Replay **after any AI coding session** to review what changed, **when debugging** to find when/where a bug was introduced, **before committing code** to verify AI changes make sense, or **when learning** to understand how AI agents approach coding tasks."
+    warnings={[
+      '**Long sessions (>500 events) take time to load** - Fetching hundreds of events from database can take 5-10 seconds. Be patient if you see "Loading events..." for a while. Consider filtering to current session only.',
+      '**Incomplete sessions / gaps in timeline** - Happens if: Raven crashed mid-session (events before crash are saved, after crash are lost), Backend was restarted (new session started, old session closed), AI agent failed to send telemetry for some actions. Gaps are normal after crashes.',
+      '**Very active sessions overwhelming** - 1000+ events can be hard to parse visually. Use the session filter to narrow down, or export the data and analyze in a spreadsheet. Future versions may add event type filters.',
+      '**Timestamp shows future date** - Clock skew between your system and the server. Check that your computer\'s time/timezone is correct. Usually doesn\'t affect functionality, just confusing.',
+      '**No session dropdown appears** - Backend isn\'t responding to `/api/session-id` endpoint. Check Status page to verify backend is online. Refresh the page if dropdown is empty.',
+      '**"All Sessions" shows nothing despite having data** - Database might be new/empty, or events are in a different database file. Raven uses separate SQLite files per project - make sure you\'re viewing the right project.'
+    ]}
+  />
+
+  <div class="header">
+    <h2>🎬 Session Replay</h2>
+    <div class="header-controls">
+      <div class="filter-group">
+        <label for="session-filter">Session:</label>
+        <select
+          id="session-filter"
+          bind:value={selectedSession}
+          on:change={onSessionChange}
+          class="session-select"
+        >
+          {#each allSessions || [] as session}
+            <option value={session.id}>{session.label}</option>
+          {/each}
+        </select>
+      </div>
+      <button on:click={loadEvents} class="btn-refresh">
+        ↻ Refresh
+      </button>
+    </div>
+  </div>
+
+  {#if loading}
+    <div class="loading">Loading events...</div>
+  {:else if events.length === 0}
+    <div class="empty-state">
+      <p>No events recorded yet.</p>
+      <p>Events will appear here as AI agents make changes.</p>
+    </div>
+  {:else}
+    <div class="timeline">
+      <h3>Recent Activity ({events.length} events)</h3>
+      <div class="events-list">
+        {#each events || [] as event}
+          <div class="event-item">
+            <div class="event-header">
+              <span class="timestamp">{formatTimestamp(event.timestamp)}</span>
+              <span class="agent">{event.agent}</span>
+              <span class="event-type">{event.event_type}</span>
+            </div>
+            <div class="event-body">
+              <p class="message">{event.message}</p>
+              {#if event.file}
+                <p class="file">📄 {event.file}</p>
+              {/if}
+              {#if event.lines_changed}
+                <p class="lines">Lines changed: {event.lines_changed}</p>
+              {/if}
+              {#if event.duration_ms}
+                <p class="duration">Duration: {event.duration_ms}ms</p>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
+</div>
+
+<style>
+  .session-replay {
+    padding: 12px;
+    background: var(--bg);
+    min-height: 80vh;
+    color: var(--text);
+    font-family: var(--mono);
+    width: 100%;
+    position: relative;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 0 8px;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .btn-refresh {
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+
+  .btn-refresh:hover {
+    background: var(--surface-2);
+    border-color: var(--border);
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .filter-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .session-select {
+    padding: 8px 16px;
+    border: 1px solid var(--surface-2);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .session-select:hover {
+    border-color: var(--surface-2);
+    background: var(--surface-2);
+  }
+
+  .session-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .loading, .empty-state {
+    text-align: center;
+    padding: 16px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .timeline {
+    margin-top: 20px;
+    padding: 0 20px;
+  }
+
+  h3 {
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+
+  .events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding-bottom: 10px;
+  }
+
+  .event-item {
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.2s;
+  }
+
+  .event-item:hover {
+    background: var(--border);
+    border-left-color: var(--accent-2);
+    transform: translateX(4px);
+  }
+
+  .event-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .timestamp {
+    color: var(--accent-2);
+    font-size: 13px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .agent {
+    padding: 4px 12px;
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    color: var(--accent);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .event-type {
+    padding: 4px 12px;
+    background: color-mix(in srgb, var(--accent-2) 20%, transparent);
+    color: var(--accent-2);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .event-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .message {
+    color: var(--text);
+    font-size: 12px;
+    margin: 0;
+  }
+
+  .file, .lines, .duration {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0;
+  }
+
+  .file {
+    font-family: 'Courier New', monospace;
+  }
+
+  @media (max-width: 768px) {
+    .event-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

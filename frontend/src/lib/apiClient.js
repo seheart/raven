@@ -1,24 +1,48 @@
 import { notifications } from './notificationService.js';
+import { authService } from './authStore.js';
 
 const API_BASE = 'http://localhost:3030/api';
 
 /**
- * Enhanced fetch wrapper with automatic error notifications
+ * Enhanced fetch wrapper with automatic error notifications and JWT authentication
  */
 export async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
 
+  // Add JWT token to headers if available
+  const token = authService.getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   try {
     const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
+      headers,
       ...options
     });
 
     // Handle HTTP errors
     if (!response.ok) {
+      // Handle 401 Unauthorized - trigger logout
+      if (response.status === 401) {
+        const errorText = await response.text().catch(() => 'Unauthorized');
+
+        // Only logout if we actually had a token (ignore if auth is disabled)
+        if (token) {
+          notifications.error('Session expired. Please login again.');
+          authService.logout();
+          // Trigger page reload to show login
+          window.location.reload();
+        }
+
+        throw new Error('Unauthorized');
+      }
+
       const errorText = await response.text().catch(() => 'Unknown error');
       const errorMessage = `API error (${response.status}): ${errorText}`;
 

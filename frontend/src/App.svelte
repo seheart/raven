@@ -8,6 +8,8 @@
   import LoadingSkeleton from './lib/LoadingSkeleton.svelte';
   import ConfirmDialog from './lib/ConfirmDialog.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
+  import LoginPage from './lib/LoginPage.svelte';
+  import UserMenu from './lib/UserMenu.svelte';
 
   // Existing components for consolidated views
   import Dashboard from './lib/Dashboard.svelte';
@@ -38,8 +40,12 @@
   import { setupNotificationListeners } from './lib/notificationListener.js';
   import { websocketService } from './lib/websocket.js';
   import { checkServerHealth } from './lib/apiClient.js';
+  import { authService, isAuthenticated } from './lib/authStore.js';
 
   const API_BASE = 'http://localhost:3030/api';
+
+  // Check if authentication is disabled on backend
+  const AUTH_DISABLED = false; // Will be detected from backend
 
   // Main navigation tabs
   const tabs = [
@@ -57,6 +63,7 @@
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
   let showHelp = false;
   let showWelcome = false;
+  let authCheckComplete = false;
 
   const startTime = Date.now();
   let uptimeInterval;
@@ -103,7 +110,39 @@
     notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
-  onMount(() => {
+  let authDisabledOnBackend = false;
+
+  onMount(async () => {
+    // Check if backend has authentication disabled by trying an API call
+    try {
+      const response = await fetch(`${API_BASE}/session-id`);
+      if (response.ok) {
+        authDisabledOnBackend = true;
+      }
+    } catch (error) {
+      console.error('Failed to check auth status:', error);
+    }
+
+    // If auth is disabled on backend, skip login
+    if (authDisabledOnBackend) {
+      authCheckComplete = true;
+      // Continue to app initialization
+    } else {
+      // Auth is enabled - check token
+      if (authService.isAuthenticated()) {
+        const valid = await authService.verifyToken();
+        if (!valid) {
+          authCheckComplete = true;
+          return;
+        }
+      } else {
+        // No token, need to login
+        authCheckComplete = true;
+        return;
+      }
+      authCheckComplete = true;
+    }
+
     loadSessionId();
 
     // Start uptime tracking
@@ -160,6 +199,12 @@
     }
   });
 
+  function handleLoginSuccess() {
+    authCheckComplete = true;
+    // Reload the page to initialize app with authentication
+    window.location.reload();
+  }
+
   onDestroy(() => {
     keyboard.clear();
     if (uptimeInterval) clearInterval(uptimeInterval);
@@ -169,6 +214,18 @@
 </script>
 
 <ErrorBoundary>
+
+<!-- Show login page if not authenticated AND auth not disabled -->
+{#if authCheckComplete && !$isAuthenticated && !authDisabledOnBackend}
+  <LoginPage onLoginSuccess={handleLoginSuccess} />
+{:else if !authCheckComplete}
+  <!-- Loading auth check -->
+  <div class="auth-loading">
+    <div class="spinner"></div>
+    <p>Checking authentication...</p>
+  </div>
+{:else}
+<!-- Main app (only shown when authenticated) -->
 <main>
   <header role="banner">
     <div class="header-content">
@@ -194,6 +251,7 @@
       </nav>
 
       <div class="header-right">
+        <UserMenu />
         <button
           class="help-button"
           on:click={() => showHelp = !showHelp}
@@ -383,6 +441,9 @@
   onChangelogClick={() => activeTab = 'changelog'}
   onDocsClick={() => activeTab = 'docs'}
 />
+{/if}
+<!-- End authenticated app section -->
+
 </ErrorBoundary>
 
 <style>
@@ -604,6 +665,38 @@
   /* Smooth transitions for alive feeling */
   * {
     transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .auth-loading {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    gap: 16px;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .auth-loading p {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
   }
 
   @media (max-width: 768px) {

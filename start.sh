@@ -5,6 +5,20 @@
 
 set -e
 
+# ============================================================
+# AUTHENTICATION CONFIGURATION
+# ============================================================
+# By default, authentication is DISABLED for local development.
+# To enable JWT authentication:
+#   1. Comment out the line below (add # at start)
+#   2. Restart Raven with ./restart.sh
+#   3. Login with: admin / admin123
+#
+export DISABLE_AUTH=true
+#
+# When enabled, you'll see a login page at http://localhost:5173
+# ============================================================
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
