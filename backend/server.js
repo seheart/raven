@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import Database from 'better-sqlite3';
 import { RavenDB } from './db.js';
 import DeveloperDB from './developer-db.js';
 import { MetricsCollector } from './metrics-collector.js';
@@ -21,6 +22,22 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as si from 'systeminformation';
 import { gzip, gunzip } from 'zlib';
+
+// Security imports
+import { authenticate, authenticateSocket } from './middleware/auth.js';
+import { validate, validateFilePath } from './middleware/validation.js';
+import {
+  setupHelmet,
+  apiLimiter,
+  authLimiter,
+  telemetryLimiter,
+  writeLimiter,
+  requestLogger,
+  errorHandler,
+  notFoundHandler
+} from './middleware/security.js';
+import { AuthService } from './services/auth-service.js';
+import { createAuthRoutes } from './routes/auth.js';
 
 const execAsync = promisify(exec);
 const gzipAsync = promisify(gzip);
@@ -43,58 +60,27 @@ const io = new Server(httpServer, {
   transports: ['websocket', 'polling']
 });
 
-// Middleware
+// ==================== Security Middleware ====================
+
+// Apply security headers (Helmet)
+app.use(setupHelmet());
+
+// Request logging
+app.use(requestLogger);
+
+// CORS
 app.use(cors());
-// Configuration: JSON payload limit (configurable via environment)
-const JSON_LIMIT = process.env.JSON_PAYLOAD_LIMIT || '50mb';
+
+// JSON payload parsing with size limit
+const JSON_LIMIT = process.env.JSON_PAYLOAD_LIMIT || '10mb';
 app.use(express.json({ limit: JSON_LIMIT }));
+app.use(express.urlencoded({ limit: JSON_LIMIT, extended: true }));
 
-// Simple rate limiting middleware (per-IP tracking)
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX) || 100;
+// Apply general API rate limiting
+app.use('/api', apiLimiter);
 
-function rateLimiter(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress;
-  const now = Date.now();
-
-  if (!rateLimitMap.has(ip)) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return next();
-  }
-
-  const record = rateLimitMap.get(ip);
-
-  if (now > record.resetTime) {
-    // Window expired, reset
-    record.count = 1;
-    record.resetTime = now + RATE_LIMIT_WINDOW_MS;
-    return next();
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return res.status(429).json({
-      error: 'Too many requests',
-      retryAfter: Math.ceil((record.resetTime - now) / 1000)
-    });
-  }
-
-  record.count++;
-  next();
-}
-
-// Apply rate limiting to telemetry endpoint
-app.use('/telemetry', rateLimiter);
-
-// Cleanup rate limit map periodically (every 5 minutes)
-const rateLimitCleanupInterval = setInterval(() => {
-  const now = Date.now();
-  for (const [ip, record] of rateLimitMap.entries()) {
-    if (now > record.resetTime) {
-      rateLimitMap.delete(ip);
-    }
-  }
-}, 5 * 60 * 1000);
+// Apply authentication to all API routes (unless DISABLE_AUTH=true)
+app.use('/api', authenticate);
 
 // Performance tracking
 const performanceStats = {
@@ -226,6 +212,12 @@ const projectStateMutex = new AsyncMutex();
 const DEVELOPER_DB_PATH = join(RAVEN_DIR, 'db', 'developer.db');
 const developerDB = new DeveloperDB(DEVELOPER_DB_PATH);
 console.log(`✅ Developer persona database ready at ${DEVELOPER_DB_PATH}`);
+
+// Initialize Authentication Service (global user management)
+const AUTH_DB_PATH = join(RAVEN_DIR, 'db', 'auth.db');
+const authDB = new Database(AUTH_DB_PATH);
+const authService = new AuthService(authDB);
+console.log(`✅ Authentication service initialized at ${AUTH_DB_PATH}`);
 
 // Multi-project state: Maps for managing all projects simultaneously
 const projectWatchers = new Map();      // projectName -> chokidar watcher
@@ -1103,8 +1095,14 @@ app.post('/telemetry', (req, res) => {
   }
 });
 
+// ==================== Authentication Routes ====================
+
+// Mount authentication routes (no auth required for login)
+app.use('/auth', createAuthRoutes(authService));
+
 // ==================== Dashboard API ====================
 
+// Session ID endpoint (no auth required for backwards compatibility)
 app.get('/api/session-id', (req, res) => {
   res.json({ session_id: SESSION_ID });
 });
@@ -3455,8 +3453,11 @@ app.get('/api/sync/rsync-status', async (req, res) => {
 
 // ==================== WebSocket Connections ====================
 
+// Apply WebSocket authentication middleware
+io.use(authenticateSocket);
+
 io.on('connection', socket => {
-  console.log('🔌 WebSocket client connected:', socket.id);
+  console.log(`🔌 WebSocket client connected: ${socket.id} (user: ${socket.user?.username || 'system'})`);
 
   socket.on('disconnect', () => {
     console.log('🔌 WebSocket client disconnected:', socket.id);
@@ -3465,6 +3466,17 @@ io.on('connection', socket => {
 
 // Export io for use in other modules
 export { io };
+
+// ==================== Error Handlers ====================
+// Must be last, after all routes
+
+// 404 handler
+app.use(notFoundHandler);
+
+// Global error handler
+app.use(errorHandler);
+
+// ==================== Server Start ====================
 
 // Start server
 httpServer.listen(PORT, () => {

@@ -79,7 +79,7 @@ export class GitMonitor {
                 const event = {
                     branch: status.current || 'unknown',
                     modified: status.modified,
-                    created: [...status.created, ...status.not_added],
+                    created: status.created,
                     deleted: status.deleted,
                     ahead: status.ahead,
                     behind: status.behind,
@@ -187,7 +187,6 @@ export class GitMonitor {
             this.lastStatus.modified.length !== newStatus.modified.length ||
             this.lastStatus.created.length !== newStatus.created.length ||
             this.lastStatus.deleted.length !== newStatus.deleted.length ||
-            this.lastStatus.not_added?.length !== newStatus.not_added?.length ||
             this.lastStatus.ahead !== newStatus.ahead ||
             this.lastStatus.behind !== newStatus.behind);
     }
