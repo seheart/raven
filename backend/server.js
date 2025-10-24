@@ -1306,10 +1306,12 @@ app.get('/api/top-modified-files', (req, res) => {
     for (const [projectName, db] of projectDatabases.entries()) {
       const projectFiles = db.getTopModifiedFiles(SESSION_ID, limit);
       // Add project name to each file
-      projectFiles.files.forEach(file => {
-        file.project = projectName;
-      });
-      allFiles.push(...projectFiles.files);
+      if (projectFiles && Array.isArray(projectFiles)) {
+        projectFiles.forEach(file => {
+          file.project = projectName;
+        });
+        allFiles.push(...projectFiles);
+      }
     }
 
     // Sort by change count (descending) and take top N
@@ -2042,7 +2044,7 @@ app.get('/health', async (req, res) => {
 
     try {
       // Try to query database to verify it's accessible
-      const testQuery = ravenDB.db.prepare('SELECT COUNT(*) as count FROM sqlite_master').get();
+      const testQuery = projectState.db.db.prepare('SELECT COUNT(*) as count FROM sqlite_master').get();
       databaseHealth.accessible = true;
       databaseHealth.status = 'healthy';
     } catch (err) {

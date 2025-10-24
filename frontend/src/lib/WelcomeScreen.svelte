@@ -152,6 +152,7 @@
     color: var(--text);
     margin: 16px 0 8px 0;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2, var(--accent)) 100%);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }

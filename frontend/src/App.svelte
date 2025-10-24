@@ -3,7 +3,6 @@
   import { get } from 'svelte/store';
   // New consolidated components
   import ErrorBoundary from './lib/ErrorBoundary.svelte';
-  import TabNavigation from './lib/TabNavigation.svelte';
   import OverviewPanel from './lib/OverviewPanel.svelte';
   import ToastContainer from './lib/ToastContainer.svelte';
   import LoadingSkeleton from './lib/LoadingSkeleton.svelte';
@@ -41,6 +40,15 @@
   import { checkServerHealth } from './lib/apiClient.js';
 
   const API_BASE = 'http://localhost:3030/api';
+
+  // Main navigation tabs
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: '📊', shortcut: '1' },
+    { id: 'agents', label: 'Agents', icon: '🤖', shortcut: '2' },
+    { id: 'activity', label: 'Activity', icon: '⚡️', shortcut: '3' },
+    { id: 'analysis', label: 'Analysis', icon: '📈', shortcut: '4' },
+    { id: 'system', label: 'System', icon: '⚙️', shortcut: '5' }
+  ];
 
   let sessionId = 'Loading...';
   let sessionUptime = '0s';
@@ -132,6 +140,11 @@
       showWelcome = false;
     });
 
+    // Register tab shortcuts (1-5)
+    tabs.forEach(tab => {
+      keyboard.register(tab.shortcut, () => handleTabChange(tab.id));
+    });
+
     // Show welcome screen for first-time users
     if (!localStorage.getItem('raven-welcome-seen')) {
       showWelcome = true;
@@ -160,26 +173,37 @@
   <header role="banner">
     <div class="header-content">
       <div class="header-left">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <RavenLogo size={32} />
-          <h1>Raven</h1>
-        </div>
+        <RavenLogo size={32} />
+        <h1>Raven</h1>
       </div>
+
+      <nav class="header-nav" role="navigation" aria-label="Main navigation">
+        {#each tabs as tab}
+          <button
+            class="nav-tab"
+            class:active={activeTab === tab.id}
+            on:click={() => handleTabChange(tab.id)}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+            aria-label="{tab.label} - Press {tab.shortcut} for shortcut"
+          >
+            <span class="tab-icon">{tab.icon}</span>
+            <span class="tab-label">{tab.label}</span>
+            <span class="tab-shortcut">{tab.shortcut}</span>
+          </button>
+        {/each}
+      </nav>
+
       <div class="header-right">
         <button
           class="help-button"
           on:click={() => showHelp = !showHelp}
           aria-label="Show keyboard shortcuts"
-          tabindex="0"
         >
           ?
         </button>
       </div>
     </div>
   </header>
-
-  <!-- New Tab Navigation -->
-  <TabNavigation {activeTab} onTabChange={handleTabChange} />
 
   <!-- Consolidated View Container -->
   <div class="view-container" role="main">
@@ -406,6 +430,7 @@
     font-weight: 600;
     margin: 0;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2, var(--accent)) 100%);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -435,11 +460,92 @@
     outline-offset: 2px;
   }
 
+  /* Inline Navigation Tabs */
+  .header-nav {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+    max-width: 600px;
+  }
+
+  .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    white-space: nowrap;
+  }
+
+  .nav-tab:hover {
+    background: var(--surface-2);
+    color: var(--text);
+    transform: translateY(-1px);
+  }
+
+  .nav-tab:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  .nav-tab.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .nav-tab.active:hover {
+    background: var(--accent-2, var(--accent));
+    transform: none;
+  }
+
+  .tab-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .tab-label {
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  .tab-shortcut {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 9px;
+    padding: 1px 3px;
+    background: var(--bg);
+    border-radius: 2px;
+    opacity: 0.4;
+    line-height: 1;
+  }
+
+  .nav-tab:hover .tab-shortcut {
+    opacity: 0.6;
+  }
+
+  .nav-tab.active .tab-shortcut {
+    background: rgba(255, 255, 255, 0.2);
+    opacity: 0.7;
+  }
+
   .view-container {
     padding: 0;
     max-width: 100%;
     margin: 0;
-    min-height: calc(100vh - 120px);
+    min-height: calc(100vh - 64px);
     padding-bottom: 60px; /* Space for fixed footer */
   }
 
@@ -502,15 +608,40 @@
 
   @media (max-width: 768px) {
     header {
-      padding: 8px 16px;
+      padding: 8px 12px;
     }
 
     h1 {
+      font-size: 14px;
+    }
+
+    .header-nav {
+      gap: 2px;
+      overflow-x: auto;
+      max-width: none;
+    }
+
+    .nav-tab {
+      padding: 6px 10px;
+      gap: 4px;
+    }
+
+    .tab-label {
+      display: none;
+    }
+
+    .tab-icon {
       font-size: 16px;
     }
 
-    .theme-switch {
+    .tab-shortcut {
       display: none;
+    }
+
+    .help-button {
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
     }
 
     .sub-navigation {

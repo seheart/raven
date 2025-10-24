@@ -1,4 +1,5 @@
 import { toasts } from './toastStore.js';
+import { settings as settingsStore } from './settingsStore.js';
 
 /**
  * Centralized notification service that respects user preferences
@@ -13,6 +14,11 @@ class NotificationService {
     // Rate limiting: track recent notifications to avoid duplicates
     this.recentNotifications = new Map(); // key -> timestamp
     this.rateLimitWindow = 5000; // 5 seconds
+
+    // Subscribe to settings changes for real-time updates
+    settingsStore.subscribe(newSettings => {
+      this.settings = newSettings;
+    });
   }
 
   // Load settings from localStorage
