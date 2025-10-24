@@ -263,18 +263,50 @@ export class RavenDB {
   }
 
   getRecentFileEvents(limit = 100, includeDiff = false) {
+    // Get events from file system watcher (events table)
     const fields = includeDiff
       ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff'
       : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem';
 
-    const stmt = this.db.prepare(`
+    const eventsStmt = this.db.prepare(`
       SELECT ${fields}
       FROM events
       ORDER BY timestamp DESC
       LIMIT ?
     `);
+    const fileEvents = eventsStmt.all(limit * 2); // Get more to ensure we have enough after merge
 
-    return stmt.all(limit);
+    // Get events from AI agents (agent_events table)
+    // Map agent_events fields to match events table structure
+    const agentEventsStmt = this.db.prepare(`
+      SELECT
+        id,
+        timestamp,
+        file as filepath,
+        event_type as change_type,
+        NULL as event_size,
+        NULL as file_hash,
+        NULL as cpu,
+        NULL as mem,
+        agent,
+        lines_changed,
+        duration_ms,
+        message
+      FROM agent_events
+      WHERE event_type IN ('create', 'edit', 'delete')
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    const agentEvents = agentEventsStmt.all(limit * 2);
+
+    // Merge both event sources
+    const allEvents = [...fileEvents, ...agentEvents];
+
+    // Sort by timestamp (newest first)
+    allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Return only the requested limit
+    return allEvents.slice(0, limit);
   }
 
   getEventsBySession(session_id) {
@@ -514,12 +546,12 @@ export class RavenDB {
     const agentsResult = session_id ? agentsStmt.get(session_id) : agentsStmt.get();
     const total_agents = agentsResult?.agent_count || 0;
 
-    // Calculate total duration (all-time)
+    // Calculate session duration (from first event to now)
     let session_duration_seconds = 0;
     if (events.length > 0) {
       const first = new Date(events[0].timestamp);
-      const last = new Date(events[events.length - 1].timestamp);
-      session_duration_seconds = Math.floor((last - first) / 1000);
+      const now = new Date();
+      session_duration_seconds = Math.floor((now - first) / 1000);
     }
 
     // Count active files today from both agent_events and file events
@@ -546,7 +578,7 @@ export class RavenDB {
       activeToday.add(row.filepath);
     }
 
-    // Get breakdown from file events table (filtered by session if provided)
+    // Get breakdown from both file events and agent_events tables (filtered by session if provided)
     const eventWhereClause = session_id ? 'WHERE session_id = ?' : '';
     const breakdownStmt = this.db.prepare(`
       SELECT
@@ -558,20 +590,60 @@ export class RavenDB {
     `);
     const breakdown = session_id ? breakdownStmt.all(session_id) : breakdownStmt.all();
 
-    // Build breakdown object
-    const creates = breakdown.find(b => b.change_type === 'add')?.count || 0;
-    const edits = breakdown.find(b => b.change_type === 'change')?.count || 0;
-    const deletes = breakdown.find(b => b.change_type === 'unlink')?.count || 0;
+    // Get breakdown from agent_events (map event types to match events table)
+    const agentBreakdownWhere = session_id
+      ? 'WHERE session_id = ? AND event_type IN (\'create\', \'edit\', \'delete\')'
+      : 'WHERE event_type IN (\'create\', \'edit\', \'delete\')';
+    const agentBreakdownStmt = this.db.prepare(`
+      SELECT
+        event_type,
+        COUNT(*) as count
+      FROM agent_events
+      ${agentBreakdownWhere}
+      GROUP BY event_type
+    `);
+    const agentBreakdown = session_id ? agentBreakdownStmt.all(session_id) : agentBreakdownStmt.all();
+
+    // Build breakdown object, combining both sources
+    let creates = breakdown.find(b => b.change_type === 'add')?.count || 0;
+    let edits = breakdown.find(b => b.change_type === 'change')?.count || 0;
+    let deletes = breakdown.find(b => b.change_type === 'unlink')?.count || 0;
+
+    // Add agent_events counts (mapping event types)
+    creates += agentBreakdown.find(b => b.event_type === 'create')?.count || 0;
+    edits += agentBreakdown.find(b => b.event_type === 'edit')?.count || 0;
+    deletes += agentBreakdown.find(b => b.event_type === 'delete')?.count || 0;
+
     const total_changes = creates + edits + deletes;
 
-    // Get count of unique files modified (from events table)
-    const uniqueFilesStmt = this.db.prepare(`
-      SELECT COUNT(DISTINCT filepath) as unique_count
+    // Get count of unique files modified (from both events and agent_events tables)
+    const uniqueFilesSet = new Set();
+
+    // Add unique files from events table
+    const eventsFilesWhere = session_id ? 'WHERE session_id = ? AND filepath IS NOT NULL' : 'WHERE filepath IS NOT NULL';
+    const eventsFilesStmt = this.db.prepare(`
+      SELECT DISTINCT filepath
       FROM events
-      ${eventWhereClause}
+      ${eventsFilesWhere}
     `);
-    const uniqueFilesResult = session_id ? uniqueFilesStmt.get(session_id) : uniqueFilesStmt.get();
-    const unique_files_modified = uniqueFilesResult?.unique_count || 0;
+    const eventsFiles = session_id ? eventsFilesStmt.all(session_id) : eventsFilesStmt.all();
+    for (const row of eventsFiles) {
+      uniqueFilesSet.add(row.filepath);
+    }
+
+    // Add unique files from agent_events table
+    const agentFilesWhere = session_id ? 'WHERE session_id = ? AND file IS NOT NULL' : 'WHERE file IS NOT NULL';
+    const agentFilesStmt = this.db.prepare(`
+      SELECT DISTINCT file as filepath
+      FROM agent_events
+      ${agentFilesWhere}
+    `);
+    const agentFiles = session_id ? agentFilesStmt.all(session_id) : agentFilesStmt.all();
+    for (const row of agentFiles) {
+      uniqueFilesSet.add(row.filepath);
+    }
+
+    const unique_files_modified = uniqueFilesSet.size;
 
     return {
       total_events: events.length,

@@ -9,6 +9,7 @@ import { TriggerEngine } from './trigger-engine.js';
 import { GitMonitor } from './dist/modules/git.js';
 import { randomUUID } from 'crypto';
 import * as SyncService from './sync-service.js';
+import { createDefaultHealthChecks } from './health-checks.js';
 import { join, relative, normalize } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
@@ -258,6 +259,9 @@ let metricsCollector;
 
 // Initialize trigger engine (io will be set later)
 let triggerEngine;
+
+// Health check system
+let healthCheckSystem;
 
 // In-memory agent registry
 const agentRegistry = new Map();
@@ -1072,6 +1076,17 @@ app.post('/telemetry', (req, res) => {
       metadata
     });
 
+    // Emit file-changed event for Live Activity Stream
+    if (file && event !== 'session-start' && event !== 'session-end') {
+      io.emit('file-changed', {
+        filepath: file,
+        change_type: event,
+        timestamp,
+        project: projectName,
+        agent
+      });
+    }
+
     // Emit updated agent stats
     io.emit('agent-stats', db.getAgentStats());
 
@@ -1199,6 +1214,34 @@ app.get('/api/health', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Health check error:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/health-checks
+ * Get startup health check results
+ */
+app.get('/api/health-checks', (req, res) => {
+  try {
+    if (!healthCheckSystem) {
+      return res.json({
+        status: 'pending',
+        message: 'Health checks have not run yet',
+        results: []
+      });
+    }
+
+    const results = healthCheckSystem.getResults();
+    res.json({
+      status: results.summary.allPassed ? 'healthy' : 'unhealthy',
+      ...results
+    });
+  } catch (error) {
+    console.error('❌ Health checks API error:', error);
     res.status(500).json({
       status: 'error',
       error: error.message
@@ -3134,6 +3177,18 @@ httpServer.listen(PORT, () => {
 
     // Start real-time metrics collection
     metricsCollector.start();
+
+    // Run startup health checks
+    healthCheckSystem = createDefaultHealthChecks(firstDb, io);
+    healthCheckSystem.runAllChecks().then(summary => {
+      if (!summary.allPassed) {
+        console.error(`\n⚠️  ${summary.failed} health check(s) failed - check notifications panel\n`);
+      } else {
+        console.log(`\n✅ All ${summary.total} health checks passed!\n`);
+      }
+    }).catch(error => {
+      console.error(`\n❌ Health check system error: ${error.message}\n`);
+    });
   } else {
     console.error('❌ No databases available - trigger engine and metrics collector not started');
   }

@@ -6,6 +6,7 @@
   import { notifications } from './notificationService.js';
   import ProjectsOverview from './ProjectsOverview.svelte';
   import PageInfo from './PageInfo.svelte';
+  import HealthStatus from './HealthStatus.svelte';
 
   export let sessionId = 'Loading...';
   export let sessionUptime = '0s';
@@ -177,6 +178,9 @@
 
   <!-- Multi-Project Overview -->
   <ProjectsOverview />
+
+  <!-- System Health Status -->
+  <HealthStatus />
 
   <!-- Main Stats Grid -->
   <div class="stats-grid">
