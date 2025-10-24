@@ -10,10 +10,12 @@
   let backendStatus = {
     connected: false,
     status: 'unknown',
+    version: 'unknown',
     session_id: '',
     uptime: 0,
     active_agents: 0,
-    database: ''
+    database: '',
+    database_health: { status: 'unknown', accessible: false }
   };
 
   let websocketStatus = {
@@ -43,10 +45,12 @@
       backendStatus = {
         connected: true,
         status: data.status,
+        version: data.version || 'unknown',
         session_id: data.session_id,
         uptime: data.uptime,
         active_agents: data.active_agents,
-        database: data.database
+        database: data.database,
+        database_health: data.database_health || { status: 'unknown', accessible: false }
       };
     } catch (error) {
       console.error('Backend health check failed:', error);
@@ -106,7 +110,6 @@
 
   // WebSocket event handler for project switches
   const handleProjectSwitched = async (data) => {
-    console.log('📡 Project switched, reloading status panel:', data.project);
     await checkBackendHealth();
     await checkGitStatus();
   };
@@ -131,13 +134,13 @@
     // Listen for project switch events
     websocketService.on('project-switched', handleProjectSwitched);
 
-    // Refresh every 5 seconds (1s is too frequent for git)
+    // Refresh every 20 seconds (reduced from 5s to lower load)
     refreshInterval = setInterval(() => {
       if (!isMounted) return;
       checkBackendHealth();
       checkGitStatus();
       checkWebSocket();
-    }, 5000);
+    }, 20000);
   });
 
   onDestroy(() => {
@@ -200,8 +203,22 @@
             <span class="value success">{backendStatus.status}</span>
           </div>
           <div class="info-row">
+            <span class="label">Version:</span>
+            <span class="value mono">v{backendStatus.version}</span>
+          </div>
+          <div class="info-row">
             <span class="label">Uptime:</span>
             <span class="value">{formatUptime(backendStatus.uptime)}</span>
+          </div>
+          <div class="uptime-visualization">
+            <div class="uptime-bar">
+              <div
+                class="uptime-fill"
+                style="width: {Math.min((backendStatus.uptime / 86400) * 100, 100)}%"
+                title="{((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24 hours"
+              ></div>
+            </div>
+            <span class="uptime-label">{((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24h</span>
           </div>
           <div class="info-row">
             <span class="label">Session ID:</span>
@@ -214,6 +231,17 @@
           <div class="info-row">
             <span class="label">Database:</span>
             <span class="value mono small">{backendStatus?.database?.split('/')?.slice(-3)?.join('/') || 'N/A'}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">DB Health:</span>
+            <span class="value" class:success={backendStatus.database_health.status === 'healthy'} class:error={backendStatus.database_health.status === 'error'}>
+              {backendStatus.database_health.status === 'healthy' ? '✓ Healthy' : '✗ Error'}
+              {#if !backendStatus.database_health.accessible}
+                <span class="db-error-hint" title="{backendStatus.database_health.lastError}">
+                  (Inaccessible)
+                </span>
+              {/if}
+            </span>
           </div>
         {:else}
           <div class="error-message">
@@ -799,5 +827,51 @@
       grid-template-columns: 1fr;
       gap: 8px;
     }
+  }
+
+  /* Uptime Visualization */
+  .uptime-visualization {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .uptime-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .uptime-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success) 0%, var(--accent) 100%);
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+
+  .uptime-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  /* Database Health */
+  .db-error-hint {
+    font-size: 10px;
+    color: var(--error);
+    margin-left: 4px;
+  }
+
+  .value.error {
+    color: var(--error);
+  }
+
+  .value.success {
+    color: var(--success);
   }
 </style>

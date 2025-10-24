@@ -1,25 +1,72 @@
-// Runtime configuration
-// Environment variables from Vite (import.meta.env) or fallback to defaults
+/**
+ * Raven Frontend Configuration
+ * Centralized configuration for the Raven frontend application
+ */
 
-export const config = {
-  // API Base URL - configurable via VITE_API_BASE_URL environment variable
-  API_BASE: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3030/api',
+// API Configuration
+export const API_CONFIG = {
+  BASE_URL: 'http://localhost:3030',
+  get ENDPOINTS() {
+    return {
+      // Health & Status
+      HEALTH: `${this.BASE_URL}/health`,
+      SESSION_ID: `${this.BASE_URL}/api/session-id`,
 
-  // WebSocket URL - configurable via VITE_WS_URL environment variable
-  WS_URL: import.meta.env.VITE_WS_URL || 'http://localhost:3030',
+      // Storage
+      STORAGE: `${this.BASE_URL}/api/storage`,
+      STORAGE_EXPORT: (dbName) => `${this.BASE_URL}/api/storage/export/${dbName}`,
+      STORAGE_VACUUM: (dbName) => `${this.BASE_URL}/api/storage/vacuum/${dbName}`,
+      STORAGE_CLEAN: (dbName) => `${this.BASE_URL}/api/storage/clean/${dbName}`,
+      STORAGE_RETENTION: `${this.BASE_URL}/api/storage/retention`,
 
-  // Refresh intervals (milliseconds)
-  DASHBOARD_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_DASHBOARD_REFRESH_MS) || 30000,
-  STORAGE_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_STORAGE_REFRESH_MS) || 30000,
+      // Server Sync
+      SYNC_CONFIG: `${this.BASE_URL}/api/sync/config`,
+      SYNC_TEST: `${this.BASE_URL}/api/sync/test`,
+      SYNC_TRIGGER: `${this.BASE_URL}/api/sync/trigger`,
+      SYNC_REMOTE_STATS: `${this.BASE_URL}/api/sync/remote-stats`,
 
-  // Pagination
-  DEFAULT_PAGE_SIZE: parseInt(import.meta.env.VITE_DEFAULT_PAGE_SIZE) || 50,
+      // Notifications
+      NOTIFICATIONS: `${this.BASE_URL}/api/notifications`,
+      NOTIFICATIONS_STATS: `${this.BASE_URL}/api/notifications/stats`,
+      NOTIFICATIONS_READ: (id) => `${this.BASE_URL}/api/notifications/${id}/read`,
+      NOTIFICATIONS_MARK_ALL_READ: `${this.BASE_URL}/api/notifications/mark-all-read`,
+      NOTIFICATIONS_DELETE: (id) => `${this.BASE_URL}/api/notifications/${id}`,
 
-  // Feature flags
-  ENABLE_DEBUG_MODE: import.meta.env.VITE_ENABLE_DEBUG === 'true',
+      // Endpoints
+      ENDPOINTS: `${this.BASE_URL}/api/endpoints`,
+
+      // Errors
+      ERRORS: `${this.BASE_URL}/api/errors`,
+
+      // Git
+      GIT_STATUS: `${this.BASE_URL}/api/git/status`,
+    }
+  }
 };
 
-// Log configuration on startup (only in development)
-if (import.meta.env.DEV) {
-  console.log('🔧 Raven Frontend Configuration:', config);
-}
+// WebSocket Configuration
+export const WEBSOCKET_URL = 'http://localhost:3030';
+
+// UI Configuration
+export const UI_CONFIG = {
+  DEFAULT_THEME: 'theme--night',
+  THEMES: {
+    DAY: 'theme--day',
+    DUSK: 'theme--dusk',
+    NIGHT: 'theme--night'
+  },
+  REFRESH_INTERVALS: {
+    DEFAULT: 30,  // seconds
+    MIN: 5,
+    MAX: 300
+  }
+};
+
+// Storage Keys
+export const STORAGE_KEYS = {
+  SETTINGS: 'raven-settings',
+  THEME: 'raven-theme',
+  ACTIVE_TAB: 'raven-active-tab',
+  WELCOME_SEEN: 'raven-welcome-seen',
+  VISITED: 'raven-visited'
+};

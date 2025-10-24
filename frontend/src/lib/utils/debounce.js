@@ -1,3 +1,5 @@
+import { writable } from 'svelte/store';
+
 /**
  * Debounce utility for Raven
  * Delays function execution until after a specified wait time has passed
@@ -130,6 +132,3 @@ export function debounceInput(node, params = {}) {
     }
   };
 }
-
-// Add missing import for Svelte stores
-import { writable } from 'svelte/store';

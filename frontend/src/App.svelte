@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   // New consolidated components
+  import ErrorBoundary from './lib/ErrorBoundary.svelte';
   import TabNavigation from './lib/TabNavigation.svelte';
   import OverviewPanel from './lib/OverviewPanel.svelte';
   import ToastContainer from './lib/ToastContainer.svelte';
@@ -121,7 +122,6 @@
 
     // Check health on WebSocket reconnect
     websocketService.onReconnect(() => {
-      console.log('🏥 Running health check after reconnect...');
       checkServerHealth();
     });
 
@@ -155,6 +155,7 @@
   });
 </script>
 
+<ErrorBoundary>
 <main>
   <header role="banner">
     <div class="header-content">
@@ -358,6 +359,7 @@
   onChangelogClick={() => activeTab = 'changelog'}
   onDocsClick={() => activeTab = 'docs'}
 />
+</ErrorBoundary>
 
 <style>
   main {

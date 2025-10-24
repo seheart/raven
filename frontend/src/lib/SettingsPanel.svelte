@@ -1,96 +1,44 @@
 <script>
   import { onMount } from 'svelte';
   import { notifications } from './notificationService.js';
+  import { settings as settingsStore } from './settingsStore.js';
   import PageInfo from './PageInfo.svelte';
 
-  // Default settings
-  let settings = {
-    notifications: {
-      enabled: true,
-      showToasts: true,
-      soundEnabled: false,
-      desktopNotifications: false,
-      types: {
-        errors: true,
-        warnings: true,
-        triggers: true,
-        performance: false,
-        info: true
-      }
-    },
-    ui: {
-      theme: 'theme--night',
-      compactMode: false,
-      animationsEnabled: true,
-      autoRefresh: true,
-      refreshInterval: 10
-    },
-    performance: {
-      enableMetrics: true,
-      metricsInterval: 10,
-      enableFileWatcher: true,
-      maxEventsDisplay: 100
-    }
-  };
+  // Use reactive settings store
+  let settings = {};
+  const unsubscribe = settingsStore.subscribe(value => {
+    settings = value;
+  });
 
-  let unsavedChanges = false;
+  // Clean up subscription on destroy
+  import { onDestroy } from 'svelte';
+  onDestroy(() => {
+    if (unsubscribe) unsubscribe();
+  });
 
-  // Load settings from localStorage
-  function loadSettings() {
-    const saved = localStorage.getItem('raven-settings');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        settings = { ...settings, ...parsed };
-      } catch (e) {
-        console.error('Failed to parse saved settings:', e);
-      }
-    }
-  }
-
-  // Save settings to localStorage
-  async function saveSettings() {
-    try {
-      localStorage.setItem('raven-settings', JSON.stringify(settings));
-
-      // Apply theme change immediately
-      if (settings.ui.theme) {
-        document.body.className = settings.ui.theme;
-        localStorage.setItem('raven-theme', settings.ui.theme);
-      }
-
-      unsavedChanges = false;
-      notifications.success('Settings saved successfully', {
-        title: 'Settings Updated'
-      });
-    } catch (e) {
-      console.error('Failed to save settings:', e);
-      notifications.error('Failed to save settings', {
-        title: 'Save Error'
-      });
-    }
+  // Settings are auto-saved via the store, no need for manual save
+  function saveSettings() {
+    // Settings are already saved automatically via the store
+    // This just shows a confirmation message
+    notifications.success('Settings saved successfully', {
+      title: 'Settings Updated'
+    });
   }
 
   // Reset to defaults
   function resetToDefaults() {
     if (confirm('Are you sure you want to reset all settings to defaults?')) {
-      localStorage.removeItem('raven-settings');
-      loadSettings();
-      unsavedChanges = false;
+      settingsStore.reset();
       notifications.info('Settings reset to defaults', {
         title: 'Settings Reset'
       });
     }
   }
 
-  // Mark as changed when any setting is modified
-  function markChanged() {
-    unsavedChanges = true;
-  }
-
   // Export settings as JSON
   function exportSettings() {
-    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+    const jsonContent = settingsStore.export();
+    const blob = new Blob([jsonContent], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -110,12 +58,14 @@
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const imported = JSON.parse(e.target.result);
-        settings = { ...settings, ...imported };
-        unsavedChanges = true;
-        notifications.success('Settings imported - click Save to apply', {
-          title: 'Import Successful'
-        });
+        const success = settingsStore.import(e.target.result);
+        if (success) {
+          notifications.success('Settings imported and applied', {
+            title: 'Import Successful'
+          });
+        } else {
+          throw new Error('Invalid settings format');
+        }
       } catch (err) {
         notifications.error('Failed to import settings: Invalid file', {
           title: 'Import Error'
@@ -125,9 +75,96 @@
     reader.readAsText(file);
   }
 
+  // ===== COMPACT MODE =====
+  // Apply/remove compact mode class on body element
+  $: {
+    if (typeof document !== 'undefined') {
+      if (settings.ui?.compactMode) {
+        document.body.classList.add('compact-mode');
+      } else {
+        document.body.classList.remove('compact-mode');
+      }
+    }
+  }
+
+  // ===== DESKTOP NOTIFICATION PERMISSIONS =====
+  let notificationPermission = 'default';
+
+  function updateNotificationPermission() {
+    if (typeof Notification !== 'undefined') {
+      notificationPermission = Notification.permission;
+    }
+  }
+
   onMount(() => {
-    loadSettings();
+    updateNotificationPermission();
   });
+
+  async function requestNotificationPermission() {
+    if (typeof Notification === 'undefined') {
+      notifications.error('Desktop notifications are not supported in this browser', {
+        title: 'Not Supported'
+      });
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      notifications.info('Desktop notifications are already enabled', {
+        title: 'Already Enabled'
+      });
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      notifications.warning('Desktop notifications were previously denied. Please enable them in your browser settings.', {
+        title: 'Permission Denied'
+      });
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      updateNotificationPermission();
+
+      if (permission === 'granted') {
+        notifications.success('Desktop notifications enabled successfully!', {
+          title: 'Permission Granted'
+        });
+        // Show a test notification
+        new Notification('Raven Notifications Enabled', {
+          body: 'You will now receive desktop notifications from Raven',
+          icon: '/favicon.ico'
+        });
+      } else {
+        notifications.warning('Desktop notification permission was not granted', {
+          title: 'Permission Denied'
+        });
+      }
+    } catch (err) {
+      console.error('Error requesting notification permission:', err);
+      notifications.error('Failed to request notification permission', {
+        title: 'Error'
+      });
+    }
+  }
+
+  function getPermissionStatusText() {
+    switch (notificationPermission) {
+      case 'granted': return '✓ Granted';
+      case 'denied': return '✗ Denied';
+      case 'default': return '? Not requested';
+      default: return 'Unknown';
+    }
+  }
+
+  function getPermissionStatusClass() {
+    switch (notificationPermission) {
+      case 'granted': return 'permission-granted';
+      case 'denied': return 'permission-denied';
+      case 'default': return 'permission-default';
+      default: return '';
+    }
+  }
 </script>
 
 <div class="settings-panel">
@@ -156,10 +193,8 @@
 
   <div class="settings-header">
     <h2>⚙️ User Settings</h2>
+    <p class="auto-save-note">⚡ Settings save automatically</p>
     <div class="header-actions">
-      {#if unsavedChanges}
-        <span class="unsaved-indicator">● Unsaved changes</span>
-      {/if}
       <button class="btn-secondary" on:click={exportSettings}>
         📤 Export
       </button>
@@ -169,9 +204,6 @@
       </label>
       <button class="btn-secondary" on:click={resetToDefaults}>
         🔄 Reset
-      </button>
-      <button class="btn-primary" on:click={saveSettings} disabled={!unsavedChanges}>
-        💾 Save Settings
       </button>
     </div>
   </div>
@@ -186,7 +218,6 @@
           <input
             type="checkbox"
             bind:checked={settings.notifications.enabled}
-            on:change={markChanged}
           />
           Enable notifications
         </label>
@@ -198,7 +229,6 @@
           <input
             type="checkbox"
             bind:checked={settings.notifications.showToasts}
-            on:change={markChanged}
             disabled={!settings.notifications.enabled}
           />
           Show toast notifications
@@ -211,7 +241,6 @@
           <input
             type="checkbox"
             bind:checked={settings.notifications.soundEnabled}
-            on:change={markChanged}
             disabled={!settings.notifications.enabled}
           />
           Enable notification sounds
@@ -219,17 +248,29 @@
         <span class="setting-description">Play sound for important notifications</span>
       </div>
 
-      <div class="setting-row" class:disabled={!settings.notifications.enabled}>
+      <div class="setting-row desktop-notif-row" class:disabled={!settings.notifications.enabled}>
         <label>
           <input
             type="checkbox"
             bind:checked={settings.notifications.desktopNotifications}
-            on:change={markChanged}
             disabled={!settings.notifications.enabled}
           />
           Enable desktop notifications
         </label>
-        <span class="setting-description">Show browser notifications (requires permission)</span>
+        <div class="permission-controls">
+          <span class="permission-status {getPermissionStatusClass()}">
+            {getPermissionStatusText()}
+          </span>
+          {#if notificationPermission !== 'granted'}
+            <button
+              class="btn-permission"
+              on:click={requestNotificationPermission}
+              disabled={!settings.notifications.enabled}
+            >
+              Request Permission
+            </button>
+          {/if}
+        </div>
       </div>
 
       <div class="subsection">
@@ -240,8 +281,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.errors}
-              on:change={markChanged}
-              disabled={!settings.notifications.enabled}
+                disabled={!settings.notifications.enabled}
             />
             Errors
           </label>
@@ -253,8 +293,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.warnings}
-              on:change={markChanged}
-              disabled={!settings.notifications.enabled}
+                disabled={!settings.notifications.enabled}
             />
             Warnings
           </label>
@@ -266,8 +305,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.triggers}
-              on:change={markChanged}
-              disabled={!settings.notifications.enabled}
+                disabled={!settings.notifications.enabled}
             />
             Triggers
           </label>
@@ -279,8 +317,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.performance}
-              on:change={markChanged}
-              disabled={!settings.notifications.enabled}
+                disabled={!settings.notifications.enabled}
             />
             Performance
           </label>
@@ -292,8 +329,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.info}
-              on:change={markChanged}
-              disabled={!settings.notifications.enabled}
+                disabled={!settings.notifications.enabled}
             />
             Info
           </label>
@@ -311,7 +347,6 @@
         <select
           id="theme-select"
           bind:value={settings.ui.theme}
-          on:change={markChanged}
         >
           <option value="theme--day">Day (Gruvbox)</option>
           <option value="theme--dusk">Dusk (Ristretto)</option>
@@ -325,7 +360,6 @@
           <input
             type="checkbox"
             bind:checked={settings.ui.compactMode}
-            on:change={markChanged}
           />
           Compact mode
         </label>
@@ -337,7 +371,6 @@
           <input
             type="checkbox"
             bind:checked={settings.ui.animationsEnabled}
-            on:change={markChanged}
           />
           Enable animations
         </label>
@@ -349,7 +382,6 @@
           <input
             type="checkbox"
             bind:checked={settings.ui.autoRefresh}
-            on:change={markChanged}
           />
           Auto-refresh data
         </label>
@@ -364,7 +396,6 @@
           min="5"
           max="60"
           bind:value={settings.ui.refreshInterval}
-          on:change={markChanged}
           disabled={!settings.ui.autoRefresh}
         />
         <span class="setting-description">How often to refresh data</span>
@@ -380,7 +411,6 @@
           <input
             type="checkbox"
             bind:checked={settings.performance.enableMetrics}
-            on:change={markChanged}
           />
           Enable metrics collection
         </label>
@@ -395,7 +425,6 @@
           min="5"
           max="60"
           bind:value={settings.performance.metricsInterval}
-          on:change={markChanged}
           disabled={!settings.performance.enableMetrics}
         />
         <span class="setting-description">How often to collect metrics</span>
@@ -406,7 +435,6 @@
           <input
             type="checkbox"
             bind:checked={settings.performance.enableFileWatcher}
-            on:change={markChanged}
           />
           Enable file watcher
         </label>
@@ -422,7 +450,6 @@
           max="1000"
           step="50"
           bind:value={settings.performance.maxEventsDisplay}
-          on:change={markChanged}
         />
         <span class="setting-description">Maximum number of events to show in lists</span>
       </div>
@@ -623,5 +650,170 @@
 
   .settings-content::-webkit-scrollbar-thumb:hover {
     background: var(--muted);
+  }
+
+  /* Desktop Notification Permission Controls */
+  .desktop-notif-row {
+    grid-template-rows: auto auto;
+  }
+
+  .permission-controls {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .permission-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+
+  .permission-granted {
+    color: var(--success);
+    background: rgba(152, 195, 121, 0.1);
+    border-color: var(--success);
+  }
+
+  .permission-denied {
+    color: var(--error);
+    background: rgba(224, 108, 117, 0.1);
+    border-color: var(--error);
+  }
+
+  .permission-default {
+    color: var(--warning);
+    background: rgba(229, 192, 123, 0.1);
+    border-color: var(--warning);
+  }
+
+  .btn-permission {
+    padding: 6px 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-permission:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-permission:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .auto-save-note {
+    color: var(--success);
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* ===== GLOBAL COMPACT MODE STYLES ===== */
+  /* Applied to <body> when compact mode is enabled */
+  /* These styles affect the entire app, not just Settings */
+
+  :global(body.compact-mode) {
+    /* Reduce all font sizes by ~15% */
+    --font-size-base: 13px;
+    --font-size-sm: 11px;
+    --font-size-xs: 10px;
+  }
+
+  :global(body.compact-mode .settings-panel),
+  :global(body.compact-mode .status-panel),
+  :global(body.compact-mode .storage-panel),
+  :global(body.compact-mode .notifications-panel),
+  :global(body.compact-mode .error-log),
+  :global(body.compact-mode .api-health-monitor),
+  :global(body.compact-mode .server-sync-panel),
+  :global(body.compact-mode .activity-feed),
+  :global(body.compact-mode .analysis-panel),
+  :global(body.compact-mode .performance-panel) {
+    padding: 16px !important;
+  }
+
+  :global(body.compact-mode h1) {
+    font-size: 20px !important;
+  }
+
+  :global(body.compact-mode h2) {
+    font-size: 18px !important;
+  }
+
+  :global(body.compact-mode h3) {
+    font-size: 15px !important;
+  }
+
+  :global(body.compact-mode h4) {
+    font-size: 13px !important;
+  }
+
+  :global(body.compact-mode p),
+  :global(body.compact-mode span),
+  :global(body.compact-mode div),
+  :global(body.compact-mode label) {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  :global(body.compact-mode .setting-row),
+  :global(body.compact-mode .info-row),
+  :global(body.compact-mode .db-row),
+  :global(body.compact-mode .notification-item),
+  :global(body.compact-mode .error-item),
+  :global(body.compact-mode .event-item) {
+    padding: 8px 0 !important;
+  }
+
+  :global(body.compact-mode .settings-section),
+  :global(body.compact-mode .status-section),
+  :global(body.compact-mode .card) {
+    padding: 14px !important;
+    margin-bottom: 12px !important;
+  }
+
+  :global(body.compact-mode button) {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+
+  :global(body.compact-mode input[type="text"],
+  body.compact-mode input[type="number"],
+  body.compact-mode select,
+  body.compact-mode textarea) {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  :global(body.compact-mode .table-row),
+  :global(body.compact-mode .grid-row) {
+    min-height: 32px !important;
+  }
+
+  :global(body.compact-mode .chart),
+  :global(body.compact-mode .graph) {
+    height: 180px !important;
+  }
+
+  :global(body.compact-mode .sidebar) {
+    width: 200px !important;
+  }
+
+  :global(body.compact-mode .badge),
+  :global(body.compact-mode .tag) {
+    padding: 2px 6px !important;
+    font-size: 10px !important;
   }
 </style>

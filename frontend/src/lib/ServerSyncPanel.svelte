@@ -14,19 +14,23 @@
     path: '',
     syncDatabases: true,
     syncSnapshots: true,
-    syncConfig: false
+    syncConfig: false,
+    autoSync: false,
+    autoSyncInterval: 3600 // seconds (default: 1 hour)
   };
 
   // Status
   let connectionStatus = 'unknown'; // unknown, testing, success, failed
   let lastConnectionTest = null;
   let syncing = false;
+  let syncProgress = { stage: '', percent: 0, message: '' };
   let lastSync = null;
   let syncHistory = [];
   let loading = true;
   let saveStatus = null;
   let remoteStats = null;
   let loadingStats = false;
+  let autoSyncInterval = null;
 
   async function loadConfig() {
     try {
@@ -173,9 +177,12 @@
 
     try {
       syncing = true;
+      syncProgress = { stage: 'preparing', percent: 10, message: 'Preparing files...' };
       notifications.info('Starting sync...', {
         title: 'Server Sync'
       });
+
+      syncProgress = { stage: 'uploading', percent: 50, message: 'Uploading to server...' };
 
       const response = await fetch(`${API_BASE}/sync/trigger`, {
         method: 'POST',
@@ -185,7 +192,11 @@
 
       const result = await response.json();
 
+      syncProgress = { stage: 'finalizing', percent: 90, message: 'Finalizing...' };
+
       if (result.success) {
+        syncProgress = { stage: 'complete', percent: 100, message: 'Sync complete!' };
+
         lastSync = {
           timestamp: new Date().toISOString(),
           status: 'success',
@@ -202,18 +213,57 @@
         // Reload remote stats after successful sync
         await loadRemoteStats();
       } else {
+        syncProgress = { stage: 'error', percent: 0, message: 'Sync failed' };
         notifications.error(`Sync failed: ${result.error || 'Unknown error'}`, {
           title: 'Sync Failed'
         });
       }
 
       syncing = false;
+      setTimeout(() => {
+        syncProgress = { stage: '', percent: 0, message: '' };
+      }, 3000);
     } catch (error) {
       console.error('Sync failed:', error);
       syncing = false;
+      syncProgress = { stage: 'error', percent: 0, message: 'Sync failed' };
       notifications.error('Sync failed', {
         title: 'Sync Error'
       });
+      setTimeout(() => {
+        syncProgress = { stage: '', percent: 0, message: '' };
+      }, 3000);
+    }
+  }
+
+  // Auto-sync scheduler
+  function startAutoSync() {
+    if (autoSyncInterval) {
+      clearInterval(autoSyncInterval);
+    }
+
+    if (config.autoSync && config.autoSyncInterval > 0) {
+      autoSyncInterval = setInterval(() => {
+        if (connectionStatus === 'success' && !syncing) {
+          syncNow();
+        }
+      }, config.autoSyncInterval * 1000);
+    }
+  }
+
+  function stopAutoSync() {
+    if (autoSyncInterval) {
+      clearInterval(autoSyncInterval);
+      autoSyncInterval = null;
+    }
+  }
+
+  $: {
+    // Watch for changes to autoSync config
+    if (config.autoSync) {
+      startAutoSync();
+    } else {
+      stopAutoSync();
     }
   }
 
@@ -448,8 +498,61 @@
         {syncing ? '🔄 Syncing...' : '🚀 Sync Now'}
       </button>
 
+      {#if syncing && syncProgress.message}
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: {syncProgress.percent}%"></div>
+          </div>
+          <div class="progress-message">
+            {syncProgress.message} ({syncProgress.percent}%)
+          </div>
+        </div>
+      {/if}
+
       {#if connectionStatus !== 'success' && !syncing}
         <p class="sync-hint">💡 Test connection first before syncing</p>
+      {/if}
+    </section>
+
+    <!-- Auto-Sync Scheduler -->
+    <section class="sync-section">
+      <h3>⏰ Auto-Sync Scheduler</h3>
+
+      <div class="scheduler-controls">
+        <label class="checkbox-label">
+          <input type="checkbox" bind:checked={config.autoSync} on:change={saveConfig} />
+          <span>Enable automatic sync</span>
+          <small>Automatically sync at regular intervals</small>
+        </label>
+
+        {#if config.autoSync}
+          <div class="interval-selector">
+            <label for="sync-interval">Sync Interval:</label>
+            <select id="sync-interval" bind:value={config.autoSyncInterval} on:change={saveConfig}>
+              <option value={900}>Every 15 minutes</option>
+              <option value={1800}>Every 30 minutes</option>
+              <option value={3600}>Every hour (recommended)</option>
+              <option value={7200}>Every 2 hours</option>
+              <option value={14400}>Every 4 hours</option>
+              <option value={28800}>Every 8 hours</option>
+              <option value={86400}>Daily</option>
+            </select>
+            <small class="help-text">
+              {#if config.autoSyncInterval < 3600}
+                ⚠️ Frequent syncs may increase server load
+              {:else}
+                ✓ Good balance between freshness and performance
+              {/if}
+            </small>
+          </div>
+        {/if}
+      </div>
+
+      {#if config.autoSync}
+        <div class="auto-sync-status">
+          <span class="status-indicator active">●</span>
+          <span>Auto-sync active: Next sync in ~{Math.floor(config.autoSyncInterval / 60)} minutes</span>
+        </div>
       {/if}
     </section>
 
@@ -538,22 +641,23 @@
     <!-- Help Section -->
     <section class="help-section">
       <h3>📚 Documentation</h3>
+      <p class="help-intro">Learn more about server sync and backup strategies:</p>
       <div class="help-links">
-        <a href="#" class="help-link">
+        <a href="https://rsync.samba.org/" target="_blank" rel="noopener noreferrer" class="help-link">
           <span class="link-icon">📖</span>
-          <span class="link-text">Data Sovereignty Philosophy</span>
+          <span class="link-text">Rsync Documentation</span>
         </a>
-        <a href="#" class="help-link">
+        <a href="https://www.digitalocean.com/community/tutorials/how-to-use-rsync-to-sync-local-and-remote-directories" target="_blank" rel="noopener noreferrer" class="help-link">
           <span class="link-icon">🔧</span>
           <span class="link-text">Server Setup Guide</span>
         </a>
-        <a href="#" class="help-link">
+        <a href="https://www.ssh.com/academy/ssh/keygen" target="_blank" rel="noopener noreferrer" class="help-link">
           <span class="link-icon">🔐</span>
           <span class="link-text">SSH Key Configuration</span>
         </a>
-        <a href="#" class="help-link">
+        <a href="https://www.digitalocean.com/community/tutorials/ssh-essentials-working-with-ssh-servers-clients-and-keys" target="_blank" rel="noopener noreferrer" class="help-link">
           <span class="link-icon">❓</span>
-          <span class="link-text">Troubleshooting</span>
+          <span class="link-text">SSH Troubleshooting</span>
         </a>
       </div>
     </section>
@@ -1084,5 +1188,106 @@
       flex-direction: column;
       gap: 8px;
     }
+  }
+
+  /* Progress Bar */
+  .progress-container {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--surface);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2, var(--accent)));
+    transition: width 0.3s ease;
+  }
+
+  .progress-message {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+    text-align: center;
+  }
+
+  /* Scheduler Controls */
+  .scheduler-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .interval-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 28px;
+  }
+
+  .interval-selector label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .interval-selector select {
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .interval-selector select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .help-text {
+    font-size: 12px;
+    color: var(--muted);
+    display: block;
+  }
+
+  .auto-sync-status {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .status-indicator.active {
+    color: var(--success);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Help Section */
+  .help-intro {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 12px;
   }
 </style>

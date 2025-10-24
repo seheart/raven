@@ -1,6 +1,6 @@
 {
   "name": "raven-backend",
-  "version": "0.8.0",
+  "version": "0.10.0",
   "description": "Node.js backend for Raven AI monitoring",
   "main": "server.js",
   "type": "module",

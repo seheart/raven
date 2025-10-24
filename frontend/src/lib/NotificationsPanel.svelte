@@ -6,10 +6,13 @@
 
   const API_BASE = 'http://localhost:3030/api';
 
-  // ID counter for generating unique notification IDs
-  let notificationIdCounter = Date.now();
+  // ID counter for generating unique notification IDs (using crypto.randomUUID for true uniqueness)
   function generateNotificationId() {
-    return notificationIdCounter++;
+    // Use crypto.randomUUID if available, fallback to timestamp + random
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   let notifications = [];
@@ -24,6 +27,7 @@
   let filterSeverity = 'all'; // all, critical, warning, info
   let showUnreadOnly = false;
   let expandedNotification = null;
+  let groupDuplicates = true; // Group identical notifications
 
   // Pagination
   let limit = 50;
@@ -99,6 +103,12 @@
   }
 
   async function markAllAsRead() {
+    if (stats.unread === 0) return;
+
+    if (!confirm(`Mark all ${stats.unread} notification(s) as read?`)) {
+      return;
+    }
+
     try {
       await fetch(`${API_BASE}/notifications/mark-all-read`, { method: 'POST' });
       notifications = notifications.map(n => ({ ...n, read: true }));
@@ -106,6 +116,57 @@
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
+  }
+
+  // Export notifications as JSON
+  async function exportNotifications() {
+    try {
+      const jsonContent = JSON.stringify(notifications, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `raven-notifications-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export notifications:', error);
+      alert('Failed to export notifications: ' + error.message);
+    }
+  }
+
+  // Group notifications by title+message to show duplicates with count
+  $: groupedNotifications = groupDuplicates ? groupNotificationsByContent(notifications) : notifications.map(n => ({ ...n, count: 1 }));
+
+  function groupNotificationsByContent(notifs) {
+    const grouped = [];
+    const seen = new Map();
+
+    for (const notif of notifs) {
+      const key = `${notif.title}|${notif.message}|${notif.type}|${notif.severity}`;
+
+      if (seen.has(key)) {
+        // Increment count for existing group
+        const existing = seen.get(key);
+        existing.count++;
+        existing.allIds.push(notif.id);
+        if (!existing.read && !notif.read) {
+          // Keep track of unread status
+          existing.read = false;
+        }
+        // Keep the most recent timestamp
+        if (new Date(notif.timestamp) > new Date(existing.timestamp)) {
+          existing.timestamp = notif.timestamp;
+        }
+      } else {
+        // New unique notification
+        const group = { ...notif, count: 1, allIds: [notif.id] };
+        seen.set(key, group);
+        grouped.push(group);
+      }
+    }
+
+    return grouped;
   }
 
   async function clearNotification(id) {
@@ -252,6 +313,13 @@
       <p class="subtitle">System alerts and activity updates</p>
     </div>
     <div class="header-actions">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={groupDuplicates} />
+        Group Duplicates
+      </label>
+      <button class="btn-secondary" on:click={exportNotifications} disabled={notifications.length === 0}>
+        📤 Export
+      </button>
       <button class="btn-secondary" on:click={markAllAsRead} disabled={stats.unread === 0}>
         Mark All Read
       </button>
@@ -343,7 +411,7 @@
         </div>
       </div>
     {:else}
-      {#each notifications as notification (notification.id)}
+      {#each groupedNotifications as notification (notification.id)}
         <div
           class="notification-item {getSeverityClass(notification.severity)}"
           class:unread={!notification.read}
@@ -354,7 +422,12 @@
             <div class="notification-left">
               <span class="notification-icon">{getNotificationIcon(notification.type)}</span>
               <div class="notification-info">
-                <div class="notification-title">{notification.title}</div>
+                <div class="notification-title">
+                  {notification.title}
+                  {#if notification.count > 1}
+                    <span class="count-badge" title="{notification.count} duplicate notifications">{notification.count}×</span>
+                  {/if}
+                </div>
                 <div class="notification-meta">
                   <span class="notification-type">{notification.type}</span>
                   <span class="notification-time">{formatRelativeTime(notification.timestamp)}</span>
@@ -762,5 +835,44 @@
   .load-more {
     text-align: center;
     padding: 1rem;
+  }
+
+  /* Count Badge */
+  .count-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* Toggle Label */
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .toggle-label:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .toggle-label input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
   }
 </style>

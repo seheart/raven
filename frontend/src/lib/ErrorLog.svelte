@@ -52,11 +52,10 @@
     socket = io('http://localhost:3030');
 
     socket.on('connect', () => {
-      console.log('🔌 Connected to error log WebSocket');
+      // WebSocket connected
     });
 
     socket.on('error-logged', (errorData) => {
-      console.log('📥 New error received:', errorData);
       // Debounce to prevent race conditions from rapid events
       clearTimeout(loadErrorsTimeout);
       loadErrorsTimeout = setTimeout(() => {
@@ -66,7 +65,7 @@
     });
 
     socket.on('disconnect', () => {
-      console.log('🔌 Disconnected from error log WebSocket');
+      // WebSocket disconnected
     });
   }
 

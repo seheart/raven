@@ -22,6 +22,12 @@
   let successMessage = null;
   let refreshInterval;
 
+  // Enhanced features
+  let searchQuery = '';
+  let selectedActionFilter = 'all'; // 'all', 'notify', 'log', 'command'
+  let showCreateModal = false;
+  let enabledTriggers = new Set(); // Track which triggers are enabled (runtime state)
+
   // Filter triggered events based on current project filter
   $: filteredEvents = triggeredEvents.filter(event => {
     // If event has a project field, use it for filtering
@@ -30,6 +36,27 @@
     }
     // If no project field, show it in "all" view only
     return $projectFilter === 'all';
+  });
+
+  // Filter triggers based on search and action type
+  $: filteredTriggers = triggers.filter(trigger => {
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = trigger.name?.toLowerCase().includes(query);
+      const matchesMessage = trigger.message?.toLowerCase().includes(query);
+      const matchesFile = trigger.file?.toLowerCase().includes(query);
+      if (!matchesName && !matchesMessage && !matchesFile) {
+        return false;
+      }
+    }
+
+    // Action type filter
+    if (selectedActionFilter !== 'all' && trigger.action !== selectedActionFilter) {
+      return false;
+    }
+
+    return true;
   });
 
   // WebSocket event handlers
@@ -43,7 +70,6 @@
   };
 
   const handleProjectSwitched = async (data) => {
-    console.log('📡 Project switched, reloading triggers data:', data.project);
     await loadAllData();
   };
 
@@ -89,7 +115,15 @@
         fetch(`${API_BASE}/trigger-stats`)
       ]);
 
-      triggers = await triggersRes.json();
+      const triggersData = await triggersRes.json();
+      triggers = triggersData.rules || triggersData || [];
+
+      // Initialize all triggers as enabled by default
+      triggers.forEach(trigger => {
+        enabledTriggers.add(trigger.name);
+      });
+      enabledTriggers = enabledTriggers; // Trigger reactivity
+
       triggeredEvents = await eventsRes.json();
       stats = await statsRes.json();
     } catch (e) {
@@ -121,6 +155,42 @@
       setTimeout(() => successMessage = null, 3000);
     } catch (e) {
       error = `Failed to clear cooldowns: ${e}`;
+      console.error(error);
+    }
+  }
+
+  function toggleTrigger(triggerName) {
+    if (enabledTriggers.has(triggerName)) {
+      enabledTriggers.delete(triggerName);
+      successMessage = `Disabled trigger: ${triggerName}`;
+    } else {
+      enabledTriggers.add(triggerName);
+      successMessage = `Enabled trigger: ${triggerName}`;
+    }
+    enabledTriggers = enabledTriggers; // Trigger reactivity
+    setTimeout(() => successMessage = null, 2000);
+  }
+
+  async function testTrigger(trigger) {
+    try {
+      successMessage = `🧪 Testing trigger: ${trigger.name}...`;
+
+      // Simulate trigger firing
+      const testEvent = {
+        trigger_name: trigger.name,
+        action: trigger.action,
+        message: `[TEST] ${trigger.message}`,
+        timestamp: Math.floor(Date.now() / 1000),
+        project: null
+      };
+
+      // Add to events list
+      triggeredEvents = [testEvent, ...triggeredEvents].slice(0, 100);
+
+      successMessage = `✅ Test fired: ${trigger.name}`;
+      setTimeout(() => successMessage = null, 3000);
+    } catch (e) {
+      error = `Failed to test trigger: ${e}`;
       console.error(error);
     }
   }
@@ -228,7 +298,35 @@
       <div class="loading">Loading triggers...</div>
     {:else if activeTab === 'rules'}
       <!-- Trigger Rules Tab -->
-      {#if triggers.length === 0}
+
+      <!-- Search and Filters -->
+      {#if triggers.length > 0}
+        <div class="filters-bar">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search triggers by name, message, or file..."
+            bind:value={searchQuery}
+          />
+          <select class="filter-select" bind:value={selectedActionFilter}>
+            <option value="all">All Actions</option>
+            <option value="notify">🔔 Notify</option>
+            <option value="log">📝 Log</option>
+            <option value="command">⚙️ Command</option>
+          </select>
+          <div class="filter-stats">
+            {filteredTriggers.length} / {triggers.length} triggers
+          </div>
+        </div>
+      {/if}
+
+      {#if filteredTriggers.length === 0 && triggers.length > 0}
+        <div class="empty">
+          <div class="icon">🔍</div>
+          <h3>No Matching Triggers</h3>
+          <p>Try adjusting your search or filters.</p>
+        </div>
+      {:else if triggers.length === 0}
         <div class="empty">
           <div class="icon">📝</div>
           <h3>No Triggers Configured</h3>
@@ -237,10 +335,20 @@
         </div>
       {:else}
         <div class="rules-grid">
-          {#each triggers || [] as trigger}
-            <div class="trigger-card">
+          {#each filteredTriggers || [] as trigger}
+            <div class="trigger-card" class:disabled={!enabledTriggers.has(trigger.name)}>
               <div class="trigger-header">
-                <span class="trigger-name">{trigger.name}</span>
+                <div class="trigger-title-row">
+                  <span class="trigger-name">{trigger.name}</span>
+                  <label class="toggle-switch" title="Enable/Disable trigger">
+                    <input
+                      type="checkbox"
+                      checked={enabledTriggers.has(trigger.name)}
+                      on:change={() => toggleTrigger(trigger.name)}
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
                 <span class="trigger-action">
                   {getActionIcon(trigger.action)} {trigger.action}
                 </span>
@@ -278,6 +386,21 @@
                     {trigger.cooldown_seconds === 0 ? 'None' : `${trigger.cooldown_seconds}s`}
                   </span>
                 </div>
+              </div>
+
+              <!-- Trigger Actions Footer -->
+              <div class="trigger-footer">
+                <button
+                  class="btn-test"
+                  on:click={() => testTrigger(trigger)}
+                  disabled={!enabledTriggers.has(trigger.name)}
+                  title="Test this trigger"
+                >
+                  🧪 Test Fire
+                </button>
+                <span class="trigger-status">
+                  {enabledTriggers.has(trigger.name) ? '🟢 Enabled' : '⚫ Disabled'}
+                </span>
               </div>
             </div>
           {/each}
@@ -492,6 +615,62 @@
     font-style: italic;
   }
 
+  /* Filters Bar */
+  .filters-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .search-input {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--warning);
+  }
+
+  .filter-select {
+    padding: 10px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: var(--mono);
+    cursor: pointer;
+    min-width: 150px;
+  }
+
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--warning);
+  }
+
+  .filter-stats {
+    padding: 10px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   /* Trigger Rules Tab */
   .rules-grid {
     display: grid;
@@ -512,13 +691,30 @@
     box-shadow: 0 4px 12px color-mix(in srgb, var(--warning) 10%, transparent);
   }
 
+  .trigger-card.disabled {
+    opacity: 0.5;
+    filter: grayscale(0.5);
+  }
+
+  .trigger-card.disabled:hover {
+    border-color: var(--surface-2);
+    box-shadow: none;
+  }
+
   .trigger-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 12px;
     margin-bottom: 12px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--surface-2);
+  }
+
+  .trigger-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
   }
 
   .trigger-name {
@@ -582,6 +778,98 @@
     display: block;
     margin-top: 4px;
     overflow-x: auto;
+  }
+
+  /* Toggle Switch */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    transition: all 0.3s;
+  }
+
+  .toggle-slider:before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--muted);
+    border-radius: 50%;
+    transition: all 0.3s;
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background-color: var(--warning);
+    border-color: var(--warning);
+  }
+
+  .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+    background-color: white;
+  }
+
+  /* Trigger Footer */
+  .trigger-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--surface-2);
+  }
+
+  .btn-test {
+    padding: 8px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-test:hover:not(:disabled) {
+    background: var(--warning);
+    color: white;
+    border-color: var(--warning);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--warning) 30%, transparent);
+  }
+
+  .btn-test:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .trigger-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    background: var(--surface-2);
+    border-radius: 12px;
   }
 
   /* Triggered Events Tab */

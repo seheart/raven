@@ -17,7 +17,10 @@
   });
 
   onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = null;
+    }
   });
 
   async function loadStorageData() {
@@ -59,6 +62,139 @@
   function getPercentage(size, total) {
     if (!size || !total || total === 0) return 0;
     return parseFloat(((size / total) * 100).toFixed(1));
+  }
+
+  // Export database file
+  async function exportDatabase(dbName) {
+    try {
+      const response = await fetch(`${API_BASE}/storage/export/${dbName}`);
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${dbName}_${Date.now()}.db`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      alert(`Database ${dbName} exported successfully!`);
+    } catch (err) {
+      console.error('Failed to export database:', err);
+      alert(`Failed to export database: ${err.message}`);
+    }
+  }
+
+  // Optimize database with VACUUM
+  async function optimizeDatabase(dbName) {
+    if (!confirm(`Optimize ${dbName}? This will reclaim unused space.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/storage/vacuum/${dbName}`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`Database optimized!\n\nBefore: ${formatBytes(result.sizeBefore)}\nAfter: ${formatBytes(result.sizeAfter)}\nSpace saved: ${formatBytes(result.spaceSaved)} (${result.percentSaved}%)`);
+        await loadStorageData(); // Refresh to show new size
+      } else {
+        alert(`Optimization failed: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to optimize database:', err);
+      alert(`Failed to optimize database: ${err.message}`);
+    }
+  }
+
+  // Clean old data from database
+  async function cleanDatabase(dbName) {
+    const days = prompt('Delete records older than how many days?', '30');
+    if (!days) return;
+
+    const daysNum = parseInt(days);
+    if (isNaN(daysNum) || daysNum < 1) {
+      alert('Please enter a valid number of days (1 or greater)');
+      return;
+    }
+
+    if (!confirm(`Delete all records older than ${daysNum} days from ${dbName}?\n\nThis cannot be undone!`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/storage/clean/${dbName}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: daysNum })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        let message = `${result.message}\n\nDeleted by table:\n`;
+        for (const [table, count] of Object.entries(result.deletedPerTable)) {
+          message += `- ${table}: ${count} records\n`;
+        }
+        alert(message);
+        await loadStorageData(); // Refresh to show new record counts
+      } else {
+        alert(`Cleanup failed: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to clean database:', err);
+      alert(`Failed to clean database: ${err.message}`);
+    }
+  }
+
+  // Retention policy state
+  let showRetentionModal = false;
+  let retentionPolicy = {
+    enabled: false,
+    retentionDays: 30,
+    autoCleanup: false,
+    cleanupInterval: 'weekly'
+  };
+
+  async function loadRetentionPolicy() {
+    try {
+      const response = await fetch(`${API_BASE}/storage/retention`);
+      retentionPolicy = await response.json();
+    } catch (err) {
+      console.error('Failed to load retention policy:', err);
+    }
+  }
+
+  async function saveRetentionPolicy() {
+    try {
+      const response = await fetch(`${API_BASE}/storage/retention`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(retentionPolicy)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Retention policy saved successfully!');
+        showRetentionModal = false;
+      } else {
+        alert(`Failed to save policy: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to save retention policy:', err);
+      alert(`Failed to save policy: ${err.message}`);
+    }
+  }
+
+  function openRetentionConfig() {
+    loadRetentionPolicy();
+    showRetentionModal = true;
   }
 
   $: totalDatabaseSize = storageData?.databases?.reduce((sum, db) => sum + (db?.size || 0), 0) || 0;
@@ -171,9 +307,20 @@
                 </td>
                 <td>{formatDate(db.modified)}</td>
                 <td>
-                  <button class="btn-sm" on:click={() => toggleDatabaseExpansion(db.name)}>
-                    {expandedDatabase === db.name ? '▼' : '▶'} Details
-                  </button>
+                  <div class="db-actions">
+                    <button class="btn-sm" on:click={() => toggleDatabaseExpansion(db.name)}>
+                      {expandedDatabase === db.name ? '▼' : '▶'} Details
+                    </button>
+                    <button class="btn-sm btn-export" on:click={() => exportDatabase(db.name)} title="Export database">
+                      💾
+                    </button>
+                    <button class="btn-sm btn-optimize" on:click={() => optimizeDatabase(db.name)} title="Optimize database (VACUUM)">
+                      ⚡
+                    </button>
+                    <button class="btn-sm btn-clean" on:click={() => cleanDatabase(db.name)} title="Clean old data">
+                      🧹
+                    </button>
+                  </div>
                 </td>
               </tr>
               {#if expandedDatabase === db.name && db.tableStats.length > 0}
@@ -267,16 +414,77 @@
     <!-- Actions Section -->
     <section class="actions">
       <h2>⚙️ Actions</h2>
+      <p class="help-text">Use per-database action buttons in the table above, or configure retention policy below.</p>
       <div class="action-buttons">
         <button class="btn-primary" on:click={loadStorageData}>🔄 Refresh Data</button>
-        <button class="btn-secondary" disabled title="Coming soon">💾 Export Database</button>
-        <button class="btn-secondary" disabled title="Coming soon">🧹 Clean Old Data</button>
-        <button class="btn-secondary" disabled title="Coming soon">⚙️ Configure Retention</button>
+        <button class="btn-secondary" on:click={openRetentionConfig}>⚙️ Configure Retention</button>
       </div>
     </section>
 
     <div class="last-updated">
       Last updated: {formatDate(storageData.timestamp)}
+    </div>
+  {/if}
+
+  <!-- Retention Policy Modal -->
+  {#if showRetentionModal}
+    <div class="modal-overlay" on:click={() => showRetentionModal = false}>
+      <div class="modal-content" on:click|stopPropagation>
+        <div class="modal-header">
+          <h2>⚙️ Configure Retention Policy</h2>
+          <button class="modal-close" on:click={() => showRetentionModal = false}>✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" bind:checked={retentionPolicy.enabled} />
+              Enable automatic data retention
+            </label>
+            <p class="help-text">When enabled, data older than the retention period will be flagged for cleanup.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="retention-days">Retention Period (days)</label>
+            <input
+              id="retention-days"
+              type="number"
+              min="1"
+              max="365"
+              bind:value={retentionPolicy.retentionDays}
+              disabled={!retentionPolicy.enabled}
+            />
+            <p class="help-text">Data older than this will be considered for deletion.</p>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" bind:checked={retentionPolicy.autoCleanup} disabled={!retentionPolicy.enabled} />
+              Enable automatic cleanup
+            </label>
+            <p class="help-text">Automatically delete old data on schedule (requires backend restart to take effect).</p>
+          </div>
+
+          <div class="form-group">
+            <label for="cleanup-interval">Cleanup Interval</label>
+            <select
+              id="cleanup-interval"
+              bind:value={retentionPolicy.cleanupInterval}
+              disabled={!retentionPolicy.enabled || !retentionPolicy.autoCleanup}
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+            <p class="help-text">How often automatic cleanup should run.</p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-secondary" on:click={() => showRetentionModal = false}>Cancel</button>
+          <button class="btn-primary" on:click={saveRetentionPolicy}>Save Policy</button>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
@@ -692,5 +900,165 @@
     td, th {
       padding: 0.5rem;
     }
+  }
+
+  /* Database Actions */
+  .db-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-export {
+    background: var(--info) !important;
+    color: white !important;
+    border-color: var(--info) !important;
+  }
+
+  .btn-export:hover {
+    background: color-mix(in srgb, var(--info) 80%, black) !important;
+  }
+
+  .btn-optimize {
+    background: var(--warning) !important;
+    color: white !important;
+    border-color: var(--warning) !important;
+  }
+
+  .btn-optimize:hover {
+    background: color-mix(in srgb, var(--warning) 80%, black) !important;
+  }
+
+  .btn-clean {
+    background: var(--error) !important;
+    color: white !important;
+    border-color: var(--error) !important;
+  }
+
+  .btn-clean:hover {
+    background: color-mix(in srgb, var(--error) 80%, black) !important;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 2rem;
+  }
+
+  .modal-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px color-mix(in srgb, var(--bg) 50%, transparent);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text);
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover {
+    background: var(--surface-2);
+    color: var(--error);
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .form-group input[type="number"],
+  .form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 0.875rem;
+    font-family: var(--mono);
+  }
+
+  .form-group input[type="checkbox"] {
+    margin-right: 0.5rem;
+    width: 1rem;
+    height: 1rem;
+    vertical-align: middle;
+  }
+
+  .form-group input:disabled,
+  .form-group select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .help-text {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .actions .help-text {
+    margin-bottom: 1rem;
   }
 </style>

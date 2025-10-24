@@ -13,6 +13,7 @@ import { createDefaultHealthChecks } from './health-checks.js';
 import { join, relative, normalize } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
+import { readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import * as Diff from 'diff';
 import toml from 'toml';
@@ -2022,13 +2023,43 @@ app.get('/health', async (req, res) => {
       cwd: process.cwd()
     };
 
+    // Read version from package.json
+    let version = '0.8.0';
+    try {
+      const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'));
+      version = packageJson.version;
+    } catch (err) {
+      console.error('Failed to read version:', err);
+    }
+
+    // Database health check
+    let databaseHealth = {
+      status: 'healthy',
+      size: dbSize,
+      accessible: true,
+      lastError: null
+    };
+
+    try {
+      // Try to query database to verify it's accessible
+      const testQuery = ravenDB.db.prepare('SELECT COUNT(*) as count FROM sqlite_master').get();
+      databaseHealth.accessible = true;
+      databaseHealth.status = 'healthy';
+    } catch (err) {
+      databaseHealth.accessible = false;
+      databaseHealth.status = 'error';
+      databaseHealth.lastError = err.message;
+    }
+
     res.json({
       status: 'healthy',
+      version: version,
       session_id: SESSION_ID,
       uptime: uptime,
       active_agents: agentRegistry.size,
       active_project: projectState.activeProject,
       database: projectState.dbPath,
+      database_health: databaseHealth,
 
       // Memory (process-level)
       memory: {
@@ -2092,6 +2123,89 @@ app.get('/health', async (req, res) => {
       status: 'error',
       error: error.message
     });
+  }
+});
+
+// GET /api/endpoints - Discover all registered API endpoints
+app.get('/api/endpoints', (req, res) => {
+  try {
+    const endpoints = [];
+    const routes = [];
+
+    // Helper to extract routes from Express app stack
+    function extractRoutes(stack, basePath = '') {
+      stack.forEach(layer => {
+        if (layer.route) {
+          // This is a route
+          const path = basePath + layer.route.path;
+          const methods = Object.keys(layer.route.methods).map(m => m.toUpperCase());
+
+          methods.forEach(method => {
+            routes.push({ method, path });
+          });
+        } else if (layer.name === 'router' && layer.handle.stack) {
+          // This is a sub-router (e.g., router.use('/api', router))
+          const routerPath = layer.regexp.source
+            .replace('\\/?', '')
+            .replace('(?=\\/|$)', '')
+            .replace(/\\\//g, '/')
+            .replace(/\^/g, '')
+            .replace(/\$/g, '');
+
+          extractRoutes(layer.handle.stack, basePath + routerPath);
+        }
+      });
+    }
+
+    // Extract all routes from app
+    extractRoutes(app._router.stack);
+
+    // Categorize endpoints
+    const categorizeEndpoint = (path) => {
+      if (path.startsWith('/api/sync')) return 'Sync';
+      if (path.startsWith('/api/storage')) return 'Storage';
+      if (path.startsWith('/api/git')) return 'Git';
+      if (path.startsWith('/api/projects')) return 'Projects';
+      if (path.startsWith('/api/notifications')) return 'Notifications';
+      if (path.startsWith('/api/errors')) return 'Errors';
+      if (path.startsWith('/api/agents')) return 'Agents';
+      if (path.startsWith('/api/agent')) return 'Agents';
+      if (path.startsWith('/api/metrics') || path.startsWith('/api/system-metrics') || path.startsWith('/api/process-metrics') || path.startsWith('/api/performance')) return 'Metrics';
+      if (path.startsWith('/api/triggers') || path.startsWith('/api/triggered')) return 'Triggers';
+      if (path.startsWith('/api/file') || path.startsWith('/api/tracked-files') || path.startsWith('/api/events-by')) return 'Files';
+      if (path.startsWith('/api/control')) return 'Control';
+      if (path.startsWith('/api/dashboard') || path.startsWith('/api/top-') || path.startsWith('/api/longest-')) return 'Dashboard';
+      if (path.startsWith('/api/docs')) return 'Documentation';
+      if (path.startsWith('/api/changelog')) return 'Changelog';
+      if (path.includes('health') || path.includes('session-id')) return 'Core';
+      return 'Other';
+    };
+
+    // Build endpoint list with categories
+    routes.forEach(route => {
+      endpoints.push({
+        category: categorizeEndpoint(route.path),
+        method: route.method,
+        path: route.path,
+        description: route.path.split('/').pop().replace(/-/g, ' ')
+      });
+    });
+
+    // Sort by category then path
+    endpoints.sort((a, b) => {
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      return a.path.localeCompare(b.path);
+    });
+
+    res.json({
+      total: endpoints.length,
+      endpoints
+    });
+  } catch (error) {
+    console.error('❌ Error discovering endpoints:', error);
+    res.status(500).json({ error: 'Failed to discover endpoints' });
   }
 });
 
@@ -2975,6 +3089,216 @@ app.get('/api/storage', async (req, res) => {
   } catch (error) {
     console.error('❌ Error getting storage stats:', error);
     res.status(500).json({ error: 'Failed to get storage statistics' });
+  }
+});
+
+// POST /api/storage/export/:dbname - Export a database file
+app.get('/api/storage/export/:dbname', async (req, res) => {
+  try {
+    const { dbname } = req.params;
+
+    // Validate database name to prevent path traversal
+    if (!dbname || dbname.includes('..') || dbname.includes('/') || !dbname.match(/^[a-zA-Z0-9_-]+$/)) {
+      return res.status(400).json({ error: 'Invalid database name' });
+    }
+
+    const dbPath = join(RAVEN_DIR, 'db', `${dbname}.db`);
+
+    if (!fs.existsSync(dbPath)) {
+      return res.status(404).json({ error: 'Database not found' });
+    }
+
+    // Send the file for download
+    res.download(dbPath, `${dbname}_${Date.now()}.db`, (err) => {
+      if (err) {
+        console.error('❌ Error sending database file:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to export database' });
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error exporting database:', error);
+    res.status(500).json({ error: 'Failed to export database' });
+  }
+});
+
+// POST /api/storage/vacuum/:dbname - Run VACUUM on a database
+app.post('/api/storage/vacuum/:dbname', async (req, res) => {
+  try {
+    const { dbname } = req.params;
+
+    // Validate database name
+    if (!dbname || dbname.includes('..') || dbname.includes('/') || !dbname.match(/^[a-zA-Z0-9_-]+$/)) {
+      return res.status(400).json({ error: 'Invalid database name' });
+    }
+
+    const dbPath = join(RAVEN_DIR, 'db', `${dbname}.db`);
+
+    if (!fs.existsSync(dbPath)) {
+      return res.status(404).json({ error: 'Database not found' });
+    }
+
+    // Get size before VACUUM
+    const statsBefore = fs.statSync(dbPath);
+    const sizeBefore = statsBefore.size;
+
+    // Run VACUUM
+    const Database = (await import('better-sqlite3')).default;
+    const db = new Database(dbPath);
+    db.pragma('wal_checkpoint(TRUNCATE)'); // Checkpoint WAL first
+    db.exec('VACUUM');
+    db.close();
+
+    // Get size after VACUUM
+    const statsAfter = fs.statSync(dbPath);
+    const sizeAfter = statsAfter.size;
+    const spaceSaved = sizeBefore - sizeAfter;
+
+    res.json({
+      success: true,
+      message: 'Database optimized successfully',
+      sizeBefore,
+      sizeAfter,
+      spaceSaved,
+      percentSaved: sizeBefore > 0 ? ((spaceSaved / sizeBefore) * 100).toFixed(2) : 0
+    });
+  } catch (error) {
+    console.error('❌ Error running VACUUM:', error);
+    res.status(500).json({ error: 'Failed to optimize database: ' + error.message });
+  }
+});
+
+// POST /api/storage/clean/:dbname - Clean old data from database
+app.post('/api/storage/clean/:dbname', async (req, res) => {
+  try {
+    const { dbname } = req.params;
+    const { days } = req.body;
+
+    // Validate database name
+    if (!dbname || dbname.includes('..') || dbname.includes('/') || !dbname.match(/^[a-zA-Z0-9_-]+$/)) {
+      return res.status(400).json({ error: 'Invalid database name' });
+    }
+
+    // Validate days
+    const daysNum = parseInt(days);
+    if (isNaN(daysNum) || daysNum < 1 || daysNum > 365) {
+      return res.status(400).json({ error: 'Days must be between 1 and 365' });
+    }
+
+    const dbPath = join(RAVEN_DIR, 'db', `${dbname}.db`);
+
+    if (!fs.existsSync(dbPath)) {
+      return res.status(404).json({ error: 'Database not found' });
+    }
+
+    // Calculate cutoff timestamp
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysNum);
+    const cutoffTimestamp = cutoffDate.toISOString();
+
+    const Database = (await import('better-sqlite3')).default;
+    const db = new Database(dbPath);
+
+    let totalDeleted = 0;
+    const deletedPerTable = {};
+
+    // Get all tables
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+
+    // Delete old records from each table that has a timestamp column
+    for (const table of tables) {
+      const tableInfo = db.prepare(`PRAGMA table_info(${table.name})`).all();
+      const hasTimestamp = tableInfo.some(col => col.name === 'timestamp' || col.name === 'created_at');
+
+      if (hasTimestamp) {
+        const timestampCol = tableInfo.find(col => col.name === 'timestamp' || col.name === 'created_at').name;
+
+        // Count records before deletion
+        const countBefore = db.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get().count;
+
+        // Delete old records
+        const deleteStmt = db.prepare(`DELETE FROM ${table.name} WHERE ${timestampCol} < ?`);
+        const result = deleteStmt.run(cutoffTimestamp);
+
+        const deleted = result.changes;
+        if (deleted > 0) {
+          deletedPerTable[table.name] = deleted;
+          totalDeleted += deleted;
+        }
+      }
+    }
+
+    db.close();
+
+    res.json({
+      success: true,
+      message: `Deleted ${totalDeleted} records older than ${daysNum} days`,
+      totalDeleted,
+      deletedPerTable,
+      cutoffDate: cutoffTimestamp
+    });
+  } catch (error) {
+    console.error('❌ Error cleaning old data:', error);
+    res.status(500).json({ error: 'Failed to clean old data: ' + error.message });
+  }
+});
+
+// GET /api/storage/retention - Get retention policy configuration
+app.get('/api/storage/retention', async (req, res) => {
+  try {
+    const retentionPath = join(RAVEN_DIR, 'retention-policy.json');
+
+    if (!fs.existsSync(retentionPath)) {
+      // Return default policy
+      return res.json({
+        enabled: false,
+        retentionDays: 30,
+        autoCleanup: false,
+        cleanupInterval: 'weekly'
+      });
+    }
+
+    const data = fs.readFileSync(retentionPath, 'utf-8');
+    const policy = JSON.parse(data);
+    res.json(policy);
+  } catch (error) {
+    console.error('❌ Error reading retention policy:', error);
+    res.status(500).json({ error: 'Failed to read retention policy' });
+  }
+});
+
+// POST /api/storage/retention - Save retention policy configuration
+app.post('/api/storage/retention', async (req, res) => {
+  try {
+    const policy = req.body;
+
+    // Validate policy
+    if (typeof policy.enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+
+    const days = parseInt(policy.retentionDays);
+    if (isNaN(days) || days < 1 || days > 365) {
+      return res.status(400).json({ error: 'retentionDays must be between 1 and 365' });
+    }
+
+    const validIntervals = ['daily', 'weekly', 'monthly'];
+    if (!validIntervals.includes(policy.cleanupInterval)) {
+      return res.status(400).json({ error: 'cleanupInterval must be daily, weekly, or monthly' });
+    }
+
+    const retentionPath = join(RAVEN_DIR, 'retention-policy.json');
+    fs.writeFileSync(retentionPath, JSON.stringify(policy, null, 2));
+
+    res.json({
+      success: true,
+      message: 'Retention policy saved successfully',
+      policy
+    });
+  } catch (error) {
+    console.error('❌ Error saving retention policy:', error);
+    res.status(500).json({ error: 'Failed to save retention policy' });
   }
 });
 

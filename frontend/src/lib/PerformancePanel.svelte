@@ -6,7 +6,7 @@
 
   const API_BASE = 'http://localhost:3030/api';
 
-  let activeTab = 'metrics'; // 'metrics' or 'correlations'
+  let activeTab = 'metrics'; // 'metrics', 'charts', or 'correlations'
   let systemMetrics = [];
   let processMetrics = [];
   let stats = null;
@@ -16,6 +16,16 @@
   let loading = true;
   let error = null;
 
+  // Performance thresholds
+  let thresholds = {
+    cpu: { warning: 70, critical: 90 },
+    memory: { warning: 75, critical: 95 }
+  };
+
+  // Chart settings
+  let chartTimeRange = '1h'; // '15m', '1h', '6h', '24h'
+  let showAlerts = true;
+
   // WebSocket event handlers
   const handleSystemMetrics = (metrics) => {
     // Add new metrics to the beginning of the array
@@ -23,7 +33,6 @@
   };
 
   const handleProjectSwitched = async (data) => {
-    console.log('📡 Project switched, reloading performance data:', data.project);
     await fetchAllData();
   };
 
@@ -105,11 +114,91 @@
     return mb.toFixed(2) + ' MB';
   }
 
+  // Export functions
+  function exportToJSON() {
+    const data = {
+      systemMetrics,
+      processMetrics,
+      stats,
+      correlations,
+      thresholds,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `raven-performance-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportToCSV() {
+    const headers = ['timestamp', 'cpu_percent', 'memory_percent', 'memory_used_mb', 'memory_total_mb'];
+    const rows = systemMetrics.map(m => [
+      m.timestamp,
+      m.cpu_percent,
+      m.memory_percent,
+      m.memory_used_mb,
+      m.memory_total_mb
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `raven-performance-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Check for threshold alerts
+  function getAlertLevel(value, type) {
+    const threshold = thresholds[type];
+    if (!threshold) return 'normal';
+    if (value >= threshold.critical) return 'critical';
+    if (value >= threshold.warning) return 'warning';
+    return 'normal';
+  }
+
   // Get most recent system metrics
   $: latestMetrics = systemMetrics.length > 0 ? systemMetrics[0] : null;
 
   // Get most recent process metrics
   $: latestProcessMetrics = processMetrics.length > 0 ? processMetrics[0] : null;
+
+  // Active alerts
+  $: activeAlerts = (() => {
+    if (!latestMetrics || !showAlerts) return [];
+    const alerts = [];
+
+    const cpuLevel = getAlertLevel(latestMetrics.cpu_percent, 'cpu');
+    if (cpuLevel !== 'normal') {
+      alerts.push({
+        type: 'cpu',
+        level: cpuLevel,
+        message: `CPU usage ${cpuLevel}: ${latestMetrics.cpu_percent.toFixed(1)}%`,
+        threshold: cpuLevel === 'critical' ? thresholds.cpu.critical : thresholds.cpu.warning
+      });
+    }
+
+    const memLevel = getAlertLevel(latestMetrics.memory_percent, 'memory');
+    if (memLevel !== 'normal') {
+      alerts.push({
+        type: 'memory',
+        level: memLevel,
+        message: `Memory usage ${memLevel}: ${latestMetrics.memory_percent.toFixed(1)}%`,
+        threshold: memLevel === 'critical' ? thresholds.memory.critical : thresholds.memory.warning
+      });
+    }
+
+    return alerts;
+  })();
 </script>
 
 <div class="performance-panel">
@@ -139,10 +228,37 @@
 
   <div class="header">
     <h2><span class="lightning-icon">⚡️</span> Performance Profiling</h2>
-    <button on:click={fetchAllData} class="btn-refresh">
-      ↻ Refresh
-    </button>
+    <div class="header-actions">
+      <button on:click={exportToJSON} class="btn-export" title="Export as JSON">
+        📥 JSON
+      </button>
+      <button on:click={exportToCSV} class="btn-export" title="Export as CSV">
+        📥 CSV
+      </button>
+      <button on:click={fetchAllData} class="btn-refresh">
+        ↻ Refresh
+      </button>
+    </div>
   </div>
+
+  <!-- Alerts Banner -->
+  {#if activeAlerts.length > 0 && showAlerts}
+    <div class="alerts-banner">
+      <div class="banner-header">
+        <strong>⚠️ Active Performance Alerts</strong>
+        <button class="btn-dismiss" on:click={() => showAlerts = false}>✕</button>
+      </div>
+      <div class="alerts-list">
+        {#each activeAlerts as alert}
+          <div class="alert-item alert-{alert.level}">
+            <span class="alert-icon">{alert.level === 'critical' ? '🔴' : '🟡'}</span>
+            <span class="alert-message">{alert.message}</span>
+            <span class="alert-threshold">(threshold: {alert.threshold}%)</span>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <!-- Tab Navigation -->
   <div class="tab-nav">
@@ -152,6 +268,13 @@
       on:click={() => activeTab = 'metrics'}
     >
       📊 Metrics
+    </button>
+    <button
+      class="tab-btn"
+      class:active={activeTab === 'charts'}
+      on:click={() => activeTab = 'charts'}
+    >
+      📈 Trend Charts
     </button>
     <button
       class="tab-btn"
@@ -170,7 +293,120 @@
     <div class="error">Error: {error}</div>
   {/if}
 
-  {#if activeTab === 'metrics'}
+  {#if activeTab === 'charts'}
+    <!-- Trend Charts View -->
+    {#if systemMetrics && systemMetrics.length > 0}
+      <div class="charts-section">
+        <div class="chart-controls">
+          <label>
+            Time Range:
+            <select bind:value={chartTimeRange} class="time-range-select">
+              <option value="15m">Last 15 minutes</option>
+              <option value="1h">Last 1 hour</option>
+              <option value="6h">Last 6 hours</option>
+              <option value="24h">Last 24 hours</option>
+            </select>
+          </label>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-color cpu"></span> CPU</span>
+            <span class="legend-item"><span class="legend-color mem"></span> Memory</span>
+            <span class="legend-item"><span class="legend-color warn"></span> Warning Threshold</span>
+            <span class="legend-item"><span class="legend-color crit"></span> Critical Threshold</span>
+          </div>
+        </div>
+
+        <!-- CPU Chart -->
+        <div class="chart-container">
+          <h3>🔥 CPU Usage Over Time</h3>
+          <div class="chart">
+            <div class="chart-y-axis">
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
+              <span>0%</span>
+            </div>
+            <div class="chart-canvas">
+              <div class="threshold-line critical" style="bottom: {thresholds.cpu.critical}%">
+                <span class="threshold-label">{thresholds.cpu.critical}%</span>
+              </div>
+              <div class="threshold-line warning" style="bottom: {thresholds.cpu.warning}%">
+                <span class="threshold-label">{thresholds.cpu.warning}%</span>
+              </div>
+              {#each systemMetrics.slice().reverse() as metric, i}
+                <div
+                  class="data-point cpu-point"
+                  class:above-critical={metric.cpu_percent >= thresholds.cpu.critical}
+                  class:above-warning={metric.cpu_percent >= thresholds.cpu.warning && metric.cpu_percent < thresholds.cpu.critical}
+                  style="left: {(i / (systemMetrics.length - 1)) * 100}%; bottom: {metric.cpu_percent}%"
+                  title="{formatTimestamp(metric.timestamp)}: {metric.cpu_percent.toFixed(1)}%"
+                ></div>
+              {/each}
+            </div>
+          </div>
+        </div>
+
+        <!-- Memory Chart -->
+        <div class="chart-container">
+          <h3>💾 Memory Usage Over Time</h3>
+          <div class="chart">
+            <div class="chart-y-axis">
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
+              <span>0%</span>
+            </div>
+            <div class="chart-canvas">
+              <div class="threshold-line critical" style="bottom: {thresholds.memory.critical}%">
+                <span class="threshold-label">{thresholds.memory.critical}%</span>
+              </div>
+              <div class="threshold-line warning" style="bottom: {thresholds.memory.warning}%">
+                <span class="threshold-label">{thresholds.memory.warning}%</span>
+              </div>
+              {#each systemMetrics.slice().reverse() as metric, i}
+                <div
+                  class="data-point mem-point"
+                  class:above-critical={metric.memory_percent >= thresholds.memory.critical}
+                  class:above-warning={metric.memory_percent >= thresholds.memory.warning && metric.memory_percent < thresholds.memory.critical}
+                  style="left: {(i / (systemMetrics.length - 1)) * 100}%; bottom: {metric.memory_percent}%"
+                  title="{formatTimestamp(metric.timestamp)}: {metric.memory_percent.toFixed(1)}%"
+                ></div>
+              {/each}
+            </div>
+          </div>
+        </div>
+
+        <!-- Threshold Configuration -->
+        <div class="threshold-config">
+          <h3>⚙️ Alert Thresholds</h3>
+          <div class="threshold-controls">
+            <div class="threshold-group">
+              <label>CPU Warning (%):</label>
+              <input type="number" bind:value={thresholds.cpu.warning} min="0" max="100" class="threshold-input" />
+            </div>
+            <div class="threshold-group">
+              <label>CPU Critical (%):</label>
+              <input type="number" bind:value={thresholds.cpu.critical} min="0" max="100" class="threshold-input" />
+            </div>
+            <div class="threshold-group">
+              <label>Memory Warning (%):</label>
+              <input type="number" bind:value={thresholds.memory.warning} min="0" max="100" class="threshold-input" />
+            </div>
+            <div class="threshold-group">
+              <label>Memory Critical (%):</label>
+              <input type="number" bind:value={thresholds.memory.critical} min="0" max="100" class="threshold-input" />
+            </div>
+          </div>
+        </div>
+      </div>
+    {:else if !loading}
+      <div class="empty-state">
+        <p>No metrics data available for charts.</p>
+        <p>Charts will appear once performance data is collected.</p>
+      </div>
+    {/if}
+  {:else if activeTab === 'metrics'}
     {#if latestMetrics}
     <div class="metrics-grid">
       <!-- System Metrics Card -->
@@ -630,5 +866,314 @@
 
   .diff-size {
     color: var(--muted);
+  }
+
+  /* Header Actions */
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .btn-export {
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-export:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* Alerts Banner */
+  .alerts-banner {
+    background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+    border: 1px solid var(--warning);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .banner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    color: var(--warning);
+    font-size: 13px;
+  }
+
+  .btn-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+
+  .btn-dismiss:hover {
+    color: var(--error);
+  }
+
+  .alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-radius: 6px;
+    border-left: 4px solid;
+    font-size: 12px;
+  }
+
+  .alert-item.alert-warning {
+    border-left-color: var(--warning);
+  }
+
+  .alert-item.alert-critical {
+    border-left-color: var(--error);
+  }
+
+  .alert-message {
+    flex: 1;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .alert-threshold {
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    padding: 16px;
+  }
+
+  .chart-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .time-range-select {
+    margin-left: 8px;
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .legend-color.cpu {
+    background: var(--accent);
+  }
+
+  .legend-color.mem {
+    background: var(--info);
+  }
+
+  .legend-color.warn {
+    background: var(--warning);
+  }
+
+  .legend-color.crit {
+    background: var(--error);
+  }
+
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+
+  .chart-container h3 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .chart {
+    display: flex;
+    gap: 12px;
+    height: 200px;
+  }
+
+  .chart-y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    padding-right: 8px;
+    width: 40px;
+    text-align: right;
+  }
+
+  .chart-canvas {
+    position: relative;
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .threshold-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-top: 2px dashed;
+  }
+
+  .threshold-line.warning {
+    border-color: var(--warning);
+  }
+
+  .threshold-line.critical {
+    border-color: var(--error);
+  }
+
+  .threshold-label {
+    position: absolute;
+    right: 4px;
+    top: -10px;
+    font-size: 9px;
+    color: var(--muted);
+    background: var(--bg);
+    padding: 0 4px;
+  }
+
+  .data-point {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    transform: translate(-50%, 50%);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .data-point:hover {
+    width: 10px;
+    height: 10px;
+  }
+
+  .cpu-point {
+    background: var(--accent);
+    box-shadow: 0 0 4px var(--accent);
+  }
+
+  .mem-point {
+    background: var(--info);
+    box-shadow: 0 0 4px var(--info);
+  }
+
+  .data-point.above-warning {
+    background: var(--warning);
+    box-shadow: 0 0 6px var(--warning);
+  }
+
+  .data-point.above-critical {
+    background: var(--error);
+    box-shadow: 0 0 8px var(--error);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Threshold Configuration */
+  .threshold-config {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+  }
+
+  .threshold-config h3 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .threshold-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .threshold-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .threshold-group label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .threshold-input {
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+
+  .threshold-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
   }
 </style>

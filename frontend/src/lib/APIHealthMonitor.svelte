@@ -1,58 +1,25 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { notifications } from './notificationService.js';
   import PageInfo from './PageInfo.svelte';
   import { formatTime as formatTimeString } from './timeFormat.js';
 
   const API_BASE = 'http://localhost:3030';
 
-  let apiEndpoints = [
-    // Core
-    { category: 'Core', method: 'GET', path: '/health', description: 'Server health' },
-    { category: 'Core', method: 'GET', path: '/api/session-id', description: 'Current session ID' },
-
-    // Dashboard
-    { category: 'Dashboard', method: 'GET', path: '/api/dashboard-stats', description: 'Dashboard statistics' },
-    { category: 'Dashboard', method: 'GET', path: '/api/top-modified-files', description: 'Most modified files' },
-    { category: 'Dashboard', method: 'GET', path: '/api/longest-edits', description: 'Longest code edits' },
-
-    // Agents
-    { category: 'Agents', method: 'GET', path: '/api/agents-status', description: 'All agent status' },
-    { category: 'Agents', method: 'GET', path: '/api/agent-events', description: 'Agent events log' },
-    { category: 'Agents', method: 'GET', path: '/api/agent-stats', description: 'Agent statistics' },
-
-    // Metrics
-    { category: 'Metrics', method: 'GET', path: '/api/system-metrics', description: 'System performance' },
-    { category: 'Metrics', method: 'GET', path: '/api/metrics-stats', description: 'Metrics statistics' },
-    { category: 'Metrics', method: 'GET', path: '/api/performance-correlations', description: 'Performance data' },
-
-    // File Tracking
-    { category: 'Files', method: 'GET', path: '/api/tracked-files', description: 'Tracked files list' },
-    { category: 'Files', method: 'GET', path: '/api/file-events', description: 'File change events' },
-
-    // Triggers
-    { category: 'Triggers', method: 'GET', path: '/api/triggers-config', description: 'Trigger configuration' },
-    { category: 'Triggers', method: 'GET', path: '/api/triggered-events', description: 'Triggered events log' },
-    { category: 'Triggers', method: 'GET', path: '/api/trigger-stats', description: 'Trigger statistics' },
-
-    // Projects
-    { category: 'Projects', method: 'GET', path: '/api/projects/list', description: 'Available projects' },
-
-    // Git
-    { category: 'Git', method: 'GET', path: '/api/git/status', description: 'Git repository status' },
-    { category: 'Git', method: 'GET', path: '/api/git/branches', description: 'Git branches' },
-    { category: 'Git', method: 'GET', path: '/api/git/history', description: 'Git commit history' },
-
-    // Control
-    { category: 'Control', method: 'GET', path: '/api/control/export-health', description: 'Export health data' },
-  ];
+  // Dynamic endpoint list loaded from backend
+  let apiEndpoints = [];
+  let endpointsLoaded = false;
 
   let healthStatus = {};
+  let healthHistory = {}; // Track history for success rate and sparklines
   let loading = true;
   let lastCheck = null;
   let refreshInterval;
   let checkingAll = false;
   let realtimeActive = false;
+  let pollingInterval = 30; // seconds (configurable)
+  let alertsEnabled = true;
 
   function handleRealtimeUpdate() {
     // Quick health check when events occur
@@ -69,16 +36,47 @@
     });
   }
 
+  // Load endpoints dynamically from backend
+  async function loadEndpoints() {
+    try {
+      const response = await fetch(`${API_BASE}/api/endpoints`);
+      const data = await response.json();
+
+      if (data.endpoints) {
+        // Filter to only GET endpoints for health checking (skip POST/DELETE/PUT)
+        apiEndpoints = data.endpoints.filter(e => e.method === 'GET');
+        endpointsLoaded = true;
+      }
+    } catch (error) {
+      apiEndpoints = [];
+      endpointsLoaded = true;
+    }
+  }
+
   // WebSocket event handler for project-switched
   const handleProjectSwitched = async () => {
     await checkAllEndpoints();
   };
 
+  // Start/restart polling with configurable interval
+  function startPolling() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(checkAllEndpoints, pollingInterval * 1000);
+  }
+
+  // Watch for changes to polling interval
+  $: {
+    if (pollingInterval > 0 && refreshInterval) {
+      startPolling();
+    }
+  }
+
   onMount(async () => {
+    await loadEndpoints();
     await checkAllEndpoints();
 
-    // Reduced polling interval to 10 seconds (more responsive)
-    refreshInterval = setInterval(checkAllEndpoints, 10000);
+    // Start polling with configurable interval
+    startPolling();
 
     // Listen for real-time events that might affect API health
     websocketService.connect();
@@ -130,29 +128,88 @@
     const key = endpoint.path;
     const startTime = performance.now();
 
+    // Initialize history if needed
+    if (!healthHistory[key]) {
+      healthHistory[key] = { checks: [], successCount: 0, totalCount: 0 };
+    }
+
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch(`${API_BASE}${endpoint.path}`, {
         method: endpoint.method,
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const endTime = performance.now();
       const responseTime = Math.round(endTime - startTime);
+      const isSuccess = response.ok;
+
+      // Update history
+      healthHistory[key].checks.push({
+        timestamp: Date.now(),
+        responseTime,
+        success: isSuccess
+      });
+      healthHistory[key].checks = healthHistory[key].checks.slice(-50); // Keep last 50
+      healthHistory[key].totalCount++;
+      if (isSuccess) healthHistory[key].successCount++;
+
+      // Calculate success rate
+      const recentChecks = healthHistory[key].checks.slice(-20);
+      const successRate = recentChecks.length > 0
+        ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
+        : 100;
 
       healthStatus[key] = {
         status: response.ok ? 'healthy' : 'error',
         statusCode: response.status,
         responseTime,
-        lastCheck: new Date()
+        successRate: successRate.toFixed(1),
+        lastCheck: new Date(),
+        history: healthHistory[key].checks.slice(-10) // Last 10 for sparkline
       };
+
+      // Alert if endpoint fails
+      if (!response.ok && alertsEnabled) {
+        notifications.error(`API endpoint ${key} returned ${response.status}`, {
+          title: 'API Health Alert'
+        });
+      }
     } catch (error) {
+      // Update history with failure
+      healthHistory[key].checks.push({
+        timestamp: Date.now(),
+        responseTime: null,
+        success: false
+      });
+      healthHistory[key].checks = healthHistory[key].checks.slice(-50);
+      healthHistory[key].totalCount++;
+
+      const recentChecks = healthHistory[key].checks.slice(-20);
+      const successRate = recentChecks.length > 0
+        ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
+        : 0;
+
       healthStatus[key] = {
         status: 'error',
         statusCode: 0,
         responseTime: null,
         error: error.message,
-        lastCheck: new Date()
+        successRate: successRate.toFixed(1),
+        lastCheck: new Date(),
+        history: healthHistory[key].checks.slice(-10)
       };
+
+      // Alert on error
+      if (alertsEnabled) {
+        notifications.error(`API endpoint ${key} failed: ${error.message}`, {
+          title: 'API Health Alert'
+        });
+      }
     }
 
     // Trigger reactivity
@@ -216,9 +273,25 @@
         {/if}
       </div>
     </div>
-    <button on:click={checkAllEndpoints} disabled={checkingAll} class="btn-refresh">
-      {checkingAll ? '⏳ Checking...' : '↻ Check All'}
-    </button>
+    <div class="header-controls">
+      <label class="control-label">
+        <span>Polling:</span>
+        <select bind:value={pollingInterval}>
+          <option value={10}>10s</option>
+          <option value={30}>30s</option>
+          <option value={60}>1m</option>
+          <option value={120}>2m</option>
+          <option value={300}>5m</option>
+        </select>
+      </label>
+      <label class="control-label">
+        <input type="checkbox" bind:checked={alertsEnabled} />
+        <span>Alerts</span>
+      </label>
+      <button on:click={checkAllEndpoints} disabled={checkingAll} class="btn-refresh">
+        {checkingAll ? '⏳ Checking...' : '↻ Check All'}
+      </button>
+    </div>
   </div>
 
   {#if loading && Object.keys(healthStatus).length === 0}
@@ -254,10 +327,27 @@
                 </div>
 
                 <div class="endpoint-metrics">
+                  {#if status?.successRate}
+                    <span class="success-rate" class:excellent={parseFloat(status.successRate) >= 99} class:good={parseFloat(status.successRate) >= 90 && parseFloat(status.successRate) < 99} class:poor={parseFloat(status.successRate) < 90}>
+                      {status.successRate}%
+                    </span>
+                  {/if}
                   {#if status?.responseTime !== null && status?.responseTime !== undefined}
                     <span class="response-time" class:fast={status.responseTime < 50} class:medium={status.responseTime >= 50 && status.responseTime < 200} class:slow={status.responseTime >= 200}>
                       {status.responseTime}ms
                     </span>
+                  {/if}
+                  {#if status?.history && status.history.length > 0}
+                    <div class="sparkline" title="Response time history (last 10 checks)">
+                      {#each status.history as check, i}
+                        <div
+                          class="spark-bar"
+                          class:bar-success={check.success}
+                          class:bar-failure={!check.success}
+                          style="height: {check.success && check.responseTime ? Math.min((check.responseTime / 500) * 100, 100) : 10}%"
+                        ></div>
+                      {/each}
+                    </div>
                   {/if}
                   {#if status?.statusCode}
                     <span class="status-code" class:success={status.statusCode >= 200 && status.statusCode < 300} class:error-code={status.statusCode >= 400}>
@@ -534,5 +624,85 @@
     .endpoint-desc {
       display: none;
     }
+  }
+
+  /* Header Controls */
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .control-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .control-label select {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--mono);
+    cursor: pointer;
+  }
+
+  .control-label input[type="checkbox"] {
+    cursor: pointer;
+  }
+
+  /* Success Rate */
+  .success-rate {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+  }
+
+  .success-rate.excellent {
+    background: var(--success);
+    color: white;
+  }
+
+  .success-rate.good {
+    background: var(--warning);
+    color: white;
+  }
+
+  .success-rate.poor {
+    background: var(--error);
+    color: white;
+  }
+
+  /* Sparkline */
+  .sparkline {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 24px;
+    min-width: 80px;
+  }
+
+  .spark-bar {
+    flex: 1;
+    min-width: 4px;
+    max-width: 8px;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.2s ease;
+  }
+
+  .spark-bar.bar-success {
+    background: var(--success);
+    opacity: 0.8;
+  }
+
+  .spark-bar.bar-failure {
+    background: var(--error);
+    height: 100% !important;
   }
 </style>
