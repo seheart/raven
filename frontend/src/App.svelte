@@ -20,7 +20,6 @@
   import LiveCodeFeed from './lib/LiveCodeFeed.svelte';
   import ActivityLog from './lib/ActivityLog.svelte';
   import EventFeed from './lib/EventFeed.svelte';
-  import FileBrowser from './lib/FileBrowser.svelte';
   import Footer from './lib/Footer.svelte';
   import AboutPage from './lib/AboutPage.svelte';
   import ChangelogPage from './lib/ChangelogPage.svelte';
@@ -187,30 +186,8 @@
       <!-- Overview: Dashboard + Metrics + Git Status -->
       <OverviewPanel {sessionId} {sessionUptime} />
     {:else if activeTab === 'agents'}
-      <!-- Agents: All AI agent related views -->
-      <div class="tab-content">
-        <div class="sub-navigation">
-          <button
-            class="sub-tab"
-            class:active={!currentSubView}
-            on:click={() => currentSubView = ''}
-          >
-            Monitor
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'events'}
-            on:click={() => currentSubView = 'events'}
-          >
-            Events
-          </button>
-        </div>
-        {#if !currentSubView}
-          <AgentsPanel />
-        {:else if currentSubView === 'events'}
-          <EventFeed agentFilter={true} />
-        {/if}
-      </div>
+      <!-- Agents: AI agent monitoring -->
+      <AgentsPanel />
     {:else if activeTab === 'activity'}
       <!-- Activity: Events + Files + Live Code -->
       <div class="tab-content">
@@ -231,13 +208,6 @@
           </button>
           <button
             class="sub-tab"
-            class:active={currentSubView === 'files'}
-            on:click={() => currentSubView = 'files'}
-          >
-            Files
-          </button>
-          <button
-            class="sub-tab"
             class:active={currentSubView === 'activity'}
             on:click={() => currentSubView = 'activity'}
           >
@@ -248,8 +218,6 @@
           <LiveCodeFeed />
         {:else if currentSubView === 'events'}
           <EventFeed />
-        {:else if currentSubView === 'files'}
-          <FileBrowser />
         {:else if currentSubView === 'activity'}
           <ActivityLog />
         {/if}

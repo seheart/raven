@@ -25,6 +25,13 @@
     system: 0
   };
 
+  // Session grouping
+  let groupBySession = true; // Toggle between grouped and flat view
+  let groupByTime = 'none'; // 'none', 'hour', 'day'
+  let collapsedSessions = new Set(); // Track which sessions are collapsed
+  let sessions = []; // Grouped session data
+  let selectedSession = 'all'; // Filter by specific session
+
   async function loadActivities() {
     try {
       loading = true;
@@ -50,6 +57,9 @@
       // Calculate stats
       calculateStats();
 
+      // Group by session if enabled
+      groupActivitiesBySession();
+
       loading = false;
     } catch (error) {
       console.error('Failed to load activity log:', error);
@@ -63,6 +73,72 @@
       agent: activities.filter(a => a?.category === 'agent').length,
       system: activities.filter(a => a?.category === 'system').length
     };
+  }
+
+  function groupActivitiesBySession() {
+    if (!groupBySession) {
+      sessions = [];
+      return;
+    }
+
+    const sessionMap = new Map();
+
+    activities.forEach(activity => {
+      const sessionId = activity.session_id || 'no-session';
+
+      if (!sessionMap.has(sessionId)) {
+        sessionMap.set(sessionId, {
+          id: sessionId,
+          activities: [],
+          startTime: activity.timestamp,
+          endTime: activity.timestamp,
+          filesCount: 0,
+          agentCount: 0,
+          systemCount: 0,
+          totalEvents: 0
+        });
+      }
+
+      const session = sessionMap.get(sessionId);
+      session.activities.push(activity);
+      session.totalEvents++;
+
+      // Update time range
+      if (new Date(activity.timestamp) < new Date(session.startTime)) {
+        session.startTime = activity.timestamp;
+      }
+      if (new Date(activity.timestamp) > new Date(session.endTime)) {
+        session.endTime = activity.timestamp;
+      }
+
+      // Count by category
+      if (activity.category === 'file') session.filesCount++;
+      if (activity.category === 'agent') session.agentCount++;
+      if (activity.category === 'system') session.systemCount++;
+    });
+
+    // Convert to array and calculate durations
+    sessions = Array.from(sessionMap.values()).map(session => ({
+      ...session,
+      duration: Math.floor((new Date(session.endTime) - new Date(session.startTime)) / 1000)
+    })).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+  }
+
+  function toggleSession(sessionId) {
+    if (collapsedSessions.has(sessionId)) {
+      collapsedSessions.delete(sessionId);
+    } else {
+      collapsedSessions.add(sessionId);
+    }
+    collapsedSessions = collapsedSessions; // Trigger reactivity
+  }
+
+  function formatDuration(seconds) {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m`;
   }
 
   function setFilter(type) {
@@ -134,7 +210,24 @@
       const res = await fetch(`${API_BASE}/activity-log?limit=10000`);
       const data = await res.json();
 
-      const json = JSON.stringify(data.activities, null, 2);
+      // Build export with session metadata
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        total_activities: data.activities.length,
+        sessions: sessions.map(s => ({
+          session_id: s.id,
+          start_time: s.startTime,
+          end_time: s.endTime,
+          duration_seconds: s.duration,
+          total_events: s.totalEvents,
+          files_count: s.filesCount,
+          agent_count: s.agentCount,
+          system_count: s.systemCount
+        })),
+        activities: data.activities
+      };
+
+      const json = JSON.stringify(exportData, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
@@ -212,14 +305,53 @@
 
   <!-- Search and Filters -->
   <div class="controls">
-    <div class="search-bar">
-      <input
-        type="text"
-        placeholder="Search activities..."
-        bind:value={searchQuery}
-        on:keydown={(e) => e.key === 'Enter' && search()}
-      />
-      <button on:click={search}>🔍 Search</button>
+    <div class="controls-row">
+      <div class="search-bar">
+        <input
+          type="text"
+          placeholder="Search activities..."
+          bind:value={searchQuery}
+          on:keydown={(e) => e.key === 'Enter' && search()}
+        />
+        <button on:click={search}>🔍 Search</button>
+      </div>
+
+      <div class="view-controls">
+        <button
+          class="view-toggle"
+          class:active={groupBySession}
+          on:click={() => { groupBySession = !groupBySession; groupActivitiesBySession(); }}
+          title="Group by session"
+        >
+          📦 Session View
+        </button>
+
+        <select
+          class="time-grouping"
+          bind:value={groupByTime}
+          on:change={() => groupActivitiesBySession()}
+          title="Group by time"
+        >
+          <option value="none">📅 No Time Grouping</option>
+          <option value="hour">⏰ Group by Hour</option>
+          <option value="day">📆 Group by Day</option>
+        </select>
+
+        {#if groupBySession && sessions.length > 1}
+          <select
+            class="session-filter"
+            bind:value={selectedSession}
+            on:change={() => groupActivitiesBySession()}
+          >
+            <option value="all">All Sessions ({sessions.length})</option>
+            {#each sessions as session}
+              <option value={session.id}>
+                {session.id.substring(0, 8)} ({session.totalEvents} events)
+              </option>
+            {/each}
+          </select>
+        {/if}
+      </div>
     </div>
 
     <div class="filter-tabs">
@@ -267,7 +399,117 @@
         <h2>No Activities Found</h2>
         <p>No activities match your current filters.</p>
       </div>
+    {:else if groupBySession && sessions.length > 0}
+      <!-- Session Grouped View -->
+      {#each sessions.filter(s => selectedSession === 'all' || s.id === selectedSession) as session (session.id)}
+        <div class="session-group">
+          <!-- Session Summary Card -->
+          <div
+            class="session-header"
+            class:collapsed={collapsedSessions.has(session.id)}
+            on:click={() => toggleSession(session.id)}
+          >
+            <div class="session-header-left">
+              <span class="expand-arrow">{collapsedSessions.has(session.id) ? '▶' : '▼'}</span>
+              <div class="session-info">
+                <div class="session-title">
+                  <span class="session-icon">🔖</span>
+                  <span class="session-id">Session: {session.id.substring(0, 12)}</span>
+                </div>
+                <div class="session-stats">
+                  <span class="stat">⏱️ {formatDuration(session.duration)}</span>
+                  <span class="stat-separator">•</span>
+                  <span class="stat">📊 {session.totalEvents} events</span>
+                  <span class="stat-separator">•</span>
+                  <span class="stat">📁 {session.filesCount} files</span>
+                  <span class="stat-separator">•</span>
+                  <span class="stat">🤖 {session.agentCount} agent</span>
+                  <span class="stat-separator">•</span>
+                  <span class="stat">⚙️ {session.systemCount} system</span>
+                </div>
+              </div>
+            </div>
+            <div class="session-header-right">
+              <span class="session-time">{formatTimestamp(session.startTime)}</span>
+            </div>
+          </div>
+
+          <!-- Session Activities (collapsible) -->
+          {#if !collapsedSessions.has(session.id)}
+            <div class="session-activities">
+              {#each session.activities as activity (activity.id + activity.category)}
+                <div class="activity-item" class:expanded={expandedActivity?.id === activity.id}>
+                  <div class="activity-header" on:click={() => toggleActivity(activity)}>
+                    <div class="activity-left">
+                      <span class="expand-arrow">{expandedActivity?.id === activity.id ? '▼' : '▶'}</span>
+                      <span class="activity-icon" style="color: {getCategoryColor(activity.category)}">
+                        {getCategoryIcon(activity.category)}
+                      </span>
+                      <div class="activity-info">
+                        <div class="activity-description">{activity.description}</div>
+                        <div class="activity-meta">
+                          <span class="meta-item">{activity.type}</span>
+                          <span class="meta-separator">•</span>
+                          <span class="meta-item">{formatRelativeTime(activity.timestamp)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="activity-right">
+                      <span class="activity-time">{formatTimestamp(activity.timestamp)}</span>
+                      <span class="activity-category">{activity.category}</span>
+                    </div>
+                  </div>
+
+                  {#if expandedActivity?.id === activity.id}
+                    <div class="activity-details">
+                      <div class="details-grid">
+                        <div class="detail-item">
+                          <span class="detail-label">ID:</span>
+                          <span class="detail-value">{activity.id}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Type:</span>
+                          <span class="detail-value">{activity.type}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Category:</span>
+                          <span class="detail-value">{activity.category}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Timestamp:</span>
+                          <span class="detail-value">{activity.timestamp}</span>
+                        </div>
+                        {#if activity.target}
+                          <div class="detail-item">
+                            <span class="detail-label">Target:</span>
+                            <span class="detail-value">{activity.target}</span>
+                          </div>
+                        {/if}
+                      </div>
+
+                      {#if activity.metadata && Object.keys(activity.metadata).length > 0}
+                        <div class="metadata-section">
+                          <h4>Metadata</h4>
+                          <pre class="metadata-code">{JSON.stringify(activity.metadata, null, 2)}</pre>
+                        </div>
+                      {/if}
+
+                      {#if activity.diff}
+                        <div class="diff-section">
+                          <h4>Diff</h4>
+                          <pre class="diff-code">{activity.diff.substring(0, 500)}{activity.diff.length > 500 ? '...' : ''}</pre>
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/each}
     {:else}
+      <!-- Flat List View -->
       {#each activities as activity (activity.id + activity.category)}
         <div class="activity-item" class:expanded={expandedActivity?.id === activity.id}>
           <div class="activity-header" on:click={() => toggleActivity(activity)}>
@@ -407,9 +649,80 @@
     border: 1px solid var(--border);
   }
 
+  .controls-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
   .search-bar {
     display: flex;
     gap: 12px;
+    flex: 1;
+  }
+
+  .view-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .view-toggle {
+    padding: 10px 20px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .view-toggle:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .view-toggle.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .time-grouping {
+    padding: 10px 16px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--mono);
+    cursor: pointer;
+    min-width: 180px;
+  }
+
+  .time-grouping:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .session-filter {
+    padding: 10px 16px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--mono);
+    cursor: pointer;
+    min-width: 200px;
+  }
+
+  .session-filter:focus {
+    outline: none;
+    border-color: var(--accent);
   }
 
   .search-bar input {
@@ -470,6 +783,101 @@
     background: var(--accent);
     color: white;
     border-color: var(--accent);
+  }
+
+  /* Session Grouping Styles */
+  .session-group {
+    margin-bottom: 16px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+  }
+
+  .session-header:hover {
+    background: var(--surface-2);
+  }
+
+  .session-header.collapsed {
+    border-bottom: none;
+  }
+
+  .session-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .session-info {
+    flex: 1;
+  }
+
+  .session-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .session-icon {
+    font-size: 16px;
+  }
+
+  .session-id {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    font-family: var(--mono);
+  }
+
+  .session-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .session-stats .stat {
+    color: var(--text);
+  }
+
+  .stat-separator {
+    color: var(--border);
+  }
+
+  .session-header-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .session-time {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .session-activities {
+    padding: 12px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .timeline {

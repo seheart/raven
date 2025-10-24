@@ -22,6 +22,18 @@
   let timeRangeEnd = Date.now();
   let virtualScroll; // Reference to virtual scroll component
 
+  // Forensics features
+  let showDiffModal = false;
+  let selectedEventForDiff = null;
+  let forensicsStats = {
+    topFiles: [],
+    busiestHours: [],
+    changeTypeBreakdown: { created: 0, modified: 0, deleted: 0 },
+    totalChanges: 0,
+    uniqueFiles: 0
+  };
+  let showForensics = true; // Toggle forensics dashboard
+
   function handleTimeRangeChange(start, end) {
     timeRangeStart = start;
     timeRangeEnd = end;
@@ -238,6 +250,78 @@
       'deleted': 'change-deleted'
     }[type] || '';
   }
+
+  // Calculate forensics statistics
+  function calculateForensicsStats() {
+    if (filteredEvents.length === 0) return;
+
+    // Count changes by file
+    const fileChanges = new Map();
+    filteredEvents.forEach(event => {
+      const count = fileChanges.get(event.filepath) || 0;
+      fileChanges.set(event.filepath, count + 1);
+    });
+
+    // Top 5 most changed files
+    forensicsStats.topFiles = Array.from(fileChanges.entries())
+      .map(([filepath, count]) => ({ filepath, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Activity by hour
+    const hourCounts = new Array(24).fill(0);
+    filteredEvents.forEach(event => {
+      const hour = new Date(event.timestamp).getHours();
+      hourCounts[hour]++;
+    });
+
+    forensicsStats.busiestHours = hourCounts
+      .map((count, hour) => ({ hour, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Change type breakdown
+    forensicsStats.changeTypeBreakdown = {
+      created: filteredEvents.filter(e => e.changeType === 'created').length,
+      modified: filteredEvents.filter(e => e.changeType === 'modified').length,
+      deleted: filteredEvents.filter(e => e.changeType === 'deleted').length
+    };
+
+    forensicsStats.totalChanges = filteredEvents.length;
+    forensicsStats.uniqueFiles = fileChanges.size;
+  }
+
+  // Watch for changes and recalculate stats
+  $: if (filteredEvents) {
+    calculateForensicsStats();
+  }
+
+  async function openDiffModal(event) {
+    selectedEventForDiff = event;
+
+    // Fetch full event details including diff
+    try {
+      const res = await fetch(`${API_BASE}/file-events?limit=1000&diff=true`);
+      const data = await res.json();
+      const eventWithDiff = data.find(e => e.id === event.id);
+
+      if (eventWithDiff) {
+        selectedEventForDiff = {
+          ...event,
+          diff: eventWithDiff.diff
+        };
+      }
+
+      showDiffModal = true;
+    } catch (error) {
+      console.error('Failed to load diff:', error);
+    }
+  }
+
+  function closeDiffModal() {
+    showDiffModal = false;
+    selectedEventForDiff = null;
+  }
 </script>
 
 <div class="event-feed">
@@ -264,6 +348,107 @@
       '**Export creates empty file** - No events match current filters. Check that: Filter dropdowns are not excluding everything, Date range includes events, Search term matches filenames. Clear all filters and try export again to verify events exist.'
     ]}
   />
+
+  <!-- Forensics Dashboard -->
+  {#if showForensics && filteredEvents.length > 0}
+    <div class="forensics-dashboard">
+      <div class="forensics-header">
+        <h2>📊 Forensics Analysis</h2>
+        <button
+          class="toggle-forensics"
+          on:click={() => showForensics = !showForensics}
+        >
+          {showForensics ? '▼ Hide' : '▶ Show'}
+        </button>
+      </div>
+
+      <!-- Key Metrics Cards -->
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-content">
+            <div class="stat-label">Total Changes</div>
+            <div class="stat-value">{forensicsStats.totalChanges}</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📄</div>
+          <div class="stat-content">
+            <div class="stat-label">Unique Files</div>
+            <div class="stat-value">{forensicsStats.uniqueFiles}</div>
+          </div>
+        </div>
+
+        <div class="stat-card success">
+          <div class="stat-icon">➕</div>
+          <div class="stat-content">
+            <div class="stat-label">Created</div>
+            <div class="stat-value">{forensicsStats.changeTypeBreakdown.created}</div>
+          </div>
+        </div>
+
+        <div class="stat-card warning">
+          <div class="stat-icon">✏️</div>
+          <div class="stat-content">
+            <div class="stat-label">Modified</div>
+            <div class="stat-value">{forensicsStats.changeTypeBreakdown.modified}</div>
+          </div>
+        </div>
+
+        <div class="stat-card error">
+          <div class="stat-icon">🗑️</div>
+          <div class="stat-content">
+            <div class="stat-label">Deleted</div>
+            <div class="stat-value">{forensicsStats.changeTypeBreakdown.deleted}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Files and Busiest Hours -->
+      <div class="forensics-grid">
+        <!-- Top 5 Most Changed Files -->
+        <div class="forensics-panel">
+          <h3>🔥 Top 5 Most Changed Files</h3>
+          <div class="top-files-list">
+            {#each forensicsStats.topFiles as file}
+              <div class="top-file-item">
+                <div class="file-path">{file.filepath}</div>
+                <div class="file-count">{file.count} changes</div>
+                <div class="file-bar">
+                  <div
+                    class="file-bar-fill"
+                    style="width: {(file.count / forensicsStats.topFiles[0].count) * 100}%"
+                  ></div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Busiest Hours Heat Map -->
+        <div class="forensics-panel">
+          <h3>⏰ Busiest Hours</h3>
+          <div class="hours-heatmap">
+            {#each forensicsStats.busiestHours as hourData}
+              <div class="hour-item">
+                <div class="hour-label">
+                  {hourData.hour.toString().padStart(2, '0')}:00
+                </div>
+                <div class="hour-count">{hourData.count} events</div>
+                <div class="hour-bar">
+                  <div
+                    class="hour-bar-fill"
+                    style="width: {(hourData.count / forensicsStats.busiestHours[0].count) * 100}%"
+                  ></div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <div class="header">
     <span class="count">{filteredEvents.length} / {events.length} events</span>
@@ -319,7 +504,7 @@
         getKey={event => event.id}
         let:item
       >
-        <div class="event-card {getChangeClass(item.changeType)}">
+        <div class="event-card {getChangeClass(item.changeType)}" on:click={() => openDiffModal(item)}>
           <div class="event-type-indicator">
             <span class="event-icon">
               {#if item.changeType === 'created'}
@@ -376,6 +561,48 @@
     </div>
   {/if}
 </div>
+
+<!-- Diff Viewer Modal -->
+{#if showDiffModal && selectedEventForDiff}
+  <div class="modal-overlay" on:click={closeDiffModal}>
+    <div class="modal-content" on:click|stopPropagation>
+      <div class="modal-header">
+        <h3>📝 File Diff</h3>
+        <button class="close-btn" on:click={closeDiffModal}>✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="diff-meta">
+          <div class="meta-row">
+            <span class="meta-label">File:</span>
+            <span class="meta-value">{selectedEventForDiff.filepath}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Change Type:</span>
+            <span class="meta-value badge {selectedEventForDiff.changeType}">
+              {selectedEventForDiff.changeType}
+            </span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Timestamp:</span>
+            <span class="meta-value">{formatTime(selectedEventForDiff.timestamp)}</span>
+          </div>
+        </div>
+
+        {#if selectedEventForDiff.diff}
+          <div class="diff-viewer">
+            <pre class="diff-content">{selectedEventForDiff.diff}</pre>
+          </div>
+        {:else}
+          <div class="no-diff">
+            <p>No diff available for this change</p>
+            <p class="hint">Diff may not be available for deletions or binary files</p>
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .event-feed {
@@ -691,5 +918,362 @@
 
   .timeline-container {
     margin-bottom: 24px;
+  }
+
+  /* Forensics Dashboard */
+  .forensics-dashboard {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .forensics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .forensics-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .toggle-forensics {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .toggle-forensics:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .stat-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .stat-card.success {
+    border-left: 4px solid var(--success);
+  }
+
+  .stat-card.warning {
+    border-left: 4px solid var(--warning);
+  }
+
+  .stat-card.error {
+    border-left: 4px solid var(--error);
+  }
+
+  .stat-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .stat-content {
+    flex: 1;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    font-family: var(--mono);
+  }
+
+  .forensics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+  }
+
+  .forensics-panel {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .forensics-panel h3 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .top-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .top-file-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .file-path {
+    font-size: 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-count {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .file-bar {
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .file-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2, var(--accent)));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+
+  .hours-heatmap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .hour-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hour-label {
+    font-size: 11px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-weight: 600;
+  }
+
+  .hour-count {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .hour-bar {
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .hour-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--warning), var(--error));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+
+  /* Diff Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: color-mix(in srgb, black 80%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-content {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px color-mix(in srgb, black 60%, transparent);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .close-btn {
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .close-btn:hover {
+    background: var(--error);
+    color: white;
+    border-color: var(--error);
+  }
+
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .diff-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .meta-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    min-width: 100px;
+  }
+
+  .meta-value {
+    font-size: 13px;
+    color: var(--text);
+    font-family: var(--mono);
+  }
+
+  .meta-value.badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .meta-value.badge.created {
+    background: color-mix(in srgb, var(--success) 20%, transparent);
+    color: var(--success);
+    border: 1px solid var(--success);
+  }
+
+  .meta-value.badge.modified {
+    background: color-mix(in srgb, var(--warning) 20%, transparent);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+  }
+
+  .meta-value.badge.deleted {
+    background: color-mix(in srgb, var(--error) 20%, transparent);
+    color: var(--error);
+    border: 1px solid var(--error);
+  }
+
+  .diff-viewer {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: auto;
+    max-height: 500px;
+  }
+
+  .diff-content {
+    margin: 0;
+    padding: 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .no-diff {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+
+  .no-diff p {
+    margin: 8px 0;
+  }
+
+  /* Make event cards clickable */
+  .event-card {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .event-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
   }
 </style>

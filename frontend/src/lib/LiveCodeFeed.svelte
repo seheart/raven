@@ -7,15 +7,27 @@
 
   const API_BASE = 'http://localhost:3030/api';
 
-  let fileTree = {};
-  let expandedFolders = new Set();
-  let changedFiles = new Set();
-  let selectedFile = null;
   let codeChanges = [];
   let recentActivity = [];
   let loading = true;
   let refreshInterval;
-  let flatItems = [];
+  let statsRefreshInterval;
+
+  // Live session stats
+  let sessionStats = {
+    duration: 0,
+    files_touched: 0,
+    active_agents: 0,
+    session_id: '',
+    total_events: 0
+  };
+  let isPaused = false;
+
+  // Metrics history for sparklines (last 20 data points)
+  let metricsHistory = {
+    cpu: [],
+    memory: []
+  };
 
 
   // Debounce utility function (moved outside reactive scope)
@@ -65,11 +77,17 @@
 
     // Refresh every 30 seconds (reduced frequency)
     refreshInterval = setInterval(loadAllData, 30000);
+
+    // Refresh stats more frequently (every 5 seconds)
+    statsRefreshInterval = setInterval(loadSessionStats, 5000);
   });
 
   onDestroy(() => {
     if (refreshInterval) {
       clearInterval(refreshInterval);
+    }
+    if (statsRefreshInterval) {
+      clearInterval(statsRefreshInterval);
     }
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('agent-event', handleAgentEvent);
@@ -78,34 +96,86 @@
 
   async function loadAllData() {
     await Promise.all([
-      loadFileTree(),
       loadCodeChanges(),
-      loadRecentActivity()
+      loadRecentActivity(),
+      loadSessionStats()
     ]);
     loading = false;
   }
 
-  async function loadFileTree() {
+  async function loadSessionStats() {
     try {
-      const [filesRes, eventsRes] = await Promise.all([
-        fetch(`${API_BASE}/tracked-files`),
-        fetch(`${API_BASE}/file-events?limit=100`)
-      ]);
+      const res = await fetch(`${API_BASE}/dashboard-stats`);
+      const data = await res.json();
 
-      const files = await filesRes.json();
-      const events = await eventsRes.json();
+      sessionStats = {
+        duration: data.session_duration_seconds || 0,
+        files_touched: data.unique_files_modified || 0,
+        active_agents: data.active_agents || 0,
+        session_id: data.session_id || 'unknown',
+        total_events: data.total_events || 0
+      };
 
-      // Track changed files
-      changedFiles = new Set((events || []).map(e => e?.filepath).filter(Boolean));
-
-      // Build tree structure
-      fileTree = buildTree(files);
-
-      // Update flattened tree
-      flatItems = flattenTree(fileTree);
+      // Update metrics history for sparklines
+      await loadMetrics();
     } catch (error) {
-      console.error('Failed to load file tree:', error);
+      console.error('Failed to load session stats:', error);
     }
+  }
+
+  async function loadMetrics() {
+    try {
+      const res = await fetch(`${API_BASE}/process-metrics?limit=1`);
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        const latest = data[0];
+
+        // Add to history (keep last 20 points)
+        metricsHistory.cpu = [...metricsHistory.cpu, latest.cpu].slice(-20);
+        metricsHistory.memory = [...metricsHistory.memory, latest.mem].slice(-20);
+      }
+    } catch (error) {
+      console.error('Failed to load metrics:', error);
+    }
+  }
+
+  function generateSparkline(data, width = 60, height = 24) {
+    if (data.length < 2) return '';
+
+    const max = Math.max(...data, 1);
+    const min = Math.min(...data, 0);
+    const range = max - min || 1;
+
+    const points = data.map((value, index) => {
+      const x = (index / (data.length - 1)) * width;
+      const y = height - ((value - min) / range) * height;
+      return `${x},${y}`;
+    }).join(' ');
+
+    return `M ${points.split(' ').join(' L ')}`;
+  }
+
+  function togglePause() {
+    isPaused = !isPaused;
+
+    if (isPaused) {
+      // Stop auto-refresh when paused
+      if (refreshInterval) clearInterval(refreshInterval);
+      if (statsRefreshInterval) clearInterval(statsRefreshInterval);
+    } else {
+      // Resume auto-refresh
+      refreshInterval = setInterval(loadAllData, 30000);
+      statsRefreshInterval = setInterval(loadSessionStats, 5000); // Stats update every 5s
+    }
+  }
+
+  function formatDuration(seconds) {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m`;
   }
 
   async function loadCodeChanges() {
@@ -139,80 +209,6 @@
     } catch (error) {
       console.error('Failed to load recent activity:', error);
     }
-  }
-
-  function buildTree(files) {
-    const tree = {};
-
-    for (const filepath of files) {
-      const parts = filepath.split('/');
-      let current = tree;
-
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        const isFile = i === parts.length - 1;
-
-        if (!current[part]) {
-          current[part] = isFile ? { _file: true, _path: filepath } : {};
-        }
-
-        if (!isFile) {
-          current = current[part];
-        }
-      }
-    }
-
-    return tree;
-  }
-
-  // Optimized folder toggle with immediate UI update
-  function toggleFolder(path) {
-    if (expandedFolders.has(path)) {
-      expandedFolders.delete(path);
-    } else {
-      expandedFolders.add(path);
-    }
-    // Immediately update flat items for responsive UI
-    flatItems = flattenTree(fileTree);
-  }
-
-  function selectFile(filepath) {
-    selectedFile = filepath;
-  }
-
-  function flattenTree(tree, path = '', level = 0) {
-    const items = [];
-
-    for (const [name, value] of Object.entries(tree).sort()) {
-      const currentPath = path ? `${path}/${name}` : name;
-
-      if (value && value._file) {
-        // It's a file
-        items.push({
-          type: 'file',
-          name,
-          path: value._path,
-          level,
-          hasChanges: changedFiles.has(value._path)
-        });
-      } else {
-        // It's a folder
-        const isExpanded = expandedFolders.has(currentPath);
-        items.push({
-          type: 'folder',
-          name,
-          path: currentPath,
-          level,
-          isExpanded
-        });
-
-        if (isExpanded) {
-          items.push(...flattenTree(value, currentPath, level + 1));
-        }
-      }
-    }
-
-    return items;
   }
 
   function parseDiffLines(diff) {
@@ -307,10 +303,9 @@
 <div class="live-code-feed">
   <PageInfo
     title="Live Code Feed"
-    description="This is your **real-time code monitoring dashboard** - imagine watching security camera footage of your codebase as it changes, but instead of video, you see actual code diffs scrolling by. The Live Code Feed is a 3-column view showing file tree, code changes, and activity stream all updating in real-time as you (or AI agents) edit files. Perfect for watching AI coding sessions or reviewing what changed during intense development."
+    description="This is your **real-time code monitoring dashboard** - imagine watching security camera footage of your codebase as it changes, but instead of video, you see actual code diffs scrolling by. The Live Code Feed is a 2-column view showing code changes and activity stream, all updating in real-time as you (or AI agents) edit files. Perfect for watching AI coding sessions or reviewing what changed during intense development."
     keyPoints={[
-      '**Left Column: File Tree** - Shows folder structure with files that have changed. 📁 folders can be expanded/collapsed by clicking the arrow (▶/▼). Files with recent changes show an orange pulsing dot. Click any file to see its changes in the middle column.',
-      '**Middle Column: Code Changes** - The main event! Shows actual code diffs for recent file modifications. Each change block shows: Change type (➕ ADD / ✏️ CHANGE / 🗑️ DELETE) in colored text, Project badge like `[RAVEN]` identifying which project, Timestamp when it happened, The diff with line numbers and syntax highlighting (green = added lines, red = deleted lines, gray = context).',
+      '**Left Column: Code Changes** - The main event! Shows actual code diffs for recent file modifications. Each change block shows: Change type (➕ ADD / ✏️ CHANGE / 🗑️ DELETE) in colored text, Project badge like `[RAVEN]` identifying which project, Timestamp when it happened, The diff with line numbers and syntax highlighting (green = added lines, red = deleted lines, gray = context).',
       '**Right Column: Activity Stream** - Condensed timeline of ALL recent activity (both file changes and agent actions). Shows icons for change type, file path (truncated to last 2 parts if long), time ago ("5m ago", "2h ago"). Updates live without refresh.',
       '**Change Type Icons & Colors** - ➕ green = file added/created, ✏️ blue = file modified/edited, 🗑️ red = file deleted/unlinked. These icons appear everywhere to help you quickly identify what happened.',
       '**Diff Format** - Uses standard unified diff format: Lines starting with `+` are additions (green), Lines starting with `-` are deletions (red), Lines with no prefix are context (gray), `@@ -1,5 +1,7 @@` headers show line numbers (means "showing lines 1-7 in the new version").',
@@ -319,7 +314,7 @@
     ]}
     whenToCheck="Keep this open **during AI coding sessions** to watch the AI work in real-time, **while debugging** to see which files are being touched, or **after a session** to review the complete timeline of what changed and in what order."
     warnings={[
-      '**No files in left tree** - Raven is not watching directories, or no changes have been detected yet. Check Status page to verify file watchers are active. Try editing a file in a monitored project.',
+      '**No code changes showing** - Raven is not watching directories, or no changes have been detected yet. Check Status page to verify file watchers are active. Try editing a file in a monitored project.',
       '**Empty diffs (file shown but no code changes)** - Happens when: File was moved/renamed (change detected but content identical), File permissions changed, File timestamp updated but content same. This is normal for renames.',
       '**Very rapid updates/scrolling** - Could indicate: AI agent in a tight loop editing the same file repeatedly, Build system auto-generating files on every save (like webpack hot-reload), File watcher detecting its own writes (watch loop). If sustained, investigate the looping process.',
       '**Diff shows binary file or "No diff available"** - File is binary (image, PDF, compiled code) so Raven cannot show text diff. Or file was deleted so there\'s no new content. This is expected for non-text files.',
@@ -327,54 +322,95 @@
     ]}
   />
 
-  <div class="feed-layout">
-    <!-- Left Column: File Tree -->
-    <div class="file-tree-column">
-      <div class="column-header">
-        <h3>📂 Project Files</h3>
+  <!-- Live Session Stats Widget -->
+  <div class="stats-widget">
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-icon">⏱️</span>
+        <div class="stat-content">
+          <span class="stat-label">Duration</span>
+          <span class="stat-value">{formatDuration(sessionStats.duration)}</span>
+        </div>
       </div>
-      <div class="file-tree-content">
-        {#if loading}
-          <div class="loading">Loading files...</div>
-        {:else if flatItems.length === 0}
-          <div class="empty-state">
-            <p>No files tracked yet</p>
+
+      <div class="stat-item">
+        <span class="stat-icon">📁</span>
+        <div class="stat-content">
+          <span class="stat-label">Files Touched</span>
+          <span class="stat-value">{sessionStats.files_touched}</span>
+        </div>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-icon">🤖</span>
+        <div class="stat-content">
+          <span class="stat-label">Active Agents</span>
+          <span class="stat-value">{sessionStats.active_agents}</span>
+        </div>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-icon">📊</span>
+        <div class="stat-content">
+          <span class="stat-label">Total Events</span>
+          <span class="stat-value">{sessionStats.total_events}</span>
+        </div>
+      </div>
+
+      <!-- Sparklines for CPU and Memory -->
+      {#if metricsHistory.cpu.length > 1}
+        <div class="sparkline-item">
+          <div class="sparkline-header">
+            <span class="sparkline-label">CPU</span>
+            <span class="sparkline-current">{metricsHistory.cpu[metricsHistory.cpu.length - 1]?.toFixed(1)}%</span>
           </div>
-        {:else}
-          <div class="file-list">
-            {#each flatItems || [] as item}
-              {#if item.type === 'folder'}
-                <div
-                  class="tree-item folder"
-                  style="padding-left: {item.level * 12 + 4}px"
-                  on:click={() => toggleFolder(item.path)}
-                >
-                  <span class="folder-arrow">{item.isExpanded ? '▼' : '▶'}</span>
-                  <span class="folder-icon">📁</span>
-                  <span class="item-name">{item.name}</span>
-                </div>
-              {:else}
-                <div
-                  class="tree-item file"
-                  style="padding-left: {item.level * 12 + 4}px"
-                  class:selected={selectedFile === item.path}
-                  class:has-changes={item.hasChanges}
-                  on:click={() => selectFile(item.path)}
-                >
-                  <span class="file-icon">📄</span>
-                  <span class="item-name">{item.name}</span>
-                  {#if item.hasChanges}
-                    <div class="change-indicator"></div>
-                  {/if}
-                </div>
-              {/if}
-            {/each}
+          <svg class="sparkline" width="60" height="24" viewBox="0 0 60 24">
+            <path
+              d={generateSparkline(metricsHistory.cpu, 60, 24)}
+              fill="none"
+              stroke="var(--info)"
+              stroke-width="2"
+              vector-effect="non-scaling-stroke"
+            />
+          </svg>
+        </div>
+      {/if}
+
+      {#if metricsHistory.memory.length > 1}
+        <div class="sparkline-item">
+          <div class="sparkline-header">
+            <span class="sparkline-label">MEM</span>
+            <span class="sparkline-current">{metricsHistory.memory[metricsHistory.memory.length - 1]?.toFixed(1)}%</span>
           </div>
-        {/if}
+          <svg class="sparkline" width="60" height="24" viewBox="0 0 60 24">
+            <path
+              d={generateSparkline(metricsHistory.memory, 60, 24)}
+              fill="none"
+              stroke="var(--success)"
+              stroke-width="2"
+              vector-effect="non-scaling-stroke"
+            />
+          </svg>
+        </div>
+      {/if}
+
+      <div class="stat-controls">
+        <button class="btn-pause" on:click={togglePause} title={isPaused ? 'Resume feed' : 'Pause feed'}>
+          {isPaused ? '▶️' : '⏸️'}
+          <span class="pause-text">{isPaused ? 'Resume' : 'Pause'}</span>
+        </button>
       </div>
     </div>
 
-    <!-- Middle Column: Code Changes -->
+    {#if isPaused}
+      <div class="paused-banner">
+        ⏸️ Feed paused - Click Resume to continue live updates
+      </div>
+    {/if}
+  </div>
+
+  <div class="feed-layout">
+    <!-- Code Changes Column -->
     <div class="code-changes-column">
       <div class="column-header">
         <h3>📊 Code Changes</h3>
@@ -499,15 +535,168 @@
     font-family: var(--mono);
   }
 
+  /* Stats Widget */
+  .stats-widget {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    flex-shrink: 0;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .stat-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .stat-item:hover {
+    border-color: var(--accent);
+    background: var(--surface-2);
+  }
+
+  .stat-icon {
+    font-size: 20px;
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+
+  .stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .stat-value {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 700;
+    font-family: var(--mono);
+  }
+
+  .stat-controls {
+    margin-left: auto;
+  }
+
+  .btn-pause {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: white;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-pause:hover {
+    background: var(--accent-2, var(--accent));
+    transform: scale(1.05);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  .pause-text {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .paused-banner {
+    margin-top: 12px;
+    padding: 10px 16px;
+    background: color-mix(in srgb, var(--warning) 15%, transparent);
+    border: 1px solid var(--warning);
+    border-radius: 6px;
+    color: var(--warning);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Sparklines */
+  .sparkline-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .sparkline-item:hover {
+    border-color: var(--accent);
+    background: var(--surface-2);
+  }
+
+  .sparkline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sparkline-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .sparkline-current {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 700;
+    font-family: var(--mono);
+  }
+
+  .sparkline {
+    display: block;
+    border-radius: 2px;
+  }
+
+  .sparkline path {
+    transition: stroke 0.3s ease;
+  }
+
   .feed-layout {
     display: grid;
-    grid-template-columns: 350px 1fr 280px;
+    grid-template-columns: 1fr 440px;
     gap: 0;
     height: 100%;
     overflow: hidden;
   }
 
-  .file-tree-column,
   .code-changes-column,
   .activity-column {
     display: flex;
@@ -545,111 +734,11 @@
     border-radius: 4px;
   }
 
-  .file-tree-content,
   .code-changes-content,
   .activity-content {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-  }
-
-  /* File Tree Styles */
-  .file-list {
-    padding: 4px;
-  }
-
-  .tree-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    margin-bottom: 2px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-    font-size: 11px;
-    user-select: none;
-  }
-
-  .tree-item:hover {
-    background: var(--surface);
-  }
-
-  .tree-item.file.selected {
-    background: var(--surface-2);
-    border-left: 3px solid var(--accent);
-  }
-
-  .tree-item.file.has-changes {
-    /* Background removed - circle indicator is sufficient */
-  }
-
-  .folder-arrow {
-    font-size: 10px;
-    color: var(--muted);
-    width: 12px;
-    display: inline-block;
-    transition: transform 0.15s ease;
-  }
-
-  .folder-icon {
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-
-  .file-icon {
-    font-size: 12px;
-    flex-shrink: 0;
-    margin-left: 12px;
-  }
-
-  .item-name {
-    font-size: 11px;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-  }
-
-  .change-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--warning);
-    margin-left: auto;
-    flex-shrink: 0;
-    box-shadow: 0 0 4px var(--warning);
-  }
-
-  /* Legacy file-item support */
-  .file-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    margin-bottom: 2px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-    font-size: 10px;
-  }
-
-  .file-item:hover {
-    background: var(--surface);
-  }
-
-  .file-item.selected {
-    background: var(--surface-2);
-    border-left: 3px solid var(--accent);
-  }
-
-  .file-name {
-    font-size: 10px;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   /* Code Changes Styles */
@@ -926,13 +1015,11 @@
   }
 
   /* Scrollbar */
-  .file-tree-content::-webkit-scrollbar,
   .code-changes-content::-webkit-scrollbar,
   .activity-content::-webkit-scrollbar {
     width: 6px;
   }
 
-  .file-tree-content::-webkit-scrollbar-thumb,
   .code-changes-content::-webkit-scrollbar-thumb,
   .activity-content::-webkit-scrollbar-thumb {
     background: var(--border);
@@ -942,7 +1029,7 @@
   /* Responsive */
   @media (max-width: 1200px) {
     .feed-layout {
-      grid-template-columns: 180px 1fr 240px;
+      grid-template-columns: 1fr 380px;
     }
   }
 
@@ -951,7 +1038,6 @@
       grid-template-columns: 1fr;
     }
 
-    .file-tree-column,
     .activity-column {
       display: none;
     }
