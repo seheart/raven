@@ -17,7 +17,8 @@
     uptime: 0,
     active_agents: 0,
     database: '',
-    database_health: { status: 'unknown', accessible: false }
+    database_health: { status: 'unknown', accessible: false },
+    telemetry_bridge: { running: false, pid: null, healthy: false }
   };
 
   let websocketStatus = {
@@ -58,7 +59,8 @@
         uptime: data.uptime,
         active_agents: data.active_agents,
         database: data.database,
-        database_health: data.database_health || { status: 'unknown', accessible: false }
+        database_health: data.database_health || { status: 'unknown', accessible: false },
+        telemetry_bridge: data.telemetry_bridge || { running: false, pid: null, healthy: false }
       };
 
       lastUpdated = new Date();
@@ -138,6 +140,35 @@
 
   function formatCommitDate(date) {
     return formatShortDateTime(date);
+  }
+
+  // Restart telemetry bridge
+  let restartingBridge = false;
+  async function restartBridge() {
+    if (restartingBridge) return;
+
+    restartingBridge = true;
+    try {
+      const response = await fetch(`${API_BASE}/api/control/restart-bridge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh health status after a moment to reflect new state
+        setTimeout(() => checkBackendHealth(), 1000);
+      } else {
+        console.error('Bridge restart failed:', result.error);
+        alert(`Failed to restart bridge: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error restarting bridge:', error);
+      alert(`Error restarting bridge: ${error.message}`);
+    } finally {
+      restartingBridge = false;
+    }
   }
 
   // WebSocket event handler for project switches
@@ -317,6 +348,55 @@
           <div class="error-message">
             ⚠️ WebSocket disconnected
             <p class="hint">Falling back to HTTP polling</p>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Telemetry Bridge Status Card -->
+    <div class="status-card">
+      <div class="card-header">
+        <h3>🔗 Telemetry Bridge</h3>
+        <div class="status-indicator" class:online={backendStatus.telemetry_bridge.healthy} class:offline={!backendStatus.telemetry_bridge.healthy}>
+          {backendStatus.telemetry_bridge.healthy ? '🟢 Running' : '🔴 Stopped'}
+        </div>
+      </div>
+      <div class="card-body">
+        {#if backendStatus.connected}
+          {#if backendStatus.telemetry_bridge.running}
+            <div class="info-row">
+              <span class="label">Status:</span>
+              <span class="value success">Active</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Process ID:</span>
+              <span class="value mono">{backendStatus.telemetry_bridge.pid}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Health:</span>
+              <span class="value success">✓ Healthy</span>
+            </div>
+            <div class="info-message">
+              ✅ Claude Code operations are being tracked
+            </div>
+            <button on:click={restartBridge} class="btn-restart" disabled={restartingBridge}>
+              <span class="refresh-icon" class:spinning={restartingBridge}>↻</span>
+              {restartingBridge ? 'Restarting...' : 'Restart Bridge'}
+            </button>
+          {:else}
+            <div class="error-message">
+              ⚠️ Telemetry bridge is not running
+              <p class="hint">Claude Code operations will not be tracked</p>
+            </div>
+            <button on:click={restartBridge} class="btn-restart btn-start" disabled={restartingBridge}>
+              <span class="refresh-icon" class:spinning={restartingBridge}>↻</span>
+              {restartingBridge ? 'Starting...' : 'Start Bridge'}
+            </button>
+          {/if}
+        {:else}
+          <div class="error-message">
+            ❌ Cannot check bridge status
+            <p class="hint">Backend must be online first</p>
           </div>
         {/if}
       </div>
@@ -546,6 +626,46 @@
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+
+  .btn-restart {
+    width: 100%;
+    padding: 10px 16px;
+    margin-top: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-restart:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn-restart.btn-start {
+    background: var(--success);
+    border-color: var(--success);
+    color: var(--bg);
+  }
+
+  .btn-restart.btn-start:hover:not(:disabled) {
+    background: var(--success-hover, var(--success));
+    opacity: 0.9;
+  }
+
+  .btn-restart:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .status-grid {

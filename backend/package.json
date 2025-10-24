@@ -1,7 +1,7 @@
 {
   "name": "raven-backend",
-  "version": "0.10.0",
-  "description": "Node.js backend for Raven AI monitoring",
+  "version": "0.11.0",
+  "description": "Production-grade backend for Raven AI monitoring with observability",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -18,12 +18,14 @@
     "format:check": "prettier --check .",
     "test": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "npm run test -- --watch",
-    "test:coverage": "npm run test -- --coverage"
+    "test:coverage": "npm run test -- --coverage",
+    "test:integration": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=integration"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^11.8.1",
     "chokidar": "^4.0.3",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "diff": "^8.0.2",
     "express": "^4.21.2",
@@ -32,11 +34,16 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "marked": "^16.4.1",
+    "nanoid": "^5.1.6",
+    "on-finished": "^2.4.1",
     "simple-git": "^3.28.0",
     "socket.io": "^4.8.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "systeminformation": "^5.27.11",
     "toml": "^3.0.0",
-    "uuid": "^11.0.5"
+    "uuid": "^11.0.5",
+    "winston": "^3.18.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

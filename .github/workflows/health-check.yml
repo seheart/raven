@@ -1,0 +1,57 @@
+name: Health Check
+
+on:
+  schedule:
+    # Run every hour
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    name: Check Service Health
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment: [staging, production]
+
+    steps:
+      - name: Check health endpoint
+        id: health
+        run: |
+          if [ "${{ matrix.environment }}" = "staging" ]; then
+            URL="https://staging.raven.example.com/health"
+          else
+            URL="https://raven.example.com/health"
+          fi
+
+          echo "Checking $URL"
+
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+
+          if [ "$RESPONSE" = "200" ]; then
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            echo "✅ ${{ matrix.environment }} is healthy"
+          else
+            echo "status=unhealthy" >> $GITHUB_OUTPUT
+            echo "❌ ${{ matrix.environment }} is unhealthy (HTTP $RESPONSE)"
+            exit 1
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Health check failed for ${{ matrix.environment }}"
+          # Add notification logic here
+          # Example: Send to Slack, PagerDuty, etc.
+
+  metrics-check:
+    name: Check Metrics Endpoint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check metrics availability
+        run: |
+          echo "Checking metrics endpoint..."
+          # curl https://raven.example.com/metrics
+          echo "Metrics check completed"

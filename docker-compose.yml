@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Raven Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: raven-backend
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    environment:
+      - NODE_ENV=production
+      - PORT=3030
+      - CORS_ORIGIN=http://localhost:5173
+      - LOG_LEVEL=info
+      - DISABLE_AUTH=false
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable must be set}
+      - DB_DIR=/app/.raven/databases
+      - SNAPSHOT_TTL_DAYS=30
+    volumes:
+      # Persist databases and snapshots
+      - raven-data:/app/.raven
+      - raven-logs:/app/logs
+      # Mount project directory for file watching (development)
+      # - ./backend:/app:ro
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - raven-network
+
+  # Raven Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: raven-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      # For browser-based API calls (accessed from host)
+      - VITE_API_URL=${API_URL:-http://localhost:3030}
+    depends_on:
+      - backend
+    networks:
+      - raven-network
+
+  # Claude Telemetry Bridge
+  telemetry-bridge:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.bridge
+    container_name: claude-telemetry-bridge
+    restart: unless-stopped
+    environment:
+      - TELEMETRY_URL=http://backend:3030/telemetry
+    volumes:
+      # Mount Claude Code logs directory (adjust path for your system)
+      - ${CLAUDE_LOGS_DIR:-~/.claude}:/root/.claude:ro
+    depends_on:
+      - backend
+    networks:
+      - raven-network
+
+volumes:
+  raven-data:
+    driver: local
+  raven-logs:
+    driver: local
+
+networks:
+  raven-network:
+    driver: bridge

@@ -12,8 +12,24 @@ export class RavenDB {
 
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL'); // Better performance
+
+    // Prepared statement cache for better performance
+    this.stmtCache = new Map();
+
     this.initializeSchema();
     console.log(`✅ Database initialized at ${dbPath}`);
+  }
+
+  /**
+   * Get a cached prepared statement or create and cache it
+   * @param {string} sql - SQL query string
+   * @returns {Statement} Prepared statement
+   */
+  prepareStatement(sql) {
+    if (!this.stmtCache.has(sql)) {
+      this.stmtCache.set(sql, this.db.prepare(sql));
+    }
+    return this.stmtCache.get(sql);
   }
 
   initializeSchema() {
@@ -165,7 +181,7 @@ export class RavenDB {
     metadata,
     session_id
   ) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       INSERT INTO agent_events (timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -186,7 +202,7 @@ export class RavenDB {
   }
 
   getRecentAgentEvents(limit = 100) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
       FROM agent_events
       ORDER BY timestamp DESC
@@ -197,7 +213,7 @@ export class RavenDB {
   }
 
   getEventsByAgent(agent, limit = 100) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
       FROM agent_events
       WHERE agent = ?
@@ -209,7 +225,7 @@ export class RavenDB {
   }
 
   getAgentStats() {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT
         agent,
         COUNT(*) as event_count,
@@ -225,7 +241,7 @@ export class RavenDB {
 
   // Get historical agents with last_seen and request counts (for agents panel)
   getHistoricalAgents() {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT
         agent as agent_name,
         agent as agent_type,
@@ -243,7 +259,7 @@ export class RavenDB {
   // ==================== File Events ====================
 
   insertEvent(timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -310,7 +326,7 @@ export class RavenDB {
   }
 
   getEventsBySession(session_id) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT id, timestamp, filepath, change_type, diff, cpu, mem
       FROM events
       WHERE session_id = ?
@@ -321,7 +337,7 @@ export class RavenDB {
   }
 
   getAgentEventsBySession(session_id) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT id, timestamp, agent, event_type as change_type, file as filepath, lines_changed, duration_ms, message
       FROM agent_events
       WHERE session_id = ?
@@ -332,7 +348,7 @@ export class RavenDB {
   }
 
   getTrackedFiles() {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT DISTINCT filepath
       FROM events
       WHERE filepath IS NOT NULL
@@ -354,7 +370,7 @@ export class RavenDB {
     network_tx_bytes,
     session_id
   ) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       INSERT INTO raven_metrics (timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -374,7 +390,7 @@ export class RavenDB {
   }
 
   getRecentSystemMetrics(limit = 100) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT id, timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes
       FROM raven_metrics
       ORDER BY timestamp DESC
@@ -385,7 +401,7 @@ export class RavenDB {
   }
 
   getMetricsStats(start_time, end_time) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT
         AVG(cpu_percent) as avg_cpu_percent,
         MAX(cpu_percent) as max_cpu_percent,
@@ -421,7 +437,7 @@ export class RavenDB {
     status,
     session_id
   ) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       INSERT INTO process_metrics (timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, status, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -443,7 +459,7 @@ export class RavenDB {
   }
 
   getProcessMetricsByAgent(agent_name, limit = 100) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT id, timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, status
       FROM process_metrics
       WHERE agent_name = ?
@@ -457,7 +473,7 @@ export class RavenDB {
   // ==================== Performance Correlations ====================
 
   correlateEventsWithMetrics(time_window_seconds = 5) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT
         ae.id as event_id,
         ae.timestamp as event_timestamp,
@@ -490,7 +506,7 @@ export class RavenDB {
 
   getTopModifiedFiles(session_id = null, limit = 10) {
     // Optimized: Use SQL aggregation instead of loading all events into memory
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT
         file as filepath,
         COUNT(*) as edit_count,
@@ -507,7 +523,7 @@ export class RavenDB {
   }
 
   getLongestEdits(limit = 10) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT file as filepath, lines_changed, timestamp, agent
       FROM agent_events
       WHERE lines_changed IS NOT NULL
@@ -521,7 +537,7 @@ export class RavenDB {
   getDashboardStats(session_id = null) {
     // Get agent events (filtered by session if provided)
     const whereClause = session_id ? 'WHERE session_id = ?' : '';
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT id, timestamp, agent, event_type as change_type, file as filepath, lines_changed, duration_ms, message
       FROM agent_events
       ${whereClause}
@@ -673,7 +689,7 @@ export class RavenDB {
     session_id,
     severity = 'error'
   ) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       INSERT INTO error_logs (timestamp, error_type, message, stack, component, user_agent, url, metadata, session_id, severity)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -748,7 +764,7 @@ export class RavenDB {
     query += ` LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
-    const stmt = this.db.prepare(query);
+    const stmt = this.prepareStatement(query);
     const errors = stmt.all(...params);
 
     // Parse metadata JSON
@@ -767,7 +783,7 @@ export class RavenDB {
   }
 
   getErrorStats() {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       SELECT
         severity,
         COUNT(*) as count,
@@ -799,7 +815,7 @@ export class RavenDB {
       params.push(olderThanDays);
     }
 
-    const stmt = this.db.prepare(query);
+    const stmt = this.prepareStatement(query);
     const result = stmt.run(...params);
     return result.changes;
   }
@@ -1036,7 +1052,7 @@ export class RavenDB {
   // ==================== Notifications ====================
 
   insertNotification(timestamp, type, severity, title, message, metadata, session_id) {
-    const stmt = this.db.prepare(`
+    const stmt = this.prepareStatement(`
       INSERT INTO notifications (timestamp, type, severity, title, message, metadata, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
@@ -1089,7 +1105,7 @@ export class RavenDB {
     query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
-    const stmt = this.db.prepare(query);
+    const stmt = this.prepareStatement(query);
     const notifications = stmt.all(...params);
 
     return {
@@ -1145,17 +1161,17 @@ export class RavenDB {
   }
 
   markNotificationAsRead(id) {
-    const stmt = this.db.prepare('UPDATE notifications SET read = 1 WHERE id = ?');
+    const stmt = this.prepareStatement('UPDATE notifications SET read = 1 WHERE id = ?');
     stmt.run(id);
   }
 
   markAllNotificationsAsRead() {
-    const stmt = this.db.prepare('UPDATE notifications SET read = 1');
+    const stmt = this.prepareStatement('UPDATE notifications SET read = 1');
     stmt.run();
   }
 
   deleteNotification(id) {
-    const stmt = this.db.prepare('DELETE FROM notifications WHERE id = ?');
+    const stmt = this.prepareStatement('DELETE FROM notifications WHERE id = ?');
     stmt.run(id);
   }
 
@@ -1165,11 +1181,11 @@ export class RavenDB {
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
       const cutoffISO = cutoffDate.toISOString();
 
-      const stmt = this.db.prepare('DELETE FROM notifications WHERE timestamp < ?');
+      const stmt = this.prepareStatement('DELETE FROM notifications WHERE timestamp < ?');
       const result = stmt.run(cutoffISO);
       return { deleted: result.changes };
     } else {
-      const stmt = this.db.prepare('DELETE FROM notifications');
+      const stmt = this.prepareStatement('DELETE FROM notifications');
       const result = stmt.run();
       return { deleted: result.changes };
     }

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import Database from 'better-sqlite3';
@@ -15,6 +16,7 @@ import { join, relative, normalize } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
 import { readFileSync } from 'fs';
+import { promises as fsPromises } from 'fs';
 import { createHash } from 'crypto';
 import * as Diff from 'diff';
 import toml from 'toml';
@@ -38,6 +40,26 @@ import {
 } from './middleware/security.js';
 import { AuthService } from './services/auth-service.js';
 import { createAuthRoutes } from './routes/auth.js';
+
+// Modular routes (Phase 3)
+import { createTelemetryRoutes } from './routes/telemetry.js';
+import { createDashboardRoutes } from './routes/dashboard.js';
+import { createControlRoutes } from './routes/control.js';
+import { createMetricsRoutes } from './routes/metrics.js';
+import { createApiDocsRoutes } from './routes/api-docs.js';
+
+// Utilities (Phase 3)
+import { logger } from './utils/logger.js';
+import { fileCache, addToFileCache, getHealthCache, updateHealthCache, clearFileCache } from './utils/cache.js';
+import { config as appConfig } from './config/index.js';
+
+// Observability (Phase 5C)
+import { requestTracing, errorLogging } from './middleware/request-tracing.js';
+import { metricsMiddleware } from './middleware/metrics.js';
+import { env, initConfig } from './config/environment.js';
+
+// Initialize and validate configuration
+initConfig();
 
 const execAsync = promisify(exec);
 const gzipAsync = promisify(gzip);
@@ -65,8 +87,30 @@ const io = new Server(httpServer, {
 // Apply security headers (Helmet)
 app.use(setupHelmet());
 
+// HTTP Compression (gzip/deflate) - 60-80% bandwidth savings
+app.use(compression({
+  threshold: 1024, // Only compress responses > 1KB
+  level: 6, // Compression level (0-9, 6 is default balance)
+  filter: (req, res) => {
+    // Don't compress if client explicitly opts out
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Use default compression filter
+    return compression.filter(req, res);
+  }
+}));
+
 // Request logging
 app.use(requestLogger);
+
+// Observability: Request tracing and metrics (Phase 5C)
+if (env.ENABLE_TRACING || env.ENABLE_METRICS) {
+  app.use(requestTracing);
+}
+if (env.ENABLE_METRICS) {
+  app.use(metricsMiddleware);
+}
 
 // CORS
 app.use(cors());
@@ -234,8 +278,8 @@ const availableProjects = discoveredProjects.length > 0
 // Session ID (generated once per server start)
 const SESSION_ID = randomUUID();
 
-// File cache for tracking previous states (for diff generation)
-const fileCache = new Map();
+// ==================== Logger & Cache (imported from modules) ====================
+// logger, fileCache, addToFileCache imported from utils/ (Phase 3)
 
 // Track files currently being processed to prevent race conditions
 const filesInProgress = new Set();
@@ -274,7 +318,7 @@ const agentCleanupInterval = setInterval(() => {
   }
 
   if (removed > 0) {
-    console.log(`🧹 Cleaned up ${removed} inactive agents from registry`);
+    logger.info(`🧹 Cleaned up ${removed} inactive agents from registry`);
   }
 }, 60 * 60 * 1000); // Run every hour
 
@@ -303,7 +347,7 @@ const snapshotCleanupInterval = setInterval(async () => {
     }
 
     if (removed > 0) {
-      console.log(`🧹 Cleaned up ${removed} old snapshots (>${process.env.SNAPSHOT_TTL_DAYS || '30'} days)`);
+      logger.info(`🧹 Cleaned up ${removed} old snapshots (>${process.env.SNAPSHOT_TTL_DAYS || '30'} days)`);
     }
   } catch (error) {
     console.error('❌ Error cleaning snapshots:', error.message);
@@ -497,7 +541,7 @@ async function saveSnapshot(filepath, content, projectName) {
     const compressedSize = compressed.length;
     const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
 
-    console.log(`💾 Snapshot saved [${projectName}]: ${snapshotName} (${originalSize} → ${compressedSize} bytes, ${ratio}% reduction)`);
+    logger.info(`💾 Snapshot saved [${projectName}]: ${snapshotName} (${originalSize} → ${compressedSize} bytes, ${ratio}% reduction)`);
     return snapshotPath;
   } catch (error) {
     console.error(`❌ Snapshot save error [${projectName}]:`, error);
@@ -557,8 +601,8 @@ async function handleFileChange(eventType, filepath) {
         // Save snapshot (project-specific)
         await saveSnapshot(filepath, content, projectName);
 
-        // Update cache
-        fileCache.set(filepath, content);
+        // Update cache with LRU eviction
+        addToFileCache(filepath, content);
       } catch (readError) {
         console.error(`❌ Error reading file [${projectName}] ${relPath}:`, readError.message);
         return;
@@ -944,156 +988,55 @@ const projectState = {
   }
 };
 
-// ==================== Telemetry Endpoint ====================
+// ==================== Dependency Injection for Modular Routes (Phase 3) ====================
 
-app.post('/telemetry', (req, res) => {
-  try {
-    const { agent, event, file, lines_changed, duration_ms, message, metadata, project } = req.body;
+const routeDependencies = {
+  // Databases
+  projectDatabases,
+  developerDB,
+  projectState,
 
-    // Validate required fields
-    if (!agent || !event || !message) {
-      return res.status(400).json({ error: 'Missing required fields: agent, event, message' });
-    }
+  // Registry & State
+  agentRegistry,
+  availableProjects,
+  SESSION_ID,
 
-    // Validate field types and sanitize
-    if (typeof agent !== 'string' || agent.length > 100) {
-      return res.status(400).json({ error: 'Invalid agent: must be string ≤100 chars' });
-    }
-    if (typeof event !== 'string' || event.length > 100) {
-      return res.status(400).json({ error: 'Invalid event: must be string ≤100 chars' });
-    }
-    if (typeof message !== 'string' || message.length > 1000) {
-      return res.status(400).json({ error: 'Invalid message: must be string ≤1000 chars' });
-    }
-    if (file !== undefined && typeof file !== 'string') {
-      return res.status(400).json({ error: 'Invalid file: must be string' });
-    }
-    if (lines_changed !== undefined && (typeof lines_changed !== 'number' || lines_changed < 0 || lines_changed > 1000000)) {
-      return res.status(400).json({ error: 'Invalid lines_changed: must be number 0-1000000' });
-    }
-    if (duration_ms !== undefined && (typeof duration_ms !== 'number' || duration_ms < 0 || duration_ms > 3600000)) {
-      return res.status(400).json({ error: 'Invalid duration_ms: must be number 0-3600000 (1 hour max)' });
-    }
+  // Services
+  triggerEngine,
+  io,
+  getAgentColor,
 
-    const timestamp = new Date().toISOString();
+  // Cache
+  fileCache,
 
-    // Determine which project this telemetry is for
-    let projectName = project; // Use explicit project if provided
-    if (!projectName && availableProjects.length > 0) {
-      // Default to 'raven' if it exists, otherwise first project
-      const ravenProject = availableProjects.find(p => p.name === 'raven');
-      projectName = ravenProject ? ravenProject.name : availableProjects[0].name;
-    }
+  // Utilities
+  projectStateMutex,
+  initializeWatcher,
+  PORT
+};
 
-    // Get project database (or use first available)
-    const db = projectName ? projectDatabases.get(projectName) : projectDatabases.values().next().value;
+// ==================== Modular Routes (Phase 3) ====================
 
-    if (!db) {
-      return res.status(500).json({ error: 'No project database available' });
-    }
+// Telemetry endpoint (with rate limiting)
+app.use('/telemetry', telemetryLimiter, createTelemetryRoutes(routeDependencies));
 
-    // Insert into project-specific database
-    const eventId = db.insertAgentEvent(
-      timestamp,
-      agent,
-      event,
-      file,
-      lines_changed,
-      duration_ms,
-      message,
-      metadata,
-      SESSION_ID
-    );
+// Dashboard routes
+app.use('/api', createDashboardRoutes(routeDependencies));
 
-    // ALSO log to global developer persona database
-    try {
-      developerDB.logAgentInteraction({
-        timestamp,
-        project: projectName,
-        agent_name: agent,
-        event_type: event,
-        file_path: file,
-        lines_changed,
-        message,
-        session_id: SESSION_ID,
-        prompt_type: metadata?.prompt_type,
-        metadata: JSON.stringify(metadata)
-      });
-    } catch (devDbError) {
-      console.error('❌ Failed to log to developer DB:', devDbError.message);
-    }
+// Control routes
+app.use('/api/control', createControlRoutes(routeDependencies));
 
-    // Update agent registry
-    if (!agentRegistry.has(agent)) {
-      agentRegistry.set(agent, {
-        agent_name: agent,
-        agent_type: agent,
-        is_running: true,
-        last_seen: timestamp,
-        models_available: [],
-        requests_handled: 0,
-        errors: 0,
-        color: getAgentColor(agent)
-      });
-    }
+// Metrics routes (Phase 5C)
+app.use('/', createMetricsRoutes());
 
-    const agentStatus = agentRegistry.get(agent);
-    agentStatus.last_seen = timestamp;
-    agentStatus.requests_handled++;
-    agentStatus.is_running = true;
+// API Documentation (Phase 5A)
+app.use('/api-docs', createApiDocsRoutes());
 
-    // Evaluate triggers
-    const triggerEvent = {
-      file: file,
-      agent: agent,
-      event_type: event,
-      lines_changed: lines_changed,
-      duration_ms: duration_ms,
-      project: projectName
-    };
-    triggerEngine.evaluate(triggerEvent);
+// ==================== Legacy Routes (to be extracted or kept) ====================
+// The routes below are still in server.js - can be extracted later if needed
 
-    console.log(`📡 [${projectName}] Telemetry: ${agent} - ${event} - ${message}`);
-
-    // Emit real-time event via WebSocket (include project)
-    io.emit('agent-event', {
-      id: eventId,
-      timestamp,
-      project: projectName,
-      agent,
-      event_type: event,
-      file,
-      lines_changed,
-      duration_ms,
-      message,
-      metadata
-    });
-
-    // Emit file-changed event for Live Activity Stream
-    if (file && event !== 'session-start' && event !== 'session-end') {
-      io.emit('file-changed', {
-        filepath: file,
-        change_type: event,
-        timestamp,
-        project: projectName,
-        agent
-      });
-    }
-
-    // Emit updated agent stats
-    io.emit('agent-stats', db.getAgentStats());
-
-    res.json({
-      success: true,
-      event_id: eventId,
-      session_id: SESSION_ID,
-      project: projectName
-    });
-  } catch (error) {
-    console.error('❌ Telemetry error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// ==================== Telemetry Endpoint (NOW MODULAR - see routes/telemetry.js) ====================
+// Deleted - now using modular route
 
 // ==================== Authentication Routes ====================
 
@@ -1248,137 +1191,8 @@ app.get('/api/health-checks', (req, res) => {
   }
 });
 
-app.get('/api/dashboard-stats', (req, res) => {
-  try {
-    // Aggregate stats from ALL projects
-    let aggregatedStats = {
-      total_events: 0,
-      total_files: 0,
-      total_agents: 0,
-      session_duration_seconds: 0,
-      active_files_today: 0,
-      total_changes: 0,
-      creates: 0,
-      edits: 0,
-      deletes: 0,
-      unique_files_modified: 0
-    };
-
-    // Get session start time from the first project that has it
-    let sessionStartTime = null;
-
-    for (const [projectName, db] of projectDatabases.entries()) {
-      const projectStats = db.getDashboardStats(SESSION_ID);
-
-      aggregatedStats.total_events += projectStats.total_events || 0;
-      aggregatedStats.total_files += projectStats.total_files || 0;
-      aggregatedStats.total_agents += projectStats.total_agents || 0;
-      aggregatedStats.active_files_today += projectStats.active_files_today || 0;
-      aggregatedStats.total_changes += projectStats.total_changes || 0;
-      aggregatedStats.creates += projectStats.creates || 0;
-      aggregatedStats.edits += projectStats.edits || 0;
-      aggregatedStats.deletes += projectStats.deletes || 0;
-      aggregatedStats.unique_files_modified += projectStats.unique_files_modified || 0;
-
-      // Use the earliest session start time
-      if (projectStats.session_duration_seconds > 0 &&
-          (sessionStartTime === null || projectStats.session_duration_seconds > aggregatedStats.session_duration_seconds)) {
-        aggregatedStats.session_duration_seconds = projectStats.session_duration_seconds;
-      }
-    }
-
-    res.json(aggregatedStats);
-  } catch (error) {
-    console.error('❌ Dashboard stats error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/top-modified-files', (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 10;
-
-    // Aggregate top files from ALL projects
-    const allFiles = [];
-
-    for (const [projectName, db] of projectDatabases.entries()) {
-      const projectFiles = db.getTopModifiedFiles(SESSION_ID, limit);
-      // Add project name to each file
-      if (projectFiles && Array.isArray(projectFiles)) {
-        projectFiles.forEach(file => {
-          file.project = projectName;
-        });
-        allFiles.push(...projectFiles);
-      }
-    }
-
-    // Sort by change count (descending) and take top N
-    allFiles.sort((a, b) => b.change_count - a.change_count);
-    const topFiles = allFiles.slice(0, limit);
-
-    res.json({ files: topFiles });
-  } catch (error) {
-    console.error('❌ Top files error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/longest-edits', (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 10;
-    const edits = projectState.db.getLongestEdits(limit);
-    res.json(edits);
-  } catch (error) {
-    console.error('❌ Longest edits error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/agents-status', (req, res) => {
-  try {
-    const now = new Date();
-
-    // Get historical agents from database
-    const historicalAgents = projectState.db.getHistoricalAgents();
-
-    // Create a map of agents with their historical data
-    const agentsMap = new Map();
-
-    // First, add historical agents from database
-    for (const agent of historicalAgents) {
-      const lastSeen = new Date(agent.last_seen);
-      const secondsSinceLastSeen = (now - lastSeen) / 1000;
-
-      agentsMap.set(agent.agent_name, {
-        agent_name: agent.agent_name,
-        agent_type: agent.agent_type,
-        last_seen: agent.last_seen,
-        requests_handled: agent.requests_handled,
-        errors: agent.errors,
-        is_running: secondsSinceLastSeen < 30,
-        models_available: [],
-        color: getAgentColor(agent.agent_name)
-      });
-    }
-
-    // Then, update with any current agents from registry (will be more recent)
-    for (const [agentName, agentData] of agentRegistry.entries()) {
-      const lastSeen = new Date(agentData.last_seen);
-      const secondsSinceLastSeen = (now - lastSeen) / 1000;
-
-      agentsMap.set(agentName, {
-        ...agentData,
-        is_running: secondsSinceLastSeen < 30
-      });
-    }
-
-    const agents = Array.from(agentsMap.values());
-    res.json(agents);
-  } catch (error) {
-    console.error('❌ Agents status error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// ==================== Dashboard Routes (NOW MODULAR - see routes/dashboard.js) ====================
+// Deleted: /api/dashboard-stats, /api/top-modified-files, /api/longest-edits, /api/agents-status
 
 // ==================== Agent Events API ====================
 
@@ -1405,15 +1219,7 @@ app.get('/api/events-by-agent/:agent', (req, res) => {
   }
 });
 
-app.get('/api/agent-stats', (req, res) => {
-  try {
-    const stats = projectState.db.getAgentStats();
-    res.json(stats);
-  } catch (error) {
-    console.error('❌ Agent stats error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// /api/agent-stats - now in routes/dashboard.js
 
 // ==================== System Metrics API ====================
 
@@ -1589,16 +1395,24 @@ app.get('/api/file-events', (req, res) => {
 });
 
 // Get file events from ALL projects (multi-project aggregation)
-app.get('/api/all-file-events', (req, res) => {
+app.get('/api/all-file-events', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
     const includeDiff = req.query.diff === 'true';
 
-    // Collect events from all projects
+    // Parallelize event collection from all projects
+    const eventsPromises = Array.from(projectDatabases.entries()).map(
+      ([projectName, db]) => Promise.resolve({
+        projectName,
+        events: db.getRecentFileEvents(limit, includeDiff)
+      })
+    );
+
+    const allProjectEvents = await Promise.all(eventsPromises);
+
+    // Collect and tag events with project names
     const allEvents = [];
-    for (const [projectName, db] of projectDatabases.entries()) {
-      const events = db.getRecentFileEvents(limit, includeDiff);
-      // Add project name to each event
+    for (const { projectName, events } of allProjectEvents) {
       events.forEach(event => {
         event.project = projectName;
       });
@@ -1696,11 +1510,13 @@ app.get('/api/changelog', async (req, res) => {
     // Read CHANGELOG.md file
     const changelogPath = join(process.cwd(), '..', 'docs', 'CHANGELOG.md');
 
-    if (!fs.existsSync(changelogPath)) {
+    try {
+      await fsPromises.access(changelogPath);
+    } catch (err) {
       return res.status(404).json({ error: 'CHANGELOG.md not found', changelog: [] });
     }
 
-    const changelogContent = fs.readFileSync(changelogPath, 'utf8');
+    const changelogContent = await fsPromises.readFile(changelogPath, 'utf8');
 
     // Parse the changelog
     const releases = [];
@@ -1895,7 +1711,7 @@ app.post('/api/preferences', (req, res) => {
 
     userPreferences.set(userId, preferences);
 
-    console.log(`💾 Saved preferences for user: ${userId}`);
+    logger.info(`💾 Saved preferences for user: ${userId}`);
     res.json({ success: true, message: 'Preferences saved successfully' });
   } catch (error) {
     console.error('❌ Failed to save preferences:', error);
@@ -1907,6 +1723,12 @@ app.post('/api/preferences', (req, res) => {
 
 app.get('/health', async (req, res) => {
   try {
+    // Return cached response if still valid (reduces expensive queries)
+    const cachedHealth = getHealthCache();
+    if (cachedHealth) {
+      return res.json(cachedHealth);
+    }
+
     // Get memory usage (process)
     const memUsage = process.memoryUsage();
 
@@ -2023,6 +1845,35 @@ app.get('/health', async (req, res) => {
       cwd: process.cwd()
     };
 
+    // Telemetry bridge status check
+    let bridgeStatus = {
+      running: false,
+      pid: null,
+      healthy: false
+    };
+
+    try {
+      const bridgePidFile = '/tmp/claude-telemetry-bridge.pid';
+      if (fs.existsSync(bridgePidFile)) {
+        const bridgePid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim());
+
+        // Check if process is actually running
+        try {
+          // process.kill with signal 0 doesn't actually kill, just checks if process exists
+          process.kill(bridgePid, 0);
+          bridgeStatus.running = true;
+          bridgeStatus.pid = bridgePid;
+          bridgeStatus.healthy = true;
+        } catch (err) {
+          // Process doesn't exist
+          bridgeStatus.running = false;
+          bridgeStatus.healthy = false;
+        }
+      }
+    } catch (err) {
+      console.error('Error checking bridge status:', err);
+    }
+
     // Read version from package.json
     let version = '0.8.0';
     try {
@@ -2051,7 +1902,7 @@ app.get('/health', async (req, res) => {
       databaseHealth.lastError = err.message;
     }
 
-    res.json({
+    const healthData = {
       status: 'healthy',
       version: version,
       session_id: SESSION_ID,
@@ -2115,8 +1966,16 @@ app.get('/health', async (req, res) => {
       },
 
       // Process info
-      process: processInfo
-    });
+      process: processInfo,
+
+      // Telemetry bridge status
+      telemetry_bridge: bridgeStatus
+    };
+
+    // Cache the result
+    updateHealthCache(healthData);
+
+    res.json(healthData);
   } catch (error) {
     console.error('Health check error:', error);
     res.status(500).json({
@@ -2209,24 +2068,10 @@ app.get('/api/endpoints', (req, res) => {
   }
 });
 
-// ==================== Control Actions ====================
+// ==================== Control Actions (NOW MODULAR - see routes/control.js) ====================
+// Deleted: /api/control/clear-cache, /api/control/restart-watcher, /api/control/restart-bridge, /api/control/export-health
 
-app.post('/api/control/clear-cache', (req, res) => {
-  try {
-    const previousSize = fileCache.size;
-    fileCache.clear();
-    console.log(`🗑️  Cleared file cache (${previousSize} files)`);
-    res.json({
-      success: true,
-      message: `Cleared ${previousSize} cached files`,
-      previousSize
-    });
-  } catch (error) {
-    console.error('Error clearing cache:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
+// Database cleanup endpoint (not yet modularized)
 app.post('/api/database/clear-old/:days', (req, res) => {
   try {
     const days = parseInt(req.params.days);
@@ -2275,54 +2120,6 @@ app.post('/api/database/clear-old/:days', (req, res) => {
     });
   } catch (error) {
     console.error('Error clearing old database entries:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/control/restart-watcher', async (req, res) => {
-  try {
-    // Protected by mutex to prevent race conditions with project switching
-    await projectStateMutex.runExclusive(async () => {
-      console.log('🔄 Restarting file watcher...');
-
-      // Close existing watcher
-      if (projectState.watcher) {
-        await projectState.watcher.close();
-        console.log('✅ Closed watcher');
-      }
-
-      // Reinitialize watcher
-      projectState.watcher = initializeWatcher();
-    });
-
-    res.json({
-      success: true,
-      message: 'File watcher restarted successfully',
-      project: projectState.activeProject
-    });
-  } catch (error) {
-    console.error('Error restarting watcher:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/control/export-health', async (req, res) => {
-  try {
-    // Get full health data
-    const healthResponse = await fetch(`http://localhost:${PORT}/health`);
-    const healthData = await healthResponse.json();
-
-    // Add timestamp
-    const exportData = {
-      exported_at: new Date().toISOString(),
-      ...healthData
-    };
-
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="raven-health-${Date.now()}.json"`);
-    res.json(exportData);
-  } catch (error) {
-    console.error('Error exporting health report:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2408,13 +2205,13 @@ app.post('/api/projects/select', async (req, res) => {
 
     // Persist the active project to config file
     try {
-      const configContent = fs.readFileSync(CONFIG_PATH, 'utf8');
+      const configContent = await fsPromises.readFile(CONFIG_PATH, 'utf8');
       const updatedConfig = configContent.replace(
         /^active\s*=\s*".*"$/m,
         `active = "${project}"`
       );
-      fs.writeFileSync(CONFIG_PATH, updatedConfig, 'utf8');
-      console.log(`💾 Persisted active project: ${project}`);
+      await fsPromises.writeFile(CONFIG_PATH, updatedConfig, 'utf8');
+      logger.info(`💾 Persisted active project: ${project}`);
     } catch (configError) {
       console.error('⚠️  Failed to persist project selection:', configError.message);
       // Don't fail the request if we can't persist - the switch still worked
@@ -2700,12 +2497,14 @@ app.get('/api/docs/:filepath(*)', async (req, res) => {
     }
 
     // Check if file exists
-    if (!fs.existsSync(docsPath)) {
+    try {
+      await fsPromises.access(docsPath);
+    } catch (err) {
       return res.status(404).json({ error: 'Documentation file not found' });
     }
 
     // Read markdown file
-    const markdown = fs.readFileSync(docsPath, 'utf8');
+    const markdown = await fsPromises.readFile(docsPath, 'utf8');
 
     res.json({
       filepath,
@@ -3249,8 +3048,10 @@ app.get('/api/storage/retention', async (req, res) => {
   try {
     const retentionPath = join(RAVEN_DIR, 'retention-policy.json');
 
-    if (!fs.existsSync(retentionPath)) {
-      // Return default policy
+    try {
+      await fsPromises.access(retentionPath);
+    } catch (err) {
+      // Return default policy if file doesn't exist
       return res.json({
         enabled: false,
         retentionDays: 30,
@@ -3259,7 +3060,7 @@ app.get('/api/storage/retention', async (req, res) => {
       });
     }
 
-    const data = fs.readFileSync(retentionPath, 'utf-8');
+    const data = await fsPromises.readFile(retentionPath, 'utf-8');
     const policy = JSON.parse(data);
     res.json(policy);
   } catch (error) {
@@ -3289,7 +3090,7 @@ app.post('/api/storage/retention', async (req, res) => {
     }
 
     const retentionPath = join(RAVEN_DIR, 'retention-policy.json');
-    fs.writeFileSync(retentionPath, JSON.stringify(policy, null, 2));
+    await fsPromises.writeFile(retentionPath, JSON.stringify(policy, null, 2));
 
     res.json({
       success: true,
@@ -3473,8 +3274,114 @@ export { io };
 // 404 handler
 app.use(notFoundHandler);
 
+// Error logging (Phase 5C)
+if (env.ENABLE_TRACING) {
+  app.use(errorLogging);
+}
+
 // Global error handler
 app.use(errorHandler);
+
+// ==================== Startup Diagnostics ====================
+
+/**
+ * Run startup diagnostics and attempt self-healing
+ * Checks critical services and attempts to restart them if down
+ */
+async function runStartupDiagnostics() {
+  console.log('\n🔍 Running startup diagnostics...\n');
+
+  const diagnostics = {
+    bridge: { name: 'Telemetry Bridge', status: 'unknown', fixed: false }
+  };
+
+  // Check telemetry bridge status
+  try {
+    const bridgePidFile = '/tmp/claude-telemetry-bridge.pid';
+    let bridgeRunning = false;
+
+    if (fs.existsSync(bridgePidFile)) {
+      const bridgePid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim());
+      try {
+        process.kill(bridgePid, 0);
+        bridgeRunning = true;
+      } catch (err) {
+        bridgeRunning = false;
+      }
+    }
+
+    if (bridgeRunning) {
+      diagnostics.bridge.status = 'healthy';
+      console.log('✅ Telemetry Bridge: Running');
+    } else {
+      diagnostics.bridge.status = 'down';
+      console.log('⚠️  Telemetry Bridge: Not running - attempting auto-start...');
+
+      // Attempt to start the bridge
+      const maxRetries = 3;
+      let retryCount = 0;
+      let started = false;
+
+      while (retryCount < maxRetries && !started) {
+        retryCount++;
+        try {
+          const startScript = '../scripts/start-claude-bridge.sh';
+          await execAsync(startScript);
+
+          // Wait and verify
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          if (fs.existsSync(bridgePidFile)) {
+            const newPid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim());
+            try {
+              process.kill(newPid, 0);
+              started = true;
+              diagnostics.bridge.status = 'healthy';
+              diagnostics.bridge.fixed = true;
+              console.log(`✅ Telemetry Bridge: Auto-started successfully (PID: ${newPid})`);
+            } catch (err) {
+              console.log(`⚠️  Attempt ${retryCount}/${maxRetries} failed - process not running`);
+            }
+          } else {
+            console.log(`⚠️  Attempt ${retryCount}/${maxRetries} failed - no PID file`);
+          }
+        } catch (error) {
+          console.log(`⚠️  Attempt ${retryCount}/${maxRetries} failed: ${error.message}`);
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+
+      if (!started) {
+        diagnostics.bridge.status = 'failed';
+        console.log('❌ Telemetry Bridge: Auto-start failed after 3 attempts');
+        console.log('   Manual start: ./scripts/start-claude-bridge.sh');
+      }
+    }
+  } catch (error) {
+    diagnostics.bridge.status = 'error';
+    console.error('❌ Telemetry Bridge diagnostic error:', error.message);
+  }
+
+  // Summary
+  console.log('\n📊 Diagnostic Summary:');
+  const healthy = Object.values(diagnostics).filter(d => d.status === 'healthy').length;
+  const total = Object.keys(diagnostics).length;
+  const fixed = Object.values(diagnostics).filter(d => d.fixed).length;
+
+  if (healthy === total) {
+    console.log(`✅ All ${total} service(s) healthy`);
+  } else {
+    console.log(`⚠️  ${healthy}/${total} service(s) healthy`);
+  }
+
+  if (fixed > 0) {
+    console.log(`🔧 Auto-fixed ${fixed} service(s)`);
+  }
+
+  console.log('');
+}
 
 // ==================== Server Start ====================
 
@@ -3527,6 +3434,9 @@ httpServer.listen(PORT, () => {
     }).catch(error => {
       console.error(`\n❌ Health check system error: ${error.message}\n`);
     });
+
+    // Run startup diagnostics and self-healing
+    setTimeout(() => runStartupDiagnostics(), 2000);
   } else {
     console.error('❌ No databases available - trigger engine and metrics collector not started');
   }
