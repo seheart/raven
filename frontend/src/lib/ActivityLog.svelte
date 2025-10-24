@@ -3,8 +3,10 @@
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import PageInfo from './PageInfo.svelte';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.BASE_URL + '/api';
 
   let activities = [];
   let total = 0;
@@ -12,6 +14,8 @@
   let searchQuery = '';
   let selectedType = 'all';
   let expandedActivity = null;
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   // Pagination
   let limit = 100;
@@ -32,9 +36,11 @@
   let sessions = []; // Grouped session data
   let selectedSession = 'all'; // Filter by specific session
 
-  async function loadActivities() {
+  async function loadActivities(manual = false) {
     try {
       loading = true;
+      isManualRefresh = manual;
+
       const params = new URLSearchParams({
         limit: limit.toString(),
         offset: offset.toString(),
@@ -60,20 +66,44 @@
       // Group by session if enabled
       groupActivitiesBySession();
 
+      lastUpdated = new Date();
       loading = false;
+      isManualRefresh = false;
     } catch (error) {
       console.error('Failed to load activity log:', error);
       loading = false;
+      isManualRefresh = false;
     }
   }
 
   function calculateStats() {
+    // Ensure activities is an array before filtering
+    const safeActivities = Array.isArray(activities) ? activities : [];
+
     stats = {
-      file: activities.filter(a => a?.category === 'file').length,
-      agent: activities.filter(a => a?.category === 'agent').length,
-      system: activities.filter(a => a?.category === 'system').length
+      file: safeActivities.filter(a => a && a.category === 'file').length,
+      agent: safeActivities.filter(a => a && a.category === 'agent').length,
+      system: safeActivities.filter(a => a && a.category === 'system').length
     };
   }
+
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 
   function groupActivitiesBySession() {
     if (!groupBySession) {
@@ -171,7 +201,6 @@
 
   // WebSocket event handler for project switches
   const handleProjectSwitched = async (data) => {
-    console.log('📡 Project switched, reloading activity log:', data.project);
     offset = 0;
     await loadActivities();
   };
@@ -250,6 +279,33 @@
     }
   };
 
+  // Keyboard shortcuts for filters
+  function handleKeydown(event) {
+    // Only handle if not typing in input field
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+      return;
+    }
+
+    switch (event.key) {
+      case '1':
+        setFilter('all');
+        break;
+      case '2':
+        setFilter('file');
+        break;
+      case '3':
+        setFilter('agent');
+        break;
+      case '4':
+        setFilter('system');
+        break;
+      case 'r':
+      case 'R':
+        loadActivities(true);
+        break;
+    }
+  }
+
   onMount(() => {
     loadActivities();
 
@@ -257,12 +313,18 @@
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);
     websocketService.on('project-switched', handleProjectSwitched);
+
+    // Add keyboard shortcuts
+    window.addEventListener('keydown', handleKeydown);
   });
 
   onDestroy(() => {
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);
+
+    // Remove keyboard listener
+    window.removeEventListener('keydown', handleKeydown);
   });
 </script>
 
@@ -297,6 +359,16 @@
       <p class="subtitle">Complete audit trail of all Raven activity</p>
     </div>
     <div class="header-actions">
+      <span class="last-updated">Updated: {timeAgo}</span>
+      <button
+        class="refresh-btn"
+        on:click={() => loadActivities(true)}
+        disabled={loading}
+        title="Refresh activity log"
+      >
+        <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
+        Refresh
+      </button>
       <button class="btn-export" on:click={exportLog}>
         💾 Export JSON
       </button>
@@ -389,15 +461,21 @@
   <!-- Activity Timeline -->
   <div class="timeline">
     {#if loading && activities.length === 0}
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading activity log...</p>
-      </div>
+      <LoadingSkeleton count={5} height="80px" />
     {:else if activities.length === 0}
       <div class="empty-state">
         <div class="empty-icon">📭</div>
         <h2>No Activities Found</h2>
-        <p>No activities match your current filters.</p>
+        {#if selectedType !== 'all'}
+          <p>No <strong>{selectedType}</strong> activities found. Try changing filters or search query.</p>
+        {:else if searchQuery}
+          <p>No activities match "<strong>{searchQuery}</strong>". Try a different search term.</p>
+        {:else}
+          <p>No activity has been logged yet. Start coding and Raven will track all changes!</p>
+        {/if}
+        <button class="clear-filters-btn" on:click={() => { selectedType = 'all'; searchQuery = ''; loadActivities(); }}>
+          Clear Filters
+        </button>
       </div>
     {:else if groupBySession && sessions.length > 0}
       <!-- Session Grouped View -->
@@ -620,6 +698,57 @@
     margin: 0;
     font-size: 12px;
     color: var(--muted);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .refresh-btn {
+    padding: 10px 20px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .refresh-btn:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .btn-export {
@@ -886,26 +1015,6 @@
     gap: 8px;
   }
 
-  .loading-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--muted);
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 16px;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
   .empty-state {
     text-align: center;
     padding: 80px 20px;
@@ -913,14 +1022,36 @@
   }
 
   .empty-icon {
-    font-size: 13px;
+    font-size: 64px;
     margin-bottom: 16px;
   }
 
   .empty-state h2 {
-    font-size: 15px;
-    margin: 0 0 8px 0;
+    font-size: 18px;
+    margin: 0 0 12px 0;
     color: var(--text);
+  }
+
+  .empty-state p {
+    margin: 0 0 24px 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .clear-filters-btn {
+    padding: 10px 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .clear-filters-btn:hover {
+    background: color-mix(in srgb, var(--accent) 80%, black);
   }
 
   .activity-item {

@@ -7,11 +7,12 @@
   import ProjectsOverview from './ProjectsOverview.svelte';
   import PageInfo from './PageInfo.svelte';
   import HealthStatus from './HealthStatus.svelte';
+  import { API_CONFIG } from '../config.js';
 
   export let sessionId = 'Loading...';
   export let sessionUptime = '0s';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.BASE_URL + '/api';
 
   // Combined state from Dashboard, Metrics, and Git
   let stats = {
@@ -39,6 +40,8 @@
   let topFiles = [];
   let loading = true;
   let metricsLoading = false;
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   // Personalized greeting based on time of day
   function getGreeting() {
@@ -48,6 +51,24 @@
     if (hour < 21) return "Good evening! Still coding strong...";
     return "Late night session? Raven never sleeps...";
   }
+
+  // Format time ago
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Reactive time update
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 
   // Calculate session duration in human-readable format
   function formatDuration(seconds) {
@@ -61,15 +82,17 @@
 
   // Determine flow state based on activity
   function getFlowState() {
-    const eventsPerMinute = stats.total_events / (stats.session_duration_seconds / 60);
+    const durationMinutes = Math.max(1, stats.session_duration_seconds / 60);
+    const eventsPerMinute = stats.total_events / durationMinutes;
     if (eventsPerMinute > 5) return { state: 'High', color: 'var(--success)', icon: '🔥' };
     if (eventsPerMinute > 2) return { state: 'Medium', color: 'var(--warning)', icon: '⚡' };
     return { state: 'Low', color: 'var(--info)', icon: '💤' };
   }
 
-  async function loadAllData() {
+  async function loadAllData(manual = false) {
     try {
       loading = true;
+      isManualRefresh = manual;
 
       // Load all data in parallel
       const [statsData, metricsData, activityData, filesData] = await Promise.all([
@@ -80,14 +103,16 @@
       ]);
 
       stats = statsData;
-      systemMetrics = metricsData.metrics?.[0] || systemMetrics;
+      systemMetrics = metricsData?.[0] || systemMetrics;
       recentActivity = activityData || [];
       topFiles = filesData.files || [];
 
       loading = false;
-      notifications.success('Dashboard refreshed', {
-        title: 'Overview Updated'
-      });
+      lastUpdated = new Date();
+
+      if (manual) {
+        notifications.success('Dashboard refreshed', { title: 'Overview Updated' });
+      }
     } catch (error) {
       console.error('Failed to load overview data:', error);
       notifications.error('Failed to load dashboard data', {
@@ -203,7 +228,7 @@
             <span class="stat-value">{stats.unique_files_modified}</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">AI interactions:</span>
+            <span class="stat-label">Total changes:</span>
             <span class="stat-value">{stats.total_events}</span>
           </div>
           <div class="stat-row">
@@ -258,10 +283,17 @@
   <div class="activity-section">
     <div class="section-header">
       <h3>Live Activity Stream</h3>
-      <span class="live-indicator" aria-label="Real-time updates active">
-        <span class="live-dot"></span>
-        Live
-      </span>
+      <div class="header-actions">
+        <span class="last-updated">Updated: {timeAgo}</span>
+        <button class="refresh-btn" on:click={() => loadAllData(true)} disabled={loading} title="Refresh now">
+          <span class="refresh-icon" class:spinning={loading}>🔄</span>
+          Refresh
+        </button>
+        <span class="live-indicator" aria-label="Real-time updates active">
+          <span class="live-dot"></span>
+          Live
+        </span>
+      </div>
     </div>
 
     {#if loading}
@@ -311,7 +343,7 @@
         {#each topFiles as file}
           <div class="file-item">
             <span class="file-name">{file.filepath}</span>
-            <span class="file-changes">{file.change_count} changes</span>
+            <span class="file-changes">{file.edit_count} changes</span>
           </div>
         {/each}
       </div>
@@ -502,6 +534,59 @@
     font-weight: 600;
     color: var(--text);
     margin: 0;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .last-updated {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .refresh-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  .refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    transition: transform 0.3s ease;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .live-indicator {

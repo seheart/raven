@@ -568,7 +568,6 @@
 
   .stat-icon {
     font-size: 20px;
-    filter: drop-shadow(0 0 8px currentColor);
   }
 
   .stat-content {

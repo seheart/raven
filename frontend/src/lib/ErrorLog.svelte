@@ -6,6 +6,8 @@
   import io from 'socket.io-client';
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { API_CONFIG } from '../config.js';
 
   let errors = [];
   let stats = { total: 0, by_severity: [], recent_count: 0 };
@@ -17,6 +19,8 @@
   let socket = null;
   let loadErrorsTimeout = null;
   let virtualScroll; // Reference to virtual scroll component
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   // Pagination
   let currentPage = 0;
@@ -49,7 +53,7 @@
   });
 
   function setupWebSocket() {
-    socket = io('http://localhost:3030');
+    socket = io(API_CONFIG.BASE_URL);
 
     socket.on('connect', () => {
       // WebSocket connected
@@ -69,9 +73,10 @@
     });
   }
 
-  async function loadErrors() {
+  async function loadErrors(manual = false) {
     try {
       loading = true;
+      isManualRefresh = manual;
       error = null;
 
       const result = await fetchErrorLogs({
@@ -84,11 +89,13 @@
       errors = result.errors;
       totalErrors = result.total;
       hasMore = result.hasMore;
+      lastUpdated = new Date();
     } catch (err) {
       error = err.message;
       console.error('Failed to load errors:', err);
     } finally {
       loading = false;
+      isManualRefresh = false;
     }
   }
 
@@ -254,6 +261,24 @@
       alert('Export failed: ' + err.message);
     }
   }
+
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 </script>
 
 <div class="error-log">
@@ -288,11 +313,16 @@
       <p class="subtitle">Application errors and warnings</p>
     </div>
     <div class="header-actions">
+      <span class="last-updated">Updated: {timeAgo}</span>
       <button class="btn-test" on:click={triggerTestError}>
         🧪 Test Error
       </button>
       <button class="btn-export" on:click={exportLog}>
         💾 Export JSON
+      </button>
+      <button class="btn-refresh" on:click={() => { currentPage = 0; loadErrors(true); loadStats(); }} disabled={loading}>
+        <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
+        Refresh
       </button>
     </div>
   </div>
@@ -373,10 +403,7 @@
   <!-- Error Timeline -->
   <div class="timeline">
     {#if loading && errors.length === 0}
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading error log...</p>
-      </div>
+      <LoadingSkeleton count={8} height="100px" />
     {:else if error}
       <div class="error-state">
         <div class="error-icon">❌</div>
@@ -532,6 +559,51 @@
   .header-actions {
     display: flex;
     gap: 12px;
+    align-items: center;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .btn-refresh {
+    padding: 10px 20px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-refresh:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin-refresh 1s linear infinite;
+  }
+
+  @keyframes spin-refresh {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .btn-export,

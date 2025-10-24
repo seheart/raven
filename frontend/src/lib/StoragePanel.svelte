@@ -1,14 +1,18 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import PageInfo from './PageInfo.svelte';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.BASE_URL + '/api';
 
   let storageData = null;
   let loading = true;
   let error = null;
   let expandedDatabase = null;
   let refreshInterval;
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   onMount(() => {
     loadStorageData();
@@ -23,19 +27,42 @@
     }
   });
 
-  async function loadStorageData() {
+  async function loadStorageData(manual = false) {
     try {
+      loading = true;
+      isManualRefresh = manual;
       const response = await fetch(`${API_BASE}/storage`);
       if (!response.ok) throw new Error('Failed to fetch storage data');
       storageData = await response.json();
+      lastUpdated = new Date();
       loading = false;
+      isManualRefresh = false;
       error = null;
     } catch (err) {
       console.error('Failed to load storage data:', err);
       error = err.message;
       loading = false;
+      isManualRefresh = false;
     }
   }
+
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 
   function formatBytes(bytes) {
     if (!bytes || bytes <= 0) return '0 B';
@@ -225,11 +252,8 @@
     ]}
   />
 
-  {#if loading}
-    <div class="loading">
-      <div class="spinner"></div>
-      <p>Loading storage data...</p>
-    </div>
+  {#if loading && !storageData}
+    <LoadingSkeleton count={8} height="120px" />
   {:else if error}
     <div class="error-state">
       <h3>⚠️ Error Loading Storage Data</h3>
@@ -242,6 +266,13 @@
       <div class="header-left">
         <h1>💾 Storage Overview</h1>
         <p class="subtitle">Database and snapshot storage management</p>
+      </div>
+      <div class="header-actions">
+        <span class="last-updated">Updated: {timeAgo}</span>
+        <button on:click={() => loadStorageData(true)} class="btn-refresh" disabled={loading}>
+          <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
+          Refresh
+        </button>
       </div>
     </div>
 
@@ -416,7 +447,6 @@
       <h2>⚙️ Actions</h2>
       <p class="help-text">Use per-database action buttons in the table above, or configure retention policy below.</p>
       <div class="action-buttons">
-        <button class="btn-primary" on:click={loadStorageData}>🔄 Refresh Data</button>
         <button class="btn-secondary" on:click={openRetentionConfig}>⚙️ Configure Retention</button>
       </div>
     </section>
@@ -525,6 +555,57 @@
     color: var(--muted);
     font-size: 12px;
     margin: 0;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .btn-refresh {
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-refresh:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin-refresh 1s linear infinite;
+  }
+
+  @keyframes spin-refresh {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   h2 {

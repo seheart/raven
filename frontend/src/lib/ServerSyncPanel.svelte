@@ -3,8 +3,10 @@
   import { notifications } from './notificationService.js';
   import PageInfo from './PageInfo.svelte';
   import { formatDateTime } from './timeFormat.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.BASE_URL + '/api';
 
   // Server configuration
   let config = {
@@ -31,10 +33,13 @@
   let remoteStats = null;
   let loadingStats = false;
   let autoSyncInterval = null;
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
-  async function loadConfig() {
+  async function loadConfig(manual = false) {
     try {
       loading = true;
+      isManualRefresh = manual;
       const response = await fetch(`${API_BASE}/sync/config`);
       const data = await response.json();
 
@@ -50,10 +55,13 @@
         syncHistory = data.history;
       }
 
+      lastUpdated = new Date();
       loading = false;
+      isManualRefresh = false;
     } catch (error) {
       console.error('Failed to load sync config:', error);
       loading = false;
+      isManualRefresh = false;
     }
   }
 
@@ -309,6 +317,24 @@
     return 'just now';
   }
 
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
+
   onMount(async () => {
     await loadConfig();
 
@@ -345,12 +371,21 @@
   />
 
   <div class="panel-header">
-    <h2>🌐 Server Sync</h2>
-    <p class="subtitle">Backup Raven data to your own server via SSH</p>
+    <div class="header-left">
+      <h2>🌐 Server Sync</h2>
+      <p class="subtitle">Backup Raven data to your own server via SSH</p>
+    </div>
+    <div class="header-actions">
+      <span class="last-updated">Updated: {timeAgo}</span>
+      <button on:click={() => loadConfig(true)} class="btn-refresh" disabled={loading}>
+        <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
+        Refresh
+      </button>
+    </div>
   </div>
 
-  {#if loading}
-    <div class="loading">Loading configuration...</div>
+  {#if loading && !config.host}
+    <LoadingSkeleton count={6} height="100px" />
   {:else}
     <!-- Server Configuration -->
     <section class="config-section">
@@ -673,7 +708,15 @@
   }
 
   .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 32px;
+    gap: 2rem;
+  }
+
+  .header-left {
+    flex: 1;
   }
 
   .panel-header h2 {
@@ -688,6 +731,57 @@
     color: var(--muted);
     font-size: 14px;
     margin: 0;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .btn-refresh {
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-refresh:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin-refresh 1s linear infinite;
+  }
+
+  @keyframes spin-refresh {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .loading {

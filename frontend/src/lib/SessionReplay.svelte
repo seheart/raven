@@ -3,12 +3,16 @@
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import PageInfo from './PageInfo.svelte';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.BASE_URL + '/api';
   let events = [];
   let allSessions = [];
   let selectedSession = 'all'; // 'all' or a specific session ID
   let loading = true;
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   // Enhanced filtering
   let searchQuery = '';
@@ -138,9 +142,10 @@
     }
   }
 
-  async function loadEvents() {
+  async function loadEvents(manual = false) {
     try {
       loading = true;
+      isManualRefresh = manual;
       let url = `${API_BASE}/agent-events?limit=50`;
 
       // If a specific session is selected, use the session filter endpoint
@@ -150,16 +155,37 @@
 
       const response = await fetch(url);
       events = await response.json();
+      lastUpdated = new Date();
       loading = false;
+      isManualRefresh = false;
     } catch (e) {
       console.error('Failed to load events:', e);
       loading = false;
+      isManualRefresh = false;
     }
   }
 
   async function onSessionChange() {
     await loadEvents();
   }
+
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 
   // WebSocket event handler for project switches
   const handleProjectSwitched = async (data) => {
@@ -225,6 +251,7 @@
   <div class="header">
     <h2>🎬 Session Replay</h2>
     <div class="header-controls">
+      <span class="last-updated">Updated: {timeAgo}</span>
       <div class="filter-group">
         <label for="session-filter">Session:</label>
         <select
@@ -238,8 +265,9 @@
           {/each}
         </select>
       </div>
-      <button on:click={loadEvents} class="btn-refresh">
-        ↻ Refresh
+      <button on:click={() => loadEvents(true)} class="btn-refresh" disabled={loading}>
+        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+        Refresh
       </button>
     </div>
   </div>
@@ -337,7 +365,7 @@
   {/if}
 
   {#if loading}
-    <div class="loading">Loading events...</div>
+    <LoadingSkeleton count={5} height="80px" />
   {:else if filteredEvents.length === 0 && events.length > 0}
     <div class="empty-state">
       <p>🔍 No events match your filters</p>
@@ -405,6 +433,12 @@
     font-weight: 600;
   }
 
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
   .btn-refresh {
     padding: 8px 16px;
     background: var(--surface);
@@ -413,12 +447,35 @@
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
+    font-weight: 600;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  .btn-refresh:hover {
+  .btn-refresh:hover:not(:disabled) {
     background: var(--surface-2);
-    border-color: var(--border);
+    border-color: var(--accent);
+  }
+
+  .btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .header-controls {

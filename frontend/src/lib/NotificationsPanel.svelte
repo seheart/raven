@@ -3,8 +3,10 @@
   import PageInfo from './PageInfo.svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime, formatRelativeTime } from './timeFormat.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.BASE_URL + '/api';
 
   // ID counter for generating unique notification IDs (using crypto.randomUUID for true uniqueness)
   function generateNotificationId() {
@@ -28,6 +30,8 @@
   let showUnreadOnly = false;
   let expandedNotification = null;
   let groupDuplicates = true; // Group identical notifications
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   // Pagination
   let limit = 50;
@@ -53,9 +57,10 @@
     websocketService.off('project-switched', handleProjectSwitched);
   });
 
-  async function loadNotifications() {
+  async function loadNotifications(manual = false) {
     try {
       loading = true;
+      isManualRefresh = manual;
       const params = new URLSearchParams({
         limit: limit.toString(),
         offset: offset.toString(),
@@ -74,10 +79,12 @@
       }
 
       hasMore = data.hasMore;
+      lastUpdated = new Date();
     } catch (error) {
       console.error('Failed to load notifications:', error);
     } finally {
       loading = false;
+      isManualRefresh = false;
     }
   }
 
@@ -279,6 +286,24 @@
     await loadNotifications();
   }
 
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
+
   $: filteredCount = notifications.length;
 </script>
 
@@ -313,6 +338,7 @@
       <p class="subtitle">System alerts and activity updates</p>
     </div>
     <div class="header-actions">
+      <span class="last-updated">Updated: {timeAgo}</span>
       <label class="toggle-label">
         <input type="checkbox" bind:checked={groupDuplicates} />
         Group Duplicates
@@ -326,8 +352,9 @@
       <button class="btn-secondary" on:click={clearAll} disabled={stats.total === 0}>
         Clear All
       </button>
-      <button class="btn-primary" on:click={() => { offset = 0; loadNotifications(); loadStats(); }}>
-        🔄 Refresh
+      <button class="btn-primary" on:click={() => { offset = 0; loadNotifications(true); loadStats(); }} disabled={loading}>
+        <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
+        Refresh
       </button>
     </div>
   </div>
@@ -397,7 +424,7 @@
   <!-- Notifications List -->
   <div class="notifications-list">
     {#if loading && offset === 0}
-      <div class="loading">Loading notifications...</div>
+      <LoadingSkeleton count={8} height="80px" />
     {:else if notifications.length === 0}
       <div class="empty-state">
         <div class="empty-icon">📭</div>
@@ -525,6 +552,27 @@
   .header-actions {
     display: flex;
     gap: 12px;
+    align-items: center;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin-refresh 1s linear infinite;
+  }
+
+  @keyframes spin-refresh {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .btn-primary, .btn-secondary {

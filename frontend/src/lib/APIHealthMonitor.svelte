@@ -4,8 +4,10 @@
   import { notifications } from './notificationService.js';
   import PageInfo from './PageInfo.svelte';
   import { formatTime as formatTimeString } from './timeFormat.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030';
+  const API_BASE = API_CONFIG.BASE_URL;
 
   // Dynamic endpoint list loaded from backend
   let apiEndpoints = [];
@@ -20,6 +22,8 @@
   let realtimeActive = false;
   let pollingInterval = 30; // seconds (configurable)
   let alertsEnabled = true;
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   function handleRealtimeUpdate() {
     // Quick health check when events occur
@@ -43,11 +47,15 @@
       const data = await response.json();
 
       if (data.endpoints) {
-        // Filter to only GET endpoints for health checking (skip POST/DELETE/PUT)
-        apiEndpoints = data.endpoints.filter(e => e.method === 'GET');
+        // Filter to only GET endpoints without path parameters for health checking
+        // Skip endpoints with :param, :id, etc. as they need actual values
+        apiEndpoints = data.endpoints.filter(e =>
+          e.method === 'GET' && !e.path.includes(':')
+        );
         endpointsLoaded = true;
       }
     } catch (error) {
+      console.error('[APIHealth] Failed to load endpoints:', error);
       apiEndpoints = [];
       endpointsLoaded = true;
     }
@@ -110,9 +118,10 @@
     websocketService.off('trigger-fired', handleRealtimeUpdate);
   });
 
-  async function checkAllEndpoints() {
+  async function checkAllEndpoints(manual = false) {
     checkingAll = true;
     loading = true;
+    isManualRefresh = manual;
     const startTime = Date.now();
 
     for (const endpoint of apiEndpoints) {
@@ -120,8 +129,10 @@
     }
 
     lastCheck = new Date();
+    lastUpdated = new Date();
     loading = false;
     checkingAll = false;
+    isManualRefresh = false;
   }
 
   async function checkEndpoint(endpoint) {
@@ -219,10 +230,11 @@
   function groupedEndpoints() {
     const grouped = {};
     for (const endpoint of apiEndpoints) {
-      if (!grouped[endpoint.category]) {
-        grouped[endpoint.category] = [];
+      const cat = endpoint.category || 'Other';
+      if (!grouped[cat]) {
+        grouped[cat] = [];
       }
-      grouped[endpoint.category].push(endpoint);
+      grouped[cat].push(endpoint);
     }
     return grouped;
   }
@@ -232,7 +244,25 @@
     return formatTimeString(date);
   }
 
-  $: grouped = groupedEndpoints();
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
+
+  $: grouped = apiEndpoints.length > 0 ? groupedEndpoints() : {};
 </script>
 
 <div class="api-health">
@@ -265,15 +295,13 @@
     <div>
       <h2>🔌 API Health Monitor</h2>
       <div class="status-indicators">
-        {#if lastCheck}
-          <p class="last-check">Last checked: {formatTime(lastCheck)}</p>
-        {/if}
         {#if realtimeActive}
           <span class="realtime-badge">🔴 Live Update</span>
         {/if}
       </div>
     </div>
     <div class="header-controls">
+      <span class="last-updated">Updated: {timeAgo}</span>
       <label class="control-label">
         <span>Polling:</span>
         <select bind:value={pollingInterval}>
@@ -288,14 +316,20 @@
         <input type="checkbox" bind:checked={alertsEnabled} />
         <span>Alerts</span>
       </label>
-      <button on:click={checkAllEndpoints} disabled={checkingAll} class="btn-refresh">
-        {checkingAll ? '⏳ Checking...' : '↻ Check All'}
+      <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn-refresh">
+        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+        {checkingAll ? 'Checking...' : 'Check All'}
       </button>
     </div>
   </div>
 
-  {#if loading && Object.keys(healthStatus).length === 0}
-    <div class="loading">Checking API endpoints...</div>
+  {#if !endpointsLoaded || (loading && Object.keys(healthStatus).length === 0)}
+    <LoadingSkeleton count={10} height="60px" />
+  {:else if apiEndpoints.length === 0}
+    <div class="empty-state">
+      <p>❌ No API endpoints found</p>
+      <button class="btn-refresh" on:click={() => loadEndpoints()}>Retry</button>
+    </div>
   {:else}
     <div class="categories">
       {#each Object.entries(grouped) as [category, endpoints]}
@@ -422,6 +456,18 @@
     50% { opacity: 0.6; }
   }
 
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
   .btn-refresh {
     padding: 8px 16px;
     background: var(--surface);
@@ -431,6 +477,9 @@
     cursor: pointer;
     font-size: 12px;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .btn-refresh:hover:not(:disabled) {
@@ -443,11 +492,32 @@
     cursor: not-allowed;
   }
 
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin-refresh 1s linear infinite;
+  }
+
+  @keyframes spin-refresh {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
   .loading {
     text-align: center;
     padding: 24px;
     color: var(--muted);
     font-size: 12px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+    font-size: 14px;
   }
 
   .categories {

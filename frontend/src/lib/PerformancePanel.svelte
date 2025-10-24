@@ -2,9 +2,11 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import PageInfo from './PageInfo.svelte';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { formatTime } from './timeFormat.js';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.BASE_URL + '/api';
 
   let activeTab = 'metrics'; // 'metrics', 'charts', or 'correlations'
   let systemMetrics = [];
@@ -15,6 +17,8 @@
   let refreshInterval = null;
   let loading = true;
   let error = null;
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   // Performance thresholds
   let thresholds = {
@@ -62,9 +66,10 @@
     websocketService.off('project-switched', handleProjectSwitched);
   });
 
-  async function fetchAllData() {
+  async function fetchAllData(manual = false) {
     try {
       loading = true;
+      isManualRefresh = manual;
       error = null;
 
       // Fetch system metrics
@@ -86,10 +91,13 @@
       // Fetch performance correlations
       await fetchCorrelations();
 
+      lastUpdated = new Date();
       loading = false;
+      isManualRefresh = false;
     } catch (err) {
       error = err.toString();
       loading = false;
+      isManualRefresh = false;
       console.error('Error fetching performance data:', err);
     }
   }
@@ -103,6 +111,24 @@
       correlations = [];
     }
   }
+
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 
   function formatTimestamp(ts) {
     return formatTime(ts);
@@ -229,14 +255,16 @@
   <div class="header">
     <h2><span class="lightning-icon">⚡️</span> Performance Profiling</h2>
     <div class="header-actions">
+      <span class="last-updated">Updated: {timeAgo}</span>
       <button on:click={exportToJSON} class="btn-export" title="Export as JSON">
         📥 JSON
       </button>
       <button on:click={exportToCSV} class="btn-export" title="Export as CSV">
         📥 CSV
       </button>
-      <button on:click={fetchAllData} class="btn-refresh">
-        ↻ Refresh
+      <button on:click={() => fetchAllData(true)} class="btn-refresh" disabled={loading}>
+        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+        Refresh
       </button>
     </div>
   </div>
@@ -286,7 +314,7 @@
   </div>
 
   {#if loading && systemMetrics.length === 0}
-    <div class="loading">Loading performance data...</div>
+    <LoadingSkeleton count={5} height="80px" />
   {/if}
 
   {#if error}
@@ -608,6 +636,12 @@
     vertical-align: middle;
   }
 
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
   .btn-refresh {
     padding: 8px 16px;
     background: var(--surface);
@@ -616,12 +650,35 @@
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
+    font-weight: 600;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  .btn-refresh:hover {
+  .btn-refresh:hover:not(:disabled) {
     background: var(--surface-2);
-    border-color: var(--border);
+    border-color: var(--accent);
+  }
+
+  .btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .metrics-grid {

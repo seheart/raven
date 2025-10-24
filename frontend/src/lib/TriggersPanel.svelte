@@ -4,10 +4,12 @@
   import { formatUnixDateTime } from './timeFormat.js';
   import { projectFilter, availableProjects, matchesFilter } from './projectFilterStore.js';
   import PageInfo from './PageInfo.svelte';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { getEmptyStateMessage } from './utils/projectFilter.js';
   import ProjectBadge from './ProjectBadge.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.BASE_URL + '/api';
 
   let activeTab = 'rules'; // 'rules', 'events', 'stats'
   let triggers = [];
@@ -21,6 +23,8 @@
   let error = null;
   let successMessage = null;
   let refreshInterval;
+  let lastUpdated = null;
+  let isManualRefresh = false;
 
   // Enhanced features
   let searchQuery = '';
@@ -103,8 +107,9 @@
     websocketService.off('project-switched', handleProjectSwitched);
   });
 
-  async function loadAllData() {
+  async function loadAllData(manual = false) {
     loading = true;
+    isManualRefresh = manual;
     error = null;
 
     try {
@@ -126,13 +131,34 @@
 
       triggeredEvents = await eventsRes.json();
       stats = await statsRes.json();
+
+      lastUpdated = new Date();
     } catch (e) {
       error = `Failed to load triggers data: ${e}`;
       console.error(error);
     } finally {
       loading = false;
+      isManualRefresh = false;
     }
   }
+
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 
   async function reloadConfig() {
     try {
@@ -249,14 +275,16 @@
   <div class="header">
     <h2>🎯 Custom Triggers</h2>
     <div class="header-actions">
+      <span class="last-updated">Updated: {timeAgo}</span>
       <button on:click={reloadConfig} class="btn-action" title="Reload .raven/config.toml">
         🔄 Reload Config
       </button>
       <button on:click={clearCooldowns} class="btn-action" title="Clear all trigger cooldowns">
         ⏰ Clear Cooldowns
       </button>
-      <button on:click={loadAllData} class="btn-refresh">
-        ↻ Refresh
+      <button on:click={() => loadAllData(true)} class="btn-refresh" disabled={loading}>
+        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+        Refresh
       </button>
     </div>
   </div>
@@ -295,7 +323,7 @@
 
   <div class="tab-content">
     {#if loading}
-      <div class="loading">Loading triggers...</div>
+      <LoadingSkeleton count={5} height="80px" />
     {:else if activeTab === 'rules'}
       <!-- Trigger Rules Tab -->
 
@@ -499,6 +527,13 @@
   .header-actions {
     display: flex;
     gap: 10px;
+    align-items: center;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
   }
 
   .btn-action,
@@ -510,13 +545,39 @@
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
+    font-weight: 600;
     transition: all 0.2s;
   }
 
+  .btn-refresh {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   .btn-action:hover,
-  .btn-refresh:hover {
+  .btn-refresh:hover:not(:disabled) {
     background: var(--surface-2);
-    border-color: var(--border);
+    border-color: var(--accent);
+  }
+
+  .btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .message {

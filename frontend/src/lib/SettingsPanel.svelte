@@ -3,11 +3,17 @@
   import { notifications } from './notificationService.js';
   import { settings as settingsStore } from './settingsStore.js';
   import PageInfo from './PageInfo.svelte';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { API_CONFIG } from '../config.js';
 
   // Use reactive settings store
   let settings = {};
+  let lastModified = null;
   const unsubscribe = settingsStore.subscribe(value => {
     settings = value;
+    if (Object.keys(value).length > 0) {
+      lastModified = new Date();
+    }
   });
 
   // Clean up subscription on destroy
@@ -165,6 +171,24 @@
       default: return '';
     }
   }
+
+  // Format "time ago" for last modified timestamp
+  function getTimeAgo() {
+    if (!lastModified) return 'Never';
+    const seconds = Math.floor((Date.now() - lastModified.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 </script>
 
 <div class="settings-panel">
@@ -192,9 +216,12 @@
   />
 
   <div class="settings-header">
-    <h2>⚙️ User Settings</h2>
-    <p class="auto-save-note">⚡ Settings save automatically</p>
+    <div class="header-left">
+      <h2>⚙️ User Settings</h2>
+      <p class="auto-save-note">⚡ Settings save automatically</p>
+    </div>
     <div class="header-actions">
+      <span class="last-updated">Modified: {timeAgo}</span>
       <button class="btn-secondary" on:click={exportSettings}>
         📤 Export
       </button>
@@ -476,6 +503,12 @@
     border-bottom: 2px solid var(--border);
   }
 
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   .settings-header h2 {
     margin: 0;
     color: var(--text);
@@ -483,10 +516,22 @@
     font-family: var(--mono);
   }
 
+  .auto-save-note {
+    margin: 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
   .header-actions {
     display: flex;
     gap: 8px;
     align-items: center;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
   }
 
   .unsaved-indicator {

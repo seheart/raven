@@ -3,9 +3,11 @@
   import { websocketService } from './websocket.js';
   import { formatShortDateTime } from './timeFormat.js';
   import PageInfo from './PageInfo.svelte';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { projectFilter, availableProjects } from './projectFilterStore.js';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030';
+  const API_BASE = API_CONFIG.BASE_URL;
 
   let backendStatus = {
     connected: false,
@@ -35,9 +37,15 @@
 
   let refreshInterval;
   let isMounted = false;
+  let lastUpdated = null;
+  let isManualRefresh = false;
+  let loading = true;
 
-  async function checkBackendHealth() {
+  async function checkBackendHealth(manual = false) {
     if (!isMounted) return;
+    isManualRefresh = manual;
+    loading = true;
+
     try {
       const response = await fetch(`${API_BASE}/health`, { timeout: 5000 });
       const data = await response.json();
@@ -52,9 +60,15 @@
         database: data.database,
         database_health: data.database_health || { status: 'unknown', accessible: false }
       };
+
+      lastUpdated = new Date();
+      loading = false;
+      isManualRefresh = false;
     } catch (error) {
       console.error('Backend health check failed:', error);
       backendStatus.connected = false;
+      loading = false;
+      isManualRefresh = false;
     }
   }
 
@@ -89,6 +103,24 @@
       gitStatus.available = false;
     }
   }
+
+  // Format "time ago" for last updated timestamp
+  function getTimeAgo() {
+    if (!lastUpdated) return 'Never';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  // Live timestamp updates
+  let timeAgo = 'Never';
+  setInterval(() => {
+    timeAgo = getTimeAgo();
+  }, 1000);
 
   function formatUptime(seconds) {
     const hours = Math.floor(seconds / 3600);
@@ -182,9 +214,13 @@
 
   <div class="header">
     <h2>🏥 System Status</h2>
-    <button on:click={checkBackendHealth} class="btn-refresh">
-      ↻ Refresh
-    </button>
+    <div class="header-actions">
+      <span class="last-updated">Updated: {timeAgo}</span>
+      <button on:click={() => checkBackendHealth(true)} class="btn-refresh" disabled={loading}>
+        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+        Refresh
+      </button>
+    </div>
   </div>
 
   <div class="status-grid">
@@ -461,6 +497,18 @@
     font-weight: 600;
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
   .btn-refresh {
     padding: 8px 16px;
     background: var(--surface);
@@ -469,12 +517,35 @@
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
+    font-weight: 600;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  .btn-refresh:hover {
+  .btn-refresh:hover:not(:disabled) {
     background: var(--surface-2);
-    border-color: var(--border);
+    border-color: var(--accent);
+  }
+
+  .btn-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .status-grid {
