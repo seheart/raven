@@ -53,7 +53,7 @@
       error = null;
 
       // Fetch recent events to calculate health
-      const response = await fetch('/api/events?limit=100');
+      const response = await fetch('/api/all-file-events?limit=100');
       if (!response.ok) throw new Error('Failed to fetch events');
 
       const events = await response.json();
@@ -72,7 +72,10 @@
         const eventDate = new Date(event.timestamp);
 
         if (eventDate >= today) {
-          filesChanged.add(event.file_path);
+          // Use filepath (not file_path) - this is the correct field name
+          if (event.filepath) {
+            filesChanged.add(event.filepath);
+          }
 
           if (event.lines_added) linesAdded += event.lines_added;
           if (event.lines_deleted) linesDeleted += event.lines_deleted;
@@ -84,7 +87,7 @@
 
           // Check for security file changes
           const securityPatterns = ['.env', '.git/config', '.pem', '.key', 'credentials'];
-          if (securityPatterns.some(pattern => event.file_path.includes(pattern))) {
+          if (event.filepath && securityPatterns.some(pattern => event.filepath.includes(pattern))) {
             securityChanges++;
           }
         }

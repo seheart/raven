@@ -96,7 +96,7 @@
       }
 
       await loadConfig();
-      discoveredProjects = discoveredProjects.filter(p => p.id !== project.id);
+      discoveredProjects = discoveredProjects.filter(p => p.name !== project.name);
       showSuccess(`Project "${project.name}" added`);
     } catch (err) {
       showError(`Failed to add project: ${err.message}`);
@@ -148,11 +148,11 @@
     }
   }
 
-  async function deleteProject(projectId, deleteDb = false) {
+  async function deleteProject(projectName, deleteDb = false) {
     confirmMessage = `Are you sure you want to remove this project?${deleteDb ? ' The database will be deleted.' : ''}`;
     confirmAction = async () => {
       try {
-        const response = await fetch(`${API_BASE}/projects/${projectId}?deleteDb=${deleteDb}`, {
+        const response = await fetch(`${API_BASE}/projects/${projectName}?deleteDb=${deleteDb}`, {
           method: 'DELETE'
         });
 
@@ -174,7 +174,7 @@
 
   async function toggleProject(project) {
     try {
-      const response = await fetch(`${API_BASE}/projects/${project.id}`, {
+      const response = await fetch(`${API_BASE}/projects/${project.name}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !project.enabled })
@@ -292,12 +292,12 @@
       </div>
     {:else}
       <div class="projects-grid">
-        {#each config.projects as project (project.id)}
+        {#each config.projects as project (project.name)}
           <div class="project-card" class:disabled={!project.enabled}>
             <div class="project-header">
               <div class="project-info">
                 <h3>{project.name}</h3>
-                <span class="project-id">{project.id}</span>
+                <span class="project-id">{project.name}</span>
               </div>
               <div class="project-actions">
                 <button
@@ -332,8 +332,8 @@
 
             <div class="project-footer">
               <button class="btn-sm btn-edit" on:click={() => openEditModal(project)}>✏️ Edit</button>
-              <button class="btn-sm btn-delete" on:click={() => deleteProject(project.id, false)}>🗑️ Remove</button>
-              <button class="btn-sm btn-danger" on:click={() => deleteProject(project.id, true)}>🗑️ Delete DB</button>
+              <button class="btn-sm btn-delete" on:click={() => deleteProject(project.name, false)}>🗑️ Remove</button>
+              <button class="btn-sm btn-danger" on:click={() => deleteProject(project.name, true)}>🗑️ Delete DB</button>
             </div>
           </div>
         {/each}
@@ -457,7 +457,7 @@
           <p class="empty-message">No new projects found in {config.basePath}</p>
         {:else}
           <div class="discovered-list">
-            {#each discoveredProjects as project (project.id)}
+            {#each discoveredProjects as project (project.name)}
               <div class="discovered-item">
                 <div class="discovered-info">
                   <strong>{project.name}</strong>

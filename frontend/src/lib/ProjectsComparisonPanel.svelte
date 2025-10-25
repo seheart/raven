@@ -20,8 +20,8 @@
       const statsPromises = projects.map(async (project) => {
         try {
           const [eventsData, errorsData] = await Promise.all([
-            api.get('/file-events?limit=1'),
-            api.get('/errors/stats')
+            api.get(`/file-events?limit=1&project=${encodeURIComponent(project.name)}`),
+            api.get(`/errors/stats?project=${encodeURIComponent(project.name)}`)
           ]);
           return {
             ...project,
@@ -30,6 +30,7 @@
             last_activity: eventsData.events?.[0]?.timestamp || null
           };
         } catch (error) {
+          console.error(`Failed to load stats for project ${project.name}:`, error);
           return { ...project, total_events: 0, total_errors: 0, last_activity: null };
         }
       });

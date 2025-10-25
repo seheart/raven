@@ -27,7 +27,7 @@ import { gzip, gunzip } from 'zlib';
 
 // Security imports
 import { authenticate, authenticateSocket } from './middleware/auth.js';
-import { validate, validateFilePath } from './middleware/validation.js';
+import { validate } from './middleware/validation.js';
 import {
   setupHelmet,
   apiLimiter,
@@ -165,7 +165,7 @@ app.get('/api/health', async (req, res) => {
           }
         }
       } catch (err) {
-        console.error('Error calculating directory size:', err);
+        logger.error('Error calculating directory size:', err);
       }
       return totalSize;
     };
@@ -233,7 +233,7 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('❌ Health check error:', error);
+    logger.error('❌ Health check error:', error);
     res.status(500).json({
       status: 'error',
       error: error.message
@@ -332,9 +332,94 @@ app.post('/api/errors', (req, res) => {
       error_id: errorId
     });
   } catch (error) {
-    console.error('❌ Error logging endpoint error:', error);
+    logger.error('❌ Error logging endpoint error:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// ==================== Stub Endpoints (Features Not Yet Implemented) ====================
+// These endpoints return placeholder data to prevent 404 errors in the frontend
+// Must be BEFORE authentication/rate limiting middleware to be accessible
+
+// Safety Tab Endpoints
+app.get('/api/syntax-errors', (req, res) => {
+  res.json({ errors: [], count: 0, message: 'Syntax checking not available in JavaScript version' });
+});
+
+app.get('/api/syntax-errors/count', (req, res) => {
+  res.json({ count: 0 });
+});
+
+app.get('/api/tests/frameworks', (req, res) => {
+  res.json({ frameworks: [], message: 'Test runner not available in JavaScript version' });
+});
+
+app.get('/api/tests/results', (req, res) => {
+  res.json({ results: [], total: 0 });
+});
+
+app.post('/api/tests/run', (req, res) => {
+  res.status(501).json({ error: 'Test running not available in JavaScript version' });
+});
+
+app.get('/api/pause/status', (req, res) => {
+  res.json({ paused: false, message: 'Pause feature not available in JavaScript version' });
+});
+
+app.post('/api/pause', (req, res) => {
+  res.status(501).json({ error: 'Pause feature not available in JavaScript version' });
+});
+
+app.post('/api/resume', (req, res) => {
+  res.status(501).json({ error: 'Resume feature not available in JavaScript version' });
+});
+
+app.get('/api/sessions', (req, res) => {
+  res.json({ sessions: [], total: 0, message: 'Session management not available in JavaScript version' });
+});
+
+app.get('/api/sessions/:sessionId/preview', (req, res) => {
+  res.status(404).json({ error: 'Session rollback not available in JavaScript version' });
+});
+
+app.post('/api/sessions/:sessionId/rollback', (req, res) => {
+  res.status(501).json({ error: 'Session rollback not available in JavaScript version' });
+});
+
+app.get('/api/pattern-warnings', (req, res) => {
+  res.json({ warnings: [], count: 0, message: 'Pattern warnings not available in JavaScript version' });
+});
+
+app.get('/api/pattern-warnings/category/:category', (req, res) => {
+  res.json({ warnings: [], count: 0, category: req.params.category });
+});
+
+app.post('/api/pattern-warnings/:warningId/resolve', (req, res) => {
+  res.status(501).json({ error: 'Pattern warnings not available in JavaScript version' });
+});
+
+app.post('/api/syntax-errors/:errorId/resolve', (req, res) => {
+  res.status(501).json({ error: 'Syntax error resolution not available in JavaScript version' });
+});
+
+app.get('/api/alerts/templates', (req, res) => {
+  res.json({ templates: [] });
+});
+
+app.get('/api/projects', (req, res) => {
+  // Redirect to proper endpoint
+  res.redirect(301, '/api/projects/list');
+});
+
+app.get('/api/status', (req, res) => {
+  // General status endpoint
+  res.json({
+    status: 'online',
+    version: '0.16.0',
+    session_id: SESSION_ID,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
 });
 
 // ==================== Rate Limiting Middleware ====================
@@ -385,7 +470,7 @@ try {
   const configContent = fs.readFileSync(CONFIG_PATH, 'utf8');
   config = toml.parse(configContent);
 } catch (error) {
-  console.error('❌ Failed to load config.toml:', error.message);
+  logger.error('❌ Failed to load config.toml:', error.message);
   process.exit(1);
 }
 
@@ -415,14 +500,14 @@ function discoverProjects() {
       })
       .map(entry => ({
         name: entry.name,
-        path: entry.name,
+        path: join(projectsDir, entry.name),
         description: `Project: ${entry.name}`
       }));
 
     console.log(`📂 Auto-discovered ${projects.length} projects in ${projectsDir}`);
     return projects;
   } catch (error) {
-    console.error('❌ Error discovering projects:', error.message);
+    logger.error('❌ Error discovering projects:', error.message);
     return [];
   }
 }
@@ -607,7 +692,7 @@ const performanceMonitorInterval = setInterval(async () => {
         value: memoryPercent.toFixed(1)
       });
       lastPerformanceAlert = now;
-      console.warn(`⚠️ Critical system memory: ${memoryPercent.toFixed(1)}%`);
+      logger.warn(`⚠️ Critical system memory: ${memoryPercent.toFixed(1)}%`);
     } else if (heapPercent > 90) {
       io.emit('performance-alert', {
         type: 'heap',
@@ -617,7 +702,7 @@ const performanceMonitorInterval = setInterval(async () => {
         value: heapPercent.toFixed(1)
       });
       lastPerformanceAlert = now;
-      console.warn(`⚠️ High heap usage: ${heapPercent.toFixed(1)}%`);
+      logger.warn(`⚠️ High heap usage: ${heapPercent.toFixed(1)}%`);
     } else if (memoryPercent > 85) {
       io.emit('performance-alert', {
         type: 'memory',
@@ -737,7 +822,7 @@ async function saveSnapshot(filepath, content, projectName) {
     const snapshotsDir = projectSnapshotDirs.get(projectName);
 
     if (!projectPath || !snapshotsDir) {
-      console.error(`❌ Project paths not found for ${projectName}`);
+      logger.error(`❌ Project paths not found for ${projectName}`);
       return null;
     }
 
@@ -763,7 +848,7 @@ async function saveSnapshot(filepath, content, projectName) {
     logger.info(`💾 Snapshot saved [${projectName}]: ${snapshotName} (${originalSize} → ${compressedSize} bytes, ${ratio}% reduction)`);
     return snapshotPath;
   } catch (error) {
-    console.error(`❌ Snapshot save error [${projectName}]:`, error);
+    logger.error(`❌ Snapshot save error [${projectName}]:`, error);
     return null;
   }
 }
@@ -782,7 +867,7 @@ async function handleFileChange(eventType, filepath) {
     // Detect which project this file belongs to
     const projectName = detectProjectFromPath(filepath);
     if (!projectName) {
-      console.warn(`⚠️  Could not determine project for file: ${filepath}`);
+      logger.warn(`⚠️  Could not determine project for file: ${filepath}`);
       return;
     }
 
@@ -792,7 +877,7 @@ async function handleFileChange(eventType, filepath) {
     const gitMonitor = projectGitMonitors.get(projectName);
 
     if (!db || !projectPath) {
-      console.error(`❌ Project resources not found for ${projectName}`);
+      logger.error(`❌ Project resources not found for ${projectName}`);
       return;
     }
 
@@ -945,7 +1030,7 @@ async function handleFileChange(eventType, filepath) {
       await emitGitStatusUpdate(projectName);
     }
   } catch (error) {
-    console.error('❌ File change handler error:', error);
+    logger.error('❌ File change handler error:', error);
   } finally {
     // Always remove file from in-progress set to prevent deadlock
     filesInProgress.delete(filepath);
@@ -963,7 +1048,7 @@ function initializeProject(projectName) {
   try {
     const project = availableProjects.find(p => p.name === projectName);
     if (!project) {
-      console.error(`❌ Project "${projectName}" not found`);
+      logger.error(`❌ Project "${projectName}" not found`);
       return false;
     }
 
@@ -999,7 +1084,7 @@ function initializeProject(projectName) {
 
     return true;
   } catch (error) {
-    console.error(`❌ Error initializing project ${projectName}:`, error);
+    logger.error(`❌ Error initializing project ${projectName}:`, error);
     return false;
   }
 }
@@ -1068,7 +1153,7 @@ async function emitGitStatusUpdate(projectName) {
       console.log(`🔀 [${projectName}] Git status emitted via WebSocket`);
     }
   } catch (error) {
-    console.error(`❌ Error emitting git status [${projectName}]:`, error);
+    logger.error(`❌ Error emitting git status [${projectName}]:`, error);
   }
 }
 
@@ -1080,7 +1165,7 @@ async function emitGitStatusUpdate(projectName) {
 function initializeWatcher(projectName) {
   const projectPath = projectPaths.get(projectName);
   if (!projectPath) {
-    console.error(`❌ Cannot create watcher for ${projectName}: path not found`);
+    logger.error(`❌ Cannot create watcher for ${projectName}: path not found`);
     return null;
   }
 
@@ -1149,7 +1234,7 @@ function initializeWatcher(projectName) {
       handleFileChange('unlink', filepath);
     })
     .on('error', error => {
-      console.error(`❌ Watcher error [${projectName}]:`, error);
+      logger.error(`❌ Watcher error [${projectName}]:`, error);
 
       // Emit file watcher error via WebSocket
       io.emit('file-watcher-error', {
@@ -1310,6 +1395,23 @@ app.get('/api/system-metrics', (req, res) => {
   }
 });
 
+app.get('/api/process-metrics/:agent', (req, res) => {
+  try {
+    const { limit = 100, offset = 0 } = req.query;
+    const agent = req.params.agent;
+    const ravenDb = projectDatabases.get('raven');
+    if (!ravenDb || !ravenDb.db) {
+      return res.status(500).json({ error: 'Raven database not initialized' });
+    }
+    const stmt = ravenDb.db.prepare('SELECT * FROM process_metrics WHERE agent_name = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?');
+    const metrics = stmt.all(agent, parseInt(limit), parseInt(offset));
+    res.json(metrics);
+  } catch (error) {
+    logger.error('Get process metrics by agent error:', error);
+    res.status(500).json({ error: 'Failed to retrieve process metrics' });
+  }
+});
+
 app.get('/api/process-metrics', (req, res) => {
   try {
     const { limit = 100, offset = 0, agent = null } = req.query;
@@ -1379,7 +1481,7 @@ app.get('/api/health-checks', (req, res) => {
       ...results
     });
   } catch (error) {
-    console.error('❌ Health checks API error:', error);
+    logger.error('❌ Health checks API error:', error);
     res.status(500).json({
       status: 'error',
       error: error.message
@@ -1429,8 +1531,9 @@ app.get('/api/events-by-agent/:agent', (req, res) => {
 
 app.get('/api/metrics-stats', (req, res) => {
   try {
-    if (!projectState.db) {
-      return res.status(500).json({ error: 'Database not initialized' });
+    const ravenDb = projectDatabases.get('raven');
+    if (!ravenDb || !ravenDb.db) {
+      return res.status(500).json({ error: 'Raven database not initialized' });
     }
     // Default to last 24 hours if not specified
     const now = Date.now();
@@ -1439,7 +1542,7 @@ app.get('/api/metrics-stats', (req, res) => {
     const start_time = req.query.start_time || new Date(dayAgo).toISOString();
     const end_time = req.query.end_time || new Date(now).toISOString();
 
-    const stats = projectState.db.getMetricsStats(start_time, end_time);
+    const stats = ravenDb.getMetricsStats(start_time, end_time);
     res.json(stats);
   } catch (error) {
     logger.error('Metrics stats error:', error);
@@ -1449,11 +1552,12 @@ app.get('/api/metrics-stats', (req, res) => {
 
 app.get('/api/performance-correlations', (req, res) => {
   try {
-    if (!projectState.db) {
-      return res.status(500).json({ error: 'Database not initialized' });
+    const ravenDb = projectDatabases.get('raven');
+    if (!ravenDb || !ravenDb.db) {
+      return res.status(500).json({ error: 'Raven database not initialized' });
     }
     const time_window_seconds = parseInt(req.query.time_window_seconds) || 5;
-    const correlations = projectState.db.correlateEventsWithMetrics(time_window_seconds);
+    const correlations = ravenDb.correlateEventsWithMetrics(time_window_seconds);
     res.json(correlations);
   } catch (error) {
     logger.error('Performance correlations error:', error);
@@ -1639,7 +1743,7 @@ app.get('/api/search/global', (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Global search error:', error);
+    logger.error('❌ Global search error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1702,7 +1806,7 @@ app.get('/api/health/projects', (req, res) => {
       recent_projects: healthData.filter(p => p.status === 'recent').length
     });
   } catch (error) {
-    console.error('❌ Multi-project health error:', error);
+    logger.error('❌ Multi-project health error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1818,7 +1922,7 @@ app.get('/api/anomalies/detect', (req, res) => {
       total_anomalies: anomalies.length
     });
   } catch (error) {
-    console.error('❌ Anomaly detection error:', error);
+    logger.error('❌ Anomaly detection error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1863,7 +1967,7 @@ app.get('/api/trends/historical', (req, res) => {
       trends
     });
   } catch (error) {
-    console.error('❌ Historical trends error:', error);
+    logger.error('❌ Historical trends error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1890,7 +1994,7 @@ app.get('/api/tracked-files', async (req, res) => {
 
     res.json(files);
   } catch (error) {
-    console.error('❌ Tracked files error:', error);
+    logger.error('❌ Tracked files error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1901,7 +2005,7 @@ app.get('/api/events-by-session/:sessionId', (req, res) => {
     const events = projectState.db.getEventsBySession(sessionId);
     res.json(events);
   } catch (error) {
-    console.error('❌ Events by session error:', error);
+    logger.error('❌ Events by session error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1929,7 +2033,7 @@ app.get('/api/snapshots/:filepath', async (req, res) => {
 
     res.json(snapshots);
   } catch (error) {
-    console.error('❌ Snapshots error:', error);
+    logger.error('❌ Snapshots error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2000,7 +2104,7 @@ app.post('/api/restore', async (req, res) => {
       event_id: eventId
     });
   } catch (error) {
-    console.error('❌ Restore error:', error);
+    logger.error('❌ Restore error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2010,10 +2114,35 @@ app.get('/api/file-events', (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
     const includeDiff = req.query.diff === 'true';
-    const events = projectState.db.getRecentFileEvents(limit, includeDiff);
-    res.json(events);
+    const projectName = req.query.project;
+
+    let db;
+    if (projectName) {
+      // Get database for specific project
+      db = projectDatabases.get(projectName);
+      if (!db) {
+        return res.status(404).json({ error: `Project '${projectName}' not found` });
+      }
+    } else {
+      // Use active project database
+      if (!projectState.db) {
+        return res.status(500).json({ error: 'No active project database' });
+      }
+      db = projectState.db;
+    }
+
+    const events = db.getRecentFileEvents(limit, includeDiff);
+
+    // Get total count
+    const totalCount = db.getTotalEventCount ? db.getTotalEventCount() : events.length;
+
+    res.json({
+      events: events,
+      total: totalCount,
+      project: projectName || projectState.activeProject
+    });
   } catch (error) {
-    console.error('❌ File events error:', error);
+    logger.error('File events error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2049,7 +2178,7 @@ app.get('/api/all-file-events', async (req, res) => {
 
     res.json(limitedEvents);
   } catch (error) {
-    console.error('❌ All file events error:', error);
+    logger.error('❌ All file events error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2069,7 +2198,7 @@ app.get('/api/activity-log', (req, res) => {
     const result = projectState.db.getActivityLog(options);
     res.json(result);
   } catch (error) {
-    console.error('❌ Activity log error:', error);
+    logger.error('❌ Activity log error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2081,7 +2210,7 @@ app.get('/api/triggers-config', (req, res) => {
     const triggers = triggerEngine.getTriggersConfig();
     res.json({ rules: triggers });
   } catch (error) {
-    console.error('❌ Triggers config error:', error);
+    logger.error('❌ Triggers config error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2092,7 +2221,7 @@ app.get('/api/triggered-events', (req, res) => {
     const events = triggerEngine.getTriggeredEvents(limit);
     res.json(events);
   } catch (error) {
-    console.error('❌ Triggered events error:', error);
+    logger.error('❌ Triggered events error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2102,7 +2231,7 @@ app.get('/api/trigger-stats', (req, res) => {
     const stats = triggerEngine.getTriggerStats();
     res.json(stats);
   } catch (error) {
-    console.error('❌ Trigger stats error:', error);
+    logger.error('❌ Trigger stats error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2112,7 +2241,7 @@ app.post('/api/triggers-reload', (req, res) => {
     const message = triggerEngine.reloadConfig();
     res.json({ message });
   } catch (error) {
-    console.error('❌ Triggers reload error:', error);
+    logger.error('❌ Triggers reload error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2122,7 +2251,7 @@ app.post('/api/triggers-clear-cooldowns', (req, res) => {
     const message = triggerEngine.clearCooldowns();
     res.json({ message });
   } catch (error) {
-    console.error('❌ Clear cooldowns error:', error);
+    logger.error('❌ Clear cooldowns error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2228,7 +2357,7 @@ app.get('/api/changelog', async (req, res) => {
 
     res.json(releases);
   } catch (error) {
-    console.error('❌ Changelog error:', error);
+    logger.error('❌ Changelog error:', error);
     res.status(500).json({ error: error.message, changelog: [] });
   }
 });
@@ -2318,7 +2447,7 @@ app.get('/api/preferences', (req, res) => {
 
     res.json(preferences);
   } catch (error) {
-    console.error('❌ Failed to get preferences:', error);
+    logger.error('❌ Failed to get preferences:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2338,7 +2467,7 @@ app.post('/api/preferences', (req, res) => {
     logger.info(`💾 Saved preferences for user: ${userId}`);
     res.json({ success: true, message: 'Preferences saved successfully' });
   } catch (error) {
-    console.error('❌ Failed to save preferences:', error);
+    logger.error('❌ Failed to save preferences:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2369,7 +2498,7 @@ app.get('/health', async (req, res) => {
       dbStats = fs.statSync(projectState.dbPath);
       dbSize = dbStats.size;
     } catch (error) {
-      console.error('Error getting database size:', error);
+      logger.error('Error getting database size:', error);
     }
 
     // Get disk space for database partition
@@ -2431,7 +2560,7 @@ app.get('/health', async (req, res) => {
         else if (row.change_type === 'unlink') dbAnalytics.eventBreakdown.unlink = row.count;
       });
     } catch (error) {
-      console.error('Error getting database analytics:', error);
+      logger.error('Error getting database analytics:', error);
     }
 
     // Calculate database growth rate (bytes per hour)
@@ -2495,7 +2624,7 @@ app.get('/health', async (req, res) => {
         }
       }
     } catch (err) {
-      console.error('Error checking bridge status:', err);
+      logger.error('Error checking bridge status:', err);
     }
 
     // Read version from package.json
@@ -2504,7 +2633,7 @@ app.get('/health', async (req, res) => {
       const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'));
       version = packageJson.version;
     } catch (err) {
-      console.error('Failed to read version:', err);
+      logger.error('Failed to read version:', err);
     }
 
     // Database health check
@@ -2601,7 +2730,7 @@ app.get('/health', async (req, res) => {
 
     res.json(healthData);
   } catch (error) {
-    console.error('Health check error:', error);
+    logger.error('Health check error:', error);
     res.status(500).json({
       status: 'error',
       error: error.message
@@ -2687,7 +2816,7 @@ app.get('/api/endpoints', (req, res) => {
       endpoints
     });
   } catch (error) {
-    console.error('❌ Error discovering endpoints:', error);
+    logger.error('❌ Error discovering endpoints:', error);
     res.status(500).json({ error: 'Failed to discover endpoints' });
   }
 });
@@ -2722,7 +2851,7 @@ app.post('/api/database/clear-old/:days', (req, res) => {
     for (const table of tables) {
       // Security: Validate table name is in whitelist
       if (!ALLOWED_TABLES.includes(table)) {
-        console.error(`❌ Security: Attempted to delete from non-whitelisted table: ${table}`);
+        logger.error(`❌ Security: Attempted to delete from non-whitelisted table: ${table}`);
         continue;
       }
 
@@ -2743,7 +2872,7 @@ app.post('/api/database/clear-old/:days', (req, res) => {
       cutoffDate: cutoffDate.toISOString()
     });
   } catch (error) {
-    console.error('Error clearing old database entries:', error);
+    logger.error('Error clearing old database entries:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2752,14 +2881,19 @@ app.post('/api/database/clear-old/:days', (req, res) => {
 
 app.get('/api/projects/list', (req, res) => {
   try {
-    const projects = projectState.availableProjects.map(p => p.name);
+    // Return full project objects with name, path, and description
+    const projects = projectState.availableProjects.map(p => ({
+      name: p.name,
+      path: p.path,
+      description: p.description || `Project: ${p.name}`
+    }));
     res.json({
       projects,
       active: projectState.activeProject
     });
   } catch (error) {
-    console.error('❌ Projects list error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Projects list error:', error);
+    res.status(500).json({ error: 'Failed to retrieve projects list' });
   }
 });
 
@@ -2796,7 +2930,7 @@ app.post('/api/projects/refresh', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('❌ Projects refresh error:', error);
+    logger.error('❌ Projects refresh error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2837,7 +2971,7 @@ app.post('/api/projects/select', async (req, res) => {
       await fsPromises.writeFile(CONFIG_PATH, updatedConfig, 'utf8');
       logger.info(`💾 Persisted active project: ${project}`);
     } catch (configError) {
-      console.error('⚠️  Failed to persist project selection:', configError.message);
+      logger.error('⚠️  Failed to persist project selection:', configError.message);
       // Don't fail the request if we can't persist - the switch still worked
     }
 
@@ -2847,8 +2981,77 @@ app.post('/api/projects/select', async (req, res) => {
       message: `Switched to project: ${project}`
     });
   } catch (error) {
-    console.error('❌ Project select error:', error);
+    logger.error('❌ Project select error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/projects/:name - Update project settings (toggle enabled, etc.)
+app.put('/api/projects/:name', async (req, res) => {
+  try {
+    const projectName = req.params.name;
+    const updates = req.body;
+
+    // Find the project in available projects
+    const projectIndex = projectState.availableProjects.findIndex(p => p.name === projectName);
+
+    if (projectIndex === -1) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Update project properties
+    projectState.availableProjects[projectIndex] = {
+      ...projectState.availableProjects[projectIndex],
+      ...updates
+    };
+
+    logger.info(`Project ${projectName} updated:`, updates);
+    res.json({ success: true, project: projectState.availableProjects[projectIndex] });
+  } catch (error) {
+    logger.error('Update project error:', error);
+    res.status(500).json({ error: 'Failed to update project' });
+  }
+});
+
+// DELETE /api/projects/:name - Remove project from monitoring
+app.delete('/api/projects/:name', async (req, res) => {
+  try {
+    const projectName = req.params.name;
+    const deleteDb = req.query.deleteDb === 'true';
+
+    // Find the project
+    const projectIndex = projectState.availableProjects.findIndex(p => p.name === projectName);
+
+    if (projectIndex === -1) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Remove from available projects
+    projectState.availableProjects.splice(projectIndex, 1);
+
+    // If deleting database, remove it
+    if (deleteDb) {
+      const dbPath = path.join(projectsDir, '../.raven/db', `${projectName}.db`);
+      try {
+        await fs.promises.unlink(dbPath);
+        logger.info(`Deleted database for project: ${projectName}`);
+      } catch (err) {
+        logger.warn(`Failed to delete database for ${projectName}:`, err);
+      }
+    }
+
+    // If this was the active project, switch to first available
+    if (projectState.activeProject === projectName) {
+      if (projectState.availableProjects.length > 0) {
+        await switchToProject(projectState.availableProjects[0].name);
+      }
+    }
+
+    logger.info(`Project ${projectName} removed`);
+    res.json({ success: true, message: 'Project removed' });
+  } catch (error) {
+    logger.error('Delete project error:', error);
+    res.status(500).json({ error: 'Failed to delete project' });
   }
 });
 
@@ -2923,7 +3126,7 @@ app.get('/api/git/status', async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('❌ Git status error:', error);
+    logger.error('❌ Git status error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2945,7 +3148,7 @@ app.get('/api/git/branches', async (req, res) => {
     const branches = await projectState.gitMonitor.getBranches();
     res.json({ branches });
   } catch (error) {
-    console.error('❌ Git branches error:', error);
+    logger.error('❌ Git branches error:', error);
     res.status(500).json({ error: error.message, branches: [] });
   }
 });
@@ -2977,7 +3180,7 @@ app.get('/api/git/history', async (req, res) => {
 
     res.json({ commits: formattedCommits });
   } catch (error) {
-    console.error('❌ Git history error:', error);
+    logger.error('❌ Git history error:', error);
     res.status(500).json({ error: error.message, commits: [] });
   }
 });
@@ -3004,7 +3207,7 @@ app.get('/api/git/diff/:filepath(*)', async (req, res) => {
       diff: diff || ''
     });
   } catch (error) {
-    console.error('❌ Git diff error:', error);
+    logger.error('❌ Git diff error:', error);
     res.status(500).json({ error: error.message, file: req.params.filepath, diff: '' });
   }
 });
@@ -3027,7 +3230,7 @@ app.get('/api/git/diff', async (req, res) => {
 
     res.json({ diff: diff || '' });
   } catch (error) {
-    console.error('❌ Git uncommitted diff error:', error);
+    logger.error('❌ Git uncommitted diff error:', error);
     res.status(500).json({ error: error.message, diff: '' });
   }
 });
@@ -3093,7 +3296,7 @@ app.get('/api/docs/list', (req, res) => {
       all: docs
     });
   } catch (error) {
-    console.error('❌ Documentation list error:', error);
+    logger.error('❌ Documentation list error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -3136,7 +3339,7 @@ app.get('/api/docs/:filepath(*)', async (req, res) => {
       title: filepath.replace(/\.md$/, '').replace(/\//g, ' / ')
     });
   } catch (error) {
-    console.error('❌ Documentation error:', error);
+    logger.error('❌ Documentation error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -3161,7 +3364,7 @@ app.get('/api/errors', (req, res) => {
     const result = projectState.db.getErrorLogs(options);
     res.json(result);
   } catch (error) {
-    console.error('❌ Get errors endpoint error:', error);
+    logger.error('❌ Get errors endpoint error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -3172,11 +3375,36 @@ app.get('/api/errors', (req, res) => {
  */
 app.get('/api/errors/stats', (req, res) => {
   try {
-    const stats = projectState.db.getErrorStats();
+    const projectName = req.query.project;
+
+    let db;
+    if (projectName) {
+      // Get database for specific project
+      db = projectDatabases.get(projectName);
+      if (!db) {
+        return res.status(404).json({ error: `Project '${projectName}' not found` });
+      }
+    } else {
+      // Use active project database
+      if (!projectState.db) {
+        return res.status(500).json({ error: 'No active project database' });
+      }
+      db = projectState.db;
+    }
+
+    const stats = db.getErrorStats();
+
+    // Ensure we return total field even if getErrorStats doesn't provide it
+    if (!stats.total && stats.count !== undefined) {
+      stats.total = stats.count;
+    } else if (!stats.total) {
+      stats.total = 0;
+    }
+
     res.json(stats);
   } catch (error) {
-    console.error('❌ Error stats endpoint error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Error stats endpoint error:', error);
+    res.status(500).json({ error: error.message, total: 0 });
   }
 });
 
@@ -3199,7 +3427,7 @@ app.delete('/api/errors', (req, res) => {
         : `Deleted all ${deletedCount} errors`
     });
   } catch (error) {
-    console.error('❌ Clear errors endpoint error:', error);
+    logger.error('❌ Clear errors endpoint error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -3219,7 +3447,7 @@ app.get('/api/notifications', (req, res) => {
     const result = projectState.db.getNotifications(options);
     res.json(result);
   } catch (error) {
-    console.error('❌ Error fetching notifications:', error);
+    logger.error('❌ Error fetching notifications:', error);
     res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });
@@ -3229,7 +3457,7 @@ app.get('/api/notifications/stats', (req, res) => {
     const stats = projectState.db.getNotificationStats();
     res.json(stats);
   } catch (error) {
-    console.error('❌ Error fetching notification stats:', error);
+    logger.error('❌ Error fetching notification stats:', error);
     res.status(500).json({ error: 'Failed to fetch notification stats' });
   }
 });
@@ -3240,7 +3468,7 @@ app.post('/api/notifications/:id/read', (req, res) => {
     projectState.db.markNotificationAsRead(id);
     res.json({ success: true });
   } catch (error) {
-    console.error('❌ Error marking notification as read:', error);
+    logger.error('❌ Error marking notification as read:', error);
     res.status(500).json({ error: 'Failed to mark notification as read' });
   }
 });
@@ -3250,7 +3478,7 @@ app.post('/api/notifications/mark-all-read', (req, res) => {
     projectState.db.markAllNotificationsAsRead();
     res.json({ success: true });
   } catch (error) {
-    console.error('❌ Error marking all notifications as read:', error);
+    logger.error('❌ Error marking all notifications as read:', error);
     res.status(500).json({ error: 'Failed to mark all notifications as read' });
   }
 });
@@ -3261,7 +3489,7 @@ app.delete('/api/notifications/:id', (req, res) => {
     projectState.db.deleteNotification(id);
     res.json({ success: true });
   } catch (error) {
-    console.error('❌ Error deleting notification:', error);
+    logger.error('❌ Error deleting notification:', error);
     res.status(500).json({ error: 'Failed to delete notification' });
   }
 });
@@ -3272,7 +3500,7 @@ app.delete('/api/notifications', (req, res) => {
     const result = projectState.db.clearNotifications(olderThanDays);
     res.json(result);
   } catch (error) {
-    console.error('❌ Error clearing notifications:', error);
+    logger.error('❌ Error clearing notifications:', error);
     res.status(500).json({ error: 'Failed to clear notifications' });
   }
 });
@@ -3426,7 +3654,7 @@ app.get('/api/storage', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('❌ Error getting storage stats:', error);
+    logger.error('❌ Error getting storage stats:', error);
     res.status(500).json({ error: 'Failed to get storage statistics' });
   }
 });
@@ -3450,14 +3678,14 @@ app.get('/api/storage/export/:dbname', async (req, res) => {
     // Send the file for download
     res.download(dbPath, `${dbname}_${Date.now()}.db`, (err) => {
       if (err) {
-        console.error('❌ Error sending database file:', err);
+        logger.error('❌ Error sending database file:', err);
         if (!res.headersSent) {
           res.status(500).json({ error: 'Failed to export database' });
         }
       }
     });
   } catch (error) {
-    console.error('❌ Error exporting database:', error);
+    logger.error('❌ Error exporting database:', error);
     res.status(500).json({ error: 'Failed to export database' });
   }
 });
@@ -3503,7 +3731,7 @@ app.post('/api/storage/vacuum/:dbname', async (req, res) => {
       percentSaved: sizeBefore > 0 ? ((spaceSaved / sizeBefore) * 100).toFixed(2) : 0
     });
   } catch (error) {
-    console.error('❌ Error running VACUUM:', error);
+    logger.error('❌ Error running VACUUM:', error);
     res.status(500).json({ error: 'Failed to optimize database: ' + error.message });
   }
 });
@@ -3578,7 +3806,7 @@ app.post('/api/storage/clean/:dbname', async (req, res) => {
       cutoffDate: cutoffTimestamp
     });
   } catch (error) {
-    console.error('❌ Error cleaning old data:', error);
+    logger.error('❌ Error cleaning old data:', error);
     res.status(500).json({ error: 'Failed to clean old data: ' + error.message });
   }
 });
@@ -3604,7 +3832,7 @@ app.get('/api/storage/retention', async (req, res) => {
     const policy = JSON.parse(data);
     res.json(policy);
   } catch (error) {
-    console.error('❌ Error reading retention policy:', error);
+    logger.error('❌ Error reading retention policy:', error);
     res.status(500).json({ error: 'Failed to read retention policy' });
   }
 });
@@ -3638,7 +3866,7 @@ app.post('/api/storage/retention', async (req, res) => {
       policy
     });
   } catch (error) {
-    console.error('❌ Error saving retention policy:', error);
+    logger.error('❌ Error saving retention policy:', error);
     res.status(500).json({ error: 'Failed to save retention policy' });
   }
 });
@@ -3651,7 +3879,7 @@ app.get('/api/sync/config', async (req, res) => {
     const data = await SyncService.loadConfig();
     res.json(data);
   } catch (error) {
-    console.error('❌ Error loading sync config:', error);
+    logger.error('❌ Error loading sync config:', error);
     res.status(500).json({ error: 'Failed to load sync configuration' });
   }
 });
@@ -3673,7 +3901,7 @@ app.post('/api/sync/config', async (req, res) => {
       res.status(500).json({ success: false, error: result.error });
     }
   } catch (error) {
-    console.error('❌ Error saving sync config:', error);
+    logger.error('❌ Error saving sync config:', error);
     res.status(500).json({ error: 'Failed to save sync configuration' });
   }
 });
@@ -3690,7 +3918,7 @@ app.post('/api/sync/test', async (req, res) => {
     const result = await SyncService.testConnection(config);
     res.json(result);
   } catch (error) {
-    console.error('❌ Error testing connection:', error);
+    logger.error('❌ Error testing connection:', error);
     res.status(500).json({ success: false, error: 'Connection test failed' });
   }
 });
@@ -3729,7 +3957,7 @@ app.post('/api/sync/trigger', async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('❌ Error performing sync:', error);
+    logger.error('❌ Error performing sync:', error);
 
     // Emit sync failure event
     io.emit('sync-complete', {
@@ -3748,7 +3976,7 @@ app.get('/api/sync/ssh-status', async (req, res) => {
     const status = await SyncService.checkSSHSetup();
     res.json(status);
   } catch (error) {
-    console.error('❌ Error checking SSH status:', error);
+    logger.error('❌ Error checking SSH status:', error);
     res.status(500).json({ error: 'Failed to check SSH status' });
   }
 });
@@ -3765,7 +3993,7 @@ app.post('/api/sync/remote-stats', async (req, res) => {
     const stats = await SyncService.getRemoteStorageStats(config);
     res.json(stats);
   } catch (error) {
-    console.error('❌ Error getting remote stats:', error);
+    logger.error('❌ Error getting remote stats:', error);
     res.status(500).json({ success: false, error: 'Failed to get remote storage statistics' });
   }
 });
@@ -3776,7 +4004,7 @@ app.post('/api/sync/cancel', async (req, res) => {
     const result = await SyncService.cancelSync();
     res.json(result);
   } catch (error) {
-    console.error('❌ Error cancelling sync:', error);
+    logger.error('❌ Error cancelling sync:', error);
     res.status(500).json({ success: false, error: 'Failed to cancel sync' });
   }
 });
@@ -3787,7 +4015,7 @@ app.get('/api/sync/rsync-status', async (req, res) => {
     const status = await SyncService.checkRsyncInstalled();
     res.json(status);
   } catch (error) {
-    console.error('❌ Error checking rsync status:', error);
+    logger.error('❌ Error checking rsync status:', error);
     res.status(500).json({ error: 'Failed to check rsync status' });
   }
 });
@@ -3901,7 +4129,7 @@ async function runStartupDiagnostics() {
     }
   } catch (error) {
     diagnostics.bridge.status = 'error';
-    console.error('❌ Telemetry Bridge diagnostic error:', error.message);
+    logger.error('❌ Telemetry Bridge diagnostic error:', error.message);
   }
 
   // Summary
@@ -3967,18 +4195,18 @@ httpServer.listen(PORT, () => {
     healthCheckSystem = createDefaultHealthChecks(firstDb, io);
     healthCheckSystem.runAllChecks().then(summary => {
       if (!summary.allPassed) {
-        console.error(`\n⚠️  ${summary.failed} health check(s) failed - check notifications panel\n`);
+        logger.error(`\n⚠️  ${summary.failed} health check(s) failed - check notifications panel\n`);
       } else {
         console.log(`\n✅ All ${summary.total} health checks passed!\n`);
       }
     }).catch(error => {
-      console.error(`\n❌ Health check system error: ${error.message}\n`);
+      logger.error(`\n❌ Health check system error: ${error.message}\n`);
     });
 
     // Run startup diagnostics and self-healing
     setTimeout(() => runStartupDiagnostics(), 2000);
   } else {
-    console.error('❌ No databases available - trigger engine and metrics collector not started');
+    logger.error('❌ No databases available - trigger engine and metrics collector not started');
   }
 
   // Initialize file watchers for ALL projects

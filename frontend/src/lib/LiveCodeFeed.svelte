@@ -185,7 +185,8 @@
   async function loadCodeChanges() {
     try {
       const data = await api.get('/file-events?limit=50&diff=true');
-      codeChanges = data;
+      // Handle both array and object responses
+      codeChanges = Array.isArray(data) ? data : (data.events || []);
     } catch (error) {
       console.error('Failed to load code changes:', error);
     }
@@ -194,10 +195,13 @@
   async function loadRecentActivity() {
     try {
       // Get both file events and agent events
-      const [fileEvents, agentEvents] = await Promise.all([
+      const [fileEventsResponse, agentEvents] = await Promise.all([
         api.get('/file-events?limit=20'),
         api.get('/agent-events?limit=20')
       ]);
+
+      // Extract events array from response (handle both array and object formats)
+      const fileEvents = Array.isArray(fileEventsResponse) ? fileEventsResponse : (fileEventsResponse.events || []);
 
       // Combine and sort by timestamp
       const combined = [

@@ -337,7 +337,8 @@
     // Fetch full event details including diff
     try {
       const data = await api.get('/file-events?limit=1000&diff=true');
-      const eventWithDiff = data.find(e => e.id === event.id);
+      const eventsArray = Array.isArray(data) ? data : (data.events || []);
+      const eventWithDiff = eventsArray.find(e => e.id === event.id);
 
       if (eventWithDiff) {
         selectedEventForDiff = {
