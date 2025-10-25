@@ -230,6 +230,35 @@
       </nav>
 
       <div class="header-right">
+        <div class="theme-switcher">
+          <button
+            class="theme-btn"
+            class:active={theme === 'theme--day'}
+            on:click={() => switchTheme('theme--day')}
+            aria-label="Day theme"
+            title="Day (Gruvbox)"
+          >
+            ☀️
+          </button>
+          <button
+            class="theme-btn"
+            class:active={theme === 'theme--dusk'}
+            on:click={() => switchTheme('theme--dusk')}
+            aria-label="Dusk theme"
+            title="Dusk (Ristretto)"
+          >
+            🌅
+          </button>
+          <button
+            class="theme-btn"
+            class:active={theme === 'theme--night'}
+            on:click={() => switchTheme('theme--night')}
+            aria-label="Night theme"
+            title="Night (Tokyo Night)"
+          >
+            🌙
+          </button>
+        </div>
         <UserMenu />
         <button
           class="help-button"
@@ -612,12 +641,13 @@
   }
 
   header {
-    padding: 12px 24px;
+    padding: var(--space-lg) var(--space-2xl);
     border-bottom: 1px solid var(--border);
     background: var(--surface);
     position: sticky;
     top: 0;
     z-index: 1000;
+    box-shadow: var(--shadow-sm);
   }
 
   .header-content {
@@ -625,24 +655,25 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    gap: var(--space-lg);
   }
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-md);
   }
 
   .header-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: var(--space-md);
   }
 
   h1 {
-    font-family: var(--mono);
-    font-size: 18px;
-    font-weight: 600;
+    font-family: var(--sans);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
     margin: 0;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2, var(--accent)) 100%);
     background-clip: text;
@@ -650,24 +681,74 @@
     -webkit-text-fill-color: transparent;
   }
 
+  /* Theme Switcher */
+  .theme-switcher {
+    display: flex;
+    gap: var(--space-xs);
+    padding: var(--space-xs);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .theme-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-out-expo);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .theme-btn:hover {
+    background: var(--surface);
+    transform: scale(1.1);
+  }
+
+  .theme-btn:active {
+    transform: scale(0.95);
+  }
+
+  .theme-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .theme-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .help-button {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
-    font-family: var(--mono);
-    font-size: 14px;
-    font-weight: 600;
+    font-family: var(--sans);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-fast) var(--ease-out-expo);
   }
 
   .help-button:hover {
     background: var(--accent);
     color: white;
     transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+  }
+
+  .help-button:active {
+    transform: scale(0.95);
   }
 
   .help-button:focus {
@@ -678,27 +759,27 @@
   /* Inline Navigation Tabs */
   .header-nav {
     display: flex;
-    gap: 4px;
+    gap: var(--space-xs);
     align-items: center;
     flex: 1;
     justify-content: center;
-    max-width: 600px;
+    max-width: 700px;
   }
 
   .nav-tab {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--radius);
     color: var(--muted);
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 500;
+    font-family: var(--sans);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-fast) var(--ease-out-expo);
     position: relative;
     white-space: nowrap;
   }
@@ -706,7 +787,12 @@
   .nav-tab:hover {
     background: var(--surface-2);
     color: var(--text);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nav-tab:active {
+    transform: translateY(0);
   }
 
   .nav-tab:focus {
@@ -718,11 +804,12 @@
     background: var(--accent);
     color: white;
     border-color: var(--accent);
+    box-shadow: var(--shadow-md);
   }
 
   .nav-tab.active:hover {
     background: var(--accent-2, var(--accent));
-    transform: none;
+    transform: translateY(-1px);
   }
 
   .tab-icon {
@@ -760,44 +847,53 @@
     padding: 0;
     max-width: 100%;
     margin: 0;
-    min-height: calc(100vh - 64px);
+    min-height: calc(100vh - 100px);
     padding-bottom: 60px; /* Space for fixed footer */
   }
 
   .tab-content {
     width: 100%;
+    animation: fadeIn var(--duration-base) var(--ease-smooth);
   }
 
   .sub-navigation {
     display: flex;
-    gap: 8px;
-    padding: 16px 24px;
+    gap: var(--space-sm);
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--surface);
     border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
   }
 
   .sub-tab {
-    padding: 8px 16px;
+    padding: var(--space-sm) var(--space-md);
     background: transparent;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius);
     color: var(--muted);
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
+    font-family: var(--sans);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-fast) var(--ease-out-expo);
   }
 
   .sub-tab:hover {
     background: var(--surface-2);
     color: var(--text);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .sub-tab:active {
+    transform: translateY(0);
   }
 
   .sub-tab.active {
     background: var(--accent);
     color: white;
     border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
   }
 
   .sub-tab:focus {
@@ -806,19 +902,14 @@
   }
 
   /* Focus indicators for accessibility */
-  *:focus {
+  *:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
 
-  button:focus {
+  button:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-  }
-
-  /* Smooth transitions for alive feeling */
-  * {
-    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
   }
 
   .auth-loading {

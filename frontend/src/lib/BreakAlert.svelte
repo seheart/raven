@@ -125,42 +125,51 @@
 <style>
   .break-alert {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: var(--space-xl);
+    right: var(--space-xl);
     max-width: 450px;
     background: var(--surface);
     border: 3px solid var(--urgency-color);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
     display: flex;
-    gap: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    gap: var(--space-lg);
+    box-shadow: var(--shadow-lg);
     z-index: 10000;
-    animation: slideIn 0.3s ease-out;
+    animation: celebrate var(--duration-slow) var(--ease-bounce);
   }
 
-  @keyframes slideIn {
-    from {
-      transform: translateX(500px);
+  @keyframes celebrate {
+    0% {
+      transform: translateX(500px) rotate(5deg);
       opacity: 0;
     }
-    to {
-      transform: translateX(0);
+    60% {
+      transform: translateX(-10px) rotate(-2deg);
+      opacity: 1;
+    }
+    80% {
+      transform: translateX(5px) rotate(1deg);
+    }
+    100% {
+      transform: translateX(0) rotate(0deg);
       opacity: 1;
     }
   }
 
   .break-alert.critical {
     background: color-mix(in srgb, var(--error) 10%, var(--surface));
-    animation: slideIn 0.3s ease-out, pulse 2s ease-in-out infinite;
+    animation: celebrate var(--duration-slow) var(--ease-bounce), pulse 2s ease-in-out infinite;
   }
 
   @keyframes pulse {
     0%, 100% {
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      box-shadow: var(--shadow-lg);
+      transform: scale(1);
     }
     50% {
-      box-shadow: 0 8px 32px var(--urgency-color);
+      box-shadow: 0 12px 40px var(--urgency-color);
+      transform: scale(1.02);
     }
   }
 
@@ -173,9 +182,25 @@
   }
 
   .alert-icon {
-    font-size: 32px;
+    font-size: var(--text-3xl);
     flex-shrink: 0;
     line-height: 1;
+    animation: iconBounce var(--duration-slower) var(--ease-bounce) 0.2s;
+  }
+
+  @keyframes iconBounce {
+    0%, 100% {
+      transform: scale(1);
+    }
+    25% {
+      transform: scale(1.2) rotate(-10deg);
+    }
+    50% {
+      transform: scale(0.9) rotate(10deg);
+    }
+    75% {
+      transform: scale(1.1) rotate(-5deg);
+    }
   }
 
   .alert-content {
@@ -184,61 +209,69 @@
   }
 
   .alert-title {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    font-family: var(--sans);
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-sm);
   }
 
   .alert-message {
-    font-size: 14px;
+    font-size: var(--text-base);
+    font-family: var(--sans);
     color: var(--text);
-    margin-bottom: 8px;
-    line-height: 1.5;
+    margin-bottom: var(--space-sm);
+    line-height: 1.6;
   }
 
   .alert-duration {
-    font-size: 13px;
+    font-size: var(--text-sm);
+    font-family: var(--sans);
     color: var(--urgency-color);
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-sm);
   }
 
   .alert-reasons {
-    margin-top: 12px;
-    padding: 12px;
+    margin-top: var(--space-md);
+    padding: var(--space-md);
     background: var(--bg);
-    border-radius: 6px;
-    font-size: 12px;
+    border-radius: var(--radius);
+    font-size: var(--text-xs);
   }
 
   .reason-item {
     color: var(--muted);
-    padding: 4px 0;
-    line-height: 1.4;
+    padding: var(--space-xs) 0;
+    line-height: 1.5;
   }
 
   .dismiss-btn {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 28px;
-    height: 28px;
+    top: var(--space-md);
+    right: var(--space-md);
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
     color: var(--muted);
-    font-size: 18px;
+    font-size: var(--text-lg);
     cursor: pointer;
     border-radius: 50%;
-    transition: all 0.2s;
+    transition: all var(--duration-fast) var(--ease-out-expo);
   }
 
   .dismiss-btn:hover {
     background: var(--bg);
     color: var(--text);
+    transform: scale(1.1) rotate(90deg);
+  }
+
+  .dismiss-btn:active {
+    transform: scale(0.9) rotate(90deg);
   }
 
   /* Mobile responsive */

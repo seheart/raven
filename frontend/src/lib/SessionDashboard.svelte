@@ -58,9 +58,9 @@
     // Update session duration timer every second
     sessionTimerId = setInterval(() => {
       if (currentSession) {
-        sessionDuration++;
+        sessionDuration += 1/60; // Increment by 1 minute every 60 seconds
       }
-    }, 60000); // Update every minute
+    }, 1000); // Update every second for smooth timer
   });
 
   onDestroy(() => {
@@ -134,9 +134,15 @@
   </div>
 
   {#if loading && !currentSession}
-    <div class="loading">
-      <div class="spinner"></div>
-      <p>Loading session data...</p>
+    <div class="loading-skeleton">
+      <div class="skeleton skeleton-panel">
+        <div class="skeleton skeleton-heading"></div>
+        <div class="skeleton skeleton-hero"></div>
+        <div class="skeleton-grid">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
     </div>
   {:else if error}
     <div class="error-state">
@@ -327,24 +333,26 @@
   .session-dashboard {
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
+    box-shadow: var(--shadow-md);
   }
 
   .dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: var(--space-xl) var(--space-2xl);
     background: var(--bg);
     border-bottom: 2px solid var(--border);
   }
 
   .dashboard-header h3 {
     margin: 0;
-    font-size: 18px;
-    font-weight: 700;
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
     color: var(--text);
+    font-family: var(--sans);
   }
 
   .active-indicator {
@@ -407,24 +415,31 @@
   }
 
   .dashboard-content {
-    padding: 24px;
+    padding: var(--space-2xl);
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: var(--space-2xl);
+    animation: fadeInUp var(--duration-base) var(--ease-out-expo);
   }
 
   .panel {
     background: var(--bg);
     border: 2px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    transition: all var(--duration-base) var(--ease-smooth);
+  }
+
+  .panel:hover {
+    box-shadow: var(--shadow-md);
   }
 
   .panel-title {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    font-family: var(--sans);
     color: var(--text);
-    margin-bottom: 16px;
+    margin-bottom: var(--space-lg);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -437,23 +452,32 @@
 
   .session-timer {
     text-align: center;
-    padding: 24px;
+    padding: var(--space-3xl);
     background: var(--surface);
-    border-radius: 8px;
-    margin-bottom: 20px;
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-xl);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-base) var(--ease-smooth);
+  }
+
+  .session-timer:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-md);
   }
 
   .timer-display {
-    font-size: 48px;
-    font-weight: 700;
+    font-size: var(--text-5xl); /* Hero size: 56px */
+    font-weight: var(--weight-bold);
     font-family: var(--mono);
     color: var(--accent);
-    line-height: 1;
-    margin-bottom: 8px;
+    line-height: 1.1;
+    margin-bottom: var(--space-sm);
+    animation: fadeIn var(--duration-base) var(--ease-smooth);
   }
 
   .timer-label {
-    font-size: 12px;
+    font-size: var(--text-xs);
+    font-family: var(--sans);
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -652,16 +676,22 @@
 
   .stat-card {
     text-align: center;
-    padding: 20px;
+    padding: var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    transition: all 0.2s;
+    border-radius: var(--radius-lg);
+    transition: all var(--duration-base) var(--ease-out-expo);
+    cursor: pointer;
   }
 
   .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
+  }
+
+  .stat-card:active {
+    transform: translateY(-2px) scale(1.0);
   }
 
   .stat-icon {
@@ -782,5 +812,30 @@
   .session-quality {
     font-weight: 700;
     font-family: var(--mono);
+  }
+
+  /* Skeleton Loading */
+  .loading-skeleton {
+    padding: var(--space-2xl);
+  }
+
+  .skeleton-panel {
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+  }
+
+  .skeleton-hero {
+    height: 120px;
+    margin-bottom: var(--space-lg);
+  }
+
+  .skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+  }
+
+  .skeleton-card {
+    height: 100px;
   }
 </style>
