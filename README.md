@@ -6,13 +6,42 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 0.12.0 - Agent Conversation Tracker & Authentication Fixes
+**Version:** 0.13.0 - Snapshot Protection & Recovery
 
-## 🚀 Current Status: Conversation-Aware AI Monitoring
+## 🚀 Current Status: Comprehensive Snapshot Protection
 
-✅ **Track not just what AI agents change, but WHY - with full conversation history!**
+✅ **Never lose code again! Complete protection against AI agent overwrites with instant recovery.**
 
-### 🆕 What's New in 0.12.0 - Agent Conversation Tracker
+### 🆕 What's New in 0.13.0 - Snapshot Protection Features
+
+**🛡️ Comprehensive Snapshot Protection:**
+- [x] **"Undo Claude" Button** - One-click restore to any previous snapshot
+- [x] **Large Deletion Alerts** - Automatic warnings when >100 lines deleted
+- [x] **Snapshot Comparison Tool** - Side-by-side diff between any two snapshots
+- [x] **Advanced Search & Filters** - Search by time, event type, or event ID
+- [x] **Real-time Filtering** - Filter by change type (modified/created/deleted)
+
+**🔍 File History Enhancements:**
+- [x] **Smart Search** - Instant search across timestamps, types, and event IDs
+- [x] **Type Filters** - Dropdown with event counts for each change type
+- [x] **Filter Statistics** - "Showing X of Y snapshots" display
+- [x] **Empty States** - Helpful messages when no results match filters
+- [x] **Comparison Mode** - Select any 2 snapshots for unified diff view
+- [x] **Unified Diff Display** - Professional diff viewer with syntax highlighting
+
+**⚙️ Backend Improvements:**
+- [x] **Trigger System** - Configurable alerts for large deletions
+- [x] **Event-Driven Snapshots** - Superior to periodic snapshots (saves on every change)
+- [x] **1,566+ Snapshots** - Already protecting your code (22MB compressed)
+- [x] **getEventById() API** - Retrieve specific events for restoration
+- [x] **Dual API Support** - Compatible with both old and new restore formats
+
+**💡 Why This Matters:**
+Raven was built to solve the exact problem of AI agents overwriting or forgetting code.
+With these features, you have complete visibility into every change, instant recovery
+options, and automatic alerts before anything goes wrong.
+
+### Previous Release: 0.12.0 - Agent Conversation Tracker
 
 **🤖 Conversation History Tracking:**
 - [x] **Agent Conversations Table** - Full conversation event storage in database
