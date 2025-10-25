@@ -874,9 +874,14 @@ async function handleFileChange(eventType, filepath) {
     });
 
     // Check if this event triggers any alerts
+    const linesDeleted = diff ? (diff.match(/^-/gm) || []).length : 0;
+    const linesAdded = diff ? (diff.match(/^\+/gm) || []).length : 0;
+
     const triggerEvent = {
       file: relPath,
       lines_changed: diff ? diff.split('\n').length : 0,
+      lines_deleted: linesDeleted,
+      lines_added: linesAdded,
       event_type: eventType,
       cpu_percent: cpuPercent,
       memory_percent: memPercent,
@@ -1481,21 +1486,47 @@ app.get('/api/snapshots/:filepath', async (req, res) => {
 // Restore a file from snapshot
 app.post('/api/restore', async (req, res) => {
   try {
-    const { filepath, snapshot } = req.body;
+    const { eventId, targetPath, filepath, snapshot } = req.body;
 
-    if (!filepath || !snapshot) {
-      return res.status(400).json({ error: 'Missing filepath or snapshot' });
+    // Support both old API (filepath + snapshot) and new API (eventId + targetPath)
+    let snapshotPath;
+    let restoredFilepath;
+
+    if (eventId && targetPath) {
+      // New API: Look up event and find corresponding snapshot
+      const event = projectState.db.getEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ error: `Event ${eventId} not found` });
+      }
+
+      // Find snapshot file
+      const snapshotFilename = `${event.filepath.replace(/\//g, '_')}_${new Date(event.timestamp).getTime()}.gz`;
+      snapshotPath = join(projectState.snapshotsDir, snapshotFilename);
+      restoredFilepath = targetPath;
+
+      // Check if snapshot exists
+      if (!fs.existsSync(snapshotPath)) {
+        return res.status(404).json({
+          error: `Snapshot not found: ${snapshotFilename}`,
+          details: 'The snapshot file may have been cleaned up or deleted'
+        });
+      }
+    } else if (filepath && snapshot) {
+      // Old API: Direct snapshot restoration
+      snapshotPath = join(projectState.snapshotsDir, snapshot);
+      restoredFilepath = filepath;
+    } else {
+      return res.status(400).json({
+        error: 'Missing required parameters. Provide either (eventId + targetPath) or (filepath + snapshot)'
+      });
     }
-
-    // Read snapshot content
-    const snapshotPath = join(projectState.snapshotsDir, snapshot);
 
     // Read snapshot (may be compressed or uncompressed for backwards compatibility)
     const data = await fs.promises.readFile(snapshotPath);
 
     // Decompress if it's a .gz file, otherwise treat as plain text
     let content;
-    if (snapshot.endsWith('.gz')) {
+    if (snapshotPath.endsWith('.gz')) {
       const decompressed = await gunzipAsync(data);
       content = decompressed.toString('utf8');
     } else {
@@ -1503,15 +1534,19 @@ app.post('/api/restore', async (req, res) => {
     }
 
     // Restore to original location
-    const targetPath = join(projectState.watchPath, filepath);
-    await fs.promises.writeFile(targetPath, content, 'utf8');
+    const targetFilePath = join(projectState.watchPath, restoredFilepath);
+    await fs.promises.writeFile(targetFilePath, content, 'utf8');
 
-    console.log(`🔄 Restored ${filepath} from snapshot ${snapshot}`);
+    logger.info(`🔄 Restored ${restoredFilepath} from snapshot`, {
+      event_id: eventId,
+      snapshot_path: snapshotPath
+    });
 
     res.json({
       success: true,
-      message: `File ${filepath} restored from snapshot`,
-      snapshot: snapshot
+      message: `File ${restoredFilepath} successfully restored`,
+      filepath: restoredFilepath,
+      event_id: eventId
     });
   } catch (error) {
     console.error('❌ Restore error:', error);

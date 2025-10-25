@@ -108,3 +108,9 @@ cpu_percent = ">80"
 action = "log"
 message = "High CPU usage: {cpu_percent}%"
 cooldown_seconds = 300
+
+[triggers.large_deletion]
+lines_deleted = ">100"
+action = "log"
+message = "⚠️ Large deletion detected: {file} ({lines_deleted} lines deleted)"
+cooldown_seconds = 60

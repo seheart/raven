@@ -189,6 +189,18 @@ cooldown_seconds = 300
       }
     }
 
+    if (trigger.lines_deleted && event.lines_deleted !== undefined) {
+      if (!this.checkNumericCondition(event.lines_deleted, trigger.lines_deleted)) {
+        return false;
+      }
+    }
+
+    if (trigger.lines_added && event.lines_added !== undefined) {
+      if (!this.checkNumericCondition(event.lines_added, trigger.lines_added)) {
+        return false;
+      }
+    }
+
     if (trigger.duration_ms && event.duration_ms !== undefined) {
       if (!this.checkNumericCondition(event.duration_ms, trigger.duration_ms)) {
         return false;

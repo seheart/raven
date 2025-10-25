@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { formatDateTime } from './timeFormat.js';
   import DiffViewer from './DiffViewer.svelte';
+  import { api } from './apiClient.js';
+  import { notifications } from './notificationService.js';
 
   export let onClose = () => {};
   export let filepath = '';
@@ -13,6 +15,10 @@
   let showSnapshot = false;
   let showDiff = false;
   let diffContent = '';
+  let restoring = false;
+  let comparisonMode = false;
+  let selectedForComparison = [];
+  let comparingSnapshots = false;
 
   onMount(async () => {
     await loadHistory();
@@ -21,11 +27,11 @@
   async function loadHistory() {
     try {
       loading = true;
-      const response = await fetch(`http://localhost:3030/api/files/${encodeURIComponent(filepath)}/history`);
-      history = await response.json();
+      history = await api.get(`/files/${encodeURIComponent(filepath)}/history`);
       loading = false;
     } catch (error) {
       console.error('Failed to load file history:', error);
+      notifications.error(`Failed to load file history: ${error.message}`);
       loading = false;
     }
   }
@@ -36,30 +42,45 @@
 
     try {
       const filename = filepath?.split('/')?.pop() || '';
+      // Note: This endpoint returns text, not JSON
       const response = await fetch(`http://localhost:3030/api/snapshot/${event.id}/${encodeURIComponent(filename)}`);
       snapshotContent = await response.text();
     } catch (error) {
       console.error('Failed to load snapshot:', error);
-      snapshotContent = `Error loading snapshot: ${error}`;
+      snapshotContent = `Error loading snapshot: ${error.message}`;
+      notifications.error(`Failed to load snapshot: ${error.message}`);
     }
   }
 
   async function restoreToEvent(event) {
-    if (!confirm(`Restore ${filepath} to state at ${formatTime(event.timestamp)}?`)) {
+    const confirmed = confirm(
+      `🔄 Restore ${filepath} to state at ${formatTime(event.timestamp)}?\n\n` +
+      `This will overwrite the current file with the snapshot from Event #${event.id}.`
+    );
+
+    if (!confirmed) {
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:3030/api/restore`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId: event.id, targetPath: filepath })
+      restoring = true;
+      const result = await api.post('/restore', {
+        eventId: event.id,
+        targetPath: filepath
       });
-      const result = await response.text();
-      alert(result);
+
+      notifications.success(result.message || 'File restored successfully!', {
+        title: '✅ Restoration Complete'
+      });
+
       onClose();
     } catch (error) {
-      alert(`Failed to restore: ${error}`);
+      console.error('Failed to restore:', error);
+      notifications.error(`Failed to restore file: ${error.message}`, {
+        title: '❌ Restoration Failed'
+      });
+    } finally {
+      restoring = false;
     }
   }
 
@@ -83,16 +104,127 @@
       'deleted': 'change-deleted'
     }[type] || '';
   }
+
+  function toggleComparisonMode() {
+    comparisonMode = !comparisonMode;
+    if (!comparisonMode) {
+      selectedForComparison = [];
+    }
+  }
+
+  function toggleEventSelection(event) {
+    const index = selectedForComparison.findIndex(e => e.id === event.id);
+
+    if (index > -1) {
+      // Deselect
+      selectedForComparison = selectedForComparison.filter(e => e.id !== event.id);
+    } else {
+      // Select (max 2)
+      if (selectedForComparison.length < 2) {
+        selectedForComparison = [...selectedForComparison, event];
+      } else {
+        notifications.warning('You can only compare 2 snapshots at a time. Deselect one first.');
+      }
+    }
+  }
+
+  function isSelectedForComparison(event) {
+    return selectedForComparison.some(e => e.id === event.id);
+  }
+
+  async function compareSelectedSnapshots() {
+    if (selectedForComparison.length !== 2) {
+      notifications.warning('Please select exactly 2 snapshots to compare');
+      return;
+    }
+
+    try {
+      comparingSnapshots = true;
+
+      // Get snapshots (oldest first, newest second)
+      const [event1, event2] = selectedForComparison.sort((a, b) =>
+        new Date(a.timestamp) - new Date(b.timestamp)
+      );
+
+      // Fetch both snapshots
+      const filename = filepath?.split('/')?.pop() || '';
+
+      const [snapshot1Response, snapshot2Response] = await Promise.all([
+        fetch(`http://localhost:3030/api/snapshot/${event1.id}/${encodeURIComponent(filename)}`),
+        fetch(`http://localhost:3030/api/snapshot/${event2.id}/${encodeURIComponent(filename)}`)
+      ]);
+
+      const snapshot1Content = await snapshot1Response.text();
+      const snapshot2Content = await snapshot2Response.text();
+
+      // Generate unified diff
+      diffContent = generateUnifiedDiff(snapshot1Content, snapshot2Content, event1, event2);
+      showDiff = true;
+      comparingSnapshots = false;
+    } catch (error) {
+      console.error('Failed to compare snapshots:', error);
+      notifications.error(`Failed to compare snapshots: ${error.message}`);
+      comparingSnapshots = false;
+    }
+  }
+
+  function generateUnifiedDiff(oldContent, newContent, oldEvent, newEvent) {
+    // Simple line-by-line diff
+    const oldLines = oldContent.split('\n');
+    const newLines = newContent.split('\n');
+
+    let diff = `--- ${filepath} @ ${formatTime(oldEvent.timestamp)} (Event #${oldEvent.id})\n`;
+    diff += `+++ ${filepath} @ ${formatTime(newEvent.timestamp)} (Event #${newEvent.id})\n`;
+
+    // Simple diff algorithm (you could use a library for better diffs)
+    const maxLen = Math.max(oldLines.length, newLines.length);
+
+    for (let i = 0; i < maxLen; i++) {
+      const oldLine = oldLines[i] || '';
+      const newLine = newLines[i] || '';
+
+      if (oldLine !== newLine) {
+        if (oldLine) diff += `- ${oldLine}\n`;
+        if (newLine) diff += `+ ${newLine}\n`;
+      }
+    }
+
+    return diff;
+  }
 </script>
 
 <div class="modal-overlay" on:click={onClose}>
   <div class="modal-content" on:click|stopPropagation>
     <div class="modal-header">
       <h2>📜 File History</h2>
+      <div class="header-actions">
+        <button
+          class="btn-comparison-mode"
+          class:active={comparisonMode}
+          on:click={toggleComparisonMode}
+        >
+          {comparisonMode ? '✓ Comparison Mode' : '🔍 Compare Snapshots'}
+        </button>
+        {#if comparisonMode && selectedForComparison.length === 2}
+          <button
+            class="btn-compare"
+            on:click={compareSelectedSnapshots}
+            disabled={comparingSnapshots}
+          >
+            {comparingSnapshots ? '⏳ Comparing...' : '⚡ Compare Selected'}
+          </button>
+        {/if}
+      </div>
       <button class="close-btn" on:click={onClose}>×</button>
     </div>
 
     <div class="file-path">{filepath}</div>
+
+    {#if comparisonMode}
+      <div class="comparison-help">
+        Select 2 snapshots to compare ({selectedForComparison.length}/2 selected)
+      </div>
+    {/if}
 
     {#if loading}
       <div class="loading">Loading history...</div>
@@ -101,7 +233,20 @@
     {:else}
       <div class="timeline">
         {#each history || [] as event (event.id)}
-          <div class="timeline-event {getChangeClass(event.change_type)}">
+          <div
+            class="timeline-event {getChangeClass(event.change_type)}"
+            class:selected={isSelectedForComparison(event)}
+            class:selectable={comparisonMode}
+          >
+            {#if comparisonMode}
+              <div class="event-checkbox">
+                <input
+                  type="checkbox"
+                  checked={isSelectedForComparison(event)}
+                  on:change={() => toggleEventSelection(event)}
+                />
+              </div>
+            {/if}
             <div class="event-marker"></div>
             <div class="event-content">
               <div class="event-header">
@@ -122,8 +267,16 @@
                     View Diff
                   </button>
                 {/if}
-                <button class="btn-restore" on:click={() => restoreToEvent(event)}>
-                  Restore to This Point
+                <button
+                  class="btn-restore"
+                  on:click={() => restoreToEvent(event)}
+                  disabled={restoring}
+                >
+                  {#if restoring}
+                    ⏳ Restoring...
+                  {:else}
+                    🔄 Undo Claude
+                  {/if}
                 </button>
               </div>
             </div>

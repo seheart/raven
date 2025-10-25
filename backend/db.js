@@ -350,6 +350,21 @@ export class RavenDB {
     return allEvents.slice(0, limit);
   }
 
+  /**
+   * Get a single event by ID
+   * @param {number} eventId - Event ID
+   * @returns {object|null} Event object or null if not found
+   */
+  getEventById(eventId) {
+    const stmt = this.db.prepare(`
+      SELECT id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, session_id
+      FROM events
+      WHERE id = ?
+    `);
+
+    return stmt.get(eventId);
+  }
+
   getEventsBySession(session_id) {
     const stmt = this.prepareStatement(`
       SELECT id, timestamp, filepath, change_type, diff, cpu, mem
