@@ -1,6 +1,8 @@
 // Error logging service for Raven frontend
 // Sends errors to the backend API for storage and display
 
+import { api } from './apiClient.js';
+
 const API_BASE_URL = 'http://localhost:3030';
 
 /**
@@ -26,19 +28,7 @@ export async function logError(error, component = 'Unknown', metadata = {}, seve
       severity
     };
 
-    const response = await fetch(`${API_BASE_URL}/api/errors`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(errorData)
-    });
-
-    if (!response.ok) {
-      console.error('Failed to log error to backend:', response.statusText);
-    }
-
-    return response.json();
+    return await api.post('/errors', errorData);
   } catch (loggingError) {
     // Don't throw errors from the error logger itself
     console.error('Error logger failed:', loggingError);
@@ -94,13 +84,7 @@ export async function fetchErrorLogs(options = {}) {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
 
-    const response = await fetch(`${API_BASE_URL}/api/errors?${params}`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch error logs: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.get(`/errors?${params}`);
   } catch (error) {
     console.error('Failed to fetch error logs:', error);
     throw error;
@@ -112,13 +96,7 @@ export async function fetchErrorLogs(options = {}) {
  */
 export async function fetchErrorStats() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/errors/stats`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch error stats: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.get('/errors/stats');
   } catch (error) {
     console.error('Failed to fetch error stats:', error);
     throw error;
@@ -130,19 +108,11 @@ export async function fetchErrorStats() {
  */
 export async function clearErrorLogs(olderThanDays = null) {
   try {
-    const url = olderThanDays
-      ? `${API_BASE_URL}/api/errors?olderThanDays=${olderThanDays}`
-      : `${API_BASE_URL}/api/errors`;
+    const endpoint = olderThanDays
+      ? `/errors?olderThanDays=${olderThanDays}`
+      : `/errors`;
 
-    const response = await fetch(url, {
-      method: 'DELETE'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to clear error logs: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.delete(endpoint);
   } catch (error) {
     console.error('Failed to clear error logs:', error);
     throw error;
