@@ -1,0 +1,600 @@
+<script>
+  import { onMount, onDestroy } from 'svelte';
+  import { websocketService } from './websocket.js';
+  import { notifications } from './notificationService.js';
+  import { desktopNotifications } from './services/desktopNotifications.js';
+
+  let warnings = [];
+  let loading = true;
+  let warningCount = 0;
+  let ws = null;
+  let selectedCategory = 'all';
+
+  const categories = [
+    { id: 'all', label: 'All', icon: '🔍' },
+    { id: 'security', label: 'Security', icon: '🔒' },
+    { id: 'quality', label: 'Quality', icon: '✨' },
+    { id: 'maintenance', label: 'Maintenance', icon: '🔧' },
+    { id: 'performance', label: 'Performance', icon: '⚡' }
+  ];
+
+  // Fetch warnings
+  async function fetchWarnings() {
+    try {
+      loading = true;
+      const url = selectedCategory === 'all'
+        ? '/api/pattern-warnings?limit=100'
+        : `/api/pattern-warnings/category/${selectedCategory}`;
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch warnings');
+
+      const data = await response.json();
+      warnings = data.warnings;
+      warningCount = data.count;
+      loading = false;
+    } catch (error) {
+      console.error('Failed to fetch pattern warnings:', error);
+      notifications.error('Failed to load pattern warnings');
+      loading = false;
+    }
+  }
+
+  // Resolve warning
+  async function resolveWarning(warningId) {
+    try {
+      const response = await fetch(`/api/pattern-warnings/${warningId}/resolve`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) throw new Error('Failed to resolve warning');
+
+      notifications.success('Warning marked as resolved');
+      await fetchWarnings();
+    } catch (error) {
+      console.error('Failed to resolve warning:', error);
+      notifications.error('Failed to resolve warning');
+    }
+  }
+
+  // Subscribe to WebSocket for real-time updates
+  function setupWebSocket() {
+    ws = websocketService.subscribe('pattern-warning', (data) => {
+      console.log('Pattern warning detected:', data);
+
+      // Show desktop notification for critical patterns
+      if (data.warnings && data.warnings.length > 0) {
+        const criticalWarnings = data.warnings.filter(w => w.severity === 'critical');
+        if (criticalWarnings.length > 0) {
+          desktopNotifications.show({
+            title: 'Critical Pattern Detected',
+            body: `${criticalWarnings.length} critical issue(s) in ${data.filepath}`,
+            severity: 'critical',
+            requireInteraction: true
+          });
+        }
+      }
+
+      // Refresh warning list
+      fetchWarnings();
+    });
+  }
+
+  onMount(() => {
+    fetchWarnings();
+    setupWebSocket();
+  });
+
+  onDestroy(() => {
+    if (ws) ws();
+  });
+
+  // Watch category changes
+  $: if (selectedCategory !== undefined) {
+    fetchWarnings();
+  }
+
+  // Group warnings by file
+  $: warningsByFile = warnings.reduce((acc, warning) => {
+    if (!acc[warning.filepath]) {
+      acc[warning.filepath] = [];
+    }
+    acc[warning.filepath].push(warning);
+    return acc;
+  }, {});
+
+  // Get severity color
+  function getSeverityColor(severity) {
+    switch (severity) {
+      case 'critical': return '#ef4444';
+      case 'warning': return '#f59e0b';
+      case 'info': return '#3b82f6';
+      default: return '#6b7280';
+    }
+  }
+
+  // Get category icon
+  function getCategoryIcon(category) {
+    const cat = categories.find(c => c.id === category);
+    return cat ? cat.icon : '📋';
+  }
+
+  // Get severity stats
+  $: severityStats = warnings.reduce((acc, warning) => {
+    acc[warning.severity] = (acc[warning.severity] || 0) + 1;
+    return acc;
+  }, {});
+</script>
+
+<div class="pattern-warnings-panel">
+  <div class="panel-header">
+    <div class="header-top">
+      <h2>Code Pattern Warnings</h2>
+      <button class="refresh-btn" on:click={fetchWarnings} title="Refresh">
+        ↻
+      </button>
+    </div>
+    <p class="panel-description">
+      Automatic detection of problematic patterns: hardcoded secrets, debug statements, and code quality issues
+    </p>
+  </div>
+
+  <!-- Category Filter -->
+  <div class="category-filter">
+    {#each categories as category}
+      <button
+        class="category-btn"
+        class:active={selectedCategory === category.id}
+        on:click={() => selectedCategory = category.id}
+      >
+        <span class="category-icon">{category.icon}</span>
+        <span class="category-label">{category.label}</span>
+      </button>
+    {/each}
+  </div>
+
+  <!-- Stats Bar -->
+  {#if !loading && warningCount > 0}
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">Total:</span>
+        <span class="stat-value">{warningCount}</span>
+      </div>
+      {#if severityStats.critical}
+        <div class="stat-item critical">
+          <span class="stat-icon">🚨</span>
+          <span class="stat-value">{severityStats.critical}</span>
+          <span class="stat-label">Critical</span>
+        </div>
+      {/if}
+      {#if severityStats.warning}
+        <div class="stat-item warning">
+          <span class="stat-icon">⚠️</span>
+          <span class="stat-value">{severityStats.warning}</span>
+          <span class="stat-label">Warning</span>
+        </div>
+      {/if}
+      {#if severityStats.info}
+        <div class="stat-item info">
+          <span class="stat-icon">ℹ️</span>
+          <span class="stat-value">{severityStats.info}</span>
+          <span class="stat-label">Info</span>
+        </div>
+      {/if}
+    </div>
+  {/if}
+
+  {#if loading}
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading pattern warnings...</p>
+    </div>
+  {:else if warningCount === 0}
+    <div class="empty-state">
+      <div class="empty-icon">✅</div>
+      <h3>No Pattern Warnings</h3>
+      <p>
+        {#if selectedCategory === 'all'}
+          No problematic patterns detected in your code!
+        {:else}
+          No {selectedCategory} issues found.
+        {/if}
+      </p>
+    </div>
+  {:else}
+    <div class="warnings-list">
+      {#each Object.entries(warningsByFile) as [filepath, fileWarnings]}
+        <div class="file-group">
+          <div class="file-header">
+            <span class="file-icon">📄</span>
+            <span class="file-path">{filepath}</span>
+            <div class="file-badges">
+              {#if fileWarnings.some(w => w.severity === 'critical')}
+                <span class="severity-badge critical">CRITICAL</span>
+              {/if}
+              <span class="warning-count">{fileWarnings.length}</span>
+            </div>
+          </div>
+
+          <div class="warnings">
+            {#each fileWarnings as warning}
+              <div class="warning-item" style="--severity-color: {getSeverityColor(warning.severity)}">
+                <div class="warning-header">
+                  <span class="category-icon">{getCategoryIcon(warning.category)}</span>
+                  <span class="warning-name">{warning.pattern_name}</span>
+                  <span class="severity-badge" style="background: {getSeverityColor(warning.severity)}">
+                    {warning.severity}
+                  </span>
+                </div>
+
+                <div class="warning-description">{warning.pattern_description || ''}</div>
+
+                <div class="warning-location">
+                  <span class="location-label">Line {warning.line_number}:</span>
+                  <code class="warning-context">{warning.context}</code>
+                </div>
+
+                <div class="warning-match">
+                  <span class="match-label">Matched:</span>
+                  <code class="match-text">{warning.match_text}</code>
+                </div>
+
+                <div class="warning-actions">
+                  <span class="warning-timestamp">
+                    {new Date(warning.timestamp).toLocaleString()}
+                  </span>
+                  <button class="resolve-btn" on:click={() => resolveWarning(warning.id)}>
+                    Mark as Resolved
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/each}
+    </div>
+  {/if}
+</div>
+
+<style>
+  .pattern-warnings-panel {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .panel-header {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .panel-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .panel-description {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .refresh-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+  }
+
+  .refresh-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: rotate(180deg);
+  }
+
+  /* Category Filter */
+  .category-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .category-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .category-btn:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+  }
+
+  .category-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .category-icon {
+    font-size: 14px;
+  }
+
+  .category-label {
+    font-size: 13px;
+  }
+
+  /* Stats Bar */
+  .stats-bar {
+    display: flex;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text);
+  }
+
+  .stat-item.critical .stat-value {
+    color: #ef4444;
+  }
+
+  .stat-item.warning .stat-value {
+    color: #f59e0b;
+  }
+
+  .stat-item.info .stat-value {
+    color: #3b82f6;
+  }
+
+  .stat-icon {
+    font-size: 14px;
+  }
+
+  /* Loading & Empty States */
+  .loading, .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .empty-icon {
+    font-size: 64px;
+  }
+
+  .empty-state h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .empty-state p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* Warnings List */
+  .warnings-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .file-group {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .file-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .file-icon {
+    font-size: 16px;
+  }
+
+  .file-path {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .file-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .warning-count {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #fef2f2;
+    color: #ef4444;
+  }
+
+  .severity-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: white;
+  }
+
+  .severity-badge.critical {
+    background: #ef4444;
+  }
+
+  /* Warning Items */
+  .warnings {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .warning-item {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    border-left: 3px solid var(--severity-color);
+  }
+
+  .warning-item:last-child {
+    border-bottom: none;
+  }
+
+  .warning-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .warning-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .warning-description {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .warning-location, .warning-match {
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  .location-label, .match-label {
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 8px;
+  }
+
+  .warning-context, .match-text {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface);
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+
+  .match-text {
+    color: var(--severity-color);
+    font-weight: 600;
+  }
+
+  .warning-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .warning-timestamp {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .resolve-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .resolve-btn:hover {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+  }
+</style>

@@ -8,7 +8,7 @@
   import LoadingSkeleton from './lib/LoadingSkeleton.svelte';
   import ConfirmDialog from './lib/ConfirmDialog.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
-  import LoginPage from './lib/LoginPage.svelte';
+  // import LoginPage from './lib/LoginPage.svelte'; // Authentication removed
   import UserMenu from './lib/UserMenu.svelte';
 
   // Existing components for consolidated views
@@ -44,6 +44,11 @@
   import MultiProjectHealthPanel from './lib/MultiProjectHealthPanel.svelte';
   import GlobalSearchPanel from './lib/GlobalSearchPanel.svelte';
   import CustomMetricsPanel from './lib/CustomMetricsPanel.svelte';
+  import QuickStartWizard from './lib/QuickStartWizard.svelte';
+  import SyntaxErrorPanel from './lib/SyntaxErrorPanel.svelte';
+  import SessionRollbackPanel from './lib/SessionRollbackPanel.svelte';
+  import PatternWarningsPanel from './lib/PatternWarningsPanel.svelte';
+  import TestResultsPanel from './lib/TestResultsPanel.svelte';
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
   import { toasts } from './lib/toastStore.js';
@@ -51,7 +56,8 @@
   import { setupNotificationListeners } from './lib/notificationListener.js';
   import { websocketService } from './lib/websocket.js';
   import { checkServerHealth } from './lib/apiClient.js';
-  import { authService, isAuthenticated } from './lib/authStore.js';
+  // Authentication disabled
+  // import { authService, isAuthenticated } from './lib/authStore.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -61,10 +67,11 @@
   // Main navigation tabs
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊', shortcut: '1' },
-    { id: 'agents', label: 'Agents', icon: '🤖', shortcut: '2' },
-    { id: 'activity', label: 'Activity', icon: '⚡️', shortcut: '3' },
-    { id: 'analysis', label: 'Analysis', icon: '📈', shortcut: '4' },
-    { id: 'system', label: 'System', icon: '⚙️', shortcut: '5' }
+    { id: 'safety', label: 'Safety', icon: '🛡️', shortcut: '2' },
+    { id: 'agents', label: 'Agents', icon: '🤖', shortcut: '3' },
+    { id: 'activity', label: 'Activity', icon: '⚡️', shortcut: '4' },
+    { id: 'analysis', label: 'Analysis', icon: '📈', shortcut: '5' },
+    { id: 'system', label: 'System', icon: '⚙️', shortcut: '6' }
   ];
 
   let sessionId = 'Loading...';
@@ -74,7 +81,7 @@
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
   let showHelp = false;
   let showWelcome = false;
-  let authCheckComplete = false;
+  let showQuickStart = false;
 
   const startTime = Date.now();
   let uptimeInterval;
@@ -121,39 +128,7 @@
     notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
-  let authDisabledOnBackend = false;
-
   onMount(async () => {
-    // Check if backend has authentication disabled by trying an API call
-    try {
-      const response = await fetch(`${API_BASE}/session-id`);
-      if (response.ok) {
-        authDisabledOnBackend = true;
-      }
-    } catch (error) {
-      console.error('Failed to check auth status:', error);
-    }
-
-    // If auth is disabled on backend, skip login
-    if (authDisabledOnBackend) {
-      authCheckComplete = true;
-      // Continue to app initialization
-    } else {
-      // Auth is enabled - check token
-      if (authService.isAuthenticated()) {
-        const valid = await authService.verifyToken();
-        if (!valid) {
-          authCheckComplete = true;
-          return;
-        }
-      } else {
-        // No token, need to login
-        authCheckComplete = true;
-        return;
-      }
-      authCheckComplete = true;
-    }
-
     loadSessionId();
 
     // Start uptime tracking
@@ -195,8 +170,10 @@
       keyboard.register(tab.shortcut, () => handleTabChange(tab.id));
     });
 
-    // Show welcome screen for first-time users
-    if (!localStorage.getItem('raven-welcome-seen')) {
+    // Show Quick Start Wizard for first-time users
+    if (!localStorage.getItem('raven-quick-start-completed')) {
+      showQuickStart = true;
+    } else if (!localStorage.getItem('raven-welcome-seen')) {
       showWelcome = true;
     } else if (!localStorage.getItem('raven-visited')) {
       // Show notification for returning users who haven't seen the new UI
@@ -210,11 +187,11 @@
     }
   });
 
-  function handleLoginSuccess() {
-    authCheckComplete = true;
-    // Reload the page to initialize app with authentication
-    window.location.reload();
-  }
+  // Authentication removed
+  // function handleLoginSuccess() {
+  //   // Reload the page to initialize app with authentication
+  //   window.location.reload();
+  // }
 
   onDestroy(() => {
     keyboard.clear();
@@ -226,17 +203,7 @@
 
 <ErrorBoundary>
 
-<!-- Show login page if not authenticated AND auth not disabled -->
-{#if authCheckComplete && !$isAuthenticated && !authDisabledOnBackend}
-  <LoginPage onLoginSuccess={handleLoginSuccess} />
-{:else if !authCheckComplete}
-  <!-- Loading auth check -->
-  <div class="auth-loading">
-    <div class="spinner"></div>
-    <p>Checking authentication...</p>
-  </div>
-{:else}
-<!-- Main app (only shown when authenticated) -->
+<!-- Authentication removed - app is always accessible -->
 <main>
   <header role="banner">
     <div class="header-content">
@@ -308,6 +275,49 @@
           <ProjectsComparisonPanel />
         {:else if currentSubView === 'health'}
           <MultiProjectHealthPanel />
+        {/if}
+      </div>
+    {:else if activeTab === 'safety'}
+      <!-- Safety: Syntax Errors + Session Rollback + Pattern Warnings + Test Results -->
+      <div class="tab-content">
+        <div class="sub-navigation">
+          <button
+            class="sub-tab"
+            class:active={!currentSubView}
+            on:click={() => currentSubView = ''}
+          >
+            🔍 Syntax Errors
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'rollback'}
+            on:click={() => currentSubView = 'rollback'}
+          >
+            ⏪ Session Rollback
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'patterns'}
+            on:click={() => currentSubView = 'patterns'}
+          >
+            ⚠️ Pattern Warnings
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'tests'}
+            on:click={() => currentSubView = 'tests'}
+          >
+            🧪 Test Results
+          </button>
+        </div>
+        {#if !currentSubView}
+          <SyntaxErrorPanel />
+        {:else if currentSubView === 'rollback'}
+          <SessionRollbackPanel />
+        {:else if currentSubView === 'patterns'}
+          <PatternWarningsPanel />
+        {:else if currentSubView === 'tests'}
+          <TestResultsPanel />
         {/if}
       </div>
     {:else if activeTab === 'agents'}
@@ -552,6 +562,20 @@
 <ToastContainer />
 <Toast />
 
+<!-- Quick Start Wizard for New Users -->
+{#if showQuickStart}
+  <QuickStartWizard
+    on:complete={(e) => {
+      showQuickStart = false;
+      notifications.success('Welcome to Raven! You\'re all set up and protected.');
+    }}
+    on:skip={() => {
+      showQuickStart = false;
+      notifications.info('You can run setup anytime from Settings');
+    }}
+  />
+{/if}
+
 <!-- Welcome Screen for First-Time Users -->
 {#if showWelcome}
   <WelcomeScreen on:close={() => showWelcome = false} />
@@ -569,8 +593,6 @@
   onChangelogClick={() => activeTab = 'changelog'}
   onDocsClick={() => activeTab = 'docs'}
 />
-{/if}
-<!-- End authenticated app section -->
 
 </ErrorBoundary>
 

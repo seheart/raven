@@ -16,6 +16,16 @@ export default defineConfig({
       host: 'localhost',
       port: 5173,
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3030',
+        changeOrigin: true,
+      },
+      '/socket.io': {
+        target: 'http://localhost:3030',
+        ws: true,
+      },
+    },
   },
 
   envPrefix: ['VITE_'],

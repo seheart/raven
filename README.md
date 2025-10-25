@@ -6,13 +6,35 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 0.15.0 - Enterprise Security & Multi-Project Management
+**Version:** 0.16.0 - Quick Start Wizard & Authentication Removal
 
-## 🚀 Current Status: Enterprise-Grade Security & Project Configuration
+## 🚀 Current Status: Streamlined Onboarding & Simplified Setup
 
-✅ **Production-ready with comprehensive security hardening, multi-project configuration UI, and advanced time-range filtering.**
+✅ **Production-ready with working Quick Start Wizard, authentication removed, and comprehensive debugging tools.**
 
-### 🆕 What's New in 0.15.0 - Security & Configuration Features
+### 🆕 What's New in 0.16.0 - Quick Start & Developer Experience
+
+**🧙 Quick Start Wizard - Fully Functional:**
+- [x] **Fixed "Start Monitoring" Button** - Now appears on final step (was in unreachable code block)
+- [x] **Directory Picker** - Creates valid absolute paths using basePath from backend
+- [x] **Path Construction** - Fixed `/project` → `/Users/seth/project` path bug
+- [x] **Alert Template Fallbacks** - Hardcoded templates prevent empty state
+- [x] **Comprehensive Debug Logging** - Console logs for every workflow step
+- [x] **Error Handling** - Detailed error messages with response inspection
+
+**🔓 Authentication Removed:**
+- [x] **No Login Required** - Completely removed authentication system
+- [x] **Direct Access** - App loads immediately without auth checks
+- [x] **Simplified Codebase** - Removed LoginPage, authStore, and all auth logic
+- [x] **Updated Scripts** - Removed `DISABLE_AUTH` environment variable
+
+**🔧 Developer Experience:**
+- [x] **Vite Proxy Configuration** - API requests properly routed to backend
+- [x] **ES Modules Fix** - Replaced `require('os')` with proper `import os`
+- [x] **Testing Infrastructure** - CLI test script and browser-based test UI
+- [x] **Fix Documentation** - `QUICKSTART_FIX_SUMMARY.md` with complete details
+
+### Previous Release - 0.15.0 - Security & Configuration Features
 
 **🔒 Enterprise Security Hardening:**
 - [x] **Path Traversal Prevention** - Validates all project paths stay within allowed directories

@@ -129,6 +129,16 @@ class WebSocketService {
     }
   }
 
+  // Subscribe to an event and return an unsubscribe function
+  subscribe(event, callback) {
+    this.on(event, callback);
+
+    // Return unsubscribe function
+    return () => {
+      this.off(event, callback);
+    };
+  }
+
   disconnect() {
     if (this.socket) {
       // Remove all listeners

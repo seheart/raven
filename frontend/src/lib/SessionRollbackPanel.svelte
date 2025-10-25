@@ -1,0 +1,663 @@
+<script>
+  import { onMount } from 'svelte';
+  import { notifications } from './notificationService.js';
+
+  let sessions = [];
+  let loading = true;
+  let selectedSession = null;
+  let previewData = null;
+  let previewing = false;
+  let rollingback = false;
+
+  // Fetch sessions
+  async function fetchSessions() {
+    try {
+      loading = true;
+      const response = await fetch('/api/sessions');
+      if (!response.ok) throw new Error('Failed to fetch sessions');
+
+      const data = await response.json();
+      sessions = data.sessions;
+      loading = false;
+    } catch (error) {
+      console.error('Failed to fetch sessions:', error);
+      notifications.error('Failed to load sessions');
+      loading = false;
+    }
+  }
+
+  // Preview rollback
+  async function previewRollback(sessionId) {
+    try {
+      previewing = true;
+      selectedSession = sessionId;
+
+      const response = await fetch(`/api/sessions/${sessionId}/preview`);
+      if (!response.ok) throw new Error('Failed to preview rollback');
+
+      previewData = await response.json();
+      previewing = false;
+    } catch (error) {
+      console.error('Failed to preview rollback:', error);
+      notifications.error('Failed to preview rollback');
+      previewing = false;
+    }
+  }
+
+  // Execute rollback
+  async function executeRollback() {
+    if (!selectedSession || !previewData?.canRollback) return;
+
+    if (!confirm(`Are you sure you want to rollback ${previewData.fileCount} file(s)? This will restore them to their state before the session started.`)) {
+      return;
+    }
+
+    try {
+      rollingback = true;
+
+      const response = await fetch(`/api/sessions/${selectedSession}/rollback`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) throw new Error('Failed to execute rollback');
+
+      const result = await response.json();
+
+      notifications.success(`Successfully rolled back ${result.restoredFiles.length} file(s)`);
+
+      if (result.failedFiles.length > 0) {
+        notifications.warning(`Failed to rollback ${result.failedFiles.length} file(s)`);
+      }
+
+      // Reset state
+      selectedSession = null;
+      previewData = null;
+      rollingback = false;
+
+      // Refresh sessions
+      await fetchSessions();
+    } catch (error) {
+      console.error('Failed to execute rollback:', error);
+      notifications.error('Failed to execute rollback');
+      rollingback = false;
+    }
+  }
+
+  // Cancel preview
+  function cancelPreview() {
+    selectedSession = null;
+    previewData = null;
+  }
+
+  onMount(() => {
+    fetchSessions();
+  });
+
+  // Format date
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  }
+
+  // Format duration
+  function formatDuration(startTime, endTime) {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const duration = (end - start) / 1000; // seconds
+
+    if (duration < 60) return `${Math.floor(duration)}s`;
+    if (duration < 3600) return `${Math.floor(duration / 60)}m`;
+    return `${Math.floor(duration / 3600)}h ${Math.floor((duration % 3600) / 60)}m`;
+  }
+
+  // Get time ago
+  function timeAgo(dateString) {
+    const date = new Date(dateString);
+    const seconds = Math.floor((new Date() - date) / 1000);
+
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  }
+</script>
+
+<div class="session-rollback-panel">
+  <div class="panel-header">
+    <h2>Session Rollback</h2>
+    <p class="panel-description">Undo entire AI coding sessions by rolling back all file changes</p>
+    <button class="refresh-btn" on:click={fetchSessions} title="Refresh">
+      ↻
+    </button>
+  </div>
+
+  {#if loading}
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading sessions...</p>
+    </div>
+  {:else if selectedSession && previewData}
+    <!-- Rollback Preview -->
+    <div class="preview-container">
+      <div class="preview-header">
+        <h3>Rollback Preview</h3>
+        <button class="close-btn" on:click={cancelPreview}>✕</button>
+      </div>
+
+      <div class="preview-info">
+        <div class="info-item">
+          <span class="info-label">Session ID:</span>
+          <span class="info-value mono">{selectedSession.slice(0, 8)}...</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Files to restore:</span>
+          <span class="info-value">{previewData.fileCount}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Can rollback:</span>
+          <span class="info-value" class:success={previewData.canRollback} class:error={!previewData.canRollback}>
+            {previewData.canRollback ? 'Yes' : 'No'}
+          </span>
+        </div>
+      </div>
+
+      {#if !previewData.canRollback}
+        <div class="warning-box">
+          <span class="warning-icon">⚠️</span>
+          <p>No backups available for this session. Files may have been created during this session without prior snapshots.</p>
+        </div>
+      {:else}
+        <div class="changes-list">
+          <h4>Files that will be restored:</h4>
+          {#each previewData.changes as change}
+            <div class="change-item" class:has-backup={change.hasBackup}>
+              <span class="change-icon">{change.hasBackup ? '✅' : '❌'}</span>
+              <span class="change-path">{change.filepath}</span>
+              {#if !change.hasBackup}
+                <span class="no-backup-badge">No backup</span>
+              {/if}
+            </div>
+          {/each}
+        </div>
+
+        <div class="preview-actions">
+          <button class="cancel-btn" on:click={cancelPreview} disabled={rollingback}>
+            Cancel
+          </button>
+          <button class="rollback-btn" on:click={executeRollback} disabled={rollingback}>
+            {rollingback ? 'Rolling back...' : 'Confirm Rollback'}
+          </button>
+        </div>
+      {/if}
+    </div>
+  {:else if sessions.length === 0}
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>No Sessions Found</h3>
+      <p>No coding sessions have been recorded yet. Sessions will appear here once files are modified.</p>
+    </div>
+  {:else}
+    <!-- Sessions List -->
+    <div class="sessions-list">
+      {#each sessions as session}
+        <div class="session-card">
+          <div class="session-header">
+            <div class="session-icon">🔄</div>
+            <div class="session-info">
+              <div class="session-id mono">{session.session_id.slice(0, 13)}...</div>
+              <div class="session-time">{timeAgo(session.end_time)}</div>
+            </div>
+          </div>
+
+          <div class="session-stats">
+            <div class="stat">
+              <span class="stat-icon">📄</span>
+              <span class="stat-value">{session.file_count}</span>
+              <span class="stat-label">files</span>
+            </div>
+            <div class="stat">
+              <span class="stat-icon">✏️</span>
+              <span class="stat-value">{session.event_count}</span>
+              <span class="stat-label">changes</span>
+            </div>
+            <div class="stat">
+              <span class="stat-icon">⏱️</span>
+              <span class="stat-value">{formatDuration(session.start_time, session.end_time)}</span>
+              <span class="stat-label">duration</span>
+            </div>
+          </div>
+
+          <div class="session-details">
+            <div class="detail-row">
+              <span class="detail-label">Started:</span>
+              <span class="detail-value">{formatDate(session.start_time)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Ended:</span>
+              <span class="detail-value">{formatDate(session.end_time)}</span>
+            </div>
+          </div>
+
+          <button
+            class="preview-btn"
+            on:click={() => previewRollback(session.session_id)}
+            disabled={previewing}
+          >
+            {previewing && selectedSession === session.session_id ? 'Loading...' : 'Preview Rollback'}
+          </button>
+        </div>
+      {/each}
+    </div>
+  {/if}
+</div>
+
+<style>
+  .session-rollback-panel {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .panel-header h2 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .panel-description {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .refresh-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+  }
+
+  .refresh-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: rotate(180deg);
+  }
+
+  .loading, .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+  }
+
+  .empty-state h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .empty-state p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .sessions-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .session-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s;
+  }
+
+  .session-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .session-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .session-icon {
+    font-size: 24px;
+  }
+
+  .session-info {
+    flex: 1;
+  }
+
+  .session-id {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .session-time {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .session-stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: 6px;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-icon {
+    font-size: 14px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    font-family: var(--mono);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .session-details {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: 6px;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+  }
+
+  .detail-label {
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .detail-value {
+    color: var(--text);
+    font-family: var(--mono);
+  }
+
+  .preview-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .preview-btn:hover:not(:disabled) {
+    background: var(--accent-dark, #6366f1);
+    transform: translateY(-1px);
+  }
+
+  .preview-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Preview Container */
+  .preview-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .preview-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .close-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .close-btn:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+  }
+
+  .preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--surface-2);
+    border-radius: 8px;
+  }
+
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+
+  .info-label {
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .info-value {
+    color: var(--text);
+  }
+
+  .info-value.success {
+    color: #10b981;
+    font-weight: 700;
+  }
+
+  .info-value.error {
+    color: #ef4444;
+    font-weight: 700;
+  }
+
+  .mono {
+    font-family: var(--mono);
+  }
+
+  .warning-box {
+    padding: 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    display: flex;
+    align-items: start;
+    gap: 12px;
+  }
+
+  .warning-icon {
+    font-size: 20px;
+  }
+
+  .warning-box p {
+    margin: 0;
+    font-size: 13px;
+    color: #991b1b;
+    line-height: 1.6;
+  }
+
+  .changes-list {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 20px;
+  }
+
+  .changes-list h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .change-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: var(--surface-2);
+    border-radius: 4px;
+  }
+
+  .change-item.has-backup {
+    background: #f0fdf4;
+  }
+
+  .change-icon {
+    font-size: 14px;
+  }
+
+  .change-path {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .no-backup-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #fef2f2;
+    color: #ef4444;
+  }
+
+  .preview-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .cancel-btn, .rollback-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .cancel-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .cancel-btn:hover:not(:disabled) {
+    background: var(--surface);
+  }
+
+  .rollback-btn {
+    background: #ef4444;
+    border: none;
+    color: white;
+  }
+
+  .rollback-btn:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-1px);
+  }
+
+  .cancel-btn:disabled, .rollback-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>

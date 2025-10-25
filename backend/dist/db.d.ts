@@ -121,6 +121,21 @@ export interface PerformanceCorrelation {
     process_cpu_percent: number | null;
     process_memory_mb: number | null;
 }
+/**
+ * Syntax error detected in code
+ */
+export interface SyntaxErrorRecord {
+    id: number;
+    timestamp: string;
+    filepath: string;
+    line_number: number;
+    column_number?: number;
+    message: string;
+    severity: string;
+    language: string;
+    resolved: number;
+    session_id?: string;
+}
 export declare class RavenDB {
     db: Database.Database;
     constructor(dbPath: string);
@@ -143,6 +158,23 @@ export declare class RavenDB {
     getTopModifiedFiles(session_id: string, limit?: number): FileStats[];
     getLongestEdits(limit?: number): any[];
     getDashboardStats(session_id: string): DashboardStats;
+    insertSyntaxError(timestamp: string, filepath: string, line_number: number, column_number: number | undefined, message: string, severity: string, language: string, session_id: string | undefined): number;
+    getSyntaxErrors(limit?: number): SyntaxErrorRecord[];
+    getSyntaxErrorsByFile(filepath: string): SyntaxErrorRecord[];
+    resolveSyntaxError(id: number): void;
+    resolveSyntaxErrorsByFile(filepath: string): void;
+    getUnresolvedSyntaxErrorCount(): number;
+    insertPatternWarning(timestamp: string, filepath: string, line_number: number, pattern_id: string, pattern_name: string, severity: string, category: string, match_text: string, context: string, session_id: string | undefined): number;
+    getPatternWarnings(limit?: number): any[];
+    getPatternWarningsByCategory(category: string): any[];
+    resolvePatternWarning(id: number): void;
+    resolvePatternWarningsByFile(filepath: string): void;
+    insertTestResult(timestamp: string, framework: string, passed: boolean, totalTests: number, passedTests: number, failedTests: number, skippedTests: number, duration: number, output: string, failures: string, sessionId: string): number;
+    getTestResults(limit?: number): any[];
+    getLatestTestResult(): any | null;
+    getTestResultsByFramework(framework: string, limit?: number): any[];
+    getFailedTestsCount(): number;
+    getUnresolvedPatternWarningCount(): number;
     close(): void;
 }
 //# sourceMappingURL=db.d.ts.map

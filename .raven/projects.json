@@ -1,5 +1,13 @@
 {
   "autoDiscover": true,
-  "basePath": "/Users/seth/projects/raven",
-  "projects": []
+  "basePath": "/Users/seth",
+  "projects": [
+    {
+      "id": "projects",
+      "name": "projects",
+      "path": "/Users/seth/projects",
+      "enabled": true,
+      "ignorePatterns": []
+    }
+  ]
 }

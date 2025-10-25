@@ -7,6 +7,8 @@
   import ProjectsOverview from './ProjectsOverview.svelte';
   import PageInfo from './PageInfo.svelte';
   import HealthStatus from './HealthStatus.svelte';
+  import HealthWidget from './HealthWidget.svelte';
+  import EmergencyStopButton from './EmergencyStopButton.svelte';
   import { API_CONFIG } from '../config.js';
 
   export let sessionId = 'Loading...';
@@ -160,6 +162,14 @@
 </script>
 
 <div class="overview-panel">
+  <!-- Health Widget - At-a-glance project status -->
+  <HealthWidget />
+
+  <!-- Emergency Stop Button -->
+  <div class="emergency-stop-container">
+    <EmergencyStopButton />
+  </div>
+
   <PageInfo
     title="Overview Dashboard"
     description="This is your main control center - think of it like the dashboard in your car that shows speed, fuel, temperature, etc. The Overview page shows real-time information about all your coding projects that Raven is watching, what's happening right now, and how your system is performing."
@@ -360,6 +370,12 @@
     flex-direction: column;
     gap: 24px;
     position: relative;
+  }
+
+  .emergency-stop-container {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0;
   }
 
   .greeting-section {

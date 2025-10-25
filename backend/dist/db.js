@@ -86,6 +86,55 @@ export class RavenDB {
         session_id TEXT
       )
     `);
+        // Syntax errors table
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS syntax_errors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        filepath TEXT NOT NULL,
+        line_number INTEGER NOT NULL,
+        column_number INTEGER,
+        message TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        language TEXT NOT NULL,
+        resolved INTEGER DEFAULT 0,
+        session_id TEXT
+      )
+    `);
+        // Pattern warnings table
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS pattern_warnings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        filepath TEXT NOT NULL,
+        line_number INTEGER NOT NULL,
+        pattern_id TEXT NOT NULL,
+        pattern_name TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        category TEXT NOT NULL,
+        match_text TEXT NOT NULL,
+        context TEXT NOT NULL,
+        resolved INTEGER DEFAULT 0,
+        session_id TEXT
+      )
+    `);
+        // Test results table
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS test_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        framework TEXT NOT NULL,
+        passed INTEGER NOT NULL,
+        total_tests INTEGER NOT NULL,
+        passed_tests INTEGER NOT NULL,
+        failed_tests INTEGER NOT NULL,
+        skipped_tests INTEGER NOT NULL,
+        duration INTEGER NOT NULL,
+        output TEXT,
+        failures TEXT,
+        session_id TEXT
+      )
+    `);
     }
     // ==================== Agent Events ====================
     insertAgentEvent(timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id) {
@@ -329,6 +378,149 @@ export class RavenDB {
             session_duration_seconds,
             active_files_today: activeToday.size
         };
+    }
+    // ==================== Syntax Errors ====================
+    insertSyntaxError(timestamp, filepath, line_number, column_number, message, severity, language, session_id) {
+        const stmt = this.db.prepare(`
+      INSERT INTO syntax_errors (timestamp, filepath, line_number, column_number, message, severity, language, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+        const result = stmt.run(timestamp, filepath, line_number, column_number || null, message, severity, language, session_id || null);
+        return result.lastInsertRowid;
+    }
+    getSyntaxErrors(limit = 100) {
+        const stmt = this.db.prepare(`
+      SELECT * FROM syntax_errors
+      WHERE resolved = 0
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+        return stmt.all(limit);
+    }
+    getSyntaxErrorsByFile(filepath) {
+        const stmt = this.db.prepare(`
+      SELECT * FROM syntax_errors
+      WHERE filepath = ? AND resolved = 0
+      ORDER BY timestamp DESC
+    `);
+        return stmt.all(filepath);
+    }
+    resolveSyntaxError(id) {
+        const stmt = this.db.prepare(`
+      UPDATE syntax_errors
+      SET resolved = 1
+      WHERE id = ?
+    `);
+        stmt.run(id);
+    }
+    resolveSyntaxErrorsByFile(filepath) {
+        const stmt = this.db.prepare(`
+      UPDATE syntax_errors
+      SET resolved = 1
+      WHERE filepath = ? AND resolved = 0
+    `);
+        stmt.run(filepath);
+    }
+    getUnresolvedSyntaxErrorCount() {
+        const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count FROM syntax_errors
+      WHERE resolved = 0
+    `);
+        const result = stmt.get();
+        return result.count;
+    }
+    // ==================== Pattern Warnings ====================
+    insertPatternWarning(timestamp, filepath, line_number, pattern_id, pattern_name, severity, category, match_text, context, session_id) {
+        const stmt = this.db.prepare(`
+      INSERT INTO pattern_warnings (timestamp, filepath, line_number, pattern_id, pattern_name, severity, category, match_text, context, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+        const result = stmt.run(timestamp, filepath, line_number, pattern_id, pattern_name, severity, category, match_text, context, session_id || null);
+        return result.lastInsertRowid;
+    }
+    getPatternWarnings(limit = 100) {
+        const stmt = this.db.prepare(`
+      SELECT * FROM pattern_warnings
+      WHERE resolved = 0
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+        return stmt.all(limit);
+    }
+    getPatternWarningsByCategory(category) {
+        const stmt = this.db.prepare(`
+      SELECT * FROM pattern_warnings
+      WHERE category = ? AND resolved = 0
+      ORDER BY timestamp DESC
+    `);
+        return stmt.all(category);
+    }
+    resolvePatternWarning(id) {
+        const stmt = this.db.prepare(`
+      UPDATE pattern_warnings
+      SET resolved = 1
+      WHERE id = ?
+    `);
+        stmt.run(id);
+    }
+    resolvePatternWarningsByFile(filepath) {
+        const stmt = this.db.prepare(`
+      UPDATE pattern_warnings
+      SET resolved = 1
+      WHERE filepath = ? AND resolved = 0
+    `);
+        stmt.run(filepath);
+    }
+    // ==================== Test Results ====================
+    insertTestResult(timestamp, framework, passed, totalTests, passedTests, failedTests, skippedTests, duration, output, failures, sessionId) {
+        const stmt = this.db.prepare(`
+      INSERT INTO test_results (timestamp, framework, passed, total_tests, passed_tests, failed_tests, skipped_tests, duration, output, failures, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+        const result = stmt.run(timestamp, framework, passed ? 1 : 0, totalTests, passedTests, failedTests, skippedTests, duration, output, failures, sessionId);
+        return result.lastInsertRowid;
+    }
+    getTestResults(limit = 50) {
+        const stmt = this.db.prepare(`
+      SELECT * FROM test_results
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+        return stmt.all(limit);
+    }
+    getLatestTestResult() {
+        const stmt = this.db.prepare(`
+      SELECT * FROM test_results
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `);
+        return stmt.get();
+    }
+    getTestResultsByFramework(framework, limit = 20) {
+        const stmt = this.db.prepare(`
+      SELECT * FROM test_results
+      WHERE framework = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+        return stmt.all(framework, limit);
+    }
+    getFailedTestsCount() {
+        const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM test_results
+      WHERE passed = 0
+    `);
+        const result = stmt.get();
+        return result.count;
+    }
+    getUnresolvedPatternWarningCount() {
+        const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count FROM pattern_warnings
+      WHERE resolved = 0
+    `);
+        const result = stmt.get();
+        return result.count;
     }
     close() {
         this.db.close();

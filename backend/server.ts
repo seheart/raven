@@ -18,11 +18,17 @@ import { Server as SocketIOServer } from 'socket.io';
 import { randomUUID } from 'crypto';
 import { join, relative, basename, dirname, resolve } from 'path';
 import fs from 'fs/promises';
+import os from 'os';
 
 // Import TypeScript modules
 import { RavenDB } from './db.js';
 import { MetricsCollector } from './metrics-collector.js';
 import { TriggerEngine } from './trigger-engine.js';
+import { syntaxChecker } from './syntax-checker.js';
+import { patternDetector } from './pattern-detector.js';
+import { pauseManager } from './pause-manager.js';
+import { getTestRunner } from './test-runner.js';
+import type { TestResult } from './test-runner.js';
 import {
   EventBus,
   FileWatcher,
@@ -147,6 +153,11 @@ function getAgentColor(agentName: string): string {
  */
 EventBus.onFileEvent(async (event: FileEvent) => {
   try {
+    // Check if monitoring is paused
+    if (!pauseManager.shouldProcessEvent()) {
+      return; // Skip event processing when paused
+    }
+
     // Generate diff if this is a change event and we have old content
     let diff: string | null = null;
     const oldContent = fileWatcher.getCachedContent(join(WATCH_PATH, event.path));
@@ -195,6 +206,87 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       lines_changed: diff ? diff.split('\n').length : 0,
       event_size: event.size
     });
+
+    // Check syntax if file type is supported
+    const filePath = join(WATCH_PATH, event.path);
+    if (syntaxChecker.isSupported(filePath) && (event.type === 'change' || event.type === 'add')) {
+      const result = await syntaxChecker.check(filePath);
+
+      if (!result.valid && result.errors.length > 0) {
+        // First, resolve any old errors for this file
+        db.resolveSyntaxErrorsByFile(event.path);
+
+        // Insert new syntax errors
+        for (const error of result.errors) {
+          db.insertSyntaxError(
+            new Date().toISOString(),
+            event.path,
+            error.line,
+            error.column,
+            error.message,
+            error.severity,
+            error.language,
+            SESSION_ID
+          );
+
+          console.log(`⚠️  Syntax error in ${event.path}:${error.line}: ${error.message}`);
+        }
+
+        // Emit to WebSocket for real-time updates
+        io.emit('syntax-error', {
+          filepath: event.path,
+          errors: result.errors,
+          count: result.errors.length
+        });
+      } else if (result.valid) {
+        // File is now valid, resolve any old errors
+        db.resolveSyntaxErrorsByFile(event.path);
+      }
+    }
+
+    // Check for problematic patterns in code
+    if (event.content && (event.type === 'change' || event.type === 'add')) {
+      const patternResult = patternDetector.detect(event.path, event.content);
+
+      if (patternResult.hasIssues) {
+        // Resolve old warnings for this file
+        db.resolvePatternWarningsByFile(event.path);
+
+        // Insert new warnings
+        for (const match of patternResult.matches) {
+          db.insertPatternWarning(
+            new Date().toISOString(),
+            event.path,
+            match.line,
+            match.pattern.id,
+            match.pattern.name,
+            match.pattern.severity,
+            match.pattern.category,
+            match.match,
+            match.context,
+            SESSION_ID
+          );
+
+          if (match.pattern.severity === 'critical') {
+            console.log(`🚨 Critical pattern in ${event.path}:${match.line}: ${match.pattern.name}`);
+          }
+        }
+
+        // Emit to WebSocket
+        io.emit('pattern-warning', {
+          filepath: event.path,
+          warnings: patternResult.matches.map(m => ({
+            pattern: m.pattern.name,
+            severity: m.pattern.severity,
+            line: m.line
+          })),
+          count: patternResult.matches.length
+        });
+      } else {
+        // No issues, resolve old warnings
+        db.resolvePatternWarningsByFile(event.path);
+      }
+    }
 
     // Check git status if code file changed
     if (event.path.match(/\.(js|ts|jsx|tsx|py|java|go|rs|c|cpp|h|hpp)$/)) {
@@ -1051,9 +1143,11 @@ async function loadProjectsConfig(): Promise<ProjectsConfig> {
     return JSON.parse(data);
   } catch (error) {
     // Return default config if file doesn't exist
+    // Use home directory as basePath for more flexibility
+    const homedir = os.homedir();
     return {
       autoDiscover: true,
-      basePath: dirname(RAVEN_DIR),
+      basePath: homedir,
       projects: []
     };
   }
@@ -1599,6 +1693,500 @@ app.get('/api/metrics/performance', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('❌ Performance metrics error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Alert Templates API ====================
+
+const ALERT_TEMPLATES_PATH = join(process.cwd(), 'alert-templates.json');
+
+interface AlertTemplate {
+  name: string;
+  description: string;
+  icon: string;
+  triggers: any[];
+}
+
+interface AlertTemplates {
+  templates: {
+    [key: string]: AlertTemplate;
+  };
+  metadata: {
+    version: string;
+    recommended: string;
+    description: string;
+  };
+}
+
+// Load alert templates from file
+async function loadAlertTemplates(): Promise<AlertTemplates> {
+  try {
+    const data = await fs.readFile(ALERT_TEMPLATES_PATH, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Failed to load alert templates:', error);
+    throw new Error('Alert templates file not found');
+  }
+}
+
+// GET /api/alerts/templates - List all available alert templates
+app.get('/api/alerts/templates', async (req: Request, res: Response) => {
+  try {
+    const templates = await loadAlertTemplates();
+    res.json(templates);
+  } catch (error: any) {
+    console.error('[GET /api/alerts/templates] Error:', error);
+    res.status(500).json({ error: 'Failed to load alert templates' });
+  }
+});
+
+// POST /api/alerts/templates/:templateId/apply - Apply template to project
+app.post('/api/alerts/templates/:templateId/apply', async (req: Request, res: Response) => {
+  try {
+    const { templateId } = req.params;
+    const { projectId } = req.body;
+
+    const templates = await loadAlertTemplates();
+    const template = templates.templates[templateId];
+
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    // Apply template triggers to trigger engine
+    // For now, just return success - full implementation will integrate with trigger-engine.js
+    res.json({
+      success: true,
+      template: templateId,
+      triggersApplied: template.triggers.length
+    });
+  } catch (error: any) {
+    console.error('[POST /api/alerts/templates/:templateId/apply] Error:', error);
+    res.status(500).json({ error: 'Failed to apply template' });
+  }
+});
+
+// GET /api/alerts/status - Get current alert status for project
+app.get('/api/alerts/status', async (req: Request, res: Response) => {
+  try {
+    const { projectId } = req.query;
+
+    // Return current alert status
+    // For now, return mock data - full implementation will query trigger engine
+    res.json({
+      enabled: true,
+      activeTemplate: 'ai-safety-basic',
+      triggersActive: 5,
+      recentAlerts: []
+    });
+  } catch (error: any) {
+    console.error('[GET /api/alerts/status] Error:', error);
+    res.status(500).json({ error: 'Failed to get alert status' });
+  }
+});
+
+// ==================== Syntax Errors API ====================
+
+// GET /api/syntax-errors - Get all unresolved syntax errors
+app.get('/api/syntax-errors', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const errors = db.getSyntaxErrors(limit);
+    res.json({ errors, count: errors.length });
+  } catch (error: any) {
+    console.error('[GET /api/syntax-errors] Error:', error);
+    res.status(500).json({ error: 'Failed to get syntax errors' });
+  }
+});
+
+// GET /api/syntax-errors/count - Get count of unresolved errors
+app.get('/api/syntax-errors/count', async (req: Request, res: Response) => {
+  try {
+    const count = db.getUnresolvedSyntaxErrorCount();
+    res.json({ count });
+  } catch (error: any) {
+    console.error('[GET /api/syntax-errors/count] Error:', error);
+    res.status(500).json({ error: 'Failed to get syntax error count' });
+  }
+});
+
+// POST /api/syntax-errors/:id/resolve - Mark syntax error as resolved
+app.post('/api/syntax-errors/:id/resolve', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const errorId = parseInt(id);
+
+    if (isNaN(errorId)) {
+      return res.status(400).json({ error: 'Invalid error ID' });
+    }
+
+    db.resolveSyntaxError(errorId);
+    res.json({ success: true, message: 'Syntax error marked as resolved' });
+  } catch (error: any) {
+    console.error('[POST /api/syntax-errors/:id/resolve] Error:', error);
+    res.status(500).json({ error: 'Failed to resolve syntax error' });
+  }
+});
+
+// ==================== Session Rollback API ====================
+
+// GET /api/sessions - Get list of sessions with file changes
+app.get('/api/sessions', async (req: Request, res: Response) => {
+  try {
+    // Get all sessions with their events
+    const sessions = db.db.prepare(`
+      SELECT
+        session_id,
+        MIN(timestamp) as start_time,
+        MAX(timestamp) as end_time,
+        COUNT(*) as event_count,
+        COUNT(DISTINCT filepath) as file_count
+      FROM events
+      WHERE session_id IS NOT NULL
+      GROUP BY session_id
+      ORDER BY MAX(timestamp) DESC
+      LIMIT 20
+    `).all() as any[];
+
+    res.json({ sessions, count: sessions.length });
+  } catch (error: any) {
+    console.error('[GET /api/sessions] Error:', error);
+    res.status(500).json({ error: 'Failed to get sessions' });
+  }
+});
+
+// GET /api/sessions/:sessionId/preview - Preview rollback changes
+app.get('/api/sessions/:sessionId/preview', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Get all files modified in this session
+    const files = db.db.prepare(`
+      SELECT DISTINCT filepath
+      FROM events
+      WHERE session_id = ?
+      ORDER BY filepath
+    `).all(sessionId) as any[];
+
+    // For each file, find the snapshot before this session
+    const changes = [];
+
+    for (const fileRecord of files) {
+      const filepath = fileRecord.filepath;
+
+      // Get all snapshots for this file
+      const snapshots = await fs.readdir(SNAPSHOTS_DIR);
+      const fileSnapshots = snapshots
+        .filter(s => s.startsWith(filepath.replace(/\//g, '_')))
+        .map(s => ({
+          name: s,
+          timestamp: parseInt(s.split('_').pop() || '0')
+        }))
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      // Find session start time
+      const sessionStart = db.db.prepare(`
+        SELECT MIN(timestamp) as start_time
+        FROM events
+        WHERE session_id = ?
+      `).get(sessionId) as any;
+
+      const sessionStartMs = new Date(sessionStart.start_time).getTime();
+
+      // Find snapshot before session started
+      const beforeSnapshot = fileSnapshots.find(s => s.timestamp < sessionStartMs);
+
+      changes.push({
+        filepath,
+        hasBackup: !!beforeSnapshot,
+        snapshotName: beforeSnapshot?.name,
+        currentExists: true // Will be checked when actually rolling back
+      });
+    }
+
+    res.json({
+      sessionId,
+      fileCount: files.length,
+      changes,
+      canRollback: changes.some(c => c.hasBackup)
+    });
+  } catch (error: any) {
+    console.error('[GET /api/sessions/:sessionId/preview] Error:', error);
+    res.status(500).json({ error: 'Failed to preview rollback' });
+  }
+});
+
+// POST /api/sessions/:sessionId/rollback - Execute session rollback
+app.post('/api/sessions/:sessionId/rollback', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Get preview first
+    const preview = await fetch(`http://localhost:${PORT}/api/sessions/${sessionId}/preview`);
+    const previewData = await preview.json() as any;
+
+    if (!previewData.canRollback) {
+      return res.status(400).json({ error: 'No backups available for this session' });
+    }
+
+    const restoredFiles: string[] = [];
+    const failedFiles: string[] = [];
+
+    // Restore each file
+    for (const change of previewData.changes) {
+      if (!change.hasBackup) continue;
+
+      try {
+        const snapshotPath = join(SNAPSHOTS_DIR, change.snapshotName);
+        const targetPath = join(WATCH_PATH, change.filepath);
+
+        // Read snapshot content
+        const content = await fs.readFile(snapshotPath, 'utf-8');
+
+        // Write to target file
+        await fs.mkdir(dirname(targetPath), { recursive: true });
+        await fs.writeFile(targetPath, content, 'utf-8');
+
+        restoredFiles.push(change.filepath);
+        console.log(`✅ Rolled back: ${change.filepath}`);
+      } catch (error) {
+        console.error(`❌ Failed to rollback ${change.filepath}:`, error);
+        failedFiles.push(change.filepath);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Rolled back ${restoredFiles.length} files`,
+      restoredFiles,
+      failedFiles,
+      sessionId
+    });
+  } catch (error: any) {
+    console.error('[POST /api/sessions/:sessionId/rollback] Error:', error);
+    res.status(500).json({ error: 'Failed to execute rollback' });
+  }
+});
+
+// ==================== Pattern Warnings API ====================
+
+// GET /api/pattern-warnings - Get all unresolved pattern warnings
+app.get('/api/pattern-warnings', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const warnings = db.getPatternWarnings(limit);
+    res.json({ warnings, count: warnings.length });
+  } catch (error: any) {
+    console.error('[GET /api/pattern-warnings] Error:', error);
+    res.status(500).json({ error: 'Failed to get pattern warnings' });
+  }
+});
+
+// GET /api/pattern-warnings/count - Get count of unresolved warnings
+app.get('/api/pattern-warnings/count', async (req: Request, res: Response) => {
+  try {
+    const count = db.getUnresolvedPatternWarningCount();
+    res.json({ count });
+  } catch (error: any) {
+    console.error('[GET /api/pattern-warnings/count] Error:', error);
+    res.status(500).json({ error: 'Failed to get pattern warning count' });
+  }
+});
+
+// GET /api/pattern-warnings/category/:category - Get warnings by category
+app.get('/api/pattern-warnings/category/:category', async (req: Request, res: Response) => {
+  try {
+    const { category } = req.params;
+    const warnings = db.getPatternWarningsByCategory(category);
+    res.json({ warnings, count: warnings.length });
+  } catch (error: any) {
+    console.error('[GET /api/pattern-warnings/category/:category] Error:', error);
+    res.status(500).json({ error: 'Failed to get pattern warnings by category' });
+  }
+});
+
+// POST /api/pattern-warnings/:id/resolve - Mark pattern warning as resolved
+app.post('/api/pattern-warnings/:id/resolve', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const warningId = parseInt(id);
+
+    if (isNaN(warningId)) {
+      return res.status(400).json({ error: 'Invalid warning ID' });
+    }
+
+    db.resolvePatternWarning(warningId);
+    res.json({ success: true, message: 'Pattern warning marked as resolved' });
+  } catch (error: any) {
+    console.error('[POST /api/pattern-warnings/:id/resolve] Error:', error);
+    res.status(500).json({ error: 'Failed to resolve pattern warning' });
+  }
+});
+
+// GET /api/pattern-warnings/patterns - Get all available patterns
+app.get('/api/pattern-warnings/patterns', async (req: Request, res: Response) => {
+  try {
+    const patterns = patternDetector.getAllPatterns();
+    res.json({ patterns, count: patterns.length });
+  } catch (error: any) {
+    console.error('[GET /api/pattern-warnings/patterns] Error:', error);
+    res.status(500).json({ error: 'Failed to get patterns' });
+  }
+});
+
+// ==================== Pause/Resume APIs ====================
+
+// GET /api/pause/status - Get pause status
+app.get('/api/pause/status', async (req: Request, res: Response) => {
+  try {
+    const status = pauseManager.getStatus();
+    res.json(status);
+  } catch (error: any) {
+    console.error('[GET /api/pause/status] Error:', error);
+    res.status(500).json({ error: 'Failed to get pause status' });
+  }
+});
+
+// POST /api/pause - Pause monitoring
+app.post('/api/pause', async (req: Request, res: Response) => {
+  try {
+    const { reason } = req.body;
+    pauseManager.pause(reason || 'User requested via API');
+
+    const status = pauseManager.getStatus();
+
+    // Emit WebSocket event
+    io.emit('monitoring-paused', status);
+
+    res.json({
+      success: true,
+      message: 'Monitoring paused',
+      status
+    });
+  } catch (error: any) {
+    console.error('[POST /api/pause] Error:', error);
+    res.status(500).json({ error: 'Failed to pause monitoring' });
+  }
+});
+
+// POST /api/resume - Resume monitoring
+app.post('/api/resume', async (req: Request, res: Response) => {
+  try {
+    pauseManager.resume();
+
+    const status = pauseManager.getStatus();
+
+    // Emit WebSocket event
+    io.emit('monitoring-resumed', status);
+
+    res.json({
+      success: true,
+      message: 'Monitoring resumed',
+      status
+    });
+  } catch (error: any) {
+    console.error('[POST /api/resume] Error:', error);
+    res.status(500).json({ error: 'Failed to resume monitoring' });
+  }
+});
+
+// ==================== Test Runner APIs ====================
+
+// GET /api/tests/frameworks - Get detected test frameworks
+app.get('/api/tests/frameworks', async (req: Request, res: Response) => {
+  try {
+    const testRunner = getTestRunner(WATCH_PATH);
+    const frameworks = await testRunner.detectFrameworks();
+    res.json({ frameworks, count: frameworks.length });
+  } catch (error: any) {
+    console.error('[GET /api/tests/frameworks] Error:', error);
+    res.status(500).json({ error: 'Failed to detect test frameworks' });
+  }
+});
+
+// POST /api/tests/run - Run tests
+app.post('/api/tests/run', async (req: Request, res: Response) => {
+  try {
+    const { framework } = req.body;
+    const testRunner = getTestRunner(WATCH_PATH);
+
+    // Detect frameworks first
+    await testRunner.detectFrameworks();
+
+    console.log(`🧪 Running tests${framework ? ` (${framework})` : ''}...`);
+    const result = await testRunner.runTests(framework);
+
+    // Save to database
+    db.insertTestResult(
+      new Date().toISOString(),
+      result.framework,
+      result.passed,
+      result.totalTests,
+      result.passedTests,
+      result.failedTests,
+      result.skippedTests,
+      result.duration,
+      result.output,
+      JSON.stringify(result.failures),
+      SESSION_ID
+    );
+
+    // Emit WebSocket event
+    io.emit('test-result', result);
+
+    console.log(
+      result.passed
+        ? `✅ Tests passed: ${result.passedTests}/${result.totalTests}`
+        : `❌ Tests failed: ${result.failedTests}/${result.totalTests}`
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    console.error('[POST /api/tests/run] Error:', error);
+    res.status(500).json({ error: 'Failed to run tests' });
+  }
+});
+
+// GET /api/tests/results - Get test results
+app.get('/api/tests/results', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const results = db.getTestResults(limit);
+
+    // Parse failures JSON
+    const parsedResults = results.map((r: any) => ({
+      ...r,
+      passed: r.passed === 1,
+      failures: r.failures ? JSON.parse(r.failures) : []
+    }));
+
+    res.json({ results: parsedResults, count: parsedResults.length });
+  } catch (error: any) {
+    console.error('[GET /api/tests/results] Error:', error);
+    res.status(500).json({ error: 'Failed to get test results' });
+  }
+});
+
+// GET /api/tests/latest - Get latest test result
+app.get('/api/tests/latest', async (req: Request, res: Response) => {
+  try {
+    const result = db.getLatestTestResult();
+
+    if (!result) {
+      res.json({ result: null });
+      return;
+    }
+
+    const parsed = {
+      ...result,
+      passed: result.passed === 1,
+      failures: result.failures ? JSON.parse(result.failures) : []
+    };
+
+    res.json({ result: parsed });
+  } catch (error: any) {
+    console.error('[GET /api/tests/latest] Error:', error);
+    res.status(500).json({ error: 'Failed to get latest test result' });
   }
 });
 

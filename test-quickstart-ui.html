@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Start Wizard UI Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+        .pass { color: #4ec9b0; }
+        .fail { color: #f48771; }
+        .info { color: #dcdcaa; }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        #log {
+            background: #252526;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Quick Start Wizard UI Test</h1>
+
+    <div class="test-section">
+        <h2>Test Configuration</h2>
+        <p>Project Path: <input type="text" id="testPath" value="/Users/seth/test-ui-project" size="50"></p>
+        <p>Template: <select id="testTemplate">
+            <option value="ai-safety-basic">AI Safety (Basic)</option>
+            <option value="paranoid">Paranoid</option>
+            <option value="minimal">Minimal</option>
+        </select></p>
+    </div>
+
+    <div class="test-section">
+        <h2>Actions</h2>
+        <button onclick="testBackendAPI()">1. Test Backend API</button>
+        <button onclick="testProjectCreation()">2. Test Project Creation</button>
+        <button onclick="testTemplateApplication()">3. Test Template Application</button>
+        <button onclick="testFullWorkflow()">4. Run Full Workflow</button>
+        <button onclick="openQuickStartWizard()">5. Open Quick Start Wizard</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        const log = document.getElementById('log');
+
+        function logMessage(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            log.innerHTML = '';
+        }
+
+        async function testBackendAPI() {
+            logMessage('Testing backend API...', 'info');
+            try {
+                const response = await fetch('http://localhost:3030/api/projects');
+                const data = await response.json();
+                logMessage(`✓ Backend API working. basePath: ${data.basePath}`, 'pass');
+                return data;
+            } catch (error) {
+                logMessage(`✗ Backend API failed: ${error.message}`, 'fail');
+                throw error;
+            }
+        }
+
+        async function testProjectCreation() {
+            const projectPath = document.getElementById('testPath').value;
+            const projectName = projectPath.split('/').pop() || 'test-project';
+
+            logMessage(`Creating test project: ${projectName} at ${projectPath}`, 'info');
+            logMessage(`⚠ NOTE: The directory ${projectPath} must exist on your filesystem`, 'info');
+            logMessage(`⚠ Create it manually with: mkdir -p ${projectPath}`, 'info');
+
+            try {
+                const response = await fetch('http://localhost:3030/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: projectName,
+                        path: projectPath,
+                        enabled: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (data.error === 'Invalid path') {
+                        logMessage(`✗ Project creation failed: Directory doesn't exist`, 'fail');
+                        logMessage(`  Run this in terminal: mkdir -p ${projectPath}`, 'fail');
+                    } else {
+                        logMessage(`✗ Project creation failed: ${data.error}`, 'fail');
+                    }
+                    return null;
+                }
+
+                logMessage(`✓ Project created successfully: ${data.project.id}`, 'pass');
+                return data.project;
+            } catch (error) {
+                logMessage(`✗ Project creation error: ${error.message}`, 'fail');
+                return null;
+            }
+        }
+
+        async function testTemplateApplication() {
+            const template = document.getElementById('testTemplate').value;
+            const projectPath = document.getElementById('testPath').value;
+            const projectId = projectPath.split('/').pop() || 'test-project';
+
+            logMessage(`Applying template ${template} to project ${projectId}`, 'info');
+
+            try {
+                const response = await fetch(`http://localhost:3030/api/alerts/templates/${template}/apply`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projectId })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    logMessage(`✗ Template application failed: ${data.error}`, 'fail');
+                    return false;
+                }
+
+                logMessage(`✓ Template applied: ${data.triggersApplied} triggers created`, 'pass');
+                return true;
+            } catch (error) {
+                logMessage(`✗ Template application error: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+
+        async function testFullWorkflow() {
+            logMessage('======================================', 'info');
+            logMessage('Running Full Quick Start Workflow Test', 'info');
+            logMessage('======================================', 'info');
+
+            try {
+                // Step 1: Test backend
+                await testBackendAPI();
+
+                // Step 2: Create project
+                const project = await testProjectCreation();
+                if (!project) {
+                    logMessage('✗ Workflow failed at project creation', 'fail');
+                    return;
+                }
+
+                // Step 3: Apply template
+                const templateApplied = await testTemplateApplication();
+                if (!templateApplied) {
+                    logMessage('✗ Workflow failed at template application', 'fail');
+                    return;
+                }
+
+                logMessage('======================================', 'pass');
+                logMessage('✓ Full workflow completed successfully!', 'pass');
+                logMessage('======================================', 'pass');
+
+                // Cleanup
+                logMessage('Cleaning up test project...', 'info');
+                await fetch(`http://localhost:3030/api/projects/${project.id}`, {
+                    method: 'DELETE'
+                });
+                logMessage('✓ Cleanup complete', 'pass');
+
+            } catch (error) {
+                logMessage(`✗ Workflow failed: ${error.message}`, 'fail');
+            }
+        }
+
+        function openQuickStartWizard() {
+            logMessage('Opening Quick Start Wizard in new window...', 'info');
+            window.open('http://localhost:5173', 'quickstart', 'width=1200,height=800');
+            logMessage('Check browser console in wizard window for debug logs', 'info');
+            logMessage('Look for messages starting with [QuickStart]', 'info');
+        }
+
+        // Initial test on load
+        window.addEventListener('load', () => {
+            logMessage('UI Test page loaded', 'info');
+            logMessage('Click buttons above to test the Quick Start Wizard workflow', 'info');
+        });
+    </script>
+</body>
+</html>

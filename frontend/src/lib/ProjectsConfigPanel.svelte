@@ -194,6 +194,37 @@
     showAddModal = true;
   }
 
+  // Handle directory picker
+  function handleDirectorySelect(event) {
+    const files = event.target.files;
+    if (files.length > 0) {
+      const file = files[0];
+      const fullPath = file.webkitRelativePath || file.name;
+      const pathParts = fullPath.split('/');
+
+      // Extract just the directory name
+      const directoryName = pathParts[0];
+
+      // Construct absolute path using basePath from config
+      if (config.basePath && directoryName) {
+        // Remove trailing slash from basePath if present
+        const cleanBasePath = config.basePath.endsWith('/') ? config.basePath.slice(0, -1) : config.basePath;
+        formData.path = `${cleanBasePath}/${directoryName}`;
+      } else {
+        // Fallback: just show the directory name if basePath not available
+        formData.path = directoryName || fullPath;
+      }
+    }
+  }
+
+  // Trigger directory picker
+  function browseDirectory() {
+    const input = document.getElementById('project-directory-picker');
+    if (input) {
+      input.click();
+    }
+  }
+
   function openEditModal(project) {
     selectedProject = project;
     formData = {
@@ -333,12 +364,29 @@
 
         <div class="form-group">
           <label for="project-path">Project Path</label>
+          <div class="path-input-group">
+            <input
+              id="project-path"
+              type="text"
+              bind:value={formData.path}
+              placeholder="/path/to/project"
+              disabled={showEditModal}
+            />
+            {#if !showEditModal}
+              <button type="button" class="browse-btn" on:click={browseDirectory} title="Browse for directory">
+                📁 Browse
+              </button>
+            {/if}
+          </div>
+          <!-- Hidden file input for directory selection -->
           <input
-            id="project-path"
-            type="text"
-            bind:value={formData.path}
-            placeholder="/path/to/project"
-            disabled={showEditModal}
+            id="project-directory-picker"
+            type="file"
+            webkitdirectory
+            directory
+            multiple
+            style="display: none;"
+            on:change={handleDirectorySelect}
           />
         </div>
 
@@ -769,6 +817,43 @@
   .form-group textarea:focus {
     outline: none;
     border-color: var(--accent);
+  }
+
+  .path-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .path-input-group input {
+    flex: 1;
+  }
+
+  .browse-btn {
+    padding: 8px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .browse-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  .browse-btn:active {
+    transform: translateY(0);
   }
 
   .form-group input:disabled {

@@ -136,6 +136,22 @@ export interface PerformanceCorrelation {
   process_memory_mb: number | null;
 }
 
+/**
+ * Syntax error detected in code
+ */
+export interface SyntaxErrorRecord {
+  id: number;
+  timestamp: string;
+  filepath: string;
+  line_number: number;
+  column_number?: number;
+  message: string;
+  severity: string;
+  language: string;
+  resolved: number;
+  session_id?: string;
+}
+
 // ==================== Database Class ====================
 
 export class RavenDB {
@@ -216,6 +232,58 @@ export class RavenDB {
         disk_read_bytes INTEGER,
         disk_write_bytes INTEGER,
         status TEXT,
+        session_id TEXT
+      )
+    `);
+
+    // Syntax errors table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS syntax_errors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        filepath TEXT NOT NULL,
+        line_number INTEGER NOT NULL,
+        column_number INTEGER,
+        message TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        language TEXT NOT NULL,
+        resolved INTEGER DEFAULT 0,
+        session_id TEXT
+      )
+    `);
+
+    // Pattern warnings table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS pattern_warnings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        filepath TEXT NOT NULL,
+        line_number INTEGER NOT NULL,
+        pattern_id TEXT NOT NULL,
+        pattern_name TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        category TEXT NOT NULL,
+        match_text TEXT NOT NULL,
+        context TEXT NOT NULL,
+        resolved INTEGER DEFAULT 0,
+        session_id TEXT
+      )
+    `);
+
+    // Test results table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS test_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        framework TEXT NOT NULL,
+        passed INTEGER NOT NULL,
+        total_tests INTEGER NOT NULL,
+        passed_tests INTEGER NOT NULL,
+        failed_tests INTEGER NOT NULL,
+        skipped_tests INTEGER NOT NULL,
+        duration INTEGER NOT NULL,
+        output TEXT,
+        failures TEXT,
         session_id TEXT
       )
     `);
@@ -601,6 +669,239 @@ export class RavenDB {
       session_duration_seconds,
       active_files_today: activeToday.size
     };
+  }
+
+  // ==================== Syntax Errors ====================
+
+  insertSyntaxError(
+    timestamp: string,
+    filepath: string,
+    line_number: number,
+    column_number: number | undefined,
+    message: string,
+    severity: string,
+    language: string,
+    session_id: string | undefined
+  ): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO syntax_errors (timestamp, filepath, line_number, column_number, message, severity, language, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      filepath,
+      line_number,
+      column_number || null,
+      message,
+      severity,
+      language,
+      session_id || null
+    );
+
+    return result.lastInsertRowid as number;
+  }
+
+  getSyntaxErrors(limit: number = 100): SyntaxErrorRecord[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM syntax_errors
+      WHERE resolved = 0
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit) as SyntaxErrorRecord[];
+  }
+
+  getSyntaxErrorsByFile(filepath: string): SyntaxErrorRecord[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM syntax_errors
+      WHERE filepath = ? AND resolved = 0
+      ORDER BY timestamp DESC
+    `);
+    return stmt.all(filepath) as SyntaxErrorRecord[];
+  }
+
+  resolveSyntaxError(id: number): void {
+    const stmt = this.db.prepare(`
+      UPDATE syntax_errors
+      SET resolved = 1
+      WHERE id = ?
+    `);
+    stmt.run(id);
+  }
+
+  resolveSyntaxErrorsByFile(filepath: string): void {
+    const stmt = this.db.prepare(`
+      UPDATE syntax_errors
+      SET resolved = 1
+      WHERE filepath = ? AND resolved = 0
+    `);
+    stmt.run(filepath);
+  }
+
+  getUnresolvedSyntaxErrorCount(): number {
+    const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count FROM syntax_errors
+      WHERE resolved = 0
+    `);
+    const result = stmt.get() as { count: number };
+    return result.count;
+  }
+
+  // ==================== Pattern Warnings ====================
+
+  insertPatternWarning(
+    timestamp: string,
+    filepath: string,
+    line_number: number,
+    pattern_id: string,
+    pattern_name: string,
+    severity: string,
+    category: string,
+    match_text: string,
+    context: string,
+    session_id: string | undefined
+  ): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO pattern_warnings (timestamp, filepath, line_number, pattern_id, pattern_name, severity, category, match_text, context, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      filepath,
+      line_number,
+      pattern_id,
+      pattern_name,
+      severity,
+      category,
+      match_text,
+      context,
+      session_id || null
+    );
+
+    return result.lastInsertRowid as number;
+  }
+
+  getPatternWarnings(limit: number = 100): any[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM pattern_warnings
+      WHERE resolved = 0
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit);
+  }
+
+  getPatternWarningsByCategory(category: string): any[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM pattern_warnings
+      WHERE category = ? AND resolved = 0
+      ORDER BY timestamp DESC
+    `);
+    return stmt.all(category);
+  }
+
+  resolvePatternWarning(id: number): void {
+    const stmt = this.db.prepare(`
+      UPDATE pattern_warnings
+      SET resolved = 1
+      WHERE id = ?
+    `);
+    stmt.run(id);
+  }
+
+  resolvePatternWarningsByFile(filepath: string): void {
+    const stmt = this.db.prepare(`
+      UPDATE pattern_warnings
+      SET resolved = 1
+      WHERE filepath = ? AND resolved = 0
+    `);
+    stmt.run(filepath);
+  }
+
+  // ==================== Test Results ====================
+
+  insertTestResult(
+    timestamp: string,
+    framework: string,
+    passed: boolean,
+    totalTests: number,
+    passedTests: number,
+    failedTests: number,
+    skippedTests: number,
+    duration: number,
+    output: string,
+    failures: string,
+    sessionId: string
+  ): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO test_results (timestamp, framework, passed, total_tests, passed_tests, failed_tests, skipped_tests, duration, output, failures, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      framework,
+      passed ? 1 : 0,
+      totalTests,
+      passedTests,
+      failedTests,
+      skippedTests,
+      duration,
+      output,
+      failures,
+      sessionId
+    );
+
+    return result.lastInsertRowid as number;
+  }
+
+  getTestResults(limit: number = 50): any[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM test_results
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit);
+  }
+
+  getLatestTestResult(): any | null {
+    const stmt = this.db.prepare(`
+      SELECT * FROM test_results
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `);
+    return stmt.get();
+  }
+
+  getTestResultsByFramework(framework: string, limit: number = 20): any[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM test_results
+      WHERE framework = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    return stmt.all(framework, limit);
+  }
+
+  getFailedTestsCount(): number {
+    const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM test_results
+      WHERE passed = 0
+    `);
+    const result = stmt.get() as { count: number };
+    return result.count;
+  }
+
+  getUnresolvedPatternWarningCount(): number {
+    const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count FROM pattern_warnings
+      WHERE resolved = 0
+    `);
+    const result = stmt.get() as { count: number };
+    return result.count;
   }
 
   close(): void {
