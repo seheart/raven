@@ -8,6 +8,7 @@
   import ProjectBadge from './ProjectBadge.svelte';
   import PageInfo from './PageInfo.svelte';
   import { api } from './apiClient.js';
+  import SimilarChangesPanel from './SimilarChangesPanel.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -193,6 +194,10 @@
         project: e.project || null,
         cpu: e.cpu || 0,
         mem: e.mem || 0,
+        agent: e.agent || null,
+        agentConfidence: e.agent_confidence || 0,
+        riskScore: e.risk_score || 0,
+        riskLevel: e.risk_level || null,
         eventCategory: 'file'
       }));
 
@@ -384,6 +389,30 @@
     if (!text) return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+  }
+
+  // Get agent badge info
+  function getAgentBadge(agent) {
+    const badges = {
+      'ant': { icon: '🐜', color: '#7aa2f7', name: 'ANT' },
+      'claude-code': { icon: '🤖', color: '#bb9af7', name: 'Claude Code' },
+      'cursor': { icon: '↗️', color: '#9ece6a', name: 'Cursor' },
+      'github-copilot': { icon: '🤝', color: '#f7768e', name: 'Copilot' },
+      'aider': { icon: '💬', color: '#e0af68', name: 'Aider' },
+      'manual': { icon: '👤', color: '#a9b1d6', name: 'Manual' },
+      'unknown': { icon: '❓', color: '#565f89', name: 'Unknown' }
+    };
+    return badges[agent] || badges.unknown;
+  }
+
+  // Get risk badge info
+  function getRiskBadge(riskLevel) {
+    const badges = {
+      'high': { icon: '⚠️', color: '#f7768e', text: 'High Risk' },
+      'medium': { icon: '⚡', color: '#e0af68', text: 'Medium Risk' },
+      'low': { icon: '✓', color: '#9ece6a', text: 'Low Risk' }
+    };
+    return badges[riskLevel] || null;
   }
 </script>
 
@@ -619,6 +648,26 @@
                 <span class="event-badge {item.changeType}">
                   {item.changeType}
                 </span>
+                {#if item.agent}
+                  <span
+                    class="agent-badge"
+                    style="background: {getAgentBadge(item.agent).color}33; border-color: {getAgentBadge(item.agent).color};"
+                    title="{getAgentBadge(item.agent).name} ({item.agentConfidence}% confidence)"
+                  >
+                    <span class="agent-icon">{getAgentBadge(item.agent).icon}</span>
+                    <span class="agent-name">{getAgentBadge(item.agent).name}</span>
+                  </span>
+                {/if}
+                {#if item.riskLevel && item.riskLevel !== 'low'}
+                  <span
+                    class="risk-badge risk-{item.riskLevel}"
+                    style="background: {getRiskBadge(item.riskLevel).color}33; border-color: {getRiskBadge(item.riskLevel).color};"
+                    title="Risk Score: {item.riskScore}/100"
+                  >
+                    <span class="risk-icon">{getRiskBadge(item.riskLevel).icon}</span>
+                    <span class="risk-text">{getRiskBadge(item.riskLevel).text}</span>
+                  </span>
+                {/if}
                 <div class="event-metrics">
                   <span class="metric cpu">
                     <span class="metric-icon">⚙️</span>
@@ -750,6 +799,17 @@
           <div class="no-diff">
             <p>No diff available for this change</p>
             <p class="hint">Diff may not be available for deletions or binary files</p>
+          </div>
+        {/if}
+
+        <!-- Similar Changes Analysis -->
+        {#if selectedEventForDiff.id}
+          <div class="similar-changes-section">
+            <SimilarChangesPanel
+              eventId={selectedEventForDiff.id.toString().replace('file-', '')}
+              project={selectedEventForDiff.project || 'raven'}
+              limit={5}
+            />
           </div>
         {/if}
       </div>
@@ -1561,5 +1621,55 @@
 
   .filter-label.conversation {
     font-size: 12px;
+  }
+
+  /* Agent Badge Styles */
+  .agent-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    border: 1px solid;
+    transition: all 0.2s;
+  }
+
+  .agent-icon {
+    font-size: 14px;
+  }
+
+  .agent-name {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Risk Badge Styles */
+  .risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 10px;
+    border-radius: 4px;
+    font-weight: 700;
+    border: 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .risk-icon {
+    font-size: 12px;
+  }
+
+  .risk-text {
+    font-size: 10px;
+  }
+
+  /* Similar Changes Section */
+  .similar-changes-section {
+    margin-top: 24px;
   }
 </style>

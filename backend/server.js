@@ -48,6 +48,13 @@ import { createControlRoutes } from './routes/control.js';
 import { createMetricsRoutes } from './routes/metrics.js';
 import { createApiDocsRoutes } from './routes/api-docs.js';
 import { createConversationRoutes } from './routes/conversations.js';
+
+// Monitoring services
+import { agentDetector } from './services/agent-detector.js';
+import { createRiskAnalyzer } from './services/risk-analyzer.js';
+import { createBehaviorProfiler } from './services/behavior-profiler.js';
+import { createPatternMatcher } from './services/pattern-matcher.js';
+import { createSessionTracker } from './services/session-tracker.js';
 import { createDeveloperRoutes } from './routes/developer.js';
 
 // Utilities (Phase 3)
@@ -1014,6 +1021,17 @@ async function handleFileChange(eventType, filepath) {
       dbInsertSuccess = true;
       logger.info(`📁 [${projectName}] File ${eventType}: ${relPath} (${eventSize} bytes)`);
 
+      // Track session activity
+      if (sessionTracker) {
+        sessionTracker.recordActivity(projectName, {
+          change_type: eventType,
+          diff,
+          filepath: relPath,
+          agent: null, // Will be enriched by agent detector
+          risk_score: 0 // Will be calculated if needed
+        });
+      }
+
       // ALSO log to global developer persona database
       const language = detectLanguage(filepath);
       const linesAdded = diff ? (diff.match(/^\+/gm) || []).length : 0;
@@ -1092,6 +1110,35 @@ async function handleFileChange(eventType, filepath) {
 
 // ==================== Project Management Functions ====================
 
+// Monitoring service instances
+let riskAnalyzer;
+let behaviorProfiler;
+let patternMatcher;
+let sessionTracker;
+
+/**
+ * Initialize monitoring services after projects are loaded
+ */
+function initializeMonitoringServices() {
+  try {
+    console.log('🔍 Initializing monitoring services...');
+
+    riskAnalyzer = createRiskAnalyzer(projectDatabases);
+    behaviorProfiler = createBehaviorProfiler(projectDatabases);
+    patternMatcher = createPatternMatcher(projectDatabases);
+    sessionTracker = createSessionTracker(projectDatabases);
+
+    console.log('✅ Monitoring services initialized');
+    console.log('   - AgentDetector: Ready');
+    console.log('   - RiskAnalyzer: Ready');
+    console.log('   - BehaviorProfiler: Ready');
+    console.log('   - PatternMatcher: Ready');
+    console.log('   - SessionTracker: Ready\n');
+  } catch (error) {
+    logger.error('❌ Failed to initialize monitoring services:', error);
+  }
+}
+
 /**
  * Initialize a single project (database, paths, git monitor)
  * @param {string} projectName - Name of the project to initialize
@@ -1166,6 +1213,9 @@ function initializeAllProjects() {
   console.log(`   Successful: ${successCount}`);
   console.log(`   Failed: ${failCount}`);
   console.log(`   Total: ${availableProjects.length}\n`);
+
+  // Initialize monitoring services
+  initializeMonitoringServices();
 
   return { successCount, failCount };
 }
@@ -1866,58 +1916,147 @@ app.get('/api/search/global', (req, res) => {
 
 app.get('/api/health/projects', (req, res) => {
   try {
-    // For single-project mode, create health data for current monitored project
-    const projectName = projectState.watchPath ? projectState.watchPath.split('/').pop() : 'Current Project';
+    const healthData = [];
 
-    // Get recent activity (last 24 hours)
-    const recentActivity = projectState.db.db.prepare(`
-      SELECT COUNT(*) as count
-      FROM events
-      WHERE timestamp >= datetime('now', '-24 hours')
-    `).get();
+    // Calculate health for each project
+    for (const [projectName, db] of projectDatabases.entries()) {
+      try {
+        // Component 1: Code Velocity (20 points) - Changes per day over last 7 days
+        const velocityData = db.db.prepare(`
+          SELECT COUNT(*) as total_changes,
+                 JULIANDAY('now') - JULIANDAY(MIN(timestamp)) as days
+          FROM events
+          WHERE timestamp >= datetime('now', '-7 days')
+        `).get();
+        const changesPerDay = velocityData.days > 0 ? velocityData.total_changes / velocityData.days : 0;
+        const velocityScore = Math.min((changesPerDay / 50) * 20, 20); // Max 20 points if 50+ changes/day
 
-    // Get error count
-    const errors = projectState.db.db.prepare(`
-      SELECT COUNT(*) as count
-      FROM error_logs
-    `).get();
+        // Component 2: Rollback Rate (25 points) - Stability measure
+        const rollbackData = db.db.prepare(`
+          SELECT
+            COUNT(DISTINCT e.id) as total_changes,
+            COUNT(DISTINCT r.id) as rollback_count
+          FROM events e
+          LEFT JOIN rollbacks r ON e.id = r.event_id
+          WHERE e.timestamp >= datetime('now', '-30 days')
+        `).get();
+        const rollbackRate = rollbackData.total_changes > 0
+          ? rollbackData.rollback_count / rollbackData.total_changes
+          : 0;
+        const stabilityScore = Math.max((1 - rollbackRate) * 25, 0); // Max 25 points if 0% rollback
 
-    // Get latest event timestamp
-    const latest = projectState.db.db.prepare(`
-      SELECT timestamp
-      FROM events
-      ORDER BY timestamp DESC
-      LIMIT 1
-    `).get();
+        // Component 3: Agent Reliability (20 points) - Agent success rates
+        const agentStats = db.db.prepare(`
+          SELECT
+            agent,
+            COUNT(*) as total,
+            COUNT(CASE WHEN agent_confidence > 70 THEN 1 END) as high_confidence
+          FROM events
+          WHERE timestamp >= datetime('now', '-30 days')
+          AND agent IS NOT NULL
+          GROUP BY agent
+        `).all();
+        let avgConfidence = 0;
+        if (agentStats.length > 0) {
+          avgConfidence = agentStats.reduce((sum, a) => sum + (a.high_confidence / a.total), 0) / agentStats.length;
+        }
+        const reliabilityScore = avgConfidence * 20; // Max 20 points if 100% high confidence
 
-    // Calculate health score (0-100)
-    const activityScore = Math.min(recentActivity.count, 100);
-    const errorPenalty = Math.min(errors.count * 5, 50);
-    const healthScore = Math.max(activityScore - errorPenalty, 0);
+        // Component 4: Change Complexity (15 points) - Smaller, focused changes are better
+        const complexityData = db.db.prepare(`
+          SELECT AVG(LENGTH(diff)) as avg_diff_size
+          FROM events
+          WHERE timestamp >= datetime('now', '-7 days')
+          AND diff IS NOT NULL
+        `).get();
+        const avgDiffSize = complexityData.avg_diff_size || 0;
+        // Score inversely - smaller changes = better (ideal: 200-500 bytes)
+        const complexityScore = avgDiffSize > 0
+          ? Math.max(15 - ((avgDiffSize - 350) / 100), 0)
+          : 15;
 
-    // Determine status
-    let status = 'inactive';
-    if (latest) {
-      const lastActivityHours = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60);
-      if (lastActivityHours < 1) status = 'active';
-      else if (lastActivityHours < 24) status = 'recent';
-      else if (lastActivityHours < 168) status = 'idle';
+        // Component 5: Activity Recency (20 points) - How recent is development
+        const latest = db.db.prepare(`
+          SELECT timestamp FROM events ORDER BY timestamp DESC LIMIT 1
+        `).get();
+        let recencyScore = 0;
+        if (latest) {
+          const hoursSinceActivity = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60);
+          if (hoursSinceActivity < 1) recencyScore = 20;
+          else if (hoursSinceActivity < 6) recencyScore = 18;
+          else if (hoursSinceActivity < 24) recencyScore = 15;
+          else if (hoursSinceActivity < 72) recencyScore = 10;
+          else if (hoursSinceActivity < 168) recencyScore = 5;
+        }
+
+        // Calculate total health score (0-100)
+        const healthScore = Math.round(
+          velocityScore + stabilityScore + reliabilityScore +
+          Math.min(complexityScore, 15) + recencyScore
+        );
+
+        // Determine status
+        let status = 'inactive';
+        if (latest) {
+          const lastActivityHours = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60);
+          if (lastActivityHours < 1) status = 'active';
+          else if (lastActivityHours < 24) status = 'recent';
+          else if (lastActivityHours < 168) status = 'idle';
+        }
+
+        // Get recent event count
+        const recentEvents = db.db.prepare(`
+          SELECT COUNT(*) as count FROM events
+          WHERE timestamp >= datetime('now', '-24 hours')
+        `).get();
+
+        healthData.push({
+          name: projectName,
+          status,
+          health_score: healthScore,
+          components: {
+            velocity: Math.round(velocityScore),
+            stability: Math.round(stabilityScore),
+            reliability: Math.round(reliabilityScore),
+            complexity: Math.round(Math.min(complexityScore, 15)),
+            recency: Math.round(recencyScore)
+          },
+          metrics: {
+            changes_per_day: changesPerDay.toFixed(1),
+            rollback_rate: (rollbackRate * 100).toFixed(1) + '%',
+            avg_diff_size: Math.round(avgDiffSize),
+            hours_since_activity: latest ?
+              ((Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1) :
+              null
+          },
+          recent_events: recentEvents.count || 0,
+          last_activity: latest?.timestamp || null
+        });
+      } catch (projectError) {
+        logger.error(`Error calculating health for project ${projectName}:`, projectError);
+        // Add project with minimal data on error
+        healthData.push({
+          name: projectName,
+          status: 'error',
+          health_score: 0,
+          error: 'Failed to calculate health'
+        });
+      }
     }
 
-    const healthData = [{
-      name: projectName,
-      status,
-      health_score: healthScore,
-      recent_events: recentActivity.count || 0,
-      error_count: errors.count || 0,
-      last_activity: latest?.timestamp || null
-    }];
+    // Sort by health score descending
+    healthData.sort((a, b) => b.health_score - a.health_score);
 
     res.json({
       projects: healthData,
-      total_projects: 1,
+      total_projects: projectDatabases.size,
       active_projects: healthData.filter(p => p.status === 'active').length,
-      recent_projects: healthData.filter(p => p.status === 'recent').length
+      recent_projects: healthData.filter(p => p.status === 'recent').length,
+      idle_projects: healthData.filter(p => p.status === 'idle').length,
+      inactive_projects: healthData.filter(p => p.status === 'inactive').length,
+      average_health: healthData.length > 0
+        ? Math.round(healthData.reduce((sum, p) => sum + p.health_score, 0) / healthData.length)
+        : 0
     });
   } catch (error) {
     logger.error('❌ Multi-project health error:', error);
@@ -1931,109 +2070,109 @@ app.get('/api/anomalies/detect', (req, res) => {
   try {
     const lookbackHours = parseInt(req.query.hours) || 24;
     const threshold = parseFloat(req.query.threshold) || 2.0; // Standard deviations
+    const lookbackTime = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
 
-    const now = Date.now();
-    const lookbackTime = new Date(now - (lookbackHours * 60 * 60 * 1000)).toISOString();
+    const allAnomalies = [];
 
-    // Get hourly event counts for baseline
-    const baselineSql = `
-      SELECT
-        strftime('%H', timestamp) as hour,
-        COUNT(*) as count
-      FROM events
-      WHERE timestamp < ?
-      GROUP BY hour
-    `;
+    // Aggregate across all projects
+    for (const [projectName, db] of projectDatabases.entries()) {
+      try {
+        // Get baseline (historical hourly average)
+        const baseline = db.db.prepare(`
+          SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
+          FROM events
+          WHERE timestamp < ?
+          GROUP BY hour
+        `).all(lookbackTime);
 
-    const baseline = projectState.db.db.prepare(baselineSql).all(lookbackTime);
-    const avgPerHour = baseline.reduce((sum, h) => sum + h.count, 0) / Math.max(baseline.length, 1);
-    const stdDev = Math.sqrt(
-      baseline.reduce((sum, h) => sum + Math.pow(h.count - avgPerHour, 2), 0) / Math.max(baseline.length, 1)
-    );
+        const avgPerHour = baseline.reduce((sum, h) => sum + h.count, 0) / Math.max(baseline.length, 1);
+        const stdDev = Math.sqrt(
+          baseline.reduce((sum, h) => sum + Math.pow(h.count - avgPerHour, 2), 0) / Math.max(baseline.length, 1)
+        );
 
-    // Check recent activity
-    const recentSql = `
-      SELECT
-        strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
-        COUNT(*) as event_count,
-        SUM(CASE WHEN change_type = 'deleted' THEN 1 ELSE 0 END) as deletions,
-        COUNT(DISTINCT filepath) as unique_files
-      FROM events
-      WHERE timestamp >= ?
-      GROUP BY hour
-      ORDER BY hour DESC
-    `;
+        // Check recent activity with agent attribution
+        const recent = db.db.prepare(`
+          SELECT
+            strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
+            COUNT(*) as event_count,
+            SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as deletions,
+            COUNT(DISTINCT filepath) as unique_files,
+            agent
+          FROM events
+          WHERE timestamp >= ?
+          GROUP BY hour, agent
+          ORDER BY hour DESC
+        `).all(lookbackTime);
 
-    const recent = projectState.db.db.prepare(recentSql).all(lookbackTime);
-
-    const anomalies = [];
-
-    // Detect activity spikes
-    recent.forEach(hour => {
-      if (hour.event_count > avgPerHour + (threshold * stdDev)) {
-        anomalies.push({
-          type: 'activity_spike',
-          severity: 'warning',
-          timestamp: hour.hour,
-          message: `Unusual activity spike: ${hour.event_count} events (avg: ${Math.round(avgPerHour)})`,
-          details: {
-            event_count: hour.event_count,
-            average: Math.round(avgPerHour),
-            std_devs: ((hour.event_count - avgPerHour) / Math.max(stdDev, 1)).toFixed(2)
+        // Detect anomalies for this project
+        for (const hour of recent) {
+          // Activity spike detection
+          if (hour.event_count > avgPerHour + (threshold * stdDev)) {
+            allAnomalies.push({
+              project: projectName,
+              type: 'activity_spike',
+              severity: 'warning',
+              timestamp: hour.hour,
+              agent: hour.agent,
+              message: `${projectName}: Unusual activity spike - ${hour.event_count} events (avg: ${Math.round(avgPerHour)})`,
+              details: {
+                event_count: hour.event_count,
+                average: Math.round(avgPerHour),
+                std_devs: ((hour.event_count - avgPerHour) / Math.max(stdDev, 1)).toFixed(2)
+              }
+            });
           }
-        });
-      }
 
-      // Detect excessive deletions
-      if (hour.deletions > 10) {
-        anomalies.push({
-          type: 'excessive_deletions',
-          severity: 'critical',
-          timestamp: hour.hour,
-          message: `High deletion count: ${hour.deletions} files deleted`,
-          details: {
-            deletions: hour.deletions,
-            threshold: 10
+          // Excessive deletions detection
+          if (hour.deletions > 10) {
+            allAnomalies.push({
+              project: projectName,
+              type: 'excessive_deletions',
+              severity: 'critical',
+              timestamp: hour.hour,
+              agent: hour.agent,
+              message: `${projectName}: High deletion count - ${hour.deletions} files deleted`,
+              details: { deletions: hour.deletions, threshold: 10 }
+            });
           }
-        });
-      }
-    });
-
-    // Detect unusual file activity
-    const recentFiles = projectState.db.db.prepare(`
-      SELECT
-        filepath,
-        COUNT(*) as change_count
-      FROM events
-      WHERE timestamp >= ?
-      GROUP BY filepath
-      HAVING change_count > 20
-      ORDER BY change_count DESC
-      LIMIT 10
-    `).all(lookbackTime);
-
-    recentFiles.forEach(file => {
-      anomalies.push({
-        type: 'hot_file',
-        severity: 'info',
-        timestamp: new Date().toISOString(),
-        message: `File modified frequently: ${file.filepath} (${file.change_count} changes)`,
-        details: {
-          filepath: file.filepath,
-          change_count: file.change_count
         }
-      });
-    });
+
+        // Detect hot files (frequently modified)
+        const hotFiles = db.db.prepare(`
+          SELECT filepath, COUNT(*) as change_count, agent
+          FROM events
+          WHERE timestamp >= ?
+          GROUP BY filepath
+          HAVING change_count > 20
+          ORDER BY change_count DESC
+          LIMIT 5
+        `).all(lookbackTime);
+
+        for (const file of hotFiles) {
+          allAnomalies.push({
+            project: projectName,
+            type: 'hot_file',
+            severity: 'info',
+            timestamp: new Date().toISOString(),
+            agent: file.agent,
+            message: `${projectName}: File modified frequently - ${file.filepath} (${file.change_count} changes)`,
+            details: { filepath: file.filepath, change_count: file.change_count }
+          });
+        }
+      } catch (projectError) {
+        logger.error(`Error detecting anomalies for project ${projectName}:`, projectError);
+      }
+    }
+
+    // Sort by timestamp descending
+    allAnomalies.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     res.json({
       lookback_hours: lookbackHours,
       threshold,
-      baseline: {
-        avg_per_hour: Math.round(avgPerHour),
-        std_dev: Math.round(stdDev)
-      },
-      anomalies,
-      total_anomalies: anomalies.length
+      anomalies: allAnomalies,
+      total_anomalies: allAnomalies.length,
+      projects_scanned: projectDatabases.size
     });
   } catch (error) {
     logger.error('❌ Anomaly detection error:', error);
@@ -2124,6 +2263,267 @@ app.get('/api/trends/historical', (req, res) => {
     });
   } catch (error) {
     logger.error('❌ Historical trends error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Agent Monitoring API ====================
+
+// Agent behavior profile
+app.get('/api/agents/:agent/profile', (req, res) => {
+  try {
+    const { agent } = req.params;
+    const { project, days } = req.query;
+
+    if (!behaviorProfiler) {
+      return res.status(503).json({ error: 'Behavior profiler not initialized' });
+    }
+
+    const profile = behaviorProfiler.getAgentProfile(
+      project || Array.from(projectDatabases.keys())[0],
+      agent,
+      parseInt(days) || 30
+    );
+
+    if (!profile) {
+      return res.status(404).json({ error: 'No data found for this agent' });
+    }
+
+    res.json({ profile });
+  } catch (error) {
+    logger.error('Error getting agent profile:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Behavior change detection
+app.get('/api/agents/:agent/behavior-change', (req, res) => {
+  try {
+    const { agent } = req.params;
+    const { project, hours } = req.query;
+
+    if (!behaviorProfiler) {
+      return res.status(503).json({ error: 'Behavior profiler not initialized' });
+    }
+
+    const change = behaviorProfiler.detectBehaviorChange(
+      project || Array.from(projectDatabases.keys())[0],
+      agent,
+      parseInt(hours) || 24
+    );
+
+    res.json({ change });
+  } catch (error) {
+    logger.error('Error detecting behavior change:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Agent comparison
+app.get('/api/agents/compare', (req, res) => {
+  try {
+    const { project } = req.query;
+
+    if (!behaviorProfiler) {
+      return res.status(503).json({ error: 'Behavior profiler not initialized' });
+    }
+
+    const comparison = behaviorProfiler.compareAgents(
+      project || Array.from(projectDatabases.keys())[0]
+    );
+
+    res.json({ agents: comparison });
+  } catch (error) {
+    logger.error('Error comparing agents:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Find similar changes (pattern matching)
+app.post('/api/changes/:id/similar', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { project, limit } = req.query;
+
+    if (!patternMatcher) {
+      return res.status(503).json({ error: 'Pattern matcher not initialized' });
+    }
+
+    const projectName = project || Array.from(projectDatabases.keys())[0];
+    const db = projectDatabases.get(projectName);
+
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Get the change
+    const change = db.db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+
+    if (!change) {
+      return res.status(404).json({ error: 'Change not found' });
+    }
+
+    const similar = patternMatcher.findSimilarChanges(
+      change,
+      projectName,
+      parseInt(limit) || 5
+    );
+
+    res.json({ similar });
+  } catch (error) {
+    logger.error('Error finding similar changes:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Track rollback
+app.post('/api/changes/:id/rollback', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { project, reason } = req.body;
+
+    if (!riskAnalyzer) {
+      return res.status(503).json({ error: 'Risk analyzer not initialized' });
+    }
+
+    const projectName = project || Array.from(projectDatabases.keys())[0];
+    const db = projectDatabases.get(projectName);
+
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const success = riskAnalyzer.trackRollback(db, id, reason, false);
+
+    if (success) {
+      // Track rollback in session
+      if (sessionTracker) {
+        sessionTracker.trackRollback(projectName);
+      }
+
+      res.json({ success: true, message: 'Rollback tracked' });
+    } else {
+      res.status(500).json({ error: 'Failed to track rollback' });
+    }
+  } catch (error) {
+    logger.error('Error tracking rollback:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get rollback patterns
+app.get('/api/rollbacks/patterns', (req, res) => {
+  try {
+    const { project } = req.query;
+
+    if (!patternMatcher) {
+      return res.status(503).json({ error: 'Pattern matcher not initialized' });
+    }
+
+    const projectName = project || Array.from(projectDatabases.keys())[0];
+    const patterns = patternMatcher.analyzeRollbackPatterns(projectName);
+
+    res.json({ patterns });
+  } catch (error) {
+    logger.error('Error analyzing rollback patterns:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Session Intelligence API ====================
+
+// Get current active session
+app.get('/api/sessions/current', (req, res) => {
+  try {
+    const { project } = req.query;
+
+    if (!sessionTracker) {
+      return res.status(503).json({ error: 'Session tracker not initialized' });
+    }
+
+    const projectName = project || Array.from(projectDatabases.keys())[0];
+    const session = sessionTracker.getActiveSession(projectName);
+
+    if (!session) {
+      return res.json({ hasActiveSession: false, session: null });
+    }
+
+    // Calculate session duration
+    const durationMinutes = (Date.now() - session.startTime) / (1000 * 60);
+    const durationHours = durationMinutes / 60;
+
+    res.json({
+      hasActiveSession: true,
+      session: {
+        id: session.id,
+        projectName: session.projectName,
+        startTime: new Date(session.startTime).toISOString(),
+        durationMinutes: Math.round(durationMinutes),
+        durationHours: durationHours.toFixed(2),
+        changesCount: session.changesCount,
+        rollbacksCount: session.rollbacksCount,
+        qualityScore: Math.round(session.qualityScore)
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting current session:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get session quality analysis
+app.get('/api/sessions/quality', (req, res) => {
+  try {
+    const { project } = req.query;
+
+    if (!sessionTracker) {
+      return res.status(503).json({ error: 'Session tracker not initialized' });
+    }
+
+    const projectName = project || Array.from(projectDatabases.keys())[0];
+    const quality = sessionTracker.calculateSessionQuality(projectName);
+
+    res.json({ quality });
+  } catch (error) {
+    logger.error('Error calculating session quality:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get break recommendation
+app.get('/api/sessions/break-recommendation', (req, res) => {
+  try {
+    const { project } = req.query;
+
+    if (!sessionTracker) {
+      return res.status(503).json({ error: 'Session tracker not initialized' });
+    }
+
+    const projectName = project || Array.from(projectDatabases.keys())[0];
+    const recommendation = sessionTracker.getBreakRecommendation(projectName);
+
+    res.json({ recommendation });
+  } catch (error) {
+    logger.error('Error getting break recommendation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get session statistics
+app.get('/api/sessions/stats', (req, res) => {
+  try {
+    const { project, days } = req.query;
+
+    if (!sessionTracker) {
+      return res.status(503).json({ error: 'Session tracker not initialized' });
+    }
+
+    const projectName = project || Array.from(projectDatabases.keys())[0];
+    const stats = sessionTracker.getSessionStats(projectName, parseInt(days) || 30);
+
+    res.json({ stats });
+  } catch (error) {
+    logger.error('Error getting session stats:', error);
     res.status(500).json({ error: error.message });
   }
 });

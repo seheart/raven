@@ -37,6 +37,7 @@
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import ConversationsPanel from './lib/ConversationsPanel.svelte';
   import DeveloperInsightsPanel from './lib/DeveloperInsightsPanel.svelte';
+  import BreakAlert from './lib/BreakAlert.svelte';
   import ProjectsComparisonPanel from './lib/ProjectsComparisonPanel.svelte';
   import FileBrowser from './lib/FileBrowser.svelte';
   import HistoricalTrendsPanel from './lib/HistoricalTrendsPanel.svelte';
@@ -561,6 +562,9 @@
 <!-- Toast Notifications -->
 <ToastContainer />
 <Toast />
+
+<!-- Break Recommendation Alert -->
+<BreakAlert />
 
 <!-- Quick Start Wizard for New Users -->
 {#if showQuickStart}

@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
+  import AgentProfilePanel from './AgentProfilePanel.svelte';
+  import SessionDashboard from './SessionDashboard.svelte';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -273,6 +275,16 @@
         </div>
       </div>
     </div>
+
+    <!-- Agent Profile Panel -->
+    <div class="full-width-panel">
+      <AgentProfilePanel />
+    </div>
+
+    <!-- Session Dashboard -->
+    <div class="full-width-panel">
+      <SessionDashboard />
+    </div>
   {/if}
 </div>
 
@@ -393,6 +405,10 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
+  }
+
+  .full-width-panel {
+    margin-top: 24px;
   }
 
   .panel-header {
