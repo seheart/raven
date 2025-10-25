@@ -1,4 +1,4 @@
-import { logger } from '../logger.js';
+import { logger } from './logger.js';
 import { toasts } from './toastStore.js';
 import { settings as settingsStore } from './settingsStore.js';
 

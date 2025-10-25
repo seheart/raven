@@ -8,7 +8,8 @@ import { logger } from '../utils/logger.js';
  */
 export function createRollbackRoutes(deps) {
   const router = Router();
-  const { projectDatabases, riskAnalyzer, patternMatcher, sessionTracker } = deps;
+  // Note: Don't destructure deps - access services dynamically
+  // so it works even if they're added to deps after route mounting
 
   /**
    * POST /api/changes/:id/rollback
@@ -19,23 +20,23 @@ export function createRollbackRoutes(deps) {
       const { id } = req.params;
       const { project, reason } = req.body;
 
-      if (!riskAnalyzer) {
+      if (!deps.riskAnalyzer) {
         return res.status(503).json({ error: 'Risk analyzer not initialized' });
       }
 
-      const projectName = project || Array.from(projectDatabases.keys())[0];
-      const db = projectDatabases.get(projectName);
+      const projectName = project || Array.from(deps.projectDatabases.keys())[0];
+      const db = deps.projectDatabases.get(projectName);
 
       if (!db) {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      const success = riskAnalyzer.trackRollback(db, id, reason, false);
+      const success = deps.riskAnalyzer.trackRollback(db, id, reason, false);
 
       if (success) {
         // Track rollback in session
-        if (sessionTracker) {
-          sessionTracker.trackRollback(projectName);
+        if (deps.sessionTracker) {
+          deps.sessionTracker.trackRollback(projectName);
         }
 
         res.json({ success: true, message: 'Rollback tracked' });
@@ -56,12 +57,12 @@ export function createRollbackRoutes(deps) {
     try {
       const { project } = req.query;
 
-      if (!patternMatcher) {
+      if (!deps.patternMatcher) {
         return res.status(503).json({ error: 'Pattern matcher not initialized' });
       }
 
-      const projectName = project || Array.from(projectDatabases.keys())[0];
-      const patterns = patternMatcher.analyzeRollbackPatterns(projectName);
+      const projectName = project || Array.from(deps.projectDatabases.keys())[0];
+      const patterns = deps.patternMatcher.analyzeRollbackPatterns(projectName);
 
       res.json({ patterns });
     } catch (error) {

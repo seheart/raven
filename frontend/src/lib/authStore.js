@@ -1,4 +1,4 @@
-import { logger } from '../logger.js';
+import { logger } from './logger.js';
 import { writable, derived } from 'svelte/store';
 import { notifications } from './notificationService.js';
 

@@ -1,8 +1,6 @@
-import { logger } from '../logger.js';
+import { logger } from './logger.js';
 // Error logging service for Raven frontend
 // Sends errors to the backend API for storage and display
-
-import { api } from './apiClient.js';
 
 const API_BASE_URL = 'http://localhost:3030';
 
@@ -29,7 +27,20 @@ export async function logError(error, component = 'Unknown', metadata = {}, seve
       severity
     };
 
-    return await api.post('/errors', errorData);
+    // Use fetch directly to avoid circular dependency with apiClient
+    const response = await fetch(`${API_BASE_URL}/api/errors`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(errorData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to log error: ${response.status}`);
+    }
+
+    return await response.json();
   } catch (loggingError) {
     // Don't throw errors from the error logger itself
     logger.error('Error logger failed:', loggingError);
@@ -85,7 +96,11 @@ export async function fetchErrorLogs(options = {}) {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
 
-    return await api.get(`/errors?${params}`);
+    const response = await fetch(`${API_BASE_URL}/api/errors?${params}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch error logs: ${response.status}`);
+    }
+    return await response.json();
   } catch (error) {
     logger.error('Failed to fetch error logs:', error);
     throw error;
@@ -97,7 +112,11 @@ export async function fetchErrorLogs(options = {}) {
  */
 export async function fetchErrorStats() {
   try {
-    return await api.get('/errors/stats');
+    const response = await fetch(`${API_BASE_URL}/api/errors/stats`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch error stats: ${response.status}`);
+    }
+    return await response.json();
   } catch (error) {
     logger.error('Failed to fetch error stats:', error);
     throw error;
@@ -113,7 +132,13 @@ export async function clearErrorLogs(olderThanDays = null) {
       ? `/errors?olderThanDays=${olderThanDays}`
       : `/errors`;
 
-    return await api.delete(endpoint);
+    const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to clear error logs: ${response.status}`);
+    }
+    return await response.json();
   } catch (error) {
     logger.error('Failed to clear error logs:', error);
     throw error;

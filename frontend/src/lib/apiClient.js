@@ -1,4 +1,4 @@
-import { logger } from '../logger.js';
+import { logger } from './logger.js';
 import { notifications } from './notificationService.js';
 import { authService } from './authStore.js';
 import { logError } from './errorLogger.js';

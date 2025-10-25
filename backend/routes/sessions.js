@@ -8,7 +8,8 @@ import { logger } from '../utils/logger.js';
  */
 export function createSessionRoutes(deps) {
   const router = Router();
-  const { sessionTracker, projectDatabases } = deps;
+  // Note: Don't destructure sessionTracker - access it from deps dynamically
+  // so it works even if sessionTracker is added to deps after route mounting
 
   /**
    * GET /api/sessions
@@ -42,12 +43,12 @@ export function createSessionRoutes(deps) {
     try {
       const { project } = req.query;
 
-      if (!sessionTracker) {
+      if (!deps.sessionTracker) {
         return res.status(503).json({ error: 'Session tracker not initialized' });
       }
 
-      const projectName = project || Array.from(projectDatabases.keys())[0];
-      const session = sessionTracker.getActiveSession(projectName);
+      const projectName = project || Array.from(deps.projectDatabases.keys())[0];
+      const session = deps.sessionTracker.getActiveSession(projectName);
 
       if (!session) {
         return res.json({ hasActiveSession: false, session: null });
@@ -84,12 +85,12 @@ export function createSessionRoutes(deps) {
     try {
       const { project } = req.query;
 
-      if (!sessionTracker) {
+      if (!deps.sessionTracker) {
         return res.status(503).json({ error: 'Session tracker not initialized' });
       }
 
-      const projectName = project || Array.from(projectDatabases.keys())[0];
-      const quality = sessionTracker.calculateSessionQuality(projectName);
+      const projectName = project || Array.from(deps.projectDatabases.keys())[0];
+      const quality = deps.sessionTracker.calculateSessionQuality(projectName);
 
       res.json({ quality });
     } catch (error) {
@@ -106,12 +107,12 @@ export function createSessionRoutes(deps) {
     try {
       const { project } = req.query;
 
-      if (!sessionTracker) {
+      if (!deps.sessionTracker) {
         return res.status(503).json({ error: 'Session tracker not initialized' });
       }
 
-      const projectName = project || Array.from(projectDatabases.keys())[0];
-      const recommendation = sessionTracker.getBreakRecommendation(projectName);
+      const projectName = project || Array.from(deps.projectDatabases.keys())[0];
+      const recommendation = deps.sessionTracker.getBreakRecommendation(projectName);
 
       res.json({ recommendation });
     } catch (error) {
@@ -128,12 +129,12 @@ export function createSessionRoutes(deps) {
     try {
       const { project, days } = req.query;
 
-      if (!sessionTracker) {
+      if (!deps.sessionTracker) {
         return res.status(503).json({ error: 'Session tracker not initialized' });
       }
 
-      const projectName = project || Array.from(projectDatabases.keys())[0];
-      const stats = sessionTracker.getSessionStats(projectName, parseInt(days) || 30);
+      const projectName = project || Array.from(deps.projectDatabases.keys())[0];
+      const stats = deps.sessionTracker.getSessionStats(projectName, parseInt(days) || 30);
 
       res.json({ stats });
     } catch (error) {

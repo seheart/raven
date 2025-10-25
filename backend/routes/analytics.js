@@ -8,13 +8,13 @@ import { logger } from '../utils/logger.js';
  */
 export function createAnalyticsRoutes(deps) {
   const router = Router();
+  // Note: Don't destructure behaviorProfiler/patternMatcher - access from deps dynamically
+  // so it works even if they're added to deps after route mounting
   const {
     projectState,
     projectDatabases,
     cacheMiddleware,
-    analyticsCache,
-    behaviorProfiler,
-    patternMatcher
+    analyticsCache
   } = deps;
 
   // ==================== Agent Events ====================
@@ -278,11 +278,11 @@ export function createAnalyticsRoutes(deps) {
       const { agent } = req.params;
       const { project, days } = req.query;
 
-      if (!behaviorProfiler) {
+      if (!deps.behaviorProfiler) {
         return res.status(503).json({ error: 'Behavior profiler not initialized' });
       }
 
-      const profile = behaviorProfiler.getAgentProfile(
+      const profile = deps.behaviorProfiler.getAgentProfile(
         project || Array.from(projectDatabases.keys())[0],
         agent,
         parseInt(days) || 30
@@ -308,11 +308,11 @@ export function createAnalyticsRoutes(deps) {
       const { agent } = req.params;
       const { project, hours } = req.query;
 
-      if (!behaviorProfiler) {
+      if (!deps.behaviorProfiler) {
         return res.status(503).json({ error: 'Behavior profiler not initialized' });
       }
 
-      const change = behaviorProfiler.detectBehaviorChange(
+      const change = deps.behaviorProfiler.detectBehaviorChange(
         project || Array.from(projectDatabases.keys())[0],
         agent,
         parseInt(hours) || 24
@@ -333,11 +333,11 @@ export function createAnalyticsRoutes(deps) {
     try {
       const { project } = req.query;
 
-      if (!behaviorProfiler) {
+      if (!deps.behaviorProfiler) {
         return res.status(503).json({ error: 'Behavior profiler not initialized' });
       }
 
-      const comparison = behaviorProfiler.compareAgents(
+      const comparison = deps.behaviorProfiler.compareAgents(
         project || Array.from(projectDatabases.keys())[0]
       );
 
@@ -359,7 +359,7 @@ export function createAnalyticsRoutes(deps) {
       const { id } = req.params;
       const { project, limit } = req.query;
 
-      if (!patternMatcher) {
+      if (!deps.patternMatcher) {
         return res.status(503).json({ error: 'Pattern matcher not initialized' });
       }
 
@@ -377,7 +377,7 @@ export function createAnalyticsRoutes(deps) {
         return res.status(404).json({ error: 'Change not found' });
       }
 
-      const similar = patternMatcher.findSimilarChanges(
+      const similar = deps.patternMatcher.findSimilarChanges(
         change,
         projectName,
         parseInt(limit) || 5

@@ -58,18 +58,6 @@ export default defineConfig({
             'svelte',
             'socket.io-client',
           ],
-          // UI components chunk
-          'ui-components': [
-            './src/components/ui/Button.svelte',
-            './src/components/ui/Card.svelte',
-            './src/components/ui/Modal.svelte',
-            './src/components/ui/Tabs.svelte',
-          ],
-          // Chart/visualization chunk (loaded on demand)
-          'charts': [
-            './src/components/charts/LineChart.svelte',
-            './src/components/charts/BarChart.svelte',
-          ],
         },
         // Optimize chunk names
         chunkFileNames: 'assets/[name]-[hash].js',

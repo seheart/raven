@@ -1,4 +1,4 @@
-import { logger } from '../logger.js';
+import { logger } from './logger.js';
 import { websocketService } from './websocket.js';
 import { notifications } from './notificationService.js';
 

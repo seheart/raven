@@ -366,6 +366,11 @@ let triggerEngine;
 // Shared deps object for triggers routes (triggerEngine added after initialization)
 const triggersDeps = {};
 
+// Shared deps objects for other routes (services added after initialization)
+const sessionsDeps = {};
+const rollbackDeps = {};
+const analyticsDeps = {};
+
 // Health check system
 let healthCheckSystem;
 
@@ -832,6 +837,14 @@ function initializeMonitoringServices() {
     patternMatcher = createPatternMatcher(projectDatabases);
     sessionTracker = createSessionTracker(projectDatabases);
 
+    // Add services to shared deps objects for routes
+    sessionsDeps.sessionTracker = sessionTracker;
+    rollbackDeps.riskAnalyzer = riskAnalyzer;
+    rollbackDeps.patternMatcher = patternMatcher;
+    rollbackDeps.sessionTracker = sessionTracker;
+    analyticsDeps.behaviorProfiler = behaviorProfiler;
+    analyticsDeps.patternMatcher = patternMatcher;
+
     logger.info('Monitoring services initialized', {
       services: ['AgentDetector', 'RiskAnalyzer', 'BehaviorProfiler', 'PatternMatcher', 'SessionTracker']
     });
@@ -1211,7 +1224,9 @@ app.use('/api/sync', createSyncRoutes({ io }));
 app.use('/api/git', createGitRoutes({ projectState }));
 
 // Session management routes
-app.use('/api/sessions', createSessionRoutes({ sessionTracker, projectDatabases }));
+// Sessions routes (sessionTracker added after initialization)
+sessionsDeps.projectDatabases = projectDatabases;
+app.use('/api/sessions', createSessionRoutes(sessionsDeps));
 
 // Project management routes
 app.use('/api/projects', createProjectRoutes({
@@ -1229,14 +1244,12 @@ app.use('/api', createSafetyRoutes({ projectState, io, SESSION_ID }));
 app.use('/api', createHealthRoutes({ projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, healthCheckSystem }));
 
 // Analytics routes (anomaly detection, trends, agent monitoring, pattern matching)
-app.use('/api', createAnalyticsRoutes({
-  projectState,
-  projectDatabases,
-  cacheMiddleware,
-  analyticsCache,
-  behaviorProfiler,
-  patternMatcher
-}));
+// behaviorProfiler and patternMatcher added after initialization
+analyticsDeps.projectState = projectState;
+analyticsDeps.projectDatabases = projectDatabases;
+analyticsDeps.cacheMiddleware = cacheMiddleware;
+analyticsDeps.analyticsCache = analyticsCache;
+app.use('/api', createAnalyticsRoutes(analyticsDeps));
 
 // Metrics routes (system/process metrics, stats, correlations, dashboard)
 app.use('/api', createMetricsRoutes({
@@ -1263,7 +1276,9 @@ app.use('/api', createNotificationsRoutes({ projectState }));
 app.use('/api', createErrorsRoutes({ projectState, projectDatabases }));
 
 // Rollback routes (track rollback, rollback patterns)
-app.use('/api', createRollbackRoutes({ projectDatabases, riskAnalyzer, patternMatcher, sessionTracker }));
+// Rollback routes (services added after initialization)
+rollbackDeps.projectDatabases = projectDatabases;
+app.use('/api', createRollbackRoutes(rollbackDeps));
 
 // Snapshots routes (get snapshots, restore file)
 app.use('/api', createSnapshotsRoutes({ projectState }));
