@@ -8,22 +8,59 @@ import path from 'path';
 
 /**
  * Sanitize file path to prevent directory traversal
+ * @param {string} filepath - The file path to sanitize
+ * @param {string} baseDir - Optional base directory to validate against
+ * @returns {string|null} - Sanitized path or null if invalid
  */
-export function sanitizeFilePath(filepath) {
-  if (!filepath) return null;
-
-  // Normalize path (resolve .. and .)
-  const normalized = path.normalize(filepath);
-
-  // Reject absolute paths outside the project
-  if (path.isAbsolute(normalized)) {
-    // Allow absolute paths but prevent traversal
-    return normalized;
+export function sanitizeFilePath(filepath, baseDir = null) {
+  if (!filepath || typeof filepath !== 'string') {
+    return null;
   }
 
-  // Reject paths that try to go up directories
+  // Remove null bytes (directory traversal attack vector)
+  if (filepath.includes('\0')) {
+    throw new Error('Null bytes detected in path');
+  }
+
+  // Normalize path (resolve .. and . properly)
+  const normalized = path.normalize(filepath);
+
+  // Reject paths that still contain .. after normalization
   if (normalized.includes('..')) {
     throw new Error('Path traversal detected');
+  }
+
+  // If baseDir is provided, ensure the path is within it
+  if (baseDir) {
+    const resolvedPath = path.resolve(baseDir, normalized);
+    const resolvedBase = path.resolve(baseDir);
+
+    // Check if resolved path is within base directory
+    if (!resolvedPath.startsWith(resolvedBase)) {
+      throw new Error('Path outside allowed directory');
+    }
+
+    return resolvedPath;
+  }
+
+  // For absolute paths without baseDir validation
+  if (path.isAbsolute(normalized)) {
+    // Additional check: reject paths with suspicious patterns
+    const suspiciousPatterns = [
+      /etc\/passwd/i,
+      /etc\/shadow/i,
+      /\.ssh/i,
+      /\.aws/i,
+      /\.env/i
+    ];
+
+    for (const pattern of suspiciousPatterns) {
+      if (pattern.test(normalized)) {
+        throw new Error('Access to sensitive path denied');
+      }
+    }
+
+    return normalized;
   }
 
   return normalized;

@@ -74,6 +74,14 @@ const httpServer = createServer(app);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 const PORT = parseInt(process.env.PORT) || 3030;
 
+// File size limits and other constants
+const MAX_FILE_SIZE_BYTES = parseInt(process.env.MAX_FILE_SIZE_BYTES) || 10 * 1024 * 1024; // 10MB default
+const FILE_WATCH_DEBOUNCE_MS = 50;
+const AGENT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const SNAPSHOT_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const PERFORMANCE_MONITOR_INTERVAL_MS = 30 * 1000; // 30 seconds
+const PERFORMANCE_ALERT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 const io = new Server(httpServer, {
   cors: {
     origin: CORS_ORIGIN,
@@ -122,14 +130,12 @@ const JSON_LIMIT = process.env.JSON_PAYLOAD_LIMIT || '10mb';
 app.use(express.json({ limit: JSON_LIMIT }));
 app.use(express.urlencoded({ limit: JSON_LIMIT, extended: true }));
 
-// Apply general API rate limiting
-app.use('/api', apiLimiter);
-
-// ==================== Public API Endpoints (No Auth Required) ====================
+// ==================== Public API Endpoints (No Auth, No Rate Limiting) ====================
+// NOTE: These must be defined BEFORE rate limiting middleware to remain accessible
 
 /**
  * GET /api/health
- * Public health check endpoint - no authentication required
+ * Public health check endpoint - no authentication, no rate limiting
  */
 app.get('/api/health', async (req, res) => {
   try {
@@ -331,6 +337,10 @@ app.post('/api/errors', (req, res) => {
   }
 });
 
+// ==================== Rate Limiting Middleware ====================
+// Apply rate limiting to all /api routes EXCEPT the public endpoints defined above
+app.use('/api', apiLimiter);
+
 // ==================== Authentication Middleware ====================
 
 // Apply authentication to all API routes (unless DISABLE_AUTH=true)
@@ -530,7 +540,7 @@ const agentCleanupInterval = setInterval(() => {
   if (removed > 0) {
     logger.info(`🧹 Cleaned up ${removed} inactive agents from registry`);
   }
-}, 60 * 60 * 1000); // Run every hour
+}, AGENT_CLEANUP_INTERVAL_MS);
 
 // Cleanup old snapshots periodically (daily, remove snapshots older than 30 days)
 const snapshotCleanupInterval = setInterval(async () => {
@@ -560,13 +570,12 @@ const snapshotCleanupInterval = setInterval(async () => {
       logger.info(`🧹 Cleaned up ${removed} old snapshots (>${process.env.SNAPSHOT_TTL_DAYS || '30'} days)`);
     }
   } catch (error) {
-    console.error('❌ Error cleaning snapshots:', error.message);
+    logger.error('Error cleaning snapshots:', error);
   }
-}, 24 * 60 * 60 * 1000); // Run daily
+}, SNAPSHOT_CLEANUP_INTERVAL_MS);
 
-// Performance monitoring - check every 30 seconds
+// Performance monitoring
 let lastPerformanceAlert = 0;
-const PERFORMANCE_ALERT_COOLDOWN = 5 * 60 * 1000; // 5 minutes between alerts
 
 const performanceMonitorInterval = setInterval(async () => {
   try {
@@ -574,7 +583,7 @@ const performanceMonitorInterval = setInterval(async () => {
     const now = Date.now();
 
     // Skip if we recently sent an alert (avoid spam)
-    if (now - lastPerformanceAlert < PERFORMANCE_ALERT_COOLDOWN) {
+    if (now - lastPerformanceAlert < PERFORMANCE_ALERT_COOLDOWN_MS) {
       return;
     }
 
@@ -620,9 +629,9 @@ const performanceMonitorInterval = setInterval(async () => {
       lastPerformanceAlert = now;
     }
   } catch (error) {
-    console.error('❌ Performance monitoring error:', error.message);
+    logger.error('Performance monitoring error:', error);
   }
-}, 30 * 1000); // Check every 30 seconds
+}, PERFORMANCE_MONITOR_INTERVAL_MS);
 
 // Agent type color mapping
 const AGENT_COLORS = {
@@ -798,6 +807,25 @@ async function handleFileChange(eventType, filepath) {
     // Read file content for 'add' and 'change' events
     if (eventType === 'add' || eventType === 'change') {
       try {
+        // Check file size before reading to prevent OOM errors
+        const stats = await fs.promises.stat(filepath);
+        const fileSizeBytes = stats.size;
+
+        if (fileSizeBytes > MAX_FILE_SIZE_BYTES) {
+          logger.warn(`File too large to track: [${projectName}] ${relPath} (${(fileSizeBytes / 1024 / 1024).toFixed(2)} MB, limit: ${(MAX_FILE_SIZE_BYTES / 1024 / 1024).toFixed(2)} MB)`);
+
+          // Emit a special event for large files
+          io.emit('file-too-large', {
+            timestamp,
+            project: projectName,
+            filepath: relPath,
+            size_bytes: fileSizeBytes,
+            limit_bytes: MAX_FILE_SIZE_BYTES
+          });
+
+          return; // Skip processing this file
+        }
+
         content = await fs.promises.readFile(filepath, 'utf8');
         eventSize = content.length;
         fileHash = calculateFileHash(content);
@@ -811,10 +839,12 @@ async function handleFileChange(eventType, filepath) {
         // Save snapshot (project-specific)
         await saveSnapshot(filepath, content, projectName);
 
-        // Update cache with LRU eviction
-        addToFileCache(filepath, content);
+        // Update cache with LRU eviction (only if file is not too large)
+        if (fileSizeBytes < MAX_FILE_SIZE_BYTES / 2) { // Only cache files up to 5MB
+          addToFileCache(filepath, content);
+        }
       } catch (readError) {
-        console.error(`❌ Error reading file [${projectName}] ${relPath}:`, readError.message);
+        logger.error(`Error reading file [${projectName}] ${relPath}:`, readError);
         return;
       }
     } else if (eventType === 'unlink') {
@@ -829,7 +859,8 @@ async function handleFileChange(eventType, filepath) {
     const memPercent = (memInfo.used / memInfo.total) * 100;
 
     // Insert event into project-specific database
-    let eventId;
+    let eventId = null;
+    let dbInsertSuccess = false;
     try {
       eventId = db.insertEvent(
         timestamp,
@@ -842,37 +873,55 @@ async function handleFileChange(eventType, filepath) {
         fileHash,
         eventSize
       );
-      console.log(`📁 [${projectName}] File ${eventType}: ${relPath} (${eventSize} bytes)`);
+      dbInsertSuccess = true;
+      logger.info(`📁 [${projectName}] File ${eventType}: ${relPath} (${eventSize} bytes)`);
 
       // ALSO log to global developer persona database
       const language = detectLanguage(filepath);
       const linesAdded = diff ? (diff.match(/^\+/gm) || []).length : 0;
       const linesRemoved = diff ? (diff.match(/^-/gm) || []).length : 0;
 
-      developerDB.logCodePattern({
-        project: projectName,
-        language,
-        file_type: filepath.split('.').pop(),
-        edit_type: eventType === 'add' ? 'create' : eventType === 'unlink' ? 'delete' : 'modify',
-        lines_added: linesAdded,
-        lines_removed: linesRemoved,
-        timestamp
-      });
+      try {
+        developerDB.logCodePattern({
+          project: projectName,
+          language,
+          file_type: filepath.split('.').pop(),
+          edit_type: eventType === 'add' ? 'create' : eventType === 'unlink' ? 'delete' : 'modify',
+          lines_added: linesAdded,
+          lines_removed: linesRemoved,
+          timestamp
+        });
+      } catch (devDbError) {
+        logger.error(`Failed to log to developer DB [${projectName}]:`, devDbError);
+        // Don't fail the whole operation if dev DB logging fails
+      }
     } catch (dbError) {
-      console.error(`❌ Database insert failed [${projectName}] (continuing processing):`, dbError.message);
-      eventId = null;
+      logger.error(`Database insert failed [${projectName}]:`, dbError);
+      // Continue processing to ensure event is still emitted
     }
 
-    // Emit real-time event via WebSocket (include project name)
-    io.emit('file-changed', {
-      id: eventId,
-      timestamp,
-      project: projectName,
-      filepath: relPath,
-      change_type: eventType,
-      event_size: eventSize,
-      file_hash: fileHash
-    });
+    // Only emit WebSocket event if database insert succeeded
+    if (dbInsertSuccess && eventId) {
+      io.emit('file-changed', {
+        id: eventId,
+        timestamp,
+        project: projectName,
+        filepath: relPath,
+        change_type: eventType,
+        event_size: eventSize,
+        file_hash: fileHash
+      });
+    } else {
+      // Emit without ID to indicate tracking failure
+      logger.warn(`File change tracked but not persisted: [${projectName}] ${relPath}`);
+      io.emit('file-changed-untracked', {
+        timestamp,
+        project: projectName,
+        filepath: relPath,
+        change_type: eventType,
+        error: 'Database insert failed'
+      });
+    }
 
     // Check if this event triggers any alerts
     const linesDeleted = diff ? (diff.match(/^-/gm) || []).length : 0;
@@ -1080,7 +1129,7 @@ function initializeWatcher(projectName) {
     ignoreInitial: true,
     awaitWriteFinish: {
       stabilityThreshold: 100,
-      pollInterval: 50
+      pollInterval: FILE_WATCH_DEBOUNCE_MS
     },
     // macOS-specific optimizations
     usePolling: false,           // Use native FSEvents on macOS
@@ -1249,15 +1298,15 @@ app.get('/api/system-metrics', (req, res) => {
   try {
     const { limit = 100, offset = 0 } = req.query;
     const ravenDb = projectDatabases.get('raven');
-    if (!ravenDb) {
-      return res.status(500).json({ error: 'Raven database not found' });
+    if (!ravenDb || !ravenDb.db) {
+      return res.status(500).json({ error: 'Raven database not initialized' });
     }
     const stmt = ravenDb.db.prepare('SELECT * FROM raven_metrics ORDER BY timestamp DESC LIMIT ? OFFSET ?');
     const metrics = stmt.all(parseInt(limit), parseInt(offset));
     res.json(metrics);
   } catch (error) {
-    console.error('❌ Get system metrics error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Get system metrics error:', error);
+    res.status(500).json({ error: 'Failed to retrieve system metrics' });
   }
 });
 
@@ -1265,8 +1314,8 @@ app.get('/api/process-metrics', (req, res) => {
   try {
     const { limit = 100, offset = 0, agent = null } = req.query;
     const ravenDb = projectDatabases.get('raven');
-    if (!ravenDb) {
-      return res.status(500).json({ error: 'Raven database not found' });
+    if (!ravenDb || !ravenDb.db) {
+      return res.status(500).json({ error: 'Raven database not initialized' });
     }
     let query = 'SELECT * FROM process_metrics';
     const params = [];
@@ -1280,8 +1329,8 @@ app.get('/api/process-metrics', (req, res) => {
     const metrics = stmt.all(...params);
     res.json(metrics);
   } catch (error) {
-    console.error('❌ Get process metrics error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Get process metrics error:', error);
+    res.status(500).json({ error: 'Failed to retrieve process metrics' });
   }
 });
 
@@ -1345,56 +1394,44 @@ app.get('/api/health-checks', (req, res) => {
 
 app.get('/api/agent-events', (req, res) => {
   try {
+    if (!projectState.db) {
+      return res.status(500).json({ error: 'Database not initialized' });
+    }
     const limit = parseInt(req.query.limit) || 100;
     const events = projectState.db.getRecentAgentEvents(limit);
     res.json(events);
   } catch (error) {
-    console.error('❌ Agent events error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Agent events error:', error);
+    res.status(500).json({ error: 'Failed to retrieve agent events' });
   }
 });
 
 app.get('/api/events-by-agent/:agent', (req, res) => {
   try {
+    if (!projectState.db) {
+      return res.status(500).json({ error: 'Database not initialized' });
+    }
     const { agent } = req.params;
     const limit = parseInt(req.query.limit) || 100;
     const events = projectState.db.getEventsByAgent(agent, limit);
     res.json(events);
   } catch (error) {
-    console.error('❌ Events by agent error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Events by agent error:', error);
+    res.status(500).json({ error: 'Failed to retrieve events by agent' });
   }
 });
 
 // /api/agent-stats - now in routes/dashboard.js
 
 // ==================== System Metrics API ====================
-
-app.get('/api/system-metrics', (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 100;
-    const metrics = projectState.db.getRecentSystemMetrics(limit);
-    res.json(metrics);
-  } catch (error) {
-    console.error('❌ System metrics error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/process-metrics/:agent', (req, res) => {
-  try {
-    const { agent } = req.params;
-    const limit = parseInt(req.query.limit) || 100;
-    const metrics = projectState.db.getProcessMetricsByAgent(agent, limit);
-    res.json(metrics);
-  } catch (error) {
-    console.error('❌ Process metrics error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// NOTE: /api/system-metrics and /api/process-metrics are defined earlier (lines 1248-1286)
+// Duplicate endpoints removed to prevent conflicts
 
 app.get('/api/metrics-stats', (req, res) => {
   try {
+    if (!projectState.db) {
+      return res.status(500).json({ error: 'Database not initialized' });
+    }
     // Default to last 24 hours if not specified
     const now = Date.now();
     const dayAgo = now - 24 * 60 * 60 * 1000;
@@ -1405,19 +1442,22 @@ app.get('/api/metrics-stats', (req, res) => {
     const stats = projectState.db.getMetricsStats(start_time, end_time);
     res.json(stats);
   } catch (error) {
-    console.error('❌ Metrics stats error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Metrics stats error:', error);
+    res.status(500).json({ error: 'Failed to retrieve metrics stats' });
   }
 });
 
 app.get('/api/performance-correlations', (req, res) => {
   try {
+    if (!projectState.db) {
+      return res.status(500).json({ error: 'Database not initialized' });
+    }
     const time_window_seconds = parseInt(req.query.time_window_seconds) || 5;
     const correlations = projectState.db.correlateEventsWithMetrics(time_window_seconds);
     res.json(correlations);
   } catch (error) {
-    console.error('❌ Performance correlations error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Performance correlations error:', error);
+    res.status(500).json({ error: 'Failed to retrieve performance correlations' });
   }
 });
 
@@ -1425,6 +1465,10 @@ app.get('/api/performance-correlations', (req, res) => {
 
 app.get('/api/metrics/dashboard', (req, res) => {
   try {
+    if (!projectState.db || !projectState.db.db) {
+      return res.status(500).json({ error: 'Database not initialized' });
+    }
+
     // Aggregate key metrics
     const metrics = {};
 
@@ -1495,8 +1539,8 @@ app.get('/api/metrics/dashboard', (req, res) => {
 
     res.json({ metrics });
   } catch (error) {
-    console.error('❌ Custom metrics error:', error);
-    res.status(500).json({ error: error.message });
+    logger.error('Custom metrics error:', error);
+    res.status(500).json({ error: 'Failed to retrieve custom metrics' });
   }
 });
 
@@ -3943,59 +3987,100 @@ httpServer.listen(PORT, () => {
   console.log('\n🎉 Global multi-project monitoring is active!\n');
 });
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down Raven backend...');
+// Graceful shutdown handler
+function gracefulShutdown(signal) {
+  console.log(`\n🛑 Received ${signal}, shutting down Raven backend gracefully...`);
+
+  // Close HTTP server to stop accepting new connections
+  httpServer.close(() => {
+    console.log('✅ HTTP server closed');
+  });
 
   // Clear all interval timers
-  if (rateLimitCleanupInterval) {
-    clearInterval(rateLimitCleanupInterval);
-    console.log('✅ Stopped rate limit cleanup');
-  }
   if (agentCleanupInterval) {
     clearInterval(agentCleanupInterval);
-    console.log('✅ Stopped agent cleanup');
+    console.log('✅ Stopped agent cleanup interval');
   }
   if (snapshotCleanupInterval) {
     clearInterval(snapshotCleanupInterval);
-    console.log('✅ Stopped snapshot cleanup');
+    console.log('✅ Stopped snapshot cleanup interval');
   }
   if (performanceMonitorInterval) {
     clearInterval(performanceMonitorInterval);
-    console.log('✅ Stopped performance monitor');
+    console.log('✅ Stopped performance monitor interval');
   }
 
   // Close all file watchers
   console.log(`\n🔒 Closing ${projectWatchers.size} file watchers...`);
   for (const [projectName, watcher] of projectWatchers.entries()) {
-    watcher.close();
-    console.log(`✅ Closed watcher: ${projectName}`);
+    try {
+      watcher.close();
+      console.log(`✅ Closed watcher: ${projectName}`);
+    } catch (error) {
+      logger.error(`Error closing watcher ${projectName}:`, error);
+    }
   }
 
   // Stop all git monitors
   for (const [projectName, gitMonitor] of projectGitMonitors.entries()) {
-    gitMonitor.stop();
+    try {
+      if (gitMonitor && gitMonitor.stop) {
+        gitMonitor.stop();
+      }
+    } catch (error) {
+      logger.error(`Error stopping git monitor ${projectName}:`, error);
+    }
   }
 
   // Stop metrics collection
   if (metricsCollector) {
-    metricsCollector.stop();
-    console.log('✅ Stopped metrics collector');
+    try {
+      metricsCollector.stop();
+      console.log('✅ Stopped metrics collector');
+    } catch (error) {
+      logger.error('Error stopping metrics collector:', error);
+    }
   }
 
   // Close all project databases
   console.log(`\n🔒 Closing ${projectDatabases.size} project databases...`);
   for (const [projectName, db] of projectDatabases.entries()) {
-    db.close();
-    console.log(`✅ Closed database: ${projectName}`);
+    try {
+      db.close();
+      console.log(`✅ Closed database: ${projectName}`);
+    } catch (error) {
+      logger.error(`Error closing database ${projectName}:`, error);
+    }
   }
 
   // Close developer persona database
   if (developerDB) {
-    developerDB.close();
-    console.log('✅ Closed developer persona database');
+    try {
+      developerDB.close();
+      console.log('✅ Closed developer persona database');
+    } catch (error) {
+      logger.error('Error closing developer database:', error);
+    }
+  }
+
+  // Close authentication database
+  if (authDB) {
+    try {
+      authDB.close();
+      console.log('✅ Closed authentication database');
+    } catch (error) {
+      logger.error('Error closing auth database:', error);
+    }
   }
 
   console.log('\n👋 Goodbye!');
-  process.exit(0);
-});
+
+  // Give a small delay to ensure all cleanup completes
+  setTimeout(() => {
+    process.exit(0);
+  }, 500);
+}
+
+// Handle both SIGINT (Ctrl+C) and SIGTERM (docker stop, systemd, etc)
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

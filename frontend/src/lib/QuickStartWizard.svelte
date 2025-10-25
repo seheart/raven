@@ -157,13 +157,32 @@
       const fullPath = file.webkitRelativePath || file.name;
       const pathParts = fullPath.split('/');
 
-      // Extract just the directory name
-      const directoryName = pathParts[0];
+      // Extract just the directory name (sanitize it)
+      let directoryName = pathParts[0];
+
+      // Sanitize directory name to prevent path injection
+      // Remove dangerous characters and patterns
+      directoryName = directoryName.replace(/[<>:"|?*\0]/g, '');
+      directoryName = directoryName.replace(/\.\./g, '');
+      directoryName = directoryName.trim();
+
+      if (!directoryName) {
+        error = 'Invalid directory name';
+        return;
+      }
 
       // Construct absolute path using basePath from config
       if (basePath && directoryName) {
         // Remove trailing slash from basePath if present
-        const cleanBasePath = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
+        const cleanBasePath = basePath.replace(/\/+$/, '');
+
+        // Validate basePath doesn't contain suspicious patterns
+        if (cleanBasePath.includes('..') || cleanBasePath.includes('\0')) {
+          error = 'Invalid base path configuration';
+          return;
+        }
+
+        // Use path separator appropriate for the platform
         projectPath = `${cleanBasePath}/${directoryName}`;
       } else {
         // Fallback: just show the directory name if basePath not available

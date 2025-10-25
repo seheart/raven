@@ -1,6 +1,8 @@
 import { io } from 'socket.io-client';
 import { notifications } from './notificationService.js';
-import { authService } from './authStore.js';
+
+// Get WebSocket URL from environment or use default
+const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3030';
 
 class WebSocketService {
   constructor() {
@@ -15,18 +17,13 @@ class WebSocketService {
       return this.socket;
     }
 
-    // Get auth token for websocket connection
-    const token = authService.getToken();
-
-    this.socket = io('http://localhost:3030', {
+    // Authentication has been removed - connect without token
+    this.socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity, // Keep trying to reconnect
-      auth: {
-        token: token
-      }
+      reconnectionAttempts: Infinity // Keep trying to reconnect
     });
 
     this.socket.on('connect', () => {
@@ -148,17 +145,12 @@ class WebSocketService {
         }
       }
       this.listeners.clear();
+      this.reconnectCallbacks = []; // Clear reconnect callbacks to prevent memory leaks
 
       this.socket.disconnect();
       this.socket = null;
       this.connected = false;
     }
-  }
-
-  // Reconnect with new authentication token
-  reconnectWithAuth() {
-    this.disconnect();
-    this.connect();
   }
 
   isConnected() {

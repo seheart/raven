@@ -36,7 +36,7 @@ sleep 1
 # Step 2: Start backend in background
 echo -e "${YELLOW}[2/4]${NC} Starting backend server..."
 cd backend
-node dist/server.js > /tmp/raven-backend.log 2>&1 &
+DISABLE_AUTH=true node server.js > /tmp/raven-backend.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > /tmp/raven-backend.pid
 cd ..
