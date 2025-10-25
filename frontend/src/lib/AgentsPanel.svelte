@@ -14,7 +14,6 @@
   let agentEvents = [];
   let loading = true;
   let error = null;
-  let refreshInterval;
   let lastUpdated = null;
   let isRefreshing = false;
   let searchQuery = '';
@@ -28,17 +27,24 @@
     'default': 'var(--muted)'
   };
 
-  // WebSocket event handlers
+  // WebSocket event handlers (event-driven, no polling)
   const handleAgentEvent = (event) => {
     // Add to events list
     agentEvents = [event, ...agentEvents].slice(0, 20);
+    lastUpdated = new Date();
   };
 
   const handleAgentStats = (stats) => {
     agentStats = stats;
+    lastUpdated = new Date();
   };
 
   const handleProjectSwitched = async (data) => {
+    await loadAllData();
+  };
+
+  const handleFileChanged = async () => {
+    // Reload agent data when files change (agents might have done work)
     await loadAllData();
   };
 
@@ -49,29 +55,19 @@
     // Connect to WebSocket for real-time updates
     websocketService.connect();
 
-    // Listen for real-time agent events
+    // Listen for real-time agent events (no polling needed!)
     websocketService.on('agent-event', handleAgentEvent);
-
-    // Listen for real-time agent stats
     websocketService.on('agent-stats', handleAgentStats);
-
-    // Listen for project switch events
     websocketService.on('project-switched', handleProjectSwitched);
-
-    // Fallback: refresh every 30 seconds (much slower since WebSocket handles real-time)
-    refreshInterval = setInterval(loadAllData, 30000);
+    websocketService.on('file-changed', handleFileChanged);
   });
 
   onDestroy(() => {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-      refreshInterval = null;
-    }
-
     // Remove WebSocket listeners
     websocketService.off('agent-event', handleAgentEvent);
     websocketService.off('agent-stats', handleAgentStats);
     websocketService.off('project-switched', handleProjectSwitched);
+    websocketService.off('file-changed', handleFileChanged);
   });
 
   async function loadAllData(manual = false) {
@@ -100,9 +96,9 @@
     }
   }
 
-  // Format time ago
+  // Format time ago (reactive, no interval)
   function getTimeAgo() {
-    if (!lastUpdated) return 'Never';
+    if (!lastUpdated) return 'Just now';
     const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
     if (seconds < 10) return 'Just now';
     if (seconds < 60) return `${seconds}s ago`;
@@ -112,11 +108,8 @@
     return `${hours}h ago`;
   }
 
-  // Reactive time update
-  let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  // Compute reactively when lastUpdated changes
+  $: timeAgo = getTimeAgo();
 
   function getAgentColor(agentName) {
     const lowerName = agentName.toLowerCase();

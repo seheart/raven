@@ -54,9 +54,9 @@
     return 'Late night session? Raven never sleeps...';
   }
 
-  // Format time ago
+  // Format time ago (called only when lastUpdated changes)
   function getTimeAgo() {
-    if (!lastUpdated) return 'Never';
+    if (!lastUpdated) return 'Just now';
     const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
     if (seconds < 10) return 'Just now';
     if (seconds < 60) return `${seconds}s ago`;
@@ -66,11 +66,8 @@
     return `${hours}h ago`;
   }
 
-  // Reactive time update
-  let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  // Compute time ago reactively when lastUpdated changes (no interval needed)
+  $: timeAgo = getTimeAgo();
 
   // Calculate session duration in human-readable format
   function formatDuration(seconds) {
@@ -93,7 +90,11 @@
 
   async function loadAllData(manual = false) {
     try {
-      loading = true;
+      // Only show loading spinner on initial load or manual refresh
+      // Don't show it on WebSocket-triggered updates to prevent flickering
+      if (manual || loading) {
+        loading = true;
+      }
       isManualRefresh = manual;
 
       // Load all data in parallel
@@ -124,33 +125,41 @@
     }
   }
 
-  // WebSocket handlers for real-time updates
+  // WebSocket handlers for real-time updates (event-driven, no polling)
   const handleMetricsUpdate = (data) => {
     systemMetrics = data;
     metricsLoading = false;
+    lastUpdated = new Date();
   };
 
   const handleFileChanged = async () => {
-    // Reload activity on file changes
-    const activityData = await fetch(`${API_BASE}/all-file-events?limit=5`).then(r => r.json());
-    recentActivity = activityData || [];
+    // Reload activity and stats on file changes
+    try {
+      const [activityData, statsData, filesData] = await Promise.all([
+        fetch(`${API_BASE}/all-file-events?limit=5`).then(r => r.json()),
+        fetch(`${API_BASE}/dashboard-stats`).then(r => r.json()),
+        fetch(`${API_BASE}/top-modified-files?limit=5`).then(r => r.json())
+      ]);
+
+      recentActivity = activityData || [];
+      stats = statsData;
+      topFiles = filesData.files || [];
+      lastUpdated = new Date();
+    } catch (error) {
+      console.error('Failed to update activity:', error);
+    }
   };
 
   onMount(async () => {
+    // Initial data load only
     await loadAllData();
 
     // Connect to WebSocket for real-time updates
     websocketService.connect();
 
+    // Listen for real-time events (no polling intervals!)
     websocketService.on('system-metrics', handleMetricsUpdate);
     websocketService.on('file-changed', handleFileChanged);
-
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(loadAllData, 30000);
-
-    return () => {
-      clearInterval(interval);
-    };
   });
 
   onDestroy(() => {

@@ -1,12 +1,12 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import { websocketService } from './websocket.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
   let projectsData = [];
   let availableProjects = [];
   let loading = true;
-  let refreshInterval;
 
   async function loadProjectsOverview() {
     try {
@@ -23,7 +23,8 @@
       const projectStats = {};
 
       for (const project of availableProjects) {
-        const projectEvents = events.filter(e => e.project === project);
+        const projectName = project.name || project; // Handle both object and string formats
+        const projectEvents = events.filter(e => e.project === projectName);
 
         // Get most recent event timestamp
         const lastEvent = projectEvents.length > 0
@@ -34,8 +35,8 @@
         const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
         const recentCount = projectEvents.filter(e => e.timestamp > oneHourAgo).length;
 
-        projectStats[project] = {
-          name: project,
+        projectStats[projectName] = {
+          name: projectName,
           active: recentCount > 0,
           lastActivity: lastEvent,
           eventCount: projectEvents.length,
@@ -45,12 +46,15 @@
 
       // Convert to array and sort by last activity (most recent first)
       projectsData = availableProjects
-        .map(name => projectStats[name] || {
-          name,
-          active: false,
-          lastActivity: null,
-          eventCount: 0,
-          recentChanges: 0
+        .map(project => {
+          const name = project.name || project;
+          return projectStats[name] || {
+            name,
+            active: false,
+            lastActivity: null,
+            eventCount: 0,
+            recentChanges: 0
+          };
         })
         .sort((a, b) => {
           if (!a.lastActivity) return 1;
@@ -87,13 +91,22 @@
     return 'just now';
   }
 
-  onMount(() => {
+  // WebSocket handler for file changes
+  const handleFileChanged = () => {
+    // Update projects overview when files change
     loadProjectsOverview();
-    refreshInterval = setInterval(loadProjectsOverview, 30000);
+  };
+
+  onMount(() => {
+    // Initial load only
+    loadProjectsOverview();
+
+    // Listen for file changes via WebSocket for real-time updates
+    websocketService.on('file-changed', handleFileChanged);
   });
 
   onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    websocketService.off('file-changed', handleFileChanged);
   });
 </script>
 

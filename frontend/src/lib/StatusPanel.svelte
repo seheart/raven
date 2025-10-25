@@ -36,7 +36,6 @@
     commits: []
   };
 
-  let refreshInterval;
   let isMounted = false;
   let lastUpdated = null;
   let isManualRefresh = false;
@@ -45,7 +44,11 @@
   async function checkBackendHealth(manual = false) {
     if (!isMounted) return;
     isManualRefresh = manual;
-    loading = true;
+
+    // Only show loading on initial load or manual refresh
+    if (manual || loading) {
+      loading = true;
+    }
 
     try {
       const response = await fetch(`${API_BASE}/health`, { timeout: 5000 });
@@ -106,9 +109,9 @@
     }
   }
 
-  // Format "time ago" for last updated timestamp
+  // Format "time ago" for last updated timestamp (reactive, no interval)
   function getTimeAgo() {
-    if (!lastUpdated) return 'Never';
+    if (!lastUpdated) return 'Just now';
     const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
     if (seconds < 10) return 'Just now';
     if (seconds < 60) return `${seconds}s ago`;
@@ -118,11 +121,8 @@
     return `${hours}h ago`;
   }
 
-  // Live timestamp updates
-  let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  // Compute reactively when lastUpdated changes
+  $: timeAgo = getTimeAgo();
 
   function formatUptime(seconds) {
     const hours = Math.floor(seconds / 3600);
@@ -171,10 +171,31 @@
     }
   }
 
-  // WebSocket event handler for project switches
+  // WebSocket event handlers
   const handleProjectSwitched = async (data) => {
     await checkBackendHealth();
     await checkGitStatus();
+  };
+
+  const handleGitStatusUpdated = (data) => {
+    // Update git status from WebSocket event
+    if (data && data.project === $projectFilter) {
+      gitStatus = {
+        available: true,
+        branch: data.branch || 'unknown',
+        modified: data.modified || [],
+        created: data.created || [],
+        deleted: data.deleted || [],
+        branches: gitStatus.branches, // Keep existing branches
+        commits: gitStatus.commits // Keep existing commits
+      };
+      lastUpdated = new Date();
+    }
+  };
+
+  const handleFileChanged = () => {
+    // Update WebSocket connection status when events fire
+    websocketStatus.connected = websocketService.isConnected();
   };
 
   onMount(async () => {
@@ -188,33 +209,19 @@
     websocketService.connect();
     websocketStatus.connected = websocketService.isConnected();
 
-    // Check WebSocket status periodically
-    const checkWebSocket = () => {
-      if (!isMounted) return;
-      websocketStatus.connected = websocketService.isConnected();
-    };
-
-    // Listen for project switch events
+    // Listen for events (no polling!)
     websocketService.on('project-switched', handleProjectSwitched);
-
-    // Refresh every 20 seconds (reduced from 5s to lower load)
-    refreshInterval = setInterval(() => {
-      if (!isMounted) return;
-      checkBackendHealth();
-      checkGitStatus();
-      checkWebSocket();
-    }, 20000);
+    websocketService.on('git-status-updated', handleGitStatusUpdated);
+    websocketService.on('file-changed', handleFileChanged);
   });
 
   onDestroy(() => {
     isMounted = false;
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-      refreshInterval = null;
-    }
 
     // Clean up WebSocket listeners
     websocketService.off('project-switched', handleProjectSwitched);
+    websocketService.off('git-status-updated', handleGitStatusUpdated);
+    websocketService.off('file-changed', handleFileChanged);
   });
 </script>
 

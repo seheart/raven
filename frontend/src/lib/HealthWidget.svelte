@@ -168,14 +168,13 @@
   }
 
   onMount(() => {
+    // Initial load
     fetchHealth();
+
+    // Setup WebSocket for real-time updates (no polling needed!)
     setupWebSocket();
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchHealth, 30000);
-
     return () => {
-      clearInterval(interval);
       if (ws) ws();
     };
   });
