@@ -1,9 +1,23 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { compression } from 'vite-plugin-compression2'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [
+    svelte(),
+    // Gzip compression
+    compression({
+      algorithm: 'gzip',
+      exclude: [/\.(br)$/, /\.(gz)$/],
+    }),
+    // Brotli compression (better compression ratio)
+    compression({
+      algorithm: 'brotliCompress',
+      exclude: [/\.(br)$/, /\.(gz)$/],
+      deleteOriginalAssets: false,
+    }),
+  ],
 
   clearScreen: false,
 
@@ -34,5 +48,46 @@ export default defineConfig({
     target: 'esnext',
     minify: 'esbuild',
     sourcemap: true,
+
+    // Code splitting configuration
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunk - frequently used libraries
+          'vendor': [
+            'svelte',
+            'socket.io-client',
+          ],
+          // UI components chunk
+          'ui-components': [
+            './src/components/ui/Button.svelte',
+            './src/components/ui/Card.svelte',
+            './src/components/ui/Modal.svelte',
+            './src/components/ui/Tabs.svelte',
+          ],
+          // Chart/visualization chunk (loaded on demand)
+          'charts': [
+            './src/components/charts/LineChart.svelte',
+            './src/components/charts/BarChart.svelte',
+          ],
+        },
+        // Optimize chunk names
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
+    },
+
+    // Chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+
+    // Asset inlining threshold (8KB)
+    assetsInlineLimit: 8192,
+  },
+
+  // Optimize dependency pre-bundling
+  optimizeDeps: {
+    include: ['svelte', 'socket.io-client'],
+    exclude: ['@sveltejs/vite-plugin-svelte'],
   },
 })

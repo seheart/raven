@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 import { toasts } from './toastStore.js';
 import { settings as settingsStore } from './settingsStore.js';
 
@@ -28,7 +29,7 @@ class NotificationService {
       try {
         return JSON.parse(saved);
       } catch (e) {
-        console.error('Failed to parse notification settings:', e);
+        logger.error('Failed to parse notification settings:', e);
       }
     }
     return {
@@ -158,7 +159,7 @@ class NotificationService {
         oscillator.stop(endTime);
       });
     } catch (e) {
-      console.warn('Failed to play notification sound:', e);
+      logger.warn('Failed to play notification sound:', e);
     }
   }
 
@@ -181,7 +182,7 @@ class NotificationService {
         requireInteraction: type === 'error'
       });
     } catch (e) {
-      console.warn('Failed to show browser notification:', e);
+      logger.warn('Failed to show browser notification:', e);
     }
   }
 
@@ -293,7 +294,7 @@ class NotificationService {
     // Rate limit API errors to avoid spam (same endpoint + error)
     const rateLimitKey = `api-error:${endpoint}:${error.substring(0, 50)}`;
     if (this.isRateLimited(rateLimitKey)) {
-      console.warn(`Rate limited API error: ${endpoint}`);
+      logger.warn(`Rate limited API error: ${endpoint}`);
       return;
     }
 

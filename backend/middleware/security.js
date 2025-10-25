@@ -5,6 +5,7 @@
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { logger } from '../utils/logger.js';
 
 /**
  * Configure Helmet for security headers
@@ -107,9 +108,9 @@ export function requestLogger(req, res, next) {
 
     // Log requests (use production logger in real app)
     if (statusCode >= 400) {
-      console.warn(`[${method}] ${url} - ${statusCode} - ${duration}ms - ${ip}`);
+      logger.warn(`[${method}] ${url} - ${statusCode} - ${duration}ms - ${ip}`);
     } else if (process.env.NODE_ENV !== 'production') {
-      console.log(`[${method}] ${url} - ${statusCode} - ${duration}ms`);
+      logger.info(`[${method}] ${url} - ${statusCode} - ${duration}ms`);
     }
   });
 
@@ -120,7 +121,7 @@ export function requestLogger(req, res, next) {
  * Error handler middleware
  */
 export function errorHandler(err, req, res, next) {
-  console.error('Error:', err);
+  logger.error('Error:', err);
 
   // Don't leak error details in production
   const isDev = process.env.NODE_ENV !== 'production';

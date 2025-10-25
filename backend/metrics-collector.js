@@ -1,5 +1,6 @@
 // Real-time system metrics collector
 import si from 'systeminformation';
+import { logger } from './utils/logger.js';
 
 export class MetricsCollector {
   constructor(db, sessionId, io = null) {
@@ -43,9 +44,12 @@ export class MetricsCollector {
         this.sessionId
       );
 
-      console.log(
-        `📊 System metrics: CPU ${cpu_percent.toFixed(1)}% | RAM ${memory_percent.toFixed(1)}% (${memory_used_mb}MB/${memory_total_mb}MB)`
-      );
+      logger.debug('System metrics collected', {
+        cpu: cpu_percent.toFixed(1) + '%',
+        ram: memory_percent.toFixed(1) + '%',
+        memoryUsedMB: memory_used_mb,
+        memoryTotalMB: memory_total_mb
+      });
 
       // Emit real-time metrics via WebSocket
       if (this.io) {
@@ -60,7 +64,7 @@ export class MetricsCollector {
         });
       }
     } catch (error) {
-      console.error('Error collecting system metrics:', error);
+      logger.error('Error collecting system metrics', { error });
     }
   }
 
@@ -101,13 +105,16 @@ export class MetricsCollector {
             this.sessionId
           );
 
-          console.log(
-            `🤖 Process metrics: ${name} (PID ${proc.pid}) - CPU ${cpu_usage.toFixed(1)}% | RAM ${memory_mb}MB`
-          );
+          logger.debug('Process metrics collected', {
+            process: name,
+            pid: proc.pid,
+            cpu: cpu_usage.toFixed(1) + '%',
+            memoryMB: memory_mb
+          });
         }
       }
     } catch (error) {
-      console.error('Error collecting process metrics:', error);
+      logger.error('Error collecting process metrics', { error });
     }
   }
 
@@ -118,13 +125,14 @@ export class MetricsCollector {
 
   start() {
     if (this.isRunning) {
-      console.log('⚠️  Metrics collector is already running');
+      logger.warn('Metrics collector is already running');
       return;
     }
 
-    console.log(
-      `🚀 Starting real-time metrics collector (every ${this.collectionInterval}ms = ${this.collectionInterval / 1000}s)`
-    );
+    logger.info('Starting real-time metrics collector', {
+      intervalMs: this.collectionInterval,
+      intervalSeconds: this.collectionInterval / 1000
+    });
     this.isRunning = true;
 
     // Collect immediately
@@ -141,7 +149,7 @@ export class MetricsCollector {
       return;
     }
 
-    console.log('🛑 Stopping metrics collector');
+    logger.info('Stopping metrics collector');
     this.isRunning = false;
 
     if (this.interval) {

@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * Desktop Notifications Service
  *
@@ -28,7 +29,7 @@ class DesktopNotificationService {
    */
   async requestPermission() {
     if (!this.supported) {
-      console.warn('Desktop notifications not supported in this browser');
+      logger.warn('Desktop notifications not supported in this browser');
       return false;
     }
 
@@ -56,7 +57,7 @@ class DesktopNotificationService {
 
       return this.enabled;
     } catch (error) {
-      console.error('Failed to request notification permission:', error);
+      logger.error('Failed to request notification permission:', error);
       return false;
     }
   }
@@ -75,7 +76,7 @@ class DesktopNotificationService {
    */
   show(options) {
     if (!this.enabled) {
-      console.log('Desktop notifications disabled, falling back to in-app notification');
+      logger.info('Desktop notifications disabled, falling back to in-app notification');
       return null;
     }
 
@@ -122,7 +123,7 @@ class DesktopNotificationService {
 
       return notification;
     } catch (error) {
-      console.error('Failed to show desktop notification:', error);
+      logger.error('Failed to show desktop notification:', error);
       return null;
     }
   }
@@ -259,7 +260,7 @@ class DesktopNotificationService {
         }
       }
     } catch (error) {
-      console.error('Failed to load notification preferences:', error);
+      logger.error('Failed to load notification preferences:', error);
     }
   }
 

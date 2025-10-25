@@ -8,6 +8,7 @@
  */
 
 import { basename } from 'path';
+import { logger } from '../utils/logger.js';
 
 export class PatternMatcher {
   constructor(projectDatabases) {
@@ -54,7 +55,7 @@ export class PatternMatcher {
 
       return scored;
     } catch (e) {
-      console.error('Error finding similar changes:', e);
+      logger.error('Error finding similar changes', { error: e, projectName });
       return [];
     }
   }
@@ -204,6 +205,8 @@ export class PatternMatcher {
         FROM events e
         JOIN rollbacks r ON e.id = r.event_id
         WHERE e.timestamp > datetime('now', '-90 days')
+        ORDER BY e.timestamp DESC
+        LIMIT 1000
       `).all();
 
       if (rollbacks.length === 0) return [];
@@ -291,7 +294,7 @@ export class PatternMatcher {
 
       return results;
     } catch (e) {
-      console.error('Error analyzing rollback patterns:', e);
+      logger.error('Error analyzing rollback patterns', { error: e, projectName });
       return [];
     }
   }

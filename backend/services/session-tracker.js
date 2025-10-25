@@ -8,6 +8,8 @@
  * - Peak productivity hours
  */
 
+import { logger } from '../utils/logger.js';
+
 export class SessionTracker {
   constructor(projectDatabases) {
     this.projectDatabases = projectDatabases;
@@ -90,9 +92,9 @@ export class SessionTracker {
         `).run(projectName);
 
         session.id = result.lastInsertRowid;
-        console.log(`🟢 Started session ${session.id} for ${projectName}`);
+        logger.info('Started session', { sessionId: session.id, projectName });
       } catch (e) {
-        console.error('Error starting session:', e);
+        logger.error('Error starting session', { error: e, projectName });
       }
     }
 
@@ -123,9 +125,14 @@ export class SessionTracker {
           session.id
         );
 
-        console.log(`🔴 Ended session ${session.id} for ${projectName} (${session.changesCount} changes, quality: ${session.qualityScore.toFixed(0)})`);
+        logger.info('Ended session', {
+          sessionId: session.id,
+          projectName,
+          changesCount: session.changesCount,
+          qualityScore: session.qualityScore.toFixed(0)
+        });
       } catch (e) {
-        console.error('Error ending session:', e);
+        logger.error('Error ending session', { error: e, projectName });
       }
     }
 
@@ -155,7 +162,7 @@ export class SessionTracker {
         session.id
       );
     } catch (e) {
-      console.error('Error updating session:', e);
+      logger.error('Error updating session', { error: e, projectName, sessionId: session.id });
     }
   }
 
@@ -357,7 +364,7 @@ export class SessionTracker {
         recentSessions: sessions.slice(0, 10)
       };
     } catch (e) {
-      console.error('Error getting session stats:', e);
+      logger.error('Error getting session stats', { error: e, projectName });
       return null;
     }
   }

@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 // Error logging service for Raven frontend
 // Sends errors to the backend API for storage and display
 
@@ -31,7 +32,7 @@ export async function logError(error, component = 'Unknown', metadata = {}, seve
     return await api.post('/errors', errorData);
   } catch (loggingError) {
     // Don't throw errors from the error logger itself
-    console.error('Error logger failed:', loggingError);
+    logger.error('Error logger failed:', loggingError);
     return null;
   }
 }
@@ -66,7 +67,7 @@ export function setupGlobalErrorHandler() {
     );
   });
 
-  console.log('✅ Global error handlers installed');
+  logger.info('✅ Global error handlers installed');
 }
 
 /**
@@ -86,7 +87,7 @@ export async function fetchErrorLogs(options = {}) {
 
     return await api.get(`/errors?${params}`);
   } catch (error) {
-    console.error('Failed to fetch error logs:', error);
+    logger.error('Failed to fetch error logs:', error);
     throw error;
   }
 }
@@ -98,7 +99,7 @@ export async function fetchErrorStats() {
   try {
     return await api.get('/errors/stats');
   } catch (error) {
-    console.error('Failed to fetch error stats:', error);
+    logger.error('Failed to fetch error stats:', error);
     throw error;
   }
 }
@@ -114,7 +115,7 @@ export async function clearErrorLogs(olderThanDays = null) {
 
     return await api.delete(endpoint);
   } catch (error) {
-    console.error('Failed to clear error logs:', error);
+    logger.error('Failed to clear error logs:', error);
     throw error;
   }
 }

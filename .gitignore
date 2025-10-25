@@ -1,9 +1,21 @@
-# Runtime data
+# Runtime data - Database files
 /.raven/db/*.db
 /.raven/db/*.db-shm
 /.raven/db/*.db-wal
+/.raven/db/*.db-journal
 /.raven/snapshots/*
 /.raven/*.log
+
+# Backend database files (avoid duplicate/orphaned files)
+/backend/*.db
+/backend/*.db-shm
+/backend/*.db-wal
+/backend/*.db-journal
+/backend/.raven/
+
+# Backend logs
+/backend/logs/
+/backend/*.log
 
 # Keep .raven structure
 !/.raven/.gitkeep

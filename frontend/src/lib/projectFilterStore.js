@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * Global Project Filter Store
  *
@@ -49,7 +50,7 @@ availableProjects.subscribe(projects => {
   const validatedFilter = validateFilterValue(currentFilter, projects);
 
   if (validatedFilter !== currentFilter) {
-    console.warn(`Project filter "${currentFilter}" not found, resetting to "all"`);
+    logger.warn(`Project filter "${currentFilter}" not found, resetting to "all"`);
     projectFilter.set(validatedFilter);
   }
 });

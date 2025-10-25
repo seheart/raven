@@ -42,6 +42,9 @@
     await loadNotifications();
     await loadStats();
 
+    // Start live timestamp updates
+    startTimeAgoUpdates();
+
     // Connect to WebSocket for real-time notifications
     websocketService.connect();
     websocketService.on('notification', handleNewNotification);
@@ -51,6 +54,11 @@
   });
 
   onDestroy(() => {
+    // Clean up timer interval
+    if (timeAgoInterval) {
+      clearInterval(timeAgoInterval);
+    }
+
     websocketService.off('notification', handleNewNotification);
     websocketService.off('error-logged', handleErrorLogged);
     websocketService.off('trigger-fired', handleTriggerFired);
@@ -300,9 +308,14 @@
 
   // Live timestamp updates
   let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  let timeAgoInterval;
+
+  // Initialize interval in onMount (moved below)
+  function startTimeAgoUpdates() {
+    timeAgoInterval = setInterval(() => {
+      timeAgo = getTimeAgo();
+    }, 1000);
+  }
 
   $: filteredCount = notifications.length;
 </script>

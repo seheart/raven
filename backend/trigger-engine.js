@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import toml from 'toml';
+import { logger } from './utils/logger.js';
 
 export class TriggerEngine {
   constructor(configPath, io = null, db = null) {
@@ -28,7 +29,7 @@ export class TriggerEngine {
       const configFile = path.join(this.configPath, 'config.toml');
 
       if (!fs.existsSync(configFile)) {
-        console.log('⚠️  No config.toml found, creating example config...');
+        logger.info('⚠️  No config.toml found, creating example config...');
         this.createExampleConfig(configFile);
       }
 
@@ -47,9 +48,9 @@ export class TriggerEngine {
         }
       }
 
-      console.log(`✅ Loaded ${this.triggers.size} trigger rules`);
+      logger.info(`✅ Loaded ${this.triggers.size} trigger rules`);
     } catch (error) {
-      console.error('❌ Failed to load triggers config:', error);
+      logger.error('❌ Failed to load triggers config:', error);
     }
   }
 
@@ -79,7 +80,7 @@ cooldown_seconds = 300
 
     fs.mkdirSync(path.dirname(configFile), { recursive: true });
     fs.writeFileSync(configFile, exampleConfig);
-    console.log(`✅ Created example config at ${configFile}`);
+    logger.info(`✅ Created example config at ${configFile}`);
   }
 
   evaluate(event) {
@@ -279,7 +280,7 @@ cooldown_seconds = 300
         break;
       }
     } catch (error) {
-      console.error(`❌ Failed to execute trigger action: ${error}`);
+      logger.error(`❌ Failed to execute trigger action: ${error}`);
     }
   }
 
@@ -292,10 +293,10 @@ cooldown_seconds = 300
         execSync(`osascript -e 'display notification "${message}" with title "Raven Trigger"'`);
       } else if (process.platform === 'win32') {
         // Windows notification (simplified)
-        console.log(`📢 Notification: ${message}`);
+        logger.info(`📢 Notification: ${message}`);
       }
     } catch (error) {
-      console.error(`❌ Failed to send notification: ${error}`);
+      logger.error(`❌ Failed to send notification: ${error}`);
     }
   }
 
@@ -306,9 +307,9 @@ cooldown_seconds = 300
       const logLine = `[${timestamp}] ${triggerName} - ${message}\n`;
 
       fs.appendFileSync(logFile, logLine);
-      console.log(`📝 Logged: ${message}`);
+      logger.info(`📝 Logged: ${message}`);
     } catch (error) {
-      console.error(`❌ Failed to log to file: ${error}`);
+      logger.error(`❌ Failed to log to file: ${error}`);
     }
   }
 
@@ -335,15 +336,15 @@ cooldown_seconds = 300
       );
 
       if (!isAllowed) {
-        console.error(`❌ Command execution blocked: '${baseCommand}' is not in whitelist. Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
-        console.error('⚠️  To enable custom commands, add them to the ALLOWED_COMMANDS whitelist in trigger-engine.js');
+        logger.error(`❌ Command execution blocked: '${baseCommand}' is not in whitelist. Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
+        logger.error('⚠️  To enable custom commands, add them to the ALLOWED_COMMANDS whitelist in trigger-engine.js');
         return;
       }
 
       execSync(formattedCommand, { timeout: 5000 }); // Add 5-second timeout
-      console.log(`⚙️  Executed command: ${formattedCommand}`);
+      logger.info(`⚙️  Executed command: ${formattedCommand}`);
     } catch (error) {
-      console.error(`❌ Failed to execute command: ${error}`);
+      logger.error(`❌ Failed to execute command: ${error}`);
     }
   }
 

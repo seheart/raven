@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { logger } from '../utils/logger.js';
 
 /**
  * Creates dashboard routes (stats and analytics)
@@ -64,7 +65,7 @@ export function createDashboardRoutes(deps) {
 
       res.json(aggregatedStats);
     } catch (error) {
-      console.error('❌ Dashboard stats error:', error);
+      logger.error('Dashboard stats error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -101,7 +102,7 @@ export function createDashboardRoutes(deps) {
 
       res.json({ files: topFiles });
     } catch (error) {
-      console.error('❌ Top files error:', error);
+      logger.error('Top files error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -113,7 +114,7 @@ export function createDashboardRoutes(deps) {
       const edits = projectState.db.getLongestEdits(limit);
       res.json(edits);
     } catch (error) {
-      console.error('❌ Longest edits error:', error);
+      logger.error('Longest edits error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -160,7 +161,7 @@ export function createDashboardRoutes(deps) {
       const agents = Array.from(agentsMap.values());
       res.json(agents);
     } catch (error) {
-      console.error('❌ Agents status error:', error);
+      logger.error('Agents status error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -171,7 +172,7 @@ export function createDashboardRoutes(deps) {
       const stats = projectState.db.getAgentStats();
       res.json(stats);
     } catch (error) {
-      console.error('❌ Agent stats error:', error);
+      logger.error('Agent stats error', { error });
       res.status(500).json({ error: error.message });
     }
   });

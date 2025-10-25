@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 import { writable, derived, get } from 'svelte/store';
 
 // Default settings structure
@@ -43,7 +44,7 @@ function loadSettings() {
         performance: { ...DEFAULT_SETTINGS.performance, ...parsed.performance }
       };
     } catch (e) {
-      console.error('Failed to parse saved settings:', e);
+      logger.error('Failed to parse saved settings:', e);
       return { ...DEFAULT_SETTINGS };
     }
   }
@@ -162,7 +163,7 @@ export const settings = {
       settingsStore.set(merged);
       return true;
     } catch (e) {
-      console.error('Failed to import settings:', e);
+      logger.error('Failed to import settings:', e);
       return false;
     }
   }

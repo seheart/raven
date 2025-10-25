@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir, access, constants as fsConstants } from 'fs
 import { existsSync } from 'fs';
 import path from 'path';
 import os from 'os';
+import { logger } from './utils/logger.js';
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -152,7 +153,7 @@ export async function loadConfig() {
 
     return { config, lastSync, history };
   } catch (error) {
-    console.error('Failed to load sync config:', error);
+    logger.error('Failed to load sync config:', error);
     return { config: null, lastSync: null, history: [] };
   }
 }
@@ -173,7 +174,7 @@ export async function saveConfig(config) {
     await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2));
     return { success: true };
   } catch (error) {
-    console.error('Failed to save sync config:', error);
+    logger.error('Failed to save sync config:', error);
     return { success: false, error: error.message };
   }
 }
@@ -220,7 +221,7 @@ export async function testConnection(config) {
       return { success: false, error: result.stderr || 'Connection failed' };
     }
   } catch (error) {
-    console.error('SSH connection test failed:', error);
+    logger.error('SSH connection test failed:', error);
     return parseSSHError(error);
   }
 }
@@ -312,7 +313,7 @@ export async function performSync(config, projectPath) {
       `${user}@${host}:${remotePath}/`  // Destination
     ];
 
-    console.log('Running rsync with args:', rsyncArgs);
+    logger.info('Running rsync with args:', rsyncArgs);
 
     const startTime = Date.now();
 
@@ -356,7 +357,7 @@ export async function performSync(config, projectPath) {
     };
 
   } catch (error) {
-    console.error('Sync failed:', error);
+    logger.error('Sync failed:', error);
 
     // Save failed sync to history
     const syncRecord = {
@@ -398,7 +399,7 @@ export async function cancelSync() {
     try {
       process.kill(currentSyncProcess.pid, 'SIGTERM');
     } catch (error) {
-      console.error('Failed to kill sync process:', error);
+      logger.error('Failed to kill sync process:', error);
     }
   }
 
@@ -437,7 +438,7 @@ function parseRsyncOutput(output) {
     }
 
   } catch (error) {
-    console.error('Failed to parse rsync output:', error);
+    logger.error('Failed to parse rsync output:', error);
   }
 
   return stats;
@@ -463,7 +464,7 @@ async function addToHistory(record) {
 
     await writeFile(SYNC_HISTORY_FILE, JSON.stringify(history, null, 2));
   } catch (error) {
-    console.error('Failed to save sync history:', error);
+    logger.error('Failed to save sync history:', error);
   }
 }
 
@@ -585,7 +586,7 @@ export async function getRemoteStorageStats(config) {
     };
 
   } catch (error) {
-    console.error('Failed to get remote storage stats:', error);
+    logger.error('Failed to get remote storage stats:', error);
     return {
       success: false,
       error: error.message || 'Failed to get storage statistics'

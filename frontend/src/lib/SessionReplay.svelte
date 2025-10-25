@@ -115,12 +115,20 @@
     await loadSessions();
     await loadEvents();
 
+    // Start live timestamp updates
+    startTimeAgoUpdates();
+
     // Connect to WebSocket and listen for project switches
     websocketService.connect();
     websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
+    // Clean up timer interval
+    if (timeAgoInterval) {
+      clearInterval(timeAgoInterval);
+    }
+
     // Clean up WebSocket listeners
     websocketService.off('project-switched', handleProjectSwitched);
   });
@@ -183,9 +191,14 @@
 
   // Live timestamp updates
   let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  let timeAgoInterval;
+
+  // Initialize interval in onMount (moved below)
+  function startTimeAgoUpdates() {
+    timeAgoInterval = setInterval(() => {
+      timeAgo = getTimeAgo();
+    }, 1000);
+  }
 
   // WebSocket event handler for project switches
   const handleProjectSwitched = async (data) => {

@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 import { notifications } from './notificationService.js';
 import { authService } from './authStore.js';
 import { logError } from './errorLogger.js';
@@ -135,7 +136,7 @@ export async function checkServerHealth() {
 
     return true;
   } catch (error) {
-    console.error('Health check failed:', error);
+    logger.error('Health check failed:', error);
     return false;
   }
 }

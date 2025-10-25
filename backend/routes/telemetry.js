@@ -96,7 +96,7 @@ export function createTelemetryRoutes(deps) {
           metadata: JSON.stringify(metadata)
         });
       } catch (devDbError) {
-        console.error('❌ Failed to log to developer DB:', devDbError.message);
+        logger.error('Failed to log to developer DB', { error: devDbError });
       }
 
       // Update agent registry
@@ -168,7 +168,7 @@ export function createTelemetryRoutes(deps) {
         project: projectName
       });
     } catch (error) {
-      console.error('❌ Telemetry error:', error);
+      logger.error('Telemetry error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -193,7 +193,7 @@ export function createTelemetryRoutes(deps) {
       const metrics = stmt.all(parseInt(limit), parseInt(offset));
       res.json(metrics);
     } catch (error) {
-      console.error('❌ Get system metrics error:', error);
+      logger.error('Get system metrics error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -225,7 +225,7 @@ export function createTelemetryRoutes(deps) {
 
       res.json(metrics);
     } catch (error) {
-      console.error('❌ Get process metrics error:', error);
+      logger.error('Get process metrics error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -245,7 +245,7 @@ export function createTelemetryRoutes(deps) {
       const metrics = ravenDb.getProcessMetricsByAgent(agent, parseInt(limit));
       res.json(metrics);
     } catch (error) {
-      console.error('❌ Get process metrics by agent error:', error);
+      logger.error('Get process metrics by agent error', { error });
       res.status(500).json({ error: error.message });
     }
   });

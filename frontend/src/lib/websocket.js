@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 import { io } from 'socket.io-client';
 import { notifications } from './notificationService.js';
 
@@ -27,19 +28,19 @@ class WebSocketService {
     });
 
     this.socket.on('connect', () => {
-      console.log('🔌 WebSocket connected');
+      logger.info('🔌 WebSocket connected');
       this.connected = true;
       notifications.websocketConnected();
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('🔌 WebSocket disconnected:', reason);
+      logger.info('🔌 WebSocket disconnected:', reason);
       this.connected = false;
       notifications.websocketDisconnected();
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('🔌 WebSocket connection error:', error);
+      logger.error('🔌 WebSocket connection error:', error);
       notifications.error(`WebSocket error: ${error.message || 'Connection failed'}`, {
         title: 'WebSocket Error'
       });
@@ -47,7 +48,7 @@ class WebSocketService {
 
     // Handle successful reconnection
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`🔌 WebSocket reconnected after ${attemptNumber} attempts`);
+      logger.info(`🔌 WebSocket reconnected after ${attemptNumber} attempts`);
       this.connected = true;
       notifications.success(`Reconnected after ${attemptNumber} attempt(s)`, {
         title: 'WebSocket Reconnected'
@@ -58,21 +59,21 @@ class WebSocketService {
         try {
           callback();
         } catch (error) {
-          console.error('Error in reconnect callback:', error);
+          logger.error('Error in reconnect callback:', error);
         }
       }
     });
 
     // Track reconnection attempts
     this.socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`🔌 Attempting to reconnect (${attemptNumber})...`);
+      logger.info(`🔌 Attempting to reconnect (${attemptNumber})...`);
       if (attemptNumber % 5 === 0) { // Only notify every 5 attempts to avoid spam
         notifications.websocketReconnecting(attemptNumber);
       }
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error('🔌 WebSocket reconnection failed - max attempts reached');
+      logger.error('🔌 WebSocket reconnection failed - max attempts reached');
       notifications.error('Failed to reconnect to server', {
         title: 'Connection Failed',
         duration: 0 // Don't auto-dismiss

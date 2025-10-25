@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 import { writable, derived } from 'svelte/store';
 import { notifications } from './notificationService.js';
 
@@ -119,7 +120,7 @@ export const authService = {
 
       return true;
     } catch (error) {
-      console.error('Token verification failed:', error);
+      logger.error('Token verification failed:', error);
       this.logout();
       return false;
     }

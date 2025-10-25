@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 import { websocketService } from './websocket.js';
 import { notifications } from './notificationService.js';
 
@@ -104,7 +105,7 @@ export function setupNotificationListeners() {
     });
   });
 
-  console.log('📢 Notification listeners initialized');
+  logger.info('📢 Notification listeners initialized');
 }
 
 /**

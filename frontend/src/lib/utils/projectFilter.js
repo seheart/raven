@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * Project Filter Utilities
  *
@@ -147,7 +148,7 @@ export function addRecentProject(projectName) {
 
     localStorage.setItem('raven-recent-projects', JSON.stringify(recent));
   } catch (error) {
-    console.error('Failed to save recent project:', error);
+    logger.error('Failed to save recent project:', error);
   }
 }
 

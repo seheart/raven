@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { logger } from '../utils/logger.js';
 
 /**
  * Creates developer persona routes
@@ -24,7 +25,7 @@ export function createDeveloperRoutes(deps) {
 
       res.json({ interactions, total: interactions.length });
     } catch (error) {
-      console.error('❌ Get interactions error:', error);
+      logger.error('Get interactions error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -44,7 +45,7 @@ export function createDeveloperRoutes(deps) {
 
       res.json({ patterns, total: patterns.length });
     } catch (error) {
-      console.error('❌ Get patterns error:', error);
+      logger.error('Get patterns error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -57,7 +58,7 @@ export function createDeveloperRoutes(deps) {
       const stats = developerDB.getWorkflowStats(parseInt(days));
       res.json(stats);
     } catch (error) {
-      console.error('❌ Get workflow stats error:', error);
+      logger.error('Get workflow stats error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -68,7 +69,7 @@ export function createDeveloperRoutes(deps) {
       const preferences = developerDB.getAllPreferences();
       res.json({ preferences, total: preferences.length });
     } catch (error) {
-      console.error('❌ Get preferences error:', error);
+      logger.error('Get preferences error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -81,7 +82,7 @@ export function createDeveloperRoutes(deps) {
       const stats = developerDB.getContextSwitchStats(parseInt(days));
       res.json(stats);
     } catch (error) {
-      console.error('❌ Get context switches error:', error);
+      logger.error('Get context switches error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -119,13 +120,14 @@ export function createDeveloperRoutes(deps) {
         LIMIT 10
       `).all();
 
-      // Get hourly activity pattern
+      // Get hourly activity pattern (24 hours max, but add LIMIT for safety)
       const hourlyActivity = developerDB.db.prepare(`
         SELECT hour_of_day, COUNT(*) as count
         FROM workflow_events
         WHERE hour_of_day IS NOT NULL
         GROUP BY hour_of_day
         ORDER BY hour_of_day
+        LIMIT 24
       `).all();
 
       res.json({
@@ -135,7 +137,7 @@ export function createDeveloperRoutes(deps) {
         hourly_activity: hourlyActivity
       });
     } catch (error) {
-      console.error('❌ Get developer stats error:', error);
+      logger.error('Get developer stats error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -148,7 +150,7 @@ export function createDeveloperRoutes(deps) {
 
       res.json({ success: true, id });
     } catch (error) {
-      console.error('❌ Log interaction error:', error);
+      logger.error('Log interaction error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -161,7 +163,7 @@ export function createDeveloperRoutes(deps) {
 
       res.json({ success: true, id });
     } catch (error) {
-      console.error('❌ Log pattern error:', error);
+      logger.error('Log pattern error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -174,7 +176,7 @@ export function createDeveloperRoutes(deps) {
 
       res.json({ success: true, id });
     } catch (error) {
-      console.error('❌ Log workflow error:', error);
+      logger.error('Log workflow error', { error });
       res.status(500).json({ error: error.message });
     }
   });

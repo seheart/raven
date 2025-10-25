@@ -2,6 +2,7 @@ import { Router } from 'express';
 import fs from 'fs';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import { logger } from '../utils/logger.js';
 
 const execAsync = promisify(exec);
 
@@ -25,14 +26,14 @@ export function createControlRoutes(deps) {
     try {
       const previousSize = fileCache.size;
       fileCache.clear();
-      console.log(`🗑️  Cleared file cache (${previousSize} files)`);
+      logger.info('Cleared file cache', { previousSize });
       res.json({
         success: true,
         message: `Cleared ${previousSize} cached files`,
         previousSize
       });
     } catch (error) {
-      console.error('Error clearing cache:', error);
+      logger.error('Error clearing cache', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -42,12 +43,12 @@ export function createControlRoutes(deps) {
     try {
       // Protected by mutex to prevent race conditions with project switching
       await projectStateMutex.runExclusive(async () => {
-        console.log('🔄 Restarting file watcher...');
+        logger.info('Restarting file watcher', { project: projectState.activeProject });
 
         // Close existing watcher
         if (projectState.watcher) {
           await projectState.watcher.close();
-          console.log('✅ Closed watcher');
+          logger.info('Closed watcher');
         }
 
         // Reinitialize watcher
@@ -60,7 +61,7 @@ export function createControlRoutes(deps) {
         project: projectState.activeProject
       });
     } catch (error) {
-      console.error('Error restarting watcher:', error);
+      logger.error('Error restarting watcher', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -68,16 +69,16 @@ export function createControlRoutes(deps) {
   // POST /api/control/restart-bridge - Restart telemetry bridge (SELF-HEALING)
   router.post('/restart-bridge', async (req, res) => {
     try {
-      console.log('🔄 Restarting telemetry bridge...');
+      logger.info('Restarting telemetry bridge');
 
       // Stop existing bridge if running
       const stopScript = '../scripts/stop-claude-bridge.sh';
       try {
         await execAsync(stopScript);
-        console.log('✅ Stopped existing bridge');
+        logger.info('Stopped existing bridge');
       } catch (err) {
         // Bridge may not be running, that's okay
-        console.log('ℹ️  No existing bridge to stop');
+        logger.info('No existing bridge to stop');
       }
 
       // Wait a moment for cleanup
@@ -97,10 +98,10 @@ export function createControlRoutes(deps) {
           // Verify process is running
           process.kill(bridgePid, 0);
           success = true;
-          console.log(`✅ Bridge restarted successfully (PID: ${bridgePid})`);
+          logger.info('Bridge restarted successfully', { pid: bridgePid });
         }
       } catch (err) {
-        console.error('❌ Bridge failed to start:', err);
+        logger.error('Bridge failed to start', { error: err });
       }
 
       if (success) {
@@ -118,7 +119,7 @@ export function createControlRoutes(deps) {
         });
       }
     } catch (error) {
-      console.error('Error restarting bridge:', error);
+      logger.error('Error restarting bridge', { error });
       res.status(500).json({
         success: false,
         error: error.message
@@ -143,7 +144,7 @@ export function createControlRoutes(deps) {
       res.setHeader('Content-Disposition', `attachment; filename="raven-health-${Date.now()}.json"`);
       res.json(exportData);
     } catch (error) {
-      console.error('Error exporting health report:', error);
+      logger.error('Error exporting health report', { error });
       res.status(500).json({ error: error.message });
     }
   });

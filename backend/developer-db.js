@@ -15,6 +15,7 @@
 
 import Database from 'better-sqlite3';
 import { join } from 'path';
+import { logger } from './utils/logger.js';
 
 class DeveloperDB {
   /** @type {import('better-sqlite3').Database} */
@@ -24,7 +25,7 @@ class DeveloperDB {
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL');
     this.initializeTables();
-    console.log('✅ Developer persona database initialized');
+    logger.info('✅ Developer persona database initialized');
   }
 
   initializeTables() {

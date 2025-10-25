@@ -5,6 +5,7 @@
 
 import bcrypt from 'bcrypt';
 import { generateToken } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
 
 const SALT_ROUNDS = 10;
 
@@ -47,10 +48,10 @@ export class AuthService {
    */
   async createDefaultAdmin() {
     const defaultPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    console.log('⚠️  Creating default admin user');
-    console.log('   Username: admin');
-    console.log(`   Password: ${defaultPassword}`);
-    console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!');
+    logger.warn('Creating default admin user - CHANGE PASSWORD IMMEDIATELY!', {
+      username: 'admin',
+      password: defaultPassword
+    });
 
     await this.createUser('admin', defaultPassword, 'admin');
   }
@@ -178,13 +179,15 @@ export class AuthService {
 
   /**
    * Get all users
+   * @param {number} limit - Maximum number of users to return (default: 100)
    */
-  getAllUsers() {
+  getAllUsers(limit = 100) {
     return this.db.prepare(`
       SELECT id, username, role, created_at, last_login, active
       FROM users
       ORDER BY created_at DESC
-    `).all();
+      LIMIT ?
+    `).all(limit);
   }
 
   /**

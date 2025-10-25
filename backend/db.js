@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync, existsSync } from 'fs';
 import { dirname } from 'path';
+import { logger } from './utils/logger.js';
 
 export class RavenDB {
   constructor(dbPath) {
@@ -17,7 +18,7 @@ export class RavenDB {
     this.stmtCache = new Map();
 
     this.initializeSchema();
-    console.log(`✅ Database initialized at ${dbPath}`);
+    logger.info('Database initialized', { dbPath });
   }
 
   /**
@@ -249,7 +250,7 @@ export class RavenDB {
     return stmt.all(agent, limit);
   }
 
-  getAgentStats() {
+  getAgentStats(limit = 100) {
     const stmt = this.prepareStatement(`
       SELECT
         agent,
@@ -259,13 +260,14 @@ export class RavenDB {
       FROM agent_events
       GROUP BY agent
       ORDER BY event_count DESC
+      LIMIT ?
     `);
 
-    return stmt.all();
+    return stmt.all(limit);
   }
 
   // Get historical agents with last_seen and request counts (for agents panel)
-  getHistoricalAgents() {
+  getHistoricalAgents(limit = 100) {
     const stmt = this.prepareStatement(`
       SELECT
         agent as agent_name,
@@ -276,9 +278,10 @@ export class RavenDB {
       FROM agent_events
       GROUP BY agent
       ORDER BY last_seen DESC
+      LIMIT ?
     `);
 
-    return stmt.all();
+    return stmt.all(limit);
   }
 
   // ==================== File Events ====================
@@ -387,15 +390,16 @@ export class RavenDB {
     return stmt.all(session_id);
   }
 
-  getTrackedFiles() {
+  getTrackedFiles(limit = 5000) {
     const stmt = this.prepareStatement(`
       SELECT DISTINCT filepath
       FROM events
       WHERE filepath IS NOT NULL
       ORDER BY filepath
+      LIMIT ?
     `);
 
-    return stmt.all().map(row => row.filepath);
+    return stmt.all(limit).map(row => row.filepath);
   }
 
   // ==================== System Metrics ====================

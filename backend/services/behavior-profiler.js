@@ -7,6 +7,8 @@
  * - Deviation from normal patterns
  */
 
+import { logger } from '../utils/logger.js';
+
 export class BehaviorProfiler {
   constructor(projectDatabases) {
     this.projectDatabases = projectDatabases;
@@ -77,7 +79,7 @@ export class BehaviorProfiler {
 
       return profile;
     } catch (e) {
-      console.error('Error building agent profile:', e);
+      logger.error('Error building agent profile', { error: e, projectName, agent });
       return null;
     }
   }
@@ -173,7 +175,7 @@ export class BehaviorProfiler {
         message: this.generateBehaviorChangeMessage(baseline.mood, currentMood, deviations)
       };
     } catch (e) {
-      console.error('Error detecting behavior change:', e);
+      logger.error('Error detecting behavior change', { error: e, projectName, agent });
       return null;
     }
   }
@@ -260,6 +262,7 @@ export class BehaviorProfiler {
         FROM events
         WHERE agent IS NOT NULL
         AND timestamp > datetime('now', '-30 days')
+        LIMIT 100
       `).all();
 
       const comparisons = [];
@@ -276,7 +279,7 @@ export class BehaviorProfiler {
 
       return comparisons;
     } catch (e) {
-      console.error('Error comparing agents:', e);
+      logger.error('Error comparing agents', { error: e, projectName });
       return [];
     }
   }
@@ -348,9 +351,9 @@ export class BehaviorProfiler {
         );
       }
 
-      console.log(`✅ Updated agent stats for ${projectName} on ${dateStr}`);
+      logger.info('Updated agent stats', { projectName, date: dateStr });
     } catch (e) {
-      console.error('Error updating daily stats:', e);
+      logger.error('Error updating daily stats', { error: e, projectName });
     }
   }
 

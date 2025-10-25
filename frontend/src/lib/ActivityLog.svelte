@@ -101,9 +101,14 @@
 
   // Live timestamp updates
   let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  let timeAgoInterval;
+
+  // Initialize interval in onMount (moved below)
+  function startTimeAgoUpdates() {
+    timeAgoInterval = setInterval(() => {
+      timeAgo = getTimeAgo();
+    }, 1000);
+  }
 
   function groupActivitiesBySession() {
     if (!groupBySession) {
@@ -309,6 +314,9 @@
   onMount(() => {
     loadActivities();
 
+    // Start live timestamp updates
+    startTimeAgoUpdates();
+
     // Listen for real-time updates
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);
@@ -319,6 +327,11 @@
   });
 
   onDestroy(() => {
+    // Clean up timer interval
+    if (timeAgoInterval) {
+      clearInterval(timeAgoInterval);
+    }
+
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);

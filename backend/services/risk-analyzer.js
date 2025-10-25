@@ -9,6 +9,7 @@
  */
 
 import { basename, extname } from 'path';
+import { logger } from '../utils/logger.js';
 
 export class RiskAnalyzer {
   constructor(projectDatabases) {
@@ -103,7 +104,7 @@ export class RiskAnalyzer {
         };
       }
     } catch (e) {
-      console.error('Error analyzing rollback history:', e);
+      logger.error('Error analyzing rollback history', { error: e, filepath });
     }
     return null;
   }
@@ -196,7 +197,7 @@ export class RiskAnalyzer {
         };
       }
     } catch (e) {
-      console.error('Error analyzing change size:', e);
+      logger.error('Error analyzing change size', { error: e, filepath: change.filepath });
     }
     return null;
   }
@@ -226,7 +227,7 @@ export class RiskAnalyzer {
         };
       }
     } catch (e) {
-      console.error('Error analyzing recent rollbacks:', e);
+      logger.error('Error analyzing recent rollbacks', { error: e, filepath });
     }
     return null;
   }
@@ -259,7 +260,7 @@ export class RiskAnalyzer {
         };
       }
     } catch (e) {
-      console.error('Error analyzing change pattern:', e);
+      logger.error('Error analyzing change pattern', { error: e, filepath: change.filepath });
     }
     return null;
   }
@@ -332,7 +333,7 @@ export class RiskAnalyzer {
         LIMIT ?
       `).all(filepath, limit);
     } catch (e) {
-      console.error('Error getting recent rollbacks:', e);
+      logger.error('Error getting recent rollbacks', { error: e, filepath });
       return [];
     }
   }
@@ -352,7 +353,7 @@ export class RiskAnalyzer {
 
       return stats.rollback_count / stats.total_events;
     } catch (e) {
-      console.error('Error calculating overall rollback rate:', e);
+      logger.error('Error calculating overall rollback rate', { error: e });
       return 0.12;
     }
   }
@@ -367,10 +368,10 @@ export class RiskAnalyzer {
         VALUES (?, datetime('now'), ?, ?)
       `).run(eventId, reason, automatic ? 1 : 0);
 
-      console.log(`✅ Rollback tracked for event ${eventId}`);
+      logger.info('Rollback tracked', { eventId, automatic });
       return true;
     } catch (e) {
-      console.error('Error tracking rollback:', e);
+      logger.error('Error tracking rollback', { error: e, eventId });
       return false;
     }
   }

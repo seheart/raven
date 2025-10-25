@@ -80,7 +80,7 @@ log_file = "raven.log"
 # ==================== Projects ====================
 
 [projects]
-active = "raven"
+active = "ant"
 
 [[projects.available]]
 name = "raven"

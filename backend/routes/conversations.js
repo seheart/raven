@@ -3,6 +3,7 @@ import fs from 'fs';
 import readline from 'readline';
 import path from 'path';
 import os from 'os';
+import { logger } from '../utils/logger.js';
 
 /**
  * Creates conversation routes (Claude Code conversation tracking)
@@ -44,7 +45,7 @@ export function createConversationRoutes(deps) {
       const result = getRavenDb().getConversations(options);
       res.json(result);
     } catch (error) {
-      console.error('❌ Get conversations error:', error);
+      logger.error('Get conversations error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -55,7 +56,7 @@ export function createConversationRoutes(deps) {
       const stats = getRavenDb().getConversationStats();
       res.json(stats);
     } catch (error) {
-      console.error('❌ Conversation stats error:', error);
+      logger.error('Conversation stats error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -69,7 +70,7 @@ export function createConversationRoutes(deps) {
       const conversations = getRavenDb().getConversationsBySession(sessionId, limit);
       res.json({ conversations, total: conversations.length });
     } catch (error) {
-      console.error('❌ Get session conversations error:', error);
+      logger.error('Get session conversations error', { error });
       res.status(500).json({ error: error.message });
     }
   });
@@ -100,7 +101,7 @@ export function createConversationRoutes(deps) {
         sessionFile: path.basename(sessionPath)
       });
     } catch (error) {
-      console.error('❌ Import conversations error:', error);
+      logger.error('Import conversations error', { error });
       res.status(500).json({ error: error.message });
     }
   });

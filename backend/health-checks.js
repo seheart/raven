@@ -4,6 +4,7 @@
  * Runs comprehensive health checks on startup to verify all components are working.
  * Generates notifications/alerts if any checks fail.
  */
+import { logger } from './utils/logger.js';
 
 class HealthCheckSystem {
   constructor(db, io) {
@@ -29,7 +30,7 @@ class HealthCheckSystem {
    * @returns {Object} Results summary
    */
   async runAllChecks() {
-    console.log('🏥 Running startup health checks...');
+    logger.info('🏥 Running startup health checks...');
     this.results = [];
 
     for (const check of this.checks) {
@@ -48,16 +49,16 @@ class HealthCheckSystem {
         });
 
         if (result.passed) {
-          console.log(`  ✅ ${check.name}: ${result.message} (${duration}ms)`);
+          logger.info(`  ✅ ${check.name}: ${result.message} (${duration}ms)`);
         } else {
-          console.error(`  ❌ ${check.name}: ${result.message} (${duration}ms)`);
+          logger.error(`  ❌ ${check.name}: ${result.message} (${duration}ms)`);
 
           // Create notification for failed check
           this.createFailureNotification(check.name, result.message, check.category);
         }
       } catch (error) {
         const duration = Date.now() - startTime;
-        console.error(`  ❌ ${check.name}: ERROR - ${error.message} (${duration}ms)`);
+        logger.error(`  ❌ ${check.name}: ERROR - ${error.message} (${duration}ms)`);
 
         this.results.push({
           name: check.name,
@@ -73,10 +74,10 @@ class HealthCheckSystem {
     }
 
     const summary = this.getSummary();
-    console.log(`\n🏥 Health Check Summary: ${summary.passed}/${summary.total} passed (${Date.now() - this.startTime}ms)`);
+    logger.info(`\n🏥 Health Check Summary: ${summary.passed}/${summary.total} passed (${Date.now() - this.startTime}ms)`);
 
     if (summary.failed > 0) {
-      console.error(`⚠️  ${summary.failed} health check(s) FAILED - check notifications for details`);
+      logger.error(`⚠️  ${summary.failed} health check(s) FAILED - check notifications for details`);
     }
 
     return summary;
@@ -120,7 +121,7 @@ class HealthCheckSystem {
         });
       }
     } catch (error) {
-      console.error(`Failed to create notification for failed health check: ${error.message}`);
+      logger.error(`Failed to create notification for failed health check: ${error.message}`);
     }
   }
 
