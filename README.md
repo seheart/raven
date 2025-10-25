@@ -6,13 +6,69 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 0.13.0 - Snapshot Protection & Recovery
+**Version:** 0.14.0 - Analytics & Insights Platform
 
-## 🚀 Current Status: Comprehensive Snapshot Protection
+## 🚀 Current Status: Complete Analytics & Developer Insights
 
-✅ **Never lose code again! Complete protection against AI agent overwrites with instant recovery.**
+✅ **Full visibility into AI agent conversations, developer patterns, and cross-project analytics with universal export.**
 
-### 🆕 What's New in 0.13.0 - Snapshot Protection Features
+### 🆕 What's New in 0.14.0 - Analytics & Insights Features
+
+**💬 Conversations Panel - Full Frontend for AI Dialogue:**
+- [x] **Dedicated Conversations UI** - Complete panel for viewing Claude Code conversation history
+- [x] **Advanced Search** - Search across content, tool names, and projects
+- [x] **Smart Filtering** - Filter by conversation type, project, and read/unread status
+- [x] **Expandable Details** - Click to view full prompts, tool inputs, and AI responses
+- [x] **Stats Dashboard** - Activity breakdown by type and project
+- [x] **Bulk Import** - Import wizard for .jsonl session files
+- [x] **JSON Export** - Export filtered conversations for external analysis
+- [x] **Real-time Updates** - WebSocket notifications for new conversations
+- [x] **Pagination** - Load more with infinite scroll pattern
+
+**🧠 Developer Persona Dashboard - AI Training Insights:**
+- [x] **Developer Insights Panel** - First-ever frontend for persona data
+- [x] **Activity Heatmap** - 24-hour visualization of your peak productivity times
+- [x] **Language Breakdown** - See which languages you work with most
+- [x] **Workflow Patterns** - Understand your development habits
+- [x] **9 New API Endpoints** - Complete REST API for developer persona
+  - GET `/api/developer/stats` - Overall statistics
+  - GET `/api/developer/interactions` - Agent interaction history
+  - GET `/api/developer/patterns` - Code pattern analysis
+  - GET `/api/developer/workflows` - Workflow event tracking
+  - GET `/api/developer/errors` - Error recovery insights
+  - POST `/api/developer/interactions` - Log agent interactions
+  - POST `/api/developer/patterns` - Record code patterns
+  - POST `/api/developer/workflows` - Track workflow events
+  - POST `/api/developer/preferences` - Save developer preferences
+- [x] **Privacy-First** - All data stored locally in `~/.raven/db/developer.db`
+- [x] **Educational UI** - Empty states explain what gets tracked
+
+**🔄 Projects Comparison Panel - Cross-Project Analytics:**
+- [x] **Side-by-side Comparison** - Compare all 13+ monitored projects at once
+- [x] **Activity Status** - Real-time indicators (Active now, Recent, Today, Old, Inactive)
+- [x] **Sortable Columns** - Sort by activity, events, errors, or name
+- [x] **Summary Statistics** - Total events, errors, and active project count
+- [x] **CSV Export** - Export comparison data for reports
+- [x] **Visual Status Badges** - Color-coded activity levels
+- [x] **Smart Sorting** - Automatically highlight projects needing attention
+
+**📤 Universal Export System - Reusable Data Export:**
+- [x] **exportUtils.js** - Centralized export library for all panels
+- [x] **CSV Export** - Standard CSV with proper escaping
+- [x] **Excel Export** - Excel-compatible CSV with BOM for UTF-8
+- [x] **JSON Export** - Pretty-printed JSON with metadata
+- [x] **Table Export** - Column-aware export with custom formatting
+- [x] **Format Helpers** - date, number, percentage, bytes, boolean, truncate
+- [x] **Multi-sheet Support** - Export multiple datasets with staggered downloads
+- [x] **Consistent API** - Easy integration into any panel
+
+**💡 Why This Matters:**
+These features transform Raven from a monitoring tool into a comprehensive analytics platform.
+Now you can understand not just WHAT changed, but WHY - through conversation history, your own
+coding patterns, and cross-project comparisons. Perfect for debugging AI agent decisions,
+understanding your workflow, and identifying which projects need attention.
+
+### Previous Release: 0.13.0 - Snapshot Protection & Recovery
 
 **🛡️ Comprehensive Snapshot Protection:**
 - [x] **"Undo Claude" Button** - One-click restore to any previous snapshot
@@ -35,11 +91,6 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 - [x] **1,566+ Snapshots** - Already protecting your code (22MB compressed)
 - [x] **getEventById() API** - Retrieve specific events for restoration
 - [x] **Dual API Support** - Compatible with both old and new restore formats
-
-**💡 Why This Matters:**
-Raven was built to solve the exact problem of AI agents overwriting or forgetting code.
-With these features, you have complete visibility into every change, instant recovery
-options, and automatic alerts before anything goes wrong.
 
 ### Previous Release: 0.12.0 - Agent Conversation Tracker
 
@@ -349,22 +400,30 @@ raven/
 │   ├── db.js                 # SQLite database wrapper
 │   ├── metrics-collector.js  # System metrics
 │   ├── trigger-engine.js     # Alert system
+│   ├── routes/
+│   │   └── developer.js      # 🆕 Developer persona API (9 endpoints)
 │   └── package.json          # Dependencies
 │
 ├── frontend/                  # Svelte Web UI ⭐ ACTIVE
 │   ├── src/
 │   │   ├── App.svelte        # Main application
-│   │   └── lib/              # 18 UI components
+│   │   └── lib/              # 21 UI components
 │   │       ├── Dashboard.svelte
 │   │       ├── AgentsPanel.svelte
 │   │       ├── MetricsPanel.svelte
 │   │       ├── SessionReplay.svelte
+│   │       ├── ConversationsPanel.svelte         # 🆕 Conversation history UI
+│   │       ├── DeveloperInsightsPanel.svelte     # 🆕 Developer persona dashboard
+│   │       ├── ProjectsComparisonPanel.svelte    # 🆕 Cross-project analytics
+│   │       ├── exportUtils.js                    # 🆕 Universal export library
 │   │       └── ...
 │   └── package.json
 │
 ├── .raven/                    # Runtime data
 │   ├── config.toml           # Configuration
-│   ├── db/raven.db          # SQLite database
+│   ├── db/
+│   │   ├── raven.db         # Main SQLite database
+│   │   └── developer.db     # 🆕 Developer persona database
 │   └── snapshots/           # File snapshots
 │
 ├── docs/                      # Documentation
@@ -396,27 +455,45 @@ npm run dev                  # Starts both backend and frontend (if configured)
 
 ## 🎨 UI Preview
 
-**🆕 Global Multi-Project Dashboard** featuring:
+**🆕 Comprehensive Analytics Dashboard** featuring:
 
 **Header:**
 - **Project Filter Dropdown** - 👁️ Switch between 13+ projects instantly
 - **Recent Projects** - Quick access with ★ icons
 - **Visual Feedback** - Pulse animation on filter change
 
-**Panels (All Project-Aware):**
-- **Overview Panel** - Multi-project grid with activity status
-- **System Metrics** - Real-time CPU and memory per project
+**Overview Tab:**
+- **Dashboard** - Multi-project grid with activity status
+- **Projects Comparison** 🆕 - Side-by-side comparison of all monitored projects
+
+**Agents Tab:**
+- **Agent Stats** - Tool usage and performance metrics
+- **Conversations** 🆕 - Full conversation history with search and export
+
+**Analysis Tab:**
+- **Performance** - Real-time CPU and memory per project
+- **Triggers** - Project-specific alert events
+- **Session Replay** - Time-travel file history viewer
+- **Developer Insights** 🆕 - Activity heatmaps, language breakdown, workflow patterns
+
+**Activity Tab:**
 - **Event Feed** - Live file changes with color-coded project badges
 - **Live Code Feed** - Real-time diffs and changes per project
-- **Git Panel** - Per-project repository status
-- **Triggers Panel** - Project-specific alert events
-- **Status Panel** - Quick-switch between monitored projects
+
+**System Tab:**
+- **Status** - Uptime, database health, version info
+- **Storage** - Database management and optimization
+- **Server Sync** - Remote backup and synchronization
+- **Notifications** - Alert management and filtering
+- **Errors** - Error log with search and export
+- **API Health** - Endpoint monitoring with success rates
+- **Settings** - Configuration and preferences
 
 **Power User Features:**
 - **Keyboard Shortcuts** - Press `?` for help, `p` to cycle projects, `Shift+P` for all
-- **Time Travel Panel** - Browse tracked files with project context
+- **Universal Export** 🆕 - Download data as CSV, JSON, or Excel from any panel
 - **Diff Viewer** - Side-by-side comparison of changes
-- **Export Tools** - Download filtered events as JSON or CSV
+- **Real-time Updates** - WebSocket-powered live data feeds
 
 ## 🔮 Future Enhancements
 
@@ -483,8 +560,8 @@ MIT License - See [LICENSE](LICENSE) file
 
 **Seth Eheart**
 Codename: Raven
-Version: 0.9.0 (Global Multi-Project Monitoring)
+Version: 0.14.0 (Analytics & Insights Platform)
 
 ---
 
-**Status:** 🚀 Global multi-project monitoring platform! Monitor 13+ AI agent projects simultaneously with color-coded badges, keyboard shortcuts, and instant filtering. Every project, one dashboard.
+**Status:** 🚀 Comprehensive analytics platform for AI agents! Monitor conversations, developer patterns, and cross-project metrics with universal export. Full visibility into AI agent behavior, your coding habits, and project health - all from one dashboard.
