@@ -19,6 +19,29 @@
   let comparisonMode = false;
   let selectedForComparison = [];
   let comparingSnapshots = false;
+  let searchQuery = '';
+  let filterChangeType = 'all';
+
+  // Filtered history based on search and type filter
+  $: filteredHistory = history.filter(event => {
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesTime = formatTime(event.timestamp).toLowerCase().includes(query);
+      const matchesType = event.change_type?.toLowerCase().includes(query);
+      const matchesId = `#${event.id}`.includes(query);
+      if (!matchesTime && !matchesType && !matchesId) {
+        return false;
+      }
+    }
+
+    // Change type filter
+    if (filterChangeType !== 'all' && event.change_type !== filterChangeType) {
+      return false;
+    }
+
+    return true;
+  });
 
   onMount(async () => {
     await loadHistory();
@@ -226,13 +249,38 @@
       </div>
     {/if}
 
+    {#if !loading && history.length > 0}
+      <div class="filter-bar">
+        <div class="search-box">
+          <input
+            type="text"
+            placeholder="🔍 Search by time, type, or event #..."
+            bind:value={searchQuery}
+          />
+        </div>
+        <div class="type-filter">
+          <select bind:value={filterChangeType}>
+            <option value="all">All Types ({history.length})</option>
+            <option value="modified">Modified Only</option>
+            <option value="created">Created Only</option>
+            <option value="deleted">Deleted Only</option>
+          </select>
+        </div>
+        <div class="filter-stats">
+          Showing {filteredHistory.length} of {history.length} snapshots
+        </div>
+      </div>
+    {/if}
+
     {#if loading}
       <div class="loading">Loading history...</div>
     {:else if history.length === 0}
       <div class="empty">No history found for this file</div>
+    {:else if filteredHistory.length === 0}
+      <div class="empty">No snapshots match your filters</div>
     {:else}
       <div class="timeline">
-        {#each history || [] as event (event.id)}
+        {#each filteredHistory || [] as event (event.id)}
           <div
             class="timeline-event {getChangeClass(event.change_type)}"
             class:selected={isSelectedForComparison(event)}
