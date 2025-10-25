@@ -6,13 +6,45 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 0.11.0 - Backend Production Hardening & Observability
+**Version:** 0.12.0 - Agent Conversation Tracker & Authentication Fixes
 
-## 🚀 Current Status: Production-Grade Backend - Perfect Score (10/10)
+## 🚀 Current Status: Conversation-Aware AI Monitoring
 
-✅ **Enterprise-grade monitoring platform with battle-tested backend infrastructure!**
+✅ **Track not just what AI agents change, but WHY - with full conversation history!**
 
-### 🆕 What's New in 0.11.0 - Backend Production Ready
+### 🆕 What's New in 0.12.0 - Agent Conversation Tracker
+
+**🤖 Conversation History Tracking:**
+- [x] **Agent Conversations Table** - Full conversation event storage in database
+- [x] **Conversation Import** - Parse and import Claude Code .ant/ session files
+- [x] **Unified Event Feed** - See file changes AND conversation history together
+- [x] **Expandable Details** - Click to view full prompts and AI responses
+- [x] **Search & Filter** - Find conversations by content, agent, or project
+- [x] **Real-time Updates** - WebSocket notifications for new conversations
+- [x] **Batch Import Scripts** - Node.js and Python importers for .ant/ files
+
+**🔧 Critical Authentication Fixes (Zero Console Errors):**
+- [x] **ServerSyncPanel** - Fixed 4 raw fetch() calls causing 401 errors
+- [x] **ErrorLog WebSocket** - Fixed authentication causing connection failures
+- [x] **Process Metrics API** - Added missing /api/process-metrics endpoint (404 fix)
+- [x] **Session ID API** - Made /api/session-id public (401 fix)
+- [x] **LiveCodeFeed** - Fixed process_metrics column mapping
+- [x] **Clean Console** - Zero authentication or API errors in production
+
+**📊 API Endpoints Added:**
+- GET `/api/conversations` - Retrieve conversation events with filtering
+- GET `/api/conversations/stats` - Activity statistics and insights
+- POST `/api/conversations` - Import conversation data
+- GET `/api/process-metrics` - Process metrics with pagination
+- GET `/api/session-id` - Public session ID endpoint (no auth required)
+
+**🛠️ Developer Experience:**
+- [x] **723+ Events Imported** - Full conversation history from Claude sessions
+- [x] **Debugging Insights** - Understand AI decision-making process
+- [x] **Context Recovery** - Never lose track of what you asked AI to do
+- [x] **Zero Breaking Changes** - Fully backward compatible
+
+### Previous Release: 0.11.0 - Backend Production Ready
 
 **🔒 Production Deployment & Security (Docker + CI/CD):**
 - [x] **Multi-stage Docker Build** - Production image 28% smaller (50MB reduction)
@@ -312,6 +344,8 @@ raven/
 
 ## 🧪 Development
 
+**📖 Contributing:** See [CONTRIBUTING.md](CONTRIBUTING.md) for development best practices and guidelines.
+
 ```bash
 # Backend development
 cd backend
@@ -328,6 +362,8 @@ npm run build                # Build for production
 # Full stack
 npm run dev                  # Starts both backend and frontend (if configured)
 ```
+
+**⚠️ Important:** Never use regex/sed for code refactoring! See [CONTRIBUTING.md](CONTRIBUTING.md) for safe refactoring practices.
 
 ## 🎨 UI Preview
 
@@ -403,8 +439,10 @@ See [docs/SETUP.md](docs/SETUP.md#troubleshooting) for common issues and solutio
 
 Complete documentation is available in the [docs/](docs/) directory:
 
+- **[Contributing Guide](CONTRIBUTING.md)** - Development best practices and guidelines
 - **[Setup Guide](docs/SETUP.md)** - Installation instructions
 - **[Testing Guide](docs/TESTING.md)** - Running tests
+- **[Lessons Learned](docs/LESSONS_LEARNED.md)** - Post-mortems and what we learned
 - **[Development History](docs/HISTORY.md)** - Complete timeline (Phase 0 - II.6)
 - **[API Documentation](docs/api/)** - Feature-specific technical docs
 
