@@ -1,5 +1,6 @@
 import { notifications } from './notificationService.js';
 import { authService } from './authStore.js';
+import { logError } from './errorLogger.js';
 
 const API_BASE = 'http://localhost:3030/api';
 
@@ -28,10 +29,28 @@ export async function apiFetch(endpoint, options = {}) {
 
     // Handle HTTP errors
     if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      const errorMessage = `API error (${response.status}): ${errorText}`;
+
+      // Log HTTP error to error log (but don't log errors from the error endpoint itself)
+      if (!endpoint.includes('/errors')) {
+        logError(
+          new Error(errorMessage),
+          'API Client',
+          {
+            endpoint,
+            method: options.method || 'GET',
+            status_code: response.status,
+            response_body: errorText
+          },
+          response.status >= 500 ? 'error' : 'warning'
+        ).catch(() => {
+          // Silently fail if error logging fails (prevents infinite loops)
+        });
+      }
+
       // Handle 401 Unauthorized - trigger logout
       if (response.status === 401) {
-        const errorText = await response.text().catch(() => 'Unauthorized');
-
         // Only logout if we actually had a token (ignore if auth is disabled)
         if (token) {
           notifications.error('Session expired. Please login again.');
@@ -42,9 +61,6 @@ export async function apiFetch(endpoint, options = {}) {
 
         throw new Error('Unauthorized');
       }
-
-      const errorText = await response.text().catch(() => 'Unknown error');
-      const errorMessage = `API error (${response.status}): ${errorText}`;
 
       notifications.apiError(endpoint, errorMessage);
       throw new Error(errorMessage);
@@ -61,6 +77,22 @@ export async function apiFetch(endpoint, options = {}) {
     // Network errors or other fetch failures
     if (!error.message.includes('API error')) {
       notifications.apiError(endpoint, error.message);
+
+      // Log network error to error log (but don't log errors from the error endpoint itself)
+      if (!endpoint.includes('/errors')) {
+        logError(
+          error,
+          'API Client',
+          {
+            endpoint,
+            method: options.method || 'GET',
+            error_type: 'Network Error'
+          },
+          'error'
+        ).catch(() => {
+          // Silently fail if error logging fails (prevents infinite loops)
+        });
+      }
     }
     throw error;
   }

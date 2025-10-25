@@ -242,6 +242,94 @@ app.get('/api/session-id', (req, res) => {
   res.json({ session_id: SESSION_ID });
 });
 
+/**
+ * POST /api/errors
+ * Public endpoint - Log an error from the frontend
+ * Note: This must be public to log errors even when not authenticated
+ */
+app.post('/api/errors', (req, res) => {
+  try {
+    const {
+      error_type,
+      message,
+      stack,
+      component,
+      user_agent,
+      url,
+      metadata,
+      severity
+    } = req.body;
+
+    // Validate required fields
+    if (!error_type || !message) {
+      return res.status(400).json({ error: 'Missing required fields: error_type, message' });
+    }
+
+    const timestamp = new Date().toISOString();
+
+    // Insert into database
+    const errorId = projectState.db.insertErrorLog(
+      timestamp,
+      error_type,
+      message,
+      stack,
+      component,
+      user_agent,
+      url,
+      metadata,
+      SESSION_ID,
+      severity || 'error'
+    );
+
+    logger.error(`Error logged: ${error_type} - ${message}`, {
+      component,
+      error_id: errorId
+    });
+
+    // Create notification for errors (not warnings or info)
+    if (severity === 'error' || !severity) {
+      const notificationId = projectState.db.insertNotification(
+        timestamp,
+        'error',
+        'critical',
+        `${error_type}: ${message.substring(0, 80)}`,
+        message,
+        { component, error_id: errorId, stack: stack?.substring(0, 500) },
+        SESSION_ID
+      );
+
+      io.emit('notification', {
+        id: notificationId,
+        timestamp,
+        type: 'error',
+        severity: 'critical',
+        title: `${error_type}: ${message.substring(0, 80)}`,
+        message,
+        read: false,
+        metadata: { component, error_id: errorId }
+      });
+    }
+
+    // Emit real-time event via WebSocket
+    io.emit('error-logged', {
+      id: errorId,
+      timestamp,
+      error_type,
+      message,
+      component,
+      severity: severity || 'error'
+    });
+
+    res.json({
+      success: true,
+      error_id: errorId
+    });
+  } catch (error) {
+    console.error('❌ Error logging endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== Authentication Middleware ====================
 
 // Apply authentication to all API routes (unless DISABLE_AUTH=true)
@@ -2568,90 +2656,6 @@ app.get('/api/docs/:filepath(*)', async (req, res) => {
 });
 
 // ==================== Error Logging API ====================
-
-/**
- * POST /api/errors
- * Log an error from the frontend
- */
-app.post('/api/errors', (req, res) => {
-  try {
-    const {
-      error_type,
-      message,
-      stack,
-      component,
-      user_agent,
-      url,
-      metadata,
-      severity
-    } = req.body;
-
-    // Validate required fields
-    if (!error_type || !message) {
-      return res.status(400).json({ error: 'Missing required fields: error_type, message' });
-    }
-
-    const timestamp = new Date().toISOString();
-
-    // Insert into database
-    const errorId = projectState.db.insertErrorLog(
-      timestamp,
-      error_type,
-      message,
-      stack,
-      component,
-      user_agent,
-      url,
-      metadata,
-      SESSION_ID,
-      severity || 'error'
-    );
-
-    console.log(`❌ Error logged: ${error_type} - ${message}`);
-
-    // Create notification for errors (not warnings or info)
-    if (severity === 'error' || !severity) {
-      const notificationId = projectState.db.insertNotification(
-        timestamp,
-        'error',
-        'critical',
-        `${error_type}: ${message.substring(0, 80)}`,
-        message,
-        { component, error_id: errorId, stack: stack?.substring(0, 500) },
-        SESSION_ID
-      );
-
-      io.emit('notification', {
-        id: notificationId,
-        timestamp,
-        type: 'error',
-        severity: 'critical',
-        title: `${error_type}: ${message.substring(0, 80)}`,
-        message,
-        read: false,
-        metadata: { component, error_id: errorId }
-      });
-    }
-
-    // Emit real-time event via WebSocket
-    io.emit('error-logged', {
-      id: errorId,
-      timestamp,
-      error_type,
-      message,
-      component,
-      severity: severity || 'error'
-    });
-
-    res.json({
-      success: true,
-      error_id: errorId
-    });
-  } catch (error) {
-    console.error('❌ Error logging endpoint error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 /**
  * GET /api/errors
