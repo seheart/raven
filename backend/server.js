@@ -12,7 +12,7 @@ import { GitMonitor } from './dist/modules/git.js';
 import { randomUUID } from 'crypto';
 import * as SyncService from './sync-service.js';
 import { createDefaultHealthChecks } from './health-checks.js';
-import { join, relative, normalize } from 'path';
+import { join, relative, normalize, isAbsolute } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
 import { readFileSync } from 'fs';
@@ -407,8 +407,61 @@ app.get('/api/alerts/templates', (req, res) => {
 });
 
 app.get('/api/projects', (req, res) => {
-  // Redirect to proper endpoint
-  res.redirect(301, '/api/projects/list');
+  try {
+    // Return full project configuration with stats
+    const projectsWithStats = Array.from(projectDatabases.entries()).map(([name, db]) => {
+      // Get database stats
+      let dbSize = 0;
+      let eventCount = 0;
+
+      try {
+        const dbPath = join(process.cwd(), '..', '.raven', 'db', `${name}.db`);
+        if (fs.existsSync(dbPath)) {
+          const stats = fs.statSync(dbPath);
+          dbSize = stats.size;
+        }
+
+        const countResult = db.db.prepare('SELECT COUNT(*) as count FROM events').get();
+        eventCount = countResult.count;
+      } catch (err) {
+        logger.error(`Error getting stats for ${name}:`, err);
+      }
+
+      // Find config from projects.json if it exists
+      let projectConfig = {};
+      if (config && config.projects && Array.isArray(config.projects)) {
+        projectConfig = config.projects.find(p => p.name === name) || {};
+      }
+
+      // Get the actual project path
+      const projectPath = projectPaths.get(name) || '';
+
+      return {
+        name,
+        path: projectPath,
+        enabled: projectConfig.enabled !== false, // Default to true
+        ignorePatterns: projectConfig.ignorePatterns || [],
+        maxFileSize: projectConfig.maxFileSize || 10485760,
+        retentionDays: projectConfig.retentionDays || 30,
+        dbSize,
+        eventCount
+      };
+    });
+
+    // Prevent caching of project configuration
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
+    res.json({
+      autoDiscover: config.autoDiscover !== false,
+      basePath: config.basePath || join(process.cwd(), '..', '..'),
+      projects: projectsWithStats
+    });
+  } catch (error) {
+    logger.error('Error fetching projects config:', error);
+    res.status(500).json({ error: 'Failed to fetch projects configuration' });
+  }
 });
 
 app.get('/api/status', (req, res) => {
@@ -1053,8 +1106,10 @@ function initializeProject(projectName) {
     }
 
     // Set project paths
-    // Backend is in raven/backend, so go up two levels to get to Projects/, then add project path
-    const projectPath = join(process.cwd(), '..', '..', project.path);
+    // Use absolute path if provided, otherwise resolve relative to Projects dir
+    const projectPath = isAbsolute(project.path)
+      ? project.path
+      : join(process.cwd(), '..', '..', project.path);
     const dbPath = join(RAVEN_DIR, 'db', `${projectName}.db`);
     const snapshotsDir = join(RAVEN_DIR, 'snapshots', projectName);
 
@@ -1569,77 +1624,136 @@ app.get('/api/performance-correlations', (req, res) => {
 
 app.get('/api/metrics/dashboard', (req, res) => {
   try {
-    if (!projectState.db || !projectState.db.db) {
-      return res.status(500).json({ error: 'Database not initialized' });
+    if (projectDatabases.size === 0) {
+      return res.status(500).json({ error: 'No project databases initialized' });
     }
 
-    // Aggregate key metrics
-    const metrics = {};
+    // Aggregate metrics across all projects
+    const metrics = {
+      total_events: 0,
+      events_24h: 0,
+      total_files: 0,
+      error_count: 0,
+      conversation_count: 0,
+      events_by_type: {},
+      active_projects: 0
+    };
 
-    // Total events
-    metrics.total_events = projectState.db.db.prepare('SELECT COUNT(*) as count FROM events').get().count;
+    const fileActivity = new Map();
+    const hourlyActivity = new Map();
+    const dailyEvents = [];
 
-    // Events by type
-    const eventsByType = projectState.db.db.prepare(`
-      SELECT change_type, COUNT(*) as count
-      FROM events
-      GROUP BY change_type
-    `).all();
-    metrics.events_by_type = Object.fromEntries(eventsByType.map(e => [e.change_type, e.count]));
+    // Iterate through all project databases
+    for (const [projectName, db] of projectDatabases.entries()) {
+      try {
+        // Total events
+        const totalEvents = db.db.prepare('SELECT COUNT(*) as count FROM events').get();
+        metrics.total_events += totalEvents.count;
 
-    // Events last 24h
-    metrics.events_24h = projectState.db.db.prepare(`
-      SELECT COUNT(*) as count FROM events
-      WHERE timestamp >= datetime('now', '-24 hours')
-    `).get().count;
+        // Events by type (normalize names: add->created, change->modified, unlink->deleted)
+        const eventsByType = db.db.prepare(`
+          SELECT change_type, COUNT(*) as count
+          FROM events
+          GROUP BY change_type
+        `).all();
 
-    // Active projects
-    metrics.active_projects = projectState.db.db.prepare(`
-      SELECT COUNT(DISTINCT project_name) as count FROM events
-      WHERE timestamp >= datetime('now', '-7 days')
-    `).get().count;
+        for (const row of eventsByType) {
+          let normalizedType = row.change_type;
+          if (row.change_type === 'add') normalizedType = 'created';
+          else if (row.change_type === 'change') normalizedType = 'modified';
+          else if (row.change_type === 'unlink') normalizedType = 'deleted';
 
-    // Total files tracked
-    metrics.total_files = projectState.db.db.prepare(`
-      SELECT COUNT(DISTINCT filepath) as count FROM events
-    `).get().count;
+          metrics.events_by_type[normalizedType] = (metrics.events_by_type[normalizedType] || 0) + row.count;
+        }
 
-    // Most active file
-    const mostActive = projectState.db.db.prepare(`
-      SELECT filepath, COUNT(*) as count FROM events
-      WHERE timestamp >= datetime('now', '-7 days')
-      GROUP BY filepath
-      ORDER BY count DESC
-      LIMIT 1
-    `).get();
-    metrics.most_active_file = mostActive ? { file: mostActive.filepath, changes: mostActive.count } : null;
+        // Events last 24h
+        const events24h = db.db.prepare(`
+          SELECT COUNT(*) as count FROM events
+          WHERE timestamp >= datetime('now', '-24 hours')
+        `).get();
+        metrics.events_24h += events24h.count;
 
-    // Error count
-    metrics.error_count = projectState.db.db.prepare('SELECT COUNT(*) as count FROM error_logs').get().count;
+        // Check if project was active in last 7 days
+        const projectActivity = db.db.prepare(`
+          SELECT COUNT(*) as count FROM events
+          WHERE timestamp >= datetime('now', '-7 days')
+        `).get();
+        if (projectActivity.count > 0) metrics.active_projects++;
 
-    // Conversation count
-    metrics.conversation_count = projectState.db.db.prepare('SELECT COUNT(*) as count FROM conversations').get().count;
+        // Track unique files
+        const files = db.db.prepare(`
+          SELECT DISTINCT filepath FROM events
+        `).all();
+        metrics.total_files += files.length;
 
-    // Average events per day (last 7 days)
-    const avgPerDay = projectState.db.db.prepare(`
-      SELECT AVG(daily_count) as avg FROM (
-        SELECT DATE(timestamp) as day, COUNT(*) as daily_count
-        FROM events
-        WHERE timestamp >= datetime('now', '-7 days')
-        GROUP BY day
-      )
-    `).get();
-    metrics.avg_events_per_day = Math.round(avgPerDay.avg || 0);
+        // File activity for most active file
+        const fileStats = db.db.prepare(`
+          SELECT filepath, COUNT(*) as count FROM events
+          WHERE timestamp >= datetime('now', '-7 days')
+          GROUP BY filepath
+        `).all();
+        for (const stat of fileStats) {
+          const key = `${projectName}/${stat.filepath}`;
+          fileActivity.set(key, (fileActivity.get(key) || 0) + stat.count);
+        }
 
-    // Busiest hour
-    const busiestHour = projectState.db.db.prepare(`
-      SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
-      FROM events
-      GROUP BY hour
-      ORDER BY count DESC
-      LIMIT 1
-    `).get();
-    metrics.busiest_hour = busiestHour ? { hour: parseInt(busiestHour.hour), count: busiestHour.count } : null;
+        // Error count
+        const errors = db.db.prepare('SELECT COUNT(*) as count FROM error_logs').get();
+        metrics.error_count += errors.count;
+
+        // Conversation count
+        const convos = db.db.prepare('SELECT COUNT(*) as count FROM conversations').get();
+        metrics.conversation_count += convos.count;
+
+        // Daily events for average
+        const daily = db.db.prepare(`
+          SELECT DATE(timestamp) as day, COUNT(*) as count
+          FROM events
+          WHERE timestamp >= datetime('now', '-7 days')
+          GROUP BY day
+        `).all();
+        dailyEvents.push(...daily.map(d => d.count));
+
+        // Hourly activity
+        const hourly = db.db.prepare(`
+          SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
+          FROM events
+          GROUP BY hour
+        `).all();
+        for (const h of hourly) {
+          hourlyActivity.set(h.hour, (hourlyActivity.get(h.hour) || 0) + h.count);
+        }
+      } catch (dbError) {
+        logger.error(`Error querying ${projectName} database:`, dbError);
+      }
+    }
+
+    // Calculate most active file
+    let mostActiveFile = null;
+    let maxCount = 0;
+    for (const [file, count] of fileActivity.entries()) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostActiveFile = file;
+      }
+    }
+    metrics.most_active_file = mostActiveFile ? { file: mostActiveFile, changes: maxCount } : null;
+
+    // Calculate average events per day
+    metrics.avg_events_per_day = dailyEvents.length > 0
+      ? Math.round(dailyEvents.reduce((a, b) => a + b, 0) / dailyEvents.length)
+      : 0;
+
+    // Find busiest hour
+    let busiestHour = null;
+    let maxHourCount = 0;
+    for (const [hour, count] of hourlyActivity.entries()) {
+      if (count > maxHourCount) {
+        maxHourCount = count;
+        busiestHour = { hour: parseInt(hour), count };
+      }
+    }
+    metrics.busiest_hour = busiestHour;
 
     res.json({ metrics });
   } catch (error) {
@@ -1937,7 +2051,19 @@ app.get('/api/trends/historical', (req, res) => {
     const now = Date.now();
     const startTime = new Date(now - (days * 24 * 60 * 60 * 1000)).toISOString();
 
-    // Get events grouped by time period
+    if (projectDatabases.size === 0) {
+      return res.json({
+        period,
+        days,
+        start_time: startTime,
+        trends: []
+      });
+    }
+
+    // Aggregate trends across all projects
+    const aggregatedTrends = new Map();
+
+    // Get events grouped by time period from all databases
     const sql = `
       SELECT
         CASE
@@ -1947,9 +2073,9 @@ app.get('/api/trends/historical', (req, res) => {
           ELSE strftime('%Y-%m-%d %H:00:00', timestamp)
         END as period,
         COUNT(*) as event_count,
-        SUM(CASE WHEN change_type = 'modified' THEN 1 ELSE 0 END) as modifications,
-        SUM(CASE WHEN change_type = 'created' THEN 1 ELSE 0 END) as creations,
-        SUM(CASE WHEN change_type = 'deleted' THEN 1 ELSE 0 END) as deletions,
+        SUM(CASE WHEN change_type = 'change' THEN 1 ELSE 0 END) as modifications,
+        SUM(CASE WHEN change_type = 'add' THEN 1 ELSE 0 END) as creations,
+        SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as deletions,
         COUNT(DISTINCT filepath) as unique_files
       FROM events
       WHERE timestamp >= ?
@@ -1957,8 +2083,38 @@ app.get('/api/trends/historical', (req, res) => {
       ORDER BY period ASC
     `;
 
-    const stmt = projectState.db.db.prepare(sql);
-    const trends = stmt.all(period, period, period, startTime);
+    for (const [projectName, db] of projectDatabases.entries()) {
+      try {
+        const stmt = db.db.prepare(sql);
+        const projectTrends = stmt.all(period, period, period, startTime);
+
+        for (const trend of projectTrends) {
+          const existing = aggregatedTrends.get(trend.period) || {
+            period: trend.period,
+            event_count: 0,
+            modifications: 0,
+            creations: 0,
+            deletions: 0,
+            unique_files: 0
+          };
+
+          existing.event_count += trend.event_count;
+          existing.modifications += trend.modifications;
+          existing.creations += trend.creations;
+          existing.deletions += trend.deletions;
+          existing.unique_files += trend.unique_files;
+
+          aggregatedTrends.set(trend.period, existing);
+        }
+      } catch (dbError) {
+        logger.error(`Error querying trends from ${projectName}:`, dbError);
+      }
+    }
+
+    // Convert map to sorted array
+    const trends = Array.from(aggregatedTrends.values()).sort((a, b) =>
+      a.period.localeCompare(b.period)
+    );
 
     res.json({
       period,

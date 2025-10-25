@@ -41,7 +41,10 @@
   async function loadConfig() {
     try {
       loading = true;
-      const response = await fetch(`${API_BASE}/projects`);
+      // Add cache-busting to avoid stale redirects
+      const response = await fetch(`${API_BASE}/projects?_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
       if (!response.ok) throw new Error('Failed to load projects');
 
       config = await response.json();

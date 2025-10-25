@@ -309,17 +309,17 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 32px 24px;
+    padding: 32px 24px 24px;
     margin-bottom: 24px;
-    min-height: 300px;
+    min-height: 400px;
   }
 
   .chart {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 4px;
-    height: 250px;
+    gap: 6px;
+    height: 300px;
     padding: 0 8px;
   }
 
@@ -328,24 +328,26 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    min-width: 0;
   }
 
   .bar-stack {
     width: 100%;
-    height: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column-reverse;
     justify-content: flex-start;
     gap: 1px;
+    min-height: 0;
   }
 
   .bar {
     width: 100%;
-    min-height: 2px;
+    min-height: 3px;
     border-radius: 2px 2px 0 0;
     transition: all 0.3s ease;
     cursor: pointer;
+    flex-shrink: 0;
   }
 
   .bar:hover {
@@ -366,21 +368,24 @@
   }
 
   .bar-label {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--muted);
     text-align: center;
-    writing-mode: horizontal-tb;
-    max-width: 100%;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    max-height: 60px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin-top: 4px;
   }
 
   .bar-count {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     color: var(--text);
     font-family: var(--mono);
+    margin-top: 2px;
   }
 
   .stats-grid {
@@ -501,11 +506,17 @@
     }
 
     .chart {
-      gap: 2px;
+      gap: 3px;
+      height: 250px;
+    }
+
+    .chart-container {
+      min-height: 350px;
     }
 
     .bar-label {
       font-size: 8px;
+      max-height: 50px;
     }
   }
 </style>

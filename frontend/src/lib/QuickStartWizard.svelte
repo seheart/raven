@@ -7,7 +7,7 @@
 
   // Wizard state
   let currentStep = 0;
-  let projectPath = '';
+  let projectPath = '/home/seth/Projects';
   let selectedTemplate = 'ai-safety-basic';
   let notificationsEnabled = false;
   let error = null;
@@ -58,9 +58,9 @@
       description: 'Raven watches over your projects while you code with AI assistants like Claude Code or Cursor. It keeps you safe with automatic syntax checking, session rollback, alerts for big changes, and security monitoring.'
     },
     {
-      title: 'Choose Your Project',
-      subtitle: 'What should I watch?',
-      description: 'Point me to your project directory and I\'ll start monitoring file changes, keeping you informed of everything your AI coding assistant does.'
+      title: 'Choose Your Projects Folder',
+      subtitle: 'Where are all your projects?',
+      description: 'Point me to the parent folder containing all your projects (like /home/yourname/Projects). I\'ll monitor all projects inside it automatically.'
     },
     {
       title: 'Pick Your Alert Style',
@@ -74,10 +74,7 @@
     }
   ];
 
-  // Store basePath for directory picker
-  let basePath = '';
-
-  // Load templates from API (fallback to defaults if it fails)
+  // Load templates from API
   onMount(async () => {
     try {
       console.log('🔄 [QuickStart] Fetching alert templates from /api/alerts/templates');
@@ -112,26 +109,6 @@
       console.error('❌ Error fetching templates:', err);
       console.warn('⚠️ Using fallback templates');
     }
-
-    // Fetch basePath for directory picker
-    try {
-      console.log('🔄 [QuickStart] Fetching basePath from /api/projects');
-      const configResponse = await fetch('/api/projects');
-      console.log('📡 [QuickStart] Projects response status:', configResponse.status);
-
-      if (configResponse.ok) {
-        const text = await configResponse.text();
-        console.log('📄 [QuickStart] Projects response length:', text.length, 'bytes');
-
-        if (text.length > 0) {
-          const config = JSON.parse(text);
-          basePath = config.basePath || '';
-          console.log('✅ Loaded basePath:', basePath);
-        }
-      }
-    } catch (err) {
-      console.error('❌ Error fetching basePath:', err);
-    }
   });
 
   // Navigation
@@ -147,63 +124,10 @@
     }
   }
 
-  // Handle directory picker
-  function handleDirectorySelect(event) {
-    const files = event.target.files;
-    if (files.length > 0) {
-      // Get the path from the first file in the directory
-      const file = files[0];
-      // Extract directory path by removing the filename
-      const fullPath = file.webkitRelativePath || file.name;
-      const pathParts = fullPath.split('/');
-
-      // Extract just the directory name (sanitize it)
-      let directoryName = pathParts[0];
-
-      // Sanitize directory name to prevent path injection
-      // Remove dangerous characters and patterns
-      directoryName = directoryName.replace(/[<>:"|?*\0]/g, '');
-      directoryName = directoryName.replace(/\.\./g, '');
-      directoryName = directoryName.trim();
-
-      if (!directoryName) {
-        error = 'Invalid directory name';
-        return;
-      }
-
-      // Construct absolute path using basePath from config
-      if (basePath && directoryName) {
-        // Remove trailing slash from basePath if present
-        const cleanBasePath = basePath.replace(/\/+$/, '');
-
-        // Validate basePath doesn't contain suspicious patterns
-        if (cleanBasePath.includes('..') || cleanBasePath.includes('\0')) {
-          error = 'Invalid base path configuration';
-          return;
-        }
-
-        // Use path separator appropriate for the platform
-        projectPath = `${cleanBasePath}/${directoryName}`;
-      } else {
-        // Fallback: just show the directory name if basePath not available
-        projectPath = directoryName || fullPath;
-      }
-      error = null;
-    }
-  }
-
-  // Trigger directory picker
-  function browseDirectory() {
-    const input = document.getElementById('directory-picker');
-    if (input) {
-      input.click();
-    }
-  }
-
-  // Handle project path selection
+  // Handle projects folder path selection
   async function selectProjectDirectory() {
-    if (!projectPath) {
-      error = 'Please enter a project path';
+    if (!projectPath || projectPath.trim() === '') {
+      error = 'Please enter your projects folder path';
       return;
     }
     error = null;
@@ -234,7 +158,7 @@
   // Complete setup
   async function completeSetup() {
     console.log('🚀 [QuickStart] completeSetup called');
-    console.log('   Project path:', projectPath);
+    console.log('   Projects folder:', projectPath);
     console.log('   Selected template:', selectedTemplate);
     console.log('   Notifications enabled:', notificationsEnabled);
 
@@ -242,62 +166,20 @@
     error = null;
 
     try {
-      // 1. Add project
-      const projectName = projectPath.split('/').pop() || 'My Project';
-      console.log('📦 [QuickStart] Creating project:', { name: projectName, path: projectPath });
+      // Raven auto-discovers and monitors all projects in the folder at startup
+      // No API call needed - monitoring is already active!
+      console.log('✅ [QuickStart] Projects in', projectPath, 'are already being monitored');
 
-      const projectResponse = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: projectName,
-          path: projectPath,
-          enabled: true
-        })
-      });
-
-      console.log('📦 [QuickStart] Project response status:', projectResponse.status);
-
-      if (!projectResponse.ok) {
-        const errorData = await projectResponse.json();
-        console.error('❌ [QuickStart] Project creation failed:', errorData);
-        throw new Error(errorData.error || 'Failed to add project');
-      }
-
-      const project = await projectResponse.json();
-      console.log('✅ [QuickStart] Project created:', project);
-
-      // 2. Apply alert template
-      console.log('⚡ [QuickStart] Applying alert template:', selectedTemplate, 'to project:', project.project?.id);
-
-      const templateResponse = await fetch(`/api/alerts/templates/${selectedTemplate}/apply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: project.project?.id
-        })
-      });
-
-      console.log('⚡ [QuickStart] Template response status:', templateResponse.status);
-
-      if (!templateResponse.ok) {
-        const templateError = await templateResponse.json();
-        console.error('❌ [QuickStart] Template application failed:', templateError);
-        throw new Error(templateError.error || 'Failed to apply alert template');
-      }
-
-      console.log('✅ [QuickStart] Template applied successfully');
-
-      // 3. Save wizard completion status
+      // Save wizard completion status
       localStorage.setItem('raven-quick-start-completed', 'true');
       localStorage.setItem('raven-welcome-seen', 'true');
       console.log('💾 [QuickStart] Saved completion status to localStorage');
 
-      // 4. Close wizard
+      // Close wizard
       loading = false;
       console.log('🎉 [QuickStart] Setup complete! Dispatching complete event');
       dispatch('complete', {
-        projectId: project.project?.id,
+        projectsFolder: projectPath,
         template: selectedTemplate,
         notifications: notificationsEnabled
       });
@@ -371,34 +253,19 @@
         </div>
 
       {:else if currentStep === 1}
-        <!-- Step 1: Project Selection -->
+        <!-- Step 1: Projects Folder Selection -->
         <div class="step-content">
           <p class="description">{steps[1].description}</p>
           <div class="project-input">
-            <label for="project-path">Project Directory Path</label>
-            <div class="path-input-group">
-              <input
-                id="project-path"
-                type="text"
-                bind:value={projectPath}
-                placeholder="/Users/yourname/projects/myproject"
-                on:keydown={(e) => e.key === 'Enter' && selectProjectDirectory()}
-              />
-              <button type="button" class="browse-btn" on:click={browseDirectory} title="Browse for directory">
-                📁 Browse
-              </button>
-            </div>
-            <!-- Hidden file input for directory selection -->
+            <label for="project-path">Projects Folder Path</label>
             <input
-              id="directory-picker"
-              type="file"
-              webkitdirectory
-              directory
-              multiple
-              style="display: none;"
-              on:change={handleDirectorySelect}
+              id="project-path"
+              type="text"
+              bind:value={projectPath}
+              placeholder="/home/yourname/Projects"
+              on:keydown={(e) => e.key === 'Enter' && selectProjectDirectory()}
             />
-            <p class="hint">Type a path or click Browse to select a directory</p>
+            <p class="hint">This should be the parent folder containing all your individual projects</p>
           </div>
           {#if error}
             <p class="error-message">{error}</p>
@@ -458,12 +325,12 @@
         <div class="step-content">
           <div class="success-icon">✅</div>
           <p class="description">
-            Raven is now watching <strong>{projectPath}</strong> and will alert you about important changes.
+            Raven is now monitoring all projects in <strong>{projectPath}</strong> and will alert you about important changes.
           </p>
           <div class="summary-box">
             <h4>Your Configuration:</h4>
             <ul>
-              <li>Project: {projectPath}</li>
+              <li>Projects Folder: {projectPath}</li>
               <li>Alert Style: {templates.find(t => t.id === selectedTemplate)?.name || selectedTemplate}</li>
               <li>Notifications: {notificationsEnabled ? 'Enabled ✅' : 'Disabled (can enable later)'}</li>
             </ul>
@@ -662,37 +529,50 @@
     border-color: var(--accent);
   }
 
-  .browse-btn {
-    padding: 12px 20px;
-    background: var(--surface-2);
+  .project-select {
+    padding: 12px 16px;
+    background: var(--surface);
     border: 2px solid var(--border);
     border-radius: 8px;
     color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 15px;
+    font-family: inherit;
     cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    transition: border-color 0.2s;
+    width: 100%;
   }
 
-  .browse-btn:hover {
-    background: var(--accent);
+  .project-select:focus {
+    outline: none;
     border-color: var(--accent);
-    color: white;
-    transform: translateY(-1px);
   }
 
-  .browse-btn:active {
-    transform: translateY(0);
+  .project-select:hover {
+    border-color: var(--accent);
+  }
+
+  .selected-path {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 4px 0 0 0;
+    font-family: var(--mono);
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border-radius: 6px;
+  }
+
+  .loading-text {
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    padding: 20px;
+    margin: 0;
   }
 
   .hint {
     font-size: 13px;
     color: var(--muted);
-    margin: 0;
+    margin: 4px 0 0 0;
   }
 
   .templates-grid {

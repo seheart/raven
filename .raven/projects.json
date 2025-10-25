@@ -1,13 +1,48 @@
 {
   "autoDiscover": true,
-  "basePath": "/Users/seth",
+  "basePath": "/home/seth/Projects",
   "projects": [
     {
-      "id": "projects",
-      "name": "projects",
-      "path": "/Users/seth/projects",
+      "id": "ant",
+      "name": "ant",
+      "path": "/home/seth/Projects/ant",
       "enabled": true,
-      "ignorePatterns": []
+      "ignorePatterns": ["node_modules", ".git", "dist", "build"]
+    },
+    {
+      "id": "raven",
+      "name": "raven",
+      "path": "/home/seth/Projects/raven",
+      "enabled": true,
+      "ignorePatterns": ["node_modules", ".git", "dist", "build", ".raven/snapshots"]
+    },
+    {
+      "id": "recall",
+      "name": "recall",
+      "path": "/home/seth/Projects/recall",
+      "enabled": true,
+      "ignorePatterns": ["node_modules", ".git", "dist", "build"]
+    },
+    {
+      "id": "setheheart",
+      "name": "setheheart",
+      "path": "/home/seth/Projects/setheheart",
+      "enabled": true,
+      "ignorePatterns": ["node_modules", ".git", "dist", "build"]
+    },
+    {
+      "id": "wrap",
+      "name": "wrap",
+      "path": "/home/seth/Projects/wrap",
+      "enabled": true,
+      "ignorePatterns": ["node_modules", ".git", "dist", "build"]
+    },
+    {
+      "id": "echo",
+      "name": "echo",
+      "path": "/home/seth/Projects/echo",
+      "enabled": true,
+      "ignorePatterns": ["node_modules", ".git", "dist", "build"]
     }
   ]
 }
