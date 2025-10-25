@@ -4,6 +4,7 @@
   import { formatTime as formatTimeString } from './timeFormat.js';
   import ProjectBadge from './ProjectBadge.svelte';
   import PageInfo from './PageInfo.svelte';
+  import { api } from './apiClient.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -105,8 +106,7 @@
 
   async function loadSessionStats() {
     try {
-      const res = await fetch(`${API_BASE}/dashboard-stats`);
-      const data = await res.json();
+      const data = await api.get("/dashboard-stats");
 
       sessionStats = {
         duration: data.session_duration_seconds || 0,
@@ -125,15 +125,19 @@
 
   async function loadMetrics() {
     try {
-      const res = await fetch(`${API_BASE}/process-metrics?limit=1`);
-      const data = await res.json();
+      const data = await api.get("/process-metrics?limit=1");
 
       if (data && data.length > 0) {
         const latest = data[0];
 
+        // Map database column names to display names
+        // process_metrics table has: cpu_usage, memory_mb
+        const cpu = latest.cpu_usage || latest.cpu || 0;
+        const mem = latest.memory_mb || latest.mem || 0;
+
         // Add to history (keep last 20 points)
-        metricsHistory.cpu = [...metricsHistory.cpu, latest.cpu].slice(-20);
-        metricsHistory.memory = [...metricsHistory.memory, latest.mem].slice(-20);
+        metricsHistory.cpu = [...metricsHistory.cpu, cpu].slice(-20);
+        metricsHistory.memory = [...metricsHistory.memory, mem].slice(-20);
       }
     } catch (error) {
       console.error('Failed to load metrics:', error);
@@ -180,8 +184,7 @@
 
   async function loadCodeChanges() {
     try {
-      const res = await fetch(`${API_BASE}/file-events?limit=50&diff=true`);
-      const data = await res.json();
+      const data = await api.get("/file-events?limit=50&diff=true");
       codeChanges = data;
     } catch (error) {
       console.error('Failed to load code changes:', error);
@@ -191,13 +194,10 @@
   async function loadRecentActivity() {
     try {
       // Get both file events and agent events
-      const [fileEventsRes, agentEventsRes] = await Promise.all([
-        fetch(`${API_BASE}/file-events?limit=20`),
-        fetch(`${API_BASE}/agent-events?limit=20`)
+      const [fileEvents, agentEvents] = await Promise.all([
+        api.get("/file-events?limit=20"),
+        api.get("/agent-events?limit=20")
       ]);
-
-      const fileEvents = await fileEventsRes.json();
-      const agentEvents = await agentEventsRes.json();
 
       // Combine and sort by timestamp
       const combined = [

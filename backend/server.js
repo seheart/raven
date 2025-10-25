@@ -47,6 +47,7 @@ import { createDashboardRoutes } from './routes/dashboard.js';
 import { createControlRoutes } from './routes/control.js';
 import { createMetricsRoutes } from './routes/metrics.js';
 import { createApiDocsRoutes } from './routes/api-docs.js';
+import { createConversationRoutes } from './routes/conversations.js';
 
 // Utilities (Phase 3)
 import { logger } from './utils/logger.js';
@@ -122,6 +123,126 @@ app.use(express.urlencoded({ limit: JSON_LIMIT, extended: true }));
 
 // Apply general API rate limiting
 app.use('/api', apiLimiter);
+
+// ==================== Public API Endpoints (No Auth Required) ====================
+
+/**
+ * GET /api/health
+ * Public health check endpoint - no authentication required
+ */
+app.get('/api/health', async (req, res) => {
+  try {
+    const os = await import('os');
+
+    // Memory usage
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+    const memoryPercent = (usedMemory / totalMemory) * 100;
+
+    // Process memory
+    const processMemory = process.memoryUsage();
+
+    // Calculate .raven directory size
+    const getRavenDirSize = (dirPath) => {
+      let totalSize = 0;
+      try {
+        const items = fs.readdirSync(dirPath);
+        for (const item of items) {
+          const itemPath = join(dirPath, item);
+          const stat = fs.statSync(itemPath);
+          if (stat.isDirectory()) {
+            totalSize += getRavenDirSize(itemPath);
+          } else {
+            totalSize += stat.size;
+          }
+        }
+      } catch (err) {
+        console.error('Error calculating directory size:', err);
+      }
+      return totalSize;
+    };
+
+    const ravenSize = getRavenDirSize(RAVEN_DIR);
+
+    // Estimate disk usage
+    const estimatedDiskTotal = 100 * 1024 * 1024 * 1024; // 100GB
+    const diskUsePercent = (ravenSize / estimatedDiskTotal) * 100;
+
+    // Determine health status
+    let status = 'healthy';
+    const issues = [];
+
+    if (memoryPercent > 90) {
+      status = 'warning';
+      issues.push('High system memory usage');
+    }
+
+    if (processMemory.heapUsed / processMemory.heapTotal > 0.9) {
+      status = 'warning';
+      issues.push('High process heap usage');
+    }
+
+    if (diskUsePercent > 95) {
+      status = 'critical';
+      issues.push('Critical storage usage');
+      io.emit('storage-warning', {
+        percentage: diskUsePercent.toFixed(1),
+        size: ravenSize,
+        critical: true
+      });
+    } else if (diskUsePercent > 85) {
+      status = 'warning';
+      issues.push('High storage usage');
+      io.emit('storage-warning', {
+        percentage: diskUsePercent.toFixed(1),
+        size: ravenSize,
+        critical: false
+      });
+    }
+
+    res.json({
+      status,
+      issues,
+      uptime: process.uptime(),
+      memory: {
+        system: {
+          total: totalMemory,
+          free: freeMemory,
+          used: usedMemory,
+          percent: memoryPercent.toFixed(1)
+        },
+        process: {
+          heapTotal: processMemory.heapTotal,
+          heapUsed: processMemory.heapUsed,
+          external: processMemory.external,
+          rss: processMemory.rss
+        }
+      },
+      storage: {
+        ravenSize,
+        diskUsePercent: diskUsePercent.toFixed(1)
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Health check error:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/session-id
+ * Public endpoint - returns current session ID
+ */
+app.get('/api/session-id', (req, res) => {
+  res.json({ session_id: SESSION_ID });
+});
+
+// ==================== Authentication Middleware ====================
 
 // Apply authentication to all API routes (unless DISABLE_AUTH=true)
 app.use('/api', authenticate);
@@ -1023,6 +1144,50 @@ app.use('/telemetry', telemetryLimiter, createTelemetryRoutes(routeDependencies)
 // Dashboard routes
 app.use('/api', createDashboardRoutes(routeDependencies));
 
+// Conversation routes (Agent Conversation Tracker)
+app.use('/api', createConversationRoutes(routeDependencies));
+
+// Metrics routes - system and process metrics
+app.get('/api/system-metrics', (req, res) => {
+  try {
+    const { limit = 100, offset = 0 } = req.query;
+    const ravenDb = projectDatabases.get('raven');
+    if (!ravenDb) {
+      return res.status(500).json({ error: 'Raven database not found' });
+    }
+    const stmt = ravenDb.db.prepare(`SELECT * FROM raven_metrics ORDER BY timestamp DESC LIMIT ? OFFSET ?`);
+    const metrics = stmt.all(parseInt(limit), parseInt(offset));
+    res.json(metrics);
+  } catch (error) {
+    console.error('❌ Get system metrics error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/process-metrics', (req, res) => {
+  try {
+    const { limit = 100, offset = 0, agent = null } = req.query;
+    const ravenDb = projectDatabases.get('raven');
+    if (!ravenDb) {
+      return res.status(500).json({ error: 'Raven database not found' });
+    }
+    let query = 'SELECT * FROM process_metrics';
+    const params = [];
+    if (agent) {
+      query += ' WHERE agent_name = ?';
+      params.push(agent);
+    }
+    query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), parseInt(offset));
+    const stmt = ravenDb.db.prepare(query);
+    const metrics = stmt.all(...params);
+    res.json(metrics);
+  } catch (error) {
+    console.error('❌ Get process metrics error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Control routes
 app.use('/api/control', createControlRoutes(routeDependencies));
 
@@ -1045,123 +1210,8 @@ app.use('/auth', createAuthRoutes(authService));
 
 // ==================== Dashboard API ====================
 
-// Session ID endpoint (no auth required for backwards compatibility)
-app.get('/api/session-id', (req, res) => {
-  res.json({ session_id: SESSION_ID });
-});
-
-/**
- * GET /api/health
- * Health check endpoint with system metrics and storage monitoring
- */
-app.get('/api/health', async (req, res) => {
-  try {
-    const os = await import('os');
-
-    // Memory usage
-    const totalMemory = os.totalmem();
-    const freeMemory = os.freemem();
-    const usedMemory = totalMemory - freeMemory;
-    const memoryPercent = (usedMemory / totalMemory) * 100;
-
-    // Process memory
-    const processMemory = process.memoryUsage();
-
-    // Calculate .raven directory size
-    const getRavenDirSize = (dirPath) => {
-      let totalSize = 0;
-      try {
-        const items = fs.readdirSync(dirPath);
-        for (const item of items) {
-          const itemPath = join(dirPath, item);
-          const stat = fs.statSync(itemPath);
-          if (stat.isDirectory()) {
-            totalSize += getRavenDirSize(itemPath);
-          } else {
-            totalSize += stat.size;
-          }
-        }
-      } catch (err) {
-        console.error('Error calculating directory size:', err);
-      }
-      return totalSize;
-    };
-
-    const ravenSize = getRavenDirSize(RAVEN_DIR);
-
-    // Estimate disk usage (assume 100GB available for now)
-    // In production, you'd use a library like 'diskusage' for accurate stats
-    const estimatedDiskTotal = 100 * 1024 * 1024 * 1024; // 100GB
-    const diskUsePercent = (ravenSize / estimatedDiskTotal) * 100;
-
-    // Determine health status
-    let status = 'healthy';
-    const issues = [];
-
-    if (memoryPercent > 90) {
-      status = 'warning';
-      issues.push('High system memory usage');
-    }
-
-    if (processMemory.heapUsed / processMemory.heapTotal > 0.9) {
-      status = 'warning';
-      issues.push('High process heap usage');
-    }
-
-    if (diskUsePercent > 95) {
-      status = 'critical';
-      issues.push('Critical storage usage');
-
-      // Emit storage warning
-      io.emit('storage-warning', {
-        percentage: diskUsePercent.toFixed(1),
-        size: ravenSize,
-        critical: true
-      });
-    } else if (diskUsePercent > 85) {
-      status = 'warning';
-      issues.push('High storage usage');
-
-      // Emit storage warning
-      io.emit('storage-warning', {
-        percentage: diskUsePercent.toFixed(1),
-        size: ravenSize,
-        critical: false
-      });
-    }
-
-    res.json({
-      status,
-      issues,
-      uptime: process.uptime(),
-      memory: {
-        system: {
-          total: totalMemory,
-          free: freeMemory,
-          used: usedMemory,
-          percent: memoryPercent.toFixed(1)
-        },
-        process: {
-          heapTotal: processMemory.heapTotal,
-          heapUsed: processMemory.heapUsed,
-          external: processMemory.external,
-          rss: processMemory.rss
-        }
-      },
-      storage: {
-        ravenSize,
-        diskUsePercent: diskUsePercent.toFixed(1)
-      },
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('❌ Health check error:', error);
-    res.status(500).json({
-      status: 'error',
-      error: error.message
-    });
-  }
-});
+// NOTE: /api/health and /api/session-id endpoints moved to BEFORE authentication middleware (line ~237-243)
+// This allows frontend to check health and get session ID without requiring auth token
 
 /**
  * GET /api/health-checks

@@ -7,6 +7,7 @@
   import { debounceInput } from './utils/debounce.js';
   import ProjectBadge from './ProjectBadge.svelte';
   import PageInfo from './PageInfo.svelte';
+  import { api } from './apiClient.js';
 
   const API_BASE = 'http://localhost:3030/api';
 
@@ -16,11 +17,16 @@
   let selectedTypes = {
     created: true,
     modified: true,
-    deleted: true
+    deleted: true,
+    user_message: true,
+    assistant_text: true,
+    tool_call: true,
+    tool_result: true
   };
   let timeRangeStart = 0;
   let timeRangeEnd = Date.now();
   let virtualScroll; // Reference to virtual scroll component
+  let expandedEvents = new Set(); // Track expanded conversation events
 
   // Forensics features
   let showDiffModal = false;
@@ -141,9 +147,15 @@
 
       cachedFilteredResult = events.filter(event => {
 
-        // Filter by search query
-        if (searchQuery && !event.filepath?.toLowerCase().includes(lowerQuery)) {
-          return false;
+        // Filter by search query (check filepath for files, content for conversations)
+        if (searchQuery) {
+          const matchesFile = event.filepath?.toLowerCase().includes(lowerQuery);
+          const matchesContent = event.content?.toLowerCase().includes(lowerQuery);
+          const matchesTool = event.toolName?.toLowerCase().includes(lowerQuery);
+
+          if (!matchesFile && !matchesContent && !matchesTool) {
+            return false;
+          }
         }
 
         // Filter by event type
@@ -166,18 +178,41 @@
 
   async function loadRecentEvents() {
     try {
-      const response = await fetch(`${API_BASE}/all-file-events?limit=1000`);
-      const recentEvents = await response.json();
+      // Fetch file events and conversation events in parallel
+      const [fileEvents, conversationsData] = await Promise.all([
+        api.get('/all-file-events?limit=1000'),
+        api.get('/conversations?limit=500')
+      ]);
 
-      events = recentEvents.map(e => ({
-        id: e.id,
+      // Map file events
+      const mappedFileEvents = fileEvents.map(e => ({
+        id: `file-${e.id}`,
         timestamp: e.timestamp,
         filepath: e.filepath || 'unknown',
         changeType: mapChangeType(e.change_type),
         project: e.project || null,
         cpu: e.cpu || 0,
-        mem: e.mem || 0
+        mem: e.mem || 0,
+        eventCategory: 'file'
       }));
+
+      // Map conversation events
+      const mappedConversations = (conversationsData.conversations || []).map(c => ({
+        id: `conv-${c.id}`,
+        timestamp: c.timestamp,
+        changeType: c.event_type, // user_message, assistant_text, tool_call, tool_result
+        content: c.content,
+        toolName: c.tool_name,
+        toolInput: c.tool_input,
+        toolOutput: c.tool_output,
+        isError: c.is_error,
+        project: c.project || 'unknown',
+        eventCategory: 'conversation'
+      }));
+
+      // Merge and sort by timestamp (newest first)
+      events = [...mappedFileEvents, ...mappedConversations]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     } catch (error) {
       console.error('Failed to load events:', error);
     }
@@ -301,8 +336,7 @@
 
     // Fetch full event details including diff
     try {
-      const res = await fetch(`${API_BASE}/file-events?limit=1000&diff=true`);
-      const data = await res.json();
+      const data = await api.get('/file-events?limit=1000&diff=true');
       const eventWithDiff = data.find(e => e.id === event.id);
 
       if (eventWithDiff) {
@@ -321,6 +355,34 @@
   function closeDiffModal() {
     showDiffModal = false;
     selectedEventForDiff = null;
+  }
+
+  // Get icon for conversation event type
+  function getConversationIcon(eventType) {
+    switch(eventType) {
+      case 'user_message': return '💬';
+      case 'assistant_text': return '🤖';
+      case 'tool_call': return '🔧';
+      case 'tool_result': return '✅';
+      default: return '📝';
+    }
+  }
+
+  // Toggle event expansion
+  function toggleExpanded(eventId) {
+    if (expandedEvents.has(eventId)) {
+      expandedEvents.delete(eventId);
+    } else {
+      expandedEvents.add(eventId);
+    }
+    expandedEvents = expandedEvents; // Trigger reactivity
+  }
+
+  // Truncate long text
+  function truncate(text, maxLength = 150) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
   }
 </script>
 
@@ -469,23 +531,45 @@
     <input
       type="text"
       class="search-input"
-      placeholder="Search by filename..."
+      placeholder="Search by filename or conversation..."
       use:debounceInput={{ delay: 300 }}
       on:debounced={handleDebouncedSearch}
     />
     <div class="type-filters">
-      <label class="filter-checkbox" title="Toggle created events (1)">
-        <input type="checkbox" bind:checked={selectedTypes.created} />
-        <span class="filter-label created">Created</span>
-      </label>
-      <label class="filter-checkbox" title="Toggle modified events (2)">
-        <input type="checkbox" bind:checked={selectedTypes.modified} />
-        <span class="filter-label modified">Modified</span>
-      </label>
-      <label class="filter-checkbox" title="Toggle deleted events (3)">
-        <input type="checkbox" bind:checked={selectedTypes.deleted} />
-        <span class="filter-label deleted">Deleted</span>
-      </label>
+      <div class="filter-group">
+        <span class="filter-group-label">Files:</span>
+        <label class="filter-checkbox" title="Toggle created events (1)">
+          <input type="checkbox" bind:checked={selectedTypes.created} />
+          <span class="filter-label created">Created</span>
+        </label>
+        <label class="filter-checkbox" title="Toggle modified events (2)">
+          <input type="checkbox" bind:checked={selectedTypes.modified} />
+          <span class="filter-label modified">Modified</span>
+        </label>
+        <label class="filter-checkbox" title="Toggle deleted events (3)">
+          <input type="checkbox" bind:checked={selectedTypes.deleted} />
+          <span class="filter-label deleted">Deleted</span>
+        </label>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Conversations:</span>
+        <label class="filter-checkbox" title="Toggle user messages">
+          <input type="checkbox" bind:checked={selectedTypes.user_message} />
+          <span class="filter-label conversation">💬 User</span>
+        </label>
+        <label class="filter-checkbox" title="Toggle Claude responses">
+          <input type="checkbox" bind:checked={selectedTypes.assistant_text} />
+          <span class="filter-label conversation">🤖 Claude</span>
+        </label>
+        <label class="filter-checkbox" title="Toggle tool calls">
+          <input type="checkbox" bind:checked={selectedTypes.tool_call} />
+          <span class="filter-label conversation">🔧 Tools</span>
+        </label>
+        <label class="filter-checkbox" title="Toggle tool results">
+          <input type="checkbox" bind:checked={selectedTypes.tool_result} />
+          <span class="filter-label conversation">✅ Results</span>
+        </label>
+      </div>
     </div>
   </div>
 
@@ -504,49 +588,117 @@
         getKey={event => event.id}
         let:item
       >
-        <div class="event-card {getChangeClass(item.changeType)}" on:click={() => openDiffModal(item)}>
-          <div class="event-type-indicator">
-            <span class="event-icon">
-              {#if item.changeType === 'created'}
-                ➕
-              {:else if item.changeType === 'modified'}
-                ✏️
-              {:else if item.changeType === 'deleted'}
-                🗑️
-              {/if}
-            </span>
-          </div>
+        {#if item.eventCategory === 'file'}
+          <!-- File Event -->
+          <div class="event-card {getChangeClass(item.changeType)}" on:click={() => openDiffModal(item)}>
+            <div class="event-type-indicator">
+              <span class="event-icon">
+                {#if item.changeType === 'created'}
+                  ➕
+                {:else if item.changeType === 'modified'}
+                  ✏️
+                {:else if item.changeType === 'deleted'}
+                  🗑️
+                {/if}
+              </span>
+            </div>
 
-          <div class="event-content">
-            <div class="event-main">
-              <div class="event-filepath">
-                <span class="filepath-text">{item.filepath}</span>
-                {#if item.project}
-                  <ProjectBadge project={item.project} size="small" />
+            <div class="event-content">
+              <div class="event-main">
+                <div class="event-filepath">
+                  <span class="filepath-text">{item.filepath}</span>
+                  {#if item.project}
+                    <ProjectBadge project={item.project} size="small" />
+                  {/if}
+                </div>
+                <span class="event-time">{formatTime(item.timestamp)}</span>
+              </div>
+
+              <div class="event-metadata">
+                <span class="event-badge {item.changeType}">
+                  {item.changeType}
+                </span>
+                <div class="event-metrics">
+                  <span class="metric cpu">
+                    <span class="metric-icon">⚙️</span>
+                    <span class="metric-value">{(item.cpu ?? 0).toFixed(1)}%</span>
+                    <span class="metric-label">CPU</span>
+                  </span>
+                  <span class="metric mem">
+                    <span class="metric-icon">💾</span>
+                    <span class="metric-value">{(item.mem ?? 0).toFixed(1)}%</span>
+                    <span class="metric-label">RAM</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        {:else if item.eventCategory === 'conversation'}
+          <!-- Conversation Event -->
+          <div class="event-card conversation {item.changeType}" on:click={() => toggleExpanded(item.id)}>
+            <div class="event-type-indicator conversation">
+              <span class="event-icon">{getConversationIcon(item.changeType)}</span>
+            </div>
+
+            <div class="event-content">
+              <div class="event-main">
+                <div class="conversation-header">
+                  {#if item.changeType === 'user_message'}
+                    <span class="conv-label">You:</span>
+                    <span class="conv-text">{truncate(item.content)}</span>
+                  {:else if item.changeType === 'assistant_text'}
+                    <span class="conv-label">Claude:</span>
+                    <span class="conv-text">{truncate(item.content)}</span>
+                  {:else if item.changeType === 'tool_call'}
+                    <span class="conv-label">Tool:</span>
+                    <span class="conv-text tool-name">{item.toolName}</span>
+                  {:else if item.changeType === 'tool_result'}
+                    <span class="conv-label">
+                      {item.isError ? '❌' : '✅'} Result:
+                    </span>
+                    <span class="conv-text">{truncate(item.toolOutput, 100)}</span>
+                  {/if}
+                  {#if item.project}
+                    <ProjectBadge project={item.project} size="small" />
+                  {/if}
+                </div>
+                <span class="event-time">{formatTime(item.timestamp)}</span>
+              </div>
+
+              <!-- Expandable Details -->
+              {#if expandedEvents.has(item.id)}
+                <div class="expanded-details">
+                  {#if item.changeType === 'tool_call' && item.toolInput}
+                    <div class="detail-section">
+                      <div class="detail-label">Input:</div>
+                      <pre class="detail-code">{JSON.stringify(item.toolInput, null, 2)}</pre>
+                    </div>
+                  {:else if item.changeType === 'tool_result'}
+                    <div class="detail-section">
+                      <div class="detail-label">Output:</div>
+                      <pre class="detail-code">{item.toolOutput}</pre>
+                    </div>
+                  {:else if (item.changeType === 'user_message' || item.changeType === 'assistant_text') && item.content}
+                    <div class="detail-section">
+                      <pre class="detail-text">{item.content}</pre>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+
+              <div class="event-metadata conversation">
+                <span class="event-badge conversation {item.changeType}">
+                  {item.changeType.replace('_', ' ')}
+                </span>
+                {#if item.changeType === 'tool_call' || item.changeType === 'tool_result'}
+                  <button class="expand-btn" on:click|stopPropagation={() => toggleExpanded(item.id)}>
+                    {expandedEvents.has(item.id) ? '▲ Collapse' : '▼ Expand'}
+                  </button>
                 {/if}
               </div>
-              <span class="event-time">{formatTime(item.timestamp)}</span>
-            </div>
-
-            <div class="event-metadata">
-              <span class="event-badge {item.changeType}">
-                {item.changeType}
-              </span>
-              <div class="event-metrics">
-                <span class="metric cpu">
-                  <span class="metric-icon">⚙️</span>
-                  <span class="metric-value">{(item.cpu ?? 0).toFixed(1)}%</span>
-                  <span class="metric-label">CPU</span>
-                </span>
-                <span class="metric mem">
-                  <span class="metric-icon">💾</span>
-                  <span class="metric-value">{(item.mem ?? 0).toFixed(1)}%</span>
-                  <span class="metric-label">RAM</span>
-                </span>
-              </div>
             </div>
           </div>
-        </div>
+        {/if}
       </VirtualScroll>
     </div>
   {:else if events.length === 0}
@@ -1276,5 +1428,137 @@
   .event-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  /* Conversation Event Styles */
+  .event-card.conversation {
+    border-left: 3px solid var(--accent);
+  }
+
+  .event-type-indicator.conversation {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+
+  .conversation-header {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .conv-label {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 60px;
+  }
+
+  .conv-text {
+    color: var(--text);
+    font-size: 13px;
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .conv-text.tool-name {
+    font-family: var(--mono);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .expanded-details {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .detail-section {
+    margin-bottom: 12px;
+  }
+
+  .detail-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .detail-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .detail-code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .detail-text {
+    font-size: 12px;
+    color: var(--text);
+    margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  .expand-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+  }
+
+  .expand-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+  }
+
+  .event-metadata.conversation {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .event-badge.conversation {
+    font-size: 10px;
+    padding: 4px 8px;
+    text-transform: capitalize;
+  }
+
+  .filter-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+
+  .filter-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .filter-label.conversation {
+    font-size: 12px;
   }
 </style>

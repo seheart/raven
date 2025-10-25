@@ -5,6 +5,7 @@
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
+  import { api } from './apiClient.js';
 
   const API_BASE = API_CONFIG.BASE_URL + '/api';
 
@@ -40,8 +41,7 @@
     try {
       loading = true;
       isManualRefresh = manual;
-      const response = await fetch(`${API_BASE}/sync/config`);
-      const data = await response.json();
+      const data = await api.get("/sync/config");
 
       if (data.config) {
         config = { ...config, ...data.config };
@@ -69,15 +69,7 @@
     try {
       saveStatus = 'saving';
 
-      const response = await fetch(`${API_BASE}/sync/config`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save configuration');
-      }
+      await api.post('/sync/config', config);
 
       saveStatus = 'success';
       notifications.success('Configuration saved', {
@@ -108,13 +100,7 @@
         title: 'Connection Test'
       });
 
-      const response = await fetch(`${API_BASE}/sync/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-
-      const result = await response.json();
+      const result = await api.post('/sync/test', config);
 
       if (result.success) {
         connectionStatus = 'success';
@@ -145,13 +131,7 @@
     try {
       loadingStats = true;
 
-      const response = await fetch(`${API_BASE}/sync/remote-stats`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-
-      const result = await response.json();
+      const result = await api.post('/sync/remote-stats', config);
 
       if (result.success) {
         remoteStats = result;
@@ -192,13 +172,7 @@
 
       syncProgress = { stage: 'uploading', percent: 50, message: 'Uploading to server...' };
 
-      const response = await fetch(`${API_BASE}/sync/trigger`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-
-      const result = await response.json();
+      const result = await api.post('/sync/trigger', config);
 
       syncProgress = { stage: 'finalizing', percent: 90, message: 'Finalizing...' };
 

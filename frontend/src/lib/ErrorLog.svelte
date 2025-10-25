@@ -3,7 +3,7 @@
   import { fetchErrorLogs, fetchErrorStats, clearErrorLogs, logError } from './errorLogger.js';
   import PageInfo from './PageInfo.svelte';
   import { formatDateTime } from './timeFormat.js';
-  import io from 'socket.io-client';
+  import { websocketService } from './websocket.js';
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
@@ -16,7 +16,6 @@
   let loading = true;
   let error = null;
   let selectedError = null;
-  let socket = null;
   let loadErrorsTimeout = null;
   let virtualScroll; // Reference to virtual scroll component
   let lastUpdated = null;
@@ -42,9 +41,8 @@
   });
 
   onDestroy(() => {
-    if (socket) {
-      socket.disconnect();
-    }
+    // Remove WebSocket event listeners
+    websocketService.off('error-logged', handleErrorLogged);
 
     // Clean up pending timeout
     if (loadErrorsTimeout) {
@@ -52,25 +50,20 @@
     }
   });
 
+  // Handle error-logged WebSocket event
+  function handleErrorLogged(errorData) {
+    // Debounce to prevent race conditions from rapid events
+    clearTimeout(loadErrorsTimeout);
+    loadErrorsTimeout = setTimeout(() => {
+      loadErrors();
+      loadStats();
+    }, 300);
+  }
+
   function setupWebSocket() {
-    socket = io(API_CONFIG.BASE_URL);
-
-    socket.on('connect', () => {
-      // WebSocket connected
-    });
-
-    socket.on('error-logged', (errorData) => {
-      // Debounce to prevent race conditions from rapid events
-      clearTimeout(loadErrorsTimeout);
-      loadErrorsTimeout = setTimeout(() => {
-        loadErrors();
-        loadStats();
-      }, 300);
-    });
-
-    socket.on('disconnect', () => {
-      // WebSocket disconnected
-    });
+    // Connect to WebSocket and listen for error-logged events
+    websocketService.connect();
+    websocketService.on('error-logged', handleErrorLogged);
   }
 
   async function loadErrors(manual = false) {

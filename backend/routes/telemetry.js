@@ -22,18 +22,20 @@ export function createTelemetryRoutes(deps) {
   // POST /telemetry - Receive telemetry data from agents
   router.post('/', (req, res) => {
     try {
-      const { agent, event, file, lines_changed, duration_ms, message, metadata, project } = req.body;
+      // Support both 'event' and 'event_type' for backwards compatibility
+      const { agent, event, event_type, file, lines_changed, duration_ms, message, metadata, project } = req.body;
+      const eventName = event || event_type;
 
       // Validate required fields
-      if (!agent || !event || !message) {
-        return res.status(400).json({ error: 'Missing required fields: agent, event, message' });
+      if (!agent || !eventName || !message) {
+        return res.status(400).json({ error: 'Missing required fields: agent, event/event_type, message' });
       }
 
       // Validate field types and sanitize
       if (typeof agent !== 'string' || agent.length > 100) {
         return res.status(400).json({ error: 'Invalid agent: must be string ≤100 chars' });
       }
-      if (typeof event !== 'string' || event.length > 100) {
+      if (typeof eventName !== 'string' || eventName.length > 100) {
         return res.status(400).json({ error: 'Invalid event: must be string ≤100 chars' });
       }
       if (typeof message !== 'string' || message.length > 1000) {
@@ -70,7 +72,7 @@ export function createTelemetryRoutes(deps) {
       const eventId = db.insertAgentEvent(
         timestamp,
         agent,
-        event,
+        eventName,
         file,
         lines_changed,
         duration_ms,
@@ -85,7 +87,7 @@ export function createTelemetryRoutes(deps) {
           timestamp,
           project: projectName,
           agent_name: agent,
-          event_type: event,
+          event_type: eventName,
           file_path: file,
           lines_changed,
           message,
@@ -121,7 +123,7 @@ export function createTelemetryRoutes(deps) {
         const triggerEvent = {
           file: file,
           agent: agent,
-          event_type: event,
+          event_type: eventName,
           lines_changed: lines_changed,
           duration_ms: duration_ms,
           project: projectName
@@ -129,7 +131,7 @@ export function createTelemetryRoutes(deps) {
         triggerEngine.evaluate(triggerEvent);
       }
 
-      logger.debug(`📡 [${projectName}] Telemetry: ${agent} - ${event} - ${message}`);
+      logger.debug(`📡 [${projectName}] Telemetry: ${agent} - ${eventName} - ${message}`);
 
       // Emit real-time event via WebSocket (include project)
       io.emit('agent-event', {
@@ -137,7 +139,7 @@ export function createTelemetryRoutes(deps) {
         timestamp,
         project: projectName,
         agent,
-        event_type: event,
+        event_type: eventName,
         file,
         lines_changed,
         duration_ms,
@@ -146,10 +148,10 @@ export function createTelemetryRoutes(deps) {
       });
 
       // Emit file-changed event for Live Activity Stream
-      if (file && event !== 'session-start' && event !== 'session-end') {
+      if (file && eventName !== 'session-start' && eventName !== 'session-end') {
         io.emit('file-changed', {
           filepath: file,
-          change_type: event,
+          change_type: eventName,
           timestamp,
           project: projectName,
           agent
@@ -167,6 +169,83 @@ export function createTelemetryRoutes(deps) {
       });
     } catch (error) {
       console.error('❌ Telemetry error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/system-metrics - Get system-wide metrics
+  router.get('/system-metrics', (req, res) => {
+    try {
+      const { limit = 100, offset = 0 } = req.query;
+
+      // Get the raven database
+      const ravenDb = projectDatabases.get('raven');
+      if (!ravenDb) {
+        return res.status(500).json({ error: 'Raven database not found' });
+      }
+
+      const stmt = ravenDb.db.prepare(`
+        SELECT * FROM raven_metrics
+        ORDER BY timestamp DESC
+        LIMIT ? OFFSET ?
+      `);
+
+      const metrics = stmt.all(parseInt(limit), parseInt(offset));
+      res.json(metrics);
+    } catch (error) {
+      console.error('❌ Get system metrics error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/process-metrics - Get process metrics (all agents)
+  router.get('/process-metrics', (req, res) => {
+    try {
+      const { limit = 100, offset = 0, agent = null } = req.query;
+
+      // Get the raven database
+      const ravenDb = projectDatabases.get('raven');
+      if (!ravenDb) {
+        return res.status(500).json({ error: 'Raven database not found' });
+      }
+
+      let query = 'SELECT * FROM process_metrics';
+      const params = [];
+
+      if (agent) {
+        query += ' WHERE agent_name = ?';
+        params.push(agent);
+      }
+
+      query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+      params.push(parseInt(limit), parseInt(offset));
+
+      const stmt = ravenDb.db.prepare(query);
+      const metrics = stmt.all(...params);
+
+      res.json(metrics);
+    } catch (error) {
+      console.error('❌ Get process metrics error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/process-metrics/:agent - Get process metrics for specific agent
+  router.get('/process-metrics/:agent', (req, res) => {
+    try {
+      const { agent } = req.params;
+      const { limit = 100 } = req.query;
+
+      // Get the raven database
+      const ravenDb = projectDatabases.get('raven');
+      if (!ravenDb) {
+        return res.status(500).json({ error: 'Raven database not found' });
+      }
+
+      const metrics = ravenDb.getProcessMetricsByAgent(agent, parseInt(limit));
+      res.json(metrics);
+    } catch (error) {
+      console.error('❌ Get process metrics by agent error:', error);
       res.status(500).json({ error: error.message });
     }
   });

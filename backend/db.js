@@ -129,6 +129,25 @@ export class RavenDB {
       )
     `);
 
+    // Conversations table (Claude Code conversation tracking)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS conversations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        claude_session_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        content TEXT,
+        tool_name TEXT,
+        tool_input TEXT,
+        tool_output TEXT,
+        is_error INTEGER DEFAULT 0,
+        parent_uuid TEXT,
+        metadata TEXT,
+        project TEXT,
+        session_id TEXT
+      )
+    `);
+
     // Create indexes for performance (prevents full table scans)
     this.db.exec(`
       -- Events table indexes
@@ -162,6 +181,12 @@ export class RavenDB {
       CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
       CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
       CREATE INDEX IF NOT EXISTS idx_notifications_severity ON notifications(severity);
+
+      -- Conversations indexes
+      CREATE INDEX IF NOT EXISTS idx_conversations_timestamp ON conversations(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_conversations_session ON conversations(claude_session_id);
+      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(event_type);
+      CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project);
     `);
 
     // Add WAL checkpoint management for better performance
@@ -1186,6 +1211,155 @@ export class RavenDB {
       return { deleted: result.changes };
     } else {
       const stmt = this.prepareStatement('DELETE FROM notifications');
+      const result = stmt.run();
+      return { deleted: result.changes };
+    }
+  }
+
+  // ==================== Conversations ====================
+
+  insertConversation(timestamp, claude_session_id, event_type, content, tool_name, tool_input, tool_output, is_error, parent_uuid, metadata, project, session_id) {
+    const stmt = this.prepareStatement(`
+      INSERT INTO conversations (timestamp, claude_session_id, event_type, content, tool_name, tool_input, tool_output, is_error, parent_uuid, metadata, project, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      claude_session_id,
+      event_type,
+      content || null,
+      tool_name || null,
+      tool_input ? JSON.stringify(tool_input) : null,
+      tool_output || null,
+      is_error ? 1 : 0,
+      parent_uuid || null,
+      metadata ? JSON.stringify(metadata) : null,
+      project || null,
+      session_id || null
+    );
+
+    return result.lastInsertRowid;
+  }
+
+  getConversations(options = {}) {
+    const {
+      limit = 100,
+      offset = 0,
+      event_type = 'all',
+      project = 'all',
+      claude_session_id = null
+    } = options;
+
+    let query = 'SELECT * FROM conversations WHERE 1=1';
+    const params = [];
+
+    if (event_type !== 'all') {
+      query += ' AND event_type = ?';
+      params.push(event_type);
+    }
+
+    if (project !== 'all') {
+      query += ' AND project = ?';
+      params.push(project);
+    }
+
+    if (claude_session_id) {
+      query += ' AND claude_session_id = ?';
+      params.push(claude_session_id);
+    }
+
+    // Count total
+    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countStmt = this.db.prepare(countQuery);
+    const { count: total } = countStmt.get(...params);
+
+    // Get paginated results
+    query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const stmt = this.db.prepare(query);
+    const conversations = stmt.all(...params);
+
+    return {
+      conversations: conversations.map(c => ({
+        ...c,
+        is_error: Boolean(c.is_error),
+        tool_input: c.tool_input ? JSON.parse(c.tool_input) : null,
+        metadata: c.metadata ? JSON.parse(c.metadata) : null
+      })),
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total
+    };
+  }
+
+  getConversationsBySession(claude_session_id, limit = 500) {
+    const stmt = this.prepareStatement(`
+      SELECT * FROM conversations
+      WHERE claude_session_id = ?
+      ORDER BY timestamp ASC
+      LIMIT ?
+    `);
+
+    const conversations = stmt.all(claude_session_id, limit);
+
+    return conversations.map(c => ({
+      ...c,
+      is_error: Boolean(c.is_error),
+      tool_input: c.tool_input ? JSON.parse(c.tool_input) : null,
+      metadata: c.metadata ? JSON.parse(c.metadata) : null
+    }));
+  }
+
+  getConversationStats() {
+    const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM conversations');
+    const byTypeStmt = this.db.prepare(`
+      SELECT event_type, COUNT(*) as count
+      FROM conversations
+      GROUP BY event_type
+    `);
+    const byProjectStmt = this.db.prepare(`
+      SELECT project, COUNT(*) as count
+      FROM conversations
+      GROUP BY project
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+
+    const { count: total } = totalStmt.get();
+    const byType = byTypeStmt.all();
+    const byProject = byProjectStmt.all();
+
+    const by_type = {};
+    for (const row of byType) {
+      by_type[row.event_type] = row.count;
+    }
+
+    const by_project = {};
+    for (const row of byProject) {
+      by_project[row.project || 'unknown'] = row.count;
+    }
+
+    return {
+      total,
+      by_type,
+      by_project
+    };
+  }
+
+  clearConversations(olderThanDays = null) {
+    if (olderThanDays) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+      const cutoffISO = cutoffDate.toISOString();
+
+      const stmt = this.prepareStatement('DELETE FROM conversations WHERE timestamp < ?');
+      const result = stmt.run(cutoffISO);
+      return { deleted: result.changes };
+    } else {
+      const stmt = this.prepareStatement('DELETE FROM conversations');
       const result = stmt.run();
       return { deleted: result.changes };
     }

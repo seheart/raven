@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import { notifications } from './notificationService.js';
+import { authService } from './authStore.js';
 
 class WebSocketService {
   constructor() {
@@ -14,12 +15,18 @@ class WebSocketService {
       return this.socket;
     }
 
+    // Get auth token for websocket connection
+    const token = authService.getToken();
+
     this.socket = io('http://localhost:3030', {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity // Keep trying to reconnect
+      reconnectionAttempts: Infinity, // Keep trying to reconnect
+      auth: {
+        token: token
+      }
     });
 
     this.socket.on('connect', () => {
@@ -136,6 +143,12 @@ class WebSocketService {
       this.socket = null;
       this.connected = false;
     }
+  }
+
+  // Reconnect with new authentication token
+  reconnectWithAuth() {
+    this.disconnect();
+    this.connect();
   }
 
   isConnected() {
