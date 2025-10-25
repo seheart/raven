@@ -87,9 +87,9 @@
     };
   }
 
-  // Format "time ago" for last updated timestamp
+  // Format "time ago" for last updated timestamp (reactive, no interval)
   function getTimeAgo() {
-    if (!lastUpdated) return 'Never';
+    if (!lastUpdated) return 'Just now';
     const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
     if (seconds < 10) return 'Just now';
     if (seconds < 60) return `${seconds}s ago`;
@@ -99,16 +99,8 @@
     return `${hours}h ago`;
   }
 
-  // Live timestamp updates
-  let timeAgo = 'Never';
-  let timeAgoInterval;
-
-  // Initialize interval in onMount (moved below)
-  function startTimeAgoUpdates() {
-    timeAgoInterval = setInterval(() => {
-      timeAgo = getTimeAgo();
-    }, 1000);
-  }
+  // Compute reactively when lastUpdated changes
+  $: timeAgo = getTimeAgo();
 
   function groupActivitiesBySession() {
     if (!groupBySession) {
@@ -314,10 +306,7 @@
   onMount(() => {
     loadActivities();
 
-    // Start live timestamp updates
-    startTimeAgoUpdates();
-
-    // Listen for real-time updates
+    // Listen for real-time updates (no polling!)
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);
     websocketService.on('project-switched', handleProjectSwitched);
@@ -327,11 +316,6 @@
   });
 
   onDestroy(() => {
-    // Clean up timer interval
-    if (timeAgoInterval) {
-      clearInterval(timeAgoInterval);
-    }
-
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);

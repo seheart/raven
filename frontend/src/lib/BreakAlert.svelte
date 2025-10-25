@@ -1,13 +1,12 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
+  import { websocketService } from './websocket.js';
 
   export let project = 'raven';
-  export let checkInterval = 5 * 60 * 1000; // Check every 5 minutes
 
   let recommendation = null;
   let dismissed = false;
-  let pollIntervalId = null;
   let dismissTimeout = null;
 
   async function checkBreakRecommendation() {
@@ -29,17 +28,23 @@
     }
   }
 
+  // WebSocket handler for real-time updates
+  const handleFileChanged = () => {
+    // Check for break recommendation when user is actively working
+    checkBreakRecommendation();
+  };
+
   onMount(async () => {
     await checkBreakRecommendation();
 
-    // Poll for updates
-    pollIntervalId = setInterval(checkBreakRecommendation, checkInterval);
+    // Listen for file changes to trigger break checks (event-driven!)
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
   });
 
   onDestroy(() => {
-    if (pollIntervalId) {
-      clearInterval(pollIntervalId);
-    }
+    websocketService.off('file-changed', handleFileChanged);
+
     if (dismissTimeout) {
       clearTimeout(dismissTimeout);
     }
