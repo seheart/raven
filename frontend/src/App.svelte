@@ -33,6 +33,9 @@
   import ServerSyncPanel from './lib/ServerSyncPanel.svelte';
   import SettingsPanel from './lib/SettingsPanel.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
+  import ConversationsPanel from './lib/ConversationsPanel.svelte';
+  import DeveloperInsightsPanel from './lib/DeveloperInsightsPanel.svelte';
+  import ProjectsComparisonPanel from './lib/ProjectsComparisonPanel.svelte';
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
   import { toasts } from './lib/toastStore.js';
@@ -266,11 +269,55 @@
   <!-- Consolidated View Container -->
   <div class="view-container" role="main">
     {#if activeTab === 'overview'}
-      <!-- Overview: Dashboard + Metrics + Git Status -->
-      <OverviewPanel {sessionId} {sessionUptime} />
+      <!-- Overview: Dashboard + Projects Comparison -->
+      <div class="tab-content">
+        <div class="sub-navigation">
+          <button
+            class="sub-tab"
+            class:active={!currentSubView}
+            on:click={() => currentSubView = ''}
+          >
+            Dashboard
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'projects'}
+            on:click={() => currentSubView = 'projects'}
+          >
+            Projects Comparison
+          </button>
+        </div>
+        {#if !currentSubView}
+          <OverviewPanel {sessionId} {sessionUptime} />
+        {:else if currentSubView === 'projects'}
+          <ProjectsComparisonPanel />
+        {/if}
+      </div>
     {:else if activeTab === 'agents'}
-      <!-- Agents: AI agent monitoring -->
-      <AgentsPanel />
+      <!-- Agents: AI agent monitoring + Conversations -->
+      <div class="tab-content">
+        <div class="sub-navigation">
+          <button
+            class="sub-tab"
+            class:active={!currentSubView}
+            on:click={() => currentSubView = ''}
+          >
+            Agent Stats
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'conversations'}
+            on:click={() => currentSubView = 'conversations'}
+          >
+            Conversations
+          </button>
+        </div>
+        {#if !currentSubView}
+          <AgentsPanel />
+        {:else if currentSubView === 'conversations'}
+          <ConversationsPanel />
+        {/if}
+      </div>
     {:else if activeTab === 'activity'}
       <!-- Activity: Events + Files + Live Code -->
       <div class="tab-content">
@@ -306,7 +353,7 @@
         {/if}
       </div>
     {:else if activeTab === 'analysis'}
-      <!-- Analysis: Performance + Triggers + Session Replay -->
+      <!-- Analysis: Performance + Triggers + Session Replay + Developer Insights -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
@@ -330,6 +377,13 @@
           >
             Session Replay
           </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'insights'}
+            on:click={() => currentSubView = 'insights'}
+          >
+            Developer Insights
+          </button>
         </div>
         {#if !currentSubView}
           <PerformancePanel />
@@ -337,6 +391,8 @@
           <TriggersPanel />
         {:else if currentSubView === 'replay'}
           <SessionReplay />
+        {:else if currentSubView === 'insights'}
+          <DeveloperInsightsPanel />
         {/if}
       </div>
     {:else if activeTab === 'system'}

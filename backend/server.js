@@ -48,6 +48,7 @@ import { createControlRoutes } from './routes/control.js';
 import { createMetricsRoutes } from './routes/metrics.js';
 import { createApiDocsRoutes } from './routes/api-docs.js';
 import { createConversationRoutes } from './routes/conversations.js';
+import { createDeveloperRoutes } from './routes/developer.js';
 
 // Utilities (Phase 3)
 import { logger } from './utils/logger.js';
@@ -1239,6 +1240,9 @@ app.use('/api', createDashboardRoutes(routeDependencies));
 
 // Conversation routes (Agent Conversation Tracker)
 app.use('/api', createConversationRoutes(routeDependencies));
+
+// Developer Persona routes (AI Training Data)
+app.use('/api/developer', createDeveloperRoutes(routeDependencies));
 
 // Metrics routes - system and process metrics
 app.get('/api/system-metrics', (req, res) => {
