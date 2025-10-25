@@ -39,8 +39,8 @@ export const API_CONFIG = {
       ERRORS: `${this.BASE_URL}/api/errors`,
 
       // Git
-      GIT_STATUS: `${this.BASE_URL}/api/git/status`,
-    }
+      GIT_STATUS: `${this.BASE_URL}/api/git/status`
+    };
   }
 };
 

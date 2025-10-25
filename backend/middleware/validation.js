@@ -163,9 +163,9 @@ export function validate(schemaName, source = 'body') {
     }
 
     const data = source === 'body' ? req.body :
-                 source === 'query' ? req.query :
-                 source === 'params' ? req.params :
-                 req.body;
+      source === 'query' ? req.query :
+        source === 'params' ? req.params :
+          req.body;
 
     const { error, value } = schema.validate(data, {
       abortEarly: false, // Return all errors

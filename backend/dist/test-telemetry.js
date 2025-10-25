@@ -69,11 +69,11 @@ async function generateTestData(count = 50) {
         await new Promise(resolve => setTimeout(resolve, 50));
     }
     console.log(`\n✅ Successfully sent ${successCount}/${count} telemetry events`);
-    console.log(`\n📊 Dashboard should now show:`);
+    console.log('\n📊 Dashboard should now show:');
     console.log(`   - ${successCount} total events`);
     console.log(`   - ${agents.length} active agents`);
     console.log(`   - ${files.length} files modified`);
-    console.log(`\n🌐 Open http://localhost:5173 to see the data!`);
+    console.log('\n🌐 Open http://localhost:5173 to see the data!');
 }
 // Run the generator
 const eventCount = parseInt(process.argv[2]) || 50;

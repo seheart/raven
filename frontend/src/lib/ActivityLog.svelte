@@ -218,19 +218,19 @@
 
   function getCategoryIcon(category) {
     switch (category) {
-      case 'file': return '📁';
-      case 'agent': return '🤖';
-      case 'system': return '⚙️';
-      default: return '📝';
+    case 'file': return '📁';
+    case 'agent': return '🤖';
+    case 'system': return '⚙️';
+    default: return '📝';
     }
   }
 
   function getCategoryColor(category) {
     switch (category) {
-      case 'file': return 'var(--info)';
-      case 'agent': return 'var(--accent)';
-      case 'system': return 'var(--warning)';
-      default: return 'var(--muted)';
+    case 'file': return 'var(--info)';
+    case 'agent': return 'var(--accent)';
+    case 'system': return 'var(--warning)';
+    default: return 'var(--muted)';
     }
   }
 
@@ -287,22 +287,22 @@
     }
 
     switch (event.key) {
-      case '1':
-        setFilter('all');
-        break;
-      case '2':
-        setFilter('file');
-        break;
-      case '3':
-        setFilter('agent');
-        break;
-      case '4':
-        setFilter('system');
-        break;
-      case 'r':
-      case 'R':
-        loadActivities(true);
-        break;
+    case '1':
+      setFilter('all');
+      break;
+    case '2':
+      setFilter('file');
+      break;
+    case '3':
+      setFilter('agent');
+      break;
+    case '4':
+      setFilter('system');
+      break;
+    case 'r':
+    case 'R':
+      loadActivities(true);
+      break;
     }
   }
 

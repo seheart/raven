@@ -156,19 +156,19 @@
 
   function getPermissionStatusText() {
     switch (notificationPermission) {
-      case 'granted': return '✓ Granted';
-      case 'denied': return '✗ Denied';
-      case 'default': return '? Not requested';
-      default: return 'Unknown';
+    case 'granted': return '✓ Granted';
+    case 'denied': return '✗ Denied';
+    case 'default': return '? Not requested';
+    default: return 'Unknown';
     }
   }
 
   function getPermissionStatusClass() {
     switch (notificationPermission) {
-      case 'granted': return 'permission-granted';
-      case 'denied': return 'permission-denied';
-      case 'default': return 'permission-default';
-      default: return '';
+    case 'granted': return 'permission-granted';
+    case 'denied': return 'permission-denied';
+    case 'default': return 'permission-default';
+    default: return '';
     }
   }
 

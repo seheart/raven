@@ -973,7 +973,7 @@ function initializeAllProjects() {
     }
   }
 
-  console.log(`\n✅ Project initialization complete:`);
+  console.log('\n✅ Project initialization complete:');
   console.log(`   Successful: ${successCount}`);
   console.log(`   Failed: ${failCount}`);
   console.log(`   Total: ${availableProjects.length}\n`);
@@ -1071,7 +1071,7 @@ function initializeWatcher(projectName) {
     join(projectPath, 'backend/*.js'),      // Only .js files in backend root
     join(projectPath, 'frontend/src'),      // Only src directory
     join(projectPath, '*.md'),              // Root markdown files
-    join(projectPath, '*.sh'),              // Shell scripts
+    join(projectPath, '*.sh')              // Shell scripts
   ] : projectPath;
 
   const watcher = chokidar.watch(watchPaths, {
@@ -1121,7 +1121,7 @@ function initializeWatcher(projectName) {
  * Initialize watchers for ALL projects
  */
 function initializeAllWatchers() {
-  console.log(`\n👀 Starting file watchers for all projects...\n`);
+  console.log('\n👀 Starting file watchers for all projects...\n');
 
   let successCount = 0;
   let failCount = 0;
@@ -1136,7 +1136,7 @@ function initializeAllWatchers() {
     }
   }
 
-  console.log(`\n✅ Watcher initialization complete:`);
+  console.log('\n✅ Watcher initialization complete:');
   console.log(`   Watching: ${successCount} projects`);
   console.log(`   Failed: ${failCount}\n`);
 
@@ -1252,7 +1252,7 @@ app.get('/api/system-metrics', (req, res) => {
     if (!ravenDb) {
       return res.status(500).json({ error: 'Raven database not found' });
     }
-    const stmt = ravenDb.db.prepare(`SELECT * FROM raven_metrics ORDER BY timestamp DESC LIMIT ? OFFSET ?`);
+    const stmt = ravenDb.db.prepare('SELECT * FROM raven_metrics ORDER BY timestamp DESC LIMIT ? OFFSET ?');
     const metrics = stmt.all(parseInt(limit), parseInt(offset));
     res.json(metrics);
   } catch (error) {
@@ -1417,6 +1417,409 @@ app.get('/api/performance-correlations', (req, res) => {
     res.json(correlations);
   } catch (error) {
     console.error('❌ Performance correlations error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Custom Metrics Dashboard API ====================
+
+app.get('/api/metrics/dashboard', (req, res) => {
+  try {
+    // Aggregate key metrics
+    const metrics = {};
+
+    // Total events
+    metrics.total_events = projectState.db.db.prepare('SELECT COUNT(*) as count FROM events').get().count;
+
+    // Events by type
+    const eventsByType = projectState.db.db.prepare(`
+      SELECT change_type, COUNT(*) as count
+      FROM events
+      GROUP BY change_type
+    `).all();
+    metrics.events_by_type = Object.fromEntries(eventsByType.map(e => [e.change_type, e.count]));
+
+    // Events last 24h
+    metrics.events_24h = projectState.db.db.prepare(`
+      SELECT COUNT(*) as count FROM events
+      WHERE timestamp >= datetime('now', '-24 hours')
+    `).get().count;
+
+    // Active projects
+    metrics.active_projects = projectState.db.db.prepare(`
+      SELECT COUNT(DISTINCT project_name) as count FROM events
+      WHERE timestamp >= datetime('now', '-7 days')
+    `).get().count;
+
+    // Total files tracked
+    metrics.total_files = projectState.db.db.prepare(`
+      SELECT COUNT(DISTINCT filepath) as count FROM events
+    `).get().count;
+
+    // Most active file
+    const mostActive = projectState.db.db.prepare(`
+      SELECT filepath, COUNT(*) as count FROM events
+      WHERE timestamp >= datetime('now', '-7 days')
+      GROUP BY filepath
+      ORDER BY count DESC
+      LIMIT 1
+    `).get();
+    metrics.most_active_file = mostActive ? { file: mostActive.filepath, changes: mostActive.count } : null;
+
+    // Error count
+    metrics.error_count = projectState.db.db.prepare('SELECT COUNT(*) as count FROM error_logs').get().count;
+
+    // Conversation count
+    metrics.conversation_count = projectState.db.db.prepare('SELECT COUNT(*) as count FROM conversations').get().count;
+
+    // Average events per day (last 7 days)
+    const avgPerDay = projectState.db.db.prepare(`
+      SELECT AVG(daily_count) as avg FROM (
+        SELECT DATE(timestamp) as day, COUNT(*) as daily_count
+        FROM events
+        WHERE timestamp >= datetime('now', '-7 days')
+        GROUP BY day
+      )
+    `).get();
+    metrics.avg_events_per_day = Math.round(avgPerDay.avg || 0);
+
+    // Busiest hour
+    const busiestHour = projectState.db.db.prepare(`
+      SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
+      FROM events
+      GROUP BY hour
+      ORDER BY count DESC
+      LIMIT 1
+    `).get();
+    metrics.busiest_hour = busiestHour ? { hour: parseInt(busiestHour.hour), count: busiestHour.count } : null;
+
+    res.json({ metrics });
+  } catch (error) {
+    console.error('❌ Custom metrics error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Global Search API ====================
+
+app.get('/api/search/global', (req, res) => {
+  try {
+    const query = req.query.q || '';
+    const limit = parseInt(req.query.limit) || 50;
+
+    if (!query || query.trim().length < 2) {
+      return res.json({ results: [], total: 0, query: '' });
+    }
+
+    const searchPattern = `%${query}%`;
+    const results = [];
+
+    // Search events (files, changes)
+    const eventsSql = `
+      SELECT 'event' as type, id, filepath as title, change_type as subtitle,
+             timestamp, project_name
+      FROM events
+      WHERE filepath LIKE ? OR change_type LIKE ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `;
+    const events = projectState.db.db.prepare(eventsSql).all(searchPattern, searchPattern, limit);
+    results.push(...events.map(e => ({
+      ...e,
+      icon: '📄',
+      description: `${e.subtitle} - ${e.project_name || 'Unknown'}`
+    })));
+
+    // Search conversations
+    const convsSql = `
+      SELECT 'conversation' as type, id, tool_name as title, content as subtitle,
+             timestamp, project_name
+      FROM conversations
+      WHERE content LIKE ? OR tool_name LIKE ? OR project_name LIKE ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `;
+    const convs = projectState.db.db.prepare(convsSql).all(searchPattern, searchPattern, searchPattern, limit);
+    results.push(...convs.map(c => ({
+      ...c,
+      icon: '💬',
+      description: c.subtitle ? c.subtitle.substring(0, 100) : ''
+    })));
+
+    // Search errors
+    const errorsSql = `
+      SELECT 'error' as type, id, message as title, severity as subtitle,
+             timestamp, '' as project_name
+      FROM error_logs
+      WHERE message LIKE ? OR context LIKE ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `;
+    const errors = projectState.db.db.prepare(errorsSql).all(searchPattern, searchPattern, limit);
+    results.push(...errors.map(e => ({
+      ...e,
+      icon: '❌',
+      description: `${e.subtitle} severity`
+    })));
+
+    // Search notifications
+    const notifsSql = `
+      SELECT 'notification' as type, id, title, message as subtitle,
+             timestamp, '' as project_name
+      FROM notifications
+      WHERE title LIKE ? OR message LIKE ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `;
+    const notifs = projectState.db.db.prepare(notifsSql).all(searchPattern, searchPattern, limit);
+    results.push(...notifs.map(n => ({
+      ...n,
+      icon: '🔔',
+      description: n.subtitle || ''
+    })));
+
+    // Sort all results by timestamp desc and limit
+    const sortedResults = results
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, limit);
+
+    res.json({
+      query,
+      results: sortedResults,
+      total: sortedResults.length,
+      categories: {
+        events: events.length,
+        conversations: convs.length,
+        errors: errors.length,
+        notifications: notifs.length
+      }
+    });
+  } catch (error) {
+    console.error('❌ Global search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Multi-Project Health Dashboard API ====================
+
+app.get('/api/health/projects', (req, res) => {
+  try {
+    // For single-project mode, create health data for current monitored project
+    const projectName = projectState.watchPath ? projectState.watchPath.split('/').pop() : 'Current Project';
+
+    // Get recent activity (last 24 hours)
+    const recentActivity = projectState.db.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM events
+      WHERE timestamp >= datetime('now', '-24 hours')
+    `).get();
+
+    // Get error count
+    const errors = projectState.db.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM error_logs
+    `).get();
+
+    // Get latest event timestamp
+    const latest = projectState.db.db.prepare(`
+      SELECT timestamp
+      FROM events
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `).get();
+
+    // Calculate health score (0-100)
+    const activityScore = Math.min(recentActivity.count, 100);
+    const errorPenalty = Math.min(errors.count * 5, 50);
+    const healthScore = Math.max(activityScore - errorPenalty, 0);
+
+    // Determine status
+    let status = 'inactive';
+    if (latest) {
+      const lastActivityHours = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60);
+      if (lastActivityHours < 1) status = 'active';
+      else if (lastActivityHours < 24) status = 'recent';
+      else if (lastActivityHours < 168) status = 'idle';
+    }
+
+    const healthData = [{
+      name: projectName,
+      status,
+      health_score: healthScore,
+      recent_events: recentActivity.count || 0,
+      error_count: errors.count || 0,
+      last_activity: latest?.timestamp || null
+    }];
+
+    res.json({
+      projects: healthData,
+      total_projects: 1,
+      active_projects: healthData.filter(p => p.status === 'active').length,
+      recent_projects: healthData.filter(p => p.status === 'recent').length
+    });
+  } catch (error) {
+    console.error('❌ Multi-project health error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Anomaly Detection API ====================
+
+app.get('/api/anomalies/detect', (req, res) => {
+  try {
+    const lookbackHours = parseInt(req.query.hours) || 24;
+    const threshold = parseFloat(req.query.threshold) || 2.0; // Standard deviations
+
+    const now = Date.now();
+    const lookbackTime = new Date(now - (lookbackHours * 60 * 60 * 1000)).toISOString();
+
+    // Get hourly event counts for baseline
+    const baselineSql = `
+      SELECT
+        strftime('%H', timestamp) as hour,
+        COUNT(*) as count
+      FROM events
+      WHERE timestamp < ?
+      GROUP BY hour
+    `;
+
+    const baseline = projectState.db.db.prepare(baselineSql).all(lookbackTime);
+    const avgPerHour = baseline.reduce((sum, h) => sum + h.count, 0) / Math.max(baseline.length, 1);
+    const stdDev = Math.sqrt(
+      baseline.reduce((sum, h) => sum + Math.pow(h.count - avgPerHour, 2), 0) / Math.max(baseline.length, 1)
+    );
+
+    // Check recent activity
+    const recentSql = `
+      SELECT
+        strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
+        COUNT(*) as event_count,
+        SUM(CASE WHEN change_type = 'deleted' THEN 1 ELSE 0 END) as deletions,
+        COUNT(DISTINCT filepath) as unique_files
+      FROM events
+      WHERE timestamp >= ?
+      GROUP BY hour
+      ORDER BY hour DESC
+    `;
+
+    const recent = projectState.db.db.prepare(recentSql).all(lookbackTime);
+
+    const anomalies = [];
+
+    // Detect activity spikes
+    recent.forEach(hour => {
+      if (hour.event_count > avgPerHour + (threshold * stdDev)) {
+        anomalies.push({
+          type: 'activity_spike',
+          severity: 'warning',
+          timestamp: hour.hour,
+          message: `Unusual activity spike: ${hour.event_count} events (avg: ${Math.round(avgPerHour)})`,
+          details: {
+            event_count: hour.event_count,
+            average: Math.round(avgPerHour),
+            std_devs: ((hour.event_count - avgPerHour) / Math.max(stdDev, 1)).toFixed(2)
+          }
+        });
+      }
+
+      // Detect excessive deletions
+      if (hour.deletions > 10) {
+        anomalies.push({
+          type: 'excessive_deletions',
+          severity: 'critical',
+          timestamp: hour.hour,
+          message: `High deletion count: ${hour.deletions} files deleted`,
+          details: {
+            deletions: hour.deletions,
+            threshold: 10
+          }
+        });
+      }
+    });
+
+    // Detect unusual file activity
+    const recentFiles = projectState.db.db.prepare(`
+      SELECT
+        filepath,
+        COUNT(*) as change_count
+      FROM events
+      WHERE timestamp >= ?
+      GROUP BY filepath
+      HAVING change_count > 20
+      ORDER BY change_count DESC
+      LIMIT 10
+    `).all(lookbackTime);
+
+    recentFiles.forEach(file => {
+      anomalies.push({
+        type: 'hot_file',
+        severity: 'info',
+        timestamp: new Date().toISOString(),
+        message: `File modified frequently: ${file.filepath} (${file.change_count} changes)`,
+        details: {
+          filepath: file.filepath,
+          change_count: file.change_count
+        }
+      });
+    });
+
+    res.json({
+      lookback_hours: lookbackHours,
+      threshold,
+      baseline: {
+        avg_per_hour: Math.round(avgPerHour),
+        std_dev: Math.round(stdDev)
+      },
+      anomalies,
+      total_anomalies: anomalies.length
+    });
+  } catch (error) {
+    console.error('❌ Anomaly detection error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Historical Trends API ====================
+
+app.get('/api/trends/historical', (req, res) => {
+  try {
+    const period = req.query.period || 'hourly'; // hourly, daily, weekly
+    const days = parseInt(req.query.days) || 7; // last N days
+
+    const now = Date.now();
+    const startTime = new Date(now - (days * 24 * 60 * 60 * 1000)).toISOString();
+
+    // Get events grouped by time period
+    const sql = `
+      SELECT
+        CASE
+          WHEN ? = 'hourly' THEN strftime('%Y-%m-%d %H:00:00', timestamp)
+          WHEN ? = 'daily' THEN strftime('%Y-%m-%d', timestamp)
+          WHEN ? = 'weekly' THEN strftime('%Y-W%W', timestamp)
+          ELSE strftime('%Y-%m-%d %H:00:00', timestamp)
+        END as period,
+        COUNT(*) as event_count,
+        SUM(CASE WHEN change_type = 'modified' THEN 1 ELSE 0 END) as modifications,
+        SUM(CASE WHEN change_type = 'created' THEN 1 ELSE 0 END) as creations,
+        SUM(CASE WHEN change_type = 'deleted' THEN 1 ELSE 0 END) as deletions,
+        COUNT(DISTINCT filepath) as unique_files
+      FROM events
+      WHERE timestamp >= ?
+      GROUP BY period
+      ORDER BY period ASC
+    `;
+
+    const stmt = projectState.db.db.prepare(sql);
+    const trends = stmt.all(period, period, period, startTime);
+
+    res.json({
+      period,
+      days,
+      start_time: startTime,
+      trends
+    });
+  } catch (error) {
+    console.error('❌ Historical trends error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2864,7 +3267,7 @@ app.get('/api/storage', async (req, res) => {
           totalRecords += count.count;
 
           // Get table size
-          const sizeQuery = db.prepare(`SELECT SUM(pgsize) as size FROM dbstat WHERE name = ?`).get(table.name);
+          const sizeQuery = db.prepare('SELECT SUM(pgsize) as size FROM dbstat WHERE name = ?').get(table.name);
           tableStats.push({
             name: table.name,
             records: count.count,

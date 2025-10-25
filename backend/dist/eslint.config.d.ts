@@ -1,4 +1,8 @@
-declare const _default: {
+declare const _default: ({
+    ignores: string[];
+    languageOptions?: undefined;
+    rules?: undefined;
+} | {
     languageOptions: {
         ecmaVersion: string;
         sourceType: string;
@@ -27,6 +31,7 @@ declare const _default: {
         'comma-dangle': string[];
         'eol-last': string[];
     };
-}[];
+    ignores?: undefined;
+})[];
 export default _default;
 //# sourceMappingURL=eslint.config.d.ts.map

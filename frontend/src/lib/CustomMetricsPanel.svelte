@@ -1,0 +1,465 @@
+<script>
+  import { onMount, onDestroy } from 'svelte';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
+
+  let metrics = {};
+  let loading = true;
+  let error = null;
+  let lastUpdate = new Date();
+  let refreshInterval;
+
+  const API_BASE = 'http://localhost:3030/api';
+
+  onMount(async () => {
+    await loadMetrics();
+    // Auto-refresh every 30 seconds
+    refreshInterval = setInterval(async () => {
+      await loadMetrics();
+    }, 30000);
+  });
+
+  onDestroy(() => {
+    if (refreshInterval) clearInterval(refreshInterval);
+  });
+
+  async function loadMetrics() {
+    try {
+      loading = true;
+      const response = await fetch(`${API_BASE}/metrics/dashboard`);
+      if (!response.ok) throw new Error('Failed to fetch metrics');
+
+      const data = await response.json();
+      metrics = data.metrics || {};
+      lastUpdate = new Date();
+      error = null;
+    } catch (err) {
+      console.error('Failed to load metrics:', err);
+      error = err.message;
+    } finally {
+      loading = false;
+    }
+  }
+
+  function getTimeSinceUpdate() {
+    const seconds = Math.floor((new Date() - lastUpdate) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }
+
+  function formatHour(hour) {
+    if (hour === 0) return '12 AM';
+    if (hour < 12) return `${hour} AM`;
+    if (hour === 12) return '12 PM';
+    return `${hour - 12} PM`;
+  }
+
+  // Update time display every second
+  let timeInterval;
+  onMount(() => {
+    timeInterval = setInterval(() => {
+      lastUpdate = lastUpdate; // Trigger reactivity
+    }, 1000);
+  });
+  onDestroy(() => {
+    if (timeInterval) clearInterval(timeInterval);
+  });
+</script>
+
+<div class="custom-metrics-panel">
+  <div class="panel-header">
+    <div class="header-left">
+      <h2>📊 Custom Metrics Dashboard</h2>
+      <p class="subtitle">Key performance indicators at a glance</p>
+    </div>
+    <div class="header-right">
+      <span class="last-update">Updated: {getTimeSinceUpdate()}</span>
+      <button class="btn-primary" on:click={loadMetrics}>↻ Refresh</button>
+    </div>
+  </div>
+
+  {#if loading}
+    <LoadingSkeleton />
+  {:else if error}
+    <div class="error-state">
+      <p>❌ Error loading metrics: {error}</p>
+      <button on:click={loadMetrics}>Try Again</button>
+    </div>
+  {:else}
+    <div class="metrics-grid">
+      <!-- Total Events -->
+      <div class="metric-card primary">
+        <div class="metric-icon">📈</div>
+        <div class="metric-value">{(metrics.total_events || 0).toLocaleString()}</div>
+        <div class="metric-label">Total Events</div>
+        <div class="metric-sublabel">All-time</div>
+      </div>
+
+      <!-- Events 24h -->
+      <div class="metric-card success">
+        <div class="metric-icon">⚡</div>
+        <div class="metric-value">{(metrics.events_24h || 0).toLocaleString()}</div>
+        <div class="metric-label">Events (24h)</div>
+        <div class="metric-sublabel">Recent activity</div>
+      </div>
+
+      <!-- Active Projects -->
+      <div class="metric-card accent">
+        <div class="metric-icon">📁</div>
+        <div class="metric-value">{metrics.active_projects || 0}</div>
+        <div class="metric-label">Active Projects</div>
+        <div class="metric-sublabel">Last 7 days</div>
+      </div>
+
+      <!-- Total Files -->
+      <div class="metric-card warning">
+        <div class="metric-icon">📄</div>
+        <div class="metric-value">{(metrics.total_files || 0).toLocaleString()}</div>
+        <div class="metric-label">Files Tracked</div>
+        <div class="metric-sublabel">Unique files</div>
+      </div>
+
+      <!-- Error Count -->
+      <div class="metric-card error">
+        <div class="metric-icon">❌</div>
+        <div class="metric-value">{metrics.error_count || 0}</div>
+        <div class="metric-label">Total Errors</div>
+        <div class="metric-sublabel">All-time</div>
+      </div>
+
+      <!-- Conversations -->
+      <div class="metric-card info">
+        <div class="metric-icon">💬</div>
+        <div class="metric-value">{(metrics.conversation_count || 0).toLocaleString()}</div>
+        <div class="metric-label">Conversations</div>
+        <div class="metric-sublabel">Total logged</div>
+      </div>
+
+      <!-- Avg Events Per Day -->
+      <div class="metric-card primary">
+        <div class="metric-icon">📊</div>
+        <div class="metric-value">{metrics.avg_events_per_day || 0}</div>
+        <div class="metric-label">Avg Events/Day</div>
+        <div class="metric-sublabel">Last 7 days</div>
+      </div>
+
+      <!-- Busiest Hour -->
+      {#if metrics.busiest_hour}
+        <div class="metric-card accent">
+          <div class="metric-icon">🕒</div>
+          <div class="metric-value">{formatHour(metrics.busiest_hour.hour)}</div>
+          <div class="metric-label">Busiest Hour</div>
+          <div class="metric-sublabel">{metrics.busiest_hour.count} events</div>
+        </div>
+      {/if}
+
+      <!-- Events by Type -->
+      {#if metrics.events_by_type}
+        <div class="metric-card wide breakdown">
+          <div class="breakdown-header">
+            <span class="breakdown-icon">📋</span>
+            <span class="breakdown-title">Events by Type</span>
+          </div>
+          <div class="breakdown-grid">
+            {#each Object.entries(metrics.events_by_type) as [type, count]}
+              <div class="breakdown-item">
+                <div class="breakdown-type">{type}</div>
+                <div class="breakdown-count">{count.toLocaleString()}</div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Most Active File -->
+      {#if metrics.most_active_file}
+        <div class="metric-card wide highlight">
+          <div class="highlight-header">
+            <span class="highlight-icon">🔥</span>
+            <span class="highlight-title">Most Active File (7d)</span>
+          </div>
+          <div class="highlight-content">
+            <div class="highlight-file">{metrics.most_active_file.file}</div>
+            <div class="highlight-changes">{metrics.most_active_file.changes} changes</div>
+          </div>
+        </div>
+      {/if}
+    </div>
+  {/if}
+</div>
+
+<style>
+  .custom-metrics-panel {
+    padding: 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+  }
+
+  .header-left h2 {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    color: var(--text);
+  }
+
+  .subtitle {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .header-right {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .last-update {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+  }
+
+  .metric-card {
+    padding: 24px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .metric-card.wide {
+    grid-column: span 2;
+  }
+
+  .metric-card.primary {
+    border-color: var(--accent, #7aa2f7);
+  }
+
+  .metric-card.success {
+    border-color: var(--success, #10b981);
+  }
+
+  .metric-card.warning {
+    border-color: var(--warning, #e0af68);
+  }
+
+  .metric-card.error {
+    border-color: var(--error, #f7768e);
+  }
+
+  .metric-card.accent {
+    border-color: var(--accent, #7aa2f7);
+  }
+
+  .metric-card.info {
+    border-color: var(--info, #73daca);
+  }
+
+  .metric-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .metric-value {
+    font-size: 48px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .metric-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .metric-sublabel {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .breakdown {
+    text-align: left;
+  }
+
+  .breakdown-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .breakdown-icon {
+    font-size: 24px;
+  }
+
+  .breakdown-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  .breakdown-item {
+    padding: 12px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    text-align: center;
+  }
+
+  .breakdown-type {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .breakdown-count {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text);
+  }
+
+  .highlight {
+    text-align: left;
+  }
+
+  .highlight-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .highlight-icon {
+    font-size: 24px;
+  }
+
+  .highlight-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .highlight-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg);
+    border-radius: var(--radius);
+  }
+
+  .highlight-file {
+    font-size: 14px;
+    font-family: var(--mono);
+    color: var(--text);
+    font-weight: 600;
+    word-break: break-all;
+  }
+
+  .highlight-changes {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--accent);
+    white-space: nowrap;
+    margin-left: 16px;
+  }
+
+  .btn-primary {
+    padding: 8px 16px;
+    background: var(--accent);
+    color: white;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .error-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .error-state p {
+    margin: 8px 0;
+    color: var(--error, #f7768e);
+  }
+
+  .error-state button {
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+
+  @media (max-width: 1200px) {
+    .metrics-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    .metric-card.wide {
+      grid-column: span 1;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .panel-header {
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -228,10 +228,10 @@
 
   function getActionIcon(action) {
     switch(action?.toLowerCase()) {
-      case 'notify': return '🔔';
-      case 'log': return '📝';
-      case 'command': return '⚙️';
-      default: return '❓';
+    case 'notify': return '🔔';
+    case 'log': return '📝';
+    case 'command': return '⚙️';
+    default: return '❓';
     }
   }
 

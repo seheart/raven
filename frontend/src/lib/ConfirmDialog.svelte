@@ -29,10 +29,10 @@
 
   function getIcon() {
     switch(type) {
-      case 'danger': return '⚠️';
-      case 'warning': return '⚡';
-      case 'info': return 'ℹ️';
-      default: return '❓';
+    case 'danger': return '⚠️';
+    case 'warning': return '⚡';
+    case 'info': return 'ℹ️';
+    default: return '❓';
     }
   }
 </script>

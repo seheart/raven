@@ -28,6 +28,7 @@ export interface FileEvent {
   session_id?: string;
   file_hash?: string;
   event_size?: number;
+  project_name?: string;
 }
 
 /**
@@ -138,7 +139,7 @@ export interface PerformanceCorrelation {
 // ==================== Database Class ====================
 
 export class RavenDB {
-  private db: Database.Database;
+  public db: Database.Database;
 
   constructor(dbPath: string) {
     // Ensure directory exists
@@ -166,7 +167,8 @@ export class RavenDB {
         mem REAL,
         session_id TEXT,
         file_hash TEXT,
-        event_size INTEGER
+        event_size INTEGER,
+        project_name TEXT
       )
     `);
 
@@ -301,11 +303,12 @@ export class RavenDB {
     mem: number,
     session_id: string | null | undefined,
     file_hash: string | null | undefined,
-    event_size: number | null | undefined
+    event_size: number | null | undefined,
+    project_name: string | null | undefined
   ): number {
     const stmt = this.db.prepare(`
-      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size, project_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -317,7 +320,8 @@ export class RavenDB {
       mem,
       session_id || null,
       file_hash || null,
-      event_size || null
+      event_size || null,
+      project_name || null
     );
 
     return Number(result.lastInsertRowid);
@@ -325,8 +329,8 @@ export class RavenDB {
 
   getRecentFileEvents(limit: number = 100, includeDiff: boolean = false): FileEvent[] {
     const fields = includeDiff
-      ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff'
-      : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem';
+      ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name'
+      : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name';
 
     const stmt = this.db.prepare(`
       SELECT ${fields}
@@ -340,7 +344,7 @@ export class RavenDB {
 
   getEventsBySession(session_id: string): FileEvent[] {
     const stmt = this.db.prepare(`
-      SELECT id, timestamp, filepath, change_type, diff, cpu, mem
+      SELECT id, timestamp, filepath, change_type, diff, cpu, mem, project_name
       FROM events
       WHERE session_id = ?
       ORDER BY timestamp ASC

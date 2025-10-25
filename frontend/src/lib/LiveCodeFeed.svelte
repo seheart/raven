@@ -106,7 +106,7 @@
 
   async function loadSessionStats() {
     try {
-      const data = await api.get("/dashboard-stats");
+      const data = await api.get('/dashboard-stats');
 
       sessionStats = {
         duration: data.session_duration_seconds || 0,
@@ -125,7 +125,7 @@
 
   async function loadMetrics() {
     try {
-      const data = await api.get("/process-metrics?limit=1");
+      const data = await api.get('/process-metrics?limit=1');
 
       if (data && data.length > 0) {
         const latest = data[0];
@@ -184,7 +184,7 @@
 
   async function loadCodeChanges() {
     try {
-      const data = await api.get("/file-events?limit=50&diff=true");
+      const data = await api.get('/file-events?limit=50&diff=true');
       codeChanges = data;
     } catch (error) {
       console.error('Failed to load code changes:', error);
@@ -195,8 +195,8 @@
     try {
       // Get both file events and agent events
       const [fileEvents, agentEvents] = await Promise.all([
-        api.get("/file-events?limit=20"),
-        api.get("/agent-events?limit=20")
+        api.get('/file-events?limit=20'),
+        api.get('/agent-events?limit=20')
       ]);
 
       // Combine and sort by timestamp

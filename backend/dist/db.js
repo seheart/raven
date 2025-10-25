@@ -37,7 +37,8 @@ export class RavenDB {
         mem REAL,
         session_id TEXT,
         file_hash TEXT,
-        event_size INTEGER
+        event_size INTEGER,
+        project_name TEXT
       )
     `);
         // Agent telemetry events table
@@ -128,18 +129,18 @@ export class RavenDB {
         return stmt.all();
     }
     // ==================== File Events ====================
-    insertEvent(timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size) {
+    insertEvent(timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size, project_name) {
         const stmt = this.db.prepare(`
-      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size, project_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-        const result = stmt.run(timestamp, filepath, change_type, diff, cpu, mem, session_id || null, file_hash || null, event_size || null);
+        const result = stmt.run(timestamp, filepath, change_type, diff, cpu, mem, session_id || null, file_hash || null, event_size || null, project_name || null);
         return Number(result.lastInsertRowid);
     }
     getRecentFileEvents(limit = 100, includeDiff = false) {
         const fields = includeDiff
-            ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff'
-            : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem';
+            ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name'
+            : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name';
         const stmt = this.db.prepare(`
       SELECT ${fields}
       FROM events
@@ -150,7 +151,7 @@ export class RavenDB {
     }
     getEventsBySession(session_id) {
         const stmt = this.db.prepare(`
-      SELECT id, timestamp, filepath, change_type, diff, cpu, mem
+      SELECT id, timestamp, filepath, change_type, diff, cpu, mem, project_name
       FROM events
       WHERE session_id = ?
       ORDER BY timestamp ASC

@@ -32,8 +32,8 @@ global.fetch = vi.fn((url) => {
           agent_name: 'test-agent',
           event_type: 'file_change',
           filepath: 'test.js',
-          change_type: 'created',
-        },
+          change_type: 'created'
+        }
       ])
     });
   }
@@ -77,14 +77,14 @@ expect.extend({
       return {
         message: () =>
           `expected ${received} not to be within range ${floor} - ${ceiling}`,
-        pass: true,
+        pass: true
       };
     } else {
       return {
         message: () =>
           `expected ${received} to be within range ${floor} - ${ceiling}`,
-        pass: false,
+        pass: false
       };
     }
-  },
+  }
 });

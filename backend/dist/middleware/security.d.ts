@@ -37,7 +37,7 @@ export function setupRequestSizeLimit(): {
 };
 /**
  * General API rate limiter
- * Limits: 100 requests per 15 minutes per IP
+ * Limits: 1000 requests per minute (increased for local monitoring dashboard)
  */
 export const apiLimiter: import("express-rate-limit").RateLimitRequestHandler;
 /**

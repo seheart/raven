@@ -9,7 +9,7 @@
       category: 'Global',
       items: [
         { keys: ['?'], description: 'Show/hide this help' },
-        { keys: ['Esc'], description: 'Close modals and dialogs' },
+        { keys: ['Esc'], description: 'Close modals and dialogs' }
       ]
     },
     {
@@ -20,7 +20,7 @@
         { keys: ['3'], description: 'Performance view' },
         { keys: ['4'], description: 'Triggers view' },
         { keys: ['5'], description: 'Agents view' },
-        { keys: ['6'], description: 'Status view' },
+        { keys: ['6'], description: 'Status view' }
       ]
     }
   ];

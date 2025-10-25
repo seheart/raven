@@ -181,7 +181,7 @@
                 <div class="col-count">Edits</div>
                 <div class="col-time">Last Modified</div>
               </div>
-              {#each topFiles || [] as file}
+              {#each topFiles || [] as file (file.filepath)}
                 <div class="table-row">
                   <div class="col-file" title={file.filepath}>
                     <span class="file-icon">📄</span>
@@ -216,7 +216,7 @@
                 <div class="col-count">Lines</div>
                 <div class="col-agent">Agent</div>
               </div>
-              {#each longestEdits || [] as edit}
+              {#each longestEdits || [] as edit (edit.id || `${edit.filepath}-${edit.timestamp}`)  }
                 <div class="table-row">
                   <div class="col-file" title={edit.filepath}>
                     <span class="file-icon">📄</span>
@@ -252,7 +252,7 @@
             <div class="empty-state">No agents detected</div>
           {:else}
             <div class="agents-list">
-              {#each agents || [] as agent}
+              {#each agents || [] as agent (agent?.agent_name || agent?.id)}
                 <div class="agent-item" style="border-left-color: {agent?.color}">
                   <div class="agent-status" class:running={agent?.is_running}>
                     {agent?.is_running ? '🟢' : '🔴'}

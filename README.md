@@ -6,13 +6,63 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 0.14.0 - Analytics & Insights Platform
+**Version:** 0.15.0 - Enterprise Security & Multi-Project Management
 
-## 🚀 Current Status: Complete Analytics & Developer Insights
+## 🚀 Current Status: Enterprise-Grade Security & Project Configuration
 
-✅ **Full visibility into AI agent conversations, developer patterns, and cross-project analytics with universal export.**
+✅ **Production-ready with comprehensive security hardening, multi-project configuration UI, and advanced time-range filtering.**
 
-### 🆕 What's New in 0.14.0 - Analytics & Insights Features
+### 🆕 What's New in 0.15.0 - Security & Configuration Features
+
+**🔒 Enterprise Security Hardening:**
+- [x] **Path Traversal Prevention** - Validates all project paths stay within allowed directories
+- [x] **Input Validation** - Comprehensive validation for all user inputs (names, paths, retention, file sizes)
+- [x] **Field Whitelisting** - PUT endpoints only accept whitelisted fields, blocks malicious injections
+- [x] **Error Sanitization** - Generic user-facing errors, detailed server-side logging
+- [x] **Rate Limiting** - 100 req/15min general limit, 10 req/15min for expensive operations
+- [x] **Security Headers** - Standard RateLimit-* headers for API transparency
+- [x] **ID Sanitization** - All user-provided IDs properly sanitized and validated
+- [x] **23 Security Issues Fixed** - Complete resolution of all code review findings
+
+**📂 Multi-Project Configuration UI:**
+- [x] **Projects Management Panel** - Full CRUD interface for project configuration
+- [x] **Auto-Discovery** - Scan directories for new projects automatically
+- [x] **Project Settings** - Configure ignore patterns, retention, file size limits per project
+- [x] **Enable/Disable** - Toggle monitoring for individual projects
+- [x] **Database Stats** - View size and event counts for each project database
+- [x] **Visual Status** - Active/inactive indicators with real-time updates
+- [x] **6 New API Endpoints** - Complete REST API for project management
+  - GET `/api/projects` - List all configured projects
+  - POST `/api/projects` - Add new project with validation
+  - PUT `/api/projects/:id` - Update project settings
+  - DELETE `/api/projects/:id` - Remove project (optionally delete DB)
+  - POST `/api/projects/discover` - Auto-discover projects in directory
+  - GET `/api/storage` - Database management and statistics
+
+**⏱️ Advanced Time-Range Filtering:**
+- [x] **Preset Ranges** - Quick filters: 1h, 6h, 24h, 7d, 30d
+- [x] **Custom Range Picker** - Select any start/end time with validation
+- [x] **Time Validation** - Prevents invalid ranges (end > start, not in future)
+- [x] **Visual Display** - "Showing: [time] → [time]" with formatted dates
+- [x] **Reactive Updates** - Fixed infinite loop bugs with proper lifecycle management
+- [x] **Reusable Component** - TimeRangeFilter.svelte for consistent UX
+
+**🎨 Professional UX Improvements:**
+- [x] **Toast Notifications** - Modern notification system replacing browser alerts
+- [x] **Custom Confirmation Modals** - Beautiful modals instead of confirm() dialogs
+- [x] **Auto-Dismiss** - Notifications auto-close after 3-5 seconds
+- [x] **ARIA Compliance** - Accessible notifications for screen readers
+- [x] **Smooth Transitions** - Svelte fly animations for toast messages
+- [x] **Success/Error/Warning/Info** - Four notification types with distinct styling
+
+**💡 Why This Matters:**
+These features transform Raven from a monitoring tool into an enterprise-ready platform.
+With comprehensive security hardening, you can safely deploy Raven in production environments.
+The multi-project configuration UI makes it easy to manage dozens of projects, while time-range
+filtering gives you precise control over historical data analysis. All wrapped in a polished,
+accessible interface with modern notifications.
+
+### Previous Release: 0.14.0 - Analytics & Insights Features
 
 **💬 Conversations Panel - Full Frontend for AI Dialogue:**
 - [x] **Dedicated Conversations UI** - Complete panel for viewing Claude Code conversation history
@@ -222,29 +272,27 @@ understanding your workflow, and identifying which projects need attention.
 - [x] Lines changed estimation
 - [x] Session start/end tracking
 
-**Previous Features (Still Awesome):**
+**Core Monitoring Features (Production Ready):**
 
 - [x] Async file watcher with 50ms debounce
 - [x] Event logging to SQLite with diffs
 - [x] System metrics collection (CPU, memory)
-- [x] Real-time event streaming to UI
-- [x] File snapshots on every change
-- [x] Time-travel file history viewer
-- [x] Restore files to any past state
-- [x] Snapshot viewing and browsing
-- [x] Side-by-side diff viewer
+- [x] Real-time event streaming to UI via WebSockets
+- [x] File snapshots on every change (event-driven)
+- [x] **File Browser UI** - Browse all tracked files across projects 🆕
+- [x] **File History Viewer** - Time-travel through file changes 🆕
+- [x] **Restore to Past State** - One-click file restoration 🆕
+- [x] **Side-by-Side Diff Viewer** - Compare any two snapshots 🆕
+- [x] **Project Selector** - Switch between monitored projects 🆕
 - [x] Event search and filtering
-- [x] Keyboard shortcuts system
-- [x] Export to JSON/CSV
-- [x] Visual timeline slider
-- [x] Backend integration tests
-- [x] 10 Frontend unit tests
+- [x] Keyboard shortcuts system (press `?` for help)
+- [x] Universal export to JSON/CSV/Excel
+- [x] Backend integration tests (23 tests)
 - [x] Stress tests (10K lines, concurrent access)
 - [x] Memory profiling tools
-- [x] **Open source ready (LICENSE, CONTRIBUTING)**
-- [x] **🆕 WebSocket memory leak fixes (11 components)**
-- [x] **🆕 Code optimization and cleanup**
-- [x] **🆕 Zero breaking changes, 100% backward compatible**
+- [x] Open source ready (LICENSE, CONTRIBUTING)
+- [x] WebSocket memory leak fixes (11 components)
+- [x] Production-grade rate limiting and security
 
 **⚠️ Requires system dependencies to run** (see [docs/SETUP.md](docs/SETUP.md))
 
@@ -458,9 +506,10 @@ npm run dev                  # Starts both backend and frontend (if configured)
 **🆕 Comprehensive Analytics Dashboard** featuring:
 
 **Header:**
-- **Project Filter Dropdown** - 👁️ Switch between 13+ projects instantly
-- **Recent Projects** - Quick access with ★ icons
-- **Visual Feedback** - Pulse animation on filter change
+- **Project Selector** - 🎯 Dropdown to switch between all monitored projects instantly
+- **Refresh Button** - Rescan for new projects with ↻ button
+- **Real-time Status** - Loading indicators and error states
+- **WebSocket Sync** - Auto-updates when projects change
 
 **Overview Tab:**
 - **Dashboard** - Multi-project grid with activity status
@@ -477,12 +526,16 @@ npm run dev                  # Starts both backend and frontend (if configured)
 - **Developer Insights** 🆕 - Activity heatmaps, language breakdown, workflow patterns
 
 **Activity Tab:**
-- **Event Feed** - Live file changes with color-coded project badges
-- **Live Code Feed** - Real-time diffs and changes per project
+- **Live Feed** - Real-time file changes with diffs
+- **Event Log** - Searchable event history with filters
+- **Activity Log** - Detailed activity timeline
+- **File Browser** 🆕 - Browse all tracked files with history viewer and restore capability
 
 **System Tab:**
 - **Status** - Uptime, database health, version info
+- **Anomaly Alerts** - Smart alerts for unusual patterns
 - **Storage** - Database management and optimization
+- **Projects** 🆕 - Multi-project configuration UI with auto-discovery
 - **Server Sync** - Remote backup and synchronization
 - **Notifications** - Alert management and filtering
 - **Errors** - Error log with search and export
@@ -495,16 +548,17 @@ npm run dev                  # Starts both backend and frontend (if configured)
 - **Diff Viewer** - Side-by-side comparison of changes
 - **Real-time Updates** - WebSocket-powered live data feeds
 
-## 🔮 Future Enhancements
+## 🔮 Roadmap - Next Features
 
-| Feature | Description |
-|---------|-------------|
-| **Agent Telemetry API** | Capture structured Claude events via local socket |
-| **VS Code Extension** | Stream Raven data into IDE sidebar |
-| **Performance Profiling** | Track latency vs CPU load |
-| **Session Replay** | Visual timeline playback of all changes |
-| **Custom Triggers** | Alerts for specific file change patterns |
-| **Multi-Agent Support** | Extend to Ollama, LM Studio, etc. |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Historical Trends** | 🚧 In Progress | Time-series charts showing activity patterns over time |
+| **Anomaly Detection** | 🚧 In Progress | Smart alerts for unusual file changes or patterns |
+| **Multi-Project Health** | 🚧 In Progress | At-a-glance health dashboard across all projects |
+| **Global Search** | 🚧 In Progress | Search across all projects, files, and events |
+| **Custom Dashboards** | 🚧 In Progress | User-configurable metric dashboards |
+| **VS Code Extension** | 📋 Planned | Stream Raven data into IDE sidebar |
+| **Multi-Agent Support** | 📋 Planned | Extend to Ollama, LM Studio, etc. |
 
 ## 🧭 Philosophy
 
@@ -560,8 +614,8 @@ MIT License - See [LICENSE](LICENSE) file
 
 **Seth Eheart**
 Codename: Raven
-Version: 0.14.0 (Analytics & Insights Platform)
+Version: 0.15.0 (Enterprise Security & Multi-Project Management)
 
 ---
 
-**Status:** 🚀 Comprehensive analytics platform for AI agents! Monitor conversations, developer patterns, and cross-project metrics with universal export. Full visibility into AI agent behavior, your coding habits, and project health - all from one dashboard.
+**Status:** 🚀 Enterprise-ready monitoring platform for AI agents! Production-grade security, multi-project configuration UI, advanced time-range filtering, and comprehensive analytics with universal export. Full visibility into AI agent behavior, your coding habits, and project health - all from one secure, polished dashboard.

@@ -1,5 +1,8 @@
 export default [
   {
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.config.js']
+  },
+  {
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

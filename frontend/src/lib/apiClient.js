@@ -103,7 +103,7 @@ export const api = {
   get: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'GET' }),
   post: (endpoint, data, options = {}) => apiFetch(endpoint, { ...options, method: 'POST', body: JSON.stringify(data) }),
   put: (endpoint, data, options = {}) => apiFetch(endpoint, { ...options, method: 'PUT', body: JSON.stringify(data) }),
-  delete: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'DELETE' }),
+  delete: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'DELETE' })
 };
 
 // Health check with notifications

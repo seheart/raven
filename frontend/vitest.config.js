@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [svelte({
     hot: !process.env.VITEST,
     compilerOptions: {
-      dev: true,
+      dev: true
     }
   })],
   test: {
@@ -19,11 +19,11 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'src/test/',
-        '**/*.config.js',
-      ],
-    },
+        '**/*.config.js'
+      ]
+    }
   },
   resolve: {
-    conditions: ['browser'],
-  },
+    conditions: ['browser']
+  }
 });

@@ -29,13 +29,21 @@
   import RavenLogo from './lib/RavenLogo.svelte';
   import ErrorLog from './lib/ErrorLog.svelte';
   import NotificationsPanel from './lib/NotificationsPanel.svelte';
+  import Toast from './lib/Toast.svelte';
   import StoragePanel from './lib/StoragePanel.svelte';
   import ServerSyncPanel from './lib/ServerSyncPanel.svelte';
   import SettingsPanel from './lib/SettingsPanel.svelte';
+  import ProjectsConfigPanel from './lib/ProjectsConfigPanel.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import ConversationsPanel from './lib/ConversationsPanel.svelte';
   import DeveloperInsightsPanel from './lib/DeveloperInsightsPanel.svelte';
   import ProjectsComparisonPanel from './lib/ProjectsComparisonPanel.svelte';
+  import FileBrowser from './lib/FileBrowser.svelte';
+  import HistoricalTrendsPanel from './lib/HistoricalTrendsPanel.svelte';
+  import AnomalyAlertsPanel from './lib/AnomalyAlertsPanel.svelte';
+  import MultiProjectHealthPanel from './lib/MultiProjectHealthPanel.svelte';
+  import GlobalSearchPanel from './lib/GlobalSearchPanel.svelte';
+  import CustomMetricsPanel from './lib/CustomMetricsPanel.svelte';
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
   import { toasts } from './lib/toastStore.js';
@@ -269,7 +277,7 @@
   <!-- Consolidated View Container -->
   <div class="view-container" role="main">
     {#if activeTab === 'overview'}
-      <!-- Overview: Dashboard + Projects Comparison -->
+      <!-- Overview: Dashboard + Projects Comparison + Multi-Project Health -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
@@ -286,11 +294,20 @@
           >
             Projects Comparison
           </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'health'}
+            on:click={() => currentSubView = 'health'}
+          >
+            Project Health
+          </button>
         </div>
         {#if !currentSubView}
           <OverviewPanel {sessionId} {sessionUptime} />
         {:else if currentSubView === 'projects'}
           <ProjectsComparisonPanel />
+        {:else if currentSubView === 'health'}
+          <MultiProjectHealthPanel />
         {/if}
       </div>
     {:else if activeTab === 'agents'}
@@ -319,7 +336,7 @@
         {/if}
       </div>
     {:else if activeTab === 'activity'}
-      <!-- Activity: Events + Files + Live Code -->
+      <!-- Activity: Events + Files + Live Code + Global Search -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
@@ -343,6 +360,20 @@
           >
             Activity Log
           </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'files'}
+            on:click={() => currentSubView = 'files'}
+          >
+            File Browser
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'search'}
+            on:click={() => currentSubView = 'search'}
+          >
+            Global Search
+          </button>
         </div>
         {#if !currentSubView}
           <LiveCodeFeed />
@@ -350,10 +381,14 @@
           <EventFeed />
         {:else if currentSubView === 'activity'}
           <ActivityLog />
+        {:else if currentSubView === 'files'}
+          <FileBrowser />
+        {:else if currentSubView === 'search'}
+          <GlobalSearchPanel />
         {/if}
       </div>
     {:else if activeTab === 'analysis'}
-      <!-- Analysis: Performance + Triggers + Session Replay + Developer Insights -->
+      <!-- Analysis: Performance + Triggers + Session Replay + Developer Insights + Historical Trends + Custom Metrics -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
@@ -362,6 +397,20 @@
             on:click={() => currentSubView = ''}
           >
             Performance
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'metrics'}
+            on:click={() => currentSubView = 'metrics'}
+          >
+            Custom Metrics
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'trends'}
+            on:click={() => currentSubView = 'trends'}
+          >
+            Historical Trends
           </button>
           <button
             class="sub-tab"
@@ -387,6 +436,10 @@
         </div>
         {#if !currentSubView}
           <PerformancePanel />
+        {:else if currentSubView === 'metrics'}
+          <CustomMetricsPanel />
+        {:else if currentSubView === 'trends'}
+          <HistoricalTrendsPanel />
         {:else if currentSubView === 'triggers'}
           <TriggersPanel />
         {:else if currentSubView === 'replay'}
@@ -396,7 +449,7 @@
         {/if}
       </div>
     {:else if activeTab === 'system'}
-      <!-- System: Status + Storage + Notifications + Errors + API Health -->
+      <!-- System: Status + Storage + Notifications + Errors + API Health + Anomalies -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
@@ -408,10 +461,24 @@
           </button>
           <button
             class="sub-tab"
+            class:active={currentSubView === 'anomalies'}
+            on:click={() => currentSubView = 'anomalies'}
+          >
+            Anomaly Alerts
+          </button>
+          <button
+            class="sub-tab"
             class:active={currentSubView === 'storage'}
             on:click={() => currentSubView = 'storage'}
           >
             Storage
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'projects'}
+            on:click={() => currentSubView = 'projects'}
+          >
+            Projects
           </button>
           <button
             class="sub-tab"
@@ -451,8 +518,12 @@
         </div>
         {#if !currentSubView}
           <StatusPanel />
+        {:else if currentSubView === 'anomalies'}
+          <AnomalyAlertsPanel />
         {:else if currentSubView === 'storage'}
           <StoragePanel />
+        {:else if currentSubView === 'projects'}
+          <ProjectsConfigPanel />
         {:else if currentSubView === 'sync'}
           <ServerSyncPanel />
         {:else if currentSubView === 'notifications'}
@@ -479,6 +550,7 @@
 
 <!-- Toast Notifications -->
 <ToastContainer />
+<Toast />
 
 <!-- Welcome Screen for First-Time Users -->
 {#if showWelcome}

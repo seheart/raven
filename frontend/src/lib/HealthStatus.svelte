@@ -55,31 +55,31 @@
 
   function getStatusIcon(status) {
     switch (status) {
-      case 'healthy': return '✅';
-      case 'unhealthy': return '⚠️';
-      case 'error': return '❌';
-      case 'pending': return '⏳';
-      default: return '❓';
+    case 'healthy': return '✅';
+    case 'unhealthy': return '⚠️';
+    case 'error': return '❌';
+    case 'pending': return '⏳';
+    default: return '❓';
     }
   }
 
   function getStatusColor(status) {
     switch (status) {
-      case 'healthy': return 'var(--success)';
-      case 'unhealthy': return 'var(--warning)';
-      case 'error': return 'var(--error)';
-      case 'pending': return 'var(--muted)';
-      default: return 'var(--muted)';
+    case 'healthy': return 'var(--success)';
+    case 'unhealthy': return 'var(--warning)';
+    case 'error': return 'var(--error)';
+    case 'pending': return 'var(--muted)';
+    default: return 'var(--muted)';
     }
   }
 
   function getCategoryIcon(category) {
     switch (category) {
-      case 'database': return '💾';
-      case 'data': return '📊';
-      case 'websocket': return '🔌';
-      case 'system': return '🖥️';
-      default: return '📦';
+    case 'database': return '💾';
+    case 'data': return '📊';
+    case 'websocket': return '🔌';
+    case 'system': return '🖥️';
+    default: return '📦';
     }
   }
 </script>

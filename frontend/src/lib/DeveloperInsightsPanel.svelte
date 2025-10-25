@@ -225,7 +225,7 @@
       <div class="section">
         <h2 class="section-title">🔤 Language Breakdown</h2>
         <div class="languages-grid">
-          {#each stats.languages as lang}
+          {#each stats.languages as lang (lang.language)}
             <div class="language-card">
               <div class="language-name">{lang.language}</div>
               <div class="language-count">{lang.count.toLocaleString()} patterns</div>
@@ -246,7 +246,7 @@
       <div class="section">
         <h2 class="section-title">📊 Project Activity</h2>
         <div class="projects-grid">
-          {#each stats.projects as proj}
+          {#each stats.projects as proj (proj.project)}
             <div class="project-card">
               <div class="project-name">{proj.project}</div>
               <div class="project-count">{proj.count.toLocaleString()} interactions</div>
@@ -267,7 +267,7 @@
       <div class="section">
         <h2 class="section-title">🕐 Coding Hours Heatmap</h2>
         <div class="heatmap">
-          {#each Array(24).fill(0).map((_, i) => i) as hour}
+          {#each Array(24).fill(0).map((_, i) => i) as hour (hour)}
             {@const activity = stats.hourly_activity.find(a => a.hour_of_day === hour)}
             {@const count = activity ? activity.count : 0}
             {@const maxCount = Math.max(...stats.hourly_activity.map(a => a.count))}
@@ -298,7 +298,7 @@
       <div class="section">
         <h2 class="section-title">🤖 Recent Agent Interactions</h2>
         <div class="interactions-list">
-          {#each interactions as interaction}
+          {#each interactions as interaction (interaction.id || interaction.timestamp)}
             <div class="interaction-item">
               <div class="interaction-header">
                 <span class="interaction-project">{interaction.project || 'Unknown'}</span>
@@ -330,7 +330,7 @@
       <div class="section">
         <h2 class="section-title">💻 Recent Code Patterns</h2>
         <div class="patterns-list">
-          {#each patterns as pattern}
+          {#each patterns as pattern (pattern.id || pattern.timestamp)}
             <div class="pattern-item">
               <div class="pattern-header">
                 <span class="pattern-lang">{pattern.language || 'Unknown'}</span>

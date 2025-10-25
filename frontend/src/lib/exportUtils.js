@@ -114,15 +114,15 @@ export function exportTable({ data, filename, columns, format = 'csv' }) {
 
   // Export based on format
   switch (format.toLowerCase()) {
-    case 'json':
-      exportJSON({ data: transformedData, exported_at: new Date().toISOString() }, filename);
-      break;
-    case 'excel':
-      exportExcel(transformedData, filename, headers);
-      break;
-    case 'csv':
-    default:
-      exportCSV(transformedData, filename, headers);
+  case 'json':
+    exportJSON({ data: transformedData, exported_at: new Date().toISOString() }, filename);
+    break;
+  case 'excel':
+    exportExcel(transformedData, filename, headers);
+    break;
+  case 'csv':
+  default:
+    exportCSV(transformedData, filename, headers);
   }
 }
 

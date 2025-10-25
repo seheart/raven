@@ -74,6 +74,17 @@ export function createAuthRoutes(authService) {
      * Get current user info
      */
     router.get('/me', authenticate, (req, res) => {
+        // If auth is disabled, return the fake system user
+        if (process.env.DISABLE_AUTH === 'true') {
+            return res.json({
+                success: true,
+                user: {
+                    id: 'system',
+                    username: 'system',
+                    role: 'admin'
+                }
+            });
+        }
         const user = authService.getUserById(req.user.id);
         if (!user) {
             return res.status(404).json({

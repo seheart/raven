@@ -170,8 +170,8 @@ class NotificationService {
 
     try {
       const icon = type === 'error' ? '🔴' :
-                   type === 'warning' ? '⚠️' :
-                   type === 'success' ? '✅' : 'ℹ️';
+        type === 'warning' ? '⚠️' :
+          type === 'success' ? '✅' : 'ℹ️';
 
       new Notification(`${icon} ${title}`, {
         body: message,

@@ -41,7 +41,7 @@
     try {
       loading = true;
       isManualRefresh = manual;
-      const data = await api.get("/sync/config");
+      const data = await api.get('/sync/config');
 
       if (data.config) {
         config = { ...config, ...data.config };
@@ -259,19 +259,19 @@
 
   function getConnectionStatusIcon() {
     switch (connectionStatus) {
-      case 'success': return '✅';
-      case 'failed': return '❌';
-      case 'testing': return '⏳';
-      default: return '❓';
+    case 'success': return '✅';
+    case 'failed': return '❌';
+    case 'testing': return '⏳';
+    default: return '❓';
     }
   }
 
   function getConnectionStatusText() {
     switch (connectionStatus) {
-      case 'success': return `Connection successful${lastConnectionTest ? ` (tested ${formatRelativeTime(lastConnectionTest)})` : ''}`;
-      case 'failed': return 'Connection failed';
-      case 'testing': return 'Testing connection...';
-      default: return 'Not tested';
+    case 'success': return `Connection successful${lastConnectionTest ? ` (tested ${formatRelativeTime(lastConnectionTest)})` : ''}`;
+    case 'failed': return 'Connection failed';
+    case 'testing': return 'Testing connection...';
+    default: return 'Not tested';
     }
   }
 

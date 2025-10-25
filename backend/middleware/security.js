@@ -31,14 +31,14 @@ export function setupHelmet() {
 
 /**
  * General API rate limiter
- * Limits: 100 requests per 15 minutes per IP
+ * Limits: 1000 requests per minute (increased for local monitoring dashboard)
  */
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 60 * 1000, // 1 minute
+  max: 1000, // Limit each IP to 1000 requests per windowMs
   message: {
     error: 'Too many requests from this IP, please try again later',
-    retryAfter: '15 minutes'
+    retryAfter: '1 minute'
   },
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,

@@ -147,12 +147,12 @@
 
   function getEventIcon(eventType) {
     switch(eventType.toLowerCase()) {
-      case 'edit': return '✏️';
-      case 'create': return '➕';
-      case 'delete': return '🗑️';
-      case 'read': return '👁️';
-      case 'execute': return '⚙️';
-      default: return '📝';
+    case 'edit': return '✏️';
+    case 'create': return '➕';
+    case 'delete': return '🗑️';
+    case 'read': return '👁️';
+    case 'execute': return '⚙️';
+    default: return '📝';
     }
   }
 
@@ -332,14 +332,14 @@
         <div class="empty">
           <div class="icon">{searchQuery ? '🔍' : '🤖'}</div>
           <h3>{searchQuery ? 'No agents match your search' : 'No Agent Activity Yet'}</h3>
-          <p>{searchQuery ? `Try a different search term` : 'Send telemetry events to see agent statistics here.'}</p>
+          <p>{searchQuery ? 'Try a different search term' : 'Send telemetry events to see agent statistics here.'}</p>
           {#if !searchQuery}
             <p class="hint">Agents will appear automatically when they start sending events.</p>
           {/if}
         </div>
       {:else}
         <div class="agents-grid">
-          {#each filteredAgentStats as stat}
+          {#each filteredAgentStats as stat (stat.agent)}
             <div class="agent-card" style="border-left-color: {getAgentColor(stat.agent)}">
               <div class="agent-header">
                 <div class="agent-icon" style="background-color: {getAgentColor(stat.agent)}">
@@ -380,7 +380,7 @@
         </div>
       {:else}
         <div class="events-list">
-          {#each filteredAgentEvents as event}
+          {#each filteredAgentEvents as event (event.id || event.timestamp)}
             <div class="event-row">
               <span class="event-icon">{getEventIcon(event.event_type)}</span>
               <div class="event-details">
@@ -422,7 +422,7 @@
           <div class="performance-card">
             <h3>Response Time Comparison</h3>
             <div class="performance-bars">
-              {#each filteredAgentStats.sort((a, b) => (b.avg_duration_ms || 0) - (a.avg_duration_ms || 0)) as stat}
+              {#each filteredAgentStats.sort((a, b) => (b.avg_duration_ms || 0) - (a.avg_duration_ms || 0)) as stat (stat.agent)}
                 {@const maxDuration = Math.max(...filteredAgentStats.map(s => s.avg_duration_ms || 0), 1)}
                 <div class="bar-row">
                   <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
@@ -443,7 +443,7 @@
           <div class="performance-card">
             <h3>Activity Distribution</h3>
             <div class="performance-bars">
-              {#each filteredAgentStats.sort((a, b) => b.event_count - a.event_count) as stat}
+              {#each filteredAgentStats.sort((a, b) => b.event_count - a.event_count) as stat (stat.agent)}
                 {@const maxEvents = filteredAgentStats.length > 0 ? Math.max(...filteredAgentStats.map(s => s?.event_count || 0)) : 1}
                 <div class="bar-row">
                   <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
@@ -464,7 +464,7 @@
           <div class="performance-card">
             <h3>Code Impact</h3>
             <div class="performance-bars">
-              {#each filteredAgentStats.sort((a, b) => (b.total_lines_changed || 0) - (a.total_lines_changed || 0)) as stat}
+              {#each filteredAgentStats.sort((a, b) => (b.total_lines_changed || 0) - (a.total_lines_changed || 0)) as stat (stat.agent)}
                 {@const maxLines = filteredAgentStats.length > 0 ? Math.max(...filteredAgentStats.map(s => s?.total_lines_changed || 0)) : 1}
                 <div class="bar-row">
                   <span class="bar-label" style="color: {getAgentColor(stat.agent)}">

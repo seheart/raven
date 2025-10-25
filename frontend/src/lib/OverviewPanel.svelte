@@ -46,10 +46,10 @@
   // Personalized greeting based on time of day
   function getGreeting() {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning! Raven is watching...";
+    if (hour < 12) return 'Good morning! Raven is watching...';
     if (hour < 17) return "Good afternoon! Let's see what you're building...";
-    if (hour < 21) return "Good evening! Still coding strong...";
-    return "Late night session? Raven never sleeps...";
+    if (hour < 21) return 'Good evening! Still coding strong...';
+    return 'Late night session? Raven never sleeps...';
   }
 
   // Format time ago

@@ -7,6 +7,7 @@
  * - System metrics (CPU, memory, network)
  * - Process metrics (per-agent)
  */
+import Database from 'better-sqlite3';
 /**
  * File change event stored in database
  */
@@ -21,6 +22,7 @@ export interface FileEvent {
     session_id?: string;
     file_hash?: string;
     event_size?: number;
+    project_name?: string;
 }
 /**
  * Agent telemetry event
@@ -120,14 +122,14 @@ export interface PerformanceCorrelation {
     process_memory_mb: number | null;
 }
 export declare class RavenDB {
-    private db;
+    db: Database.Database;
     constructor(dbPath: string);
     private initializeSchema;
     insertAgentEvent(timestamp: string, agent: string, event_type: string, file: string | null | undefined, lines_changed: number | null | undefined, duration_ms: number | null | undefined, message: string, metadata: Record<string, any> | null | undefined, session_id: string | null | undefined): number;
     getRecentAgentEvents(limit?: number): AgentEvent[];
     getEventsByAgent(agent: string, limit?: number): AgentEvent[];
     getAgentStats(): AgentStats[];
-    insertEvent(timestamp: string, filepath: string, change_type: string, diff: string | null, cpu: number, mem: number, session_id: string | null | undefined, file_hash: string | null | undefined, event_size: number | null | undefined): number;
+    insertEvent(timestamp: string, filepath: string, change_type: string, diff: string | null, cpu: number, mem: number, session_id: string | null | undefined, file_hash: string | null | undefined, event_size: number | null | undefined, project_name: string | null | undefined): number;
     getRecentFileEvents(limit?: number, includeDiff?: boolean): FileEvent[];
     getEventsBySession(session_id: string): FileEvent[];
     getAgentEventsBySession(session_id: string): any[];

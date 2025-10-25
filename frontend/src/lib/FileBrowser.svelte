@@ -15,7 +15,7 @@
   async function loadFiles() {
     try {
       loading = true;
-      const response = await fetch('http://localhost:3030/api/files');
+      const response = await fetch('http://localhost:3030/api/tracked-files');
       files = await response.json();
       loading = false;
     } catch (error) {

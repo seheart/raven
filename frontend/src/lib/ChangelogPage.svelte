@@ -29,25 +29,25 @@
 
   function getTypeIcon(type) {
     switch (type) {
-      case 'feature': return '✨';
-      case 'fix': return '🐛';
-      case 'improvement': return '⚡️';
-      case 'breaking': return '💥';
-      case 'security': return '🔒';
-      case 'docs': return '📝';
-      default: return '•';
+    case 'feature': return '✨';
+    case 'fix': return '🐛';
+    case 'improvement': return '⚡️';
+    case 'breaking': return '💥';
+    case 'security': return '🔒';
+    case 'docs': return '📝';
+    default: return '•';
     }
   }
 
   function getTypeColor(type) {
     switch (type) {
-      case 'feature': return 'var(--success)';
-      case 'fix': return 'var(--error)';
-      case 'improvement': return 'var(--info)';
-      case 'breaking': return 'var(--warning)';
-      case 'security': return 'var(--accent-2)';
-      case 'docs': return 'var(--muted)';
-      default: return 'var(--muted)';
+    case 'feature': return 'var(--success)';
+    case 'fix': return 'var(--error)';
+    case 'improvement': return 'var(--info)';
+    case 'breaking': return 'var(--warning)';
+    case 'security': return 'var(--accent-2)';
+    case 'docs': return 'var(--muted)';
+    default: return 'var(--muted)';
     }
   }
 </script>

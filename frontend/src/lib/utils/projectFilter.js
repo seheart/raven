@@ -85,7 +85,7 @@ const PROJECT_COLORS = [
   '#ff9e64', // orange
   '#b4f9f8', // cyan
   '#c0caf5', // light blue
-  '#ff007c', // pink
+  '#ff007c' // pink
 ];
 
 /**

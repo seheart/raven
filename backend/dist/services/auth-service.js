@@ -41,7 +41,7 @@ export class AuthService {
     async createDefaultAdmin() {
         const defaultPassword = process.env.ADMIN_PASSWORD || 'admin123';
         console.log('⚠️  Creating default admin user');
-        console.log(`   Username: admin`);
+        console.log('   Username: admin');
         console.log(`   Password: ${defaultPassword}`);
         console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!');
         await this.createUser('admin', defaultPassword, 'admin');

@@ -221,10 +221,10 @@
   // Map backend change_type to frontend changeType
   function mapChangeType(backendType) {
     switch(backendType) {
-      case 'add': return 'created';
-      case 'change': return 'modified';
-      case 'unlink': return 'deleted';
-      default: return 'modified';
+    case 'add': return 'created';
+    case 'change': return 'modified';
+    case 'unlink': return 'deleted';
+    default: return 'modified';
     }
   }
 
@@ -360,11 +360,11 @@
   // Get icon for conversation event type
   function getConversationIcon(eventType) {
     switch(eventType) {
-      case 'user_message': return '💬';
-      case 'assistant_text': return '🤖';
-      case 'tool_call': return '🔧';
-      case 'tool_result': return '✅';
-      default: return '📝';
+    case 'user_message': return '💬';
+    case 'assistant_text': return '🤖';
+    case 'tool_call': return '🔧';
+    case 'tool_result': return '✅';
+    default: return '📝';
     }
   }
 
@@ -473,7 +473,7 @@
         <div class="forensics-panel">
           <h3>🔥 Top 5 Most Changed Files</h3>
           <div class="top-files-list">
-            {#each forensicsStats.topFiles as file}
+            {#each forensicsStats.topFiles as file (file.filepath)}
               <div class="top-file-item">
                 <div class="file-path">{file.filepath}</div>
                 <div class="file-count">{file.count} changes</div>
@@ -492,7 +492,7 @@
         <div class="forensics-panel">
           <h3>⏰ Busiest Hours</h3>
           <div class="hours-heatmap">
-            {#each forensicsStats.busiestHours as hourData}
+            {#each forensicsStats.busiestHours as hourData (hourData.hour)}
               <div class="hour-item">
                 <div class="hour-label">
                   {hourData.hour.toString().padStart(2, '0')}:00

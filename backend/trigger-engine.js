@@ -237,18 +237,18 @@ cooldown_seconds = 300
     const thresholdNum = parseFloat(threshold);
 
     switch (operator) {
-      case '>':
-        return value > thresholdNum;
-      case '<':
-        return value < thresholdNum;
-      case '>=':
-        return value >= thresholdNum;
-      case '<=':
-        return value <= thresholdNum;
-      case '==':
-        return value === thresholdNum;
-      default:
-        return false;
+    case '>':
+      return value > thresholdNum;
+    case '<':
+      return value < thresholdNum;
+    case '>=':
+      return value >= thresholdNum;
+    case '<=':
+      return value <= thresholdNum;
+    case '==':
+      return value === thresholdNum;
+    default:
+      return false;
     }
   }
 
@@ -266,17 +266,17 @@ cooldown_seconds = 300
   executeAction(trigger, message, event) {
     try {
       switch (trigger.action) {
-        case 'notify':
-          this.sendNotification(message);
-          break;
-        case 'log':
-          this.logToFile(trigger.name, message);
-          break;
-        case 'command':
-          if (trigger.command) {
-            this.executeCommand(trigger.command, event);
-          }
-          break;
+      case 'notify':
+        this.sendNotification(message);
+        break;
+      case 'log':
+        this.logToFile(trigger.name, message);
+        break;
+      case 'command':
+        if (trigger.command) {
+          this.executeCommand(trigger.command, event);
+        }
+        break;
       }
     } catch (error) {
       console.error(`❌ Failed to execute trigger action: ${error}`);
@@ -323,7 +323,7 @@ cooldown_seconds = 300
         'osascript', // macOS notifications
         'powershell.exe', // Windows notifications (must be followed by specific params)
         'logger', // System logger
-        'wall', // Write to all users
+        'wall' // Write to all users
       ];
 
       // Extract the base command (first word)
@@ -336,7 +336,7 @@ cooldown_seconds = 300
 
       if (!isAllowed) {
         console.error(`❌ Command execution blocked: '${baseCommand}' is not in whitelist. Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
-        console.error(`⚠️  To enable custom commands, add them to the ALLOWED_COMMANDS whitelist in trigger-engine.js`);
+        console.error('⚠️  To enable custom commands, add them to the ALLOWED_COMMANDS whitelist in trigger-engine.js');
         return;
       }
 

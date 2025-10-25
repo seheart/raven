@@ -20,8 +20,8 @@
       const statsPromises = projects.map(async (project) => {
         try {
           const [eventsData, errorsData] = await Promise.all([
-            api.get(`/file-events?limit=1`),
-            api.get(`/errors/stats`)
+            api.get('/file-events?limit=1'),
+            api.get('/errors/stats')
           ]);
           return {
             ...project,
@@ -47,25 +47,25 @@
     projects = projects.sort((a, b) => {
       let valA, valB;
       switch (sortBy) {
-        case 'activity':
-          valA = a.last_activity ? new Date(a.last_activity).getTime() : 0;
-          valB = b.last_activity ? new Date(b.last_activity).getTime() : 0;
-          break;
-        case 'events':
-          valA = a.total_events || 0;
-          valB = b.total_events || 0;
-          break;
-        case 'errors':
-          valA = a.total_errors || 0;
-          valB = b.total_errors || 0;
-          break;
-        case 'name':
-          valA = a.name;
-          valB = b.name;
-          return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
-        default:
-          valA = 0;
-          valB = 0;
+      case 'activity':
+        valA = a.last_activity ? new Date(a.last_activity).getTime() : 0;
+        valB = b.last_activity ? new Date(b.last_activity).getTime() : 0;
+        break;
+      case 'events':
+        valA = a.total_events || 0;
+        valB = b.total_events || 0;
+        break;
+      case 'errors':
+        valA = a.total_errors || 0;
+        valB = b.total_errors || 0;
+        break;
+      case 'name':
+        valA = a.name;
+        valB = b.name;
+        return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+      default:
+        valA = 0;
+        valB = 0;
       }
       return sortDesc ? valB - valA : valA - valB;
     });

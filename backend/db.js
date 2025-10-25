@@ -769,29 +769,29 @@ export class RavenDB {
 
     // Apply severity filter
     if (severity !== 'all') {
-      query += ` AND severity = ?`;
+      query += ' AND severity = ?';
       params.push(severity);
     }
 
     // Apply search filter
     if (search) {
-      query += ` AND (message LIKE ? OR error_type LIKE ? OR component LIKE ?)`;
+      query += ' AND (message LIKE ? OR error_type LIKE ? OR component LIKE ?)';
       const searchPattern = `%${search}%`;
       params.push(searchPattern, searchPattern, searchPattern);
     }
 
     // Apply date range filter
     if (startDate) {
-      query += ` AND timestamp >= ?`;
+      query += ' AND timestamp >= ?';
       params.push(startDate);
     }
     if (endDate) {
-      query += ` AND timestamp <= ?`;
+      query += ' AND timestamp <= ?';
       params.push(endDate);
     }
 
     // Order by timestamp descending
-    query += ` ORDER BY timestamp DESC`;
+    query += ' ORDER BY timestamp DESC';
 
     // Count total before pagination
     const countQuery = query.replace(
@@ -801,7 +801,7 @@ export class RavenDB {
     const totalCount = this.db.prepare(countQuery).get(...params)?.count || 0;
 
     // Apply pagination
-    query += ` LIMIT ? OFFSET ?`;
+    query += ' LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
     const stmt = this.prepareStatement(query);
@@ -851,7 +851,7 @@ export class RavenDB {
     const params = [];
 
     if (olderThanDays) {
-      query += ` WHERE timestamp < datetime('now', '-' || ? || ' days')`;
+      query += ' WHERE timestamp < datetime(\'now\', \'-\' || ? || \' days\')';
       params.push(olderThanDays);
     }
 
@@ -924,9 +924,9 @@ export class RavenDB {
         FROM events
         WHERE 1=1
       `;
-      if (search) fileQuery += ` AND (filepath LIKE ? OR change_type LIKE ?)`;
-      if (startDate) fileQuery += ` AND timestamp >= ?`;
-      if (endDate) fileQuery += ` AND timestamp <= ?`;
+      if (search) fileQuery += ' AND (filepath LIKE ? OR change_type LIKE ?)';
+      if (startDate) fileQuery += ' AND timestamp >= ?';
+      if (endDate) fileQuery += ' AND timestamp <= ?';
       queries.push(fileQuery);
     }
 
@@ -957,9 +957,9 @@ export class RavenDB {
         FROM agent_events
         WHERE 1=1
       `;
-      if (search) agentQuery += ` AND (message LIKE ? OR agent LIKE ? OR event_type LIKE ?)`;
-      if (startDate) agentQuery += ` AND timestamp >= ?`;
-      if (endDate) agentQuery += ` AND timestamp <= ?`;
+      if (search) agentQuery += ' AND (message LIKE ? OR agent LIKE ? OR event_type LIKE ?)';
+      if (startDate) agentQuery += ' AND timestamp >= ?';
+      if (endDate) agentQuery += ' AND timestamp <= ?';
       queries.push(agentQuery);
     }
 
@@ -990,9 +990,9 @@ export class RavenDB {
         FROM raven_metrics
         WHERE 1=1
       `;
-      if (search) systemQuery += ` AND ('System' LIKE ? OR 'metrics' LIKE ?)`;
-      if (startDate) systemQuery += ` AND timestamp >= ?`;
-      if (endDate) systemQuery += ` AND timestamp <= ?`;
+      if (search) systemQuery += ' AND (\'System\' LIKE ? OR \'metrics\' LIKE ?)';
+      if (startDate) systemQuery += ' AND timestamp >= ?';
+      if (endDate) systemQuery += ' AND timestamp <= ?';
       queries.push(systemQuery);
     }
 

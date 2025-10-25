@@ -18,7 +18,7 @@
   let searchQuery = '';
   let filterType = 'all';
   let filterProject = 'all';
-  let expandedConversations = new Set();
+  let expandedConversations = [];
   let limit = 50;
   let offset = 0;
   let hasMore = true;
@@ -85,31 +85,30 @@
   }
 
   function toggleExpanded(id) {
-    if (expandedConversations.has(id)) {
-      expandedConversations.delete(id);
+    if (expandedConversations.includes(id)) {
+      expandedConversations = expandedConversations.filter(convId => convId !== id);
     } else {
-      expandedConversations.add(id);
+      expandedConversations = [...expandedConversations, id];
     }
-    expandedConversations = expandedConversations;
   }
 
   function getEventIcon(eventType) {
     switch (eventType) {
-      case 'user_message': return '👤';
-      case 'assistant_text': return '🤖';
-      case 'tool_call': return '🔧';
-      case 'tool_result': return '✅';
-      default: return '📝';
+    case 'user_message': return '👤';
+    case 'assistant_text': return '🤖';
+    case 'tool_call': return '🔧';
+    case 'tool_result': return '✅';
+    default: return '📝';
     }
   }
 
   function getEventClass(eventType) {
     switch (eventType) {
-      case 'user_message': return 'user';
-      case 'assistant_text': return 'assistant';
-      case 'tool_call': return 'tool-call';
-      case 'tool_result': return 'tool-result';
-      default: return 'default';
+    case 'user_message': return 'user';
+    case 'assistant_text': return 'assistant';
+    case 'tool_call': return 'tool-call';
+    case 'tool_result': return 'tool-result';
+    default: return 'default';
     }
   }
 
@@ -297,7 +296,7 @@
 
       <select class="filter-select" bind:value={filterProject} on:change={loadConversations}>
         <option value="all">All Projects</option>
-        {#each Object.keys(stats.by_project || {}) as project}
+        {#each Object.keys(stats.by_project || {}) as project (project)}
           <option value={project}>{project} ({stats.by_project[project]})</option>
         {/each}
       </select>
@@ -372,11 +371,11 @@
               <div class="conv-id">#{conv.id}</div>
             </div>
             <button class="expand-btn">
-              {expandedConversations.has(conv.id) ? '▼' : '▶'}
+              {expandedConversations.includes(conv.id) ? '▼' : '▶'}
             </button>
           </div>
 
-          {#if expandedConversations.has(conv.id)}
+          {#if expandedConversations.includes(conv.id)}
             <div class="conv-details">
               {#if conv.content}
                 <div class="detail-section">

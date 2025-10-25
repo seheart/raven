@@ -256,23 +256,23 @@
 
   function getNotificationIcon(type) {
     switch(type) {
-      case 'error': return '⚠️';
-      case 'trigger': return '🔔';
-      case 'performance': return '⚡️';
-      case 'git': return '🌳';
-      case 'agent': return '🤖';
-      case 'file': return '📁';
-      case 'system': return '⚙️';
-      default: return '📝';
+    case 'error': return '⚠️';
+    case 'trigger': return '🔔';
+    case 'performance': return '⚡️';
+    case 'git': return '🌳';
+    case 'agent': return '🤖';
+    case 'file': return '📁';
+    case 'system': return '⚙️';
+    default: return '📝';
     }
   }
 
   function getSeverityClass(severity) {
     switch(severity) {
-      case 'critical': return 'severity-critical';
-      case 'warning': return 'severity-warning';
-      case 'info': return 'severity-info';
-      default: return '';
+    case 'critical': return 'severity-critical';
+    case 'warning': return 'severity-warning';
+    case 'info': return 'severity-info';
+    default: return '';
     }
   }
 
