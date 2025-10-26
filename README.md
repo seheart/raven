@@ -488,8 +488,29 @@ understanding your workflow, and identifying which projects need attention.
 
 ## ⚡ Quick Start
 
+### First-time setup
+
 ```bash
-# Start both backend and frontend (fast!)
+# 1. Clone the repository
+git clone https://github.com/seheart/raven.git
+cd raven
+
+# 2. Configure environment (optional)
+cp backend/.env.example backend/.env
+# Edit backend/.env with your preferences if needed
+
+# 3. Install dependencies
+cd backend && npm install && cd ..
+cd frontend && npm install && cd ..
+
+# 4. Start Raven
+./start.sh
+```
+
+### Regular use
+
+```bash
+# Start both backend and frontend
 ./start.sh
 
 # Stop all servers
@@ -498,6 +519,15 @@ understanding your workflow, and identifying which projects need attention.
 # Restart everything
 ./restart.sh
 ```
+
+### After updating (git pull)
+
+```bash
+git pull origin master
+./restart.sh  # Automatically rebuilds if needed
+```
+
+See [UPDATING.md](UPDATING.md) for detailed update instructions.
 
 **URLs:**
 - Backend: http://localhost:3030

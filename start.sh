@@ -25,38 +25,59 @@ echo "║          🐦‍⬛ Raven - Starting...              ║"
 echo "╚════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
+# Helper function to check ports
+check_port() {
+  local port=$1
+  if command -v lsof &> /dev/null; then
+    lsof -ti:$port 2>/dev/null
+  elif command -v ss &> /dev/null; then
+    ss -tlnp 2>/dev/null | grep ":$port " | awk '{print $NF}' | grep -o '[0-9]*' | head -1
+  elif command -v netstat &> /dev/null; then
+    netstat -tlnp 2>/dev/null | grep ":$port " | awk '{print $NF}' | grep -o '[0-9]*' | head -1
+  fi
+}
+
 # Step 1: Kill existing processes
-echo -e "${YELLOW}[1/4]${NC} Cleaning up existing processes..."
+echo -e "${YELLOW}[1/5]${NC} Cleaning up existing processes..."
 pkill -f "node.*dist/server.js" 2>/dev/null || true
 pkill -f "node server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
-# Kill processes on specific ports (cross-platform using lsof)
-lsof -ti:3030 | xargs kill -9 2>/dev/null || true
-lsof -ti:5173 | xargs kill -9 2>/dev/null || true
+# Kill processes on specific ports
+BACKEND_PORT_PID=$(check_port 3030)
+FRONTEND_PORT_PID=$(check_port 5173)
+[ -n "$BACKEND_PORT_PID" ] && kill -9 $BACKEND_PORT_PID 2>/dev/null || true
+[ -n "$FRONTEND_PORT_PID" ] && kill -9 $FRONTEND_PORT_PID 2>/dev/null || true
 sleep 1
 
-# Step 2: Start backend in background
-echo -e "${YELLOW}[2/4]${NC} Starting backend server..."
+# Step 1.5: Check backend build
+echo -e "${YELLOW}[2/5]${NC} Checking backend build..."
+if [ ! -d "backend/dist" ]; then
+  echo -e "  📦 Building backend TypeScript (first run)..."
+  cd backend && npm run build && cd ..
+fi
+
+# Step 3: Start backend in background
+echo -e "${YELLOW}[3/5]${NC} Starting backend server..."
 cd backend
 DISABLE_AUTH=true node server.js > /tmp/raven-backend.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > /tmp/raven-backend.pid
 cd ..
 
-# Step 3: Start frontend in background
-echo -e "${YELLOW}[3/4]${NC} Starting frontend server..."
+# Step 4: Start frontend in background
+echo -e "${YELLOW}[4/5]${NC} Starting frontend server..."
 cd frontend
 npm run dev > /tmp/raven-frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo $FRONTEND_PID > /tmp/raven-frontend.pid
 cd ..
 
-# Step 4: Start Claude telemetry bridge
-echo -e "${YELLOW}[4/5]${NC} Starting Claude telemetry bridge..."
+# Step 5: Start Claude telemetry bridge
+echo -e "${YELLOW}[5/5]${NC} Starting Claude telemetry bridge..."
 ./scripts/start-claude-bridge.sh > /dev/null 2>&1 || echo -e "${YELLOW}⚠${NC}  Telemetry bridge failed to start (non-critical)"
 
-# Step 5: Wait for both servers to be ready
-echo -e "${YELLOW}[5/5]${NC} Waiting for servers to be ready..."
+# Step 6: Wait for both servers to be ready
+echo -e "${YELLOW}[6/6]${NC} Waiting for servers to be ready..."
 
 # Wait for backend (max 10 seconds)
 for i in {1..20}; do
