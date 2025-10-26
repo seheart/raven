@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
+  import { websocketService } from './websocket.js';
 
   let trends = [];
   let loading = true;
@@ -9,22 +10,33 @@
   let period = 'hourly'; // hourly, daily, weekly
   let days = 7;
   let lastUpdate = new Date();
-  let refreshInterval;
 
   const API_BASE = 'http://localhost:3030/api';
 
   $: maxEventCount = Math.max(...trends.map(t => t.event_count || 0), 1);
 
+  // WebSocket event handlers (event-driven, no polling!)
+  const handleFileChanged = async () => {
+    await loadTrends();
+  };
+
+  const handleProjectSwitched = async () => {
+    await loadTrends();
+  };
+
   onMount(async () => {
     await loadTrends();
-    // Auto-refresh every 30 seconds
-    refreshInterval = setInterval(async () => {
-      await loadTrends();
-    }, 30000);
+
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadTrends() {
@@ -85,6 +97,9 @@
     return `${hours}h ago`;
   }
 
+  // Reactive "time since update" - updates when lastUpdate changes (no polling!)
+  $: timeSinceUpdate = getTimeSinceUpdate();
+
   function handleExportCSV() {
     const data = trends.map(t => ({
       Period: t.period,
@@ -106,17 +121,6 @@
     };
     exportJSON(data, 'historical-trends');
   }
-
-  // Update time display every second
-  let timeInterval;
-  onMount(() => {
-    timeInterval = setInterval(() => {
-      lastUpdate = lastUpdate; // Trigger reactivity
-    }, 1000);
-  });
-  onDestroy(() => {
-    if (timeInterval) clearInterval(timeInterval);
-  });
 </script>
 
 <div class="historical-trends-panel">
@@ -126,7 +130,7 @@
       <p class="subtitle">Activity patterns over time</p>
     </div>
     <div class="header-right">
-      <span class="last-update">Updated: {getTimeSinceUpdate()}</span>
+      <span class="last-update">Updated: {timeSinceUpdate}</span>
       <button class="btn-secondary" on:click={handleExportCSV}>Export CSV</button>
       <button class="btn-secondary" on:click={handleExportJSON}>Export JSON</button>
       <button class="btn-primary" on:click={loadTrends}>↻ Refresh</button>
