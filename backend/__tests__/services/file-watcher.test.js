@@ -223,29 +223,29 @@ describe('File Watcher Service', () => {
             pollInterval: 50
           }
         })
-        .on('add', (path) => {
+          .on('add', (path) => {
           // Only track .js and .txt files
-          if (path === jsFile) jsEventFired = true;
-          if (path === txtFile) txtEventFired = true;
-        })
-        .on('ready', async () => {
+            if (path === jsFile) jsEventFired = true;
+            if (path === txtFile) txtEventFired = true;
+          })
+          .on('ready', async () => {
           // Write both files after watcher is ready
-          await writeFile(jsFile, 'console.log("test");');
-          await writeFile(txtFile, 'test');
+            await writeFile(jsFile, 'console.log("test");');
+            await writeFile(txtFile, 'test');
 
-          // Wait for file system events and awaitWriteFinish
-          setTimeout(() => {
+            // Wait for file system events and awaitWriteFinish
+            setTimeout(() => {
             // Both files should be detected, but we verify only JS was the one we wanted
-            expect(jsEventFired).toBe(true);
-            // In a real file-type-specific watcher, txt would not be detected
-            // But we're testing that we CAN detect different file types
-            expect(txtEventFired).toBe(true);
-            done();
-          }, 1500);
-        })
-        .on('error', (error) => {
-          done(error);
-        });
+              expect(jsEventFired).toBe(true);
+              // In a real file-type-specific watcher, txt would not be detected
+              // But we're testing that we CAN detect different file types
+              expect(txtEventFired).toBe(true);
+              done();
+            }, 1500);
+          })
+          .on('error', (error) => {
+            done(error);
+          });
       }, 100);
     }, 15000);
   });
