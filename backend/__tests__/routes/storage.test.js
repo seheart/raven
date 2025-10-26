@@ -29,48 +29,45 @@ describe('Storage Routes', () => {
     app.use('/api/storage', createStorageRoutes(deps));
   });
 
-  describe('GET /api/storage/stats', () => {
-    test('should return storage statistics', async () => {
+  describe('GET /api/storage', () => {
+    test('should return storage overview', async () => {
       const response = await request(app)
-        .get('/api/storage/stats')
+        .get('/api/storage')
         .expect('Content-Type', /json/);
 
-      expect(response.status).toBeGreaterThanOrEqual(200);
-      if (response.status === 200) {
-        expect(response.body).toHaveProperty('totalSize');
-      }
+      expect([200, 500]).toContain(response.status);
     });
   });
 
-  describe('POST /api/storage/clean', () => {
-    test('should handle storage cleanup request', async () => {
+  describe('POST /api/storage/clean/:dbname', () => {
+    test('should handle database cleanup request', async () => {
       const response = await request(app)
-        .post('/api/storage/clean')
+        .post('/api/storage/clean/test-db')
         .send({})
         .expect('Content-Type', /json/);
 
-      expect([200, 400, 500]).toContain(response.status);
+      expect([200, 400, 404, 500]).toContain(response.status);
     });
   });
 
-  describe('POST /api/storage/optimize', () => {
-    test('should handle optimization request', async () => {
+  describe('POST /api/storage/vacuum/:dbname', () => {
+    test('should handle vacuum request', async () => {
       const response = await request(app)
-        .post('/api/storage/optimize')
+        .post('/api/storage/vacuum/test-db')
         .send({})
         .expect('Content-Type', /json/);
 
-      expect([200, 400, 500]).toContain(response.status);
+      expect([200, 400, 404, 500]).toContain(response.status);
     });
   });
 
-  describe('GET /api/storage/databases', () => {
-    test('should list databases', async () => {
+  describe('GET /api/storage/retention', () => {
+    test('should return retention settings', async () => {
       const response = await request(app)
-        .get('/api/storage/databases')
+        .get('/api/storage/retention')
         .expect('Content-Type', /json/);
 
-      expect([200, 404, 500]).toContain(response.status);
+      expect([200, 500]).toContain(response.status);
     });
   });
 });

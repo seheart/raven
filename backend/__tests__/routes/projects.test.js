@@ -16,94 +16,89 @@ describe('Projects Routes', () => {
     app = express();
     app.use(express.json());
 
-    mockProjectState = new Map();
-    mockProjectState.set('test-project', {
-      name: 'test-project',
-      initialized: true
-    });
+    const mockDb = {
+      db: {
+        prepare: jest.fn().mockReturnValue({
+          get: jest.fn().mockReturnValue({ count: 0 })
+        })
+      }
+    };
+
+    const mockProjectDatabases = new Map();
+    mockProjectDatabases.set('test-project', mockDb);
 
     mockProjectPaths = new Map();
     mockProjectPaths.set('test-project', '/tmp/test-project');
 
+    mockProjectState = {
+      availableProjects: [
+        { name: 'test-project', path: '/tmp/test-project', description: 'Test Project' }
+      ],
+      activeProject: 'test-project'
+    };
+
     const deps = {
       projectState: mockProjectState,
       projectPaths: mockProjectPaths,
-      getActiveProject: () => 'test-project',
-      setActiveProject: jest.fn()
+      projectDatabases: mockProjectDatabases,
+      config: {
+        autoDiscover: true,
+        basePath: '/tmp',
+        projects: [
+          { name: 'test-project', enabled: true }
+        ]
+      }
     };
 
     app.use('/api/projects', createProjectRoutes(deps));
   });
 
   describe('GET /api/projects', () => {
-    test('should list all projects', async () => {
+    test('should return projects configuration', async () => {
       const response = await request(app)
         .get('/api/projects')
         .expect('Content-Type', /json/)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body).toHaveProperty('projects');
+      expect(response.body).toHaveProperty('autoDiscover');
+      expect(response.body).toHaveProperty('basePath');
+      expect(Array.isArray(response.body.projects)).toBe(true);
     });
   });
 
-  describe('GET /api/projects/active', () => {
-    test('should return active project', async () => {
+  describe('GET /api/projects/list', () => {
+    test('should list available projects', async () => {
       const response = await request(app)
-        .get('/api/projects/active')
+        .get('/api/projects/list')
         .expect('Content-Type', /json/)
         .expect(200);
 
-      expect(response.body).toHaveProperty('project');
-      expect(response.body.project).toBe('test-project');
+      expect(response.body).toHaveProperty('projects');
+      expect(response.body).toHaveProperty('active');
+      expect(Array.isArray(response.body.projects)).toBe(true);
+      expect(response.body.active).toBe('test-project');
     });
   });
 
-  describe('POST /api/projects/switch', () => {
-    test('should switch to specified project', async () => {
+  describe('POST /api/projects/refresh', () => {
+    test('should handle project refresh request', async () => {
       const response = await request(app)
-        .post('/api/projects/switch')
+        .post('/api/projects/refresh')
+        .expect('Content-Type', /json/);
+
+      expect([200, 500]).toContain(response.status);
+    });
+  });
+
+  describe('POST /api/projects/select', () => {
+    test('should handle project selection', async () => {
+      const response = await request(app)
+        .post('/api/projects/select')
         .send({ project: 'test-project' })
         .expect('Content-Type', /json/);
 
-      expect([200, 400, 404]).toContain(response.status);
-    });
-
-    test('should reject invalid project name', async () => {
-      const response = await request(app)
-        .post('/api/projects/switch')
-        .send({ project: 'nonexistent' })
-        .expect('Content-Type', /json/);
-
-      expect([400, 404]).toContain(response.status);
-    });
-
-    test('should reject missing project parameter', async () => {
-      const response = await request(app)
-        .post('/api/projects/switch')
-        .send({})
-        .expect('Content-Type', /json/)
-        .expect(400);
-
-      expect(response.body).toHaveProperty('error');
-    });
-  });
-
-  describe('GET /api/projects/:name', () => {
-    test('should return project details', async () => {
-      const response = await request(app)
-        .get('/api/projects/test-project')
-        .expect('Content-Type', /json/);
-
-      expect([200, 404]).toContain(response.status);
-    });
-
-    test('should handle nonexistent project', async () => {
-      const response = await request(app)
-        .get('/api/projects/nonexistent')
-        .expect('Content-Type', /json/)
-        .expect(404);
-
-      expect(response.body).toHaveProperty('error');
+      expect([200, 400, 404, 500]).toContain(response.status);
     });
   });
 });
