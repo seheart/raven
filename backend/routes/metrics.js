@@ -213,7 +213,7 @@ export function createMetricsRoutes(deps) {
             LIMIT 1000
           `).all();
           for (const stat of fileStats) {
-            const key = `\${projectName}/\${stat.filepath}`;
+            const key = '${projectName}/${stat.filepath}';
             fileActivity.set(key, (fileActivity.get(key) || 0) + stat.count);
           }
 
@@ -244,7 +244,7 @@ export function createMetricsRoutes(deps) {
             hourlyActivity.set(h.hour, (hourlyActivity.get(h.hour) || 0) + h.count);
           }
         } catch (dbError) {
-          logger.error(`Error querying \${projectName} database:`, dbError);
+          logger.error('Error querying ${projectName} database:', dbError);
         }
       }
 

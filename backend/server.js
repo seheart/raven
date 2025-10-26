@@ -16,27 +16,23 @@ import { join, relative, normalize, isAbsolute } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
 import { readFileSync } from 'fs';
-import { promises as fsPromises } from 'fs';
 import { createHash } from 'crypto';
 import * as Diff from 'diff';
 import toml from 'toml';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as si from 'systeminformation';
-import { gzip, gunzip } from 'zlib';
+import { gzip } from 'zlib';
 
 // Security imports
 import { authenticate, authenticateSocket } from './middleware/auth.js';
-import { validate } from './middleware/validation.js';
 
 // Logger
 import { logger } from './utils/logger.js';
 import {
   setupHelmet,
   apiLimiter,
-  authLimiter,
   telemetryLimiter,
-  writeLimiter,
   requestLogger,
   errorHandler,
   notFoundHandler
@@ -73,7 +69,6 @@ import { createDocumentationRoutes } from './routes/documentation.js';
 import { createUtilityRoutes } from './routes/utility.js';
 
 // Monitoring services
-import { agentDetector } from './services/agent-detector.js';
 import { createRiskAnalyzer } from './services/risk-analyzer.js';
 import { createBehaviorProfiler } from './services/behavior-profiler.js';
 import { createPatternMatcher } from './services/pattern-matcher.js';
@@ -86,16 +81,11 @@ import {
   addToFileCache,
   getHealthCache,
   updateHealthCache,
-  clearFileCache,
   dashboardCache,
   analyticsCache,
   metricsCache,
-  queryCache,
-  cacheMiddleware,
-  getAllCacheStats,
-  clearAllCaches
+  cacheMiddleware
 } from './utils/cache.js';
-import { config as appConfig } from './config/index.js';
 
 // Observability (Phase 5C)
 import { requestTracing, errorLogging } from './middleware/request-tracing.js';
@@ -107,7 +97,6 @@ initConfig();
 
 const execAsync = promisify(exec);
 const gzipAsync = promisify(gzip);
-const gunzipAsync = promisify(gunzip);
 
 const app = express();
 const httpServer = createServer(app);
@@ -1379,53 +1368,6 @@ app.use('/auth', createAuthRoutes(authService));
 
 // ==================== Custom Triggers API (NOW MODULAR - see routes/triggers.js) ====================
 // Deleted - now using modular route
-
-
-// Helper functions for changelog
-function getWeekKey(dateStr) {
-  const date = new Date(dateStr);
-  const year = date.getFullYear();
-  const week = getWeekNumber(date);
-  return `${year}-W${String(week).padStart(2, '0')}`;
-}
-
-function getWeekNumber(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-}
-
-function detectChangeType(subject, body) {
-  const text = (subject + ' ' + body).toLowerCase();
-
-  // Check for explicit type markers
-  if (text.match(/^(feat|feature):/i)) return 'feature';
-  if (text.match(/^fix:/i)) return 'fix';
-  if (text.match(/^improve|improvement|perf|performance:/i)) return 'improvement';
-  if (text.match(/^breaking:/i)) return 'breaking';
-  if (text.match(/^security|sec:/i)) return 'security';
-  if (text.match(/^docs?:/i)) return 'docs';
-
-  // Infer from content
-  if (text.includes('add') || text.includes('implement') || text.includes('create')) return 'feature';
-  if (text.includes('fix') || text.includes('bug') || text.includes('issue')) return 'fix';
-  if (text.includes('improve') || text.includes('enhance') || text.includes('update') || text.includes('polish')) return 'improvement';
-  if (text.includes('break') || text.includes('remove')) return 'breaking';
-  if (text.includes('security') || text.includes('vulnerability')) return 'security';
-  if (text.includes('doc') || text.includes('readme')) return 'docs';
-
-  return 'improvement'; // Default
-}
-
-function cleanDescription(subject) {
-  // Remove common prefixes
-  return subject
-    .replace(/^(feat|feature|fix|improve|improvement|perf|performance|breaking|security|sec|docs?):\s*/i, '')
-    .trim();
-}
-
 
 
 // ==================== Health Check ====================

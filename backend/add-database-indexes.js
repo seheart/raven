@@ -120,7 +120,7 @@ function addIndexesToDatabase(dbPath, projectName) {
     return { created: indexesCreated, skipped: indexesSkipped };
 
   } catch (err) {
-    logger.error(`   ❌ Failed to process database:`, err.message);
+    logger.error('   ❌ Failed to process database:', err.message);
     return { created: 0, skipped: 0 };
   }
 }

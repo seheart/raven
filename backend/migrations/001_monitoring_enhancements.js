@@ -14,7 +14,7 @@ export function migrate(db) {
 
   // Add new columns to events table
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN agent TEXT`);
+    db.exec('ALTER TABLE events ADD COLUMN agent TEXT');
     logger.info('✅ Added agent column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -22,7 +22,7 @@ export function migrate(db) {
   }
 
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN agent_confidence INTEGER`);
+    db.exec('ALTER TABLE events ADD COLUMN agent_confidence INTEGER');
     logger.info('✅ Added agent_confidence column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -30,7 +30,7 @@ export function migrate(db) {
   }
 
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN is_anomaly INTEGER DEFAULT 0`);
+    db.exec('ALTER TABLE events ADD COLUMN is_anomaly INTEGER DEFAULT 0');
     logger.info('✅ Added is_anomaly column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -38,7 +38,7 @@ export function migrate(db) {
   }
 
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN anomaly_score INTEGER`);
+    db.exec('ALTER TABLE events ADD COLUMN anomaly_score INTEGER');
     logger.info('✅ Added anomaly_score column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -46,7 +46,7 @@ export function migrate(db) {
   }
 
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN anomaly_confidence INTEGER`);
+    db.exec('ALTER TABLE events ADD COLUMN anomaly_confidence INTEGER');
     logger.info('✅ Added anomaly_confidence column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -54,7 +54,7 @@ export function migrate(db) {
   }
 
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN anomaly_reasons TEXT`);
+    db.exec('ALTER TABLE events ADD COLUMN anomaly_reasons TEXT');
     logger.info('✅ Added anomaly_reasons column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -62,7 +62,7 @@ export function migrate(db) {
   }
 
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN risk_level TEXT`);
+    db.exec('ALTER TABLE events ADD COLUMN risk_level TEXT');
     logger.info('✅ Added risk_level column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -70,7 +70,7 @@ export function migrate(db) {
   }
 
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN risk_score INTEGER`);
+    db.exec('ALTER TABLE events ADD COLUMN risk_score INTEGER');
     logger.info('✅ Added risk_score column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -78,7 +78,7 @@ export function migrate(db) {
   }
 
   try {
-    db.exec(`ALTER TABLE events ADD COLUMN risk_factors TEXT`);
+    db.exec('ALTER TABLE events ADD COLUMN risk_factors TEXT');
     logger.info('✅ Added risk_factors column to events');
   } catch (e) {
     if (!e.message.includes('duplicate column')) throw e;
@@ -143,12 +143,12 @@ export function migrate(db) {
   logger.info('✅ Created change_conversations table');
 
   // Create indexes for better performance
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent)`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_events_anomaly ON events(is_anomaly)`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_events_risk ON events(risk_level)`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_rollbacks_event ON rollbacks(event_id)`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_agent_stats_lookup ON agent_stats(project_name, agent, date)`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_name)`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_events_anomaly ON events(is_anomaly)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_events_risk ON events(risk_level)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_rollbacks_event ON rollbacks(event_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_agent_stats_lookup ON agent_stats(project_name, agent, date)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_name)');
   logger.info('✅ Created indexes');
 
   logger.info('✅ Migration complete: 001_monitoring_enhancements');
@@ -159,10 +159,10 @@ export function rollback(db) {
 
   // Note: SQLite doesn't support DROP COLUMN, so we can't truly rollback
   // Instead, we drop the new tables
-  db.exec(`DROP TABLE IF EXISTS rollbacks`);
-  db.exec(`DROP TABLE IF EXISTS agent_stats`);
-  db.exec(`DROP TABLE IF EXISTS sessions`);
-  db.exec(`DROP TABLE IF EXISTS change_conversations`);
+  db.exec('DROP TABLE IF EXISTS rollbacks');
+  db.exec('DROP TABLE IF EXISTS agent_stats');
+  db.exec('DROP TABLE IF EXISTS sessions');
+  db.exec('DROP TABLE IF EXISTS change_conversations');
 
   logger.info('✅ Rollback complete (note: columns remain but unused)');
 }
