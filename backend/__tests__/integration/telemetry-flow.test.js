@@ -17,6 +17,7 @@ describe('Telemetry Integration Tests', () => {
   let app;
   let db;
   let testDbPath;
+  let testSessionId;
 
   beforeEach(() => {
     // Create test database directory
@@ -25,6 +26,7 @@ describe('Telemetry Integration Tests', () => {
     }
 
     testDbPath = join(TEST_DB_DIR, `test-${Date.now()}.db`);
+    testSessionId = `test-session-${Date.now()}`;
 
     // Create real RavenDB instance
     db = new RavenDB(testDbPath, 'test-project');
@@ -36,6 +38,7 @@ describe('Telemetry Integration Tests', () => {
     const dependencies = {
       projectDatabases: new Map([['test-project', db]]),
       activeProject: 'test-project',
+      SESSION_ID: testSessionId,  // Add consistent session ID for testing
       triggerEngine: {
         evaluateTriggers: jest.fn()
       },

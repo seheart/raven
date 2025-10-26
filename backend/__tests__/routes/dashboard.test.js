@@ -38,7 +38,18 @@ describe('Dashboard Routes', () => {
       getHistoricalAgents: jest.fn().mockReturnValue([
         { agent_name: 'agent1', agent_type: 'type1', last_seen: new Date().toISOString(), requests_handled: 10, errors: 0 }
       ]),
-      getAgentStats: jest.fn().mockReturnValue({ total: 10, avg_duration: 100 })
+      getAgentStats: jest.fn().mockReturnValue({ total: 10, avg_duration: 100 }),
+      db: {
+        prepare: jest.fn((sql) => ({
+          all: jest.fn((sessionId) => {
+            // Mock agent queries for project1 - return 2 unique agents
+            if (sql.includes('DISTINCT agent FROM agent_events')) {
+              return [{ agent: 'agent1' }, { agent: 'agent2' }];
+            }
+            return [];
+          })
+        }))
+      }
     };
 
     mockDb2 = {
@@ -60,7 +71,18 @@ describe('Dashboard Routes', () => {
       ]),
       getLongestEdits: jest.fn().mockReturnValue([]),
       getHistoricalAgents: jest.fn().mockReturnValue([]),
-      getAgentStats: jest.fn().mockReturnValue({ total: 20, avg_duration: 200 })
+      getAgentStats: jest.fn().mockReturnValue({ total: 20, avg_duration: 200 }),
+      db: {
+        prepare: jest.fn((sql) => ({
+          all: jest.fn((sessionId) => {
+            // Mock agent queries for project2 - return 3 unique agents (no overlap)
+            if (sql.includes('DISTINCT agent FROM agent_events')) {
+              return [{ agent: 'agent3' }, { agent: 'agent4' }, { agent: 'agent5' }];
+            }
+            return [];
+          })
+        }))
+      }
     };
 
     // Create project state mock

@@ -37,6 +37,12 @@ describe('File Watcher Service', () => {
       if (existsSync(testFile)) {
         await unlink(testFile);
       }
+      // Clean up filter test files
+      const filterJsFile = join(testDir, 'filter-test.js');
+      const filterTxtFile = join(testDir, 'filter-test.txt');
+      if (existsSync(filterJsFile)) await unlink(filterJsFile);
+      if (existsSync(filterTxtFile)) await unlink(filterTxtFile);
+
       if (existsSync(testDir)) {
         await rmdir(testDir);
       }
@@ -206,38 +212,41 @@ describe('File Watcher Service', () => {
       let jsEventFired = false;
       let txtEventFired = false;
 
-      // Watch the entire directory, filter by extension in handler
-      watcher = chokidar.watch(testDir, {
-        persistent: true,
-        ignoreInitial: true,
-        awaitWriteFinish: {
-          stabilityThreshold: 100,
-          pollInterval: 50
-        }
-      })
-      .on('add', (path) => {
-        // Only track .js and .txt files
-        if (path === jsFile) jsEventFired = true;
-        if (path === txtFile) txtEventFired = true;
-      })
-      .on('ready', async () => {
-        // Write both files after watcher is ready
-        await writeFile(jsFile, 'console.log("test");');
-        await writeFile(txtFile, 'test');
+      // Small delay to ensure previous watchers are fully closed
+      setTimeout(() => {
+        // Watch the entire directory, filter by extension in handler
+        watcher = chokidar.watch(testDir, {
+          persistent: true,
+          ignoreInitial: true,
+          awaitWriteFinish: {
+            stabilityThreshold: 100,
+            pollInterval: 50
+          }
+        })
+        .on('add', (path) => {
+          // Only track .js and .txt files
+          if (path === jsFile) jsEventFired = true;
+          if (path === txtFile) txtEventFired = true;
+        })
+        .on('ready', async () => {
+          // Write both files after watcher is ready
+          await writeFile(jsFile, 'console.log("test");');
+          await writeFile(txtFile, 'test');
 
-        // Wait for file system events and awaitWriteFinish
-        setTimeout(() => {
-          // Both files should be detected, but we verify only JS was the one we wanted
-          expect(jsEventFired).toBe(true);
-          // In a real file-type-specific watcher, txt would not be detected
-          // But we're testing that we CAN detect different file types
-          expect(txtEventFired).toBe(true);
-          done();
-        }, 1500);
-      })
-      .on('error', (error) => {
-        done(error);
-      });
+          // Wait for file system events and awaitWriteFinish
+          setTimeout(() => {
+            // Both files should be detected, but we verify only JS was the one we wanted
+            expect(jsEventFired).toBe(true);
+            // In a real file-type-specific watcher, txt would not be detected
+            // But we're testing that we CAN detect different file types
+            expect(txtEventFired).toBe(true);
+            done();
+          }, 1500);
+        })
+        .on('error', (error) => {
+          done(error);
+        });
+      }, 100);
     }, 15000);
   });
 

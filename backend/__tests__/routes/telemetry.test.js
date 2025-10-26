@@ -30,7 +30,7 @@ describe('Telemetry Routes', () => {
 
     // Create mock trigger engine
     mockTriggerEngine = {
-      evaluate: jest.fn()
+      evaluateTriggers: jest.fn()
     };
 
     // Create mock socket.io
@@ -134,7 +134,7 @@ describe('Telemetry Routes', () => {
           lines_changed: 10
         });
 
-      expect(mockTriggerEngine.evaluate).toHaveBeenCalledWith(
+      expect(mockTriggerEngine.evaluateTriggers).toHaveBeenCalledWith(
         expect.objectContaining({
           agent: 'test-agent',
           event_type: 'test-event',
