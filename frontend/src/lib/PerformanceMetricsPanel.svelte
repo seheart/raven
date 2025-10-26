@@ -2,22 +2,37 @@
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
+  import { websocketService } from './websocket.js';
 
   let metrics = [];
   let loading = true;
   let error = null;
   let timeRange = '1h'; // 1h, 6h, 24h, 7d
-  let refreshInterval;
 
   const API_BASE = 'http://localhost:3030/api';
 
+  // WebSocket event handlers (event-driven, no polling!)
+  const handleSystemMetrics = async () => {
+    await loadMetrics();
+  };
+
+  const handleProjectSwitched = async () => {
+    await loadMetrics();
+  };
+
   onMount(async () => {
     await loadMetrics();
-    refreshInterval = setInterval(loadMetrics, 10000); // Refresh every 10s
+
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+    websocketService.on('system-metrics', handleSystemMetrics);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    // Clean up WebSocket listeners
+    websocketService.off('system-metrics', handleSystemMetrics);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadMetrics() {

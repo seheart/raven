@@ -42,10 +42,7 @@
     await loadNotifications();
     await loadStats();
 
-    // Start live timestamp updates
-    startTimeAgoUpdates();
-
-    // Connect to WebSocket for real-time notifications
+    // Connect to WebSocket for real-time notifications (event-driven, no polling!)
     websocketService.connect();
     websocketService.on('notification', handleNewNotification);
     websocketService.on('error-logged', handleErrorLogged);
@@ -54,11 +51,7 @@
   });
 
   onDestroy(() => {
-    // Clean up timer interval
-    if (timeAgoInterval) {
-      clearInterval(timeAgoInterval);
-    }
-
+    // Clean up WebSocket listeners
     websocketService.off('notification', handleNewNotification);
     websocketService.off('error-logged', handleErrorLogged);
     websocketService.off('trigger-fired', handleTriggerFired);
@@ -306,16 +299,8 @@
     return `${hours}h ago`;
   }
 
-  // Live timestamp updates
-  let timeAgo = 'Never';
-  let timeAgoInterval;
-
-  // Initialize interval in onMount (moved below)
-  function startTimeAgoUpdates() {
-    timeAgoInterval = setInterval(() => {
-      timeAgo = getTimeAgo();
-    }, 1000);
-  }
+  // Reactive "time ago" - updates when lastUpdated changes (no polling!)
+  $: timeAgo = getTimeAgo();
 
   $: filteredCount = notifications.length;
 </script>

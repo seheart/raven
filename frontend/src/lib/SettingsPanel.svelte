@@ -20,11 +20,6 @@
   import { onDestroy } from 'svelte';
   onDestroy(() => {
     if (unsubscribe) unsubscribe();
-
-    // Clean up timer interval
-    if (timeAgoInterval) {
-      clearInterval(timeAgoInterval);
-    }
   });
 
   // Settings are auto-saved via the store, no need for manual save
@@ -111,7 +106,7 @@
     updateNotificationPermission();
 
     // Start live timestamp updates
-    startTimeAgoUpdates();
+    // Time updates now reactive via $: timeAgo
   });
 
   async function requestNotificationPermission() {
@@ -192,16 +187,8 @@
     return `${hours}h ago`;
   }
 
-  // Live timestamp updates
-  let timeAgo = 'Never';
-  let timeAgoInterval;
-
-  // Initialize interval in onMount (moved below)
-  function startTimeAgoUpdates() {
-    timeAgoInterval = setInterval(() => {
-      timeAgo = getTimeAgo();
-    }, 1000);
-  }
+  // Reactive "time ago" - updates when lastModified changes (no polling!)
+  $: timeAgo = getTimeAgo();
 </script>
 
 <div class="settings-panel">
