@@ -46,7 +46,7 @@
     "swagger-ui-express": "^5.0.1",
     "systeminformation": "^5.27.11",
     "toml": "^3.0.0",
-    "uuid": "^11.0.5",
+    "uuid": "^13.0.0",
     "winston": "^3.18.3"
   },
   "devDependencies": {
