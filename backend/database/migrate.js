@@ -10,6 +10,7 @@
  */
 
 import { DatabaseMigrator } from './migrator.js';
+import { logger } from '../utils/logger.js';
 import { openProjectDatabase } from '../services/database.js';
 import fs from 'fs';
 import { join } from 'path';
@@ -20,8 +21,8 @@ const arg = process.argv[3];
 async function main() {
   if (command === 'create') {
     if (!arg) {
-      console.error('❌ Migration name required');
-      console.log('Usage: node migrate.js create <migration_name>');
+      logger.error('❌ Migration name required');
+      logger.info('Usage: node migrate.js create <migration_name>');
       process.exit(1);
     }
     DatabaseMigrator.createMigration(arg);
@@ -32,7 +33,7 @@ async function main() {
   const dbPath = join(process.cwd(), '..', '.raven', 'db', 'developer.db');
 
   if (!fs.existsSync(dbPath)) {
-    console.error(`❌ Database not found: ${dbPath}`);
+    logger.error(`❌ Database not found: ${dbPath}`);
     process.exit(1);
   }
 
@@ -57,22 +58,22 @@ async function main() {
       const available = migrator.getAvailableMigrations();
       const pending = available.filter(m => m.version > current);
 
-      console.log(`\n📊 Migration Status:`);
-      console.log(`Current version: ${current}`);
-      console.log(`Available migrations: ${available.length}`);
-      console.log(`Pending migrations: ${pending.length}`);
+      logger.info(`\n📊 Migration Status:`);
+      logger.info(`Current version: ${current}`);
+      logger.info(`Available migrations: ${available.length}`);
+      logger.info(`Pending migrations: ${pending.length}`);
 
       if (pending.length > 0) {
-        console.log(`\nPending:`);
+        logger.info(`\nPending:`);
         pending.forEach(m => {
-          console.log(`  ${m.version}: ${m.name}`);
+          logger.info(`  ${m.version}: ${m.name}`);
         });
       }
       break;
     }
 
     default:
-      console.log(`
+      logger.info(`
 Migration CLI
 
 Commands:
@@ -93,6 +94,6 @@ Examples:
 }
 
 main().catch(err => {
-  console.error('❌ Migration failed:', err);
+  logger.error('❌ Migration failed:', err);
   process.exit(1);
 });

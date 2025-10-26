@@ -9,6 +9,7 @@
  */
 
 import express from 'express';
+import { logger } from 'utils/logger.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -72,7 +73,7 @@ EventBus.onFileEvent(async (event) => {
       event.size
     );
 
-    console.log(`📁 File ${event.type}: ${event.path} (ID: ${eventId})`);
+    logger.info(`📁 File ${event.type}: ${event.path} (ID: ${eventId})`);
 
     // Emit to WebSocket clients
     io.emit('file-changed', {
@@ -89,12 +90,12 @@ EventBus.onFileEvent(async (event) => {
       await gitMonitor.checkStatus();
     }
   } catch (error) {
-    console.error('❌ Error handling file event:', error);
+    logger.error('❌ Error handling file event:', error);
   }
 });
 
 EventBus.onGitStatus((status) => {
-  console.log(
+  logger.info(
     `🔀 Git status: ${status.branch} (${status.modified.length} modified, ${status.created.length} created)`
   );
 
@@ -169,16 +170,16 @@ app.get('/api/file-events', (req, res) => {
 // ==================== WebSocket ====================
 
 io.on('connection', (socket) => {
-  console.log('🔌 WebSocket client connected:', socket.id);
+  logger.info('🔌 WebSocket client connected:', socket.id);
 
   socket.on('disconnect', () => {
-    console.log('🔌 WebSocket client disconnected:', socket.id);
+    logger.info('🔌 WebSocket client disconnected:', socket.id);
   });
 });
 
 // ==================== Initialize Services ====================
 
-console.log(`
+logger.info(`
 ╔════════════════════════════════════════════════╗
 ║     Raven Backend (Modular TypeScript)         ║
 ╠════════════════════════════════════════════════╣
@@ -209,7 +210,7 @@ const gitMonitor = new GitMonitor({
 
 // Start services
 httpServer.listen(PORT, async () => {
-  console.log('✅ HTTP server started');
+  logger.info('✅ HTTP server started');
 
   // Start file watcher
   fileWatcher.start();
@@ -219,18 +220,18 @@ httpServer.listen(PORT, async () => {
   if (isRepo) {
     await gitMonitor.start();
   } else {
-    console.log('⚠️  Not a git repository, skipping git monitor');
+    logger.info('⚠️  Not a git repository, skipping git monitor');
   }
 
   // Start telemetry
   telemetryCollector.start();
 
-  console.log('🚀 All services started successfully');
+  logger.info('🚀 All services started successfully');
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down Raven backend...');
+  logger.info('\n🛑 Shutting down Raven backend...');
 
   await fileWatcher.stop();
   gitMonitor.stop();

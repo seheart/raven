@@ -6,6 +6,7 @@
  */
 
 import Database from 'better-sqlite3';
+import { logger } from 'utils/logger.js';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -64,7 +65,7 @@ const INDEXES = [
 ];
 
 function addIndexesToDatabase(dbPath, projectName) {
-  console.log(`\n📊 Processing: ${projectName}`);
+  logger.info(`\n📊 Processing: ${projectName}`);
 
   try {
     const db = new Database(dbPath);
@@ -80,7 +81,7 @@ function addIndexesToDatabase(dbPath, projectName) {
         `).get(index.table);
 
         if (!tableExists) {
-          // console.log(`   ⏭️  Skip: ${index.name} (table ${index.table} doesn't exist)`);
+          // logger.info(`   ⏭️  Skip: ${index.name} (table ${index.table} doesn't exist)`);
           continue;
         }
 
@@ -100,47 +101,47 @@ function addIndexesToDatabase(dbPath, projectName) {
           CREATE INDEX ${index.name} ON ${index.table}(${index.columns})
         `).run();
 
-        console.log(`   ✅ Created: ${index.name} on ${index.table}(${index.columns})`);
+        logger.info(`   ✅ Created: ${index.name} on ${index.table}(${index.columns})`);
         indexesCreated++;
 
       } catch (err) {
-        console.error(`   ❌ Error creating ${index.name}:`, err.message);
+        logger.error(`   ❌ Error creating ${index.name}:`, err.message);
       }
     }
 
     db.close();
 
     if (indexesCreated > 0) {
-      console.log(`   📈 Created ${indexesCreated} new indexes, skipped ${indexesSkipped} existing`);
+      logger.info(`   📈 Created ${indexesCreated} new indexes, skipped ${indexesSkipped} existing`);
     } else {
-      console.log(`   ✨ All indexes already exist (${indexesSkipped} total)`);
+      logger.info(`   ✨ All indexes already exist (${indexesSkipped} total)`);
     }
 
     return { created: indexesCreated, skipped: indexesSkipped };
 
   } catch (err) {
-    console.error(`   ❌ Failed to process database:`, err.message);
+    logger.error(`   ❌ Failed to process database:`, err.message);
     return { created: 0, skipped: 0 };
   }
 }
 
 async function main() {
-  console.log('🚀 DATABASE INDEX MIGRATION');
-  console.log('====================================');
+  logger.info('🚀 DATABASE INDEX MIGRATION');
+  logger.info('====================================');
 
   if (!existsSync(DB_DIR)) {
-    console.error(`❌ Database directory not found: ${DB_DIR}`);
+    logger.error(`❌ Database directory not found: ${DB_DIR}`);
     process.exit(1);
   }
 
   const dbFiles = readdirSync(DB_DIR).filter(file => file.endsWith('.db'));
 
   if (dbFiles.length === 0) {
-    console.error(`❌ No database files found in ${DB_DIR}`);
+    logger.error(`❌ No database files found in ${DB_DIR}`);
     process.exit(1);
   }
 
-  console.log(`Found ${dbFiles.length} database(s)\n`);
+  logger.info(`Found ${dbFiles.length} database(s)\n`);
 
   let totalCreated = 0;
   let totalSkipped = 0;
@@ -154,16 +155,16 @@ async function main() {
     totalSkipped += result.skipped;
   }
 
-  console.log('\n====================================');
-  console.log('📊 SUMMARY:');
-  console.log(`   Databases processed: ${dbFiles.length}`);
-  console.log(`   New indexes created: ${totalCreated}`);
-  console.log(`   Existing indexes: ${totalSkipped}`);
-  console.log('====================================');
-  console.log('✅ Index migration complete!');
+  logger.info('\n====================================');
+  logger.info('📊 SUMMARY:');
+  logger.info(`   Databases processed: ${dbFiles.length}`);
+  logger.info(`   New indexes created: ${totalCreated}`);
+  logger.info(`   Existing indexes: ${totalSkipped}`);
+  logger.info('====================================');
+  logger.info('✅ Index migration complete!');
 }
 
 main().catch(err => {
-  console.error('Fatal error:', err);
+  logger.error('Fatal error:', err);
   process.exit(1);
 });

@@ -314,6 +314,11 @@
       await loadRemoteStats();
     }
   });
+
+  onDestroy(() => {
+    // Clean up auto-sync interval
+    stopAutoSync();
+  });
 </script>
 
 <div class="server-sync-panel">

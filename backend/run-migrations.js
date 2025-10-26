@@ -4,6 +4,7 @@
  */
 
 import { readdirSync } from 'fs';
+import { logger } from 'utils/logger.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
@@ -16,7 +17,7 @@ const RAVEN_DIR = join(__dirname, '..', '.raven');
 const DB_DIR = join(RAVEN_DIR, 'db');
 
 async function runMigrations() {
-  console.log('🚀 Running Raven database migrations...\n');
+  logger.info('🚀 Running Raven database migrations...\n');
 
   try {
     // Get all migration files
@@ -25,13 +26,13 @@ async function runMigrations() {
       .sort(); // Run in order
 
     if (migrationFiles.length === 0) {
-      console.log('✅ No migrations to run');
+      logger.info('✅ No migrations to run');
       return;
     }
 
-    console.log(`Found ${migrationFiles.length} migration(s):\n`);
-    migrationFiles.forEach(f => console.log(`  - ${f}`));
-    console.log();
+    logger.info(`Found ${migrationFiles.length} migration(s):\n`);
+    migrationFiles.forEach(f => logger.info(`  - ${f}`));
+    logger.info();
 
     // Get all project databases
     const dbFiles = readdirSync(DB_DIR)
@@ -39,19 +40,19 @@ async function runMigrations() {
       .map(f => join(DB_DIR, f));
 
     if (dbFiles.length === 0) {
-      console.log('⚠️  No database files found in', DB_DIR);
+      logger.info('⚠️  No database files found in', DB_DIR);
       return;
     }
 
-    console.log(`Found ${dbFiles.length} database(s) to migrate:\n`);
-    dbFiles.forEach(f => console.log(`  - ${f}`));
-    console.log();
+    logger.info(`Found ${dbFiles.length} database(s) to migrate:\n`);
+    dbFiles.forEach(f => logger.info(`  - ${f}`));
+    logger.info();
 
     // Run migrations on each database
     for (const dbPath of dbFiles) {
       const dbName = dbPath.split('/').pop();
-      console.log(`\n📦 Migrating: ${dbName}`);
-      console.log('━'.repeat(60));
+      logger.info(`\n📦 Migrating: ${dbName}`);
+      logger.info('━'.repeat(60));
 
       const db = new Database(dbPath);
       db.pragma('journal_mode = WAL');
@@ -74,11 +75,11 @@ async function runMigrations() {
         const migrationName = migrationFile.replace('.js', '');
 
         if (appliedNames.has(migrationName)) {
-          console.log(`  ⏭️  ${migrationFile} (already applied)`);
+          logger.info(`  ⏭️  ${migrationFile} (already applied)`);
           continue;
         }
 
-        console.log(`  🔄 Running ${migrationFile}...`);
+        logger.info(`  🔄 Running ${migrationFile}...`);
 
         try {
           // Import and run migration
@@ -91,28 +92,28 @@ async function runMigrations() {
           db.prepare('INSERT INTO migrations (name, applied_at) VALUES (?, datetime(\'now\'))')
             .run(migrationName);
 
-          console.log(`  ✅ ${migrationFile} completed`);
+          logger.info(`  ✅ ${migrationFile} completed`);
         } catch (e) {
-          console.error(`  ❌ ${migrationFile} failed:`, e.message);
+          logger.error(`  ❌ ${migrationFile} failed:`, e.message);
           db.close();
           throw e;
         }
       }
 
       db.close();
-      console.log(`✅ ${dbName} migration complete`);
+      logger.info(`✅ ${dbName} migration complete`);
     }
 
-    console.log('\n' + '━'.repeat(60));
-    console.log('🎉 All migrations completed successfully!\n');
+    logger.info('\n' + '━'.repeat(60));
+    logger.info('🎉 All migrations completed successfully!\n');
   } catch (error) {
-    console.error('\n❌ Migration failed:', error);
+    logger.error('\n❌ Migration failed:', error);
     process.exit(1);
   }
 }
 
 // Run migrations
 runMigrations().catch(error => {
-  console.error('Fatal error:', error);
+  logger.error('Fatal error:', error);
   process.exit(1);
 });

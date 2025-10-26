@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger.js';
+
 /**
  * Environment Configuration Module
  * Centralized environment variable management with validation
@@ -146,17 +148,17 @@ export function validateConfig() {
  * Print configuration (safe - no secrets)
  */
 export function printConfig() {
-  console.log('\n📋 Raven Configuration:');
-  console.log(`   Environment: ${env.NODE_ENV}`);
-  console.log(`   Port: ${env.PORT}`);
-  console.log(`   CORS Origin: ${env.CORS_ORIGIN}`);
-  console.log(`   Auth: ${env.DISABLE_AUTH ? 'Disabled' : 'Enabled'}`);
-  console.log(`   Log Level: ${env.LOG_LEVEL}`);
-  console.log(`   Structured Logging: ${env.STRUCTURED_LOGGING}`);
-  console.log(`   Tracing: ${env.ENABLE_TRACING}`);
-  console.log(`   Cache Size: ${env.MAX_CACHE_SIZE}`);
-  console.log(`   DB Directory: ${env.DB_DIR}`);
-  console.log('');
+  logger.info('\n📋 Raven Configuration:');
+  logger.info(`   Environment: ${env.NODE_ENV}`);
+  logger.info(`   Port: ${env.PORT}`);
+  logger.info(`   CORS Origin: ${env.CORS_ORIGIN}`);
+  logger.info(`   Auth: ${env.DISABLE_AUTH ? 'Disabled' : 'Enabled'}`);
+  logger.info(`   Log Level: ${env.LOG_LEVEL}`);
+  logger.info(`   Structured Logging: ${env.STRUCTURED_LOGGING}`);
+  logger.info(`   Tracing: ${env.ENABLE_TRACING}`);
+  logger.info(`   Cache Size: ${env.MAX_CACHE_SIZE}`);
+  logger.info(`   DB Directory: ${env.DB_DIR}`);
+  logger.info('');
 }
 
 /**
@@ -171,7 +173,7 @@ export function initConfig() {
     }
   } catch (error) {
     if (env.NODE_ENV !== 'test') {
-      console.error('❌ Configuration Error:', error.message);
+      logger.error('❌ Configuration Error:', error.message);
       process.exit(1);
     } else {
       throw error;

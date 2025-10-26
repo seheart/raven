@@ -1898,7 +1898,7 @@ httpServer.listen(PORT, () => {
       if (!summary.allPassed) {
         logger.error(`\n⚠️  ${summary.failed} health check(s) failed - check notifications panel\n`);
       } else {
-        console.log(`\n✅ All ${summary.total} health checks passed!\n`);
+        logger.info(`\n✅ All ${summary.total} health checks passed!\n`);
       }
     }).catch(error => {
       logger.error(`\n❌ Health check system error: ${error.message}\n`);
@@ -1913,38 +1913,38 @@ httpServer.listen(PORT, () => {
   // Initialize file watchers for ALL projects
   initializeAllWatchers();
 
-  console.log('\n🎉 Global multi-project monitoring is active!\n');
+  logger.info('\n🎉 Global multi-project monitoring is active!\n');
 });
 
 // Graceful shutdown handler
 function gracefulShutdown(signal) {
-  console.log(`\n🛑 Received ${signal}, shutting down Raven backend gracefully...`);
+  logger.info(`\n🛑 Received ${signal}, shutting down Raven backend gracefully...`);
 
   // Close HTTP server to stop accepting new connections
   httpServer.close(() => {
-    console.log('✅ HTTP server closed');
+    logger.info('✅ HTTP server closed');
   });
 
   // Clear all interval timers
   if (agentCleanupInterval) {
     clearInterval(agentCleanupInterval);
-    console.log('✅ Stopped agent cleanup interval');
+    logger.info('✅ Stopped agent cleanup interval');
   }
   if (snapshotCleanupInterval) {
     clearInterval(snapshotCleanupInterval);
-    console.log('✅ Stopped snapshot cleanup interval');
+    logger.info('✅ Stopped snapshot cleanup interval');
   }
   if (performanceMonitorInterval) {
     clearInterval(performanceMonitorInterval);
-    console.log('✅ Stopped performance monitor interval');
+    logger.info('✅ Stopped performance monitor interval');
   }
 
   // Close all file watchers
-  console.log(`\n🔒 Closing ${projectWatchers.size} file watchers...`);
+  logger.info(`\n🔒 Closing ${projectWatchers.size} file watchers...`);
   for (const [projectName, watcher] of projectWatchers.entries()) {
     try {
       watcher.close();
-      console.log(`✅ Closed watcher: ${projectName}`);
+      logger.info(`✅ Closed watcher: ${projectName}`);
     } catch (error) {
       logger.error(`Error closing watcher ${projectName}:`, error);
     }
@@ -1965,18 +1965,18 @@ function gracefulShutdown(signal) {
   if (metricsCollector) {
     try {
       metricsCollector.stop();
-      console.log('✅ Stopped metrics collector');
+      logger.info('✅ Stopped metrics collector');
     } catch (error) {
       logger.error('Error stopping metrics collector:', error);
     }
   }
 
   // Close all project databases
-  console.log(`\n🔒 Closing ${projectDatabases.size} project databases...`);
+  logger.info(`\n🔒 Closing ${projectDatabases.size} project databases...`);
   for (const [projectName, db] of projectDatabases.entries()) {
     try {
       db.close();
-      console.log(`✅ Closed database: ${projectName}`);
+      logger.info(`✅ Closed database: ${projectName}`);
     } catch (error) {
       logger.error(`Error closing database ${projectName}:`, error);
     }
@@ -1986,7 +1986,7 @@ function gracefulShutdown(signal) {
   if (developerDB) {
     try {
       developerDB.close();
-      console.log('✅ Closed developer persona database');
+      logger.info('✅ Closed developer persona database');
     } catch (error) {
       logger.error('Error closing developer database:', error);
     }
@@ -1996,13 +1996,13 @@ function gracefulShutdown(signal) {
   if (authDB) {
     try {
       authDB.close();
-      console.log('✅ Closed authentication database');
+      logger.info('✅ Closed authentication database');
     } catch (error) {
       logger.error('Error closing auth database:', error);
     }
   }
 
-  console.log('\n👋 Goodbye!');
+  logger.info('\n👋 Goodbye!');
 
   // Give a small delay to ensure all cleanup completes
   setTimeout(() => {

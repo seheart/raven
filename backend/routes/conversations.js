@@ -247,7 +247,7 @@ async function importSessionFile(sessionPath, project, db) {
         }
       } catch (err) {
         // Skip malformed lines
-        console.warn('Skipping malformed line:', err.message);
+        logger.warn('Skipping malformed line:', err.message);
       }
     });
 

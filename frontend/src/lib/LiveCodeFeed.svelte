@@ -31,11 +31,11 @@
 
 
   // Debounce utility function (moved outside reactive scope)
+  let debouncedTimeoutId;
   const debounce = (fn, delay) => {
-    let timeoutId;
     return function (...args) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => fn.apply(this, args), delay);
+      clearTimeout(debouncedTimeoutId);
+      debouncedTimeoutId = setTimeout(() => fn.apply(this, args), delay);
     };
   };
 
@@ -83,6 +83,11 @@
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('agent-event', handleAgentEvent);
     websocketService.off('project-switched', handleProjectSwitched);
+
+    // Clean up pending debounced timeout
+    if (debouncedTimeoutId) {
+      clearTimeout(debouncedTimeoutId);
+    }
   });
 
   async function loadAllData() {

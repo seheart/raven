@@ -108,6 +108,13 @@
   onMount(() => {
     if (searchInput) searchInput.focus();
   });
+
+  onDestroy(() => {
+    // Clean up pending timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+  });
 </script>
 
 <div class="global-search-panel">
