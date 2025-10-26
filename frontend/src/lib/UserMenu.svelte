@@ -1,6 +1,7 @@
 <script>
   import { currentUser, authService } from './authStore.js';
   import { notifications } from './notificationService.js';
+  import EmergencyStopButton from './EmergencyStopButton.svelte';
 
   let showMenu = false;
 
@@ -60,6 +61,12 @@
             <span class="role-label">{getRoleBadge($currentUser?.role).label}</span>
           </div>
         </div>
+      </div>
+
+      <div class="menu-divider"></div>
+
+      <div class="menu-section">
+        <EmergencyStopButton />
       </div>
 
       <div class="menu-divider"></div>
@@ -209,6 +216,12 @@
     height: 1px;
     background: var(--border);
     margin: 0 8px;
+  }
+
+  .menu-section {
+    padding: 12px;
+    display: flex;
+    justify-content: center;
   }
 
   .menu-item {

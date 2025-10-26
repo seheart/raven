@@ -5,12 +5,12 @@ import { join } from 'path';
 
 /**
  * Creates health and status monitoring routes
- * @param {object} deps - Dependencies { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, healthCheckSystem }
+ * @param {object} deps - Dependencies { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, getHealthCheckSystem }
  * @returns {Router} Express router
  */
 export function createHealthRoutes(deps) {
   const router = Router();
-  const { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, healthCheckSystem } = deps;
+  const { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, getHealthCheckSystem } = deps;
 
   /**
    * GET /api/health
@@ -148,11 +148,13 @@ export function createHealthRoutes(deps) {
    */
   router.get('/health-checks', (req, res) => {
     try {
+      const healthCheckSystem = getHealthCheckSystem();
       if (!healthCheckSystem) {
         return res.json({
           status: 'pending',
           message: 'Health checks have not run yet',
-          results: []
+          summary: { total: 0, passed: 0, failed: 0 },
+          checks: []
         });
       }
 
@@ -163,6 +165,38 @@ export function createHealthRoutes(deps) {
       });
     } catch (error) {
       logger.error('Health checks API error:', error);
+      res.status(500).json({
+        status: 'error',
+        error: error.message
+      });
+    }
+  });
+
+  /**
+   * POST /api/health-checks/run
+   * Manually trigger health checks
+   */
+  router.post('/health-checks/run', async (req, res) => {
+    try {
+      const healthCheckSystem = getHealthCheckSystem();
+      if (!healthCheckSystem) {
+        return res.status(503).json({
+          status: 'error',
+          error: 'Health check system not initialized'
+        });
+      }
+
+      logger.info('Manual health check triggered via API');
+      const summary = await healthCheckSystem.runAllChecks();
+      const results = healthCheckSystem.getResults();
+
+      res.json({
+        status: summary.allPassed ? 'healthy' : 'unhealthy',
+        message: `Health check completed: ${summary.passed}/${summary.total} passed`,
+        ...results
+      });
+    } catch (error) {
+      logger.error('Health check run error:', error);
       res.status(500).json({
         status: 'error',
         error: error.message

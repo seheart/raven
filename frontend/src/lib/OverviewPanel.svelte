@@ -5,9 +5,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { notifications } from './notificationService.js';
   import ProjectsOverview from './ProjectsOverview.svelte';
-  import HealthStatus from './HealthStatus.svelte';
   import HealthWidget from './HealthWidget.svelte';
-  import EmergencyStopButton from './EmergencyStopButton.svelte';
   import { API_CONFIG } from '../config.js';
 
   export let sessionId = 'Loading...';
@@ -170,14 +168,6 @@
 </script>
 
 <div class="overview-panel">
-  <!-- Health Widget - At-a-glance project status -->
-  <HealthWidget />
-
-  <!-- Emergency Stop Button -->
-  <div class="emergency-stop-container">
-    <EmergencyStopButton />
-  </div>
-
   <!-- Personalized Greeting -->
   <div class="greeting-section">
     <h2 class="greeting-text">{getGreeting()}</h2>
@@ -197,11 +187,11 @@
     </div>
   </div>
 
+  <!-- Health Widget - At-a-glance project status -->
+  <HealthWidget />
+
   <!-- Multi-Project Overview -->
   <ProjectsOverview />
-
-  <!-- System Health Status -->
-  <HealthStatus />
 
   <!-- Main Stats Grid -->
   <div class="stats-grid">
@@ -356,12 +346,6 @@
     flex-direction: column;
     gap: 24px;
     position: relative;
-  }
-
-  .emergency-stop-container {
-    display: flex;
-    justify-content: center;
-    margin: 8px 0;
   }
 
   .greeting-section {

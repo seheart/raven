@@ -1241,7 +1241,10 @@ app.use('/api/projects', createProjectRoutes({
 app.use('/api', createSafetyRoutes({ projectState, io, SESSION_ID }));
 
 // Health & Status routes (system health, session ID, status, health checks, project health)
-app.use('/api', createHealthRoutes({ projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, healthCheckSystem }));
+// Note: healthCheckSystem will be set later via getHealthCheckSystem()
+const healthDeps = { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases };
+healthDeps.getHealthCheckSystem = () => healthCheckSystem;
+app.use('/api', createHealthRoutes(healthDeps));
 
 // Analytics routes (anomaly detection, trends, agent monitoring, pattern matching)
 // behaviorProfiler and patternMatcher added after initialization
