@@ -11,12 +11,13 @@ export function createTelemetryRoutes(deps) {
   const {
     projectDatabases,
     developerDB,
-    availableProjects,
-    SESSION_ID,
-    agentRegistry,
-    getAgentColor,
-    triggerEngine,
-    io
+    availableProjects = [],
+    SESSION_ID = null,
+    activeProject = null,
+    agentRegistry = new Map(),
+    getAgentColor = () => '#3498db',
+    triggerEngine = null,
+    io = { emit: () => {} }
   } = deps;
 
   // POST /telemetry - Receive telemetry data from agents
@@ -55,10 +56,15 @@ export function createTelemetryRoutes(deps) {
 
       // Determine which project this telemetry is for
       let projectName = project; // Use explicit project if provided
-      if (!projectName && availableProjects.length > 0) {
-        // Default to 'raven' if it exists, otherwise first project
-        const ravenProject = availableProjects.find(p => p.name === 'raven');
-        projectName = ravenProject ? ravenProject.name : availableProjects[0].name;
+      if (!projectName) {
+        if (activeProject) {
+          // Use activeProject from dependencies
+          projectName = activeProject;
+        } else if (availableProjects && availableProjects.length > 0) {
+          // Default to 'raven' if it exists, otherwise first project
+          const ravenProject = availableProjects.find(p => p.name === 'raven' || p === 'raven');
+          projectName = ravenProject ? (ravenProject.name || ravenProject) : (availableProjects[0].name || availableProjects[0]);
+        }
       }
 
       // Get project database (or use first available)
@@ -81,27 +87,50 @@ export function createTelemetryRoutes(deps) {
         SESSION_ID
       );
 
-      // ALSO log to global developer persona database
-      try {
-        developerDB.logAgentInteraction({
-          timestamp,
-          project: projectName,
-          agent_name: agent,
-          event_type: eventName,
-          file_path: file,
-          lines_changed,
-          message,
-          session_id: SESSION_ID,
-          prompt_type: metadata?.prompt_type,
-          metadata: JSON.stringify(metadata)
-        });
-      } catch (devDbError) {
-        logger.error('Failed to log to developer DB', { error: devDbError });
+      // ALSO log to global developer persona database (if available)
+      if (developerDB && developerDB.logAgentInteraction) {
+        try {
+          developerDB.logAgentInteraction({
+            timestamp,
+            project: projectName,
+            agent_name: agent,
+            event_type: eventName,
+            file_path: file,
+            lines_changed,
+            message,
+            session_id: SESSION_ID,
+            prompt_type: metadata?.prompt_type,
+            metadata: JSON.stringify(metadata)
+          });
+        } catch (devDbError) {
+          logger.error('Failed to log to developer DB', { error: devDbError });
+        }
       }
 
-      // Update agent registry
-      if (!agentRegistry.has(agent)) {
-        agentRegistry.set(agent, {
+      // Update agent registry (if available and is a Map)
+      if (agentRegistry && typeof agentRegistry.has === 'function') {
+        if (!agentRegistry.has(agent)) {
+          agentRegistry.set(agent, {
+            agent_name: agent,
+            agent_type: agent,
+            is_running: true,
+            last_seen: timestamp,
+            models_available: [],
+            requests_handled: 0,
+            errors: 0,
+            color: getAgentColor(agent)
+          });
+        }
+
+        const agentStatus = agentRegistry.get(agent);
+        if (agentStatus) {
+          agentStatus.last_seen = timestamp;
+          agentStatus.requests_handled = (agentStatus.requests_handled || 0) + 1;
+          agentStatus.is_running = true;
+        }
+      } else if (agentRegistry && typeof agentRegistry.registerAgent === 'function') {
+        // Support test mock style with registerAgent function
+        agentRegistry.registerAgent(agent, {
           agent_name: agent,
           agent_type: agent,
           is_running: true,
@@ -113,22 +142,21 @@ export function createTelemetryRoutes(deps) {
         });
       }
 
-      const agentStatus = agentRegistry.get(agent);
-      agentStatus.last_seen = timestamp;
-      agentStatus.requests_handled++;
-      agentStatus.is_running = true;
-
       // Evaluate triggers (only if trigger engine is initialized)
-      if (triggerEngine) {
-        const triggerEvent = {
-          file: file,
-          agent: agent,
-          event_type: eventName,
-          lines_changed: lines_changed,
-          duration_ms: duration_ms,
-          project: projectName
-        };
-        triggerEngine.evaluate(triggerEvent);
+      if (triggerEngine && triggerEngine.evaluateTriggers) {
+        try {
+          const triggerEvent = {
+            file: file,
+            agent: agent,
+            event_type: eventName,
+            lines_changed: lines_changed,
+            duration_ms: duration_ms,
+            project: projectName
+          };
+          triggerEngine.evaluateTriggers(triggerEvent);
+        } catch (triggerError) {
+          logger.error('Failed to evaluate triggers', { error: triggerError });
+        }
       }
 
       logger.debug(`📡 [${projectName}] Telemetry: ${agent} - ${eventName} - ${message}`);
@@ -168,8 +196,8 @@ export function createTelemetryRoutes(deps) {
         project: projectName
       });
     } catch (error) {
-      logger.error('Telemetry error', { error });
-      res.status(500).json({ error: error.message });
+      logger.error('Telemetry error', { error: error.message || error, stack: error.stack });
+      res.status(500).json({ error: error.message || 'Internal server error', details: String(error) });
     }
   });
 
