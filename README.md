@@ -6,13 +6,34 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 1.0.1 - Enterprise Engineering Standards
+**Version:** 1.1.0 - Event-Driven Real-Time Architecture
 
-## 🚀 Current Status: V1.0.1 COMPLETE - Enterprise-Grade Architecture
+## 🚀 Current Status: V1.1.0 COMPLETE - Event-Driven Real-Time Architecture
 
-✅ **Production-ready with enterprise engineering standards, modular architecture, and comprehensive testing.**
+✅ **Production-ready with zero polling, real-time WebSocket updates, and instant UI feedback.**
 
-### 🎉 What's New in 1.0.1 - Engineering Excellence (December 2024)
+### 🎉 What's New in 1.1.0 - Event-Driven Architecture (January 2025)
+
+**⚡ Zero-Polling Real-Time Architecture:**
+- ✅ **24 Panels Converted** - Eliminated ALL polling timers across the entire frontend
+- ✅ **Event-Driven Updates** - All data updates via WebSocket events (no setInterval anywhere)
+- ✅ **Instant Feedback** - UI updates immediately when backend events occur
+- ✅ **Performance Boost** - Eliminated ~48 polling timers (2 per panel × 24 panels)
+- ✅ **Reduced Network Traffic** - Only fetch data when it actually changes
+- ✅ **Better Battery Life** - No wasteful background polling on idle systems
+
+**🎯 Contextual Help System:**
+- ✅ **PageInfo Component** - Single info icon in header provides help for all pages
+- ✅ **Clean UI** - No more per-panel info icons cluttering the interface
+- ✅ **Context-Aware** - Help content updates based on current page
+- ✅ **Consistent UX** - Info icon always in same location (top-right header)
+
+**🎨 UI/UX Improvements:**
+- ✅ **Cleaner Interface** - Removed 18+ redundant info icons
+- ✅ **Better Performance** - Faster renders with fewer components
+- ✅ **Simplified Navigation** - Consistent header across all views
+
+### Previous Release - 1.0.1 - Engineering Excellence (December 2024)
 
 **🏗️ Massive Architecture Refactor:**
 - ✅ **21 Route Modules** - Extracted from monolithic server.js into modular files
