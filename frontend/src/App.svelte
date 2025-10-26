@@ -35,6 +35,7 @@
   import SettingsPanel from './lib/SettingsPanel.svelte';
   import ProjectsConfigPanel from './lib/ProjectsConfigPanel.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
+  import PageInfo from './lib/PageInfo.svelte';
   import ConversationsPanel from './lib/ConversationsPanel.svelte';
   import DeveloperInsightsPanel from './lib/DeveloperInsightsPanel.svelte';
   import BreakAlert from './lib/BreakAlert.svelte';
@@ -267,6 +268,22 @@
         >
           ?
         </button>
+        <PageInfo
+          title="Raven Dashboard"
+          description="Real-time monitoring and safety system for AI-assisted development"
+          keyPoints={[
+            'Monitor AI agent activity and performance in real-time',
+            'Track code changes, errors, and system health',
+            'Get alerts for potential issues before they cause problems',
+            'Review historical trends and usage patterns'
+          ]}
+          whenToCheck="Check regularly during active development sessions to stay informed about system status"
+          warnings={[
+            'High error rates may indicate syntax or runtime issues',
+            'Unusual agent activity patterns could signal configuration problems',
+            'Performance degradation may require attention to optimize workflow'
+          ]}
+        />
       </div>
     </div>
   </header>
