@@ -5,6 +5,7 @@
  * thresholds are exceeded.
  */
 
+import os from 'os';
 import { logger } from '../utils/logger.js';
 
 export class PerformanceMonitor {
@@ -84,18 +85,11 @@ export class PerformanceMonitor {
       const memUsage = process.memoryUsage();
       const heapPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
 
-      // Get system memory if available
-      let systemMemoryPercent = 0;
-      try {
-        const os = await import('os');
-        const totalMem = os.totalmem();
-        const freeMem = os.freemem();
-        const usedMem = totalMem - freeMem;
-        systemMemoryPercent = (usedMem / totalMem) * 100;
-      } catch (error) {
-        // Fallback if os module fails
-        systemMemoryPercent = 0;
-      }
+      // Get system memory
+      const totalMem = os.totalmem();
+      const freeMem = os.freemem();
+      const usedMem = totalMem - freeMem;
+      const systemMemoryPercent = (usedMem / totalMem) * 100;
 
       // Check thresholds and emit alerts
       if (systemMemoryPercent > this.thresholds.memory.critical) {
