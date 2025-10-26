@@ -3,7 +3,6 @@
   import { api } from './apiClient.js';
   import { notifications } from './notificationService.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
-  import PageInfo from './PageInfo.svelte';
 
   let projects = [];
   let loading = true;
@@ -133,13 +132,6 @@
 </script>
 
 <div class="comparison-panel">
-  <PageInfo
-    title="Projects Comparison"
-    icon="🔄"
-    description="Compare activity, events, and errors across all monitored projects. Quickly identify which projects need attention and track cross-project patterns."
-    whenToCheck="Review **when starting your day** (to see what's active), **when debugging cross-project issues** (to find patterns), **during sprint planning** (to allocate time), or **for status reports** (to summarize activity)."
-  />
-
   <div class="controls">
     <button class="btn-refresh" on:click={loadProjects} disabled={loading}>
       {#if loading}⏳{:else}🔄{/if} Refresh

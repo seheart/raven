@@ -2,7 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
-  import PageInfo from './PageInfo.svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
 
@@ -326,30 +325,6 @@
 </script>
 
 <div class="activity-log">
-  <PageInfo
-    title="Activity Log"
-    description="This is your unified development timeline - think of it like a **combined feed** merging file changes, AI agent actions, system events, and performance metrics into one chronological stream. Unlike Event Log (file events only) or Session Replay (agent events only), Activity Log shows **everything** that happened during your coding session in one place. Perfect for getting a holistic view of what went down without jumping between multiple pages."
-    keyPoints={[
-      '**Unified Timeline** - Single scrollable feed showing ALL activity types interleaved chronologically: 📄 File events (create/edit/delete), 🤖 Agent actions (AI edits, reads, commands), 📊 System events (Raven start/stop, config changes), ⚙️ Performance metrics (CPU spikes, memory warnings), 🎯 Trigger fires (alerts that activated). Each entry color-coded by type.',
-      '**Activity Type Indicators** - Each log entry has an icon showing what happened: ➕ Green = File created, ✏️ Blue = File edited, 🗑️ Red = File deleted, 🤖 Purple = AI agent action, 🔔 Yellow = Trigger fired, ⚠️ Orange = Warning/alert, ℹ️ Gray = Info/system event. Scan quickly by looking at icon colors.',
-      '**Entry Details** - Click any entry to expand and see: Full description of what happened, Related files or data, Actor (who/what did it - username, agent name, or "system"), Duration (how long it took if applicable), Context (request that triggered it, error message if failed). Collapsed view shows just timestamp + icon + brief summary.',
-      '**Pagination Controls** - Activity Log can contain 10,000+ entries. Pagination shows 50-100 entries per page. Navigation: "← Previous" and "Next →" buttons, Page number dropdown, "Jump to Date" calendar picker. Prevents browser from loading entire history at once (which would lag).',
-      '**Timeline View Mode** - (If implemented) Switch from list view to timeline visualization showing activity density over time as a bar chart. Tall bars = lots of activity. Click bar to jump to that time range. Helps identify busy periods vs. quiet periods.',
-      '**Export Options** - "Export Log" button downloads current page or filtered activities as: JSON (for scripts), CSV (for spreadsheets), HTML (for sharing/archiving). Export respects filters - only exports what you\'re viewing.',
-      '**Real-Time Streaming** - New activities appear at the top as they occur via WebSocket. While on page 1, you will see live updates. On other pages, a "New Activity" banner appears - click to jump to page 1 and see latest.'
-    ]}
-    whenToCheck="Review Activity Log **after a coding session** (to see everything that happened), **when debugging complex issues** (correlate file changes with agent actions and system events), **for daily standup reports** (export yesterday\'s activity to summarize work), **to understand workflow patterns** (see how you work: file edits, agent usage, trigger responses), or **when something broke** (trace back through timeline to find when issue started)."
-    warnings={[
-      '**Activity seems sparse / mostly empty** - Raven might not be monitoring correctly. Check: Status page shows active file watchers, Projects are discovered (see Status → Monitored Projects), Settings → Performance → "Enable metrics collection" is checked, AI agents are sending telemetry (see Agents page). If all looks good, activity might genuinely be low (nothing happening).',
-      '**Very high activity (>1000 entries per minute)** - Indicates a loop or runaway process. Common causes: File watcher detecting its own writes (watch loop), Build system regenerating files on every change (webpack/vite hot-reload gone wrong), AI agent repeatedly editing same file (stuck in fix loop), Trigger firing continuously. Check Live Code Feed to see what files are changing. May need to stop Raven and fix the loop.',
-      '**Missing agent activity** - AI agents are not appearing in log despite being active. Verify: Agents are configured to send telemetry to Raven backend (POST to http://localhost:3030/telemetry), Agent events show up on Agents page (if not, telemetry is not reaching Raven), Check backend logs for rejected telemetry requests. Agents must explicitly integrate with Raven.',
-      '**Pagination stuck / will not advance** - JavaScript error or database query issue. Try: Refresh page, Clear browser cache, Check browser console for errors, Verify backend is responding (Status page). If persists, database might be corrupted - see Storage page.',
-      '**Timeline view is jumpy / not smooth** - Too much data for browser to render. Solutions: Use pagination instead of timeline view, Reduce date range filter, Export to external tool for visualization, Clear old data via Storage page to reduce dataset size.',
-      '**Exported log is huge (>100MB)** - Lots of activity logged. Large exports can crash Excel or text editors. Instead: Apply filters before export (date range, activity type), Export smaller chunks (page by page), Use JSON and process with script instead of manual review.',
-      '**Real-time updates stopped** - WebSocket disconnected. Check Status page → WebSocket Connection. Should show 🟢 Connected. If 🔴 Disconnected, backend might have restarted. Refresh page to reconnect. Check if other real-time pages (Live Code Feed, Agents) are also not updating.'
-    ]}
-  />
-
   <div class="log-header">
     <div class="header-title">
       <h1>📜 Activity Log</h1>

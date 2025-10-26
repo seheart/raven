@@ -2,7 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
-  import PageInfo from './PageInfo.svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
 
@@ -222,29 +221,6 @@
 </script>
 
 <div class="session-replay">
-  <PageInfo
-    title="Session Replay"
-    description="This is your Raven time machine - imagine a DVR (digital video recorder) for your coding sessions, letting you rewind and replay everything that happened. Session Replay shows a **chronological timeline** of every AI agent action during a specific monitoring session. Think of each session as one continuous run of Raven from start to restart - when you run `./restart.sh`, a new session begins with a new Session ID."
-    keyPoints={[
-      '**Session Filter Dropdown** - At the top, select which session to view: "All Sessions" shows events from all historical sessions (can be overwhelming), "Current Session (a3b7f12d...)" shows only events since the last Raven restart (most recent 8 chars of Session ID shown). The current session is usually what you want.',
-      '**Recent Activity Timeline** - Scrollable list of events in reverse chronological order (newest at top). Each event shows: Timestamp (exact date/time like "2025-01-15 14:32:15"), Agent name (which AI did it - Claude, GPT, etc.), Event type (edit/create/delete/read/execute), Message (description of what happened), File path (if applicable), Lines changed (if code edit), Duration (how long it took in milliseconds).',
-      '**Event Types Explained** - `edit` = Modified existing file, `create` = Created new file, `delete` = Removed file, `read` = Opened/analyzed file without changes, `execute` = Ran a command or tool. Each has a corresponding icon in other pages.',
-      '**Event Count** - Shows total events in timeline like "Recent Activity (47 events)". This is the number of distinct actions AI agents took during the selected session(s). Example: 47 events might be 30 edits, 10 reads, 5 creates, 2 deletes.',
-      '**Duration Field** - Shown in milliseconds (ms). Example: "1200ms" = 1.2 seconds. Tells you how long that specific action took from start to finish. Useful for finding slow operations.',
-      '**Empty State** - If you see "No events recorded yet", either: (1) AI agents haven\'t done anything since Raven started, or (2) You selected a session with no activity. Switch to "Current Session" if you\'re actively working.',
-      '**Use Cases** - After an AI coding session: Review what the AI actually did step-by-step. Debugging: Find when a bug was introduced by seeing file edit timestamps. Code review: Share session timeline with team to show AI contributions. Learning: Study how AI agents approach problems by watching their sequence of actions.'
-    ]}
-    whenToCheck="Check Session Replay **after any AI coding session** to review what changed, **when debugging** to find when/where a bug was introduced, **before committing code** to verify AI changes make sense, or **when learning** to understand how AI agents approach coding tasks."
-    warnings={[
-      '**Long sessions (>500 events) take time to load** - Fetching hundreds of events from database can take 5-10 seconds. Be patient if you see "Loading events..." for a while. Consider filtering to current session only.',
-      '**Incomplete sessions / gaps in timeline** - Happens if: Raven crashed mid-session (events before crash are saved, after crash are lost), Backend was restarted (new session started, old session closed), AI agent failed to send telemetry for some actions. Gaps are normal after crashes.',
-      '**Very active sessions overwhelming** - 1000+ events can be hard to parse visually. Use the session filter to narrow down, or export the data and analyze in a spreadsheet. Future versions may add event type filters.',
-      '**Timestamp shows future date** - Clock skew between your system and the server. Check that your computer\'s time/timezone is correct. Usually does not affect functionality, just confusing.',
-      '**No session dropdown appears** - Backend is not responding to `/api/session-id` endpoint. Check Status page to verify backend is online. Refresh the page if dropdown is empty.',
-      '**"All Sessions" shows nothing despite having data** - Database might be new/empty, or events are in a different database file. Raven uses separate SQLite files per project - make sure you\'re viewing the right project.'
-    ]}
-  />
-
   <div class="header">
     <h2>🎬 Session Replay</h2>
     <div class="header-controls">

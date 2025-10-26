@@ -4,7 +4,6 @@
   import { notifications } from './notificationService.js';
   import { websocketService } from './websocket.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
-  import PageInfo from './PageInfo.svelte';
   import { formatTime } from './timeFormat.js';
 
   let conversations = [];
@@ -220,13 +219,6 @@
 </script>
 
 <div class="conversations-panel">
-  <PageInfo
-    title="Conversations"
-    icon="💬"
-    description="View and analyze all AI agent conversation history including prompts, responses, and tool calls. This is the complete record of interactions with Claude Code."
-    whenToCheck="Review conversations **after a coding session** (to see what you asked AI to do), **when debugging AI behavior** (to understand tool usage patterns), **for conversation search** (find specific prompts or responses), or **to audit AI decisions** (trace back why code was changed)."
-  />
-
   <!-- Stats Cards -->
   <div class="stats-grid">
     <div class="stat-card">

@@ -5,7 +5,6 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { notifications } from './notificationService.js';
   import ProjectsOverview from './ProjectsOverview.svelte';
-  import PageInfo from './PageInfo.svelte';
   import HealthStatus from './HealthStatus.svelte';
   import HealthWidget from './HealthWidget.svelte';
   import EmergencyStopButton from './EmergencyStopButton.svelte';
@@ -178,28 +177,6 @@
   <div class="emergency-stop-container">
     <EmergencyStopButton />
   </div>
-
-  <PageInfo
-    title="Overview Dashboard"
-    description="This is your main control center - think of it like the dashboard in your car that shows speed, fuel, temperature, etc. The Overview page shows real-time information about all your coding projects that Raven is watching, what's happening right now, and how your system is performing."
-    keyPoints={[
-      '**Raven Session ID** - A unique identifier (like a serial number) for this specific run of Raven. Every time you restart Raven with ./restart.sh, you get a new Session ID. This helps separate different monitoring sessions in the database.',
-      '**Server Uptime** - Shows how long Raven has been running continuously without a restart. Example: "2h 15m" means Raven started 2 hours and 15 minutes ago. Resets to 0 when you restart.',
-      '**Projects List** - Shows all projects Raven is monitoring (like raven, recall, wrap). A green dot means files were modified recently. Click a project name to filter the dashboard to show only that project.',
-      '**Current Session Card** - Duration: How long this monitoring session has been active. Files touched: Total number of unique files that were modified. AI interactions: How many times AI tools (like Claude) made changes. Current flow: Your coding rhythm (🔥 Hot = very active, 🌊 Steady = consistent, ❄️ Cold = quiet).',
-      '**System Health Card** - CPU: Shows processor usage as a percentage (0-100%). Green bar = healthy (<50%), Yellow = busy (50-80%), Red = overloaded (>80%). Memory: Shows RAM usage in MB. If the bar is red, your computer is running low on memory.',
-      '**Live Activity Stream** - Real-time feed of file changes happening RIGHT NOW across all your projects. Each entry shows: Project badge (like [RAVEN]), the file path that changed, and the type of change (➕ add = new file, ✏️ change = file edited, 🗑️ unlink = file deleted). Updates automatically via WebSocket - no refresh needed!',
-      '**Most Active Files** - Top 5 files with the most changes during this session. Higher change counts might indicate files you\'re actively working on, or files that are being modified by AI tools frequently.'
-    ]}
-    whenToCheck="Check this page when you first open Raven to get oriented, or when you want to see what\'s happening across all your projects at once. It\'s your starting point before diving into specific pages like Agents, Activity, or System."
-    warnings={[
-      'If you see 0 projects listed, Raven might not be watching any directories. Check that backend/server.js is discovering projects correctly in /Users/seth/projects/',
-      'No Recent Activity usually means no files have been modified yet. Try editing a file in one of your watched projects to see it appear here.',
-      'CPU above 80% (red bar) or Memory above 85% (red bar) indicates your system is struggling. Close unused applications or restart Raven to free up resources.',
-      'If Live Activity Stream shows a "💤 No recent activity" message, it means no file changes have been detected in the last few minutes. This is normal if you\'re not actively coding.',
-      'Session Duration not increasing? The backend server might have crashed. Check /tmp/raven-backend.log for errors.'
-    ]}
-  />
 
   <!-- Personalized Greeting -->
   <div class="greeting-section">

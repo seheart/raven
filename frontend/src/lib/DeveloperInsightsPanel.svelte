@@ -3,7 +3,6 @@
   import { api } from './apiClient.js';
   import { notifications } from './notificationService.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
-  import PageInfo from './PageInfo.svelte';
   import { formatTime } from './timeFormat.js';
   import { websocketService } from './websocket.js';
 
@@ -103,13 +102,6 @@
 </script>
 
 <div class="insights-panel">
-  <PageInfo
-    title="Developer Insights"
-    icon="🧠"
-    description="AI-powered analysis of your development patterns, coding style, and workflow. This data helps Raven understand how you work and provides personalized insights."
-    whenToCheck="Review insights **weekly** (to see productivity patterns), **after learning new tools** (to track adoption), **when debugging workflow issues** (to find bottlenecks), or **for retrospectives** (to measure improvement over time)."
-  />
-
   <!-- Controls -->
   <div class="controls">
     <label class="auto-refresh">

@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { notifications } from './notificationService.js';
   import { settings as settingsStore } from './settingsStore.js';
-  import PageInfo from './PageInfo.svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
 
@@ -192,29 +191,6 @@
 </script>
 
 <div class="settings-panel">
-  <PageInfo
-    title="Settings & Preferences"
-    description="This is your Raven configuration center - like the Settings app on your phone, but for customizing how Raven looks, behaves, and notifies you. All settings on this page are saved to your browser's `localStorage`, meaning they're **personal to your browser** and persist across Raven restarts. Changes take effect immediately (except theme, which applies on next page load)."
-    keyPoints={[
-      '**Notifications Section** - Master toggle to enable/disable all notifications. Individual toggles for: Toast notifications (in-app popups), Sound (play audio on alerts), Desktop notifications (browser notifications outside Raven). Notification Types subsection lets you filter by category: Errors (red, critical), Warnings (yellow, important), Triggers (custom alerts you define), Performance (threshold breaches), Info (general messages). Disable types you do not care about.',
-      '**User Interface Section** - Theme dropdown: "Day (Gruvbox)" = warm light theme, "Dusk (Ristretto)" = purple twilight theme, "Night (Tokyo Night)" = dark blue theme (default). Compact mode checkbox: Reduces spacing and font sizes for more data on screen. Animations toggle: Disables UI transitions if they feel sluggish. Auto-refresh toggle: Enables/disables automatic data polling. Refresh interval slider: How often panels reload (5-60 seconds). Lower = more real-time but higher CPU/network usage.',
-      '**Performance Section** - Enable metrics collection: Tracks CPU/memory usage for the Performance page. Metrics interval: How often to sample metrics (5-60 seconds). Enable file watcher: Master toggle for file monitoring (disabling stops all file tracking). Max events to display: Limits list lengths (50-1000). Higher = more history but slower rendering.',
-      '**Unsaved Changes Indicator** - Orange dot "● Unsaved changes" appears when you modify something. Settings are not applied until you click "💾 Save Settings" button. If you leave the page without saving, changes are lost.',
-      '**Export/Import Buttons** - 📤 Export: Downloads settings as a JSON file named `raven-settings-2025-01-15.json`. Useful for backing up or sharing your config. 📥 Import: Load settings from a previously exported JSON file. Opens file picker to select the file.',
-      '**Reset Button** - 🔄 Reset: Reverts ALL settings to defaults (asks for confirmation first). Cannot be undone! Use if settings get corrupted or you want to start fresh.',
-      '**Theme Application** - When you change theme and save, Raven applies it by changing the `<body>` class to `theme--day`, `theme--night`, or `theme--dusk`. CSS variables update automatically. You\'ll see the color change instantly.'
-    ]}
-    whenToCheck="Visit Settings **when first setting up Raven** (to pick your theme and notification preferences), **if Raven feels too slow** (reduce refresh intervals or disable animations), **if you\'re getting too many notifications** (tune notification types), or **to backup your config** before major changes."
-    warnings={[
-      '**Disabling all notifications** - You will not see ANY alerts, including critical errors. Keep at least "Errors" and "Warnings" enabled to catch problems.',
-      '**Refresh interval below 5 seconds** - NOT ALLOWED. Minimum is 5 seconds to prevent hammering the backend. Very short intervals (5-10s) can cause high CPU usage on both frontend and backend.',
-      '**Max events set very high (>500)** - Large lists (especially on Live Code Feed or Activity Log) can make the UI sluggish. If pages feel slow, reduce this to 100-200.',
-      '**Disabling file watcher** - CRITICAL! Turns off all file monitoring. Raven will stop detecting file changes entirely. Only disable for testing or if you want to pause monitoring temporarily.',
-      '**Settings not saving** - If you click Save but changes do not persist after refresh, your browser\'s localStorage might be disabled, full, or in incognito mode. Check browser console for errors like "QuotaExceededError".',
-      '**Imported settings look wrong** - Make sure the JSON file is from Raven (has `notifications`, `ui`, `performance` keys). Importing random JSON will break settings. If corrupted, click Reset to fix.'
-    ]}
-  />
-
   <div class="settings-header">
     <div class="header-left">
       <h2>⚙️ User Settings</h2>

@@ -6,7 +6,6 @@
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
   import ProjectBadge from './ProjectBadge.svelte';
-  import PageInfo from './PageInfo.svelte';
   import { api } from './apiClient.js';
   import SimilarChangesPanel from './SimilarChangesPanel.svelte';
 
@@ -409,30 +408,6 @@
 </script>
 
 <div class="event-feed">
-  <PageInfo
-    title="Event Log"
-    description="This is your complete file system activity ledger - think of it like a **detailed transaction log** for every file operation across all your monitored projects. The Event Log records EVERY file event chronologically: when files were created, edited, deleted, or renamed, along with timestamps, file paths, and change sizes. Unlike the Live Code Feed (which shows diffs), this is a pure chronological list - perfect for auditing what changed when or exporting for analysis."
-    keyPoints={[
-      '**Event List** - Scrollable table showing all file system events in chronological order (newest first). Columns: Timestamp (exact date/time), Event Type (Create/Edit/Delete/Rename with color-coded icons), Project (which project the file belongs to), File Path (full path to the file), Change Size (bytes added/removed if applicable). Can display thousands of events with virtual scrolling (smooth performance).',
-      '**Event Type Icons** - ➕ Create (green) = New file created, ✏️ Edit (blue) = Existing file modified, 🗑️ Delete (red) = File removed, 🔄 Rename (orange) = File moved or renamed (appears as Delete old path + Create new path). Color coding makes it easy to scan for specific operations.',
-      '**Search & Filter** - Search box: Type filename or path fragment to filter events (e.g., server.js shows all events for files matching that). Event Type filter: Show only Creates, Edits, Deletes, or Renames. Project filter: Narrow to events from specific project. Date range filter: Show events from specific time period.',
-      '**Timeline Slider** - Visual timeline showing activity density over time. Drag slider handles to select a time range - event list updates to show only events within that window. Useful for focusing on specific time periods like what happened between 2-3pm.',
-      '**Export Functionality** - JSON button exports filtered events as JSON file (machine-readable, good for scripts). CSV button exports as CSV (opens in Excel/Google Sheets). Exported data includes all columns: timestamp, type, project, path, size. Great for analysis, reporting, or backup.',
-      '**Real-Time Updates** - New file events appear at the top of the list immediately via WebSocket as they happen. No refresh needed. Watch the list grow in real-time while you or AI agents work.',
-      '**Virtual Scrolling** - Even with 10,000+ events, the list stays smooth. Only renders visible rows. Scroll up/down to browse through massive event history without lag. Event counter shows filtered count and total events.'
-    ]}
-    whenToCheck="Use Event Log **to audit file changes** (who changed config.json and when), **find when a file was modified** (search filename and check timestamps), **export data for analysis** (generate reports of coding activity), **debug unexpected changes** (see what file operations happened), or **track AI agent file activity** (see which files AI modified and when)."
-    warnings={[
-      '**Very large event counts (>50,000)** - Filtering and searching might slow down with massive datasets. Solutions: Use date range filter to narrow scope first (e.g., last 7 days only), Clear old events via Storage page, Export to JSON and analyze externally instead of in browser. Virtual scrolling helps, but filtering still processes all events.',
-      '**Events stop appearing** - File watcher stopped working. Check Status page to verify file watchers are active. Possible causes: EMFILE error (too many files open - see SETUP.md), Watcher crashed (check backend logs), Directories not being monitored (check backend config). Edit a file in monitored project to test - should appear within 2 seconds.',
-      '**Renamed/moved files show as Delete + Create** - This is expected behavior. File system does not have a true rename event - it is implemented as delete old path + create new path. Both events will have same timestamp. If you see Delete immediately followed by Create with same file content, it was a rename.',
-      '**Event timestamps are confusing** - Make sure your system clock is correct. Events are timestamped when Raven detects them, not when they actually happened. If you edit a file while Raven is stopped, the event will not be recorded. Timestamps reflect when Raven saw the change.',
-      '**Huge change sizes (>1GB)** - Indicates binary file or very large file was modified. Examples: Database dump, Video file, Large log. These are usually unintentional (should not be in git) or build artifacts. Consider adding to .gitignore and Raven ignore patterns.',
-      '**Timeline slider does not narrow results** - JavaScript issue or browser compatibility. Try: Refreshing page, Clearing browser cache, Using search/filters instead, Checking browser console for errors. Timeline is a nice-to-have feature - search and filters are more reliable.',
-      '**Export creates empty file** - No events match current filters. Check that: Filter dropdowns are not excluding everything, Date range includes events, Search term matches filenames. Clear all filters and try export again to verify events exist.'
-    ]}
-  />
-
   <!-- Forensics Dashboard -->
   {#if showForensics && filteredEvents.length > 0}
     <div class="forensics-dashboard">

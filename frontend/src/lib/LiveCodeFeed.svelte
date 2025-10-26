@@ -3,7 +3,6 @@
   import { websocketService } from './websocket.js';
   import { formatTime as formatTimeString } from './timeFormat.js';
   import ProjectBadge from './ProjectBadge.svelte';
-  import PageInfo from './PageInfo.svelte';
   import { api } from './apiClient.js';
 
   const API_BASE = 'http://localhost:3030/api';
@@ -286,27 +285,6 @@
 </script>
 
 <div class="live-code-feed">
-  <PageInfo
-    title="Live Code Feed"
-    description="This is your **real-time code monitoring dashboard** - imagine watching security camera footage of your codebase as it changes, but instead of video, you see actual code diffs scrolling by. The Live Code Feed is a 2-column view showing code changes and activity stream, all updating in real-time as you (or AI agents) edit files. Perfect for watching AI coding sessions or reviewing what changed during intense development."
-    keyPoints={[
-      '**Left Column: Code Changes** - The main event! Shows actual code diffs for recent file modifications. Each change block shows: Change type (➕ ADD / ✏️ CHANGE / 🗑️ DELETE) in colored text, Project badge like `[RAVEN]` identifying which project, Timestamp when it happened, The diff with line numbers and syntax highlighting (green = added lines, red = deleted lines, gray = context).',
-      '**Right Column: Activity Stream** - Condensed timeline of ALL recent activity (both file changes and agent actions). Shows icons for change type, file path (truncated to last 2 parts if long), time ago ("5m ago", "2h ago"). Updates live without refresh.',
-      '**Change Type Icons & Colors** - ➕ green = file added/created, ✏️ blue = file modified/edited, 🗑️ red = file deleted/unlinked. These icons appear everywhere to help you quickly identify what happened.',
-      '**Diff Format** - Uses standard unified diff format: Lines starting with `+` are additions (green), Lines starting with `-` are deletions (red), Lines with no prefix are context (gray), `@@ -1,5 +1,7 @@` headers show line numbers (means "showing lines 1-7 in the new version").',
-      '**Project Badges** - Small colored pills like `[wrap]`, `[recall]`, `[raven]` appear on each change to show which project the file belongs to. Helps when monitoring multiple projects simultaneously.',
-      '**WebSocket Live Updates** - This page uses WebSocket connections for INSTANT updates. When a file changes, you see it within 100ms. No polling, no delays. The feed scrolls as new changes arrive.'
-    ]}
-    whenToCheck="Keep this open **during AI coding sessions** to watch the AI work in real-time, **while debugging** to see which files are being touched, or **after a session** to review the complete timeline of what changed and in what order."
-    warnings={[
-      '**No code changes showing** - Raven is not watching directories, or no changes have been detected yet. Check Status page to verify file watchers are active. Try editing a file in a monitored project.',
-      '**Empty diffs (file shown but no code changes)** - Happens when: File was moved/renamed (change detected but content identical), File permissions changed, File timestamp updated but content same. This is normal for renames.',
-      '**Very rapid updates/scrolling** - Could indicate: AI agent in a tight loop editing the same file repeatedly, Build system auto-generating files on every save (like webpack hot-reload), File watcher detecting its own writes (watch loop). If sustained, investigate the looping process.',
-      '**Diff shows binary file or "No diff available"** - File is binary (image, PDF, compiled code) so Raven cannot show text diff. Or file was deleted so there\'s no new content. This is expected for non-text files.',
-      '**Activity stream showing duplicates** - WebSocket might have reconnected and re-sent recent events. Refresh the page if this persists. Usually resolves itself within 30 seconds.'
-    ]}
-  />
-
   <!-- Live Session Stats Widget -->
   <div class="stats-widget">
     <div class="stats-bar">
