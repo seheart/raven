@@ -705,6 +705,15 @@ export class RavenDB {
 
     const unique_files_modified = uniqueFilesSet.size;
 
+    // Calculate total lines changed from agent_events
+    const linesChangedStmt = this.db.prepare(`
+      SELECT SUM(COALESCE(lines_changed, 0)) as total_lines_changed
+      FROM agent_events
+      ${whereClause}
+    `);
+    const linesChangedResult = session_id ? linesChangedStmt.get(session_id) : linesChangedStmt.get();
+    const total_lines_changed = linesChangedResult?.total_lines_changed || 0;
+
     return {
       total_events: events.length,
       total_files: trackedFiles.size,
@@ -715,7 +724,8 @@ export class RavenDB {
       creates,
       edits,
       deletes,
-      unique_files_modified
+      unique_files_modified,
+      total_lines_changed
     };
   }
 

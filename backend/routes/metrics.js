@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { logger } from '../utils/logger.js';
+import { getMetricsJson, getMetricsPrometheus } from '../middleware/metrics.js';
+import { env } from '../config/environment.js';
 
 /**
  * Creates metrics and performance routes
@@ -15,6 +17,42 @@ export function createMetricsRoutes(deps) {
     analyticsCache,
     dashboardCache
   } = deps;
+
+  // ==================== Real-time Metrics (from middleware) ====================
+
+  /**
+   * GET /metrics/json
+   * Get metrics in JSON format
+   */
+  router.get('/metrics/json', (req, res) => {
+    if (!env.ENABLE_METRICS) {
+      return res.status(503).json({ error: 'Metrics collection is disabled' });
+    }
+    try {
+      const metricsData = getMetricsJson();
+      res.json(metricsData);
+    } catch (error) {
+      logger.error('Get metrics JSON error:', error);
+      res.status(500).json({ error: 'Failed to retrieve metrics' });
+    }
+  });
+
+  /**
+   * GET /metrics
+   * Get metrics in Prometheus format
+   */
+  router.get('/metrics', (req, res) => {
+    if (!env.ENABLE_METRICS) {
+      return res.status(503).json({ error: 'Metrics collection is disabled' });
+    }
+    try {
+      const prometheusMetrics = getMetricsPrometheus();
+      res.type('text/plain').send(prometheusMetrics);
+    } catch (error) {
+      logger.error('Get Prometheus metrics error:', error);
+      res.status(500).type('text/plain').send('# Error retrieving metrics\n');
+    }
+  });
 
   // ==================== System & Process Metrics ====================
 
