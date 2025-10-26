@@ -24,15 +24,15 @@ describe('WebSocket Service', () => {
     httpServer.listen(() => {
       const port = httpServer.address().port;
 
+      // Set up one-time connection handler for first client
+      io.once('connection', (socket) => {
+        serverSocket = socket;
+      });
+
       // Import socket.io-client dynamically
       import('socket.io-client').then(({ io: ioClient }) => {
         // Create client connection
         clientSocket = ioClient(`http://localhost:${port}`);
-
-        // Wait for both server and client to connect
-        io.on('connection', (socket) => {
-          serverSocket = socket;
-        });
 
         clientSocket.on('connect', () => {
           done();
@@ -70,13 +70,27 @@ describe('WebSocket Service', () => {
     });
 
     it('should handle reconnection', (done) => {
-      clientSocket.on('reconnect', () => {
-        expect(clientSocket.connected).toBe(true);
-        done();
+      let wasDisconnected = false;
+
+      // Track disconnection
+      clientSocket.once('disconnect', () => {
+        wasDisconnected = true;
+      });
+
+      // Set up reconnect listener
+      clientSocket.on('connect', () => {
+        // Only call done if we reconnected after being disconnected
+        if (wasDisconnected) {
+          expect(clientSocket.connected).toBe(true);
+          done();
+        }
       });
 
       clientSocket.disconnect();
-      setTimeout(() => clientSocket.connect(), 100);
+      // Reconnect after a brief delay
+      setTimeout(() => {
+        clientSocket.connect();
+      }, 100);
     });
   });
 
@@ -233,9 +247,17 @@ describe('WebSocket Service', () => {
 
   describe('Multiple Clients', () => {
     let clientSocket2;
+    let serverSocket2;
 
     beforeEach((done) => {
       const port = httpServer.address().port;
+
+      // Track second server socket connection
+      const onSecondConnection = (socket) => {
+        serverSocket2 = socket;
+        io.off('connection', onSecondConnection);
+      };
+      io.on('connection', onSecondConnection);
 
       import('socket.io-client').then(({ io: ioClient }) => {
         clientSocket2 = ioClient(`http://localhost:${port}`);
@@ -276,15 +298,20 @@ describe('WebSocket Service', () => {
     });
 
     it('should handle client-specific acknowledgments', (done) => {
-      serverSocket.emit('request-ack', 'test', (response) => {
-        expect(response).toBe('acknowledged');
-        done();
-      });
-
+      // Register listener BEFORE emitting the event
       clientSocket.on('request-ack', (data, callback) => {
         expect(data).toBe('test');
         callback('acknowledged');
       });
+
+      // Add small delay to ensure listener is registered
+      setTimeout(() => {
+        // Now emit the event with acknowledgment callback
+        serverSocket.emit('request-ack', 'test', (response) => {
+          expect(response).toBe('acknowledged');
+          done();
+        });
+      }, 50);
     });
   });
 
