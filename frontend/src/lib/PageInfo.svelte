@@ -29,9 +29,11 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<button class="info-button" on:click={toggleModal} aria-label="Page information">
-  ℹ️
-</button>
+<div class="info-button-container">
+  <button class="info-button" on:click={toggleModal} aria-label="Page information">
+    ℹ️
+  </button>
+</div>
 
 {#if showModal}
   <div class="modal-overlay" on:click={toggleModal}>
@@ -81,23 +83,28 @@
 {/if}
 
 <style>
+  .info-button-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 12px 0;
+    margin-bottom: 16px;
+  }
+
   .info-button {
-    position: fixed !important;
-    top: 73px !important;
-    right: 24px !important;
-    width: 32px !important;
-    height: 32px !important;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
-    opacity: 0.7;
+    opacity: 0.8;
   }
 
   .info-button:hover {
