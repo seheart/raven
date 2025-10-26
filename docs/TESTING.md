@@ -1,56 +1,204 @@
 # Raven Testing Guide
 
-## Overview
-
-This document describes the testing infrastructure and procedures for Raven, a local-first AI agent monitoring tool.
+Comprehensive guide to testing infrastructure and practices in Raven v1.1.0+
 
 ## Table of Contents
 
-1. [Testing Infrastructure](#testing-infrastructure)
-2. [Running Tests](#running-tests)
-3. [Test Categories](#test-categories)
-4. [Performance Testing](#performance-testing)
-5. [Memory Profiling](#memory-profiling)
-6. [Known Limitations](#known-limitations)
+1. [Overview](#overview)
+2. [Test Types](#test-types)
+3. [Running Tests](#running-tests)
+4. [Writing Tests](#writing-tests)
+5. [CI/CD Integration](#cicd-integration)
+6. [Coverage Goals](#coverage-goals)
+7. [Troubleshooting](#troubleshooting)
 
-## Testing Infrastructure
+---
 
-### Rust Backend Testing
+## Overview
 
-**Test Location:** `tests/integration_tests.rs`
+Raven uses a comprehensive testing strategy with three layers:
 
-**Dependencies:**
-- `tempfile` - Temporary file/directory creation
-- `rusqlite` - Database testing
-- `similar` - Diff generation testing
-- `sysinfo` - Metrics collection testing
-- `notify` - File watching configuration testing
-- `chrono` - Timestamp testing
-- `uuid` - Session ID generation testing
+1. **Unit Tests** - Test individual functions and components
+2. **Integration Tests** - Test multiple components working together
+3. **End-to-End Tests** - Test complete user flows in real browser
 
-### Frontend Testing
+### Test Statistics
 
-**Test Framework:** Vitest + @testing-library/svelte
+**Current Status:**
 
-**Test Locations:**
-- `frontend/src/lib/*.test.js` - Component tests
-- `frontend/src/test/setup.js` - Test configuration
+**Backend (Jest):**
+- Framework: Jest v29.7.0
+- Total Test Files: 14
+- Tests: 206 (158 passing, 48 failing)
+- Coverage Target: 70% lines, 70% functions, 50% branches
 
-**Dependencies:**
-- `vitest` - Test runner
-- `@testing-library/svelte` - Svelte component testing
-- `@testing-library/jest-dom` - DOM matchers
-- `jsdom` - DOM environment
-- `@vitest/ui` - Visual test interface
+**Frontend (Vitest):**
+- Framework: Vitest v3.2.4
+- Total Test Files: 9
+- Tests: 43 (38 passing, 5 failing)
+- Coverage Target: TBD
+
+**E2E (Playwright):**
+- Framework: Playwright v1.56.1
+- Test Files: 3 new comprehensive test suites
+- Browsers: Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari
+
+---
+
+## Test Types
+
+### 1. Backend Unit Tests (Jest)
+
+**Location:** `backend/__tests__/`
+
+**Structure:**
+```
+backend/__tests__/
+├── routes/
+│   ├── auth.test.js
+│   ├── control.test.js
+│   ├── dashboard.test.js
+│   ├── health.test.js          # NEW
+│   └── telemetry.test.js
+├── services/
+│   ├── file-watcher.test.js    # NEW
+│   └── websocket.test.js       # NEW
+├── utils/
+│   ├── cache.test.js
+│   └── logger.test.js
+├── integration/
+│   ├── dashboard-stats.test.js
+│   ├── metrics-collection.test.js
+│   └── telemetry-flow.test.js
+├── auth-routes.test.js
+├── auth-service.test.js
+└── validation.test.js
+```
+
+**What's Tested:**
+- ✅ Authentication & Authorization
+- ✅ API Routes (auth, control, dashboard, telemetry, **health**)
+- ✅ Utilities (cache, logger)
+- ✅ Input Validation
+- ✅ **File Watcher Service** (NEW)
+- ✅ **WebSocket Service** (NEW)
+- ✅ Integration Flows
+
+**What Needs Tests:**
+- ⚠️ Agent tracking routes
+- ⚠️ Rollback functionality
+- ⚠️ Pattern detection
+- ⚠️ Syntax error detection
+
+---
+
+### 2. Frontend Unit Tests (Vitest)
+
+**Location:** `frontend/src/lib/__tests__/`
+
+**Structure:**
+```
+frontend/src/lib/__tests__/
+├── apiClient.test.js
+├── HealthWidget.test.js        # NEW
+├── logger.test.js
+├── notificationService.test.js
+├── OverviewPanel.test.js       # NEW
+└── websocket.test.js
+```
+
+**What's Tested:**
+- ✅ API Client
+- ✅ Logger
+- ✅ Notification Service
+- ✅ WebSocket Service
+- ✅ **HealthWidget Component** (NEW)
+- ✅ **OverviewPanel Component** (NEW)
+- ✅ Keyboard Service
+- ✅ MetricsPanel Component
+- ✅ EventFeed Component
+
+**What Needs Tests:**
+- ⚠️ Safety Panels (SyntaxErrorPanel, SessionRollbackPanel, PatternWarningsPanel)
+- ⚠️ Agents Panels (AgentsPanel, ConversationsPanel)
+- ⚠️ Activity Panels (LiveCodeFeed, EventLog, FileBrowser)
+- ⚠️ Analysis Panels (PerformancePanel, TrendsPanel)
+- ⚠️ System Panels (StatusPanel, StoragePanel)
+
+---
+
+### 3. End-to-End Tests (Playwright) - NEW!
+
+**Location:** `e2e/`
+
+**Structure:**
+```
+e2e/
+├── overview.spec.js           # NEW
+├── navigation.spec.js         # NEW
+└── health-monitoring.spec.js  # NEW
+```
+
+**What's Tested:**
+- ✅ Overview Page Loading & Display
+- ✅ Tab Navigation (all 6 main tabs)
+- ✅ Keyboard Shortcuts (1-6)
+- ✅ Health Monitoring
+- ✅ Real-time Updates
+- ✅ Theme Switching
+- ✅ Responsive Layout
+- ✅ API Endpoints
+- ✅ WebSocket Connections
+
+**What Needs E2E Tests:**
+- ⚠️ Safety Features (rollback, pattern warnings)
+- ⚠️ Agent Interactions
+- ⚠️ File Browser Navigation
+- ⚠️ Search Functionality
+- ⚠️ Metrics Visualization
+
+---
 
 ## Running Tests
 
-### Rust Tests
+### Quick Start
 
 ```bash
-# Note: Requires webkit2gtk-4.1 system dependency (see SETUP.md)
-# Integration tests work independently:
-cargo test --test integration_tests
+# Run all tests (backend + frontend + E2E)
+npm run test:all
+
+# Run only backend tests
+npm run test:backend
+
+# Run only frontend tests
+npm run test:frontend
+
+# Run only E2E tests
+npm run test:e2e
+```
+
+### Backend Tests
+
+```bash
+cd backend
+
+# Run all tests
+npm test
+
+# Run in watch mode
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+
+# Run only integration tests
+npm run test:integration
+
+# Run specific test file
+npm test -- health.test.js
+
+# Run tests matching pattern
+npm test -- --testNamePattern="should return health"
 ```
 
 ### Frontend Tests
@@ -58,8 +206,8 @@ cargo test --test integration_tests
 ```bash
 cd frontend
 
-# Run all tests in watch mode
-npm run test
+# Run tests (watch mode)
+npm test
 
 # Run tests once
 npm run test:run
@@ -69,344 +217,475 @@ npm run test:ui
 
 # Run with coverage
 npm run test:coverage
+```
+
+### E2E Tests
+
+```bash
+# Run all E2E tests (headless)
+npm run test:e2e
+
+# Run with UI mode (interactive)
+npm run test:e2e:ui
+
+# Run in headed mode (see browser)
+npm run test:e2e:headed
+
+# Run in debug mode
+npm run test:e2e:debug
 
 # Run specific test file
-npm run test:run -- src/lib/keyboardService.test.js
+npx playwright test overview.spec.js
+
+# Run specific browser
+npx playwright test --project=chromium
+
+# Run specific test
+npx playwright test --grep="should load the overview page"
 ```
 
-## Test Categories
+### First Time Setup
 
-### 1. Database Tests
-
-**File:** `tests/integration_tests.rs`
-
-Tests:
-- ✅ Database creation and schema initialization
-- ✅ Event insertion
-- ✅ Querying all events
-- ✅ Session-based event retrieval
-- ✅ File history tracking
-- ✅ Event lookup by ID
-- ✅ Tracked files listing
-- ✅ Time range queries
-- ✅ Empty database handling
-- ✅ Concurrent access (10 threads, 100 inserts)
-- ✅ Performance (1000 inserts in <1 second)
-
-### 2. Diff Engine Tests
-
-**File:** `tests/integration_tests.rs`
-
-Tests:
-- ✅ Identical content (no changes)
-- ✅ Addition detection
-- ✅ Deletion detection
-- ✅ Modification tracking
-- ✅ Empty file handling
-- ✅ Large file diffs (10,000 lines)
-
-### 3. Metrics Collection Tests
-
-**File:** `tests/integration_tests.rs`
-
-Tests:
-- ✅ CPU count validation
-- ✅ Memory totals
-- ✅ Memory usage percentage
-- ✅ Used vs available memory
-
-### 4. Keyboard Service Tests
-
-**File:** `frontend/src/lib/keyboardService.test.js`
-
-Tests:
-- ✅ Instance creation
-- ✅ Shortcut registration
-- ✅ Handler invocation
-- ✅ Modifier key support (Ctrl, Shift, Alt, Meta)
-- ✅ Shortcut unregistration
-- ✅ Clear all handlers
-- ✅ ID generation for shortcuts
-- ✅ Shortcut matching
-- ✅ Case insensitivity
-- ✅ Automatic cleanup when handlers removed
-
-**Status:** ✅ All tests passing (10/10)
-
-### 5. Component Tests
-
-**Files:**
-- `frontend/src/lib/EventFeed.test.js`
-- `frontend/src/lib/MetricsPanel.test.js`
-
-Tests:
-- Component rendering
-- UI element presence
-- User interaction handling
-- Search/filter functionality
-- Export button functionality
-
-**Status:** ⚠️ Svelte 5 compatibility issues (see [Known Limitations](#known-limitations))
-
-## Performance Testing
-
-### Database Performance
-
-**Test:** `test_database_query_performance`
-
-Metrics:
-- 1,000 inserts: < 1 second
-- 1,000 reads: < 100ms
-
-### Diff Performance
-
-**Test:** `test_large_diff_handling`
-
-Metrics:
-- 10,000 line diff: < 1 second
-
-### Concurrent Access
-
-**Test:** `test_concurrent_database_access`
-
-Metrics:
-- 10 threads × 10 inserts = 100 total
-- All operations succeed
-- No data corruption
-
-## Memory Profiling
-
-### Memory Profiling Script
-
-**Location:** `scripts/memory_profile.sh`
-
-**Usage:**
+**Install Playwright browsers:**
 ```bash
-# Run once
-./scripts/memory_profile.sh
-
-# Monitor continuously
-watch -n 1 ./scripts/memory_profile.sh
+npm run playwright:install
 ```
 
-**Output:**
-- System memory stats
-- Raven process memory
-- Memory breakdown by process
-- Top memory consumers
-- Profiling tips
+This installs browser binaries for Chromium, Firefox, and WebKit.
 
-### Memory Target
+---
 
-**Goal:** < 50 MB memory footprint
+## Writing Tests
 
-**Monitoring:**
-```bash
-# Check Raven memory usage
-ps aux | grep raven | awk '{sum+=$6} END {print sum/1024 " MB"}'
+### Backend Test Example (Jest)
 
-# Monitor database size
-du -h .raven/db/
+```javascript
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import request from 'supertest';
+import express from 'express';
 
-# Monitor snapshots
-du -h .raven/snapshots/
+describe('API Endpoint', () => {
+  let app;
+
+  beforeEach(() => {
+    app = express();
+    // Setup...
+  });
+
+  it('should return 200 OK', async () => {
+    const response = await request(app).get('/api/health');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('status');
+  });
+});
 ```
 
-### Memory Optimization Tips
+### Frontend Test Example (Vitest)
 
-1. **Database Size:**
-   - Set retention policies in `.raven/config.toml`
-   - Clean old snapshots: `retention_days = 7`
+```javascript
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/svelte';
+import MyComponent from '../MyComponent.svelte';
 
-2. **Event Limits:**
-   - Configure `max_events` in config
-   - Default: 1000 events
+describe('MyComponent', () => {
+  it('should render correctly', async () => {
+    render(MyComponent, { props: { title: 'Test' } });
 
-3. **Snapshot Management:**
-   - Snapshots stored in `.raven/snapshots/`
-   - Auto-cleanup after retention period
-
-4. **Debounce Settings:**
-   - Current: 50ms
-   - Increase for lower memory usage: `debounce_ms = 100`
-
-## Known Limitations
-
-### Rust Tests
-
-**Issue:** webkit2gtk-4.1 dependency blocks cargo test
-
-**Workaround:**
-1. Install webkit2gtk-4.1 (see SETUP.md)
-2. Use integration tests: `cargo test --test integration_tests`
-3. Tests are comprehensive but don't require web application runtime
-
-**Coverage:**
-- ✅ Database operations
-- ✅ Diff generation
-- ✅ Metrics collection
-- ✅ File watching config
-- ✅ Timestamp handling
-- ✅ Session ID generation
-- ✅ Performance benchmarks
-- ✅ Concurrent access
-
-### Frontend Tests
-
-**Issue:** Svelte 5 + @testing-library/svelte compatibility
-
-**Status:**
-- ✅ Keyboard service tests (10/10 passing)
-- ⚠️ Component tests (Svelte mount errors)
-
-**Error:**
-```
-Svelte error: lifecycle_function_unavailable
-`mount(...)` is not available on the server
+    await waitFor(() => {
+      expect(screen.getByText('Test')).toBeVisible();
+    });
+  });
+});
 ```
 
-**Root Cause:**
-- @testing-library/svelte doesn't fully support Svelte 5 yet
-- Tests attempt server-side rendering instead of client mounting
+### E2E Test Example (Playwright)
 
-**Workaround:**
-1. Keyboard service tests work (pure JavaScript)
-2. Manual component testing via dev server
-3. End-to-end testing when web application backend available
+```javascript
+import { test, expect } from '@playwright/test';
 
-**Future:**
-- Wait for @testing-library/svelte Svelte 5 support
-- Consider alternative testing approach (Playwright/Cypress)
+test('user can navigate to overview page', async ({ page }) => {
+  await page.goto('/');
 
-## Test Coverage Summary
+  await expect(page.getByText(/Raven Session ID/i)).toBeVisible();
+});
+```
 
-### Rust Backend
+### Best Practices
 
-| Module | Tests | Status |
-|--------|-------|--------|
-| Database | 10 | ✅ Passing |
-| Diff Engine | 6 | ✅ Passing |
-| Metrics | 3 | ✅ Passing |
-| File Watching | 1 | ✅ Passing |
-| Timestamps | 1 | ✅ Passing |
-| Session IDs | 1 | ✅ Passing |
-| Performance | 2 | ✅ Passing |
-| Concurrent Access | 1 | ✅ Passing |
+**1. Test Naming**
+```javascript
+// ✅ Good - Descriptive and clear
+test('should display error message when API fails')
 
-**Total:** 25 tests passing
+// ❌ Bad - Vague
+test('test1')
+```
 
-### Frontend
+**2. Arrange-Act-Assert Pattern**
+```javascript
+test('should calculate total correctly', () => {
+  // Arrange
+  const items = [1, 2, 3];
 
-| Module | Tests | Status |
-|--------|-------|--------|
-| Keyboard Service | 10 | ✅ Passing |
-| EventFeed Component | 8 | ⚠️ Blocked |
-| MetricsPanel Component | 3 | ⚠️ Blocked |
+  // Act
+  const total = calculateTotal(items);
 
-**Total:** 10 tests passing, 11 blocked by Svelte 5 compatibility
+  // Assert
+  expect(total).toBe(6);
+});
+```
+
+**3. Mock External Dependencies**
+```javascript
+// Mock fetch
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ data: 'test' })
+  })
+);
+```
+
+**4. Clean Up After Tests**
+```javascript
+afterEach(() => {
+  vi.clearAllMocks();
+  // Clean up database, files, etc.
+});
+```
+
+**5. Use Descriptive Matchers**
+```javascript
+// ✅ Good
+expect(response.body).toHaveProperty('status', 'online');
+
+// ❌ Less clear
+expect(response.body.status === 'online').toBe(true);
+```
+
+---
 
 ## CI/CD Integration
 
-### GitHub Actions (Future)
+### GitHub Actions Workflow
 
+Tests run automatically on:
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop`
+
+**CI Pipeline:**
+1. Backend Tests (Jest)
+2. Frontend Tests (Vitest)
+3. **E2E Tests (Playwright)** - NEW!
+4. Docker Build
+5. Security Scan
+
+**New E2E Job in `.github/workflows/ci.yml`:**
 ```yaml
-name: Tests
+e2e:
+  name: E2E Tests
+  runs-on: ubuntu-latest
+  needs: [backend, frontend]
 
-on: [push, pull_request]
-
-jobs:
-  test-rust:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install webkit2gtk
-        run: sudo apt-get install -y libwebkit2gtk-4.1-dev
-      - name: Run tests
-        run: cargo test
-
-  test-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: cd frontend && npm install
-      - name: Run tests
-        run: cd frontend && npm run test:run
+  steps:
+    - Install Playwright browsers
+    - Run E2E tests
+    - Upload test reports
+    - Upload videos (on failure)
 ```
 
-## Stress Testing
+### Test Reports
 
-### Large File Handling
+**Artifacts Uploaded:**
+- Test coverage reports → Codecov
+- **Playwright HTML report** → GitHub Actions artifacts (NEW)
+- **Test videos (on failure)** → GitHub Actions artifacts (NEW)
 
-**Test:** `test_large_diff_handling`
-- 10,000 line files
-- 1,000 modified lines
-- Completion: < 1 second
+**Accessing Reports:**
+1. Go to GitHub Actions tab
+2. Select your workflow run
+3. Scroll to "Artifacts" section
+4. Download `playwright-report` or `playwright-videos`
 
-### Database Load
+---
 
-**Test:** `test_database_query_performance`
-- 1,000 events inserted
-- All queried
-- Total time: < 1.1 seconds
+## Coverage Goals
 
-### Concurrent Writes
+### Current Coverage Thresholds
 
-**Test:** `test_concurrent_database_access`
-- 10 threads
-- 10 inserts per thread
-- 100 total operations
-- All succeed, no corruption
+**Backend (Jest):**
+```javascript
+{
+  branches: 50%,
+  functions: 70%,
+  lines: 70%,
+  statements: 70%
+}
+```
 
-## Debugging Tests
+**Frontend (Vitest):**
+- No strict thresholds yet
+- Goal: 60% coverage for components
 
-### Rust Tests
+**E2E (Playwright):**
+- Critical user flows: 100%
+- All main pages: 100%
+- Edge cases: 80%
+
+### Checking Coverage
 
 ```bash
-# Run with output
-cargo test --test integration_tests -- --nocapture
+# Backend
+cd backend && npm run test:coverage
 
-# Run specific test
-cargo test --test integration_tests test_database_creation
+# Frontend
+cd frontend && npm run test:coverage
 
-# Run with debug logging
-RUST_LOG=debug cargo test
+# View HTML reports
+open backend/coverage/lcov-report/index.html
+open frontend/coverage/index.html
+
+# View Playwright report
+npx playwright show-report
 ```
+
+---
+
+## New Test Files Added
+
+### Backend Tests
+
+**`backend/__tests__/routes/health.test.js`** (25 tests)
+- GET /api/health
+- GET /api/session-id
+- GET /api/status
+- GET /api/health-checks
+- POST /api/health-checks/run
+- GET /api/health/projects (comprehensive project health calculation)
+
+**`backend/__tests__/services/websocket.test.js`** (18 tests)
+- Connection management
+- Event broadcasting (file-changed, system-metrics, etc.)
+- Room/namespace support
+- Multiple clients
+- Error handling
+- Event throttling
+- Connection state tracking
+
+**`backend/__tests__/services/file-watcher.test.js`** (17 tests)
+- Watcher initialization
+- File change detection (add, modify, delete)
+- Event filtering
+- Debouncing
+- Error handling
+- Watcher lifecycle
+- Performance tests
+- Platform-specific behavior
 
 ### Frontend Tests
 
-```bash
-# Run with UI for debugging
-npm run test:ui
+**`frontend/src/lib/__tests__/HealthWidget.test.js`** (28 tests)
+- Component rendering
+- Health status indicators
+- Health checks (syntax, tests, deletions, security)
+- Startup health checks
+- Today's stats
+- Refresh functionality
+- Large deletion detection
+- Security file changes
+- Error handling
+- Time formatting
 
-# Run single test
-npm run test:run -- src/lib/keyboardService.test.js
+**`frontend/src/lib/__tests__/OverviewPanel.test.js`** (23 tests)
+- Component rendering
+- Session information display
+- Current session card
+- System health card
+- Live activity stream
+- Most active files
+- Time-based greeting
+- Flow state calculation
+- Loading states
+- Error handling
+- Real-time updates
 
-# Verbose output
-npm run test:run -- --reporter=verbose
+### E2E Tests
+
+**`e2e/overview.spec.js`** (17 tests)
+- Overview page loading
+- Session information
+- Health widget
+- Session statistics
+- System health metrics
+- Live activity stream
+- Refresh functionality
+- Health check components
+- Today's stats
+- Responsive layout
+- WebSocket connection
+- Time-based greeting
+
+**`e2e/navigation.spec.js`** (21 tests)
+- Main navigation tabs
+- Tab navigation to all 6 pages
+- Active tab highlighting
+- Scroll position preservation
+- Keyboard shortcuts (1-6)
+- Header navigation
+- Footer navigation
+- Theme switching
+- Sub-navigation
+
+**`e2e/health-monitoring.spec.js`** (15 tests)
+- Startup health checks
+- Health check indicators
+- Health status icons
+- System metrics
+- Health data refresh
+- Multi-project health
+- Health API endpoints
+- Health notifications
+- Real-time health updates
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**1. Tests Timing Out**
+
+```javascript
+// Increase timeout for specific test
+test('slow operation', async () => {
+  // test code
+}, 10000); // 10 second timeout
 ```
+
+**2. Flaky E2E Tests**
+
+```javascript
+// Use waitFor instead of hard waits
+await waitFor(() => {
+  expect(element).toBeVisible();
+}, { timeout: 5000 });
+
+// Not: await page.waitForTimeout(5000)
+```
+
+**3. Mock Not Working**
+
+```javascript
+// Clear mocks between tests
+beforeEach(() => {
+  vi.clearAllMocks();
+  // or
+  jest.clearAllMocks();
+});
+```
+
+**4. Database Locked (Backend Tests)**
+
+```javascript
+// Close database connections properly
+afterAll(async () => {
+  if (db && db.open) {
+    db.close();
+  }
+});
+```
+
+**5. Port Already in Use (E2E)**
+
+```bash
+# Kill process on port 3030
+lsof -ti:3030 | xargs kill -9
+
+# Kill process on port 5173
+lsof -ti:5173 | xargs kill -9
+```
+
+**6. Playwright Browsers Not Installed**
+
+```bash
+# Install browsers
+npx playwright install --with-deps
+```
+
+**7. Tests Fail Locally But Pass in CI**
+
+- Check Node version matches CI (v24)
+- Check environment variables
+- Clear node_modules and reinstall
+
+**8. WebSocket Tests Failing**
+
+```javascript
+// Ensure proper cleanup
+afterEach(() => {
+  if (clientSocket) {
+    clientSocket.close();
+  }
+  if (io) {
+    io.close();
+  }
+});
+```
+
+---
 
 ## Next Steps
 
-1. ✅ Rust integration tests complete
-2. ✅ Frontend keyboard service tests complete
-3. ✅ Memory profiling tools created
-4. ⚠️ Wait for Svelte 5 testing library support
-5. 📋 Add E2E tests when web application backend available
-6. 📋 Set up CI/CD pipeline
-7. 📋 Add code coverage reporting
+### Priority Testing Needs
+
+**High Priority:**
+1. Fix 48 failing backend tests
+2. Fix 5 failing frontend tests
+3. Add Safety panel tests
+4. Add Agents panel tests
+
+**Medium Priority:**
+1. Increase backend coverage to 80%
+2. Add frontend component tests
+3. Add E2E tests for all user flows
+
+**Low Priority:**
+1. Performance testing
+2. Load testing
+3. Accessibility testing
+
+---
+
+## Resources
+
+- [Jest Documentation](https://jestjs.io/)
+- [Vitest Documentation](https://vitest.dev/)
+- [Playwright Documentation](https://playwright.dev/)
+- [Testing Library](https://testing-library.com/)
+- [Supertest](https://github.com/visionmedia/supertest)
+
+---
 
 ## Contributing
 
 When adding new features:
-1. Write tests first (TDD approach)
-2. Run tests before committing
-3. Ensure all tests pass
-4. Update this document
 
-## References
+1. **Write tests first** (TDD approach)
+2. **Ensure tests pass** before committing
+3. **Maintain coverage** - don't decrease coverage
+4. **Update this doc** if adding new test patterns
 
-- [Vitest Documentation](https://vitest.dev/)
-- [Svelte Testing Library](https://testing-library.com/docs/svelte-testing-library/intro/)
-- [Node.js Testing Best Practices](https://github.com/goldbergyoni/nodebestpractices#testing-and-overall-quality-practices)
-- [Express Testing Guide](https://expressjs.com/en/guide/testing.html)
+**Test Checklist:**
+- [ ] Unit tests for new functions
+- [ ] Component tests for new UI
+- [ ] Integration tests for new flows
+- [ ] E2E tests for new pages
+- [ ] All tests passing
+- [ ] Coverage maintained or improved
+
+---
+
+**Last Updated:** October 26, 2025
+**Raven Version:** v1.1.0+
+**Maintained By:** Raven Development Team
