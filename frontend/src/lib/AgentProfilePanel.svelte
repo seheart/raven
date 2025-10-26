@@ -1,13 +1,13 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
+  import { websocketService } from './websocket.js';
 
   let agents = [];
   let loading = true;
   let error = null;
   let selectedProject = 'all';
   let availableProjects = [];
-  let pollIntervalId = null;
 
   // Agent badge configuration
   const agentConfig = {
@@ -48,18 +48,30 @@
     }
   }
 
+  // WebSocket event handlers (event-driven, no polling!)
+  const handleFileChanged = async () => {
+    await loadAgentProfiles();
+  };
+
+  const handleProjectSwitched = async () => {
+    await loadProjects();
+    await loadAgentProfiles();
+  };
+
   onMount(async () => {
     await loadProjects();
     await loadAgentProfiles();
 
-    // Refresh every 30 seconds
-    pollIntervalId = setInterval(loadAgentProfiles, 30000);
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    if (pollIntervalId) {
-      clearInterval(pollIntervalId);
-    }
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   function getAgentBadge(agent) {

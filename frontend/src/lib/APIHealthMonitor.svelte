@@ -256,11 +256,8 @@
     return `${hours}h ago`;
   }
 
-  // Live timestamp updates
-  let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  // Reactive "time ago" - updates when lastUpdated changes (no polling!)
+  $: timeAgo = getTimeAgo();
 
   $: grouped = apiEndpoints.length > 0 ? groupedEndpoints() : {};
 </script>

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
+  import { websocketService } from './websocket.js';
 
   let anomalies = [];
   let baseline = {};
@@ -10,7 +11,6 @@
   let lookbackHours = 24;
   let threshold = 2.0;
   let lastUpdate = new Date();
-  let refreshInterval;
   let filterSeverity = 'all'; // all, critical, warning, info
 
   const API_BASE = 'http://localhost:3030/api';
@@ -24,16 +24,28 @@
   $: warningCount = anomalies.filter(a => a.severity === 'warning').length;
   $: infoCount = anomalies.filter(a => a.severity === 'info').length;
 
+  // WebSocket event handlers (event-driven, no polling!)
+  const handleFileChanged = async () => {
+    await loadAnomalies();
+  };
+
+  const handleProjectSwitched = async () => {
+    await loadAnomalies();
+  };
+
   onMount(async () => {
     await loadAnomalies();
-    // Auto-refresh every 60 seconds
-    refreshInterval = setInterval(async () => {
-      await loadAnomalies();
-    }, 60000);
+
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadAnomalies() {
@@ -85,6 +97,9 @@
     return `${hours}h ago`;
   }
 
+  // Reactive "time since update" - updates when lastUpdate changes (no polling!)
+  $: timeSinceUpdate = getTimeSinceUpdate();
+
   function handleExportCSV() {
     const data = anomalies.map(a => ({
       Timestamp: a.timestamp,
@@ -105,17 +120,6 @@
     };
     exportJSON(data, 'anomaly-alerts');
   }
-
-  // Update time display every second
-  let timeInterval;
-  onMount(() => {
-    timeInterval = setInterval(() => {
-      lastUpdate = lastUpdate; // Trigger reactivity
-    }, 1000);
-  });
-  onDestroy(() => {
-    if (timeInterval) clearInterval(timeInterval);
-  });
 </script>
 
 <div class="anomaly-alerts-panel">
@@ -125,7 +129,7 @@
       <p class="subtitle">Smart alerts for unusual patterns</p>
     </div>
     <div class="header-right">
-      <span class="last-update">Updated: {getTimeSinceUpdate()}</span>
+      <span class="last-update">Updated: {timeSinceUpdate}</span>
       <button class="btn-secondary" on:click={handleExportCSV}>Export CSV</button>
       <button class="btn-secondary" on:click={handleExportJSON}>Export JSON</button>
       <button class="btn-primary" on:click={loadAnomalies}>↻ Refresh</button>
