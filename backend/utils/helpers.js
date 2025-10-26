@@ -6,7 +6,7 @@
 
 import crypto from 'crypto';
 import { extname } from 'path';
-import Diff from 'diff';
+import * as Diff from 'diff';
 
 /**
  * Get color code for agent type

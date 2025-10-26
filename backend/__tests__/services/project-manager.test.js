@@ -60,7 +60,7 @@ describe('ProjectManager', () => {
 
       const projects = manager.discoverProjects();
 
-      expect(projects).toBeInstanceOf(Array);
+      expect(Array.isArray(projects)).toBe(true);
       expect(projects.length).toBeGreaterThan(0);
       expect(projects.some(p => p.name === 'project1')).toBe(true);
       expect(projects.some(p => p.name === 'project2')).toBe(true);
@@ -69,7 +69,7 @@ describe('ProjectManager', () => {
     test('should return default project when no DB files exist', () => {
       const projects = manager.discoverProjects();
 
-      expect(projects).toBeInstanceOf(Array);
+      expect(Array.isArray(projects)).toBe(true);
       expect(projects.length).toBe(1);
       expect(projects[0]).toHaveProperty('is_default', true);
     });

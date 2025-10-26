@@ -278,7 +278,7 @@ describe('Helper Utilities', () => {
       const truncated = truncate(long, 100);
 
       expect(truncated.length).toBe(100);
-      expect(truncated).toEndWith('...');
+      expect(truncated.endsWith('...')).toBe(true);
     });
 
     test('should not truncate short strings', () => {

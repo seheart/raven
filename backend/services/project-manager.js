@@ -8,7 +8,7 @@
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join, basename } from 'path';
 import { logger } from '../utils/logger.js';
-import Database from '../db.js';
+import { RavenDB } from '../db.js';
 
 export class ProjectManager {
   constructor(options = {}) {
@@ -104,7 +104,7 @@ export class ProjectManager {
   initializeProject(projectName) {
     try {
       const dbPath = join(this.DB_DIR, `${projectName}.db`);
-      const db = new Database(dbPath);
+      const db = new RavenDB(dbPath);
 
       // Store in maps
       this.projectDatabases.set(projectName, db);
