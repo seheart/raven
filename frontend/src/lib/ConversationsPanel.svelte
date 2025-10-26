@@ -24,7 +24,6 @@
   let hasMore = true;
   let lastUpdate = null;
   let autoRefresh = true;
-  let autoRefreshInterval = null;
 
   // Import dialog state
   let showImportDialog = false;
@@ -180,34 +179,19 @@
   }
 
   function setupWebSocket() {
-    // Listen for new conversation events (if backend emits them)
+    // Listen for new conversation events (WebSocket-driven, no polling!)
     websocketService.on('conversation', () => {
       if (autoRefresh) {
         loadConversations();
       }
     });
-  }
 
-  function startAutoRefresh() {
-    if (autoRefreshInterval) {
-      clearInterval(autoRefreshInterval);
-    }
-    if (autoRefresh) {
-      autoRefreshInterval = setInterval(loadConversations, 30000); // 30 seconds
-    }
-  }
-
-  function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-      clearInterval(autoRefreshInterval);
-      autoRefreshInterval = null;
-    }
-  }
-
-  $: if (autoRefresh) {
-    startAutoRefresh();
-  } else {
-    stopAutoRefresh();
+    // Listen for file changes as trigger for conversation updates
+    websocketService.on('file-changed', () => {
+      if (autoRefresh) {
+        loadConversations();
+      }
+    });
   }
 
   $: filteredConversations = conversations.filter(conv => {
@@ -229,7 +213,9 @@
   });
 
   onDestroy(() => {
-    stopAutoRefresh();
+    // Clean up WebSocket listeners
+    websocketService.off('conversation', loadConversations);
+    websocketService.off('file-changed', loadConversations);
   });
 </script>
 

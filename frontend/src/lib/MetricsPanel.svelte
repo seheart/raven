@@ -8,7 +8,6 @@
   let memory = 0;
   let memoryUsed = 0;
   let memoryTotal = 0;
-  let intervalId = null;
 
   async function updateMetrics() {
     try {
@@ -42,18 +41,11 @@
     // Connect to WebSocket for real-time system metrics
     websocketService.connect();
 
-    // Listen for real-time system metrics
+    // Listen for real-time system metrics (event-driven, no polling!)
     websocketService.on('system-metrics', handleSystemMetrics);
-
-    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
-    intervalId = setInterval(updateMetrics, 30000);
   });
 
   onDestroy(() => {
-    if (intervalId) {
-      clearInterval(intervalId);
-    }
-
     // Clean up WebSocket listeners
     websocketService.off('system-metrics', handleSystemMetrics);
   });

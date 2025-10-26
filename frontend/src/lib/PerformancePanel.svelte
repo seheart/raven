@@ -14,7 +14,6 @@
   let stats = null;
   let correlations = [];
   let selectedAgent = 'claude-sonnet-3.5';
-  let refreshInterval = null;
   let loading = true;
   let error = null;
   let lastUpdated = null;
@@ -51,16 +50,9 @@
 
     // Listen for project switch events
     websocketService.on('project-switched', handleProjectSwitched);
-
-    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
-    refreshInterval = setInterval(fetchAllData, 30000);
   });
 
   onDestroy(() => {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-    }
-
     // Clean up WebSocket listeners
     websocketService.off('system-metrics', handleSystemMetrics);
     websocketService.off('project-switched', handleProjectSwitched);
@@ -124,11 +116,8 @@
     return `${hours}h ago`;
   }
 
-  // Live timestamp updates
-  let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  // Reactive "time ago" - updates when lastUpdated changes (no polling!)
+  $: timeAgo = getTimeAgo();
 
   function formatTimestamp(ts) {
     return formatTime(ts);

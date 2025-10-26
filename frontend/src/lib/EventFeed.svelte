@@ -13,7 +13,6 @@
   const API_BASE = 'http://localhost:3030/api';
 
   let events = [];
-  let pollIntervalId = null;
   let searchQuery = '';
   let selectedTypes = {
     created: true,
@@ -264,16 +263,9 @@
 
     // Listen for project switch events
     websocketService.on('project-switched', handleProjectSwitched);
-
-    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
-    pollIntervalId = setInterval(loadRecentEvents, 30000);
   });
 
   onDestroy(() => {
-    if (pollIntervalId) {
-      clearInterval(pollIntervalId);
-    }
-
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);

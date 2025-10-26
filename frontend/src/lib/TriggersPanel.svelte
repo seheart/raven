@@ -22,7 +22,6 @@
   let loading = true;
   let error = null;
   let successMessage = null;
-  let refreshInterval;
   let lastUpdated = null;
   let isManualRefresh = false;
 
@@ -91,16 +90,9 @@
 
     // Listen for project switch events
     websocketService.on('project-switched', handleProjectSwitched);
-
-    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
-    refreshInterval = setInterval(loadAllData, 30000);
   });
 
   onDestroy(() => {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-    }
-
     // Clean up WebSocket listeners
     websocketService.off('trigger-fired', handleTriggerFired);
     websocketService.off('trigger-stats', handleTriggerStats);
@@ -154,11 +146,8 @@
     return `${hours}h ago`;
   }
 
-  // Live timestamp updates
-  let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  // Reactive "time ago" - updates when lastUpdated changes (no polling!)
+  $: timeAgo = getTimeAgo();
 
   async function reloadConfig() {
     try {

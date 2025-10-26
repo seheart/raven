@@ -19,7 +19,6 @@
   let longestEdits = [];
   let agents = [];
   let loading = true;
-  let refreshInterval;
 
   // WebSocket event handlers
   const handleAgentEvent = async () => {
@@ -54,20 +53,17 @@
     // Listen for project switch events
     websocketService.on('project-switched', handleProjectSwitched);
 
-    // Fallback: refresh every 30 seconds (WebSocket should handle real-time)
-    refreshInterval = setInterval(loadAllData, 30000);
+    // Listen for file changes to trigger dashboard updates (event-driven, no polling!)
+    websocketService.on('file-changed', loadAllData);
   });
 
   onDestroy(() => {
     try {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
-
       // Clean up WebSocket listeners
       websocketService.off('agent-event', handleAgentEvent);
       websocketService.off('agent-stats', handleAgentStats);
       websocketService.off('project-switched', handleProjectSwitched);
+      websocketService.off('file-changed', loadAllData);
     } catch (error) {
       console.error('Error during Dashboard cleanup:', error);
     }
