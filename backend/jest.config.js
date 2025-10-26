@@ -10,7 +10,8 @@ export default {
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/dist/'
+    '/dist/',
+    '/__tests__/test-watch-dir/'
   ],
   collectCoverageFrom: [
     'middleware/**/*.js',
