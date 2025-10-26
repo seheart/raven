@@ -11,8 +11,6 @@
   let codeChanges = [];
   let recentActivity = [];
   let loading = true;
-  let refreshInterval;
-  let statsRefreshInterval;
 
   // Live session stats
   let sessionStats = {
@@ -76,20 +74,11 @@
     // Listen for project switch events
     websocketService.on('project-switched', handleProjectSwitched);
 
-    // Refresh every 30 seconds (reduced frequency)
-    refreshInterval = setInterval(loadAllData, 30000);
-
-    // Refresh stats more frequently (every 5 seconds)
-    statsRefreshInterval = setInterval(loadSessionStats, 5000);
+    // Event-driven updates via WebSocket (no polling!)
   });
 
   onDestroy(() => {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-    }
-    if (statsRefreshInterval) {
-      clearInterval(statsRefreshInterval);
-    }
+    // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('agent-event', handleAgentEvent);
     websocketService.off('project-switched', handleProjectSwitched);
@@ -162,16 +151,8 @@
 
   function togglePause() {
     isPaused = !isPaused;
-
-    if (isPaused) {
-      // Stop auto-refresh when paused
-      if (refreshInterval) clearInterval(refreshInterval);
-      if (statsRefreshInterval) clearInterval(statsRefreshInterval);
-    } else {
-      // Resume auto-refresh
-      refreshInterval = setInterval(loadAllData, 30000);
-      statsRefreshInterval = setInterval(loadSessionStats, 5000); // Stats update every 5s
-    }
+    // Pause just stops WebSocket handlers from updating UI
+    // Event-driven updates will resume when unpause
   }
 
   function formatDuration(seconds) {

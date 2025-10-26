@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
+  import { websocketService } from './websocket.js';
 
   let projects = [];
   let totalProjects = 0;
@@ -10,7 +11,6 @@
   let loading = true;
   let error = null;
   let lastUpdate = new Date();
-  let refreshInterval;
   let sortBy = 'health'; // health, name, activity, errors
 
   const API_BASE = 'http://localhost:3030/api';
@@ -30,16 +30,28 @@
     }
   });
 
+  // WebSocket event handlers (event-driven, no polling!)
+  const handleFileChanged = async () => {
+    await loadHealthData();
+  };
+
+  const handleProjectSwitched = async () => {
+    await loadHealthData();
+  };
+
   onMount(async () => {
     await loadHealthData();
-    // Auto-refresh every 30 seconds
-    refreshInterval = setInterval(async () => {
-      await loadHealthData();
-    }, 30000);
+
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadHealthData() {
@@ -120,6 +132,9 @@
     return `${hours}h ago`;
   }
 
+  // Reactive "time since update" - updates when lastUpdate changes (no polling!)
+  $: timeSinceUpdate = getTimeSinceUpdate();
+
   function handleExportCSV() {
     const data = projects.map(p => ({
       Project: p.name,
@@ -142,17 +157,6 @@
     };
     exportJSON(data, 'project-health');
   }
-
-  // Update time display every second
-  let timeInterval;
-  onMount(() => {
-    timeInterval = setInterval(() => {
-      lastUpdate = lastUpdate; // Trigger reactivity
-    }, 1000);
-  });
-  onDestroy(() => {
-    if (timeInterval) clearInterval(timeInterval);
-  });
 </script>
 
 <div class="multi-project-health-panel">
@@ -162,7 +166,7 @@
       <p class="subtitle">At-a-glance health status across all monitored projects</p>
     </div>
     <div class="header-right">
-      <span class="last-update">Updated: {getTimeSinceUpdate()}</span>
+      <span class="last-update">Updated: {timeSinceUpdate}</span>
       <button class="btn-secondary" on:click={handleExportCSV}>Export CSV</button>
       <button class="btn-secondary" on:click={handleExportJSON}>Export JSON</button>
       <button class="btn-primary" on:click={loadHealthData}>↻ Refresh</button>
