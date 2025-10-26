@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
   import { formatDateTime } from './timeFormat.js';
+  import { websocketService } from './websocket.js';
 
   export let project = 'raven';
 
@@ -11,9 +12,7 @@
   let stats = null;
   let loading = true;
   let error = null;
-  let pollIntervalId = null;
-  let sessionDuration = 0;
-  let sessionTimerId = null;
+  let sessionStartTime = null;
 
   async function loadSessionData() {
     loading = true;
@@ -33,8 +32,8 @@
         const breakData = await api.get(`/sessions/break-recommendation?project=${project}`);
         breakRecommendation = breakData.recommendation;
 
-        // Update session duration
-        sessionDuration = currentSession.durationMinutes;
+        // Store session start time for duration calculation
+        sessionStartTime = currentSession.startTime ? new Date(currentSession.startTime) : null;
       }
 
       // Load session stats (last 30 days)
@@ -49,27 +48,28 @@
     }
   }
 
+  // WebSocket event handlers (event-driven, no polling!)
+  const handleFileChanged = async () => {
+    await loadSessionData();
+  };
+
+  const handleProjectSwitched = async () => {
+    await loadSessionData();
+  };
+
   onMount(async () => {
     await loadSessionData();
 
-    // Poll for updates every 30 seconds
-    pollIntervalId = setInterval(loadSessionData, 30000);
-
-    // Update session duration timer every second
-    sessionTimerId = setInterval(() => {
-      if (currentSession) {
-        sessionDuration += 1/60; // Increment by 1 minute every 60 seconds
-      }
-    }, 1000); // Update every second for smooth timer
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    if (pollIntervalId) {
-      clearInterval(pollIntervalId);
-    }
-    if (sessionTimerId) {
-      clearInterval(sessionTimerId);
-    }
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   function getQualityColor(score) {
@@ -120,6 +120,11 @@
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
     return `${Math.floor(diffMins / 1440)}d ago`;
   }
+
+  // Reactive session duration - calculates from start time (no polling!)
+  $: sessionDuration = currentSession && sessionStartTime
+    ? (Date.now() - sessionStartTime.getTime()) / 1000 / 60  // minutes
+    : (currentSession?.durationMinutes || 0);
 </script>
 
 <div class="session-dashboard">

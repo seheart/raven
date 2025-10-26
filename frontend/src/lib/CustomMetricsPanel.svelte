@@ -1,25 +1,37 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { websocketService } from './websocket.js';
 
   let metrics = {};
   let loading = true;
   let error = null;
   let lastUpdate = new Date();
-  let refreshInterval;
 
   const API_BASE = 'http://localhost:3030/api';
 
+  // WebSocket event handlers
+  const handleFileChanged = async () => {
+    await loadMetrics();
+  };
+
+  const handleProjectSwitched = async () => {
+    await loadMetrics();
+  };
+
   onMount(async () => {
     await loadMetrics();
-    // Auto-refresh every 30 seconds
-    refreshInterval = setInterval(async () => {
-      await loadMetrics();
-    }, 30000);
+
+    // Connect to WebSocket for real-time updates (event-driven, no polling!)
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadMetrics() {
@@ -56,16 +68,8 @@
     return `${hour - 12} PM`;
   }
 
-  // Update time display every second
-  let timeInterval;
-  onMount(() => {
-    timeInterval = setInterval(() => {
-      lastUpdate = lastUpdate; // Trigger reactivity
-    }, 1000);
-  });
-  onDestroy(() => {
-    if (timeInterval) clearInterval(timeInterval);
-  });
+  // Reactive time display (updates when lastUpdate changes, no polling!)
+  $: timeSinceUpdate = getTimeSinceUpdate();
 </script>
 
 <div class="custom-metrics-panel">
@@ -75,7 +79,7 @@
       <p class="subtitle">Key performance indicators at a glance</p>
     </div>
     <div class="header-right">
-      <span class="last-update">Updated: {getTimeSinceUpdate()}</span>
+      <span class="last-update">Updated: {timeSinceUpdate}</span>
       <button class="btn-primary" on:click={loadMetrics}>↻ Refresh</button>
     </div>
   </div>

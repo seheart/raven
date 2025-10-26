@@ -3,6 +3,7 @@
   import PageInfo from './PageInfo.svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
+  import { websocketService } from './websocket.js';
 
   const API_BASE = API_CONFIG.BASE_URL + '/api';
 
@@ -10,21 +11,31 @@
   let loading = true;
   let error = null;
   let expandedDatabase = null;
-  let refreshInterval;
   let lastUpdated = null;
   let isManualRefresh = false;
 
+  // WebSocket event handlers (event-driven, no polling!)
+  const handleFileChanged = async () => {
+    await loadStorageData();
+  };
+
+  const handleProjectSwitched = async () => {
+    await loadStorageData();
+  };
+
   onMount(() => {
     loadStorageData();
-    // Refresh every 30 seconds
-    refreshInterval = setInterval(loadStorageData, 30000);
+
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-      refreshInterval = null;
-    }
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 
   async function loadStorageData(manual = false) {
@@ -58,11 +69,8 @@
     return `${hours}h ago`;
   }
 
-  // Live timestamp updates
-  let timeAgo = 'Never';
-  setInterval(() => {
-    timeAgo = getTimeAgo();
-  }, 1000);
+  // Reactive "time ago" - updates when lastUpdated changes (no polling!)
+  $: timeAgo = getTimeAgo();
 
   function formatBytes(bytes) {
     if (!bytes || bytes <= 0) return '0 B';

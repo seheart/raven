@@ -5,6 +5,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import PageInfo from './PageInfo.svelte';
   import { formatTime } from './timeFormat.js';
+  import { websocketService } from './websocket.js';
 
   let stats = {
     counts: {
@@ -72,36 +73,32 @@
     }
   }
 
-  function startAutoRefresh() {
-    if (autoRefreshInterval) {
-      clearInterval(autoRefreshInterval);
-    }
+  // WebSocket event handlers (event-driven, no polling!)
+  const handleFileChanged = async () => {
     if (autoRefresh) {
-      autoRefreshInterval = setInterval(loadAllData, 60000); // 60 seconds
+      await loadAllData();
     }
-  }
+  };
 
-  function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-      clearInterval(autoRefreshInterval);
-      autoRefreshInterval = null;
-    }
-  }
-
-  $: if (autoRefresh) {
-    startAutoRefresh();
-  } else {
-    stopAutoRefresh();
-  }
+  const handleProjectSwitched = async () => {
+    await loadAllData();
+  };
 
   $: totalDataPoints = stats.counts.agent_interactions + stats.counts.code_patterns + stats.counts.workflow_events;
 
   onMount(() => {
     loadAllData();
+
+    // Connect to WebSocket for real-time updates
+    websocketService.connect();
+    websocketService.on('file-changed', handleFileChanged);
+    websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    stopAutoRefresh();
+    // Clean up WebSocket listeners
+    websocketService.off('file-changed', handleFileChanged);
+    websocketService.off('project-switched', handleProjectSwitched);
   });
 </script>
 
