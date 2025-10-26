@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
   import { formatDateTime } from './timeFormat.js';
@@ -41,7 +42,7 @@
       stats = statsData.stats;
 
     } catch (err) {
-      console.error('Failed to load session data:', err);
+      logger.error('Failed to load session data:', err);
       error = err.message;
     } finally {
       loading = false;

@@ -3,6 +3,7 @@
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
   import { desktopNotifications } from './services/desktopNotifications.js';
+  import { logger } from './logger.js';
 
   let results = [];
   let latestResult = null;
@@ -20,7 +21,7 @@
       const data = await response.json();
       frameworks = data.frameworks;
     } catch (error) {
-      console.error('Failed to fetch frameworks:', error);
+      logger.error('Failed to fetch frameworks:', error);
     }
   }
 
@@ -41,7 +42,7 @@
 
       loading = false;
     } catch (error) {
-      console.error('Failed to fetch test results:', error);
+      logger.error('Failed to fetch test results:', error);
       notifications.error('Failed to load test results');
       loading = false;
     }
@@ -79,7 +80,7 @@
 
       await fetchResults();
     } catch (error) {
-      console.error('Failed to run tests:', error);
+      logger.error('Failed to run tests:', error);
       notifications.error('Failed to run tests');
       running = false;
     }
@@ -88,7 +89,7 @@
   // Setup WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('test-result', (data) => {
-      console.log('Test result received:', data);
+      logger.info('Test result received:', data);
       fetchResults();
 
       // Show desktop notification for failures

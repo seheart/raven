@@ -2,8 +2,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { activeProject, availableProjects, projectStatus } from './projectStore.js';
   import { websocketService } from './websocket.js';
+  import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let selectedProject = $activeProject;
   let isLoading = $projectStatus.loading;
@@ -26,7 +28,7 @@
       activeProject.set(data?.active || '');
       selectedProject = data?.active || '';
     } catch (err) {
-      console.error('Error fetching projects:', err);
+      logger.error('Error fetching projects:', err);
       projectStatus.set({ loading: false, error: err.message });
     }
   }
@@ -50,10 +52,10 @@
       activeProject.set(data?.active || '');
       selectedProject = data?.active || '';
 
-      console.log(`✅ ${data?.message || 'Projects refreshed'}`);
+      logger.info(`✅ ${data?.message || 'Projects refreshed'}`);
       projectStatus.set({ loading: false, error: null });
     } catch (err) {
-      console.error('Error refreshing projects:', err);
+      logger.error('Error refreshing projects:', err);
       projectStatus.set({ loading: false, error: err.message });
     }
   }
@@ -90,9 +92,9 @@
       selectedProject = newProject;
       projectStatus.set({ loading: false, error: null });
 
-      console.log(`✅ Switched to project: ${newProject}`);
+      logger.info(`✅ Switched to project: ${newProject}`);
     } catch (err) {
-      console.error('Error switching project:', err);
+      logger.error('Error switching project:', err);
       projectStatus.set({ loading: false, error: err.message });
 
       // Revert selection on error
@@ -103,7 +105,7 @@
 
   // WebSocket event handler
   const handleProjectSwitched = (data) => {
-    console.log('📡 Project switched via WebSocket:', data?.project);
+    logger.info('📡 Project switched via WebSocket:', data?.project);
     activeProject.set(data?.project || '');
     selectedProject = data?.project || '';
   };

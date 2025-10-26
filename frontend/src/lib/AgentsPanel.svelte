@@ -5,7 +5,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
 
-  const API_BASE = API_CONFIG.BASE_URL + '/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let activeTab = 'overview'; // 'overview', 'activity', 'performance'
   let agents = [];

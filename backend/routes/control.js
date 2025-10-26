@@ -4,7 +4,7 @@ import { promisify } from 'util';
 import { exec } from 'child_process';
 import { logger } from '../utils/logger.js';
 
-const execAsync = promisify(exec);
+const defaultExecAsync = promisify(exec);
 
 /**
  * Creates control routes (system management endpoints)
@@ -18,7 +18,8 @@ export function createControlRoutes(deps) {
     projectState,
     projectStateMutex,
     initializeWatcher,
-    PORT
+    PORT,
+    execAsync = defaultExecAsync
   } = deps;
 
   // POST /api/control/clear-cache - Clear file cache

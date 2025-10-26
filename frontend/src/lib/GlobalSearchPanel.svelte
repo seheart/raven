@@ -1,7 +1,9 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
+  import { API_CONFIG } from '../config.js';
 
   let searchQuery = '';
   let results = [];
@@ -11,7 +13,7 @@
   let error = null;
   let filterType = 'all'; // all, event, conversation, error, notification
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   $: filteredResults = results.filter(r => {
     if (filterType === 'all') return true;
@@ -45,7 +47,7 @@
       total = data.total || 0;
       error = null;
     } catch (err) {
-      console.error('Search error:', err);
+      logger.error('Search error:', err);
       error = err.message;
     } finally {
       loading = false;

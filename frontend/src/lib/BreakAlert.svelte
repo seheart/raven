@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
   import { websocketService } from './websocket.js';
+  import { logger } from './logger.js';
 
   export let project = 'raven';
 
@@ -24,7 +25,7 @@
         dismissed = false;
       }
     } catch (err) {
-      console.error('Failed to check break recommendation:', err);
+      logger.error('Failed to check break recommendation:', err);
     }
   }
 

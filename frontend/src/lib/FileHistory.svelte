@@ -4,6 +4,7 @@
   import DiffViewer from './DiffViewer.svelte';
   import { api } from './apiClient.js';
   import { notifications } from './notificationService.js';
+  import { logger } from './logger.js';
 
   export let onClose = () => {};
   export let filepath = '';
@@ -53,7 +54,7 @@
       history = await api.get(`/files/${encodeURIComponent(filepath)}/history`);
       loading = false;
     } catch (error) {
-      console.error('Failed to load file history:', error);
+      logger.error('Failed to load file history:', error);
       notifications.error(`Failed to load file history: ${error.message}`);
       loading = false;
     }
@@ -69,7 +70,7 @@
       const response = await fetch(`http://localhost:3030/api/snapshot/${event.id}/${encodeURIComponent(filename)}`);
       snapshotContent = await response.text();
     } catch (error) {
-      console.error('Failed to load snapshot:', error);
+      logger.error('Failed to load snapshot:', error);
       snapshotContent = `Error loading snapshot: ${error.message}`;
       notifications.error(`Failed to load snapshot: ${error.message}`);
     }
@@ -98,7 +99,7 @@
 
       onClose();
     } catch (error) {
-      console.error('Failed to restore:', error);
+      logger.error('Failed to restore:', error);
       notifications.error(`Failed to restore file: ${error.message}`, {
         title: '❌ Restoration Failed'
       });
@@ -185,7 +186,7 @@
       showDiff = true;
       comparingSnapshots = false;
     } catch (error) {
-      console.error('Failed to compare snapshots:', error);
+      logger.error('Failed to compare snapshots:', error);
       notifications.error(`Failed to compare snapshots: ${error.message}`);
       comparingSnapshots = false;
     }

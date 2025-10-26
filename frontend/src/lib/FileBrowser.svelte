@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import FileHistory from './FileHistory.svelte';
+  import { logger } from './logger.js';
 
   let files = [];
   let loading = true;
@@ -18,7 +19,7 @@
       files = await response.json();
       loading = false;
     } catch (error) {
-      console.error('Failed to load tracked files:', error);
+      logger.error('Failed to load tracked files:', error);
       // Fallback to mock data
       files = [
         'test_workspace/src/example.py',

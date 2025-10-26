@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount } from 'svelte';
   import { notifications } from './notificationService.js';
   import { formatDateTime } from './timeFormat.js';
@@ -6,7 +7,7 @@
   import { API_CONFIG } from '../config.js';
   import { api } from './apiClient.js';
 
-  const API_BASE = API_CONFIG.BASE_URL + '/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   // Server configuration
   let config = {
@@ -58,7 +59,7 @@
       loading = false;
       isManualRefresh = false;
     } catch (error) {
-      console.error('Failed to load sync config:', error);
+      logger.error('Failed to load sync config:', error);
       loading = false;
       isManualRefresh = false;
     }
@@ -77,7 +78,7 @@
 
       setTimeout(() => saveStatus = null, 3000);
     } catch (error) {
-      console.error('Failed to save config:', error);
+      logger.error('Failed to save config:', error);
       saveStatus = 'error';
       notifications.error('Failed to save configuration', {
         title: 'Config Error'
@@ -114,7 +115,7 @@
         });
       }
     } catch (error) {
-      console.error('Connection test failed:', error);
+      logger.error('Connection test failed:', error);
       connectionStatus = 'failed';
       notifications.error('Connection test failed', {
         title: 'Connection Error'
@@ -135,13 +136,13 @@
       if (result.success) {
         remoteStats = result;
       } else {
-        console.error('Failed to load remote stats:', result.error);
+        logger.error('Failed to load remote stats:', result.error);
         remoteStats = null;
       }
 
       loadingStats = false;
     } catch (error) {
-      console.error('Failed to load remote stats:', error);
+      logger.error('Failed to load remote stats:', error);
       loadingStats = false;
       remoteStats = null;
     }
@@ -205,7 +206,7 @@
         syncProgress = { stage: '', percent: 0, message: '' };
       }, 3000);
     } catch (error) {
-      console.error('Sync failed:', error);
+      logger.error('Sync failed:', error);
       syncing = false;
       syncProgress = { stage: 'error', percent: 0, message: 'Sync failed' };
       notifications.error('Sync failed', {

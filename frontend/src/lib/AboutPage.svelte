@@ -2,9 +2,10 @@
   import { onMount, createEventDispatcher } from 'svelte';
   import { fade } from 'svelte/transition';
   import RavenLogo from './RavenLogo.svelte';
+  import { API_CONFIG } from '../config.js';
 
   const dispatch = createEventDispatcher();
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
   let sessionId = 'Loading...';
   let websocketConnected = false;
 

@@ -2,13 +2,15 @@
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { websocketService } from './websocket.js';
+  import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
   let metrics = {};
   let loading = true;
   let error = null;
   let lastUpdate = new Date();
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   // WebSocket event handlers
   const handleFileChanged = async () => {
@@ -45,7 +47,7 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      console.error('Failed to load metrics:', err);
+      logger.error('Failed to load metrics:', err);
       error = err.message;
     } finally {
       loading = false;

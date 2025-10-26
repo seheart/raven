@@ -1,15 +1,17 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { websocketService } from './websocket.js';
+  import { API_CONFIG } from '../config.js';
 
   let metrics = [];
   let loading = true;
   let error = null;
   let timeRange = '1h'; // 1h, 6h, 24h, 7d
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   // WebSocket event handlers (event-driven, no polling!)
   const handleSystemMetrics = async () => {
@@ -45,7 +47,7 @@
       metrics = data.metrics || [];
       error = null;
     } catch (err) {
-      console.error('Failed to load performance metrics:', err);
+      logger.error('Failed to load performance metrics:', err);
       error = err.message;
     } finally {
       loading = false;

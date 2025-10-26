@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
@@ -34,7 +35,7 @@
       warningCount = data.count;
       loading = false;
     } catch (error) {
-      console.error('Failed to fetch pattern warnings:', error);
+      logger.error('Failed to fetch pattern warnings:', error);
       notifications.error('Failed to load pattern warnings');
       loading = false;
     }
@@ -52,7 +53,7 @@
       notifications.success('Warning marked as resolved');
       await fetchWarnings();
     } catch (error) {
-      console.error('Failed to resolve warning:', error);
+      logger.error('Failed to resolve warning:', error);
       notifications.error('Failed to resolve warning');
     }
   }
@@ -60,7 +61,7 @@
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('pattern-warning', (data) => {
-      console.log('Pattern warning detected:', data);
+      logger.info('Pattern warning detected:', data);
 
       // Show desktop notification for critical patterns
       if (data.warnings && data.warnings.length > 0) {

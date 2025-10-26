@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
   import { websocketService } from './websocket.js';
+  import { logger } from './logger.js';
 
   let agents = [];
   let loading = true;
@@ -25,7 +26,7 @@
       const projects = await api.get('/projects');
       availableProjects = projects.projects || [];
     } catch (err) {
-      console.error('Failed to load projects:', err);
+      logger.error('Failed to load projects:', err);
     }
   }
 
@@ -40,7 +41,7 @@
 
       agents = data.agents || [];
     } catch (err) {
-      console.error('Failed to load agent profiles:', err);
+      logger.error('Failed to load agent profiles:', err);
       error = err.message;
       agents = [];
     } finally {

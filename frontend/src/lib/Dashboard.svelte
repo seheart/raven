@@ -1,11 +1,13 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import AgentProfilePanel from './AgentProfilePanel.svelte';
   import SessionDashboard from './SessionDashboard.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let stats = {
     total_events: 0,
@@ -34,7 +36,7 @@
   };
 
   const handleProjectSwitched = async (data) => {
-    console.log('📡 Project switched, reloading dashboard data:', data.project);
+    logger.info('📡 Project switched, reloading dashboard data:', data.project);
     await loadAllData();
   };
 
@@ -65,7 +67,7 @@
       websocketService.off('project-switched', handleProjectSwitched);
       websocketService.off('file-changed', loadAllData);
     } catch (error) {
-      console.error('Error during Dashboard cleanup:', error);
+      logger.error('Error during Dashboard cleanup:', error);
     }
   });
 
@@ -83,7 +85,7 @@
       longestEdits = editsData;
       agents = agentsData;
     } catch (e) {
-      console.error('Failed to load dashboard data:', e);
+      logger.error('Failed to load dashboard data:', e);
     } finally {
       loading = false;
     }

@@ -1,8 +1,10 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { websocketService } from './websocket.js';
+  import { API_CONFIG } from '../config.js';
 
   let projects = [];
   let totalProjects = 0;
@@ -13,7 +15,7 @@
   let lastUpdate = new Date();
   let sortBy = 'health'; // health, name, activity, errors
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   $: sortedProjects = [...projects].sort((a, b) => {
     switch (sortBy) {
@@ -68,7 +70,7 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      console.error('Failed to load project health:', err);
+      logger.error('Failed to load project health:', err);
       error = err.message;
     } finally {
       loading = false;

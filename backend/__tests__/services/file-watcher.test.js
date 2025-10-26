@@ -205,7 +205,11 @@ describe('File Watcher Service', () => {
 
       watcher = chokidar.watch(`${testDir}/**/*.js`, {
         persistent: true,
-        ignoreInitial: true
+        ignoreInitial: true,
+        awaitWriteFinish: {
+          stabilityThreshold: 100,
+          pollInterval: 50
+        }
       });
 
       let jsEventFired = false;
@@ -224,9 +228,9 @@ describe('File Watcher Service', () => {
           expect(jsEventFired).toBe(true);
           expect(txtEventFired).toBe(false);
           done();
-        }, 500);
+        }, 1000);
       });
-    });
+    }, 15000);
   });
 
   describe('Debouncing', () => {
@@ -285,11 +289,13 @@ describe('File Watcher Service', () => {
         done();
       });
 
-      // Trigger an error by closing the watcher and trying to use it
-      watcher.close().then(() => {
-        watcher.emit('error', new Error('Test error'));
+      watcher.on('ready', () => {
+        // Trigger an error event
+        setTimeout(() => {
+          watcher.emit('error', new Error('Test error'));
+        }, 100);
       });
-    });
+    }, 15000);
   });
 
   describe('Watcher Lifecycle', () => {

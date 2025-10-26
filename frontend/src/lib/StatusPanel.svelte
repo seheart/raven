@@ -5,6 +5,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { projectFilter, availableProjects } from './projectFilterStore.js';
   import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
   const API_BASE = API_CONFIG.BASE_URL;
 
@@ -69,7 +70,7 @@
       loading = false;
       isManualRefresh = false;
     } catch (error) {
-      console.error('Backend health check failed:', error);
+      logger.error('Backend health check failed:', error);
       backendStatus.connected = false;
       loading = false;
       isManualRefresh = false;
@@ -159,11 +160,11 @@
         // Refresh health status after a moment to reflect new state
         setTimeout(() => checkBackendHealth(), 1000);
       } else {
-        console.error('Bridge restart failed:', result.error);
+        logger.error('Bridge restart failed:', result.error);
         alert(`Failed to restart bridge: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error restarting bridge:', error);
+      logger.error('Error restarting bridge:', error);
       alert(`Error restarting bridge: ${error.message}`);
     } finally {
       restartingBridge = false;

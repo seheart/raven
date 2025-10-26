@@ -1,8 +1,10 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { websocketService } from './websocket.js';
+  import { API_CONFIG } from '../config.js';
 
   let anomalies = [];
   let baseline = {};
@@ -13,7 +15,7 @@
   let lastUpdate = new Date();
   let filterSeverity = 'all'; // all, critical, warning, info
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   $: filteredAnomalies = anomalies.filter(a => {
     if (filterSeverity === 'all') return true;
@@ -60,7 +62,7 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      console.error('Failed to load anomalies:', err);
+      logger.error('Failed to load anomalies:', err);
       error = err.message;
     } finally {
       loading = false;

@@ -4,8 +4,10 @@
   import { formatTime as formatTimeString } from './timeFormat.js';
   import ProjectBadge from './ProjectBadge.svelte';
   import { api } from './apiClient.js';
+  import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let codeChanges = [];
   let recentActivity = [];
@@ -45,7 +47,7 @@
 
   // WebSocket event handlers
   const handleFileChanged = (data) => {
-    console.log('File change detected:', data);
+    logger.info('File change detected:', data);
     debouncedLoadChanges();
   };
 
@@ -54,7 +56,7 @@
   };
 
   const handleProjectSwitched = (data) => {
-    console.log('📡 Project switched, reloading data:', data.project);
+    logger.info('📡 Project switched, reloading data:', data.project);
     loadAllData();
   };
 
@@ -107,7 +109,7 @@
       // Update metrics history for sparklines
       await loadMetrics();
     } catch (error) {
-      console.error('Failed to load session stats:', error);
+      logger.error('Failed to load session stats:', error);
     }
   }
 
@@ -128,7 +130,7 @@
         metricsHistory.memory = [...metricsHistory.memory, mem].slice(-20);
       }
     } catch (error) {
-      console.error('Failed to load metrics:', error);
+      logger.error('Failed to load metrics:', error);
     }
   }
 
@@ -168,7 +170,7 @@
       // Handle both array and object responses
       codeChanges = Array.isArray(data) ? data : (data.events || []);
     } catch (error) {
-      console.error('Failed to load code changes:', error);
+      logger.error('Failed to load code changes:', error);
     }
   }
 
@@ -191,7 +193,7 @@
 
       recentActivity = combined.slice(0, 30);
     } catch (error) {
-      console.error('Failed to load recent activity:', error);
+      logger.error('Failed to load recent activity:', error);
     }
   }
 

@@ -30,7 +30,9 @@ echo -e "${YELLOW}[1/4]${NC} Cleaning up existing processes..."
 pkill -f "node.*dist/server.js" 2>/dev/null || true
 pkill -f "node server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
-fuser -k 3030/tcp 5173/tcp 2>/dev/null || true
+# Kill processes on specific ports (cross-platform using lsof)
+lsof -ti:3030 | xargs kill -9 2>/dev/null || true
+lsof -ti:5173 | xargs kill -9 2>/dev/null || true
 sleep 1
 
 # Step 2: Start backend in background

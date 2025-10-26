@@ -3,7 +3,32 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { apiClient } from '../apiClient.js';
+import { api } from '../apiClient.js';
+
+// Mock dependencies
+vi.mock('../logger.js', () => ({
+  logger: {
+    error: vi.fn()
+  }
+}));
+
+vi.mock('../notificationService.js', () => ({
+  notifications: {
+    error: vi.fn(),
+    apiError: vi.fn()
+  }
+}));
+
+vi.mock('../authStore.js', () => ({
+  authService: {
+    getToken: vi.fn(() => null),
+    logout: vi.fn()
+  }
+}));
+
+vi.mock('../errorLogger.js', () => ({
+  logError: vi.fn(() => Promise.resolve())
+}));
 
 global.fetch = vi.fn();
 
@@ -15,10 +40,11 @@ describe('API Client', () => {
   it('should make GET request', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
+      headers: new Map([['content-type', 'application/json']]),
       json: async () => ({ data: 'test' })
     });
 
-    const result = await apiClient.get('/test');
+    const result = await api.get('/test');
     expect(result).toEqual({ data: 'test' });
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/test'),
@@ -29,11 +55,12 @@ describe('API Client', () => {
   it('should make POST request with body', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
+      headers: new Map([['content-type', 'application/json']]),
       json: async () => ({ success: true })
     });
 
     const body = { name: 'test' };
-    const result = await apiClient.post('/test', body);
+    const result = await api.post('/test', body);
 
     expect(result).toEqual({ success: true });
     expect(fetch).toHaveBeenCalledWith(
@@ -49,15 +76,16 @@ describe('API Client', () => {
     fetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
-      statusText: 'Not Found'
+      statusText: 'Not Found',
+      text: async () => 'Not Found'
     });
 
-    await expect(apiClient.get('/not-found')).rejects.toThrow();
+    await expect(api.get('/not-found')).rejects.toThrow();
   });
 
   it('should handle network errors', async () => {
     fetch.mockRejectedValueOnce(new Error('Network error'));
 
-    await expect(apiClient.get('/test')).rejects.toThrow('Network error');
+    await expect(api.get('/test')).rejects.toThrow('Network error');
   });
 });

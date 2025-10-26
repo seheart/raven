@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatTime as formatTimeString } from './timeFormat.js';
@@ -8,8 +9,9 @@
   import ProjectBadge from './ProjectBadge.svelte';
   import { api } from './apiClient.js';
   import SimilarChangesPanel from './SimilarChangesPanel.svelte';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let events = [];
   let searchQuery = '';
@@ -217,7 +219,7 @@
       events = [...mappedFileEvents, ...mappedConversations]
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     } catch (error) {
-      console.error('Failed to load events:', error);
+      logger.error('Failed to load events:', error);
     }
   }
 
@@ -246,7 +248,7 @@
   };
 
   const handleProjectSwitched = async (data) => {
-    console.log('📡 Project switched, reloading events:', data.project);
+    logger.info('📡 Project switched, reloading events:', data.project);
     await loadRecentEvents();
   };
 
@@ -345,7 +347,7 @@
 
       showDiffModal = true;
     } catch (error) {
-      console.error('Failed to load diff:', error);
+      logger.error('Failed to load diff:', error);
     }
   }
 

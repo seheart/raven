@@ -1,8 +1,9 @@
 import { logger } from './logger.js';
+import { API_CONFIG } from '../config.js';
 // Error logging service for Raven frontend
 // Sends errors to the backend API for storage and display
 
-const API_BASE_URL = 'http://localhost:3030';
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 /**
  * Log an error to the backend

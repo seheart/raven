@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
   import { desktopNotifications } from './services/desktopNotifications.js';
@@ -77,16 +78,16 @@
   // Load templates from API
   onMount(async () => {
     try {
-      console.log('🔄 [QuickStart] Fetching alert templates from /api/alerts/templates');
+      logger.info('🔄 [QuickStart] Fetching alert templates from /api/alerts/templates');
       const response = await fetch('/api/alerts/templates');
-      console.log('📡 [QuickStart] Templates response status:', response.status, response.statusText);
+      logger.info('📡 [QuickStart] Templates response status:', response.status, response.statusText);
 
       if (response.ok) {
         const text = await response.text();
-        console.log('📄 [QuickStart] Response body length:', text.length, 'bytes');
+        logger.info('📄 [QuickStart] Response body length:', text.length, 'bytes');
 
         if (text.length === 0) {
-          console.warn('⚠️ Empty response from templates API, using fallback templates');
+          logger.warn('⚠️ Empty response from templates API, using fallback templates');
         } else {
           try {
             const data = JSON.parse(text);
@@ -96,18 +97,18 @@
               ...template
             }));
             selectedTemplate = data.metadata?.recommended || 'ai-safety-basic';
-            console.log('✅ Loaded alert templates from API:', templates.length, 'templates');
+            logger.info('✅ Loaded alert templates from API:', templates.length, 'templates');
           } catch (parseErr) {
-            console.error('❌ Failed to parse templates JSON:', parseErr);
-            console.error('Response text:', text.substring(0, 200));
+            logger.error('❌ Failed to parse templates JSON:', parseErr);
+            logger.error('Response text:', text.substring(0, 200));
           }
         }
       } else {
-        console.warn('⚠️ Using fallback templates (API returned', response.status, ')');
+        logger.warn('⚠️ Using fallback templates (API returned', response.status, ')');
       }
     } catch (err) {
-      console.error('❌ Error fetching templates:', err);
-      console.warn('⚠️ Using fallback templates');
+      logger.error('❌ Error fetching templates:', err);
+      logger.warn('⚠️ Using fallback templates');
     }
   });
 
@@ -157,10 +158,10 @@
 
   // Complete setup
   async function completeSetup() {
-    console.log('🚀 [QuickStart] completeSetup called');
-    console.log('   Projects folder:', projectPath);
-    console.log('   Selected template:', selectedTemplate);
-    console.log('   Notifications enabled:', notificationsEnabled);
+    logger.info('🚀 [QuickStart] completeSetup called');
+    logger.info('   Projects folder:', projectPath);
+    logger.info('   Selected template:', selectedTemplate);
+    logger.info('   Notifications enabled:', notificationsEnabled);
 
     loading = true;
     error = null;
@@ -168,23 +169,23 @@
     try {
       // Raven auto-discovers and monitors all projects in the folder at startup
       // No API call needed - monitoring is already active!
-      console.log('✅ [QuickStart] Projects in', projectPath, 'are already being monitored');
+      logger.info('✅ [QuickStart] Projects in', projectPath, 'are already being monitored');
 
       // Save wizard completion status
       localStorage.setItem('raven-quick-start-completed', 'true');
       localStorage.setItem('raven-welcome-seen', 'true');
-      console.log('💾 [QuickStart] Saved completion status to localStorage');
+      logger.info('💾 [QuickStart] Saved completion status to localStorage');
 
       // Close wizard
       loading = false;
-      console.log('🎉 [QuickStart] Setup complete! Dispatching complete event');
+      logger.info('🎉 [QuickStart] Setup complete! Dispatching complete event');
       dispatch('complete', {
         projectsFolder: projectPath,
         template: selectedTemplate,
         notifications: notificationsEnabled
       });
     } catch (err) {
-      console.error('❌ [QuickStart] Setup failed:', err);
+      logger.error('❌ [QuickStart] Setup failed:', err);
       error = err.message;
       loading = false;
     }

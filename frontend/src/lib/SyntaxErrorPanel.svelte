@@ -3,6 +3,7 @@
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
   import { desktopNotifications } from './services/desktopNotifications.js';
+  import { logger } from './logger.js';
 
   let errors = [];
   let loading = true;
@@ -21,7 +22,7 @@
       errorCount = data.count;
       loading = false;
     } catch (error) {
-      console.error('Failed to fetch syntax errors:', error);
+      logger.error('Failed to fetch syntax errors:', error);
       notifications.error('Failed to load syntax errors');
       loading = false;
     }
@@ -39,7 +40,7 @@
       notifications.success('Error marked as resolved');
       await fetchErrors();
     } catch (error) {
-      console.error('Failed to resolve error:', error);
+      logger.error('Failed to resolve error:', error);
       notifications.error('Failed to resolve error');
     }
   }
@@ -47,7 +48,7 @@
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('syntax-error', (data) => {
-      console.log('Syntax error detected:', data);
+      logger.info('Syntax error detected:', data);
 
       // Show desktop notification for critical syntax errors
       if (data.errors && data.errors.length > 0) {

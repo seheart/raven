@@ -18,10 +18,20 @@ import { env } from '../../config/environment.js';
 
 describe('Metrics Integration Tests', () => {
   let app;
+  let mockDeps;
 
   beforeEach(() => {
     // Reset metrics before each test
     resetMetrics();
+
+    // Create mock dependencies
+    mockDeps = {
+      projectDatabases: new Map(),
+      cacheMiddleware: jest.fn((cache) => (req, res, next) => next()),
+      metricsCache: new Map(),
+      analyticsCache: new Map(),
+      dashboardCache: new Map()
+    };
 
     // Create test app
     app = express();
@@ -44,8 +54,8 @@ describe('Metrics Integration Tests', () => {
       res.status(500).json({ error: 'Test error' });
     });
 
-    // Add metrics routes
-    app.use('/', createMetricsRoutes());
+    // Add metrics routes with mocked dependencies
+    app.use('/', createMetricsRoutes(mockDeps));
   });
 
   test('should collect HTTP request metrics', async () => {

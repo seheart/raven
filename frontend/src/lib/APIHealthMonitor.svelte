@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
@@ -54,7 +55,7 @@
         endpointsLoaded = true;
       }
     } catch (error) {
-      console.error('[APIHealth] Failed to load endpoints:', error);
+      logger.error('[APIHealth] Failed to load endpoints:', error);
       apiEndpoints = [];
       endpointsLoaded = true;
     }

@@ -1,11 +1,12 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
 
-  const API_BASE = API_CONFIG.BASE_URL + '/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let activities = [];
   let total = 0;
@@ -69,7 +70,7 @@
       loading = false;
       isManualRefresh = false;
     } catch (error) {
-      console.error('Failed to load activity log:', error);
+      logger.error('Failed to load activity log:', error);
       loading = false;
       isManualRefresh = false;
     }
@@ -263,7 +264,7 @@
 
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error);
     }
   }
 

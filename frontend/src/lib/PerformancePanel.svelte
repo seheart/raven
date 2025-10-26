@@ -1,11 +1,12 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { formatTime } from './timeFormat.js';
   import { API_CONFIG } from '../config.js';
 
-  const API_BASE = API_CONFIG.BASE_URL + '/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let activeTab = 'metrics'; // 'metrics', 'charts', or 'correlations'
   let systemMetrics = [];
@@ -89,7 +90,7 @@
       error = err.toString();
       loading = false;
       isManualRefresh = false;
-      console.error('Error fetching performance data:', err);
+      logger.error('Error fetching performance data:', err);
     }
   }
 
@@ -98,7 +99,7 @@
       const correlationsResponse = await fetch(`${API_BASE}/performance-correlations?time_window_seconds=10`);
       correlations = await correlationsResponse.json();
     } catch (err) {
-      console.error('Error fetching correlations:', err);
+      logger.error('Error fetching correlations:', err);
       correlations = [];
     }
   }

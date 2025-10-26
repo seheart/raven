@@ -1,11 +1,12 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
 
-  const API_BASE = API_CONFIG.BASE_URL + '/api';
+  const API_BASE = API_CONFIG.API_BASE;
   let events = [];
   let allSessions = [];
   let selectedSession = 'all'; // 'all' or a specific session ID
@@ -136,7 +137,7 @@
         { id: currentSessionId, label: `Current Session (${currentSessionId?.slice(0, 8)}...)` }
       ];
     } catch (e) {
-      console.error('Failed to load sessions:', e);
+      logger.error('Failed to load sessions:', e);
       allSessions = [{ id: 'all', label: 'All Sessions' }];
     }
   }
@@ -158,7 +159,7 @@
       loading = false;
       isManualRefresh = false;
     } catch (e) {
-      console.error('Failed to load events:', e);
+      logger.error('Failed to load events:', e);
       loading = false;
       isManualRefresh = false;
     }

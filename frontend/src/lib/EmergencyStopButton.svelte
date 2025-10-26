@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
+  import { logger } from './logger.js';
 
   let paused = false;
   let pauseReason = '';
@@ -23,7 +24,7 @@
       pauseTime = data.pauseTime;
       pauseDuration = data.duration;
     } catch (error) {
-      console.error('Failed to fetch pause status:', error);
+      logger.error('Failed to fetch pause status:', error);
     }
   }
 
@@ -51,7 +52,7 @@
 
       await fetchStatus();
     } catch (error) {
-      console.error('Failed to pause monitoring:', error);
+      logger.error('Failed to pause monitoring:', error);
       notifications.error('Failed to pause monitoring');
     }
   }
@@ -77,7 +78,7 @@
 
       await fetchStatus();
     } catch (error) {
-      console.error('Failed to resume monitoring:', error);
+      logger.error('Failed to resume monitoring:', error);
       notifications.error('Failed to resume monitoring');
     }
   }
@@ -100,14 +101,14 @@
   // Setup WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('monitoring-paused', (data) => {
-      console.log('Monitoring paused:', data);
+      logger.info('Monitoring paused:', data);
       fetchStatus();
       pulsing = true;
       setTimeout(() => pulsing = false, 1000);
     });
 
     websocketService.subscribe('monitoring-resumed', (data) => {
-      console.log('Monitoring resumed:', data);
+      logger.info('Monitoring resumed:', data);
       fetchStatus();
     });
   }

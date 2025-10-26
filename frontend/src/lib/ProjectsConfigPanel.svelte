@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { showSuccess, showError } from './stores/notifications.js';
+  import { logger } from './logger.js';
 
   const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -50,7 +51,7 @@
       config = await response.json();
       error = null;
     } catch (err) {
-      console.error('Failed to load projects:', err);
+      logger.error('Failed to load projects:', err);
       error = err.message;
     } finally {
       loading = false;
@@ -78,7 +79,7 @@
         showSuccess('No new projects found');
       }
     } catch (err) {
-      console.error('Failed to discover projects:', err);
+      logger.error('Failed to discover projects:', err);
       showError(`Discovery failed: ${err.message}`);
     } finally {
       discovering = false;

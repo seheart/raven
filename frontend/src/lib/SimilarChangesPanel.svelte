@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount } from 'svelte';
   import { api } from './apiClient.js';
   import { formatDateTime } from './timeFormat.js';
@@ -37,7 +38,7 @@
         };
       }
     } catch (err) {
-      console.error('Failed to load similar changes:', err);
+      logger.error('Failed to load similar changes:', err);
       error = err.message;
     } finally {
       loading = false;

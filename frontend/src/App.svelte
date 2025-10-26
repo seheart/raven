@@ -57,10 +57,11 @@
   import { setupNotificationListeners } from './lib/notificationListener.js';
   import { websocketService } from './lib/websocket.js';
   import { checkServerHealth } from './lib/apiClient.js';
+  import { API_CONFIG } from './config.js';
   // Authentication disabled
   // import { authService, isAuthenticated } from './lib/authStore.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   // Check if authentication is disabled on backend
   const AUTH_DISABLED = false; // Will be detected from backend

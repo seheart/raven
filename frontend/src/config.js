@@ -6,6 +6,7 @@
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: 'http://localhost:3030',
+  API_BASE: 'http://localhost:3030/api',  // Centralized API base path
   get ENDPOINTS() {
     return {
       // Health & Status

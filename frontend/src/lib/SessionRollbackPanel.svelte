@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount } from 'svelte';
   import { notifications } from './notificationService.js';
 
@@ -20,7 +21,7 @@
       sessions = data.sessions;
       loading = false;
     } catch (error) {
-      console.error('Failed to fetch sessions:', error);
+      logger.error('Failed to fetch sessions:', error);
       notifications.error('Failed to load sessions');
       loading = false;
     }
@@ -38,7 +39,7 @@
       previewData = await response.json();
       previewing = false;
     } catch (error) {
-      console.error('Failed to preview rollback:', error);
+      logger.error('Failed to preview rollback:', error);
       notifications.error('Failed to preview rollback');
       previewing = false;
     }
@@ -77,7 +78,7 @@
       // Refresh sessions
       await fetchSessions();
     } catch (error) {
-      console.error('Failed to execute rollback:', error);
+      logger.error('Failed to execute rollback:', error);
       notifications.error('Failed to execute rollback');
       rollingback = false;
     }

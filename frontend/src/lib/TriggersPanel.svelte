@@ -7,8 +7,9 @@
   import { getEmptyStateMessage } from './utils/projectFilter.js';
   import ProjectBadge from './ProjectBadge.svelte';
   import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
-  const API_BASE = API_CONFIG.BASE_URL + '/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let activeTab = 'rules'; // 'rules', 'events', 'stats'
   let triggers = [];
@@ -126,7 +127,7 @@
       lastUpdated = new Date();
     } catch (e) {
       error = `Failed to load triggers data: ${e}`;
-      console.error(error);
+      logger.error(error);
     } finally {
       loading = false;
       isManualRefresh = false;
@@ -157,7 +158,7 @@
       await loadAllData();
     } catch (e) {
       error = `Failed to reload config: ${e}`;
-      console.error(error);
+      logger.error(error);
     }
   }
 
@@ -169,7 +170,7 @@
       setTimeout(() => successMessage = null, 3000);
     } catch (e) {
       error = `Failed to clear cooldowns: ${e}`;
-      console.error(error);
+      logger.error(error);
     }
   }
 
@@ -205,7 +206,7 @@
       setTimeout(() => successMessage = null, 3000);
     } catch (e) {
       error = `Failed to test trigger: ${e}`;
-      console.error(error);
+      logger.error(error);
     }
   }
 

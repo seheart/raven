@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { fetchErrorLogs, fetchErrorStats, clearErrorLogs, logError } from './errorLogger.js';
   import { formatDateTime } from './timeFormat.js';
@@ -84,7 +85,7 @@
       lastUpdated = new Date();
     } catch (err) {
       error = err.message;
-      console.error('Failed to load errors:', err);
+      logger.error('Failed to load errors:', err);
     } finally {
       loading = false;
       isManualRefresh = false;
@@ -108,7 +109,7 @@
         }
       });
     } catch (err) {
-      console.error('Failed to load error stats:', err);
+      logger.error('Failed to load error stats:', err);
     }
   }
 

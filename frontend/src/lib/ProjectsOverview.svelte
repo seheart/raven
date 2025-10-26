@@ -1,8 +1,10 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let projectsData = [];
   let availableProjects = [];
@@ -64,14 +66,14 @@
 
       loading = false;
     } catch (error) {
-      console.error('Error loading projects overview:', error);
+      logger.error('Error loading projects overview:', error);
       loading = false;
     }
   }
 
   function selectProject(projectName) {
     // No longer using project filter - Raven shows all projects
-    console.log(`Selected project: ${projectName}`);
+    logger.info(`Selected project: ${projectName}`);
   }
 
   function formatRelativeTime(timestamp) {

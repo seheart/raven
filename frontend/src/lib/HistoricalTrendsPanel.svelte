@@ -3,6 +3,8 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { websocketService } from './websocket.js';
+  import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
   let trends = [];
   let loading = true;
@@ -11,7 +13,7 @@
   let days = 7;
   let lastUpdate = new Date();
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   $: maxEventCount = Math.max(...trends.map(t => t.event_count || 0), 1);
 
@@ -50,7 +52,7 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      console.error('Failed to load trends:', err);
+      logger.error('Failed to load trends:', err);
       error = err.message;
     } finally {
       loading = false;

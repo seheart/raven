@@ -4,6 +4,7 @@
   import { settings as settingsStore } from './settingsStore.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
   // Use reactive settings store
   let settings = {};
@@ -149,8 +150,8 @@
         });
       }
     } catch (err) {
-      console.error('Error requesting notification permission:', err);
-      notifications.error('Failed to request notification permission', {
+      logger.error('Error requesting notification permission:', err);
+      notifications.error('Failed to request notification permission:', {
         title: 'Error'
       });
     }

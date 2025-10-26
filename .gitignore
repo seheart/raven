@@ -17,6 +17,10 @@
 /backend/logs/
 /backend/*.log
 
+# Backend build artifacts
+/backend/dist/
+/backend/coverage/
+
 # Keep .raven structure
 !/.raven/.gitkeep
 !/.raven/db/.gitkeep

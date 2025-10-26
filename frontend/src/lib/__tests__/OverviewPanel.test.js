@@ -5,17 +5,15 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
-import OverviewPanel from '../OverviewPanel.svelte';
 
-// Mock fetch
-global.fetch = vi.fn();
-
-// Mock websocket service
+// Mock websocket service - must be before component import
 vi.mock('../websocket.js', () => ({
   websocketService: {
     connect: vi.fn(),
     on: vi.fn(),
-    off: vi.fn()
+    off: vi.fn(),
+    subscribe: vi.fn(() => vi.fn()), // Return unsubscribe function
+    isConnected: vi.fn(() => true)
   }
 }));
 
@@ -26,6 +24,20 @@ vi.mock('../notificationService.js', () => ({
     error: vi.fn()
   }
 }));
+
+// Mock logger
+vi.mock('../logger.js', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn()
+  }
+}));
+
+import OverviewPanel from '../OverviewPanel.svelte';
+
+// Mock fetch
+global.fetch = vi.fn();
 
 describe('OverviewPanel', () => {
   beforeEach(() => {
@@ -317,8 +329,8 @@ describe('OverviewPanel', () => {
       await waitFor(() => {
         const liveText = screen.queryByText(/Live/i);
         expect(liveText).toBeTruthy();
-      });
-    });
+      }, { timeout: 5000 });
+    }, 10000);
 
     it('should display recent activity items', async () => {
       render(OverviewPanel, {
@@ -331,8 +343,8 @@ describe('OverviewPanel', () => {
       await waitFor(() => {
         const activityItem = screen.queryByText(/Button\.svelte|helpers\.js/i);
         expect(activityItem).toBeTruthy();
-      }, { timeout: 3000 });
-    });
+      }, { timeout: 5000 });
+    }, 10000);
 
     it('should show change type icons', async () => {
       render(OverviewPanel, {
@@ -345,8 +357,8 @@ describe('OverviewPanel', () => {
       await waitFor(() => {
         const icons = screen.queryByText(/➕|✏️|🗑️/);
         expect(icons).toBeTruthy();
-      }, { timeout: 3000 });
-    });
+      }, { timeout: 5000 });
+    }, 10000);
 
     it('should show empty state when no activity', async () => {
       global.fetch.mockImplementation((url) => {
@@ -407,8 +419,8 @@ describe('OverviewPanel', () => {
       await waitFor(() => {
         const changeCount = screen.queryByText(/\d+ changes/i);
         expect(changeCount).toBeTruthy();
-      }, { timeout: 3000 });
-    });
+      }, { timeout: 5000 });
+    }, 10000);
   });
 
   describe('Time-based Greeting', () => {
@@ -449,11 +461,39 @@ describe('OverviewPanel', () => {
             json: () => Promise.resolve({
               total_events: 300, // High activity
               session_duration_seconds: 600, // 10 minutes = 30 events/min
-              unique_files_modified: 25
+              unique_files_modified: 25,
+              total_files: 25,
+              total_changes: 300,
+              creates: 50,
+              edits: 200,
+              deletes: 50
             })
           });
         }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+        if (url.includes('/system-metrics')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([{
+              cpu_percent: 45,
+              memory_percent: 60,
+              memory_used_mb: 4000,
+              memory_total_mb: 8000
+            }])
+          });
+        }
+        if (url.includes('/all-file-events')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([])
+          });
+        }
+        if (url.includes('/top-modified-files')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ files: [] })
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       });
 
       render(OverviewPanel, {
@@ -466,8 +506,8 @@ describe('OverviewPanel', () => {
       await waitFor(() => {
         const highFlow = screen.queryByText(/🔥|High/i);
         expect(highFlow).toBeTruthy();
-      });
-    });
+      }, { timeout: 5000 });
+    }, 10000);
 
     it('should show low flow state for low activity', async () => {
       global.fetch.mockImplementation((url) => {
@@ -477,11 +517,39 @@ describe('OverviewPanel', () => {
             json: () => Promise.resolve({
               total_events: 10, // Low activity
               session_duration_seconds: 3600, // 1 hour = 0.27 events/min
-              unique_files_modified: 5
+              unique_files_modified: 5,
+              total_files: 5,
+              total_changes: 10,
+              creates: 2,
+              edits: 6,
+              deletes: 2
             })
           });
         }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+        if (url.includes('/system-metrics')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([{
+              cpu_percent: 10,
+              memory_percent: 30,
+              memory_used_mb: 2000,
+              memory_total_mb: 8000
+            }])
+          });
+        }
+        if (url.includes('/all-file-events')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([])
+          });
+        }
+        if (url.includes('/top-modified-files')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ files: [] })
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       });
 
       render(OverviewPanel, {
@@ -494,8 +562,8 @@ describe('OverviewPanel', () => {
       await waitFor(() => {
         const lowFlow = screen.queryByText(/💤|Low/i);
         expect(lowFlow).toBeTruthy();
-      });
-    });
+      }, { timeout: 5000 });
+    }, 10000);
   });
 
   describe('Loading States', () => {

@@ -1,8 +1,10 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
+  import { API_CONFIG } from '../config.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let cpu = 0;
   let memory = 0;
@@ -22,7 +24,7 @@
         memoryTotal = latest?.memory_total_mb || 0;
       }
     } catch (error) {
-      console.error('Failed to get metrics:', error);
+      logger.error('Failed to get metrics:', error);
     }
   }
 

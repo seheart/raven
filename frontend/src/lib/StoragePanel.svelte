@@ -1,10 +1,11 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
   import { websocketService } from './websocket.js';
 
-  const API_BASE = API_CONFIG.BASE_URL + '/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let storageData = null;
   let loading = true;
@@ -49,7 +50,7 @@
       isManualRefresh = false;
       error = null;
     } catch (err) {
-      console.error('Failed to load storage data:', err);
+      logger.error('Failed to load storage data:', err);
       error = err.message;
       loading = false;
       isManualRefresh = false;
@@ -116,7 +117,7 @@
 
       alert(`Database ${dbName} exported successfully!`);
     } catch (err) {
-      console.error('Failed to export database:', err);
+      logger.error('Failed to export database:', err);
       alert(`Failed to export database: ${err.message}`);
     }
   }
@@ -141,7 +142,7 @@
         alert(`Optimization failed: ${result.error}`);
       }
     } catch (err) {
-      console.error('Failed to optimize database:', err);
+      logger.error('Failed to optimize database:', err);
       alert(`Failed to optimize database: ${err.message}`);
     }
   }
@@ -181,7 +182,7 @@
         alert(`Cleanup failed: ${result.error}`);
       }
     } catch (err) {
-      console.error('Failed to clean database:', err);
+      logger.error('Failed to clean database:', err);
       alert(`Failed to clean database: ${err.message}`);
     }
   }
@@ -200,7 +201,7 @@
       const response = await fetch(`${API_BASE}/storage/retention`);
       retentionPolicy = await response.json();
     } catch (err) {
-      console.error('Failed to load retention policy:', err);
+      logger.error('Failed to load retention policy:', err);
     }
   }
 
@@ -221,7 +222,7 @@
         alert(`Failed to save policy: ${result.error}`);
       }
     } catch (err) {
-      console.error('Failed to save retention policy:', err);
+      logger.error('Failed to save retention policy:', err);
       alert(`Failed to save policy: ${err.message}`);
     }
   }

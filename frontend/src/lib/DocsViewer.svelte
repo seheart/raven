@@ -2,10 +2,12 @@
   import { onMount, createEventDispatcher } from 'svelte';
   import { fade } from 'svelte/transition';
   import { marked } from 'marked';
+  import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
   const dispatch = createEventDispatcher();
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   let docs = [];
   let selectedDoc = null;
@@ -44,7 +46,7 @@
       }
     } catch (err) {
       error = 'Failed to load documentation list';
-      console.error(err);
+      logger.error(err);
     }
   }
 
@@ -65,7 +67,7 @@
       selectedDoc = filepath;
     } catch (err) {
       error = `Failed to load ${filepath}`;
-      console.error(err);
+      logger.error(err);
     } finally {
       loading = false;
     }

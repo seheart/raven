@@ -2,8 +2,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
+  import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
-  const API_BASE = 'http://localhost:3030/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   // Health status
   let health = {
@@ -75,7 +77,7 @@
         );
       }
     } catch (error) {
-      console.error('Failed to load startup health checks:', error);
+      logger.error('Failed to load startup health checks:', error);
       startupHealthStatus = 'error';
     }
   }
@@ -146,7 +148,7 @@
           syntaxErrorCount = syntaxData.count || 0;
         }
       } catch (err) {
-        console.error('Failed to fetch syntax errors:', err);
+        logger.error('Failed to fetch syntax errors:', err);
       }
 
       health.checks = {
@@ -168,7 +170,7 @@
       health.lastCheck = new Date();
       loading = false;
     } catch (err) {
-      console.error('Failed to fetch health:', err);
+      logger.error('Failed to fetch health:', err);
       error = err.message;
       loading = false;
     }

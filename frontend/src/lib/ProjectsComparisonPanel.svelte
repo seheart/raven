@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './logger.js';
   import { onMount } from 'svelte';
   import { api } from './apiClient.js';
   import { notifications } from './notificationService.js';
@@ -29,7 +30,7 @@
             last_activity: eventsData.events?.[0]?.timestamp || null
           };
         } catch (error) {
-          console.error(`Failed to load stats for project ${project.name}:`, error);
+          logger.error(`Failed to load stats for project ${project.name}:`, error);
           return { ...project, total_events: 0, total_errors: 0, last_activity: null };
         }
       });

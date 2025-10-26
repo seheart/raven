@@ -7,11 +7,12 @@
   import ProjectsOverview from './ProjectsOverview.svelte';
   import HealthWidget from './HealthWidget.svelte';
   import { API_CONFIG } from '../config.js';
+  import { logger } from './logger.js';
 
   export let sessionId = 'Loading...';
   export let sessionUptime = '0s';
 
-  const API_BASE = API_CONFIG.BASE_URL + '/api';
+  const API_BASE = API_CONFIG.API_BASE;
 
   // Combined state from Dashboard, Metrics, and Git
   let stats = {
@@ -114,7 +115,7 @@
         notifications.success('Dashboard refreshed', { title: 'Overview Updated' });
       }
     } catch (error) {
-      console.error('Failed to load overview data:', error);
+      logger.error('Failed to load overview data:', error);
       notifications.error('Failed to load dashboard data', {
         title: 'Dashboard Error'
       });
@@ -143,7 +144,7 @@
       topFiles = filesData.files || [];
       lastUpdated = new Date();
     } catch (error) {
-      console.error('Failed to update activity:', error);
+      logger.error('Failed to update activity:', error);
     }
   };
 

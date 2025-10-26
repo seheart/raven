@@ -2,8 +2,9 @@ import { logger } from './logger.js';
 import { notifications } from './notificationService.js';
 import { authService } from './authStore.js';
 import { logError } from './errorLogger.js';
+import { API_CONFIG } from '../config.js';
 
-const API_BASE = 'http://localhost:3030/api';
+const API_BASE = API_CONFIG.API_BASE;
 
 /**
  * Enhanced fetch wrapper with automatic error notifications and JWT authentication

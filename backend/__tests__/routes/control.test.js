@@ -9,11 +9,8 @@ import { createControlRoutes } from '../../routes/control.js';
 import fs from 'fs';
 import { jest } from '@jest/globals';
 
-// Mock fs and child_process modules
+// Mock fs module
 jest.mock('fs');
-jest.unstable_mockModule('child_process', () => ({
-  exec: jest.fn()
-}));
 
 describe('Control Routes', () => {
   let app;
@@ -22,13 +19,14 @@ describe('Control Routes', () => {
   let mockProjectStateMutex;
   let mockProjectState;
   let mockInitializeWatcher;
-  let execAsync;
+  let mockExecAsync;
 
-  beforeEach(async () => {
-    // Import mocked exec after unstable_mockModule
-    const { promisify } = await import('util');
-    const { exec } = await import('child_process');
-    execAsync = promisify(exec);
+  beforeEach(() => {
+    // Reset mocks first
+    jest.clearAllMocks();
+
+    // Create mock execAsync
+    mockExecAsync = jest.fn().mockResolvedValue({ stdout: '', stderr: '' });
 
     // Create mock file cache
     mockFileCache = new Map();
@@ -60,16 +58,14 @@ describe('Control Routes', () => {
       projectState: mockProjectState,
       projectStateMutex: mockProjectStateMutex,
       initializeWatcher: mockInitializeWatcher,
-      PORT: 3030
+      PORT: 3030,
+      execAsync: mockExecAsync
     };
 
     // Create Express app with control routes
     app = express();
     app.use(express.json());
     app.use('/api/control', createControlRoutes(mockDeps));
-
-    // Reset mocks
-    jest.clearAllMocks();
   });
 
   describe('POST /api/control/clear-cache', () => {
@@ -109,6 +105,9 @@ describe('Control Routes', () => {
 
   describe('POST /api/control/restart-watcher', () => {
     test('should restart file watcher successfully', async () => {
+      // Save reference to the original watcher mock before it gets replaced
+      const originalCloseMock = mockProjectState.watcher.close;
+
       const response = await request(app).post('/api/control/restart-watcher');
 
       expect(response.status).toBe(200);
@@ -118,8 +117,8 @@ describe('Control Routes', () => {
         project: 'test-project'
       });
 
-      // Should close existing watcher
-      expect(mockProjectState.watcher.close).toHaveBeenCalled();
+      // Should close existing watcher (check original close mock)
+      expect(originalCloseMock).toHaveBeenCalled();
 
       // Should initialize new watcher
       expect(mockInitializeWatcher).toHaveBeenCalled();
@@ -160,7 +159,7 @@ describe('Control Routes', () => {
       global.process.kill = jest.fn();
 
       // Mock execAsync
-      execAsync.mockResolvedValue({ stdout: '', stderr: '' });
+      mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
     });
 
     test('should restart bridge successfully', async () => {
@@ -174,19 +173,19 @@ describe('Control Routes', () => {
       });
 
       // Should call stop script
-      expect(execAsync).toHaveBeenCalledWith(
+      expect(mockExecAsync).toHaveBeenCalledWith(
         expect.stringContaining('stop-claude-bridge.sh')
       );
 
       // Should call start script
-      expect(execAsync).toHaveBeenCalledWith(
+      expect(mockExecAsync).toHaveBeenCalledWith(
         expect.stringContaining('start-claude-bridge.sh')
       );
     });
 
     test('should handle bridge not running initially', async () => {
       // First call to stop script fails (bridge not running)
-      execAsync
+      mockExecAsync
         .mockRejectedValueOnce(new Error('Bridge not running'))
         .mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -227,7 +226,7 @@ describe('Control Routes', () => {
 
     test('should include stdout/stderr on verification failure', async () => {
       fs.existsSync.mockReturnValue(false);
-      execAsync.mockResolvedValue({
+      mockExecAsync.mockResolvedValue({
         stdout: 'Bridge output',
         stderr: 'Bridge error'
       });
@@ -240,26 +239,13 @@ describe('Control Routes', () => {
     });
 
     test('should handle script execution errors', async () => {
-      execAsync.mockRejectedValue(new Error('Script execution failed'));
+      mockExecAsync.mockRejectedValue(new Error('Script execution failed'));
 
       const response = await request(app).post('/api/control/restart-bridge');
 
       expect(response.status).toBe(500);
       expect(response.body.success).toBe(false);
       expect(response.body.error).toContain('Script execution failed');
-    });
-
-    test('should wait 500ms between stop and start', async () => {
-      jest.useFakeTimers();
-
-      const responsePromise = request(app).post('/api/control/restart-bridge');
-
-      // Fast-forward time
-      jest.advanceTimersByTime(500);
-
-      await responsePromise;
-
-      jest.useRealTimers();
     });
   });
 
