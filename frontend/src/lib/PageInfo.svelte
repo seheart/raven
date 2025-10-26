@@ -96,7 +96,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 150;
+    z-index: 9999;
     opacity: 0.7;
   }
 
