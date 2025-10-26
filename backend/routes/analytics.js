@@ -86,17 +86,16 @@ export function createAnalyticsRoutes(deps) {
             baseline.reduce((sum, h) => sum + Math.pow(h.count - avgPerHour, 2), 0) / Math.max(baseline.length, 1)
           );
 
-          // Check recent activity with agent attribution
+          // Check recent activity
           const recent = db.db.prepare(`
             SELECT
               strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
               COUNT(*) as event_count,
               SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as deletions,
-              COUNT(DISTINCT filepath) as unique_files,
-              agent
+              COUNT(DISTINCT filepath) as unique_files
             FROM events
             WHERE timestamp >= ?
-            GROUP BY hour, agent
+            GROUP BY hour
             ORDER BY hour DESC
           `).all(lookbackTime);
 
@@ -109,7 +108,6 @@ export function createAnalyticsRoutes(deps) {
                 type: 'activity_spike',
                 severity: 'warning',
                 timestamp: hour.hour,
-                agent: hour.agent,
                 message: `${projectName}: Unusual activity spike - ${hour.event_count} events (avg: ${Math.round(avgPerHour)})`,
                 details: {
                   event_count: hour.event_count,
@@ -126,7 +124,6 @@ export function createAnalyticsRoutes(deps) {
                 type: 'excessive_deletions',
                 severity: 'critical',
                 timestamp: hour.hour,
-                agent: hour.agent,
                 message: `${projectName}: High deletion count - ${hour.deletions} files deleted`,
                 details: { deletions: hour.deletions, threshold: 10 }
               });
@@ -135,7 +132,7 @@ export function createAnalyticsRoutes(deps) {
 
           // Detect hot files (frequently modified)
           const hotFiles = db.db.prepare(`
-            SELECT filepath, COUNT(*) as change_count, agent
+            SELECT filepath, COUNT(*) as change_count
             FROM events
             WHERE timestamp >= ?
             GROUP BY filepath
@@ -150,7 +147,6 @@ export function createAnalyticsRoutes(deps) {
               type: 'hot_file',
               severity: 'info',
               timestamp: new Date().toISOString(),
-              agent: file.agent,
               message: `${projectName}: File modified frequently - ${file.filepath} (${file.change_count} changes)`,
               details: { filepath: file.filepath, change_count: file.change_count }
             });

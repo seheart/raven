@@ -28,23 +28,23 @@ describe('Search Routes', () => {
 
     // Insert test data
     testDb.db.prepare(`
-      INSERT INTO events (filepath, change_type, timestamp, project_name)
-      VALUES ('src/test.js', 'modified', datetime('now'), 'test-project')
+      INSERT INTO events (filepath, change_type, timestamp)
+      VALUES ('src/test.js', 'modified', datetime('now'))
     `).run();
 
     testDb.db.prepare(`
-      INSERT INTO conversations (tool_name, content, timestamp, project_name)
-      VALUES ('test-tool', 'test conversation content', datetime('now'), 'test-project')
+      INSERT INTO conversations (tool_name, content, timestamp, project, claude_session_id, event_type)
+      VALUES ('test-tool', 'test conversation content', datetime('now'), 'test-project', 'session-1', 'tool_call')
     `).run();
 
     testDb.db.prepare(`
-      INSERT INTO error_logs (message, severity, context, timestamp)
-      VALUES ('test error message', 'high', '{}', datetime('now'))
+      INSERT INTO error_logs (message, severity, metadata, timestamp, error_type)
+      VALUES ('test error message', 'high', '{}', datetime('now'), 'TestError')
     `).run();
 
     testDb.db.prepare(`
-      INSERT INTO notifications (title, message, timestamp)
-      VALUES ('Test Notification', 'test notification message', datetime('now'))
+      INSERT INTO notifications (title, message, timestamp, type, severity)
+      VALUES ('Test Notification', 'test notification message', datetime('now'), 'info', 'low')
     `).run();
 
     const deps = {

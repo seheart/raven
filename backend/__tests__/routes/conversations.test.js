@@ -28,7 +28,7 @@ describe('Conversations Routes', () => {
 
     // Insert test conversation data
     ravenDb.db.prepare(`
-      INSERT INTO conversations (timestamp, claude_session_id, event_type, message_content, tool_name, project_name)
+      INSERT INTO conversations (timestamp, claude_session_id, event_type, content, tool_name, project)
       VALUES
         (datetime('now'), 'session-1', 'user_message', 'Test message 1', NULL, 'test-project'),
         (datetime('now'), 'session-1', 'assistant_text', 'Test response 1', NULL, 'test-project'),

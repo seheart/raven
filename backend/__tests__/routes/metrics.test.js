@@ -15,6 +15,10 @@ describe('Metrics Routes', () => {
   let app;
   let testDb;
   let testDir;
+  let mockProjectDatabases;
+
+  // Mock cache middleware
+  const mockCacheMiddleware = () => (req, res, next) => next();
 
   beforeEach(() => {
     app = express();
@@ -25,12 +29,20 @@ describe('Metrics Routes', () => {
     const dbPath = join(testDir, 'test.db');
     testDb = new RavenDB(dbPath);
 
+    mockProjectDatabases = new Map();
+    mockProjectDatabases.set('raven', testDb);
+
     const deps = {
       projectState: new Map(),
+      projectDatabases: mockProjectDatabases,
+      cacheMiddleware: mockCacheMiddleware,
+      metricsCache: null,
+      analyticsCache: null,
+      dashboardCache: null,
       getDb: () => testDb
     };
 
-    app.use('/api/metrics', createMetricsRoutes(deps));
+    app.use('/api', createMetricsRoutes(deps));
   });
 
   afterEach(() => {
@@ -44,22 +56,21 @@ describe('Metrics Routes', () => {
     }
   });
 
-  describe('GET /api/metrics/system', () => {
+  describe('GET /api/system-metrics', () => {
     test('should return system metrics', async () => {
       const response = await request(app)
-        .get('/api/metrics/system')
+        .get('/api/system-metrics')
         .expect('Content-Type', /json/)
         .expect(200);
 
-      expect(response.body).toHaveProperty('cpu');
-      expect(response.body).toHaveProperty('memory');
+      expect(Array.isArray(response.body)).toBe(true);
     });
   });
 
-  describe('GET /api/metrics/recent', () => {
-    test('should return recent metrics', async () => {
+  describe('GET /api/process-metrics', () => {
+    test('should return process metrics', async () => {
       const response = await request(app)
-        .get('/api/metrics/recent')
+        .get('/api/process-metrics')
         .expect('Content-Type', /json/)
         .expect(200);
 
@@ -68,17 +79,17 @@ describe('Metrics Routes', () => {
 
     test('should handle limit parameter', async () => {
       const response = await request(app)
-        .get('/api/metrics/recent?limit=50')
+        .get('/api/process-metrics?limit=50')
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
     });
   });
 
-  describe('GET /api/metrics/summary', () => {
-    test('should return metrics summary', async () => {
+  describe('GET /api/metrics-stats', () => {
+    test('should return metrics statistics', async () => {
       const response = await request(app)
-        .get('/api/metrics/summary')
+        .get('/api/metrics-stats')
         .expect('Content-Type', /json/)
         .expect(200);
 

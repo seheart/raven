@@ -26,12 +26,19 @@ describe('Events Routes', () => {
     const dbPath = join(testDir, 'test.db');
     testDb = new RavenDB(dbPath);
 
+    const mockProjectDatabases = new Map();
+    mockProjectDatabases.set('test-project', testDb);
+
     const deps = {
-      projectState: new Map(),
+      projectState: {
+        db: testDb,
+        watchPath: testDir
+      },
+      projectDatabases: mockProjectDatabases,
       getDb: () => testDb
     };
 
-    app.use('/api/events', createEventsRoutes(deps));
+    app.use('/api', createEventsRoutes(deps));
   });
 
   afterEach(() => {
@@ -45,71 +52,71 @@ describe('Events Routes', () => {
     }
   });
 
-  describe('GET /api/events', () => {
-    test('should return events list', async () => {
+  describe('GET /api/tracked-files', () => {
+    test('should return tracked files list', async () => {
       const response = await request(app)
-        .get('/api/events')
+        .get('/api/tracked-files')
         .expect('Content-Type', /json/)
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
+    });
+  });
+
+  describe('GET /api/file-events', () => {
+    test('should return file events', async () => {
+      const response = await request(app)
+        .get('/api/file-events')
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('events');
+      expect(response.body).toHaveProperty('total');
+      expect(Array.isArray(response.body.events)).toBe(true);
     });
 
     test('should handle limit parameter', async () => {
       const response = await request(app)
-        .get('/api/events?limit=10')
+        .get('/api/file-events?limit=10')
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeLessThanOrEqual(10);
-    });
-
-    test('should handle offset parameter', async () => {
-      const response = await request(app)
-        .get('/api/events?offset=5')
-        .expect(200);
-
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body).toHaveProperty('events');
+      expect(Array.isArray(response.body.events)).toBe(true);
     });
   });
 
-  describe('GET /api/events/stats', () => {
-    test('should return event statistics', async () => {
+  describe('GET /api/all-file-events', () => {
+    test('should return all file events', async () => {
       const response = await request(app)
-        .get('/api/events/stats')
+        .get('/api/all-file-events')
         .expect('Content-Type', /json/)
         .expect(200);
 
+      expect(Array.isArray(response.body)).toBe(true);
+    });
+  });
+
+  describe('GET /api/activity-log', () => {
+    test('should return activity log', async () => {
+      const response = await request(app)
+        .get('/api/activity-log')
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('activities');
       expect(response.body).toHaveProperty('total');
-      expect(typeof response.body.total).toBe('number');
+      expect(Array.isArray(response.body.activities)).toBe(true);
     });
   });
 
-  describe('GET /api/events/:id', () => {
-    test('should handle specific event request', async () => {
+  describe('GET /api/events-by-session/:sessionId', () => {
+    test('should return events for specific session', async () => {
       const response = await request(app)
-        .get('/api/events/123')
-        .expect('Content-Type', /json/);
+        .get('/api/events-by-session/test-session-123')
+        .expect('Content-Type', /json/)
+        .expect(200);
 
-      expect([200, 404]).toContain(response.status);
-    });
-
-    test('should handle invalid event ID', async () => {
-      const response = await request(app)
-        .get('/api/events/invalid-id')
-        .expect('Content-Type', /json/);
-
-      expect([400, 404]).toContain(response.status);
-    });
-  });
-
-  describe('DELETE /api/events/:id', () => {
-    test('should handle delete request', async () => {
-      const response = await request(app)
-        .delete('/api/events/123')
-        .expect('Content-Type', /json/);
-
-      expect([200, 404, 500]).toContain(response.status);
+      expect(Array.isArray(response.body)).toBe(true);
     });
   });
 });

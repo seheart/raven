@@ -32,11 +32,11 @@ describe('Analytics Routes', () => {
 
     // Insert test data
     testDb.db.prepare(`
-      INSERT INTO events (filepath, change_type, timestamp, agent, project_name)
+      INSERT INTO events (filepath, change_type, timestamp)
       VALUES
-        ('src/test.js', 'change', datetime('now', '-1 hour'), 'test-agent', 'test-project'),
-        ('src/test2.js', 'add', datetime('now', '-2 hours'), 'test-agent', 'test-project'),
-        ('src/test3.js', 'unlink', datetime('now', '-3 hours'), 'test-agent', 'test-project')
+        ('src/test.js', 'change', datetime('now', '-1 hour')),
+        ('src/test2.js', 'add', datetime('now', '-2 hours')),
+        ('src/test3.js', 'unlink', datetime('now', '-3 hours'))
     `).run();
 
     mockProjectDatabases = new Map();

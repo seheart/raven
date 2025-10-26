@@ -29,7 +29,7 @@ export function createSearchRoutes(deps) {
       // Search events (files, changes)
       const eventsSql = `
         SELECT 'event' as type, id, filepath as title, change_type as subtitle,
-               timestamp, project_name
+               timestamp
         FROM events
         WHERE filepath LIKE ? OR change_type LIKE ?
         ORDER BY timestamp DESC
@@ -39,15 +39,15 @@ export function createSearchRoutes(deps) {
       results.push(...events.map(e => ({
         ...e,
         icon: '📄',
-        description: `${e.subtitle} - ${e.project_name || 'Unknown'}`
+        description: `${e.subtitle}`
       })));
 
       // Search conversations
       const convsSql = `
         SELECT 'conversation' as type, id, tool_name as title, content as subtitle,
-               timestamp, project_name
+               timestamp, project
         FROM conversations
-        WHERE content LIKE ? OR tool_name LIKE ? OR project_name LIKE ?
+        WHERE content LIKE ? OR tool_name LIKE ? OR project LIKE ?
         ORDER BY timestamp DESC
         LIMIT ?
       `;
@@ -61,9 +61,9 @@ export function createSearchRoutes(deps) {
       // Search errors
       const errorsSql = `
         SELECT 'error' as type, id, message as title, severity as subtitle,
-               timestamp, '' as project_name
+               timestamp
         FROM error_logs
-        WHERE message LIKE ? OR context LIKE ?
+        WHERE message LIKE ? OR metadata LIKE ?
         ORDER BY timestamp DESC
         LIMIT ?
       `;
@@ -77,7 +77,7 @@ export function createSearchRoutes(deps) {
       // Search notifications
       const notifsSql = `
         SELECT 'notification' as type, id, title, message as subtitle,
-               timestamp, '' as project_name
+               timestamp
         FROM notifications
         WHERE title LIKE ? OR message LIKE ?
         ORDER BY timestamp DESC
