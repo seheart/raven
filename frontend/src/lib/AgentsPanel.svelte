@@ -216,28 +216,6 @@
 </script>
 
 <div class="agents-panel">
-  <PageInfo
-    title="AI Agents Monitor"
-    description="This is your AI assistant monitoring hub - think of it like a security camera system for all the AI tools working on your code. The Agents page shows **real-time activity** from Claude, GPT, Gemini, Ollama, and any other AI coding assistants. You can see exactly what each AI is doing, which files they're touching, how fast they're responding, and their overall productivity stats."
-    keyPoints={[
-      '**Summary Cards at Top** - Show quick stats: Total agents working, total events (actions taken), total lines of code changed, and average response time. Example: "4 Active Agents, 127 Total Events, 1,453 Lines Changed, 2.3s Avg Response Time".',
-      '**Overview Tab** - Shows each AI agent as a card with colored border (Claude = blue, GPT = green, Gemini = cyan, Ollama = orange). Each card displays: Event count (how many actions), Lines changed (total code modified), Avg duration (how fast the AI responds). Click any card to see details.',
-      '**Recent Activity Tab** - Real-time feed of every action AI agents are taking RIGHT NOW. Shows: Agent name, action type (edit/create/delete/read), the file being modified, timestamp, and duration. Updates live via WebSocket - no refresh needed.',
-      '**Performance Tab** - Three comparison charts: Response Time Comparison (which AI is fastest), Activity Distribution (which AI is most active), Code Impact (which AI has changed the most code). Bars are color-coded per agent.',
-      '**Event Icons** - ✏️ = editing a file, ➕ = creating new file, 🗑️ = deleting file, 👁️ = reading file, ⚙️ = executing command. These icons appear in the activity feed.',
-      '**Lines Changed** - Total number of lines added + deleted by that agent across ALL files during this session. Example: "245 lines" means the AI modified 245 lines of code since Raven started.',
-      '**Response Time / Duration** - How long the AI took to complete an action, measured in milliseconds (ms) or seconds (s). Example: "1.2s" means the AI took 1.2 seconds. If you see "3.5s", that is slower than average and might indicate API throttling or a complex task.'
-    ]}
-    whenToCheck="Check this page **while AI agents are working** to see real-time progress, **after a coding session** to review what the AI changed, or **if an AI seems stuck** to diagnose why it is slow or looping."
-    warnings={[
-      '**No agents showing / "0 Active Agents"** - Raven has not detected any AI activity yet. Make sure AI agents are sending telemetry to Raven\'s backend (check that they are configured to POST to http://localhost:3030/telemetry).',
-      '**Event count over 500 on single agent** - Might indicate an agent stuck in a loop (repeatedly editing the same file). Check Recent Activity tab to see if it is doing the same action over and over.',
-      '**Response time over 5 seconds consistently** - Could mean: Slow internet connection to AI API, API rate limiting (you have hit request limits), or the AI is working on a very complex task. If it is sustained, check API status.',
-      '**Lines changed showing 0 despite events** - Agent is reading files or executing commands without modifying code. This is normal for research/analysis tasks.',
-      '**Agent appears then disappears** - Agents only show while actively working. Once they finish a task and stop sending events, they will disappear from the list. This is expected behavior.'
-    ]}
-  />
-
   <div class="header">
     <h2>🤖 AI Agents</h2>
     <div class="header-actions">
@@ -292,27 +270,52 @@
 
   <!-- Tabs -->
   <div class="tabs">
-    <button
-      class="tab"
-      class:active={activeTab === 'overview'}
-      on:click={() => activeTab = 'overview'}
-    >
-      📊 Overview
-    </button>
-    <button
-      class="tab"
-      class:active={activeTab === 'activity'}
-      on:click={() => activeTab = 'activity'}
-    >
-      📝 Recent Activity
-    </button>
-    <button
-      class="tab"
-      class:active={activeTab === 'performance'}
-      on:click={() => activeTab = 'performance'}
-    >
-      ⚡️ Performance
-    </button>
+    <div class="tabs-left">
+      <button
+        class="tab"
+        class:active={activeTab === 'overview'}
+        on:click={() => activeTab = 'overview'}
+      >
+        📊 Overview
+      </button>
+      <button
+        class="tab"
+        class:active={activeTab === 'activity'}
+        on:click={() => activeTab = 'activity'}
+      >
+        📝 Recent Activity
+      </button>
+      <button
+        class="tab"
+        class:active={activeTab === 'performance'}
+        on:click={() => activeTab = 'performance'}
+      >
+        ⚡️ Performance
+      </button>
+    </div>
+    <div class="tabs-right">
+      <PageInfo
+        title="AI Agents Monitor"
+        description="This is your AI assistant monitoring hub - think of it like a security camera system for all the AI tools working on your code. The Agents page shows **real-time activity** from Claude, GPT, Gemini, Ollama, and any other AI coding assistants. You can see exactly what each AI is doing, which files they're touching, how fast they're responding, and their overall productivity stats."
+        keyPoints={[
+          '**Summary Cards at Top** - Show quick stats: Total agents working, total events (actions taken), total lines of code changed, and average response time. Example: "4 Active Agents, 127 Total Events, 1,453 Lines Changed, 2.3s Avg Response Time".',
+          '**Overview Tab** - Shows each AI agent as a card with colored border (Claude = blue, GPT = green, Gemini = cyan, Ollama = orange). Each card displays: Event count (how many actions), Lines changed (total code modified), Avg duration (how fast the AI responds). Click any card to see details.',
+          '**Recent Activity Tab** - Real-time feed of every action AI agents are taking RIGHT NOW. Shows: Agent name, action type (edit/create/delete/read), the file being modified, timestamp, and duration. Updates live via WebSocket - no refresh needed.',
+          '**Performance Tab** - Three comparison charts: Response Time Comparison (which AI is fastest), Activity Distribution (which AI is most active), Code Impact (which AI has changed the most code). Bars are color-coded per agent.',
+          '**Event Icons** - ✏️ = editing a file, ➕ = creating new file, 🗑️ = deleting file, 👁️ = reading file, ⚙️ = executing command. These icons appear in the activity feed.',
+          '**Lines Changed** - Total number of lines added + deleted by that agent across ALL files during this session. Example: "245 lines" means the AI modified 245 lines of code since Raven started.',
+          '**Response Time / Duration** - How long the AI took to complete an action, measured in milliseconds (ms) or seconds (s). Example: "1.2s" means the AI took 1.2 seconds. If you see "3.5s", that is slower than average and might indicate API throttling or a complex task.'
+        ]}
+        whenToCheck="Check this page **while AI agents are working** to see real-time progress, **after a coding session** to review what the AI changed, or **if an AI seems stuck** to diagnose why it is slow or looping."
+        warnings={[
+          '**No agents showing / "0 Active Agents"** - Raven has not detected any AI activity yet. Make sure AI agents are sending telemetry to Raven\'s backend (check that they are configured to POST to http://localhost:3030/telemetry).',
+          '**Event count over 500 on single agent** - Might indicate an agent stuck in a loop (repeatedly editing the same file). Check Recent Activity tab to see if it is doing the same action over and over.',
+          '**Response time over 5 seconds consistently** - Could mean: Slow internet connection to AI API, API rate limiting (you have hit request limits), or the AI is working on a very complex task. If it is sustained, check API status.',
+          '**Lines changed showing 0 despite events** - Agent is reading files or executing commands without modifying code. This is normal for research/analysis tasks.',
+          '**Agent appears then disappears** - Agents only show while actively working. Once they finish a task and stop sending events, they will disappear from the list. This is expected behavior.'
+        ]}
+      />
+    </div>
   </div>
 
   <!-- Tab Content -->
@@ -701,9 +704,21 @@
   /* Tabs */
   .tabs {
     display: flex;
-    gap: 4px;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 10px;
     border-bottom: 2px solid var(--surface-2);
+  }
+
+  .tabs-left {
+    display: flex;
+    gap: 4px;
+  }
+
+  .tabs-right {
+    display: flex;
+    align-items: center;
+    padding-right: 16px;
   }
 
   .tab {

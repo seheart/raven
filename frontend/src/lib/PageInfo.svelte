@@ -84,21 +84,17 @@
 
 <style>
   .info-button-container {
-    display: flex;
-    justify-content: center;
+    display: inline-flex;
     align-items: center;
-    width: 100%;
-    padding: 12px 0;
-    margin-bottom: 16px;
   }
 
   .info-button {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
