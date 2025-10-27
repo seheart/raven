@@ -27,16 +27,19 @@
 
 <svelte:window on:keydown={handleKeyDown} />
 
-<nav class="tab-navigation" role="navigation" aria-label="Main navigation">
-  <div class="tabs-container">
+<nav class="tab-navigation" aria-label="Main navigation">
+  <div class="tabs-container" role="tablist" aria-label="Dashboard sections">
     {#each tabs as tab}
       <button
         class="tab-button"
         class:active={activeTab === tab.id}
         on:click={() => handleTabClick(tab.id)}
-        aria-current={activeTab === tab.id ? 'page' : undefined}
-        aria-label="{tab.label} - Press {tab.shortcut} for shortcut"
-        tabindex="0"
+        role="tab"
+        aria-selected={activeTab === tab.id}
+        aria-controls="{tab.id}-panel"
+        aria-label="{tab.label} (Keyboard shortcut: {tab.shortcut})"
+        tabindex={activeTab === tab.id ? 0 : -1}
+        id="{tab.id}-tab"
       >
         <span class="tab-icon" aria-hidden="true">{tab.icon}</span>
         <span class="tab-label">{tab.label}</span>

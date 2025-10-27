@@ -171,9 +171,9 @@
   $: flowState = getFlowState();
 </script>
 
-<div class="overview-panel">
+<div class="overview-panel" role="region" aria-label="Project overview">
   <!-- Personalized Greeting -->
-  <div class="greeting-section">
+  <div class="greeting-section" role="status" aria-live="polite">
     <h2 class="greeting-text">{getGreeting()}</h2>
     <div class="session-info">
       <div class="session-detail">
@@ -198,7 +198,7 @@
   <ProjectsOverview />
 
   <!-- Main Stats Grid -->
-  <div class="stats-grid">
+  <div class="stats-grid" role="group" aria-label="Dashboard statistics">
     <!-- Current Session Card -->
     <div class="stat-card session-card" aria-label="Current session statistics">
       <div class="card-header">

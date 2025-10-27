@@ -271,29 +271,29 @@
   $: timeAgo = getTimeAgo();
 </script>
 
-<div class="error-log">
+<div class="error-log" role="region" aria-label="Error Log">
   <div class="log-header">
     <div class="header-title">
-      <h1>⚠️ Error Log</h1>
+      <h1 id="error-log-title"><span aria-hidden="true">⚠️</span> Error Log</h1>
       <p class="subtitle">Application errors and warnings</p>
     </div>
-    <div class="header-actions">
-      <span class="last-updated">Updated: {timeAgo}</span>
-      <button class="btn-test" on:click={triggerTestError}>
-        🧪 Test Error
+    <div class="header-actions" role="toolbar" aria-label="Error log actions">
+      <span class="last-updated" role="status" aria-live="polite" aria-label="Last updated {timeAgo}">Updated: {timeAgo}</span>
+      <button class="btn-test" on:click={triggerTestError} aria-label="Trigger test error">
+        <span aria-hidden="true">🧪</span> Test Error
       </button>
-      <button class="btn-export" on:click={exportLog}>
-        💾 Export JSON
+      <button class="btn-export" on:click={exportLog} aria-label="Export error log to JSON file">
+        <span aria-hidden="true">💾</span> Export JSON
       </button>
-      <button class="btn-refresh" on:click={() => { currentPage = 0; loadErrors(true); loadStats(); }} disabled={loading}>
-        <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
+      <button class="btn-refresh" on:click={() => { currentPage = 0; loadErrors(true); loadStats(); }} disabled={loading} aria-label="Refresh error log">
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
         Refresh
       </button>
     </div>
   </div>
 
   <!-- Stats Bar -->
-  <div class="stats-bar">
+  <div class="stats-bar" role="region" aria-label="Error statistics">
     <div class="stat-item">
       <span class="stat-label">Total</span>
       <span class="stat-value">{stats.total}</span>

@@ -125,24 +125,24 @@
   }
 </script>
 
-<div class="historical-trends-panel">
+<div class="historical-trends-panel" role="region" aria-label="Historical trends panel">
   <div class="panel-header">
     <div class="header-left">
-      <h2>📊 Historical Trends</h2>
+      <h2 id="trends-heading"><span aria-hidden="true">📊</span> Historical Trends</h2>
       <p class="subtitle">Activity patterns over time</p>
     </div>
-    <div class="header-right">
-      <span class="last-update">Updated: {timeSinceUpdate}</span>
-      <button class="btn-secondary" on:click={handleExportCSV}>Export CSV</button>
-      <button class="btn-secondary" on:click={handleExportJSON}>Export JSON</button>
-      <button class="btn-primary" on:click={loadTrends}>↻ Refresh</button>
+    <div class="header-right" role="toolbar" aria-label="Historical trends actions">
+      <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
+      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export trends data as CSV">Export CSV</button>
+      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export trends data as JSON">Export JSON</button>
+      <button class="btn-primary" on:click={loadTrends} aria-label="Refresh trends data"><span aria-hidden="true">↻</span> Refresh</button>
     </div>
   </div>
 
   <div class="controls">
     <div class="control-group">
       <label for="period-select">Period:</label>
-      <select id="period-select" bind:value={period} on:change={() => handlePeriodChange(period)}>
+      <select id="period-select" bind:value={period} on:change={() => handlePeriodChange(period)} aria-label="Select time period granularity">
         <option value="hourly">Hourly</option>
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
@@ -150,7 +150,7 @@
     </div>
     <div class="control-group">
       <label for="days-select">Last:</label>
-      <select id="days-select" bind:value={days} on:change={() => handleDaysChange(days)}>
+      <select id="days-select" bind:value={days} on:change={() => handleDaysChange(days)} aria-label="Select time range">
         <option value="1">24 hours</option>
         <option value="7">7 days</option>
         <option value="14">14 days</option>
@@ -163,20 +163,20 @@
   {#if loading}
     <LoadingSkeleton />
   {:else if error}
-    <div class="error-state">
-      <p>❌ Error loading trends: {error}</p>
-      <button on:click={loadTrends}>Try Again</button>
+    <div class="error-state" role="alert">
+      <p><span aria-hidden="true">❌</span> Error loading trends: {error}</p>
+      <button on:click={loadTrends} aria-label="Retry loading trends">Try Again</button>
     </div>
   {:else if trends.length === 0}
-    <div class="empty-state">
-      <p>📭 No activity data for the selected period</p>
+    <div class="empty-state" role="status">
+      <p><span aria-hidden="true">📭</span> No activity data for the selected period</p>
       <p class="hint">Try selecting a longer time range</p>
     </div>
   {:else}
     <div class="chart-container">
-      <div class="chart">
+      <div class="chart" role="img" aria-label="Historical trends chart showing activity over {period} periods">
         {#each trends as trend (trend.period)}
-          <div class="bar-group">
+          <div class="bar-group" aria-hidden="true">
             <div class="bar-stack">
               <div
                 class="bar bar-created"
@@ -201,26 +201,26 @@
       </div>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value">{trends.reduce((sum, t) => sum + t.event_count, 0).toLocaleString()}</div>
+    <div class="stats-grid" role="list" aria-label="Trends summary statistics">
+      <article class="stat-card" role="listitem">
+        <div class="stat-value" role="status">{trends.reduce((sum, t) => sum + t.event_count, 0).toLocaleString()}</div>
         <div class="stat-label">Total Events</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">{trends.reduce((sum, t) => sum + t.modifications, 0).toLocaleString()}</div>
+      </article>
+      <article class="stat-card" role="listitem">
+        <div class="stat-value" role="status">{trends.reduce((sum, t) => sum + t.modifications, 0).toLocaleString()}</div>
         <div class="stat-label">Modifications</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">{trends.reduce((sum, t) => sum + t.creations, 0).toLocaleString()}</div>
+      </article>
+      <article class="stat-card" role="listitem">
+        <div class="stat-value" role="status">{trends.reduce((sum, t) => sum + t.creations, 0).toLocaleString()}</div>
         <div class="stat-label">Creations</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">{trends.reduce((sum, t) => sum + t.deletions, 0).toLocaleString()}</div>
+      </article>
+      <article class="stat-card" role="listitem">
+        <div class="stat-value" role="status">{trends.reduce((sum, t) => sum + t.deletions, 0).toLocaleString()}</div>
         <div class="stat-label">Deletions</div>
-      </div>
+      </article>
     </div>
 
-    <div class="legend">
+    <div class="legend" aria-hidden="true">
       <div class="legend-item">
         <div class="legend-color bar-created"></div>
         <span>Created</span>

@@ -214,92 +214,105 @@
   }
 </script>
 
-<div class="agents-panel">
+<div class="agents-panel" role="region" aria-label="AI Agents monitoring">
   <div class="header">
-    <h2>🤖 AI Agents</h2>
-    <div class="header-actions">
-      <span class="last-updated">Updated: {timeAgo}</span>
+    <h2 id="agents-heading">🤖 AI Agents</h2>
+    <div class="header-actions" role="toolbar" aria-label="Agent panel actions">
+      <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
       <div class="export-dropdown">
-        <button class="btn-export">📊 Export</button>
-        <div class="export-menu">
-          <button on:click={exportAgentStatsCSV}>📄 Export CSV</button>
-          <button on:click={exportAgentStatsJSON}>📋 Export JSON</button>
+        <button class="btn-export" aria-label="Export agent data" aria-haspopup="menu">📊 Export</button>
+        <div class="export-menu" role="menu" aria-label="Export options">
+          <button on:click={exportAgentStatsCSV} role="menuitem" aria-label="Export as CSV">📄 Export CSV</button>
+          <button on:click={exportAgentStatsJSON} role="menuitem" aria-label="Export as JSON">📋 Export JSON</button>
         </div>
       </div>
-      <button on:click={() => loadAllData(true)} class="btn-refresh" disabled={isRefreshing}>
-        <span class="refresh-icon" class:spinning={isRefreshing}>↻</span>
-        Refresh
+      <button on:click={() => loadAllData(true)} class="btn-refresh" disabled={isRefreshing} aria-label="Refresh agent data">
+        <span class="refresh-icon" class:spinning={isRefreshing} aria-hidden="true">↻</span>
+        <span>Refresh</span>
       </button>
     </div>
   </div>
 
   {#if error}
-    <div class="message error">{error}</div>
+    <div class="message error" role="alert">{error}</div>
   {/if}
 
   <!-- Summary Stats -->
-  <div class="summary-stats">
-    <div class="stat-card">
+  <div class="summary-stats" role="group" aria-labelledby="agents-heading">
+    <div class="stat-card" role="status">
       <div class="stat-value">{agentStats.length}</div>
       <div class="stat-label">Active Agents</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" role="status">
       <div class="stat-value">{getTotalEvents()}</div>
       <div class="stat-label">Total Events</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" role="status">
       <div class="stat-value">{getTotalLinesChanged()}</div>
       <div class="stat-label">Lines Changed</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" role="status">
       <div class="stat-value">{formatDuration(getAverageResponseTime())}</div>
       <div class="stat-label">Avg Response Time</div>
     </div>
   </div>
 
   <!-- Search & Filter -->
-  <div class="search-section">
+  <div class="search-section" role="search" aria-label="Search agents">
     <input
       type="text"
       class="search-input"
       placeholder="🔍 Search agents..."
       bind:value={searchQuery}
+      aria-label="Search agents by name"
     />
   </div>
 
   <!-- Tabs -->
-  <div class="tabs">
+  <div class="tabs" role="tablist" aria-label="Agent information tabs">
     <button
       class="tab"
       class:active={activeTab === 'overview'}
       on:click={() => activeTab = 'overview'}
+      role="tab"
+      aria-selected={activeTab === 'overview'}
+      aria-controls="agents-tabpanel"
+      id="overview-tab"
     >
-      📊 Overview
+      <span aria-hidden="true">📊</span> Overview
     </button>
     <button
       class="tab"
       class:active={activeTab === 'activity'}
       on:click={() => activeTab = 'activity'}
+      role="tab"
+      aria-selected={activeTab === 'activity'}
+      aria-controls="agents-tabpanel"
+      id="activity-tab"
     >
-      📝 Recent Activity
+      <span aria-hidden="true">📝</span> Recent Activity
     </button>
     <button
       class="tab"
       class:active={activeTab === 'performance'}
       on:click={() => activeTab = 'performance'}
+      role="tab"
+      aria-selected={activeTab === 'performance'}
+      aria-controls="agents-tabpanel"
+      id="performance-tab"
     >
-      ⚡️ Performance
+      <span aria-hidden="true">⚡️</span> Performance
     </button>
   </div>
 
   <!-- Tab Content -->
-  <div class="tab-content">
+  <div class="tab-content" id="agents-tabpanel" role="tabpanel" aria-labelledby="{activeTab}-tab">
     {#if loading}
-      <LoadingSkeleton type="grid" count={4} />
+      <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton type="grid" count={4} /></div>
     {:else if activeTab === 'overview'}
       <!-- Overview Tab -->
       {#if filteredAgentStats.length === 0}
-        <div class="empty">
+        <div class="empty" role="status">
           <div class="icon">{searchQuery ? '🔍' : '🤖'}</div>
           <h3>{searchQuery ? 'No agents match your search' : 'No Agent Activity Yet'}</h3>
           <p>{searchQuery ? 'Try a different search term' : 'Send telemetry events to see agent statistics here.'}</p>
@@ -308,11 +321,11 @@
           {/if}
         </div>
       {:else}
-        <div class="agents-grid">
+        <div class="agents-grid" role="list" aria-label="Agent list">
           {#each filteredAgentStats as stat (stat.agent)}
-            <div class="agent-card" style="border-left-color: {getAgentColor(stat.agent)}">
+            <article class="agent-card" style="border-left-color: {getAgentColor(stat.agent)}" role="listitem">
               <div class="agent-header">
-                <div class="agent-icon" style="background-color: {getAgentColor(stat.agent)}">
+                <div class="agent-icon" style="background-color: {getAgentColor(stat.agent)}" aria-hidden="true">
                   {stat.agent.charAt(0).toUpperCase()}
                 </div>
                 <div class="agent-info">
@@ -321,7 +334,7 @@
                 </div>
               </div>
 
-              <div class="agent-stats">
+              <div class="agent-stats" role="group" aria-label="{stat.agent} statistics">
                 <div class="stat-row">
                   <span class="label">Events:</span>
                   <span class="value">{stat.event_count}</span>
@@ -335,7 +348,7 @@
                   <span class="value">{formatDuration(stat.avg_duration_ms)}</span>
                 </div>
               </div>
-            </div>
+            </article>
           {/each}
         </div>
       {/if}
@@ -343,16 +356,16 @@
     {:else if activeTab === 'activity'}
       <!-- Activity Tab -->
       {#if filteredAgentEvents.length === 0}
-        <div class="empty">
-          <div class="icon">{searchQuery ? '🔍' : '📝'}</div>
+        <div class="empty" role="status">
+          <div class="icon" aria-hidden="true">{searchQuery ? '🔍' : '📝'}</div>
           <h3>{searchQuery ? 'No events match your search' : 'No Recent Activity'}</h3>
           <p>{searchQuery ? 'Try a different search term' : 'Agent events will appear here as they occur.'}</p>
         </div>
       {:else}
-        <div class="events-list">
+        <div class="events-list" role="feed" aria-label="Agent activity feed">
           {#each filteredAgentEvents as event (event.id || event.timestamp)}
-            <div class="event-row">
-              <span class="event-icon">{getEventIcon(event.event_type)}</span>
+            <article class="event-row" role="article">
+              <span class="event-icon" aria-hidden="true">{getEventIcon(event.event_type)}</span>
               <div class="event-details">
                 <div class="event-header">
                   <span class="event-agent" style="color: {getAgentColor(event.agent)}">
@@ -372,9 +385,9 @@
                 {#if event.lines_changed}
                   <span class="event-lines">{event.lines_changed} lines</span>
                 {/if}
-                <span class="event-time">{formatTimestamp(event.timestamp)}</span>
+                <time class="event-time" datetime="{event.timestamp}">{formatTimestamp(event.timestamp)}</time>
               </div>
-            </div>
+            </article>
           {/each}
         </div>
       {/if}

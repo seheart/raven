@@ -133,17 +133,17 @@
   });
 </script>
 
-<div class="timeline-slider">
+<div class="timeline-slider" role="region" aria-label="Timeline filter">
   <div class="timeline-header">
-    <span class="timeline-label">Timeline</span>
-    <button class="reset-btn" on:click={resetRange} title="Reset timeline range">
-      🔄 Reset
+    <span class="timeline-label" id="timeline-label">Timeline</span>
+    <button class="reset-btn" on:click={resetRange} aria-label="Reset timeline range to show all events">
+      <span aria-hidden="true">🔄</span> Reset
     </button>
   </div>
 
-  <div class="slider-container" bind:this={sliderRef}>
+  <div class="slider-container" bind:this={sliderRef} aria-labelledby="timeline-label" aria-describedby="timeline-info">
     <!-- Event density visualization -->
-    <div class="density-bars">
+    <div class="density-bars" aria-hidden="true">
       {#each eventDensity || [] as density, i}
         <div
           class="density-bar"
@@ -156,18 +156,26 @@
     <div
       class="range-overlay"
       style="left: {startHandle}%; width: {endHandle - startHandle}%"
+      aria-hidden="true"
     ></div>
 
     <!-- Track -->
-    <div class="slider-track"></div>
+    <div class="slider-track" aria-hidden="true"></div>
 
     <!-- Start handle -->
     <div
       class="slider-handle start-handle"
       style="left: {startHandle}%"
       on:mousedown={(e) => handleMouseDown(e, 'start')}
+      role="slider"
+      aria-label="Timeline start"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow={Math.round(startHandle)}
+      aria-valuetext={formatDate(startTime)}
+      tabindex="0"
     >
-      <div class="handle-label">{formatDate(startTime)}</div>
+      <div class="handle-label" aria-hidden="true">{formatDate(startTime)}</div>
     </div>
 
     <!-- End handle -->
@@ -175,12 +183,19 @@
       class="slider-handle end-handle"
       style="left: {endHandle}%"
       on:mousedown={(e) => handleMouseDown(e, 'end')}
+      role="slider"
+      aria-label="Timeline end"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow={Math.round(endHandle)}
+      aria-valuetext={formatDate(endTime)}
+      tabindex="0"
     >
-      <div class="handle-label">{formatDate(endTime)}</div>
+      <div class="handle-label" aria-hidden="true">{formatDate(endTime)}</div>
     </div>
   </div>
 
-  <div class="timeline-info">
+  <div class="timeline-info" id="timeline-info" role="status" aria-live="polite">
     <span class="info-text">
       Showing {(sortedEvents || []).filter(e => {
         const t = new Date(e.timestamp).getTime();

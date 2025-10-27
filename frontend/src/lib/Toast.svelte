@@ -13,14 +13,14 @@
   }
 </script>
 
-<div class="toast-container" aria-live="polite" aria-atomic="true">
+<div class="toast-container" role="region" aria-live="polite" aria-atomic="true" aria-label="Notifications">
   {#each $notifications as notification (notification.id)}
     <div
       class="toast toast-{notification.type}"
       transition:fly={{ y: -30, duration: 300 }}
       role="alert"
     >
-      <span class="toast-icon">{getIcon(notification.type)}</span>
+      <span class="toast-icon" aria-hidden="true">{getIcon(notification.type)}</span>
       <span class="toast-message">{notification.message}</span>
       <button
         class="toast-close"

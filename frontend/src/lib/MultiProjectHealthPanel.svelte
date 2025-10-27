@@ -161,97 +161,97 @@
   }
 </script>
 
-<div class="multi-project-health-panel">
+<div class="multi-project-health-panel" role="region" aria-label="Multi-project health panel">
   <div class="panel-header">
     <div class="header-left">
-      <h2>🏥 Multi-Project Health</h2>
+      <h2 id="multi-project-heading"><span aria-hidden="true">🏥</span> Multi-Project Health</h2>
       <p class="subtitle">At-a-glance health status across all monitored projects</p>
     </div>
-    <div class="header-right">
-      <span class="last-update">Updated: {timeSinceUpdate}</span>
-      <button class="btn-secondary" on:click={handleExportCSV}>Export CSV</button>
-      <button class="btn-secondary" on:click={handleExportJSON}>Export JSON</button>
-      <button class="btn-primary" on:click={loadHealthData}>↻ Refresh</button>
+    <div class="header-right" role="toolbar" aria-label="Project health actions">
+      <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
+      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export project health data as CSV">Export CSV</button>
+      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export project health data as JSON">Export JSON</button>
+      <button class="btn-primary" on:click={loadHealthData} aria-label="Refresh project health data"><span aria-hidden="true">↻</span> Refresh</button>
     </div>
   </div>
 
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-value">{totalProjects}</div>
+  <div class="stats-row" role="list" aria-label="Project statistics summary">
+    <article class="stat-card" role="listitem">
+      <div class="stat-value" role="status">{totalProjects}</div>
       <div class="stat-label">Total Projects</div>
-    </div>
-    <div class="stat-card active">
-      <div class="stat-value">{activeProjects}</div>
+    </article>
+    <article class="stat-card active" role="listitem">
+      <div class="stat-value" role="status">{activeProjects}</div>
       <div class="stat-label">Active Now</div>
-    </div>
-    <div class="stat-card recent">
-      <div class="stat-value">{recentProjects}</div>
+    </article>
+    <article class="stat-card recent" role="listitem">
+      <div class="stat-value" role="status">{recentProjects}</div>
       <div class="stat-label">Recently Active</div>
-    </div>
-    <div class="stat-card idle">
-      <div class="stat-value">{totalProjects - activeProjects - recentProjects}</div>
+    </article>
+    <article class="stat-card idle" role="listitem">
+      <div class="stat-value" role="status">{totalProjects - activeProjects - recentProjects}</div>
       <div class="stat-label">Idle/Inactive</div>
-    </div>
+    </article>
   </div>
 
   <div class="controls">
-    <div class="control-group">
-      <label>Sort by:</label>
-      <button class="sort-btn" class:active={sortBy === 'health'} on:click={() => sortBy = 'health'}>Health Score</button>
-      <button class="sort-btn" class:active={sortBy === 'name'} on:click={() => sortBy = 'name'}>Name</button>
-      <button class="sort-btn" class:active={sortBy === 'activity'} on:click={() => sortBy = 'activity'}>Activity</button>
-      <button class="sort-btn" class:active={sortBy === 'errors'} on:click={() => sortBy = 'errors'}>Errors</button>
+    <div class="control-group" role="radiogroup" aria-label="Sort projects by">
+      <label id="sort-label">Sort by:</label>
+      <button class="sort-btn" class:active={sortBy === 'health'} on:click={() => sortBy = 'health'} role="radio" aria-checked={sortBy === 'health'}>Health Score</button>
+      <button class="sort-btn" class:active={sortBy === 'name'} on:click={() => sortBy = 'name'} role="radio" aria-checked={sortBy === 'name'}>Name</button>
+      <button class="sort-btn" class:active={sortBy === 'activity'} on:click={() => sortBy = 'activity'} role="radio" aria-checked={sortBy === 'activity'}>Activity</button>
+      <button class="sort-btn" class:active={sortBy === 'errors'} on:click={() => sortBy = 'errors'} role="radio" aria-checked={sortBy === 'errors'}>Errors</button>
     </div>
   </div>
 
   {#if loading}
     <LoadingSkeleton />
   {:else if error}
-    <div class="error-state">
-      <p>❌ Error loading project health: {error}</p>
-      <button on:click={loadHealthData}>Try Again</button>
+    <div class="error-state" role="alert">
+      <p><span aria-hidden="true">❌</span> Error loading project health: {error}</p>
+      <button on:click={loadHealthData} aria-label="Retry loading project health">Try Again</button>
     </div>
   {:else if projects.length === 0}
-    <div class="empty-state">
-      <p>📭 No projects found</p>
+    <div class="empty-state" role="status">
+      <p><span aria-hidden="true">📭</span> No projects found</p>
       <p class="hint">Start monitoring projects to see their health status here</p>
     </div>
   {:else}
-    <div class="projects-grid">
+    <div class="projects-grid" role="list" aria-labelledby="multi-project-heading">
       {#each sortedProjects as project (project.name)}
-        <div class="project-card {getHealthColor(project.health_score)}">
+        <article class="project-card {getHealthColor(project.health_score)}" role="listitem">
           <div class="project-header">
             <div class="project-name">{project.name}</div>
             <div class="project-status">
-              <span class="status-icon">{getStatusIcon(project.status)}</span>
+              <span class="status-icon" aria-label="{getStatusLabel(project.status)}" role="img">{getStatusIcon(project.status)}</span>
               <span class="status-label">{getStatusLabel(project.status)}</span>
             </div>
           </div>
 
-          <div class="health-bar-container">
-            <div class="health-bar" style="width: {project.health_score}%"></div>
+          <div class="health-bar-container" role="img" aria-label="Health score: {project.health_score}% - {getHealthLabel(project.health_score)}">
+            <div class="health-bar" style="width: {project.health_score}%" role="progressbar" aria-valuenow={project.health_score} aria-valuemin="0" aria-valuemax="100"></div>
           </div>
 
           <div class="health-score">
-            <span class="score-value">{project.health_score}</span>
+            <span class="score-value" role="status">{project.health_score}</span>
             <span class="score-label">{getHealthLabel(project.health_score)}</span>
           </div>
 
-          <div class="project-metrics">
+          <div class="project-metrics" role="group" aria-label="Project metrics">
             <div class="metric">
-              <div class="metric-value">{project.recent_events}</div>
+              <div class="metric-value" role="status">{project.recent_events}</div>
               <div class="metric-label">Events (24h)</div>
             </div>
             <div class="metric">
-              <div class="metric-value">{project.error_count}</div>
+              <div class="metric-value" role="status">{project.error_count}</div>
               <div class="metric-label">Errors</div>
             </div>
           </div>
 
           <div class="project-footer">
-            <span class="last-activity">Last: {formatLastActivity(project.last_activity)}</span>
+            <span class="last-activity"><time datetime="{project.last_activity}">Last: {formatLastActivity(project.last_activity)}</time></span>
           </div>
-        </div>
+        </article>
       {/each}
     </div>
   {/if}

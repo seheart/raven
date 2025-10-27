@@ -133,23 +133,23 @@
 
 {#if paused}
   <!-- Paused State: Resume Button -->
-  <div class="emergency-stop paused" class:pulsing>
-    <button class="resume-btn" on:click={resume} title="Resume monitoring">
-      <span class="icon">▶️</span>
+  <div class="emergency-stop paused" class:pulsing role="region" aria-label="Monitoring paused">
+    <button class="resume-btn" on:click={resume} aria-label="Resume file monitoring">
+      <span class="icon" aria-hidden="true">▶️</span>
       <div class="button-content">
         <span class="button-label">MONITORING PAUSED</span>
         <span class="button-sublabel">Click to Resume</span>
       </div>
     </button>
-    <div class="pause-info">
-      <div class="pause-duration">{formatDuration(pauseDuration)}</div>
+    <div class="pause-info" role="status" aria-live="polite">
+      <div class="pause-duration" aria-label="Pause duration">{formatDuration(pauseDuration)}</div>
       <div class="pause-reason">{pauseReason}</div>
     </div>
   </div>
 {:else}
   <!-- Active State: Emergency Stop Button -->
-  <button class="emergency-stop active" on:click={pause} title="Emergency stop - Pause file monitoring">
-    <span class="icon">🛑</span>
+  <button class="emergency-stop active" on:click={pause} aria-label="Emergency stop - Pause file monitoring">
+    <span class="icon" aria-hidden="true">🛑</span>
     <div class="button-content">
       <span class="button-label">EMERGENCY STOP</span>
       <span class="button-sublabel">Pause Monitoring</span>

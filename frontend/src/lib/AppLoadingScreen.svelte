@@ -20,10 +20,10 @@
   });
 </script>
 
-<div class="loading-screen">
+<div class="loading-screen" role="alert" aria-live="polite" aria-busy="true">
   <div class="loading-content">
     <!-- Animated Raven Logo -->
-    <div class="logo-container">
+    <div class="logo-container" aria-hidden="true">
       <div class="logo-pulse">
         <RavenLogo size={80} />
       </div>
@@ -34,27 +34,27 @@
     <p class="tagline">Your AI Development Guardian</p>
 
     <!-- Loading Message -->
-    <div class="loading-message">
-      {message}<span class="dots">{dots}</span>
+    <div class="loading-message" role="status">
+      {message}<span class="dots" aria-hidden="true">{dots}</span>
     </div>
 
     <!-- Progress Bar -->
-    <div class="progress-container">
+    <div class="progress-container" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100" aria-label="Loading progress">
       <div class="progress-bar" style="width: {progress}%"></div>
     </div>
 
     <!-- Loading Stats -->
-    <div class="loading-stats">
+    <div class="loading-stats" role="status" aria-live="polite">
       <div class="stat">
-        <span class="stat-icon">🔍</span>
+        <span class="stat-icon" aria-hidden="true">🔍</span>
         <span class="stat-label">Scanning projects</span>
       </div>
       <div class="stat">
-        <span class="stat-icon">🔗</span>
+        <span class="stat-icon" aria-hidden="true">🔗</span>
         <span class="stat-label">Connecting to server</span>
       </div>
       <div class="stat">
-        <span class="stat-icon">📊</span>
+        <span class="stat-icon" aria-hidden="true">📊</span>
         <span class="stat-label">Loading analytics</span>
       </div>
     </div>

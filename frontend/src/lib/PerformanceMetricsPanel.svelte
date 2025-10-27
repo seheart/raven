@@ -88,62 +88,64 @@
   $: maxMem = metrics.length > 0 ? Math.max(...metrics.map(m => m.memory_percent || 0)).toFixed(1) : 0;
 </script>
 
-<div class="performance-metrics-panel">
+<div class="performance-metrics-panel" role="region" aria-label="Performance metrics panel">
   <div class="panel-header">
     <div class="header-left">
-      <h2>📊 Performance Metrics</h2>
+      <h2 id="perf-metrics-heading"><span aria-hidden="true">📊</span> Performance Metrics</h2>
       <p class="subtitle">CPU and memory usage over time</p>
     </div>
-    <div class="header-right">
-      <select bind:value={timeRange} on:change={loadMetrics}>
+    <div class="header-right" role="toolbar" aria-label="Performance metrics actions" aria-labelledby="perf-metrics-heading">
+      <select id="time-range" bind:value={timeRange} on:change={loadMetrics} aria-label="Select time range">
         <option value="1h">Last Hour</option>
         <option value="6h">Last 6 Hours</option>
         <option value="24h">Last 24 Hours</option>
         <option value="7d">Last 7 Days</option>
       </select>
-      <button class="btn-secondary" on:click={handleExportCSV}>Export CSV</button>
-      <button class="btn-secondary" on:click={handleExportJSON}>Export JSON</button>
-      <button class="btn-primary" on:click={loadMetrics}>↻ Refresh</button>
+      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export metrics as CSV">Export CSV</button>
+      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export metrics as JSON">Export JSON</button>
+      <button class="btn-primary" on:click={loadMetrics} aria-label="Refresh metrics"><span aria-hidden="true">↻</span> Refresh</button>
     </div>
   </div>
 
   <!-- Stats Summary -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-value">{avgCpu}%</div>
+  <div class="stats-row" role="list" aria-label="Performance statistics summary">
+    <div class="stat-card" role="listitem">
+      <div class="stat-value" role="status">{avgCpu}%</div>
       <div class="stat-label">Avg CPU</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value">{maxCpu}%</div>
+    <div class="stat-card" role="listitem">
+      <div class="stat-value" role="status">{maxCpu}%</div>
       <div class="stat-label">Peak CPU</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value">{avgMem}%</div>
+    <div class="stat-card" role="listitem">
+      <div class="stat-value" role="status">{avgMem}%</div>
       <div class="stat-label">Avg Memory</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value">{maxMem}%</div>
+    <div class="stat-card" role="listitem">
+      <div class="stat-value" role="status">{maxMem}%</div>
       <div class="stat-label">Peak Memory</div>
     </div>
   </div>
 
   {#if loading}
-    <LoadingSkeleton />
+    <div role="status" aria-live="polite" aria-label="Loading performance metrics">
+      <LoadingSkeleton />
+    </div>
   {:else if error}
-    <div class="error-state">
-      <p>❌ Error: {error}</p>
-      <button on:click={loadMetrics}>Try Again</button>
+    <div class="error-state" role="alert">
+      <p><span aria-hidden="true">❌</span> Error: {error}</p>
+      <button on:click={loadMetrics} aria-label="Try loading metrics again">Try Again</button>
     </div>
   {:else if metrics.length === 0}
-    <div class="empty-state">
-      <p>📭 No metrics data available</p>
+    <div class="empty-state" role="status">
+      <p><span aria-hidden="true">📭</span> No metrics data available</p>
       <p class="hint">Metrics are collected every few seconds</p>
     </div>
   {:else}
     <!-- CPU Chart -->
-    <div class="chart-container">
-      <h3>CPU Usage</h3>
-      <svg class="chart" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet">
+    <div class="chart-container" role="region" aria-labelledby="cpu-chart-heading">
+      <h3 id="cpu-chart-heading">CPU Usage</h3>
+      <svg class="chart" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <defs>
           <linearGradient id="cpu-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style="stop-color:#7aa2f7;stop-opacity:0.8" />
@@ -184,9 +186,9 @@
     </div>
 
     <!-- Memory Chart -->
-    <div class="chart-container">
-      <h3>Memory Usage</h3>
-      <svg class="chart" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet">
+    <div class="chart-container" role="region" aria-labelledby="memory-chart-heading">
+      <h3 id="memory-chart-heading">Memory Usage</h3>
+      <svg class="chart" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <defs>
           <linearGradient id="mem-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.8" />

@@ -28,6 +28,7 @@ vi.mock('../notificationService.js', () => ({
 // Mock logger
 vi.mock('../logger.js', () => ({
   logger: {
+    debug: vi.fn(),
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn()

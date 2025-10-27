@@ -38,26 +38,27 @@
   <button
     class="user-button"
     on:click|stopPropagation={toggleMenu}
-    aria-label="User menu"
+    aria-label="User menu for {$currentUser?.username || 'User'}"
     aria-expanded={showMenu}
+    aria-haspopup="menu"
   >
-    <span class="user-avatar">
+    <span class="user-avatar" aria-hidden="true">
       {$currentUser?.username?.[0]?.toUpperCase() || 'U'}
     </span>
     <span class="user-name">{$currentUser?.username || 'User'}</span>
-    <span class="dropdown-arrow">{showMenu ? '▲' : '▼'}</span>
+    <span class="dropdown-arrow" aria-hidden="true">{showMenu ? '▲' : '▼'}</span>
   </button>
 
   {#if showMenu}
-    <div class="user-menu" role="menu">
-      <div class="user-info">
-        <div class="user-avatar-large">
+    <div class="user-menu" role="menu" aria-label="User account menu">
+      <div class="user-info" role="presentation">
+        <div class="user-avatar-large" aria-hidden="true">
           {$currentUser?.username?.[0]?.toUpperCase() || 'U'}
         </div>
         <div class="user-details">
           <div class="username">{$currentUser?.username}</div>
-          <div class="role-badge">
-            <span class="role-emoji">{getRoleBadge($currentUser?.role).emoji}</span>
+          <div class="role-badge" role="status" aria-label="User role: {getRoleBadge($currentUser?.role).label}">
+            <span class="role-emoji" aria-hidden="true">{getRoleBadge($currentUser?.role).emoji}</span>
             <span class="role-label">{getRoleBadge($currentUser?.role).label}</span>
           </div>
         </div>
@@ -75,8 +76,9 @@
         class="menu-item"
         on:click={handleLogout}
         role="menuitem"
+        aria-label="Logout from account"
       >
-        <span class="menu-icon">🚪</span>
+        <span class="menu-icon" aria-hidden="true">🚪</span>
         <span class="menu-label">Logout</span>
       </button>
     </div>

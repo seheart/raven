@@ -68,24 +68,24 @@
   }
 </script>
 
-<div class="diff-modal-overlay" on:click={onClose}>
-  <div class="diff-modal-content" on:click|stopPropagation>
+<div class="diff-modal-overlay" on:click={onClose} role="dialog" aria-modal="true" aria-labelledby="diff-title">
+  <div class="diff-modal-content" on:click|stopPropagation role="document">
     <div class="diff-header">
-      <h2>📊 Diff Viewer</h2>
-      <button class="close-btn" on:click={onClose}>×</button>
+      <h2 id="diff-title"><span aria-hidden="true">📊</span> Diff Viewer</h2>
+      <button class="close-btn" on:click={onClose} aria-label="Close diff viewer">×</button>
     </div>
 
     {#if diffLines.length > 0}
       <!-- Unified diff view -->
-      <div class="unified-diff">
-        <pre class="diff-content">{#each diffLines || [] as line}
+      <div class="unified-diff" role="region" aria-label="Unified diff view">
+        <pre class="diff-content" aria-label="Code differences">{#each diffLines || [] as line}
 <span class="diff-line {getLineClass(line.type)}">{line.content}
 </span>{/each}</pre>
       </div>
     {:else if leftLines.length > 0 || rightLines.length > 0}
       <!-- Side-by-side view -->
       <div class="side-by-side">
-        <div class="diff-pane">
+        <div class="diff-pane" role="region" aria-label="Before changes">
           <div class="pane-header">Before</div>
           <div class="pane-content">
             {#each leftLines || [] as line}
@@ -97,9 +97,9 @@
           </div>
         </div>
 
-        <div class="diff-divider"></div>
+        <div class="diff-divider" aria-hidden="true"></div>
 
-        <div class="diff-pane">
+        <div class="diff-pane" role="region" aria-label="After changes">
           <div class="pane-header">After</div>
           <div class="pane-content">
             {#each rightLines || [] as line}

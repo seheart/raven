@@ -93,27 +93,27 @@
   {#if fallback}
     {@html fallback}
   {:else}
-    <div class="error-boundary">
-      <div class="error-container">
-        <div class="error-icon">⚠️</div>
-        <h1>Something went wrong</h1>
+    <div class="error-boundary" role="alert" aria-live="assertive">
+      <div class="error-container" role="document">
+        <div class="error-icon" aria-hidden="true">⚠️</div>
+        <h1 id="error-heading">Something went wrong</h1>
         <p class="error-message">
           The application encountered an unexpected error and needs to restart.
         </p>
-        
-        <div class="error-details">
+
+        <div class="error-details" role="region" aria-labelledby="error-heading">
           <div class="error-summary">
             <strong>Error:</strong> {errorDetails.message}
           </div>
-          
+
           {#if errorDetails.stack}
             <details class="stack-trace">
               <summary>Technical Details (click to expand)</summary>
-              <pre>{errorDetails.stack}</pre>
+              <pre role="code">{errorDetails.stack}</pre>
             </details>
           {/if}
-          
-          <div class="error-meta">
+
+          <div class="error-meta" role="status">
             <div>Error Count: {errorCount}</div>
             <div>Time: {new Date(errorTimestamp).toLocaleString()}</div>
             {#if errorDetails.filename}
@@ -122,16 +122,16 @@
           </div>
         </div>
 
-        <div class="error-actions">
-          <button class="btn-primary" on:click={resetError}>
-            🔄 Reload Application
+        <div class="error-actions" role="group" aria-label="Error recovery actions">
+          <button class="btn-primary" on:click={resetError} aria-label="Reload application to recover">
+            <span aria-hidden="true">🔄</span> Reload Application
           </button>
-          <button class="btn-secondary" on:click={copyErrorToClipboard}>
-            📋 Copy Error Details
+          <button class="btn-secondary" on:click={copyErrorToClipboard} aria-label="Copy error details to clipboard">
+            <span aria-hidden="true">📋</span> Copy Error Details
           </button>
         </div>
 
-        <div class="error-help">
+        <div class="error-help" role="complementary" aria-label="Help information">
           <p>If this error persists:</p>
           <ul>
             <li>Check the browser console for additional details</li>

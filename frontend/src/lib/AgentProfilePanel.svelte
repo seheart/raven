@@ -104,90 +104,91 @@
   }
 </script>
 
-<div class="agent-profile-panel">
+<div class="agent-profile-panel" role="region" aria-label="Agent profiles panel">
   <div class="panel-header">
-    <h2>🤖 Agent Profiles</h2>
-    <div class="panel-controls">
-      <select class="project-select" bind:value={selectedProject} on:change={handleProjectChange}>
+    <h2 id="agent-profiles-heading"><span aria-hidden="true">🤖</span> Agent Profiles</h2>
+    <div class="panel-controls" role="toolbar" aria-label="Agent profiles actions">
+      <select class="project-select" bind:value={selectedProject} on:change={handleProjectChange} aria-label="Filter agents by project">
         <option value="all">All Projects</option>
         {#each availableProjects as project}
           <option value={project.name}>{project.name}</option>
         {/each}
       </select>
-      <button class="refresh-btn" on:click={loadAgentProfiles} title="Refresh">
-        🔄
+      <button class="refresh-btn" on:click={loadAgentProfiles} aria-label="Refresh agent profiles">
+        <span aria-hidden="true">🔄</span>
       </button>
     </div>
   </div>
 
   {#if loading && agents.length === 0}
-    <div class="loading">Loading agent profiles...</div>
+    <div class="loading" role="status" aria-live="polite">Loading agent profiles...</div>
   {:else if error}
-    <div class="error">
-      <p>❌ Error loading agent profiles</p>
+    <div class="error" role="alert">
+      <p><span aria-hidden="true">❌</span> Error loading agent profiles</p>
       <p class="error-detail">{error}</p>
     </div>
   {:else if agents.length === 0}
-    <div class="empty">
+    <div class="empty" role="status">
       <p>No agent activity found</p>
       <p class="hint">Start coding with AI agents to see their profiles here</p>
     </div>
   {:else}
-    <div class="agents-grid">
+    <div class="agents-grid" role="list" aria-labelledby="agent-profiles-heading">
       {#each agents as agent (agent.agent)}
-        <div class="agent-card">
+        <article class="agent-card" role="listitem">
           <!-- Agent Header -->
           <div class="agent-header">
             <div
               class="agent-avatar"
               style="background: {getAgentBadge(agent.agent).color}33; border-color: {getAgentBadge(agent.agent).color};"
+              aria-hidden="true"
             >
               <span class="agent-avatar-icon">{getAgentBadge(agent.agent).icon}</span>
             </div>
             <div class="agent-info">
               <div class="agent-name">{getAgentBadge(agent.agent).name}</div>
-              <div class="agent-stats-quick">
+              <div class="agent-stats-quick" role="status">
                 <span class="stat-item">{agent.totalChanges} changes</span>
-                <span class="stat-separator">•</span>
+                <span class="stat-separator" aria-hidden="true">•</span>
                 <span class="stat-item">{agent.confidence}% confidence</span>
               </div>
             </div>
           </div>
 
           <!-- Agent Characteristics -->
-          <div class="agent-characteristics">
+          <div class="agent-characteristics" role="group" aria-label="Agent characteristics">
             <div class="characteristic">
-              <span class="char-icon">{getMoodEmoji(agent.mood)}</span>
+              <span class="char-icon" aria-hidden="true">{getMoodEmoji(agent.mood)}</span>
               <span class="char-label">Mood:</span>
               <span class="char-value">{agent.mood}</span>
             </div>
             <div class="characteristic">
-              <span class="char-icon">{getStyleIcon(agent.style)}</span>
+              <span class="char-icon" aria-hidden="true">{getStyleIcon(agent.style)}</span>
               <span class="char-label">Style:</span>
               <span class="char-value">{agent.style}</span>
             </div>
           </div>
 
           <!-- Metrics Grid -->
-          <div class="metrics-grid">
+          <div class="metrics-grid" role="group" aria-label="Agent metrics">
             <div class="metric-box">
               <div class="metric-label">Changes/Day</div>
-              <div class="metric-value">{agent.changesPerDay.toFixed(1)}</div>
+              <div class="metric-value" role="status">{agent.changesPerDay.toFixed(1)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Avg Size</div>
-              <div class="metric-value">{agent.avgChangeSize} bytes</div>
+              <div class="metric-value" role="status">{agent.avgChangeSize} bytes</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Unique Files</div>
-              <div class="metric-value">{agent.uniqueFiles}</div>
+              <div class="metric-value" role="status">{agent.uniqueFiles}</div>
             </div>
           </div>
 
           <!-- Change Type Breakdown -->
           <div class="change-breakdown">
             <div class="breakdown-label">Change Distribution:</div>
-            <div class="breakdown-bars">
+            <div class="breakdown-bars" role="img" aria-label="Change distribution: {(agent.creationRate * 100).toFixed(0)}% create, {(agent.modificationRate * 100).toFixed(0)}% modify, {(agent.deletionRate * 100).toFixed(0)}% delete">
               <div
                 class="breakdown-bar create"
                 style="width: {agent.creationRate * 100}%"
@@ -216,13 +217,13 @@
                 {/if}
               </div>
             </div>
-            <div class="breakdown-legend">
+            <div class="breakdown-legend" aria-hidden="true">
               <span class="legend-item create">➕ Create</span>
               <span class="legend-item modify">✏️ Modify</span>
               <span class="legend-item delete">🗑️ Delete</span>
             </div>
           </div>
-        </div>
+        </article>
       {/each}
     </div>
   {/if}

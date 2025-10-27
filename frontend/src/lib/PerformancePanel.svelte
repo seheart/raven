@@ -216,19 +216,19 @@
   })();
 </script>
 
-<div class="performance-panel">
+<div class="performance-panel" role="region" aria-label="Performance profiling panel">
   <div class="header">
-    <h2><span class="lightning-icon">⚡️</span> Performance Profiling</h2>
-    <div class="header-actions">
-      <span class="last-updated">Updated: {timeAgo}</span>
-      <button on:click={exportToJSON} class="btn-export" title="Export as JSON">
-        📥 JSON
+    <h2 id="performance-heading"><span class="lightning-icon" aria-hidden="true">⚡️</span> Performance Profiling</h2>
+    <div class="header-actions" role="toolbar" aria-label="Performance panel actions">
+      <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
+      <button on:click={exportToJSON} class="btn-export" aria-label="Export performance data as JSON">
+        <span aria-hidden="true">📥</span> JSON
       </button>
-      <button on:click={exportToCSV} class="btn-export" title="Export as CSV">
-        📥 CSV
+      <button on:click={exportToCSV} class="btn-export" aria-label="Export performance data as CSV">
+        <span aria-hidden="true">📥</span> CSV
       </button>
-      <button on:click={() => fetchAllData(true)} class="btn-refresh" disabled={loading}>
-        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+      <button on:click={() => fetchAllData(true)} class="btn-refresh" disabled={loading} aria-label="Refresh performance data">
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         Refresh
       </button>
     </div>
@@ -236,15 +236,15 @@
 
   <!-- Alerts Banner -->
   {#if activeAlerts.length > 0 && showAlerts}
-    <div class="alerts-banner">
+    <div class="alerts-banner" role="alert" aria-live="assertive">
       <div class="banner-header">
-        <strong>⚠️ Active Performance Alerts</strong>
-        <button class="btn-dismiss" on:click={() => showAlerts = false}>✕</button>
+        <strong><span aria-hidden="true">⚠️</span> Active Performance Alerts</strong>
+        <button class="btn-dismiss" on:click={() => showAlerts = false} aria-label="Dismiss performance alerts">✕</button>
       </div>
-      <div class="alerts-list">
+      <div class="alerts-list" role="list" aria-label="Active performance alerts">
         {#each activeAlerts as alert}
-          <div class="alert-item alert-{alert.level}">
-            <span class="alert-icon">{alert.level === 'critical' ? '🔴' : '🟡'}</span>
+          <div class="alert-item alert-{alert.level}" role="listitem">
+            <span class="alert-icon" aria-hidden="true">{alert.level === 'critical' ? '🔴' : '🟡'}</span>
             <span class="alert-message">{alert.message}</span>
             <span class="alert-threshold">(threshold: {alert.threshold}%)</span>
           </div>
@@ -254,27 +254,39 @@
   {/if}
 
   <!-- Tab Navigation -->
-  <div class="tab-nav">
+  <div class="tab-nav" role="tablist" aria-label="Performance panel views">
     <button
       class="tab-btn"
       class:active={activeTab === 'metrics'}
       on:click={() => activeTab = 'metrics'}
+      role="tab"
+      aria-selected={activeTab === 'metrics'}
+      aria-controls="tabpanel-metrics"
+      id="tab-metrics"
     >
-      📊 Metrics
+      <span aria-hidden="true">📊</span> Metrics
     </button>
     <button
       class="tab-btn"
       class:active={activeTab === 'charts'}
       on:click={() => activeTab = 'charts'}
+      role="tab"
+      aria-selected={activeTab === 'charts'}
+      aria-controls="tabpanel-charts"
+      id="tab-charts"
     >
-      📈 Trend Charts
+      <span aria-hidden="true">📈</span> Trend Charts
     </button>
     <button
       class="tab-btn"
       class:active={activeTab === 'correlations'}
       on:click={() => activeTab = 'correlations'}
+      role="tab"
+      aria-selected={activeTab === 'correlations'}
+      aria-controls="tabpanel-correlations"
+      id="tab-correlations"
     >
-      🔗 Correlations
+      <span aria-hidden="true">🔗</span> Correlations
     </button>
   </div>
 
@@ -289,11 +301,11 @@
   {#if activeTab === 'charts'}
     <!-- Trend Charts View -->
     {#if systemMetrics && systemMetrics.length > 0}
-      <div class="charts-section">
-        <div class="chart-controls">
-          <label>
+      <div class="charts-section" role="tabpanel" id="tabpanel-charts" aria-labelledby="tab-charts">
+        <div class="chart-controls" role="region" aria-label="Chart controls">
+          <label for="time-range-select">
             Time Range:
-            <select bind:value={chartTimeRange} class="time-range-select">
+            <select id="time-range-select" bind:value={chartTimeRange} class="time-range-select" aria-label="Select time range for charts">
               <option value="15m">Last 15 minutes</option>
               <option value="1h">Last 1 hour</option>
               <option value="6h">Last 6 hours</option>
@@ -309,10 +321,10 @@
         </div>
 
         <!-- CPU Chart -->
-        <div class="chart-container">
-          <h3>🔥 CPU Usage Over Time</h3>
-          <div class="chart">
-            <div class="chart-y-axis">
+        <div class="chart-container" role="article" aria-labelledby="cpu-chart-heading">
+          <h3 id="cpu-chart-heading"><span aria-hidden="true">🔥</span> CPU Usage Over Time</h3>
+          <div class="chart" role="img" aria-label="CPU usage chart showing trend over time">
+            <div class="chart-y-axis" aria-hidden="true">
               <span>100%</span>
               <span>75%</span>
               <span>50%</span>
@@ -340,10 +352,10 @@
         </div>
 
         <!-- Memory Chart -->
-        <div class="chart-container">
-          <h3>💾 Memory Usage Over Time</h3>
-          <div class="chart">
-            <div class="chart-y-axis">
+        <div class="chart-container" role="article" aria-labelledby="memory-chart-heading">
+          <h3 id="memory-chart-heading"><span aria-hidden="true">💾</span> Memory Usage Over Time</h3>
+          <div class="chart" role="img" aria-label="Memory usage chart showing trend over time">
+            <div class="chart-y-axis" aria-hidden="true">
               <span>100%</span>
               <span>75%</span>
               <span>50%</span>
@@ -371,49 +383,49 @@
         </div>
 
         <!-- Threshold Configuration -->
-        <div class="threshold-config">
-          <h3>⚙️ Alert Thresholds</h3>
+        <div class="threshold-config" role="region" aria-labelledby="threshold-heading">
+          <h3 id="threshold-heading"><span aria-hidden="true">⚙️</span> Alert Thresholds</h3>
           <div class="threshold-controls">
             <div class="threshold-group">
-              <label>CPU Warning (%):</label>
-              <input type="number" bind:value={thresholds.cpu.warning} min="0" max="100" class="threshold-input" />
+              <label for="cpu-warning">CPU Warning (%):</label>
+              <input id="cpu-warning" type="number" bind:value={thresholds.cpu.warning} min="0" max="100" class="threshold-input" aria-label="CPU warning threshold percentage" />
             </div>
             <div class="threshold-group">
-              <label>CPU Critical (%):</label>
-              <input type="number" bind:value={thresholds.cpu.critical} min="0" max="100" class="threshold-input" />
+              <label for="cpu-critical">CPU Critical (%):</label>
+              <input id="cpu-critical" type="number" bind:value={thresholds.cpu.critical} min="0" max="100" class="threshold-input" aria-label="CPU critical threshold percentage" />
             </div>
             <div class="threshold-group">
-              <label>Memory Warning (%):</label>
-              <input type="number" bind:value={thresholds.memory.warning} min="0" max="100" class="threshold-input" />
+              <label for="memory-warning">Memory Warning (%):</label>
+              <input id="memory-warning" type="number" bind:value={thresholds.memory.warning} min="0" max="100" class="threshold-input" aria-label="Memory warning threshold percentage" />
             </div>
             <div class="threshold-group">
-              <label>Memory Critical (%):</label>
-              <input type="number" bind:value={thresholds.memory.critical} min="0" max="100" class="threshold-input" />
+              <label for="memory-critical">Memory Critical (%):</label>
+              <input id="memory-critical" type="number" bind:value={thresholds.memory.critical} min="0" max="100" class="threshold-input" aria-label="Memory critical threshold percentage" />
             </div>
           </div>
         </div>
       </div>
     {:else if !loading}
-      <div class="empty-state">
+      <div class="empty-state" role="status">
         <p>No metrics data available for charts.</p>
         <p>Charts will appear once performance data is collected.</p>
       </div>
     {/if}
   {:else if activeTab === 'metrics'}
     {#if latestMetrics}
-    <div class="metrics-grid">
+    <div class="metrics-grid" role="tabpanel" id="tabpanel-metrics" aria-labelledby="tab-metrics">
       <!-- System Metrics Card -->
-      <div class="metric-card">
-        <h3>🖥️ System Metrics</h3>
+      <article class="metric-card" aria-labelledby="system-metrics-heading">
+        <h3 id="system-metrics-heading"><span aria-hidden="true">🖥️</span> System Metrics</h3>
         <div class="metric-row">
           <span class="label">CPU Usage:</span>
-          <span class="value cpu-{latestMetrics.cpu_percent > 80 ? 'high' : latestMetrics.cpu_percent > 50 ? 'medium' : 'low'}">
+          <span class="value cpu-{latestMetrics.cpu_percent > 80 ? 'high' : latestMetrics.cpu_percent > 50 ? 'medium' : 'low'}" role="status">
             {latestMetrics.cpu_percent.toFixed(1)}%
           </span>
         </div>
         <div class="metric-row">
           <span class="label">Memory:</span>
-          <span class="value mem-{latestMetrics.memory_percent > 80 ? 'high' : latestMetrics.memory_percent > 50 ? 'medium' : 'low'}">
+          <span class="value mem-{latestMetrics.memory_percent > 80 ? 'high' : latestMetrics.memory_percent > 50 ? 'medium' : 'low'}" role="status">
             {latestMetrics.memory_percent.toFixed(1)}%
           </span>
         </div>
@@ -433,20 +445,20 @@
             <span class="value">{formatBytes(latestMetrics.network_tx_bytes)}</span>
           </div>
         {/if}
-        <div class="timestamp">{formatTimestamp(latestMetrics.timestamp)}</div>
-      </div>
+        <div class="timestamp"><time datetime={latestMetrics.timestamp}>{formatTimestamp(latestMetrics.timestamp)}</time></div>
+      </article>
 
       <!-- Process Metrics Card -->
       {#if latestProcessMetrics}
-        <div class="metric-card">
-          <h3>📊 Process: {latestProcessMetrics.agent_name}</h3>
+        <article class="metric-card" aria-labelledby="process-metrics-heading">
+          <h3 id="process-metrics-heading"><span aria-hidden="true">📊</span> Process: {latestProcessMetrics.agent_name}</h3>
           <div class="metric-row">
             <span class="label">PID:</span>
             <span class="value">{latestProcessMetrics.pid}</span>
           </div>
           <div class="metric-row">
             <span class="label">CPU:</span>
-            <span class="value cpu-{latestProcessMetrics.cpu_usage > 80 ? 'high' : latestProcessMetrics.cpu_usage > 50 ? 'medium' : 'low'}">
+            <span class="value cpu-{latestProcessMetrics.cpu_usage > 80 ? 'high' : latestProcessMetrics.cpu_usage > 50 ? 'medium' : 'low'}" role="status">
               {latestProcessMetrics.cpu_usage.toFixed(1)}%
             </span>
           </div>
@@ -472,47 +484,47 @@
           {/if}
           <div class="metric-row">
             <span class="label">Status:</span>
-            <span class="value status-{latestProcessMetrics.status.toLowerCase()}">{latestProcessMetrics.status}</span>
+            <span class="value status-{latestProcessMetrics.status.toLowerCase()}" role="status">{latestProcessMetrics.status}</span>
           </div>
-          <div class="timestamp">{formatTimestamp(latestProcessMetrics.timestamp)}</div>
-        </div>
+          <div class="timestamp"><time datetime={latestProcessMetrics.timestamp}>{formatTimestamp(latestProcessMetrics.timestamp)}</time></div>
+        </article>
       {:else}
-        <div class="metric-card empty">
-          <h3>📊 Process Metrics</h3>
+        <article class="metric-card empty" role="status">
+          <h3><span aria-hidden="true">📊</span> Process Metrics</h3>
           <p>No process metrics available</p>
           <p class="hint">Start monitoring to collect data</p>
-        </div>
+        </article>
       {/if}
 
       <!-- Statistics Card -->
       {#if stats && stats.sample_count > 0}
-        <div class="metric-card">
-          <h3>📈 Last Hour Stats</h3>
+        <article class="metric-card" aria-labelledby="stats-heading">
+          <h3 id="stats-heading"><span aria-hidden="true">📈</span> Last Hour Stats</h3>
           <div class="metric-row">
             <span class="label">Avg CPU:</span>
             <span class="value">{stats.avg_cpu_percent.toFixed(1)}%</span>
           </div>
           <div class="metric-row">
             <span class="label">Peak CPU:</span>
-            <span class="value cpu-high">{stats.max_cpu_percent.toFixed(1)}%</span>
+            <span class="value cpu-high" role="status">{stats.max_cpu_percent.toFixed(1)}%</span>
           </div>
           <div class="metric-row">
             <span class="label">Avg Memory:</span>
-            <span class="value">{stats.avg_memory_percent.toFixed(1)}%</span>
+            <span class="value" role="status">{stats.avg_memory_percent.toFixed(1)}%</span>
           </div>
           <div class="metric-row">
             <span class="label">Peak Memory:</span>
-            <span class="value mem-high">{stats.max_memory_percent.toFixed(1)}%</span>
+            <span class="value mem-high" role="status">{stats.max_memory_percent.toFixed(1)}%</span>
           </div>
           <div class="metric-row">
             <span class="label">Samples:</span>
-            <span class="value">{stats.sample_count}</span>
+            <span class="value" role="status">{stats.sample_count}</span>
           </div>
-        </div>
+        </article>
       {/if}
     </div>
     {:else if !loading}
-      <div class="empty-state">
+      <div class="empty-state" role="status">
         <p>No performance data available yet.</p>
         <p>Metrics are collected automatically when monitoring is active.</p>
       </div>
@@ -520,47 +532,47 @@
   {:else if activeTab === 'correlations'}
     <!-- Performance Correlations View -->
     {#if correlations && correlations.length > 0}
-      <div class="correlations-section">
+      <div class="correlations-section" role="tabpanel" id="tabpanel-correlations" aria-labelledby="tab-correlations">
         <div class="section-header">
-          <h3>🔗 Performance Correlations</h3>
+          <h3 id="correlations-heading"><span aria-hidden="true">🔗</span> Performance Correlations</h3>
           <p class="description">Events that occurred near CPU/memory spikes (within 10 seconds)</p>
         </div>
 
-        <div class="correlations-grid">
+        <div class="correlations-grid" role="list" aria-label="Performance correlations">
           {#each correlations as correlation}
-            <div class="correlation-card">
+            <article class="correlation-card" role="listitem">
               <div class="correlation-header">
                 <span class="file-name">{correlation.filepath}</span>
-                <span class="event-type type-{correlation.change_type}">{correlation.change_type}</span>
+                <span class="event-type type-{correlation.change_type}" role="status">{correlation.change_type}</span>
               </div>
 
               <div class="metrics-row">
                 <div class="metric-item">
                   <span class="metric-label">CPU Impact:</span>
-                  <span class="metric-value cpu-{(correlation.cpu_percent || 0) > 50 ? 'high' : (correlation.cpu_percent || 0) > 25 ? 'medium' : 'low'}">
+                  <span class="metric-value cpu-{(correlation.cpu_percent || 0) > 50 ? 'high' : (correlation.cpu_percent || 0) > 25 ? 'medium' : 'low'}" role="status">
                     {correlation.cpu_percent ? correlation.cpu_percent.toFixed(1) : 'N/A'}%
                   </span>
                 </div>
                 <div class="metric-item">
                   <span class="metric-label">Memory Impact:</span>
-                  <span class="metric-value mem-{(correlation.mem_percent || 0) > 50 ? 'high' : (correlation.mem_percent || 0) > 25 ? 'medium' : 'low'}">
+                  <span class="metric-value mem-{(correlation.mem_percent || 0) > 50 ? 'high' : (correlation.mem_percent || 0) > 25 ? 'medium' : 'low'}" role="status">
                     {correlation.mem_percent ? correlation.mem_percent.toFixed(1) : 'N/A'}%
                   </span>
                 </div>
               </div>
 
               <div class="correlation-footer">
-                <span class="timestamp">{formatTimestamp(correlation.event_timestamp)}</span>
+                <span class="timestamp"><time datetime={correlation.event_timestamp}>{formatTimestamp(correlation.event_timestamp)}</time></span>
                 {#if correlation.diff_size}
-                  <span class="diff-size">{correlation.diff_size} chars changed</span>
+                  <span class="diff-size" role="status">{correlation.diff_size} chars changed</span>
                 {/if}
               </div>
-            </div>
+            </article>
           {/each}
         </div>
       </div>
     {:else if !loading}
-      <div class="empty-state">
+      <div class="empty-state" role="status">
         <p>No performance correlations found.</p>
         <p>Correlations show which file changes coincide with CPU/memory spikes.</p>
         <p class="hint">Make some file changes while the system is under load to see correlations.</p>

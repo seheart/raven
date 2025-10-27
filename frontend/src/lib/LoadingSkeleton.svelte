@@ -5,13 +5,14 @@
   export let width = '100%';
 </script>
 
+<div role="status" aria-live="polite" aria-busy="true" aria-label="Loading content">
 {#if type === 'text'}
   {#each Array(count) as _, i}
-    <div class="skeleton skeleton-text" style="width: {width}; height: {height}"></div>
+    <div class="skeleton skeleton-text" style="width: {width}; height: {height}" aria-hidden="true"></div>
   {/each}
 {:else if type === 'card'}
   {#each Array(count) as _, i}
-    <div class="skeleton skeleton-card">
+    <div class="skeleton skeleton-card" aria-hidden="true">
       <div class="skeleton-header"></div>
       <div class="skeleton-body">
         <div class="skeleton-line"></div>
@@ -21,7 +22,7 @@
     </div>
   {/each}
 {:else if type === 'list'}
-  <div class="skeleton skeleton-list">
+  <div class="skeleton skeleton-list" aria-hidden="true">
     {#each Array(count) as _, i}
       <div class="skeleton-list-item">
         <div class="skeleton-icon"></div>
@@ -33,7 +34,7 @@
     {/each}
   </div>
 {:else if type === 'chart'}
-  <div class="skeleton skeleton-chart" style="height: {height || '200px'}">
+  <div class="skeleton skeleton-chart" style="height: {height || '200px'}" aria-hidden="true">
     <div class="skeleton-bars">
       {#each Array(8) as _, i}
         <div class="skeleton-bar" style="height: {Math.random() * 60 + 20}%"></div>
@@ -41,6 +42,7 @@
     </div>
   </div>
 {/if}
+</div>
 
 <style>
   .skeleton {

@@ -237,57 +237,69 @@
   }
 </script>
 
-<div class="triggers-panel">
+<div class="triggers-panel" role="region" aria-label="Custom triggers panel">
   <div class="header">
-    <h2>🎯 Custom Triggers</h2>
-    <div class="header-actions">
-      <span class="last-updated">Updated: {timeAgo}</span>
-      <button on:click={reloadConfig} class="btn-action" title="Reload .raven/config.toml">
-        🔄 Reload Config
+    <h2 id="triggers-heading"><span aria-hidden="true">🎯</span> Custom Triggers</h2>
+    <div class="header-actions" role="toolbar" aria-label="Trigger actions">
+      <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
+      <button on:click={reloadConfig} class="btn-action" aria-label="Reload configuration from .raven/config.toml">
+        <span aria-hidden="true">🔄</span> Reload Config
       </button>
-      <button on:click={clearCooldowns} class="btn-action" title="Clear all trigger cooldowns">
-        ⏰ Clear Cooldowns
+      <button on:click={clearCooldowns} class="btn-action" aria-label="Clear all trigger cooldowns">
+        <span aria-hidden="true">⏰</span> Clear Cooldowns
       </button>
-      <button on:click={() => loadAllData(true)} class="btn-refresh" disabled={loading}>
-        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+      <button on:click={() => loadAllData(true)} class="btn-refresh" disabled={loading} aria-label={loading ? "Loading triggers data" : "Refresh triggers data"}>
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         Refresh
       </button>
     </div>
   </div>
 
   {#if successMessage}
-    <div class="message success">{successMessage}</div>
+    <div class="message success" role="status" aria-live="polite">{successMessage}</div>
   {/if}
 
   {#if error}
-    <div class="message error">{error}</div>
+    <div class="message error" role="alert">{error}</div>
   {/if}
 
-  <div class="tabs">
+  <div class="tabs" role="tablist" aria-label="Triggers sections">
     <button
       class="tab"
       class:active={activeTab === 'rules'}
       on:click={() => activeTab = 'rules'}
+      role="tab"
+      aria-selected={activeTab === 'rules'}
+      aria-controls="triggers-tabpanel"
+      id="rules-tab"
     >
-      📋 Trigger Rules ({triggers?.length || 0})
+      <span aria-hidden="true">📋</span> Trigger Rules (<span role="status">{triggers?.length || 0}</span>)
     </button>
     <button
       class="tab"
       class:active={activeTab === 'events'}
       on:click={() => activeTab = 'events'}
+      role="tab"
+      aria-selected={activeTab === 'events'}
+      aria-controls="triggers-tabpanel"
+      id="events-tab"
     >
-      🔔 Triggered Events ({filteredEvents?.length || 0})
+      <span aria-hidden="true">🔔</span> Triggered Events (<span role="status">{filteredEvents?.length || 0}</span>)
     </button>
     <button
       class="tab"
       class:active={activeTab === 'stats'}
       on:click={() => activeTab = 'stats'}
+      role="tab"
+      aria-selected={activeTab === 'stats'}
+      aria-controls="triggers-tabpanel"
+      id="stats-tab"
     >
-      📊 Statistics
+      <span aria-hidden="true">📊</span> Statistics
     </button>
   </div>
 
-  <div class="tab-content">
+  <div class="tab-content" role="tabpanel" id="triggers-tabpanel" aria-labelledby="{activeTab}-tab">
     {#if loading}
       <LoadingSkeleton count={5} height="80px" />
     {:else if activeTab === 'rules'}
@@ -295,56 +307,58 @@
 
       <!-- Search and Filters -->
       {#if triggers.length > 0}
-        <div class="filters-bar">
+        <div class="filters-bar" role="region" aria-label="Trigger filters">
           <input
             type="text"
             class="search-input"
             placeholder="Search triggers by name, message, or file..."
             bind:value={searchQuery}
+            aria-label="Search triggers by name, message, or file"
           />
-          <select class="filter-select" bind:value={selectedActionFilter}>
+          <select class="filter-select" bind:value={selectedActionFilter} aria-label="Filter triggers by action type">
             <option value="all">All Actions</option>
             <option value="notify">🔔 Notify</option>
             <option value="log">📝 Log</option>
             <option value="command">⚙️ Command</option>
           </select>
-          <div class="filter-stats">
+          <div class="filter-stats" role="status" aria-live="polite">
             {filteredTriggers.length} / {triggers.length} triggers
           </div>
         </div>
       {/if}
 
       {#if filteredTriggers.length === 0 && triggers.length > 0}
-        <div class="empty">
-          <div class="icon">🔍</div>
+        <div class="empty" role="status">
+          <div class="icon" aria-hidden="true">🔍</div>
           <h3>No Matching Triggers</h3>
           <p>Try adjusting your search or filters.</p>
         </div>
       {:else if triggers.length === 0}
-        <div class="empty">
-          <div class="icon">📝</div>
+        <div class="empty" role="status">
+          <div class="icon" aria-hidden="true">📝</div>
           <h3>No Triggers Configured</h3>
           <p>Create triggers in <code>.raven/config.toml</code> to get started.</p>
           <p class="hint">Example triggers are created automatically when Raven first runs.</p>
         </div>
       {:else}
-        <div class="rules-grid">
+        <div class="rules-grid" role="list" aria-label="Trigger rules">
           {#each filteredTriggers || [] as trigger}
-            <div class="trigger-card" class:disabled={!enabledTriggers.has(trigger.name)}>
+            <article class="trigger-card" class:disabled={!enabledTriggers.has(trigger.name)} role="listitem">
               <div class="trigger-header">
                 <div class="trigger-title-row">
                   <span class="trigger-name">{trigger.name}</span>
-                  <label class="toggle-switch" title="Enable/Disable trigger">
+                  <label class="toggle-switch" aria-label="Enable or disable {trigger.name} trigger">
                     <input
                       type="checkbox"
                       checked={enabledTriggers.has(trigger.name)}
                       on:change={() => toggleTrigger(trigger.name)}
+                      aria-label="Toggle {trigger.name}"
                     />
                     <span class="toggle-slider"></span>
                   </label>
                 </div>
-                <span class="trigger-action">
-                  {getActionIcon(trigger.action)} {trigger.action}
+                <span class="trigger-action" role="status">
+                  <span aria-hidden="true">{getActionIcon(trigger.action)}</span> {trigger.action}
                 </span>
               </div>
 
@@ -383,20 +397,20 @@
               </div>
 
               <!-- Trigger Actions Footer -->
-              <div class="trigger-footer">
+              <div class="trigger-footer" role="group" aria-label="Trigger actions">
                 <button
                   class="btn-test"
                   on:click={() => testTrigger(trigger)}
                   disabled={!enabledTriggers.has(trigger.name)}
-                  title="Test this trigger"
+                  aria-label="Test fire {trigger.name} trigger"
                 >
-                  🧪 Test Fire
+                  <span aria-hidden="true">🧪</span> Test Fire
                 </button>
-                <span class="trigger-status">
-                  {enabledTriggers.has(trigger.name) ? '🟢 Enabled' : '⚫ Disabled'}
+                <span class="trigger-status" role="status">
+                  <span aria-hidden="true">{enabledTriggers.has(trigger.name) ? '🟢' : '⚫'}</span> {enabledTriggers.has(trigger.name) ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
-            </div>
+            </article>
           {/each}
         </div>
       {/if}
@@ -405,17 +419,17 @@
       <!-- Triggered Events Tab -->
       {#if filteredEvents.length === 0}
         {@const emptyMsg = getEmptyStateMessage('trigger events', $projectFilter, triggeredEvents.length)}
-        <div class="empty">
-          <div class="icon">🔕</div>
+        <div class="empty" role="status">
+          <div class="icon" aria-hidden="true">🔕</div>
           <h3>No Triggered Events</h3>
           <p>{emptyMsg.primary}</p>
           <p class="hint">{emptyMsg.hint}</p>
         </div>
       {:else}
-        <div class="events-list">
+        <div class="events-list" role="list" aria-label="Triggered events">
           {#each filteredEvents || [] as event}
-            <div class="event-row">
-              <span class="event-icon">{getActionIcon(event.action)}</span>
+            <article class="event-row" role="listitem">
+              <span class="event-icon" aria-hidden="true">{getActionIcon(event.action)}</span>
               <div class="event-details">
                 <div class="event-header-row">
                   <div class="event-trigger-name">{event.trigger_name}</div>
@@ -426,39 +440,39 @@
                 <div class="event-message">{event.message}</div>
               </div>
               <div class="event-meta">
-                <span class="event-action">{event.action}</span>
-                <span class="event-time">{formatTimestamp(event.timestamp)}</span>
+                <span class="event-action" role="status">{event.action}</span>
+                <time class="event-time" datetime="{event.timestamp}">{formatTimestamp(event.timestamp)}</time>
               </div>
-            </div>
+            </article>
           {/each}
         </div>
       {/if}
 
     {:else if activeTab === 'stats'}
       <!-- Statistics Tab -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value">{stats.total_triggers}</div>
+      <div class="stats-grid" role="list" aria-label="Trigger statistics">
+        <article class="stat-card" role="listitem">
+          <div class="stat-value" role="status">{stats.total_triggers}</div>
           <div class="stat-label">Total Triggers Fired</div>
-        </div>
+        </article>
 
-        <div class="stat-card">
-          <div class="stat-value">{stats.active_triggers}</div>
+        <article class="stat-card" role="listitem">
+          <div class="stat-value" role="status">{stats.active_triggers}</div>
           <div class="stat-label">Active Trigger Rules</div>
-        </div>
+        </article>
 
         {#if Object.keys(stats?.trigger_counts || {}).length > 0}
-          <div class="stat-card full-width">
-            <h3>Trigger Fire Counts</h3>
-            <div class="trigger-counts">
+          <article class="stat-card full-width" role="listitem">
+            <h3 id="fire-counts-heading">Trigger Fire Counts</h3>
+            <div class="trigger-counts" role="list" aria-labelledby="fire-counts-heading">
               {#each Object.entries(stats?.trigger_counts || {}).sort((a, b) => b[1] - a[1]) as [name, count]}
-                <div class="count-row">
+                <div class="count-row" role="listitem">
                   <span class="count-name">{name}</span>
-                  <span class="count-value">{count}</span>
+                  <span class="count-value" role="status">{count}</span>
                 </div>
               {/each}
             </div>
-          </div>
+          </article>
         {/if}
       </div>
     {/if}

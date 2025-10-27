@@ -109,53 +109,59 @@
   }
 </script>
 
-<div class="dashboard">
+<div class="dashboard" role="main" aria-label="Raven Dashboard">
   <div class="header">
-    <h2>Raven Dashboard</h2>
-    <button on:click={loadAllData} class="btn-refresh">
+    <h2 id="dashboard-title">Raven Dashboard</h2>
+    <button
+      on:click={loadAllData}
+      class="btn-refresh"
+      aria-label="Refresh dashboard data"
+      title="Refresh dashboard data">
       ↻ Refresh
     </button>
   </div>
 
   {#if loading}
-    <div class="loading">Loading dashboard...</div>
+    <div class="loading" role="status" aria-live="polite" aria-busy="true">Loading dashboard...</div>
   {:else}
     <!-- Stats Cards -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">📊</div>
+    <div class="stats-grid" role="region" aria-labelledby="stats-heading">
+      <h3 id="stats-heading" class="visually-hidden">Dashboard Statistics</h3>
+
+      <div class="stat-card" role="status" aria-label="Total events: {stats.total_events}">
+        <div class="stat-icon" aria-hidden="true">📊</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_events}</div>
           <div class="stat-label">Total Events</div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon">📁</div>
+      <div class="stat-card" role="status" aria-label="Tracked files: {stats.total_files}">
+        <div class="stat-icon" aria-hidden="true">📁</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_files}</div>
           <div class="stat-label">Tracked Files</div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon">🤖</div>
+      <div class="stat-card" role="status" aria-label="AI agents: {stats.total_agents}">
+        <div class="stat-icon" aria-hidden="true">🤖</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_agents}</div>
           <div class="stat-label">AI Agents</div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon">⏱️</div>
+      <div class="stat-card" role="status" aria-label="Session duration: {formatDuration(stats.session_duration_seconds)}">
+        <div class="stat-icon" aria-hidden="true">⏱️</div>
         <div class="stat-content">
           <div class="stat-value">{formatDuration(stats.session_duration_seconds)}</div>
           <div class="stat-label">Session Duration</div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon">🔥</div>
+      <div class="stat-card" role="status" aria-label="Active files today: {stats.active_files_today}">
+        <div class="stat-icon" aria-hidden="true">🔥</div>
         <div class="stat-content">
           <div class="stat-value">{stats.active_files_today}</div>
           <div class="stat-label">Active Today</div>
@@ -166,72 +172,72 @@
     <!-- Main Content Grid -->
     <div class="content-grid">
       <!-- Top Modified Files -->
-      <div class="panel">
+      <section class="panel" aria-labelledby="top-files-heading">
         <div class="panel-header">
-          <h2>📝 Top Modified Files</h2>
-          <span class="panel-count">{topFiles.length}</span>
+          <h2 id="top-files-heading"><span aria-hidden="true">📝</span> Top Modified Files</h2>
+          <span class="panel-count" aria-label="{topFiles.length} files">{topFiles.length}</span>
         </div>
         <div class="panel-content">
           {#if topFiles.length === 0}
-            <div class="empty-state">No file modifications yet</div>
+            <div class="empty-state" role="status">No file modifications yet</div>
           {:else}
-            <div class="table">
-              <div class="table-header">
-                <div class="col-file">File</div>
-                <div class="col-count">Edits</div>
-                <div class="col-time">Last Modified</div>
+            <div class="table" role="table" aria-label="Top modified files">
+              <div class="table-header" role="row">
+                <div class="col-file" role="columnheader">File</div>
+                <div class="col-count" role="columnheader">Edits</div>
+                <div class="col-time" role="columnheader">Last Modified</div>
               </div>
               {#each topFiles || [] as file (file.filepath)}
-                <div class="table-row">
-                  <div class="col-file" title={file.filepath}>
-                    <span class="file-icon">📄</span>
+                <div class="table-row" role="row">
+                  <div class="col-file" role="cell" title={file.filepath}>
+                    <span class="file-icon" aria-hidden="true">📄</span>
                     <span class="file-path">{file.filepath}</span>
                   </div>
-                  <div class="col-count">
-                    <span class="badge">{file.edit_count}</span>
+                  <div class="col-count" role="cell">
+                    <span class="badge" aria-label="{file.edit_count} edits">{file.edit_count}</span>
                   </div>
-                  <div class="col-time">
-                    {formatTimestamp(file.last_modified)}
+                  <div class="col-time" role="cell">
+                    <time datetime={file.last_modified}>{formatTimestamp(file.last_modified)}</time>
                   </div>
                 </div>
               {/each}
             </div>
           {/if}
         </div>
-      </div>
+      </section>
 
       <!-- Longest Edits -->
-      <div class="panel">
+      <section class="panel" aria-labelledby="longest-edits-heading">
         <div class="panel-header">
-          <h2>🎯 Longest Edits</h2>
-          <span class="panel-count">{longestEdits.length}</span>
+          <h2 id="longest-edits-heading"><span aria-hidden="true">🎯</span> Longest Edits</h2>
+          <span class="panel-count" aria-label="{longestEdits.length} edits">{longestEdits.length}</span>
         </div>
         <div class="panel-content">
           {#if longestEdits.length === 0}
-            <div class="empty-state">No agent edits recorded yet</div>
+            <div class="empty-state" role="status">No agent edits recorded yet</div>
           {:else}
-            <div class="table">
-              <div class="table-header">
-                <div class="col-file">File</div>
-                <div class="col-count">Lines</div>
-                <div class="col-agent">Agent</div>
+            <div class="table" role="table" aria-label="Longest edits by AI agents">
+              <div class="table-header" role="row">
+                <div class="col-file" role="columnheader">File</div>
+                <div class="col-count" role="columnheader">Lines</div>
+                <div class="col-agent" role="columnheader">Agent</div>
               </div>
               {#each longestEdits || [] as edit (edit.id || `${edit.filepath}-${edit.timestamp}`)  }
-                <div class="table-row">
-                  <div class="col-file" title={edit.filepath}>
-                    <span class="file-icon">📄</span>
+                <div class="table-row" role="row">
+                  <div class="col-file" role="cell" title={edit.filepath}>
+                    <span class="file-icon" aria-hidden="true">📄</span>
                     <span class="file-path">{edit.filepath || 'Unknown'}</span>
                   </div>
-                  <div class="col-count">
-                    <span class="badge lines">{edit.lines_changed}</span>
+                  <div class="col-count" role="cell">
+                    <span class="badge lines" aria-label="{edit.lines_changed} lines changed">{edit.lines_changed}</span>
                   </div>
-                  <div class="col-agent">
+                  <div class="col-agent" role="cell">
                     {#if edit.agent}
-                      <span class="agent-badge" style="background-color: {getAgentColor(edit.agent)}">
+                      <span class="agent-badge" style="background-color: {getAgentColor(edit.agent)}" aria-label="Agent: {edit.agent}">
                         {edit.agent}
                       </span>
                     {:else}
-                      <span class="agent-badge unknown">Unknown</span>
+                      <span class="agent-badge unknown" aria-label="Agent unknown">Unknown</span>
                     {/if}
                   </div>
                 </div>
@@ -239,27 +245,27 @@
             </div>
           {/if}
         </div>
-      </div>
+      </section>
 
       <!-- Active Agents -->
-      <div class="panel agents-panel">
+      <section class="panel agents-panel" aria-labelledby="active-agents-heading">
         <div class="panel-header">
-          <h2>🤖 Active Agents</h2>
-          <span class="panel-count">{agents.filter(a => a?.is_running).length} / {agents.length}</span>
+          <h2 id="active-agents-heading"><span aria-hidden="true">🤖</span> Active Agents</h2>
+          <span class="panel-count" aria-label="{agents.filter(a => a?.is_running).length} of {agents.length} agents running">{agents.filter(a => a?.is_running).length} / {agents.length}</span>
         </div>
         <div class="panel-content">
           {#if agents.length === 0}
-            <div class="empty-state">No agents detected</div>
+            <div class="empty-state" role="status">No agents detected</div>
           {:else}
-            <div class="agents-list">
+            <div class="agents-list" role="list" aria-label="AI agents">
               {#each agents || [] as agent (agent?.agent_name || agent?.id)}
-                <div class="agent-item" style="border-left-color: {agent?.color}">
-                  <div class="agent-status" class:running={agent?.is_running}>
-                    {agent?.is_running ? '🟢' : '🔴'}
+                <div class="agent-item" style="border-left-color: {agent?.color}" role="listitem">
+                  <div class="agent-status" class:running={agent?.is_running} aria-label="{agent?.is_running ? 'Running' : 'Stopped'}">
+                    <span aria-hidden="true">{agent?.is_running ? '🟢' : '🔴'}</span>
                   </div>
                   <div class="agent-info">
                     <div class="agent-name">{agent?.agent_name || 'Unknown'}</div>
-                    <div class="agent-meta">
+                    <div class="agent-meta" aria-label="{agent?.models_available?.length || 0} models available{agent?.requests_handled > 0 ? `, ${agent.requests_handled} requests handled` : ''}">
                       {agent?.models_available?.length || 0} models
                       {#if agent?.requests_handled > 0}
                         · {agent.requests_handled} requests
@@ -271,7 +277,7 @@
             </div>
           {/if}
         </div>
-      </div>
+      </section>
     </div>
 
     <!-- Agent Profile Panel -->
@@ -594,6 +600,19 @@
     .content-grid {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* Accessibility */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 
   @media (max-width: 768px) {

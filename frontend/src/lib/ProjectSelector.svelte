@@ -123,7 +123,7 @@
   });
 </script>
 
-<div class="project-selector">
+<div class="project-selector" role="group" aria-label="Project selection">
   <label for="project-select">Project:</label>
   <select
     id="project-select"
@@ -131,6 +131,9 @@
     on:change={switchProject}
     disabled={isLoading}
     class:loading={isLoading}
+    aria-label="Select active project"
+    aria-busy={isLoading}
+    aria-invalid={!!error}
   >
     {#each $availableProjects || [] as project}
       <option value={project}>{project}</option>
@@ -140,15 +143,15 @@
     class="refresh-btn"
     on:click={refreshProjects}
     disabled={isLoading}
-    title="Refresh project list"
+    aria-label="Refresh project list"
   >
-    ↻
+    <span aria-hidden="true">↻</span>
   </button>
   {#if isLoading}
-    <span class="loading-indicator">⏳</span>
+    <span class="loading-indicator" role="status" aria-live="polite" aria-label="Loading projects">⏳</span>
   {/if}
   {#if error}
-    <span class="error-message" title={error}>⚠️</span>
+    <span class="error-message" role="alert" aria-label="Error: {error}">⚠️</span>
   {/if}
 </div>
 

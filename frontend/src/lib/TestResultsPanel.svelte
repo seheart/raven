@@ -127,17 +127,19 @@
   }
 </script>
 
-<div class="test-results-panel">
+<div class="test-results-panel" role="region" aria-label="Test results panel">
   <div class="panel-header">
     <div class="header-top">
-      <h2>Test Results</h2>
-      <div class="header-actions">
+      <h2 id="test-results-heading">Test Results</h2>
+      <div class="header-actions" role="toolbar" aria-label="Test actions">
         {#if frameworks.length > 0}
-          <button class="run-btn" on:click={() => runTests()} disabled={running} title="Run tests">
-            {running ? '⏳' : '▶️'} Run Tests
+          <button class="run-btn" on:click={() => runTests()} disabled={running} aria-label={running ? "Running tests" : "Run tests"}>
+            <span aria-hidden="true">{running ? '⏳' : '▶️'}</span> Run Tests
           </button>
         {/if}
-        <button class="refresh-btn" on:click={fetchResults} title="Refresh">↻</button>
+        <button class="refresh-btn" on:click={fetchResults} aria-label="Refresh test results">
+          <span aria-hidden="true">↻</span>
+        </button>
       </div>
     </div>
     <p class="panel-description">
@@ -147,19 +149,19 @@
 
   <!-- Frameworks Info -->
   {#if frameworks.length > 0}
-    <div class="frameworks-section">
-      <h3>Detected Frameworks</h3>
-      <div class="frameworks-list">
+    <div class="frameworks-section" role="region" aria-labelledby="frameworks-heading">
+      <h3 id="frameworks-heading">Detected Frameworks</h3>
+      <div class="frameworks-list" role="list" aria-label="Detected test frameworks">
         {#each frameworks as framework}
-          <div class="framework-badge">
-            🧪 {framework.name}
+          <div class="framework-badge" role="listitem">
+            <span aria-hidden="true">🧪</span> {framework.name}
           </div>
         {/each}
       </div>
     </div>
   {:else if !loading}
-    <div class="no-frameworks">
-      <span class="icon">🔍</span>
+    <div class="no-frameworks" role="status">
+      <span class="icon" aria-hidden="true">🔍</span>
       <p>No test frameworks detected in this project</p>
       <p class="hint">Supported: Jest, Pytest, Mocha, Vitest, Go Test</p>
     </div>
@@ -167,58 +169,58 @@
 
   <!-- Latest Result Card -->
   {#if latestResult}
-    <div class="latest-result" style="--status-color: {getStatusColor(latestResult.passed)}">
+    <div class="latest-result" style="--status-color: {getStatusColor(latestResult.passed)}" role="region" aria-labelledby="latest-result-heading">
       <div class="result-header">
-        <span class="result-status">{latestResult.passed ? '✅' : '❌'}</span>
+        <span class="result-status" aria-hidden="true">{latestResult.passed ? '✅' : '❌'}</span>
         <div class="result-info">
-          <h3>{latestResult.passed ? 'Tests Passed' : 'Tests Failed'}</h3>
+          <h3 id="latest-result-heading">{latestResult.passed ? 'Tests Passed' : 'Tests Failed'}</h3>
           <p class="result-framework">{latestResult.framework}</p>
         </div>
-        <div class="result-stats">
-          <div class="stat passed">{latestResult.passed_tests} passed</div>
-          <div class="stat failed">{latestResult.failed_tests} failed</div>
-          <div class="stat skipped">{latestResult.skipped_tests} skipped</div>
+        <div class="result-stats" role="group" aria-label="Test results breakdown">
+          <div class="stat passed" role="status">{latestResult.passed_tests} passed</div>
+          <div class="stat failed" role="status">{latestResult.failed_tests} failed</div>
+          <div class="stat skipped" role="status">{latestResult.skipped_tests} skipped</div>
         </div>
       </div>
       <div class="result-meta">
         <span class="duration">{formatDuration(latestResult.duration)}</span>
-        <span class="timestamp">{new Date(latestResult.timestamp).toLocaleString()}</span>
+        <time class="timestamp" datetime="{latestResult.timestamp}">{new Date(latestResult.timestamp).toLocaleString()}</time>
       </div>
     </div>
   {/if}
 
   <!-- Results History -->
   {#if loading}
-    <div class="loading">
-      <div class="spinner"></div>
+    <div class="loading" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
       <p>Loading test results...</p>
     </div>
   {:else if results.length === 0 && frameworks.length > 0}
-    <div class="empty-state">
-      <div class="empty-icon">🧪</div>
+    <div class="empty-state" role="status">
+      <div class="empty-icon" aria-hidden="true">🧪</div>
       <h3>No Test Results Yet</h3>
       <p>Run tests to see results here</p>
     </div>
   {:else if results.length > 0}
-    <div class="results-history">
-      <h3>Test History</h3>
-      <div class="results-list">
+    <div class="results-history" role="region" aria-labelledby="test-history-heading">
+      <h3 id="test-history-heading">Test History</h3>
+      <div class="results-list" role="list" aria-label="Past test results">
         {#each results as result}
-          <div class="result-item" style="--status-color: {getStatusColor(result.passed)}">
-            <div class="result-status-icon">{result.passed ? '✅' : '❌'}</div>
+          <article class="result-item" style="--status-color: {getStatusColor(result.passed)}" role="listitem">
+            <div class="result-status-icon" aria-hidden="true">{result.passed ? '✅' : '❌'}</div>
             <div class="result-details">
               <div class="result-row">
                 <span class="framework-name">{result.framework}</span>
-                <span class="result-count">
+                <span class="result-count" role="status">
                   {result.passed_tests}/{result.total_tests} passed
                 </span>
               </div>
               <div class="result-row meta">
-                <span class="timestamp">{new Date(result.timestamp).toLocaleString()}</span>
+                <time class="timestamp" datetime="{result.timestamp}">{new Date(result.timestamp).toLocaleString()}</time>
                 <span class="duration">{formatDuration(result.duration)}</span>
               </div>
             </div>
-          </div>
+          </article>
         {/each}
       </div>
     </div>

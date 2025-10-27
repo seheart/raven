@@ -67,10 +67,10 @@
   }
 </script>
 
-<div class="virtual-list-example">
+<div class="virtual-list-example" role="region" aria-label="Virtual list example demonstration">
   <div class="header standard-section-header">
-    <h2 class="standard-section-title">Virtual List Example</h2>
-    <div class="controls">
+    <h2 class="standard-section-title" id="virtual-list-heading">Virtual List Example</h2>
+    <div class="controls" role="toolbar" aria-label="List controls">
       <input
         type="text"
         class="standard-input search-input"
@@ -79,7 +79,7 @@
         on:debounced={handleSearch}
         aria-label="Search events"
       />
-      <span class="count-badge">{filteredItems.length} items</span>
+      <span class="count-badge" role="status" aria-live="polite">{filteredItems.length} items</span>
     </div>
   </div>
 
@@ -96,10 +96,12 @@
     >
       <div class="list-item">
         <div class="item-header">
-          <span class="timestamp">{formatTime(item.timestamp)}</span>
+          <span class="timestamp"><time datetime={item.timestamp}>{formatTime(item.timestamp)}</time></span>
           <span
             class="type-badge"
             style="background: {typeColors[item.type]};"
+            role="status"
+            aria-label="Event type: {item.type}"
           >
             {item.type.toUpperCase()}
           </span>
@@ -108,11 +110,11 @@
           <div class="message">{item.message}</div>
           <div class="details">{item.details}</div>
         </div>
-        <div class="item-index">#{index + 1}</div>
+        <div class="item-index" aria-hidden="true">#{index + 1}</div>
       </div>
     </VirtualScroll>
   {:else}
-    <div class="empty-state">
+    <div class="empty-state" role="status">
       <p>No items found matching "{searchQuery}"</p>
     </div>
   {/if}

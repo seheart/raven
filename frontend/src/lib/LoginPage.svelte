@@ -51,17 +51,17 @@
   });
 </script>
 
-<div class="login-container">
+<div class="login-container" role="main" aria-label="Login page">
   <div class="login-card">
     <div class="login-header">
       <RavenLogo size={48} />
-      <h1>Welcome to Raven</h1>
+      <h1 id="login-title">Welcome to Raven</h1>
       <p>Sign in to continue</p>
     </div>
 
-    <form on:submit|preventDefault={handleSubmit} class="login-form">
+    <form on:submit|preventDefault={handleSubmit} class="login-form" aria-busy={$authLoading} aria-labelledby="login-title" aria-describedby={error ? 'login-error' : undefined}>
       {#if error}
-        <div class="error-message" role="alert">
+        <div id="login-error" class="error-message" role="alert" aria-live="assertive">
           {error}
         </div>
       {/if}
@@ -76,6 +76,8 @@
           placeholder="Enter your username"
           autocomplete="username"
           disabled={$authLoading}
+          aria-required="true"
+          aria-invalid={error && !username}
         />
       </div>
 
@@ -90,15 +92,18 @@
             placeholder="Enter your password"
             autocomplete="current-password"
             disabled={$authLoading}
+            aria-required="true"
+            aria-invalid={error && !password}
           />
           <button
             type="button"
             class="toggle-password"
             on:click={() => showPassword = !showPassword}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-pressed={showPassword}
             disabled={$authLoading}
           >
-            {showPassword ? '👁️' : '👁️‍🗨️'}
+            <span aria-hidden="true">{showPassword ? '👁️' : '👁️‍🗨️'}</span>
           </button>
         </div>
       </div>
@@ -107,19 +112,20 @@
         type="submit"
         class="login-button"
         disabled={$authLoading}
+        aria-label={$authLoading ? 'Signing in, please wait' : 'Sign in to Raven'}
       >
         {$authLoading ? 'Signing in...' : 'Sign In'}
       </button>
     </form>
 
-    <div class="login-footer">
-      <p class="hint">
+    <div class="login-footer" role="complementary" aria-label="Login information">
+      <p class="hint" role="note">
         <strong>Default credentials:</strong><br>
         Username: <code>admin</code><br>
         Password: <code>admin123</code>
       </p>
-      <p class="security-note">
-        🔒 Change the default password after first login
+      <p class="security-note" role="note">
+        <span aria-hidden="true">🔒</span> Change the default password after first login
       </p>
     </div>
   </div>

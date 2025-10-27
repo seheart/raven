@@ -190,31 +190,31 @@
   $: timeAgo = getTimeAgo();
 </script>
 
-<div class="settings-panel">
+<div class="settings-panel" role="region" aria-label="User settings">
   <div class="settings-header">
     <div class="header-left">
-      <h2>⚙️ User Settings</h2>
-      <p class="auto-save-note">⚡ Settings save automatically</p>
+      <h2 id="settings-heading">⚙️ User Settings</h2>
+      <p class="auto-save-note" role="status" aria-live="polite">⚡ Settings save automatically</p>
     </div>
-    <div class="header-actions">
-      <span class="last-updated">Modified: {timeAgo}</span>
-      <button class="btn-secondary" on:click={exportSettings}>
-        📤 Export
+    <div class="header-actions" role="toolbar" aria-label="Settings actions">
+      <span class="last-updated" role="status" aria-live="polite">Modified: {timeAgo}</span>
+      <button class="btn-secondary" on:click={exportSettings} aria-label="Export settings">
+        <span aria-hidden="true">📤</span> Export
       </button>
       <label class="btn-secondary">
-        📥 Import
-        <input type="file" accept=".json" on:change={importSettings} style="display: none;" />
+        <span aria-hidden="true">📥</span> Import
+        <input type="file" accept=".json" on:change={importSettings} style="display: none;" aria-label="Import settings file" />
       </label>
-      <button class="btn-secondary" on:click={resetToDefaults}>
-        🔄 Reset
+      <button class="btn-secondary" on:click={resetToDefaults} aria-label="Reset settings to defaults">
+        <span aria-hidden="true">🔄</span> Reset
       </button>
     </div>
   </div>
 
   <div class="settings-content">
     <!-- Notifications Section -->
-    <div class="settings-section">
-      <h3>🔔 Notifications</h3>
+    <section class="settings-section" aria-labelledby="notifications-heading">
+      <h3 id="notifications-heading"><span aria-hidden="true">🔔</span> Notifications</h3>
 
       <div class="setting-row">
         <label>
@@ -276,8 +276,8 @@
         </div>
       </div>
 
-      <div class="subsection">
-        <h4>Notification Types</h4>
+      <fieldset class="subsection">
+        <legend>Notification Types</legend>
 
         <div class="setting-row" class:disabled={!settings.notifications.enabled}>
           <label>
@@ -338,12 +338,12 @@
           </label>
           <span class="setting-description">Informational messages</span>
         </div>
-      </div>
-    </div>
+      </fieldset>
+    </section>
 
     <!-- UI Section -->
-    <div class="settings-section">
-      <h3>🎨 User Interface</h3>
+    <section class="settings-section" aria-labelledby="ui-heading">
+      <h3 id="ui-heading"><span aria-hidden="true">🎨</span> User Interface</h3>
 
       <div class="setting-row">
         <label for="theme-select">Theme</label>
@@ -400,14 +400,15 @@
           max="60"
           bind:value={settings.ui.refreshInterval}
           disabled={!settings.ui.autoRefresh}
+          aria-describedby="refresh-interval-desc"
         />
-        <span class="setting-description">How often to refresh data</span>
+        <span id="refresh-interval-desc" class="setting-description">How often to refresh data</span>
       </div>
-    </div>
+    </section>
 
     <!-- Performance Section -->
-    <div class="settings-section">
-      <h3>⚡ Performance</h3>
+    <section class="settings-section" aria-labelledby="performance-heading">
+      <h3 id="performance-heading"><span aria-hidden="true">⚡</span> Performance</h3>
 
       <div class="setting-row">
         <label>
@@ -453,10 +454,11 @@
           max="1000"
           step="50"
           bind:value={settings.performance.maxEventsDisplay}
+          aria-describedby="max-events-desc"
         />
-        <span class="setting-description">Maximum number of events to show in lists</span>
+        <span id="max-events-desc" class="setting-description">Maximum number of events to show in lists</span>
       </div>
-    </div>
+    </section>
   </div>
 </div>
 

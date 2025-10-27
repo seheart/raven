@@ -104,68 +104,68 @@
   }
 </script>
 
-<div class="syntax-error-panel">
+<div class="syntax-error-panel" role="region" aria-label="Syntax errors panel">
   <div class="panel-header">
-    <h2>Syntax Errors</h2>
+    <h2 id="syntax-errors-heading">Syntax Errors</h2>
     {#if !loading}
-      <span class="error-count" class:has-errors={errorCount > 0}>
+      <span class="error-count" class:has-errors={errorCount > 0} role="status">
         {errorCount} {errorCount === 1 ? 'error' : 'errors'}
       </span>
     {/if}
-    <button class="refresh-btn" on:click={fetchErrors} title="Refresh">
-      ↻
+    <button class="refresh-btn" on:click={fetchErrors} aria-label="Refresh syntax errors">
+      <span aria-hidden="true">↻</span>
     </button>
   </div>
 
   {#if loading}
-    <div class="loading">
-      <div class="spinner"></div>
+    <div class="loading" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
       <p>Loading syntax errors...</p>
     </div>
   {:else if errorCount === 0}
-    <div class="empty-state">
-      <div class="empty-icon">✅</div>
+    <div class="empty-state" role="status">
+      <div class="empty-icon" aria-hidden="true">✅</div>
       <h3>No Syntax Errors</h3>
       <p>All your code is syntactically correct!</p>
     </div>
   {:else}
-    <div class="errors-list">
+    <div class="errors-list" role="region" aria-label="Syntax errors grouped by file" aria-labelledby="syntax-errors-heading">
       {#each Object.entries(errorsByFile) as [filepath, fileErrors]}
-        <div class="file-group">
+        <section class="file-group" role="group" aria-label="Errors in {filepath}">
           <div class="file-header">
-            <span class="file-icon">📄</span>
+            <span class="file-icon" aria-hidden="true">📄</span>
             <span class="file-path">{filepath}</span>
-            <span class="file-error-count">{fileErrors.length}</span>
+            <span class="file-error-count" role="status">{fileErrors.length}</span>
           </div>
 
-          <div class="errors">
+          <div class="errors" role="list" aria-label="Syntax errors in {filepath}">
             {#each fileErrors as error}
-              <div class="error-item" style="--severity-color: {getSeverityColor(error.severity)}">
+              <article class="error-item" style="--severity-color: {getSeverityColor(error.severity)}" role="listitem">
                 <div class="error-header">
-                  <span class="language-icon">{getLanguageIcon(error.language)}</span>
+                  <span class="language-icon" aria-hidden="true">{getLanguageIcon(error.language)}</span>
                   <span class="error-location">
                     Line {error.line_number}
                     {#if error.column_number}
                       , Col {error.column_number}
                     {/if}
                   </span>
-                  <span class="severity-badge">{error.severity}</span>
+                  <span class="severity-badge" role="status">{error.severity}</span>
                 </div>
 
                 <div class="error-message">{error.message}</div>
 
                 <div class="error-actions">
-                  <span class="error-timestamp">
+                  <time class="error-timestamp" datetime="{error.timestamp}">
                     {new Date(error.timestamp).toLocaleString()}
-                  </span>
-                  <button class="resolve-btn" on:click={() => resolveError(error.id)}>
+                  </time>
+                  <button class="resolve-btn" on:click={() => resolveError(error.id)} aria-label="Mark error on line {error.line_number} as resolved">
                     Mark as Resolved
                   </button>
                 </div>
-              </div>
+              </article>
             {/each}
           </div>
-        </div>
+        </section>
       {/each}
     </div>
   {/if}

@@ -87,13 +87,15 @@
     class:warning={recommendation.urgency === 'warning'}
     class:info={recommendation.urgency === 'info'}
     style="--urgency-color: {getUrgencyColor(recommendation.urgency)}"
+    role="alert"
+    aria-live={recommendation.urgency === 'critical' ? 'assertive' : 'polite'}
   >
-    <div class="alert-icon">
+    <div class="alert-icon" aria-hidden="true">
       {getUrgencyIcon(recommendation.urgency)}
     </div>
 
     <div class="alert-content">
-      <div class="alert-title">
+      <div class="alert-title" id="break-alert-title">
         {#if recommendation.urgency === 'critical'}
           Time to Take a Break!
         {:else if recommendation.urgency === 'warning'}
@@ -122,7 +124,7 @@
       {/if}
     </div>
 
-    <button class="dismiss-btn" on:click={handleDismiss} title="Dismiss for 30 minutes">
+    <button class="dismiss-btn" on:click={handleDismiss} aria-label="Dismiss break alert for 30 minutes">
       ✕
     </button>
   </div>

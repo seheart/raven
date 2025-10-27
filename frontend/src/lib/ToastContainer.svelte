@@ -18,7 +18,7 @@
   }
 </script>
 
-<div class="toast-container" aria-live="polite" aria-atomic="true">
+<div class="toast-container" role="region" aria-live="polite" aria-atomic="true" aria-label="Notifications">
   {#each $toasts as toast (toast.id)}
     <div
       class="toast toast-{toast.type}"
@@ -26,13 +26,14 @@
       in:fly={{ x: 300, duration: 200 }}
       out:fade={{ duration: 150 }}
       role="alert"
+      aria-live="assertive"
     >
       <span class="toast-icon" aria-hidden="true">{getIcon(toast.type)}</span>
       <span class="toast-message">{toast.message}</span>
       <button
         class="toast-close"
         on:click={() => dismiss(toast.id)}
-        aria-label="Dismiss notification"
+        aria-label="Close {toast.type} notification"
         tabindex="0"
       >
         ×

@@ -170,19 +170,20 @@
   $: organizedDocs = cachedOrganizedResult;
 </script>
 
-<div class="docs-viewer" transition:fade={{ duration: 300 }}>
-  <div class="docs-sidebar">
+<div class="docs-viewer" transition:fade={{ duration: 300 }} role="main" aria-label="Documentation viewer">
+  <nav class="docs-sidebar" aria-label="Documentation navigation">
     <div class="sidebar-header">
-      <h2>📚 Documentation</h2>
+      <h2 id="docs-heading"><span aria-hidden="true">📚</span> Documentation</h2>
       <input
         type="text"
         placeholder="Search docs..."
         bind:value={searchTerm}
         class="search-input"
+        aria-label="Search documentation"
       />
     </div>
 
-    <div class="docs-list">
+    <div class="docs-list" role="region" aria-labelledby="docs-heading">
       {#each Object.entries(organizedDocs) as [category, categoryDocs]}
         <div class="docs-category">
           <h3 class="category-title">{category === 'root' ? 'Getting Started' : category.toUpperCase()}</h3>
@@ -191,8 +192,10 @@
               class="doc-item"
               class:active={selectedDoc === doc.path}
               on:click={() => loadDoc(doc.path)}
+              aria-current={selectedDoc === doc.path ? 'page' : undefined}
+              aria-label="View {doc.title}"
             >
-              <span class="doc-icon">📄</span>
+              <span class="doc-icon" aria-hidden="true">📄</span>
               <span class="doc-title">{doc.title}</span>
             </button>
           {/each}
@@ -200,35 +203,35 @@
       {/each}
 
       {#if filteredDocs.length === 0}
-        <div class="no-results">
+        <div class="no-results" role="status">
           <p>No documentation found</p>
         </div>
       {/if}
     </div>
-  </div>
+  </nav>
 
-  <div class="docs-content">
+  <main class="docs-content" role="region" aria-label="Documentation content">
     {#if loading}
-      <div class="loading">
-        <div class="spinner"></div>
+      <div class="loading" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
         <p>Loading documentation...</p>
       </div>
     {:else if error}
-      <div class="error">
-        <h2>❌ Error</h2>
+      <div class="error" role="alert">
+        <h2><span aria-hidden="true">❌</span> Error</h2>
         <p>{error}</p>
       </div>
     {:else if html}
-      <div class="markdown-content" on:click={handleMarkdownClick}>
+      <article class="markdown-content" on:click={handleMarkdownClick}>
         {@html html}
-      </div>
+      </article>
     {:else}
-      <div class="empty">
+      <div class="empty" role="status">
         <h2>Select a document</h2>
         <p>Choose a documentation file from the sidebar to view it here.</p>
       </div>
     {/if}
-  </div>
+  </main>
 </div>
 
 <style>

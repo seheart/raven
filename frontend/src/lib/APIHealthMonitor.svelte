@@ -262,21 +262,21 @@
   $: grouped = apiEndpoints.length > 0 ? groupedEndpoints() : {};
 </script>
 
-<div class="api-health">
+<div class="api-health" role="region" aria-label="API health monitor">
   <div class="header">
     <div>
-      <h2>🔌 API Health Monitor</h2>
+      <h2 id="api-health-heading"><span aria-hidden="true">🔌</span> API Health Monitor</h2>
       <div class="status-indicators">
         {#if realtimeActive}
-          <span class="realtime-badge">🔴 Live Update</span>
+          <span class="realtime-badge" role="status" aria-live="polite"><span aria-hidden="true">🔴</span> Live Update</span>
         {/if}
       </div>
     </div>
-    <div class="header-controls">
-      <span class="last-updated">Updated: {timeAgo}</span>
+    <div class="header-controls" role="toolbar" aria-label="API health monitor controls">
+      <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
       <label class="control-label">
         <span>Polling:</span>
-        <select bind:value={pollingInterval}>
+        <select bind:value={pollingInterval} aria-label="Select polling interval">
           <option value={10}>10s</option>
           <option value={30}>30s</option>
           <option value={60}>1m</option>
@@ -285,11 +285,11 @@
         </select>
       </label>
       <label class="control-label">
-        <input type="checkbox" bind:checked={alertsEnabled} />
+        <input type="checkbox" bind:checked={alertsEnabled} aria-label="Enable health alerts" />
         <span>Alerts</span>
       </label>
-      <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn-refresh">
-        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+      <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn-refresh" aria-label={checkingAll ? "Checking all endpoints" : "Check all endpoints"}>
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         {checkingAll ? 'Checking...' : 'Check All'}
       </button>
     </div>
@@ -298,26 +298,26 @@
   {#if !endpointsLoaded || (loading && Object.keys(healthStatus).length === 0)}
     <LoadingSkeleton count={10} height="60px" />
   {:else if apiEndpoints.length === 0}
-    <div class="empty-state">
-      <p>❌ No API endpoints found</p>
-      <button class="btn-refresh" on:click={() => loadEndpoints()}>Retry</button>
+    <div class="empty-state" role="status">
+      <p><span aria-hidden="true">❌</span> No API endpoints found</p>
+      <button class="btn-refresh" on:click={() => loadEndpoints()} aria-label="Retry loading endpoints">Retry</button>
     </div>
   {:else}
-    <div class="categories">
+    <div class="categories" role="list" aria-labelledby="api-health-heading">
       {#each Object.entries(grouped) as [category, endpoints]}
-        <div class="category-section">
-          <h3 class="category-title">{category}</h3>
-          <div class="endpoints-list">
+        <section class="category-section" role="listitem" aria-labelledby="category-{category}">
+          <h3 class="category-title" id="category-{category}">{category}</h3>
+          <div class="endpoints-list" role="list" aria-label="{category} endpoints">
             {#each endpoints || [] as endpoint}
               {@const status = healthStatus[endpoint.path]}
-              <div class="endpoint-row" class:healthy={status?.status === 'healthy'} class:error={status?.status === 'error'}>
+              <div class="endpoint-row" class:healthy={status?.status === 'healthy'} class:error={status?.status === 'error'} role="listitem">
                 <div class="endpoint-status">
                   {#if status?.status === 'healthy'}
-                    <span class="status-icon">🟢</span>
+                    <span class="status-icon" aria-label="Healthy" role="img">🟢</span>
                   {:else if status?.status === 'error'}
-                    <span class="status-icon">🔴</span>
+                    <span class="status-icon" aria-label="Error" role="img">🔴</span>
                   {:else}
-                    <span class="status-icon">⚪</span>
+                    <span class="status-icon" aria-label="Unknown" role="img">⚪</span>
                   {/if}
                 </div>
 
@@ -334,43 +334,44 @@
 
                 <div class="endpoint-metrics">
                   {#if status?.successRate}
-                    <span class="success-rate" class:excellent={parseFloat(status.successRate) >= 99} class:good={parseFloat(status.successRate) >= 90 && parseFloat(status.successRate) < 99} class:poor={parseFloat(status.successRate) < 90}>
+                    <span class="success-rate" class:excellent={parseFloat(status.successRate) >= 99} class:good={parseFloat(status.successRate) >= 90 && parseFloat(status.successRate) < 99} class:poor={parseFloat(status.successRate) < 90} role="status">
                       {status.successRate}%
                     </span>
                   {/if}
                   {#if status?.responseTime !== null && status?.responseTime !== undefined}
-                    <span class="response-time" class:fast={status.responseTime < 50} class:medium={status.responseTime >= 50 && status.responseTime < 200} class:slow={status.responseTime >= 200}>
+                    <span class="response-time" class:fast={status.responseTime < 50} class:medium={status.responseTime >= 50 && status.responseTime < 200} class:slow={status.responseTime >= 200} role="status">
                       {status.responseTime}ms
                     </span>
                   {/if}
                   {#if status?.history && status.history.length > 0}
-                    <div class="sparkline" title="Response time history (last 10 checks)">
+                    <div class="sparkline" title="Response time history (last 10 checks)" role="img" aria-label="Response time sparkline showing last 10 checks">
                       {#each status.history as check, i}
                         <div
                           class="spark-bar"
                           class:bar-success={check.success}
                           class:bar-failure={!check.success}
                           style="height: {check.success && check.responseTime ? Math.min((check.responseTime / 500) * 100, 100) : 10}%"
+                          aria-hidden="true"
                         ></div>
                       {/each}
                     </div>
                   {/if}
                   {#if status?.statusCode}
-                    <span class="status-code" class:success={status.statusCode >= 200 && status.statusCode < 300} class:error-code={status.statusCode >= 400}>
+                    <span class="status-code" class:success={status.statusCode >= 200 && status.statusCode < 300} class:error-code={status.statusCode >= 400} role="status">
                       {status.statusCode}
                     </span>
                   {/if}
                 </div>
 
                 <div class="endpoint-actions">
-                  <button on:click={() => checkEndpoint(endpoint)} class="btn-test" title="Test endpoint">
-                    ⚡️
+                  <button on:click={() => checkEndpoint(endpoint)} class="btn-test" aria-label="Test {endpoint.path} endpoint">
+                    <span aria-hidden="true">⚡️</span>
                   </button>
                 </div>
               </div>
             {/each}
           </div>
-        </div>
+        </section>
       {/each}
     </div>
   {/if}

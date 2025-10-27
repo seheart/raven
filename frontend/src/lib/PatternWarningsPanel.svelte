@@ -127,12 +127,12 @@
   }, {});
 </script>
 
-<div class="pattern-warnings-panel">
+<div class="pattern-warnings-panel" role="region" aria-label="Pattern warnings panel">
   <div class="panel-header">
     <div class="header-top">
-      <h2>Code Pattern Warnings</h2>
-      <button class="refresh-btn" on:click={fetchWarnings} title="Refresh">
-        ↻
+      <h2 id="pattern-warnings-heading">Code Pattern Warnings</h2>
+      <button class="refresh-btn" on:click={fetchWarnings} aria-label="Refresh pattern warnings">
+        <span aria-hidden="true">↻</span>
       </button>
     </div>
     <p class="panel-description">
@@ -141,14 +141,17 @@
   </div>
 
   <!-- Category Filter -->
-  <div class="category-filter">
+  <div class="category-filter" role="radiogroup" aria-label="Filter warnings by category" aria-labelledby="pattern-warnings-heading">
     {#each categories as category}
       <button
         class="category-btn"
         class:active={selectedCategory === category.id}
         on:click={() => selectedCategory = category.id}
+        role="radio"
+        aria-checked={selectedCategory === category.id}
+        aria-label="{category.label} warnings filter"
       >
-        <span class="category-icon">{category.icon}</span>
+        <span class="category-icon" aria-hidden="true">{category.icon}</span>
         <span class="category-label">{category.label}</span>
       </button>
     {/each}
@@ -156,29 +159,29 @@
 
   <!-- Stats Bar -->
   {#if !loading && warningCount > 0}
-    <div class="stats-bar">
+    <div class="stats-bar" role="region" aria-label="Warning statistics">
       <div class="stat-item">
         <span class="stat-label">Total:</span>
-        <span class="stat-value">{warningCount}</span>
+        <span class="stat-value" role="status">{warningCount}</span>
       </div>
       {#if severityStats.critical}
         <div class="stat-item critical">
-          <span class="stat-icon">🚨</span>
-          <span class="stat-value">{severityStats.critical}</span>
+          <span class="stat-icon" aria-hidden="true">🚨</span>
+          <span class="stat-value" role="status">{severityStats.critical}</span>
           <span class="stat-label">Critical</span>
         </div>
       {/if}
       {#if severityStats.warning}
         <div class="stat-item warning">
-          <span class="stat-icon">⚠️</span>
-          <span class="stat-value">{severityStats.warning}</span>
+          <span class="stat-icon" aria-hidden="true">⚠️</span>
+          <span class="stat-value" role="status">{severityStats.warning}</span>
           <span class="stat-label">Warning</span>
         </div>
       {/if}
       {#if severityStats.info}
         <div class="stat-item info">
-          <span class="stat-icon">ℹ️</span>
-          <span class="stat-value">{severityStats.info}</span>
+          <span class="stat-icon" aria-hidden="true">ℹ️</span>
+          <span class="stat-value" role="status">{severityStats.info}</span>
           <span class="stat-label">Info</span>
         </div>
       {/if}
@@ -186,13 +189,13 @@
   {/if}
 
   {#if loading}
-    <div class="loading">
-      <div class="spinner"></div>
+    <div class="loading" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
       <p>Loading pattern warnings...</p>
     </div>
   {:else if warningCount === 0}
-    <div class="empty-state">
-      <div class="empty-icon">✅</div>
+    <div class="empty-state" role="status">
+      <div class="empty-icon" aria-hidden="true">✅</div>
       <h3>No Pattern Warnings</h3>
       <p>
         {#if selectedCategory === 'all'}
@@ -203,27 +206,27 @@
       </p>
     </div>
   {:else}
-    <div class="warnings-list">
+    <div class="warnings-list" role="region" aria-label="Pattern warnings grouped by file">
       {#each Object.entries(warningsByFile) as [filepath, fileWarnings]}
-        <div class="file-group">
+        <section class="file-group" role="group" aria-label="Warnings in {filepath}">
           <div class="file-header">
-            <span class="file-icon">📄</span>
+            <span class="file-icon" aria-hidden="true">📄</span>
             <span class="file-path">{filepath}</span>
             <div class="file-badges">
               {#if fileWarnings.some(w => w.severity === 'critical')}
-                <span class="severity-badge critical">CRITICAL</span>
+                <span class="severity-badge critical" role="status">CRITICAL</span>
               {/if}
-              <span class="warning-count">{fileWarnings.length}</span>
+              <span class="warning-count" role="status">{fileWarnings.length}</span>
             </div>
           </div>
 
-          <div class="warnings">
+          <div class="warnings" role="list" aria-label="Warnings in {filepath}">
             {#each fileWarnings as warning}
-              <div class="warning-item" style="--severity-color: {getSeverityColor(warning.severity)}">
+              <article class="warning-item" style="--severity-color: {getSeverityColor(warning.severity)}" role="listitem">
                 <div class="warning-header">
-                  <span class="category-icon">{getCategoryIcon(warning.category)}</span>
+                  <span class="category-icon" aria-hidden="true">{getCategoryIcon(warning.category)}</span>
                   <span class="warning-name">{warning.pattern_name}</span>
-                  <span class="severity-badge" style="background: {getSeverityColor(warning.severity)}">
+                  <span class="severity-badge" style="background: {getSeverityColor(warning.severity)}" role="status">
                     {warning.severity}
                   </span>
                 </div>
@@ -241,17 +244,17 @@
                 </div>
 
                 <div class="warning-actions">
-                  <span class="warning-timestamp">
+                  <time class="warning-timestamp" datetime="{warning.timestamp}">
                     {new Date(warning.timestamp).toLocaleString()}
-                  </span>
-                  <button class="resolve-btn" on:click={() => resolveWarning(warning.id)}>
+                  </time>
+                  <button class="resolve-btn" on:click={() => resolveWarning(warning.id)} aria-label="Mark {warning.pattern_name} as resolved">
                     Mark as Resolved
                   </button>
                 </div>
-              </div>
+              </article>
             {/each}
           </div>
-        </div>
+        </section>
       {/each}
     </div>
   {/if}

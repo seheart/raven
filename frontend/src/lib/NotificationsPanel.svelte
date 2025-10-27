@@ -305,63 +305,63 @@
   $: filteredCount = notifications.length;
 </script>
 
-<div class="notifications-panel">
+<div class="notifications-panel" role="region" aria-label="Notifications panel">
   <div class="header">
     <div class="header-left">
-      <h1>📬 Notifications</h1>
+      <h1 id="notifications-heading"><span aria-hidden="true">📬</span> Notifications</h1>
       <p class="subtitle">System alerts and activity updates</p>
     </div>
-    <div class="header-actions">
-      <span class="last-updated">Updated: {timeAgo}</span>
+    <div class="header-actions" role="toolbar" aria-label="Notification actions">
+      <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
       <label class="toggle-label">
-        <input type="checkbox" bind:checked={groupDuplicates} />
+        <input type="checkbox" bind:checked={groupDuplicates} aria-label="Group duplicate notifications" />
         Group Duplicates
       </label>
-      <button class="btn-secondary" on:click={exportNotifications} disabled={notifications.length === 0}>
-        📤 Export
+      <button class="btn-secondary" on:click={exportNotifications} disabled={notifications.length === 0} aria-label="Export notifications to JSON">
+        <span aria-hidden="true">📤</span> Export
       </button>
-      <button class="btn-secondary" on:click={markAllAsRead} disabled={stats.unread === 0}>
+      <button class="btn-secondary" on:click={markAllAsRead} disabled={stats.unread === 0} aria-label="Mark all {stats.unread} notifications as read">
         Mark All Read
       </button>
-      <button class="btn-secondary" on:click={clearAll} disabled={stats.total === 0}>
+      <button class="btn-secondary" on:click={clearAll} disabled={stats.total === 0} aria-label="Clear all {stats.total} notifications">
         Clear All
       </button>
-      <button class="btn-primary" on:click={() => { offset = 0; loadNotifications(true); loadStats(); }} disabled={loading}>
-        <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
+      <button class="btn-primary" on:click={() => { offset = 0; loadNotifications(true); loadStats(); }} disabled={loading} aria-label="Refresh notifications">
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
         Refresh
       </button>
     </div>
   </div>
 
   <!-- Stats Bar -->
-  <div class="stats-bar">
-    <div class="stat-card">
+  <div class="stats-bar" role="region" aria-label="Notification statistics">
+    <div class="stat-card" role="status" aria-label="Total notifications: {stats.total}">
       <div class="stat-label">Total</div>
       <div class="stat-value">{stats.total}</div>
     </div>
-    <div class="stat-card unread-stat">
+    <div class="stat-card unread-stat" role="status" aria-label="Unread notifications: {stats.unread}">
       <div class="stat-label">Unread</div>
       <div class="stat-value">{stats.unread}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" role="status" aria-label="Error notifications: {stats.by_type?.error || 0}">
       <div class="stat-label">Errors</div>
       <div class="stat-value">{stats.by_type?.error || 0}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" role="status" aria-label="Trigger notifications: {stats.by_type?.trigger || 0}">
       <div class="stat-label">Triggers</div>
       <div class="stat-value">{stats.by_type?.trigger || 0}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" role="status" aria-label="Performance notifications: {stats.by_type?.performance || 0}">
       <div class="stat-label">Performance</div>
       <div class="stat-value">{stats.by_type?.performance || 0}</div>
     </div>
   </div>
 
   <!-- Filters -->
-  <div class="filters">
+  <div class="filters" role="region" aria-label="Notification filters">
     <div class="filter-group">
-      <label>Type:</label>
-      <select bind:value={filterType} on:change={applyFilters}>
+      <label for="filter-type">Type:</label>
+      <select id="filter-type" bind:value={filterType} on:change={applyFilters} aria-label="Filter notifications by type">
         <option value="all">All Types</option>
         <option value="error">Errors</option>
         <option value="trigger">Triggers</option>
@@ -374,8 +374,8 @@
     </div>
 
     <div class="filter-group">
-      <label>Severity:</label>
-      <select bind:value={filterSeverity} on:change={applyFilters}>
+      <label for="filter-severity">Severity:</label>
+      <select id="filter-severity" bind:value={filterSeverity} on:change={applyFilters} aria-label="Filter notifications by severity">
         <option value="all">All Severities</option>
         <option value="critical">Critical</option>
         <option value="warning">Warning</option>
@@ -385,23 +385,23 @@
 
     <div class="filter-group">
       <label class="checkbox-label">
-        <input type="checkbox" bind:checked={showUnreadOnly} on:change={applyFilters} />
+        <input type="checkbox" bind:checked={showUnreadOnly} on:change={applyFilters} aria-label="Show only unread notifications" />
         <span>Unread Only</span>
       </label>
     </div>
 
-    <div class="filter-results">
+    <div class="filter-results" role="status" aria-live="polite">
       Showing {filteredCount} of {stats.total} notifications
     </div>
   </div>
 
   <!-- Notifications List -->
-  <div class="notifications-list">
+  <div class="notifications-list" role="list" aria-label="Notifications" aria-live="polite">
     {#if loading && offset === 0}
       <LoadingSkeleton count={8} height="80px" />
     {:else if notifications.length === 0}
-      <div class="empty-state">
-        <div class="empty-icon">📭</div>
+      <div class="empty-state" role="status">
+        <div class="empty-icon" aria-hidden="true">📭</div>
         <div class="empty-title">No notifications</div>
         <div class="empty-message">
           {#if filterType !== 'all' || filterSeverity !== 'all' || showUnreadOnly}
@@ -418,60 +418,63 @@
           class:unread={!notification.read}
           class:expanded={expandedNotification?.id === notification.id}
           on:click={() => toggleExpand(notification)}
+          role="listitem"
+          aria-expanded={expandedNotification?.id === notification.id}
+          tabindex="0"
         >
           <div class="notification-header">
             <div class="notification-left">
-              <span class="notification-icon">{getNotificationIcon(notification.type)}</span>
+              <span class="notification-icon" aria-hidden="true">{getNotificationIcon(notification.type)}</span>
               <div class="notification-info">
                 <div class="notification-title">
                   {notification.title}
                   {#if notification.count > 1}
-                    <span class="count-badge" title="{notification.count} duplicate notifications">{notification.count}×</span>
+                    <span class="count-badge" title="{notification.count} duplicate notifications" role="status">{notification.count}×</span>
                   {/if}
                 </div>
                 <div class="notification-meta">
                   <span class="notification-type">{notification.type}</span>
                   <span class="notification-time">{formatRelativeTime(notification.timestamp)}</span>
                   {#if !notification.read}
-                    <span class="unread-badge">NEW</span>
+                    <span class="unread-badge" role="status" aria-label="New notification">NEW</span>
                   {/if}
                 </div>
               </div>
             </div>
-            <div class="notification-actions">
+            <div class="notification-actions" role="group" aria-label="Notification actions">
               <button
                 class="btn-icon"
                 on:click|stopPropagation={() => clearNotification(notification.id)}
-                title="Clear notification"
+                aria-label="Clear notification"
               >
-                🗑️
+                <span aria-hidden="true">🗑️</span>
               </button>
               {#if !notification.read}
                 <button
                   class="btn-icon"
                   on:click|stopPropagation={() => markAsRead(notification.id)}
-                  title="Mark as read"
+                  aria-label="Mark notification as read"
                 >
-                  ✓
+                  <span aria-hidden="true">✓</span>
                 </button>
               {/if}
             </div>
           </div>
 
           {#if expandedNotification?.id === notification.id}
-            <div class="notification-details">
+            <div class="notification-details" role="region" aria-label="Notification details">
               <div class="detail-section">
                 <div class="detail-label">Message</div>
                 <div class="detail-value">{notification.message}</div>
               </div>
               <div class="detail-section">
                 <div class="detail-label">Timestamp</div>
-                <div class="detail-value">{formatDateTime(notification.timestamp)}</div>
+                <div class="detail-value"><time datetime={notification.timestamp}>{formatDateTime(notification.timestamp)}</time></div>
               </div>
               {#if notification.metadata}
                 <div class="detail-section">
                   <div class="detail-label">Details</div>
-                  <pre class="detail-metadata">{JSON.stringify(notification.metadata, null, 2)}</pre>
+                  <pre class="detail-metadata" role="code">{JSON.stringify(notification.metadata, null, 2)}</pre>
                 </div>
               {/if}
             </div>
@@ -481,7 +484,7 @@
 
       {#if hasMore}
         <div class="load-more">
-          <button class="btn-secondary" on:click={loadMore} disabled={loading}>
+          <button class="btn-secondary" on:click={loadMore} disabled={loading} aria-label="Load more notifications">
             {loading ? 'Loading...' : 'Load More'}
           </button>
         </div>

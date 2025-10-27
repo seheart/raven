@@ -74,123 +74,123 @@
   $: timeSinceUpdate = getTimeSinceUpdate();
 </script>
 
-<div class="custom-metrics-panel">
+<div class="custom-metrics-panel" role="region" aria-label="Custom metrics dashboard">
   <div class="panel-header">
     <div class="header-left">
-      <h2>📊 Custom Metrics Dashboard</h2>
+      <h2 id="metrics-heading"><span aria-hidden="true">📊</span> Custom Metrics Dashboard</h2>
       <p class="subtitle">Key performance indicators at a glance</p>
     </div>
-    <div class="header-right">
-      <span class="last-update">Updated: {timeSinceUpdate}</span>
-      <button class="btn-primary" on:click={loadMetrics}>↻ Refresh</button>
+    <div class="header-right" role="toolbar" aria-label="Dashboard actions">
+      <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
+      <button class="btn-primary" on:click={loadMetrics} aria-label="Refresh metrics"><span aria-hidden="true">↻</span> Refresh</button>
     </div>
   </div>
 
   {#if loading}
     <LoadingSkeleton />
   {:else if error}
-    <div class="error-state">
-      <p>❌ Error loading metrics: {error}</p>
-      <button on:click={loadMetrics}>Try Again</button>
+    <div class="error-state" role="alert">
+      <p><span aria-hidden="true">❌</span> Error loading metrics: {error}</p>
+      <button on:click={loadMetrics} aria-label="Try loading metrics again">Try Again</button>
     </div>
   {:else}
-    <div class="metrics-grid">
+    <div class="metrics-grid" role="list" aria-labelledby="metrics-heading">
       <!-- Total Events -->
-      <div class="metric-card primary">
-        <div class="metric-icon">📈</div>
-        <div class="metric-value">{(metrics.total_events || 0).toLocaleString()}</div>
+      <article class="metric-card primary" role="listitem">
+        <div class="metric-icon" aria-hidden="true">📈</div>
+        <div class="metric-value" role="status">{(metrics.total_events || 0).toLocaleString()}</div>
         <div class="metric-label">Total Events</div>
         <div class="metric-sublabel">All-time</div>
-      </div>
+      </article>
 
       <!-- Events 24h -->
-      <div class="metric-card success">
-        <div class="metric-icon">⚡</div>
-        <div class="metric-value">{(metrics.events_24h || 0).toLocaleString()}</div>
+      <article class="metric-card success" role="listitem">
+        <div class="metric-icon" aria-hidden="true">⚡</div>
+        <div class="metric-value" role="status">{(metrics.events_24h || 0).toLocaleString()}</div>
         <div class="metric-label">Events (24h)</div>
         <div class="metric-sublabel">Recent activity</div>
-      </div>
+      </article>
 
       <!-- Active Projects -->
-      <div class="metric-card accent">
-        <div class="metric-icon">📁</div>
-        <div class="metric-value">{metrics.active_projects || 0}</div>
+      <article class="metric-card accent" role="listitem">
+        <div class="metric-icon" aria-hidden="true">📁</div>
+        <div class="metric-value" role="status">{metrics.active_projects || 0}</div>
         <div class="metric-label">Active Projects</div>
         <div class="metric-sublabel">Last 7 days</div>
-      </div>
+      </article>
 
       <!-- Total Files -->
-      <div class="metric-card warning">
-        <div class="metric-icon">📄</div>
-        <div class="metric-value">{(metrics.total_files || 0).toLocaleString()}</div>
+      <article class="metric-card warning" role="listitem">
+        <div class="metric-icon" aria-hidden="true">📄</div>
+        <div class="metric-value" role="status">{(metrics.total_files || 0).toLocaleString()}</div>
         <div class="metric-label">Files Tracked</div>
         <div class="metric-sublabel">Unique files</div>
-      </div>
+      </article>
 
       <!-- Error Count -->
-      <div class="metric-card error">
-        <div class="metric-icon">❌</div>
-        <div class="metric-value">{metrics.error_count || 0}</div>
+      <article class="metric-card error" role="listitem">
+        <div class="metric-icon" aria-hidden="true">❌</div>
+        <div class="metric-value" role="status">{metrics.error_count || 0}</div>
         <div class="metric-label">Total Errors</div>
         <div class="metric-sublabel">All-time</div>
-      </div>
+      </article>
 
       <!-- Conversations -->
-      <div class="metric-card info">
-        <div class="metric-icon">💬</div>
-        <div class="metric-value">{(metrics.conversation_count || 0).toLocaleString()}</div>
+      <article class="metric-card info" role="listitem">
+        <div class="metric-icon" aria-hidden="true">💬</div>
+        <div class="metric-value" role="status">{(metrics.conversation_count || 0).toLocaleString()}</div>
         <div class="metric-label">Conversations</div>
         <div class="metric-sublabel">Total logged</div>
-      </div>
+      </article>
 
       <!-- Avg Events Per Day -->
-      <div class="metric-card primary">
-        <div class="metric-icon">📊</div>
-        <div class="metric-value">{metrics.avg_events_per_day || 0}</div>
+      <article class="metric-card primary" role="listitem">
+        <div class="metric-icon" aria-hidden="true">📊</div>
+        <div class="metric-value" role="status">{metrics.avg_events_per_day || 0}</div>
         <div class="metric-label">Avg Events/Day</div>
         <div class="metric-sublabel">Last 7 days</div>
-      </div>
+      </article>
 
       <!-- Busiest Hour -->
       {#if metrics.busiest_hour}
-        <div class="metric-card accent">
-          <div class="metric-icon">🕒</div>
-          <div class="metric-value">{formatHour(metrics.busiest_hour.hour)}</div>
+        <article class="metric-card accent" role="listitem">
+          <div class="metric-icon" aria-hidden="true">🕒</div>
+          <div class="metric-value" role="status">{formatHour(metrics.busiest_hour.hour)}</div>
           <div class="metric-label">Busiest Hour</div>
           <div class="metric-sublabel">{metrics.busiest_hour.count} events</div>
-        </div>
+        </article>
       {/if}
 
       <!-- Events by Type -->
       {#if metrics.events_by_type}
-        <div class="metric-card wide breakdown">
+        <article class="metric-card wide breakdown" role="listitem" aria-labelledby="events-by-type-heading">
           <div class="breakdown-header">
-            <span class="breakdown-icon">📋</span>
-            <span class="breakdown-title">Events by Type</span>
+            <span class="breakdown-icon" aria-hidden="true">📋</span>
+            <span class="breakdown-title" id="events-by-type-heading">Events by Type</span>
           </div>
-          <div class="breakdown-grid">
+          <div class="breakdown-grid" role="list" aria-label="Event types">
             {#each Object.entries(metrics.events_by_type) as [type, count]}
-              <div class="breakdown-item">
+              <div class="breakdown-item" role="listitem">
                 <div class="breakdown-type">{type}</div>
-                <div class="breakdown-count">{count.toLocaleString()}</div>
+                <div class="breakdown-count" role="status">{count.toLocaleString()}</div>
               </div>
             {/each}
           </div>
-        </div>
+        </article>
       {/if}
 
       <!-- Most Active File -->
       {#if metrics.most_active_file}
-        <div class="metric-card wide highlight">
+        <article class="metric-card wide highlight" role="listitem">
           <div class="highlight-header">
-            <span class="highlight-icon">🔥</span>
+            <span class="highlight-icon" aria-hidden="true">🔥</span>
             <span class="highlight-title">Most Active File (7d)</span>
           </div>
           <div class="highlight-content">
             <div class="highlight-file">{metrics.most_active_file.file}</div>
-            <div class="highlight-changes">{metrics.most_active_file.changes} changes</div>
+            <div class="highlight-changes" role="status">{metrics.most_active_file.changes} changes</div>
           </div>
-        </div>
+        </article>
       {/if}
     </div>
   {/if}

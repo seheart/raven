@@ -41,20 +41,20 @@
 </script>
 
 {#if visible}
-  <div class="shortcuts-overlay" on:click={onClose}>
-    <div class="shortcuts-modal" on:click|stopPropagation>
+  <div class="shortcuts-overlay" on:click={onClose} role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+    <div class="shortcuts-modal" on:click|stopPropagation role="document">
       <div class="shortcuts-header">
-        <h2>⌨️ Keyboard Shortcuts</h2>
-        <button class="close-btn" on:click={onClose}>×</button>
+        <h2 id="shortcuts-title"><span aria-hidden="true">⌨️</span> Keyboard Shortcuts</h2>
+        <button class="close-btn" on:click={onClose} aria-label="Close keyboard shortcuts dialog">×</button>
       </div>
 
       <div class="shortcuts-content">
         {#each shortcuts as section}
-          <div class="shortcuts-section">
-            <h3>{section.category}</h3>
-            <div class="shortcuts-list">
-              {#each section.items as shortcut}
-                <div class="shortcut-item">
+          <section class="shortcuts-section" aria-labelledby="section-{section.category}">
+            <h3 id="section-{section.category}">{section.category}</h3>
+            <div class="shortcuts-list" role="list">
+              {#each shortcut.items as shortcut}
+                <div class="shortcut-item" role="listitem">
                   <div class="shortcut-keys">
                     {#each shortcut.keys as key}
                       <kbd class="key">{key}</kbd>
@@ -64,11 +64,11 @@
                 </div>
               {/each}
             </div>
-          </div>
+          </section>
         {/each}
       </div>
 
-      <div class="shortcuts-footer">
+      <div class="shortcuts-footer" role="contentinfo">
         Press <kbd class="key">?</kbd> to toggle this help
       </div>
     </div>

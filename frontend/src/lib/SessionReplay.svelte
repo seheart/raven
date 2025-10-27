@@ -221,11 +221,11 @@
   }
 </script>
 
-<div class="session-replay">
+<div class="session-replay" role="region" aria-label="Session replay panel">
   <div class="header">
-    <h2>🎬 Session Replay</h2>
-    <div class="header-controls">
-      <span class="last-updated">Updated: {timeAgo}</span>
+    <h2 id="session-replay-heading"><span aria-hidden="true">🎬</span> Session Replay</h2>
+    <div class="header-controls" role="toolbar" aria-label="Session replay controls">
+      <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
       <div class="filter-group">
         <label for="session-filter">Session:</label>
         <select
@@ -233,14 +233,15 @@
           bind:value={selectedSession}
           on:change={onSessionChange}
           class="session-select"
+          aria-label="Filter events by session"
         >
           {#each allSessions || [] as session}
             <option value={session.id}>{session.label}</option>
           {/each}
         </select>
       </div>
-      <button on:click={() => loadEvents(true)} class="btn-refresh" disabled={loading}>
-        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
+      <button on:click={() => loadEvents(true)} class="btn-refresh" disabled={loading} aria-label={loading ? "Loading events" : "Refresh events"}>
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         Refresh
       </button>
     </div>
@@ -248,40 +249,41 @@
 
   <!-- Enhanced Filters Bar -->
   {#if !loading && events.length > 0}
-    <div class="filters-section">
+    <div class="filters-section" role="region" aria-label="Event filters">
       <!-- Search Bar -->
-      <div class="search-bar">
+      <div class="search-bar" role="search">
         <input
           type="text"
           placeholder="Search by file, agent, or message..."
           bind:value={searchQuery}
           class="search-input"
+          aria-label="Search events by file, agent, or message"
         />
       </div>
 
       <!-- Event Type Filters -->
       <div class="filter-row">
         <div class="filter-label">Event Types:</div>
-        <div class="event-type-filters">
+        <div class="event-type-filters" role="group" aria-label="Filter by event type">
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.edit} />
-            <span class="filter-badge edit">✏️ Edit</span>
+            <input type="checkbox" bind:checked={selectedEventTypes.edit} aria-label="Filter edit events" />
+            <span class="filter-badge edit"><span aria-hidden="true">✏️</span> Edit</span>
           </label>
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.create} />
-            <span class="filter-badge create">➕ Create</span>
+            <input type="checkbox" bind:checked={selectedEventTypes.create} aria-label="Filter create events" />
+            <span class="filter-badge create"><span aria-hidden="true">➕</span> Create</span>
           </label>
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.delete} />
-            <span class="filter-badge delete">🗑️ Delete</span>
+            <input type="checkbox" bind:checked={selectedEventTypes.delete} aria-label="Filter delete events" />
+            <span class="filter-badge delete"><span aria-hidden="true">🗑️</span> Delete</span>
           </label>
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.read} />
-            <span class="filter-badge read">👁️ Read</span>
+            <input type="checkbox" bind:checked={selectedEventTypes.read} aria-label="Filter read events" />
+            <span class="filter-badge read"><span aria-hidden="true">👁️</span> Read</span>
           </label>
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.execute} />
-            <span class="filter-badge execute">⚙️ Execute</span>
+            <input type="checkbox" bind:checked={selectedEventTypes.execute} aria-label="Filter execute events" />
+            <span class="filter-badge execute"><span aria-hidden="true">⚙️</span> Execute</span>
           </label>
         </div>
       </div>
@@ -290,7 +292,7 @@
       {#if uniqueAgents.length > 1}
         <div class="filter-row">
           <div class="filter-label">Agent:</div>
-          <select class="agent-select" bind:value={selectedAgent}>
+          <select class="agent-select" bind:value={selectedAgent} aria-label="Filter events by agent">
             <option value="all">All Agents ({uniqueAgents.length})</option>
             {#each uniqueAgents as agent}
               <option value={agent}>{agent}</option>
@@ -300,7 +302,7 @@
       {/if}
 
       <!-- Filter Stats -->
-      <div class="filter-stats">
+      <div class="filter-stats" role="status" aria-live="polite">
         Showing {filteredEvents.length} / {events.length} events
       </div>
     </div>
@@ -308,31 +310,33 @@
 
   <!-- Timeline Visualization -->
   {#if !loading && filteredEvents.length > 0 && timelineBuckets.length > 1}
-    <div class="timeline-viz">
-      <h3>⏱️ Activity Timeline</h3>
-      <p class="timeline-hint">
+    <div class="timeline-viz" role="region" aria-labelledby="timeline-heading">
+      <h3 id="timeline-heading"><span aria-hidden="true">⏱️</span> Activity Timeline</h3>
+      <p class="timeline-hint" role="status" aria-live="polite">
         {selectedTimeBucket ? `Showing ${selectedTimeBucket.count} events from ${selectedTimeBucket.label}` : 'Click a time bucket to filter events'}
       </p>
-      <div class="timeline-buckets">
+      <div class="timeline-buckets" role="group" aria-label="Activity timeline by hour">
         {#each timelineBuckets as bucket}
           <button
             class="timeline-bucket"
             class:selected={bucket === selectedTimeBucket}
             on:click={() => selectTimeBucket(bucket)}
-            title="{bucket.count} events at {bucket.label}"
+            aria-label="{bucket.count} events at {bucket.label}"
+            aria-pressed={bucket === selectedTimeBucket}
           >
             <div
               class="timeline-bar"
               style="height: {(bucket.count / maxBucketCount) * 100}%"
+              aria-hidden="true"
             ></div>
-            <div class="timeline-label">{bucket.label}</div>
-            <div class="timeline-count">{bucket.count}</div>
+            <div class="timeline-label" aria-hidden="true">{bucket.label}</div>
+            <div class="timeline-count" aria-hidden="true">{bucket.count}</div>
           </button>
         {/each}
       </div>
       {#if selectedTimeBucket}
-        <button class="btn-clear-filter" on:click={() => selectedTimeBucket = null}>
-          ✕ Clear Time Filter
+        <button class="btn-clear-filter" on:click={() => selectedTimeBucket = null} aria-label="Clear time filter">
+          <span aria-hidden="true">✕</span> Clear Time Filter
         </button>
       {/if}
     </div>
@@ -341,32 +345,32 @@
   {#if loading}
     <LoadingSkeleton count={5} height="80px" />
   {:else if filteredEvents.length === 0 && events.length > 0}
-    <div class="empty-state">
-      <p>🔍 No events match your filters</p>
+    <div class="empty-state" role="status">
+      <p><span aria-hidden="true">🔍</span> No events match your filters</p>
       <p>Try adjusting your search or event type filters.</p>
     </div>
   {:else if events.length === 0}
-    <div class="empty-state">
+    <div class="empty-state" role="status">
       <p>No events recorded yet.</p>
       <p>Events will appear here as AI agents make changes.</p>
     </div>
   {:else}
-    <div class="timeline">
-      <h3>📜 Recent Activity ({displayedEvents.length} events)</h3>
-      <div class="events-list">
+    <section class="timeline" aria-labelledby="recent-activity-heading">
+      <h3 id="recent-activity-heading"><span aria-hidden="true">📜</span> Recent Activity (<span role="status">{displayedEvents.length} events</span>)</h3>
+      <div class="events-list" role="feed" aria-label="Recent activity events">
         {#each displayedEvents || [] as event}
-          <div class="event-item" style="border-left-color: {getEventColor(event.event_type)}">
+          <article class="event-item" style="border-left-color: {getEventColor(event.event_type)}" role="article">
             <div class="event-header">
-              <span class="timestamp">{formatTimestamp(event.timestamp)}</span>
+              <time class="timestamp" datetime="{event.timestamp}">{formatTimestamp(event.timestamp)}</time>
               <span class="agent">{event.agent}</span>
-              <span class="event-type" style="background: color-mix(in srgb, {getEventColor(event.event_type)} 20%, transparent); color: {getEventColor(event.event_type)}">
-                {getEventIcon(event.event_type)} {event.event_type}
+              <span class="event-type" style="background: color-mix(in srgb, {getEventColor(event.event_type)} 20%, transparent); color: {getEventColor(event.event_type)}" role="status">
+                <span aria-hidden="true">{getEventIcon(event.event_type)}</span> {event.event_type}
               </span>
             </div>
             <div class="event-body">
               <p class="message">{event.message}</p>
               {#if event.file}
-                <p class="file">📄 {event.file}</p>
+                <p class="file"><span aria-hidden="true">📄</span> {event.file}</p>
               {/if}
               {#if event.lines_changed}
                 <p class="lines">Lines changed: {event.lines_changed}</p>
@@ -375,10 +379,10 @@
                 <p class="duration">Duration: {event.duration_ms}ms</p>
               {/if}
             </div>
-          </div>
+          </article>
         {/each}
       </div>
-    </div>
+    </section>
   {/if}
 </div>
 

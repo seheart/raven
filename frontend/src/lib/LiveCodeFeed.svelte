@@ -291,10 +291,10 @@
   }
 </script>
 
-<div class="live-code-feed">
+<div class="live-code-feed" role="region" aria-label="Live code feed">
   <!-- Live Session Stats Widget -->
-  <div class="stats-widget">
-    <div class="stats-bar">
+  <div class="stats-widget" role="region" aria-label="Live session statistics">
+    <div class="stats-bar" role="list" aria-label="Session metrics">
       <div class="stat-item">
         <span class="stat-icon">⏱️</span>
         <div class="stat-content">
@@ -365,37 +365,37 @@
       {/if}
 
       <div class="stat-controls">
-        <button class="btn-pause" on:click={togglePause} title={isPaused ? 'Resume feed' : 'Pause feed'}>
-          {isPaused ? '▶️' : '⏸️'}
+        <button class="btn-pause" on:click={togglePause} aria-label={isPaused ? 'Resume live feed updates' : 'Pause live feed updates'} aria-pressed={isPaused}>
+          <span aria-hidden="true">{isPaused ? '▶️' : '⏸️'}</span>
           <span class="pause-text">{isPaused ? 'Resume' : 'Pause'}</span>
         </button>
       </div>
     </div>
 
     {#if isPaused}
-      <div class="paused-banner">
-        ⏸️ Feed paused - Click Resume to continue live updates
+      <div class="paused-banner" role="status" aria-live="polite">
+        <span aria-hidden="true">⏸️</span> Feed paused - Click Resume to continue live updates
       </div>
     {/if}
   </div>
 
   <div class="feed-layout">
     <!-- Code Changes Column -->
-    <div class="code-changes-column">
+    <section class="code-changes-column" aria-labelledby="code-changes-heading">
       <div class="column-header">
-        <h3>📊 Code Changes</h3>
-        <span class="change-count">{codeChanges.length} events</span>
+        <h3 id="code-changes-heading"><span aria-hidden="true">📊</span> Code Changes</h3>
+        <span class="change-count" role="status">{codeChanges.length} events</span>
       </div>
       <div class="code-changes-content">
         {#if loading}
-          <div class="loading">Loading changes...</div>
+          <div class="loading" role="status" aria-live="polite">Loading changes...</div>
         {:else if codeChanges.length === 0}
-          <div class="empty-state">
+          <div class="empty-state" role="status">
             <p>No recent code changes</p>
             <p class="empty-hint">Waiting for file modifications to be detected</p>
           </div>
         {:else}
-          <div class="changes-list">
+          <div class="changes-list" role="feed" aria-label="Code changes feed" aria-busy={loading}>
             {#each codeChanges || [] as change}
               <div class="change-item">
                 <div class="change-header">
@@ -440,23 +440,23 @@
           </div>
         {/if}
       </div>
-    </div>
+    </section>
 
     <!-- Right Column: Recent Activity -->
-    <div class="activity-column">
+    <section class="activity-column" aria-labelledby="recent-activity-heading">
       <div class="column-header">
-        <h3>⚡️ Recent Activity</h3>
+        <h3 id="recent-activity-heading"><span aria-hidden="true">⚡️</span> Recent Activity</h3>
       </div>
       <div class="activity-content">
         {#if loading}
-          <div class="loading">Loading activity...</div>
+          <div class="loading" role="status" aria-live="polite">Loading activity...</div>
         {:else if recentActivity.length === 0}
-          <div class="empty-state">
+          <div class="empty-state" role="status">
             <p>No recent activity</p>
             <p class="empty-hint">File and agent activity will appear here</p>
           </div>
         {:else}
-          <div class="activity-list">
+          <div class="activity-list" role="feed" aria-label="Recent activity feed" aria-busy={loading}>
             {#each recentActivity || [] as activity}
               <div class="activity-item" class:file={activity.type === 'file'} class:agent={activity.type === 'agent'}>
                 <div class="activity-icon">
@@ -489,7 +489,7 @@
           </div>
         {/if}
       </div>
-    </div>
+    </section>
   </div>
 </div>
 

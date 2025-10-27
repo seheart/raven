@@ -142,13 +142,15 @@
   });
 </script>
 
-<div class="time-range-filter">
-  <div class="preset-buttons">
+<div class="time-range-filter" role="region" aria-label="Time range filter">
+  <div class="preset-buttons" role="group" aria-label="Time range presets">
     {#each presets as preset}
       <button
         class="preset-btn"
         class:active={value.preset === preset && !showCustom}
         on:click={() => selectPreset(preset)}
+        aria-pressed={value.preset === preset && !showCustom}
+        aria-label="Select {presetLabels[preset] || preset}"
       >
         {presetLabels[preset] || preset}
       </button>
@@ -157,13 +159,16 @@
       class="preset-btn custom-btn"
       class:active={showCustom}
       on:click={() => showCustom = !showCustom}
+      aria-pressed={showCustom}
+      aria-label="Toggle custom time range"
+      aria-expanded={showCustom}
     >
-      {showCustom ? '✕ Custom' : '⚙ Custom'}
+      <span aria-hidden="true">{showCustom ? '✕' : '⚙'}</span> Custom
     </button>
   </div>
 
   {#if showCustom}
-    <div class="custom-range">
+    <div class="custom-range" role="group" aria-label="Custom time range inputs">
       <div class="custom-inputs">
         <div class="input-group">
           <label for="start-time">From:</label>
@@ -183,14 +188,14 @@
           />
         </div>
       </div>
-      <div class="custom-actions">
-        <button class="btn-apply" on:click={applyCustomRange}>Apply</button>
-        <button class="btn-reset" on:click={resetToDefault}>Reset</button>
+      <div class="custom-actions" role="group" aria-label="Custom range actions">
+        <button class="btn-apply" on:click={applyCustomRange} aria-label="Apply custom time range">Apply</button>
+        <button class="btn-reset" on:click={resetToDefault} aria-label="Reset to default time range">Reset</button>
       </div>
     </div>
   {/if}
 
-  <div class="current-range">
+  <div class="current-range" role="status" aria-live="polite">
     <span class="range-label">Showing:</span>
     <span class="range-value">{formatDateTime(value.start)} → {formatDateTime(value.end)}</span>
   </div>

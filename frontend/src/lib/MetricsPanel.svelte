@@ -53,26 +53,26 @@
   });
 </script>
 
-<div class="metrics">
-  <div class="metric">
-    <div class="label">CPU Usage</div>
-    <div class="value">{(cpu || 0).toFixed(1)}%</div>
-    <div class="bar">
+<div class="metrics" role="region" aria-label="System metrics">
+  <div class="metric" role="status" aria-live="polite">
+    <div class="label" id="cpu-label">CPU Usage</div>
+    <div class="value" aria-labelledby="cpu-label" aria-label="CPU usage {(cpu || 0).toFixed(1)} percent">{(cpu || 0).toFixed(1)}%</div>
+    <div class="bar" role="progressbar" aria-valuenow={cpu || 0} aria-valuemin="0" aria-valuemax="100" aria-label="CPU usage progress bar">
       <div class="fill" style="width: {cpu || 0}%"></div>
     </div>
   </div>
 
-  <div class="metric">
-    <div class="label">Memory Usage</div>
-    <div class="value">{(memory || 0).toFixed(1)}%</div>
-    <div class="bar">
+  <div class="metric" role="status" aria-live="polite">
+    <div class="label" id="memory-label">Memory Usage</div>
+    <div class="value" aria-labelledby="memory-label" aria-label="Memory usage {(memory || 0).toFixed(1)} percent">{(memory || 0).toFixed(1)}%</div>
+    <div class="bar" role="progressbar" aria-valuenow={memory || 0} aria-valuemin="0" aria-valuemax="100" aria-label="Memory usage progress bar">
       <div class="fill memory" style="width: {memory || 0}%"></div>
     </div>
-    <div class="detail">{memoryUsed || 0} MB / {memoryTotal || 0} MB</div>
+    <div class="detail" aria-label="{memoryUsed || 0} megabytes used of {memoryTotal || 0} megabytes total">{memoryUsed || 0} MB / {memoryTotal || 0} MB</div>
   </div>
 
-  <div class="status">
-    <div class="status-indicator"></div>
+  <div class="status" role="status" aria-live="polite">
+    <div class="status-indicator" aria-hidden="true"></div>
     <span>Monitoring Active</span>
   </div>
 </div>

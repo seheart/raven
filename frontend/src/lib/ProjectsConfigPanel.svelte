@@ -266,36 +266,36 @@
   }
 </script>
 
-<div class="projects-config-panel">
+<div class="projects-config-panel" role="region" aria-label="Project configuration panel">
   <div class="panel-header">
     <div class="header-left">
-      <h2>📂 Project Configuration</h2>
+      <h2 id="projects-config-heading"><span aria-hidden="true">📂</span> Project Configuration</h2>
       <p class="subtitle">Manage which projects Raven monitors</p>
     </div>
-    <div class="header-right">
-      <button class="btn-secondary" on:click={discoverProjects} disabled={discovering}>
-        {discovering ? '🔍 Discovering...' : '🔍 Discover Projects'}
+    <div class="header-right" role="toolbar" aria-label="Project configuration actions">
+      <button class="btn-secondary" on:click={discoverProjects} disabled={discovering} aria-label={discovering ? "Discovering projects" : "Discover projects automatically"}>
+        <span aria-hidden="true">{discovering ? '🔍' : '🔍'}</span> {discovering ? 'Discovering...' : 'Discover Projects'}
       </button>
-      <button class="btn-primary" on:click={openAddModal}>+ Add Project</button>
+      <button class="btn-primary" on:click={openAddModal} aria-label="Add new project">+ Add Project</button>
     </div>
   </div>
 
   {#if loading}
     <LoadingSkeleton />
   {:else if error}
-    <div class="error-state">
-      <p>❌ Error: {error}</p>
-      <button on:click={loadConfig}>Try Again</button>
+    <div class="error-state" role="alert">
+      <p><span aria-hidden="true">❌</span> Error: {error}</p>
+      <button on:click={loadConfig} aria-label="Retry loading configuration">Try Again</button>
     </div>
   {:else}
     {#if config.projects.length === 0}
-      <div class="empty-state">
-        <p>📭 No projects configured</p>
+      <div class="empty-state" role="status">
+        <p><span aria-hidden="true">📭</span> No projects configured</p>
         <p class="hint">Add a project or discover projects automatically</p>
-        <button class="btn-primary" on:click={discoverProjects}>🔍 Discover Projects</button>
+        <button class="btn-primary" on:click={discoverProjects} aria-label="Discover projects automatically"><span aria-hidden="true">🔍</span> Discover Projects</button>
       </div>
     {:else}
-      <div class="projects-grid">
+      <div class="projects-grid" role="list" aria-labelledby="projects-config-heading">
         {#each config.projects as project (project.name)}
           <div class="project-card" class:disabled={!project.enabled}>
             <div class="project-header">

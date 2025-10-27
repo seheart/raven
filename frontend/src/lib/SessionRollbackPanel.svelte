@@ -123,107 +123,111 @@
   }
 </script>
 
-<div class="session-rollback-panel">
+<div class="session-rollback-panel" role="region" aria-label="Session rollback panel">
   <div class="panel-header">
-    <h2>Session Rollback</h2>
+    <h2 id="session-rollback-heading">Session Rollback</h2>
     <p class="panel-description">Undo entire AI coding sessions by rolling back all file changes</p>
-    <button class="refresh-btn" on:click={fetchSessions} title="Refresh">
-      ↻
+    <button class="refresh-btn" on:click={fetchSessions} aria-label="Refresh sessions">
+      <span aria-hidden="true">↻</span>
     </button>
   </div>
 
   {#if loading}
-    <div class="loading">
-      <div class="spinner"></div>
+    <div class="loading" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
       <p>Loading sessions...</p>
     </div>
   {:else if selectedSession && previewData}
     <!-- Rollback Preview -->
-    <div class="preview-container">
+    <div class="preview-container" role="dialog" aria-modal="true" aria-labelledby="preview-heading">
       <div class="preview-header">
-        <h3>Rollback Preview</h3>
-        <button class="close-btn" on:click={cancelPreview}>✕</button>
+        <h3 id="preview-heading">Rollback Preview</h3>
+        <button class="close-btn" on:click={cancelPreview} aria-label="Close preview">
+          <span aria-hidden="true">✕</span>
+        </button>
       </div>
 
-      <div class="preview-info">
+      <div class="preview-info" role="region" aria-label="Rollback information">
         <div class="info-item">
           <span class="info-label">Session ID:</span>
           <span class="info-value mono">{selectedSession.slice(0, 8)}...</span>
         </div>
         <div class="info-item">
           <span class="info-label">Files to restore:</span>
-          <span class="info-value">{previewData.fileCount}</span>
+          <span class="info-value" role="status">{previewData.fileCount}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Can rollback:</span>
-          <span class="info-value" class:success={previewData.canRollback} class:error={!previewData.canRollback}>
+          <span class="info-value" class:success={previewData.canRollback} class:error={!previewData.canRollback} role="status">
             {previewData.canRollback ? 'Yes' : 'No'}
           </span>
         </div>
       </div>
 
       {#if !previewData.canRollback}
-        <div class="warning-box">
-          <span class="warning-icon">⚠️</span>
+        <div class="warning-box" role="alert">
+          <span class="warning-icon" aria-hidden="true">⚠️</span>
           <p>No backups available for this session. Files may have been created during this session without prior snapshots.</p>
         </div>
       {:else}
-        <div class="changes-list">
-          <h4>Files that will be restored:</h4>
-          {#each previewData.changes as change}
-            <div class="change-item" class:has-backup={change.hasBackup}>
-              <span class="change-icon">{change.hasBackup ? '✅' : '❌'}</span>
-              <span class="change-path">{change.filepath}</span>
-              {#if !change.hasBackup}
-                <span class="no-backup-badge">No backup</span>
-              {/if}
-            </div>
-          {/each}
+        <div class="changes-list" role="region" aria-labelledby="files-heading">
+          <h4 id="files-heading">Files that will be restored:</h4>
+          <div role="list" aria-label="Files to restore">
+            {#each previewData.changes as change}
+              <div class="change-item" class:has-backup={change.hasBackup} role="listitem">
+                <span class="change-icon" aria-hidden="true">{change.hasBackup ? '✅' : '❌'}</span>
+                <span class="change-path">{change.filepath}</span>
+                {#if !change.hasBackup}
+                  <span class="no-backup-badge" role="status">No backup</span>
+                {/if}
+              </div>
+            {/each}
+          </div>
         </div>
 
-        <div class="preview-actions">
-          <button class="cancel-btn" on:click={cancelPreview} disabled={rollingback}>
+        <div class="preview-actions" role="group" aria-label="Rollback actions">
+          <button class="cancel-btn" on:click={cancelPreview} disabled={rollingback} aria-label="Cancel rollback">
             Cancel
           </button>
-          <button class="rollback-btn" on:click={executeRollback} disabled={rollingback}>
+          <button class="rollback-btn" on:click={executeRollback} disabled={rollingback} aria-label={rollingback ? 'Rolling back files' : 'Confirm and execute rollback'}>
             {rollingback ? 'Rolling back...' : 'Confirm Rollback'}
           </button>
         </div>
       {/if}
     </div>
   {:else if sessions.length === 0}
-    <div class="empty-state">
-      <div class="empty-icon">📋</div>
+    <div class="empty-state" role="status">
+      <div class="empty-icon" aria-hidden="true">📋</div>
       <h3>No Sessions Found</h3>
       <p>No coding sessions have been recorded yet. Sessions will appear here once files are modified.</p>
     </div>
   {:else}
     <!-- Sessions List -->
-    <div class="sessions-list">
+    <div class="sessions-list" role="list" aria-labelledby="session-rollback-heading">
       {#each sessions as session}
-        <div class="session-card">
+        <article class="session-card" role="listitem">
           <div class="session-header">
-            <div class="session-icon">🔄</div>
+            <div class="session-icon" aria-hidden="true">🔄</div>
             <div class="session-info">
               <div class="session-id mono">{session.session_id.slice(0, 13)}...</div>
-              <div class="session-time">{timeAgo(session.end_time)}</div>
+              <div class="session-time"><time datetime="{session.end_time}">{timeAgo(session.end_time)}</time></div>
             </div>
           </div>
 
-          <div class="session-stats">
+          <div class="session-stats" role="group" aria-label="Session statistics">
             <div class="stat">
-              <span class="stat-icon">📄</span>
-              <span class="stat-value">{session.file_count}</span>
+              <span class="stat-icon" aria-hidden="true">📄</span>
+              <span class="stat-value" role="status">{session.file_count}</span>
               <span class="stat-label">files</span>
             </div>
             <div class="stat">
-              <span class="stat-icon">✏️</span>
-              <span class="stat-value">{session.event_count}</span>
+              <span class="stat-icon" aria-hidden="true">✏️</span>
+              <span class="stat-value" role="status">{session.event_count}</span>
               <span class="stat-label">changes</span>
             </div>
             <div class="stat">
-              <span class="stat-icon">⏱️</span>
-              <span class="stat-value">{formatDuration(session.start_time, session.end_time)}</span>
+              <span class="stat-icon" aria-hidden="true">⏱️</span>
+              <span class="stat-value" role="status">{formatDuration(session.start_time, session.end_time)}</span>
               <span class="stat-label">duration</span>
             </div>
           </div>
@@ -243,10 +247,11 @@
             class="preview-btn"
             on:click={() => previewRollback(session.session_id)}
             disabled={previewing}
+            aria-label={previewing && selectedSession === session.session_id ? 'Loading rollback preview' : 'Preview rollback for this session'}
           >
             {previewing && selectedSession === session.session_id ? 'Loading...' : 'Preview Rollback'}
           </button>
-        </div>
+        </article>
       {/each}
     </div>
   {/if}

@@ -117,36 +117,38 @@
   });
 </script>
 
-<div class="global-search-panel">
+<div class="global-search-panel" role="region" aria-label="Global search">
   <div class="panel-header">
     <div class="header-left">
-      <h2>🔍 Global Search</h2>
+      <h2 id="search-heading"><span aria-hidden="true">🔍</span> Global Search</h2>
       <p class="subtitle">Search across all projects, files, conversations, and events</p>
     </div>
-    <div class="header-right">
+    <div class="header-right" role="toolbar" aria-label="Search actions">
       {#if results.length > 0}
-        <button class="btn-secondary" on:click={handleExportCSV}>Export CSV</button>
-        <button class="btn-secondary" on:click={handleExportJSON}>Export JSON</button>
+        <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export results as CSV">Export CSV</button>
+        <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export results as JSON">Export JSON</button>
       {/if}
     </div>
   </div>
 
-  <div class="search-bar-container">
+  <div class="search-bar-container" role="search" aria-labelledby="search-heading">
     <div class="search-bar">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon" aria-hidden="true">🔍</span>
       <input
         bind:this={searchInput}
-        type="text"
+        type="search"
         placeholder="Search files, conversations, errors, notifications..."
         bind:value={searchQuery}
         on:input={handleSearchInput}
         class="search-input"
+        aria-label="Search query"
+        aria-describedby="search-hint"
       />
       {#if searchQuery}
-        <button class="clear-btn" on:click={clearSearch}>✕</button>
+        <button class="clear-btn" on:click={clearSearch} aria-label="Clear search">✕</button>
       {/if}
     </div>
-    <div class="search-hint">
+    <div class="search-hint" id="search-hint" role="status" aria-live="polite">
       {#if searchQuery.length > 0 && searchQuery.length < 2}
         <span>Type at least 2 characters to search</span>
       {:else if loading}
@@ -162,37 +164,37 @@
   </div>
 
   {#if total > 0}
-    <div class="filter-bar">
-      <button class="filter-btn" class:active={filterType === 'all'} on:click={() => filterType = 'all'}>
+    <div class="filter-bar" role="tablist" aria-label="Filter search results">
+      <button class="filter-btn" class:active={filterType === 'all'} on:click={() => filterType = 'all'} role="tab" aria-selected={filterType === 'all'} aria-controls="results-list">
         All ({total})
       </button>
-      <button class="filter-btn" class:active={filterType === 'event'} on:click={() => filterType = 'event'}>
+      <button class="filter-btn" class:active={filterType === 'event'} on:click={() => filterType = 'event'} role="tab" aria-selected={filterType === 'event'} aria-controls="results-list">
         Files ({categories.events || 0})
       </button>
-      <button class="filter-btn" class:active={filterType === 'conversation'} on:click={() => filterType = 'conversation'}>
+      <button class="filter-btn" class:active={filterType === 'conversation'} on:click={() => filterType = 'conversation'} role="tab" aria-selected={filterType === 'conversation'} aria-controls="results-list">
         Conversations ({categories.conversations || 0})
       </button>
-      <button class="filter-btn" class:active={filterType === 'error'} on:click={() => filterType = 'error'}>
+      <button class="filter-btn" class:active={filterType === 'error'} on:click={() => filterType = 'error'} role="tab" aria-selected={filterType === 'error'} aria-controls="results-list">
         Errors ({categories.errors || 0})
       </button>
-      <button class="filter-btn" class:active={filterType === 'notification'} on:click={() => filterType = 'notification'}>
+      <button class="filter-btn" class:active={filterType === 'notification'} on:click={() => filterType = 'notification'} role="tab" aria-selected={filterType === 'notification'} aria-controls="results-list">
         Notifications ({categories.notifications || 0})
       </button>
     </div>
   {/if}
 
   {#if loading}
-    <LoadingSkeleton />
+    <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton /></div>
   {:else if error}
-    <div class="error-state">
+    <div class="error-state" role="alert">
       <p>❌ Search error: {error}</p>
     </div>
   {:else if filteredResults.length > 0}
-    <div class="results-list">
+    <div class="results-list" id="results-list" role="feed" aria-label="Search results" aria-busy="false">
       {#each filteredResults as result (result.type + result.id)}
-        <div class="result-card {getTypeClass(result.type)}">
+        <article class="result-card {getTypeClass(result.type)}" role="article">
           <div class="result-header">
-            <span class="result-icon">{result.icon}</span>
+            <span class="result-icon" aria-hidden="true">{result.icon}</span>
             <div class="result-meta">
               <div class="result-title">{result.title}</div>
               <div class="result-info">
@@ -200,18 +202,18 @@
                 {#if result.project_name}
                   <span class="result-project">📁 {result.project_name}</span>
                 {/if}
-                <span class="result-timestamp">🕒 {formatTimestamp(result.timestamp)}</span>
+                <time class="result-timestamp" datetime="{result.timestamp}">🕒 {formatTimestamp(result.timestamp)}</time>
               </div>
             </div>
           </div>
           {#if result.description}
             <div class="result-description">{result.description}</div>
           {/if}
-        </div>
+        </article>
       {/each}
     </div>
   {:else if searchQuery.length === 0}
-    <div class="empty-state">
+    <div class="empty-state" role="status">
       <div class="empty-icon">🔍</div>
       <p>Search across your entire Raven database</p>
       <p class="hint">Find files, conversations, errors, and notifications instantly</p>

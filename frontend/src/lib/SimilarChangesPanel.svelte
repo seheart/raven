@@ -64,36 +64,36 @@
   }
 </script>
 
-<div class="similar-changes-panel">
+<div class="similar-changes-panel" role="region" aria-label="Similar past changes panel">
   <div class="panel-header">
-    <h3>🔍 Similar Past Changes</h3>
+    <h3 id="similar-changes-heading"><span aria-hidden="true">🔍</span> Similar Past Changes</h3>
     {#if similarChanges.length > 0}
-      <span class="count-badge">{similarChanges.length} found</span>
+      <span class="count-badge" role="status">{similarChanges.length} found</span>
     {/if}
   </div>
 
   {#if loading}
-    <div class="loading">
-      <div class="spinner"></div>
+    <div class="loading" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
       <p>Analyzing historical patterns...</p>
     </div>
   {:else if error}
-    <div class="error-state">
-      <p>❌ Failed to find similar changes</p>
+    <div class="error-state" role="alert">
+      <p><span aria-hidden="true">❌</span> Failed to find similar changes</p>
       <p class="error-detail">{error}</p>
     </div>
   {:else if similarChanges.length === 0}
-    <div class="empty-state">
-      <div class="empty-icon">🎯</div>
+    <div class="empty-state" role="status">
+      <div class="empty-icon" aria-hidden="true">🎯</div>
       <p class="empty-title">No similar changes found</p>
       <p class="empty-hint">This appears to be a unique change pattern</p>
     </div>
   {:else}
     <!-- Prediction Summary -->
     {#if prediction}
-      <div class="prediction-box" class:high-risk={prediction.successRate < 0.5}>
+      <div class="prediction-box" class:high-risk={prediction.successRate < 0.5} role="region" aria-labelledby="prediction-heading">
         <div class="prediction-header">
-          <span class="prediction-icon">
+          <span class="prediction-icon" aria-hidden="true">
             {#if prediction.successRate >= 0.8}
               ✅
             {:else if prediction.successRate >= 0.5}
@@ -102,34 +102,35 @@
               ⚠️
             {/if}
           </span>
-          <span class="prediction-title">Historical Outcome Prediction</span>
+          <span class="prediction-title" id="prediction-heading">Historical Outcome Prediction</span>
         </div>
 
-        <div class="prediction-stats">
-          <div class="stat-item">
+        <div class="prediction-stats" role="list" aria-label="Prediction statistics">
+          <div class="stat-item" role="listitem">
             <div class="stat-label">Success Rate</div>
-            <div class="stat-value" style="color: {prediction.successRate >= 0.7 ? '#9ece6a' : prediction.successRate >= 0.5 ? '#e0af68' : '#f7768e'}">
+            <div class="stat-value" role="status" style="color: {prediction.successRate >= 0.7 ? '#9ece6a' : prediction.successRate >= 0.5 ? '#e0af68' : '#f7768e'}">
               {(prediction.successRate * 100).toFixed(0)}%
             </div>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" role="listitem">
             <div class="stat-label">Confidence</div>
-            <div class="stat-value confidence-{prediction.confidence}">
+            <div class="stat-value confidence-{prediction.confidence}" role="status">
               {prediction.confidence}
             </div>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" role="listitem">
             <div class="stat-label">Sample Size</div>
-            <div class="stat-value">{prediction.sampleSize}</div>
+            <div class="stat-value" role="status">{prediction.sampleSize}</div>
           </div>
         </div>
 
         <div class="outcome-breakdown">
-          <div class="outcome-bar">
+          <div class="outcome-bar" role="img" aria-label="Outcome distribution: {prediction.keptCount} kept, {prediction.rolledBackCount} rolled back">
             <div
               class="outcome-segment kept"
               style="width: {(prediction.keptCount / prediction.sampleSize) * 100}%"
               title="{prediction.keptCount} kept"
+              aria-hidden="true"
             >
               {#if prediction.keptCount > 0}
                 <span class="segment-label">{prediction.keptCount}</span>
@@ -139,45 +140,47 @@
               class="outcome-segment rolled-back"
               style="width: {(prediction.rolledBackCount / prediction.sampleSize) * 100}%"
               title="{prediction.rolledBackCount} rolled back"
+              aria-hidden="true"
             >
               {#if prediction.rolledBackCount > 0}
                 <span class="segment-label">{prediction.rolledBackCount}</span>
               {/if}
             </div>
           </div>
-          <div class="outcome-legend">
-            <span class="legend-item kept">✅ Kept: {prediction.keptCount}</span>
-            <span class="legend-item rolled-back">↩️ Rolled Back: {prediction.rolledBackCount}</span>
+          <div class="outcome-legend" role="list" aria-label="Outcome legend">
+            <span class="legend-item kept" role="listitem"><span aria-hidden="true">✅</span> Kept: {prediction.keptCount}</span>
+            <span class="legend-item rolled-back" role="listitem"><span aria-hidden="true">↩️</span> Rolled Back: {prediction.rolledBackCount}</span>
           </div>
         </div>
 
         {#if prediction.successRate < 0.5}
-          <div class="warning-message">
-            ⚠️ Warning: Similar changes were rolled back more often than kept. Review carefully!
+          <div class="warning-message" role="alert">
+            <span aria-hidden="true">⚠️</span> Warning: Similar changes were rolled back more often than kept. Review carefully!
           </div>
         {:else if prediction.successRate >= 0.8}
-          <div class="success-message">
-            ✅ Good signs: Similar changes were usually successful.
+          <div class="success-message" role="status">
+            <span aria-hidden="true">✅</span> Good signs: Similar changes were usually successful.
           </div>
         {/if}
       </div>
     {/if}
 
     <!-- Similar Changes List -->
-    <div class="changes-list">
+    <div class="changes-list" role="list" aria-labelledby="similar-changes-heading">
       {#each similarChanges as change (change.id)}
-        <div class="change-card" class:rolled-back={change.outcome === 'rolled_back'}>
+        <article class="change-card" class:rolled-back={change.outcome === 'rolled_back'} role="listitem">
           <div class="change-header">
-            <div class="similarity-badge" style="background: {getSimilarityColor(change.similarity)}33; border-color: {getSimilarityColor(change.similarity)};">
-              <span class="similarity-percent">{(change.similarity * 100).toFixed(0)}%</span>
-              <span class="similarity-label">match</span>
+            <div class="similarity-badge" style="background: {getSimilarityColor(change.similarity)}33; border-color: {getSimilarityColor(change.similarity)};" role="img" aria-label="{(change.similarity * 100).toFixed(0)}% similarity match">
+              <span class="similarity-percent" aria-hidden="true">{(change.similarity * 100).toFixed(0)}%</span>
+              <span class="similarity-label" aria-hidden="true">match</span>
             </div>
 
             <div
               class="outcome-badge"
               style="background: {getOutcomeBadge(change.outcome).color}33; border-color: {getOutcomeBadge(change.outcome).color}; color: {getOutcomeBadge(change.outcome).color};"
+              role="status"
             >
-              <span class="outcome-icon">{getOutcomeBadge(change.outcome).icon}</span>
+              <span class="outcome-icon" aria-hidden="true">{getOutcomeBadge(change.outcome).icon}</span>
               <span class="outcome-text">{getOutcomeBadge(change.outcome).text}</span>
             </div>
           </div>
@@ -207,7 +210,7 @@
               </div>
             {/if}
           </div>
-        </div>
+        </article>
       {/each}
     </div>
   {/if}

@@ -132,17 +132,17 @@
   });
 </script>
 
-<div class="comparison-panel">
-  <div class="controls">
-    <button class="btn-refresh" on:click={loadProjects} disabled={loading}>
-      {#if loading}⏳{:else}🔄{/if} Refresh
+<div class="comparison-panel" role="region" aria-label="Projects comparison panel">
+  <div class="controls" role="toolbar" aria-label="Comparison controls">
+    <button class="btn-refresh" on:click={loadProjects} disabled={loading} aria-label={loading ? "Loading projects" : "Refresh projects"}>
+      <span aria-hidden="true">{#if loading}⏳{:else}🔄{/if}</span> Refresh
     </button>
 
-    <button class="btn-export" on:click={exportCSV}>
-      📤 Export CSV
+    <button class="btn-export" on:click={exportCSV} aria-label="Export comparison data to CSV">
+      <span aria-hidden="true">📤</span> Export CSV
     </button>
 
-    <div class="sort-info">
+    <div class="sort-info" role="status" aria-live="polite">
       Sorted by: <strong>{sortBy}</strong> ({sortDesc ? 'desc' : 'asc'})
     </div>
   </div>
@@ -150,61 +150,65 @@
   {#if loading}
     <LoadingSkeleton count={5} height="80px" />
   {:else if projects.length === 0}
-    <div class="empty">No projects found</div>
+    <div class="empty" role="status">No projects found</div>
   {:else}
-    <div class="comparison-table">
-      <div class="table-header">
-        <div class="col-project" on:click={() => handleSort('name')}>
+    <div class="comparison-table" role="table" aria-label="Projects comparison table">
+      <div class="table-header" role="row">
+        <div class="col-project" on:click={() => handleSort('name')} role="columnheader" aria-sort={sortBy === 'name' ? (sortDesc ? 'descending' : 'ascending') : 'none'} tabindex="0" on:keydown={(e) => e.key === 'Enter' && handleSort('name')}>
           Project {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}
         </div>
-        <div class="col-path">Path</div>
-        <div class="col-events" on:click={() => handleSort('events')}>
+        <div class="col-path" role="columnheader">Path</div>
+        <div class="col-events" on:click={() => handleSort('events')} role="columnheader" aria-sort={sortBy === 'events' ? (sortDesc ? 'descending' : 'ascending') : 'none'} tabindex="0" on:keydown={(e) => e.key === 'Enter' && handleSort('events')}>
           Events {sortBy === 'events' ? (sortDesc ? '▼' : '▲') : ''}
         </div>
-        <div class="col-errors" on:click={() => handleSort('errors')}>
+        <div class="col-errors" on:click={() => handleSort('errors')} role="columnheader" aria-sort={sortBy === 'errors' ? (sortDesc ? 'descending' : 'ascending') : 'none'} tabindex="0" on:keydown={(e) => e.key === 'Enter' && handleSort('errors')}>
           Errors {sortBy === 'errors' ? (sortDesc ? '▼' : '▲') : ''}
         </div>
-        <div class="col-activity" on:click={() => handleSort('activity')}>
+        <div class="col-activity" on:click={() => handleSort('activity')} role="columnheader" aria-sort={sortBy === 'activity' ? (sortDesc ? 'descending' : 'ascending') : 'none'} tabindex="0" on:keydown={(e) => e.key === 'Enter' && handleSort('activity')}>
           Last Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}
         </div>
-        <div class="col-status">Status</div>
+        <div class="col-status" role="columnheader">Status</div>
       </div>
 
       {#each projects as project}
         {@const status = getActivityStatus(project.last_activity)}
-        <div class="table-row">
-          <div class="col-project">
+        <div class="table-row" role="row">
+          <div class="col-project" role="cell">
             <span class="project-name">{project.name}</span>
           </div>
-          <div class="col-path">{project.path}</div>
-          <div class="col-events">
-            <span class="metric-value">{project.total_events.toLocaleString()}</span>
+          <div class="col-path" role="cell">{project.path}</div>
+          <div class="col-events" role="cell">
+            <span class="metric-value" role="status">{project.total_events.toLocaleString()}</span>
           </div>
-          <div class="col-errors">
-            <span class="metric-value error">{project.total_errors.toLocaleString()}</span>
+          <div class="col-errors" role="cell">
+            <span class="metric-value error" role="status">{project.total_errors.toLocaleString()}</span>
           </div>
-          <div class="col-activity">
-            {project.last_activity ? new Date(project.last_activity).toLocaleString() : 'Never'}
+          <div class="col-activity" role="cell">
+            {#if project.last_activity}
+              <time datetime="{project.last_activity}">{new Date(project.last_activity).toLocaleString()}</time>
+            {:else}
+              Never
+            {/if}
           </div>
-          <div class="col-status">
-            <span class="status-badge {status.class}">{status.label}</span>
+          <div class="col-status" role="cell">
+            <span class="status-badge {status.class}" role="status">{status.label}</span>
           </div>
         </div>
       {/each}
     </div>
 
-    <div class="summary">
+    <div class="summary" role="region" aria-label="Projects summary statistics">
       <div class="summary-stat">
-        <strong>{projects.length}</strong> projects monitored
+        <strong role="status">{projects.length}</strong> projects monitored
       </div>
       <div class="summary-stat">
-        <strong>{projects.reduce((sum, p) => sum + p.total_events, 0).toLocaleString()}</strong> total events
+        <strong role="status">{projects.reduce((sum, p) => sum + p.total_events, 0).toLocaleString()}</strong> total events
       </div>
       <div class="summary-stat">
-        <strong>{projects.reduce((sum, p) => sum + p.total_errors, 0).toLocaleString()}</strong> total errors
+        <strong role="status">{projects.reduce((sum, p) => sum + p.total_errors, 0).toLocaleString()}</strong> total errors
       </div>
       <div class="summary-stat">
-        <strong>{projects.filter(p => getActivityStatus(p.last_activity).class === 'active-now' || getActivityStatus(p.last_activity).class === 'recent').length}</strong> active
+        <strong role="status">{projects.filter(p => getActivityStatus(p.last_activity).class === 'active-now' || getActivityStatus(p.last_activity).class === 'recent').length}</strong> active
       </div>
     </div>
   {/if}

@@ -217,29 +217,32 @@
   }
 </script>
 
-<div class="modal-overlay" on:click={onClose}>
-  <div class="modal-content" on:click|stopPropagation>
+<div class="modal-overlay" on:click={onClose} role="presentation">
+  <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="file-history-heading">
     <div class="modal-header">
-      <h2>📜 File History</h2>
-      <div class="header-actions">
+      <h2 id="file-history-heading"><span aria-hidden="true">📜</span> File History</h2>
+      <div class="header-actions" role="toolbar" aria-label="File history actions">
         <button
           class="btn-comparison-mode"
           class:active={comparisonMode}
           on:click={toggleComparisonMode}
+          aria-pressed={comparisonMode}
+          aria-label={comparisonMode ? "Exit comparison mode" : "Enter comparison mode"}
         >
-          {comparisonMode ? '✓ Comparison Mode' : '🔍 Compare Snapshots'}
+          <span aria-hidden="true">{comparisonMode ? '✓' : '🔍'}</span> {comparisonMode ? 'Comparison Mode' : 'Compare Snapshots'}
         </button>
         {#if comparisonMode && selectedForComparison.length === 2}
           <button
             class="btn-compare"
             on:click={compareSelectedSnapshots}
             disabled={comparingSnapshots}
+            aria-label={comparingSnapshots ? "Comparing snapshots" : "Compare selected snapshots"}
           >
-            {comparingSnapshots ? '⏳ Comparing...' : '⚡ Compare Selected'}
+            <span aria-hidden="true">{comparingSnapshots ? '⏳' : '⚡'}</span> {comparingSnapshots ? 'Comparing...' : 'Compare Selected'}
           </button>
         {/if}
       </div>
-      <button class="close-btn" on:click={onClose}>×</button>
+      <button class="close-btn" on:click={onClose} aria-label="Close file history dialog">×</button>
     </div>
 
     <div class="file-path">{filepath}</div>
@@ -251,41 +254,43 @@
     {/if}
 
     {#if !loading && history.length > 0}
-      <div class="filter-bar">
+      <div class="filter-bar" role="search" aria-label="Filter file history">
         <div class="search-box">
           <input
             type="text"
             placeholder="🔍 Search by time, type, or event #..."
             bind:value={searchQuery}
+            aria-label="Search file history"
           />
         </div>
         <div class="type-filter">
-          <select bind:value={filterChangeType}>
+          <select bind:value={filterChangeType} aria-label="Filter by change type">
             <option value="all">All Types ({history.length})</option>
             <option value="modified">Modified Only</option>
             <option value="created">Created Only</option>
             <option value="deleted">Deleted Only</option>
           </select>
         </div>
-        <div class="filter-stats">
+        <div class="filter-stats" role="status" aria-live="polite">
           Showing {filteredHistory.length} of {history.length} snapshots
         </div>
       </div>
     {/if}
 
     {#if loading}
-      <div class="loading">Loading history...</div>
+      <div class="loading" role="status" aria-live="polite">Loading history...</div>
     {:else if history.length === 0}
-      <div class="empty">No history found for this file</div>
+      <div class="empty" role="status">No history found for this file</div>
     {:else if filteredHistory.length === 0}
-      <div class="empty">No snapshots match your filters</div>
+      <div class="empty" role="status">No snapshots match your filters</div>
     {:else}
-      <div class="timeline">
+      <div class="timeline" role="feed" aria-label="File history timeline">
         {#each filteredHistory || [] as event (event.id)}
-          <div
+          <article
             class="timeline-event {getChangeClass(event.change_type)}"
             class:selected={isSelectedForComparison(event)}
             class:selectable={comparisonMode}
+            role="article"
           >
             {#if comparisonMode}
               <div class="event-checkbox">
@@ -293,26 +298,27 @@
                   type="checkbox"
                   checked={isSelectedForComparison(event)}
                   on:change={() => toggleEventSelection(event)}
+                  aria-label="Select event #{event.id} for comparison"
                 />
               </div>
             {/if}
-            <div class="event-marker"></div>
+            <div class="event-marker" aria-hidden="true"></div>
             <div class="event-content">
               <div class="event-header">
                 <span class="badge {event.change_type}">{event.change_type}</span>
-                <span class="time">{formatTime(event.timestamp)}</span>
+                <time class="time" datetime="{event.timestamp}">{formatTime(event.timestamp)}</time>
               </div>
               <div class="event-meta">
                 <span class="metric">CPU: {(event.cpu ?? 0).toFixed(1)}%</span>
                 <span class="metric">MEM: {(event.mem ?? 0).toFixed(1)}%</span>
                 <span class="event-id">Event #{event.id}</span>
               </div>
-              <div class="event-actions">
-                <button class="btn-view" on:click={() => viewSnapshot(event)}>
+              <div class="event-actions" role="group" aria-label="Event actions">
+                <button class="btn-view" on:click={() => viewSnapshot(event)} aria-label="View snapshot for event #{event.id}">
                   View Snapshot
                 </button>
                 {#if event.diff}
-                  <button class="btn-diff" on:click={() => viewDiff(event)}>
+                  <button class="btn-diff" on:click={() => viewDiff(event)} aria-label="View diff for event #{event.id}">
                     View Diff
                   </button>
                 {/if}
@@ -320,27 +326,24 @@
                   class="btn-restore"
                   on:click={() => restoreToEvent(event)}
                   disabled={restoring}
+                  aria-label={restoring ? "Restoring file" : "Restore file to this snapshot"}
                 >
-                  {#if restoring}
-                    ⏳ Restoring...
-                  {:else}
-                    🔄 Undo Claude
-                  {/if}
+                  <span aria-hidden="true">{#if restoring}⏳{:else}🔄{/if}</span> {#if restoring}Restoring...{:else}Undo Claude{/if}
                 </button>
               </div>
             </div>
-          </div>
+          </article>
         {/each}
       </div>
     {/if}
 
     {#if showSnapshot}
-      <div class="snapshot-viewer">
+      <div class="snapshot-viewer" role="document" aria-labelledby="snapshot-heading">
         <div class="snapshot-header">
-          <h3>Snapshot - Event #{selectedEvent?.id || 'N/A'}</h3>
-          <button on:click={() => showSnapshot = false}>Close</button>
+          <h3 id="snapshot-heading">Snapshot - Event #{selectedEvent?.id || 'N/A'}</h3>
+          <button on:click={() => showSnapshot = false} aria-label="Close snapshot viewer">Close</button>
         </div>
-        <pre class="snapshot-content">{snapshotContent}</pre>
+        <pre class="snapshot-content" role="region" aria-label="Snapshot file content">{snapshotContent}</pre>
       </div>
     {/if}
   </div>

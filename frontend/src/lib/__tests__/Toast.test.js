@@ -1,84 +1,142 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import Toast from '../Toast.svelte';
+import { notifications } from '../stores/notifications.js';
 
 describe('Toast Component', () => {
-  const defaultProps = {
-    type: 'info',
-    message: 'Test message',
-    visible: true,
-    onClose: () => {}
-  };
+  beforeEach(() => {
+    // Mock element.animate for jsdom (Web Animations API not available)
+    Element.prototype.animate = vi.fn((keyframes, options) => {
+      // Create a mock animation that immediately completes
+      const animation = {
+        finished: Promise.resolve(),
+        cancel: vi.fn(),
+        onfinish: null,
+        play: vi.fn(),
+        pause: vi.fn()
+      };
 
-  it('should render when visible', () => {
-    const { getByText } = render(Toast, { props: defaultProps });
+      // Immediately trigger onfinish callback if set
+      setTimeout(() => {
+        if (animation.onfinish) {
+          animation.onfinish();
+        }
+      }, 0);
 
-    expect(getByText('Test message')).toBeInTheDocument();
+      return animation;
+    });
+
+    // Clear notifications before each test
+    notifications.clear();
   });
 
-  it('should not render when not visible', () => {
-    const { container } = render(Toast, {
-      props: { ...defaultProps, visible: false }
+  afterEach(() => {
+    // Clear notifications after each test
+    notifications.clear();
+  });
+
+  it('should render toast when notification is added', async () => {
+    const { getByText } = render(Toast);
+
+    // Add a notification
+    notifications.add({ type: 'info', message: 'Test message', timeout: 0 });
+
+    // Wait for the toast to appear
+    await waitFor(() => {
+      expect(getByText('Test message')).toBeInTheDocument();
     });
+  });
+
+  it('should not render any toast when no notifications', () => {
+    const { container } = render(Toast);
 
     expect(container.querySelector('.toast')).not.toBeInTheDocument();
   });
 
-  it('should render with correct type class', () => {
-    const { container } = render(Toast, { props: defaultProps });
-    const toast = container.querySelector('.toast');
+  it('should render with correct type class', async () => {
+    const { container } = render(Toast);
 
-    expect(toast.classList.contains('toast--info')).toBe(true);
+    notifications.add({ type: 'info', message: 'Test', timeout: 0 });
+
+    await waitFor(() => {
+      const toast = container.querySelector('.toast');
+      expect(toast).toBeInTheDocument();
+      expect(toast.classList.contains('toast-info')).toBe(true);
+    });
   });
 
-  it('should render different types correctly', () => {
+  it('should render different types correctly', async () => {
+    const { container } = render(Toast);
     const types = ['success', 'error', 'warning', 'info'];
 
-    types.forEach(type => {
-      const { container } = render(Toast, {
-        props: { ...defaultProps, type }
+    for (const type of types) {
+      notifications.clear();
+      notifications.add({ type, message: `Test ${type}`, timeout: 0 });
+
+      await waitFor(() => {
+        const toast = container.querySelector('.toast');
+        expect(toast).toBeInTheDocument();
+        expect(toast.classList.contains(`toast-${type}`)).toBe(true);
       });
-      const toast = container.querySelector('.toast');
-
-      expect(toast.classList.contains(`toast--${type}`)).toBe(true);
-    });
-  });
-
-  it('should call onClose when close button clicked', async () => {
-    let closeCalled = false;
-    const onClose = () => { closeCalled = true; };
-
-    const { container } = render(Toast, {
-      props: { ...defaultProps, onClose }
-    });
-
-    const closeButton = container.querySelector('.toast__close');
-    if (closeButton) {
-      await fireEvent.click(closeButton);
-      expect(closeCalled).toBe(true);
     }
   });
 
-  it('should display the correct message', () => {
-    const message = 'This is a test toast message';
-    const { getByText } = render(Toast, {
-      props: { ...defaultProps, message }
+  it('should call remove when close button clicked', async () => {
+    const { container, getByText, queryByText } = render(Toast);
+
+    const id = notifications.add({ type: 'info', message: 'Test message', timeout: 0 });
+
+    await waitFor(() => {
+      expect(getByText('Test message')).toBeInTheDocument();
     });
 
-    expect(getByText(message)).toBeInTheDocument();
+    const closeButton = container.querySelector('.toast-close');
+    expect(closeButton).toBeInTheDocument();
+
+    await fireEvent.click(closeButton);
+
+    // Wait for the notification to be removed from the store
+    // Note: There may be a short transition period
+    await waitFor(() => {
+      expect(queryByText('Test message')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
   });
 
-  it('should have appropriate ARIA attributes for accessibility', () => {
-    const { container } = render(Toast, { props: defaultProps });
-    const toast = container.querySelector('.toast');
+  it('should display the correct message', async () => {
+    const message = 'This is a test toast message';
+    const { getByText } = render(Toast);
 
-    // Toast should have role="alert" for screen readers
-    expect(
-      toast.getAttribute('role') === 'alert' ||
-      toast.getAttribute('role') === 'status'
-    ).toBe(true);
+    notifications.add({ type: 'info', message, timeout: 0 });
+
+    await waitFor(() => {
+      expect(getByText(message)).toBeInTheDocument();
+    });
+  });
+
+  it('should have appropriate ARIA attributes for accessibility', async () => {
+    const { container } = render(Toast);
+
+    notifications.add({ type: 'info', message: 'Test', timeout: 0 });
+
+    await waitFor(() => {
+      const toast = container.querySelector('.toast');
+      expect(toast).toBeInTheDocument();
+      expect(toast.getAttribute('role')).toBe('alert');
+    });
+  });
+
+  it('should support multiple notifications simultaneously', async () => {
+    const { getByText } = render(Toast);
+
+    notifications.add({ type: 'info', message: 'Message 1', timeout: 0 });
+    notifications.add({ type: 'success', message: 'Message 2', timeout: 0 });
+
+    await waitFor(() => {
+      expect(getByText('Message 1')).toBeInTheDocument();
+      expect(getByText('Message 2')).toBeInTheDocument();
+    });
   });
 });

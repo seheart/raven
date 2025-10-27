@@ -61,7 +61,8 @@
   on:scroll={handleScroll}
   style="height: {containerHeight}px;"
   role="list"
-  aria-label="Scrollable list"
+  aria-label="Virtual scrollable list with {items.length} items"
+  aria-live="polite"
   tabindex="0"
 >
   <div class="virtual-scroll-spacer" style="height: {totalHeight}px;">

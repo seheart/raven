@@ -8,17 +8,18 @@
   let version = '0.8.0';
 </script>
 
-<footer class="footer">
+<footer class="footer" role="contentinfo">
   <div class="footer-content">
     <div class="footer-left">
       <span class="footer-brand">Raven v{version}</span>
-      <span class="footer-divider">|</span>
+      <span class="footer-divider" aria-hidden="true">|</span>
       <div class="theme-selector" role="group" aria-label="Theme selector">
         <button
           class="theme-button"
           class:active={theme === 'theme--day'}
           on:click={() => onThemeChange('theme--day')}
-          aria-label="Day theme"
+          aria-label="Switch to day theme"
+          aria-pressed={theme === 'theme--day'}
         >
           Day
         </button>
@@ -26,7 +27,8 @@
           class="theme-button"
           class:active={theme === 'theme--dusk'}
           on:click={() => onThemeChange('theme--dusk')}
-          aria-label="Dusk theme"
+          aria-label="Switch to dusk theme"
+          aria-pressed={theme === 'theme--dusk'}
         >
           Dusk
         </button>
@@ -34,35 +36,36 @@
           class="theme-button"
           class:active={theme === 'theme--night'}
           on:click={() => onThemeChange('theme--night')}
-          aria-label="Night theme"
+          aria-label="Switch to night theme"
+          aria-pressed={theme === 'theme--night'}
         >
           Night
         </button>
       </div>
     </div>
 
-    <div class="footer-right">
-      <button class="footer-link" on:click={onAboutClick}>
+    <nav class="footer-right" aria-label="Footer navigation">
+      <button class="footer-link" on:click={onAboutClick} aria-label="Open about dialog">
         About
       </button>
-      <span class="footer-divider">|</span>
-      <button class="footer-link" on:click={onChangelogClick}>
+      <span class="footer-divider" aria-hidden="true">|</span>
+      <button class="footer-link" on:click={onChangelogClick} aria-label="View changelog">
         Changelog
       </button>
-      <span class="footer-divider">|</span>
-      <button class="footer-link" on:click={onDocsClick}>
+      <span class="footer-divider" aria-hidden="true">|</span>
+      <button class="footer-link" on:click={onDocsClick} aria-label="Open documentation">
         Docs
       </button>
-      <span class="footer-divider">|</span>
-      <a class="footer-link" href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer">
+      <span class="footer-divider" aria-hidden="true">|</span>
+      <a class="footer-link" href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" aria-label="Open GitHub repository in new tab">
         GitHub
       </a>
-      <span class="footer-divider">|</span>
-      <span class="footer-status">
-        <span class="status-dot"></span>
+      <span class="footer-divider" aria-hidden="true">|</span>
+      <span class="footer-status" role="status" aria-live="polite" aria-label="Real-time monitoring active">
+        <span class="status-dot" aria-hidden="true"></span>
         Real-time Monitoring Active
       </span>
-    </div>
+    </nav>
   </div>
 </footer>
 

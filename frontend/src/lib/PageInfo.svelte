@@ -35,28 +35,28 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <div class="info-button-container">
-  <button class="info-button" on:click={toggleModal} aria-label="Page information">
-    ℹ️
+  <button class="info-button" on:click={toggleModal} aria-label="Show page information" aria-haspopup="dialog">
+    <span aria-hidden="true">ℹ️</span>
   </button>
 </div>
 
 {#if showModal}
-  <div class="modal-overlay" on:click={toggleModal}>
-    <div class="modal-content" on:click|stopPropagation>
+  <div class="modal-overlay" on:click={toggleModal} role="dialog" aria-modal="true" aria-labelledby="info-title">
+    <div class="modal-content" on:click|stopPropagation role="document">
       <div class="modal-header">
-        <h2>{title}</h2>
-        <button class="close-button" on:click={toggleModal} aria-label="Close">×</button>
+        <h2 id="info-title">{title}</h2>
+        <button class="close-button" on:click={toggleModal} aria-label="Close information dialog">×</button>
       </div>
 
       <div class="modal-body">
-        <section class="info-section">
-          <h3>What this page is</h3>
+        <section class="info-section" aria-labelledby="what-section">
+          <h3 id="what-section">What this page is</h3>
           <p>{@html parseMarkdown(description)}</p>
         </section>
 
         {#if keyPoints.length > 0}
-          <section class="info-section">
-            <h3>What to look for</h3>
+          <section class="info-section" aria-labelledby="lookfor-section">
+            <h3 id="lookfor-section">What to look for</h3>
             <ul>
               {#each keyPoints as point}
                 <li>{@html parseMarkdown(point)}</li>
@@ -66,15 +66,15 @@
         {/if}
 
         {#if whenToCheck}
-          <section class="info-section">
-            <h3>When to check it</h3>
+          <section class="info-section" aria-labelledby="when-section">
+            <h3 id="when-section">When to check it</h3>
             <p>{@html parseMarkdown(whenToCheck)}</p>
           </section>
         {/if}
 
         {#if warnings.length > 0}
-          <section class="info-section warning">
-            <h3>⚠️ Warning signs</h3>
+          <section class="info-section warning" aria-labelledby="warnings-section" role="alert">
+            <h3 id="warnings-section"><span aria-hidden="true">⚠️</span> Warning signs</h3>
             <ul>
               {#each warnings as warning}
                 <li>{@html parseMarkdown(warning)}</li>

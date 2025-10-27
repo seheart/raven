@@ -201,16 +201,16 @@
   $: progress = ((currentStep + 1) / (steps.length + 1)) * 100;
 </script>
 
-<div class="wizard-overlay">
+<div class="wizard-overlay" role="dialog" aria-modal="true" aria-labelledby="wizard-heading">
   <div class="wizard-container">
     <!-- Progress bar -->
-    <div class="progress-bar">
+    <div class="progress-bar" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100" aria-label="Setup progress: {progress.toFixed(0)}%">
       <div class="progress-fill" style="width: {progress}%"></div>
     </div>
 
     <!-- Header -->
     <div class="wizard-header">
-      <h1>
+      <h1 id="wizard-heading">
         {#if currentStep < steps.length}
           {steps[currentStep].title}
         {:else}
@@ -227,27 +227,27 @@
     </div>
 
     <!-- Content -->
-    <div class="wizard-content">
+    <div class="wizard-content" role="region" aria-live="polite">
       {#if currentStep === 0}
         <!-- Step 0: Welcome -->
         <div class="step-content">
-          <div class="welcome-icon">🛡️</div>
+          <div class="welcome-icon" aria-hidden="true">🛡️</div>
           <p class="description">{steps[0].description}</p>
-          <div class="features-list">
-            <div class="feature">
-              <span class="feature-icon">⚠️</span>
+          <div class="features-list" role="list" aria-label="Key features">
+            <div class="feature" role="listitem">
+              <span class="feature-icon" aria-hidden="true">⚠️</span>
               <span class="feature-text">Get alerted when AI deletes lots of code</span>
             </div>
-            <div class="feature">
-              <span class="feature-icon">🔒</span>
+            <div class="feature" role="listitem">
+              <span class="feature-icon" aria-hidden="true">🔒</span>
               <span class="feature-text">Know when security files are changed</span>
             </div>
-            <div class="feature">
-              <span class="feature-icon">↩️</span>
+            <div class="feature" role="listitem">
+              <span class="feature-icon" aria-hidden="true">↩️</span>
               <span class="feature-text">Undo any change with one click</span>
             </div>
-            <div class="feature">
-              <span class="feature-icon">📊</span>
+            <div class="feature" role="listitem">
+              <span class="feature-icon" aria-hidden="true">📊</span>
               <span class="feature-text">See everything your AI does in real-time</span>
             </div>
           </div>
@@ -266,10 +266,10 @@
               placeholder="/home/yourname/Projects"
               on:keydown={(e) => e.key === 'Enter' && selectProjectDirectory()}
             />
-            <p class="hint">This should be the parent folder containing all your individual projects</p>
+            <p class="hint" id="path-hint">This should be the parent folder containing all your individual projects</p>
           </div>
           {#if error}
-            <p class="error-message">{error}</p>
+            <p class="error-message" role="alert">{error}</p>
           {/if}
         </div>
 
@@ -277,14 +277,17 @@
         <!-- Step 2: Alert Template Selection -->
         <div class="step-content">
           <p class="description">{steps[2].description}</p>
-          <div class="templates-grid">
+          <div class="templates-grid" role="radiogroup" aria-label="Select alert template">
             {#each templates as template}
               <button
                 class="template-card"
                 class:selected={selectedTemplate === template.id}
                 on:click={() => selectAlertTemplate(template.id)}
+                role="radio"
+                aria-checked={selectedTemplate === template.id}
+                aria-label="{template.name} - {template.description}"
               >
-                <div class="template-icon">{template.icon}</div>
+                <div class="template-icon" aria-hidden="true">{template.icon}</div>
                 <h3>{template.name}</h3>
                 <p>{template.description}</p>
                 <div class="template-triggers">
@@ -299,80 +302,81 @@
         <!-- Step 3: Notifications -->
         <div class="step-content">
           <p class="description">{steps[3].description}</p>
-          <div class="notification-preview">
+          <div class="notification-preview" role="img" aria-label="Example notification showing a large code deletion alert">
             <div class="preview-notification">
-              <div class="preview-icon">⚠️</div>
+              <div class="preview-icon" aria-hidden="true">⚠️</div>
               <div class="preview-content">
                 <strong>Large Code Deletion</strong>
                 <p>AI deleted 150 lines in auth.js</p>
               </div>
             </div>
           </div>
-          <div class="notification-buttons">
-            <button class="btn-primary" on:click={() => handleNotifications(true)}>
+          <div class="notification-buttons" role="group" aria-label="Notification preference">
+            <button class="btn-primary" on:click={() => handleNotifications(true)} aria-label="Enable desktop notifications">
               Enable Notifications
             </button>
-            <button class="btn-secondary" on:click={() => handleNotifications(false)}>
+            <button class="btn-secondary" on:click={() => handleNotifications(false)} aria-label="Skip notifications setup">
               Skip for Now
             </button>
           </div>
           {#if error}
-            <p class="error-message">{error}</p>
+            <p class="error-message" role="alert">{error}</p>
           {/if}
         </div>
 
       {:else}
         <!-- Step 4: Complete -->
         <div class="step-content">
-          <div class="success-icon">✅</div>
+          <div class="success-icon" aria-hidden="true">✅</div>
           <p class="description">
             Raven is now monitoring all projects in <strong>{projectPath}</strong> and will alert you about important changes.
           </p>
-          <div class="summary-box">
+          <div class="summary-box" role="region" aria-label="Setup summary">
             <h4>Your Configuration:</h4>
-            <ul>
+            <ul role="list">
               <li>Projects Folder: {projectPath}</li>
               <li>Alert Style: {templates.find(t => t.id === selectedTemplate)?.name || selectedTemplate}</li>
               <li>Notifications: {notificationsEnabled ? 'Enabled ✅' : 'Disabled (can enable later)'}</li>
             </ul>
           </div>
           {#if error}
-            <p class="error-message">{error}</p>
+            <p class="error-message" role="alert">{error}</p>
           {/if}
         </div>
       {/if}
     </div>
 
     <!-- Footer -->
-    <div class="wizard-footer">
+    <div class="wizard-footer" role="navigation" aria-label="Wizard navigation">
       {#if currentStep === 0}
-        <button class="btn-secondary" on:click={skipWizard}>
+        <button class="btn-secondary" on:click={skipWizard} aria-label="Skip setup wizard">
           Skip Setup
         </button>
-        <button class="btn-primary" on:click={nextStep}>
+        <button class="btn-primary" on:click={nextStep} aria-label="Start setup wizard">
           Get Started →
         </button>
       {:else if currentStep === 1}
-        <button class="btn-secondary" on:click={prevStep}>
+        <button class="btn-secondary" on:click={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
-        <button class="btn-primary" on:click={selectProjectDirectory}>
+        <button class="btn-primary" on:click={selectProjectDirectory} aria-label="Continue to next step">
           Next →
         </button>
       {:else if currentStep === 2}
-        <button class="btn-secondary" on:click={prevStep}>
+        <button class="btn-secondary" on:click={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
-        <span class="step-indicator">Selected: {templates.find(t => t.id === selectedTemplate)?.name}</span>
+        <span class="step-indicator" role="status">Selected: {templates.find(t => t.id === selectedTemplate)?.name}</span>
       {:else}
         <!-- Final step (3): Enable Notifications -->
-        <button class="btn-secondary" on:click={prevStep}>
+        <button class="btn-secondary" on:click={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
         <button
           class="btn-primary btn-complete"
           on:click={completeSetup}
           disabled={loading}
+          aria-label={loading ? 'Setting up Raven' : 'Complete setup and start monitoring'}
         >
           {loading ? 'Setting up...' : 'Start Monitoring! 🚀'}
         </button>

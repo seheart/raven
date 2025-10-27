@@ -218,35 +218,35 @@
   });
 </script>
 
-<div class="conversations-panel">
+<div class="conversations-panel" role="region" aria-label="Conversations tracking">
   <!-- Stats Cards -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon">💬</div>
+  <div class="stats-grid" role="group" aria-label="Conversation statistics">
+    <div class="stat-card" role="status">
+      <div class="stat-icon" aria-hidden="true">💬</div>
       <div class="stat-content">
         <div class="stat-label">Total Conversations</div>
         <div class="stat-value">{stats.total.toLocaleString()}</div>
       </div>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-icon">👤</div>
+    <div class="stat-card" role="status">
+      <div class="stat-icon" aria-hidden="true">👤</div>
       <div class="stat-content">
         <div class="stat-label">User Messages</div>
         <div class="stat-value">{(stats.by_type.user_message || 0).toLocaleString()}</div>
       </div>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-icon">🤖</div>
+    <div class="stat-card" role="status">
+      <div class="stat-icon" aria-hidden="true">🤖</div>
       <div class="stat-content">
         <div class="stat-label">Assistant Responses</div>
         <div class="stat-value">{(stats.by_type.assistant_text || 0).toLocaleString()}</div>
       </div>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-icon">🔧</div>
+    <div class="stat-card" role="status">
+      <div class="stat-icon" aria-hidden="true">🔧</div>
       <div class="stat-content">
         <div class="stat-label">Tool Calls</div>
         <div class="stat-value">{(stats.by_type.tool_call || 0).toLocaleString()}</div>
@@ -255,16 +255,17 @@
   </div>
 
   <!-- Controls -->
-  <div class="controls">
+  <div class="controls" role="search" aria-label="Search and filter conversations">
     <div class="controls-row">
       <input
         type="text"
         class="search-input"
         placeholder="🔍 Search conversations..."
         bind:value={searchQuery}
+        aria-label="Search conversations"
       />
 
-      <select class="filter-select" bind:value={filterType} on:change={loadConversations}>
+      <select class="filter-select" bind:value={filterType} on:change={loadConversations} aria-label="Filter by event type">
         <option value="all">All Types</option>
         <option value="user_message">User Messages</option>
         <option value="assistant_text">Assistant</option>
@@ -298,7 +299,7 @@
     </div>
 
     {#if lastUpdate}
-      <div class="last-update">
+      <div class="last-update" role="status" aria-live="polite">
         Updated: {formatTime(lastUpdate.toISOString())}
       </div>
     {/if}
@@ -306,24 +307,24 @@
 
   <!-- Conversations Timeline -->
   {#if loading}
-    <LoadingSkeleton count={5} height="120px" />
+    <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton count={5} height="120px" /></div>
   {:else if filteredConversations.length === 0}
-    <div class="empty">
+    <div class="empty" role="status">
       <p>No conversations found</p>
       <button class="btn-import" on:click={() => showImportDialog = true}>
         📥 Import Claude Sessions
       </button>
     </div>
   {:else}
-    <div class="conversations-timeline">
-      <div class="results-count">
+    <div class="conversations-timeline" role="feed" aria-label="Conversations timeline">
+      <div class="results-count" role="status">
         Showing {filteredConversations.length} of {stats.total} conversations
       </div>
 
       {#each filteredConversations as conv (conv.id)}
-        <div class="conversation-item {getEventClass(conv.event_type)}">
-          <div class="conv-header" on:click={() => toggleExpanded(conv.id)}>
-            <div class="conv-icon">{getEventIcon(conv.event_type)}</div>
+        <article class="conversation-item {getEventClass(conv.event_type)}" role="article">
+          <button class="conv-header" on:click={() => toggleExpanded(conv.id)} aria-expanded={expandedConversations.includes(conv.id)} aria-controls="conv-details-{conv.id}" aria-label="Toggle conversation details">
+            <div class="conv-icon" aria-hidden="true">{getEventIcon(conv.event_type)}</div>
             <div class="conv-info">
               <div class="conv-type-row">
                 <span class="conv-type">{conv.event_type}</span>
@@ -345,16 +346,16 @@
               </div>
             </div>
             <div class="conv-meta">
-              <div class="conv-time">{formatTime(conv.timestamp)}</div>
+              <time class="conv-time" datetime="{conv.timestamp}">{formatTime(conv.timestamp)}</time>
               <div class="conv-id">#{conv.id}</div>
             </div>
-            <button class="expand-btn">
+            <span class="expand-btn" aria-hidden="true">
               {expandedConversations.includes(conv.id) ? '▼' : '▶'}
-            </button>
-          </div>
+            </span>
+          </button>
 
           {#if expandedConversations.includes(conv.id)}
-            <div class="conv-details">
+            <div class="conv-details" id="conv-details-{conv.id}" role="region" aria-label="Conversation details">
               {#if conv.content}
                 <div class="detail-section">
                   <div class="detail-label">Content:</div>
@@ -396,14 +397,14 @@
               </div>
             </div>
           {/if}
-        </div>
+        </article>
       {/each}
 
       {#if hasMore}
         <div class="load-more">
-          <button class="btn-load-more" on:click={loadMore} disabled={loadingMore}>
+          <button class="btn-load-more" on:click={loadMore} disabled={loadingMore} aria-label="Load more conversations">
             {#if loadingMore}
-              ⏳ Loading...
+              <span aria-hidden="true">⏳</span> Loading...
             {:else}
               Load More
             {/if}
@@ -416,9 +417,9 @@
 
 <!-- Import Dialog -->
 {#if showImportDialog}
-  <div class="modal-overlay" on:click={() => showImportDialog = false}>
-    <div class="modal-content" on:click|stopPropagation>
-      <h2>Import Claude Conversations</h2>
+  <div class="modal-overlay" on:click={() => showImportDialog = false} role="dialog" aria-modal="true" aria-labelledby="import-dialog-title">
+    <div class="modal-content" on:click|stopPropagation role="document">
+      <h2 id="import-dialog-title">Import Claude Conversations</h2>
       <p>Import conversation history from Claude Code .jsonl session files.</p>
 
       <div class="form-group">
@@ -429,8 +430,10 @@
           class="form-input"
           placeholder="c6ceb139-5c3f-4cc6-923a-2bcac56f3479.jsonl"
           bind:value={importSessionFile}
+          aria-describedby="sessionFile-hint"
+          aria-required="true"
         />
-        <div class="form-hint">
+        <div id="sessionFile-hint" class="form-hint">
           Enter filename or full path. Default location: ~/.claude/projects/-home-seth/
         </div>
       </div>
@@ -446,15 +449,15 @@
         />
       </div>
 
-      <div class="modal-actions">
-        <button class="btn-cancel" on:click={() => showImportDialog = false}>
+      <div class="modal-actions" role="group" aria-label="Dialog actions">
+        <button class="btn-cancel" on:click={() => showImportDialog = false} aria-label="Cancel import">
           Cancel
         </button>
-        <button class="btn-primary" on:click={importConversations} disabled={importing}>
+        <button class="btn-primary" on:click={importConversations} disabled={importing} aria-label="Import conversations">
           {#if importing}
-            ⏳ Importing...
+            <span aria-hidden="true">⏳</span> Importing...
           {:else}
-            📥 Import
+            <span aria-hidden="true">📥</span> Import
           {/if}
         </button>
       </div>

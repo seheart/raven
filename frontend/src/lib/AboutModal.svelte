@@ -10,11 +10,11 @@
 </script>
 
 {#if visible}
-  <div class="modal-backdrop" on:click={handleBackdropClick}>
-    <div class="modal">
+  <div class="modal-backdrop" on:click={handleBackdropClick} role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <div class="modal" role="document">
       <div class="modal-header">
-        <h2>About Raven</h2>
-        <button class="close-btn" on:click={onClose}>✕</button>
+        <h2 id="about-title">About Raven</h2>
+        <button class="close-btn" on:click={onClose} aria-label="Close about dialog">✕</button>
       </div>
 
       <div class="modal-content">

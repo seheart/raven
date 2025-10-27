@@ -54,46 +54,47 @@
   }
 </script>
 
-<div class="changelog-page" transition:fade={{ duration: 300 }}>
+<div class="changelog-page" transition:fade={{ duration: 300 }} role="main" aria-label="Changelog page">
   <div class="changelog-container">
     <div class="changelog-header">
-      <h1>📋 Changelog</h1>
+      <h1 id="changelog-heading"><span aria-hidden="true">📋</span> Changelog</h1>
       <p class="tagline">Track Raven's development progress and updates</p>
     </div>
 
-    <div class="changelog-content">
+    <div class="changelog-content" role="region" aria-labelledby="changelog-heading">
       {#if loading}
-        <div class="loading-state">
-          <div class="spinner"></div>
+        <div class="loading-state" role="status" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
           <p>Loading changelog from git history...</p>
         </div>
       {:else if error}
-        <div class="error-state">
-          <p>⚠️ {error}</p>
+        <div class="error-state" role="alert">
+          <p><span aria-hidden="true">⚠️</span> {error}</p>
         </div>
       {:else if changelog.length === 0}
-        <div class="empty-state">
+        <div class="empty-state" role="status">
           <p>No changelog entries found</p>
         </div>
       {:else}
         {#each changelog as release}
-        <div class="release-section">
+        <article class="release-section" aria-labelledby="version-{release.version}">
           <div class="release-header">
             <div class="release-title">
-              <h2>Version {release.version}</h2>
+              <h2 id="version-{release.version}">Version {release.version}</h2>
               {#if release.title}
                 <span class="release-subtitle">{release.title}</span>
               {/if}
             </div>
-            <div class="release-date">{release.date}</div>
+            <div class="release-date"><time datetime={release.date}>{release.date}</time></div>
           </div>
 
-          <div class="changes-list">
+          <div class="changes-list" role="list" aria-label="Changes in version {release.version}">
             {#each release.changes as change}
-              <div class="change-item">
+              <div class="change-item" role="listitem">
                 <span
                   class="change-icon"
                   style="color: {getTypeColor(change.type)}"
+                  aria-hidden="true"
                 >
                   {getTypeIcon(change.type)}
                 </span>
@@ -101,11 +102,11 @@
               </div>
             {/each}
           </div>
-        </div>
+        </article>
         {/each}
 
-        <div class="changelog-footer">
-          <p>More updates coming soon! 🚀</p>
+        <div class="changelog-footer" role="contentinfo">
+          <p>More updates coming soon! <span aria-hidden="true">🚀</span></p>
         </div>
       {/if}
     </div>

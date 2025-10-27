@@ -409,56 +409,58 @@
   }
 </script>
 
-<div class="event-feed">
+<div class="event-feed" role="region" aria-label="Event Feed">
   <!-- Forensics Dashboard -->
   {#if showForensics && filteredEvents.length > 0}
-    <div class="forensics-dashboard">
+    <section class="forensics-dashboard" aria-labelledby="forensics-heading">
       <div class="forensics-header">
-        <h2>📊 Forensics Analysis</h2>
+        <h2 id="forensics-heading"><span aria-hidden="true">📊</span> Forensics Analysis</h2>
         <button
           class="toggle-forensics"
           on:click={() => showForensics = !showForensics}
+          aria-label="{showForensics ? 'Hide' : 'Show'} forensics analysis"
+          aria-expanded={showForensics}
         >
-          {showForensics ? '▼ Hide' : '▶ Show'}
+          <span aria-hidden="true">{showForensics ? '▼' : '▶'}</span> {showForensics ? 'Hide' : 'Show'}
         </button>
       </div>
 
       <!-- Key Metrics Cards -->
-      <div class="stats-cards">
-        <div class="stat-card">
-          <div class="stat-icon">📈</div>
+      <div class="stats-cards" role="group" aria-label="Forensics statistics">
+        <div class="stat-card" role="status" aria-label="Total changes: {forensicsStats.totalChanges}">
+          <div class="stat-icon" aria-hidden="true">📈</div>
           <div class="stat-content">
             <div class="stat-label">Total Changes</div>
             <div class="stat-value">{forensicsStats.totalChanges}</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon">📄</div>
+        <div class="stat-card" role="status" aria-label="Unique files: {forensicsStats.uniqueFiles}">
+          <div class="stat-icon" aria-hidden="true">📄</div>
           <div class="stat-content">
             <div class="stat-label">Unique Files</div>
             <div class="stat-value">{forensicsStats.uniqueFiles}</div>
           </div>
         </div>
 
-        <div class="stat-card success">
-          <div class="stat-icon">➕</div>
+        <div class="stat-card success" role="status" aria-label="Files created: {forensicsStats.changeTypeBreakdown.created}">
+          <div class="stat-icon" aria-hidden="true">➕</div>
           <div class="stat-content">
             <div class="stat-label">Created</div>
             <div class="stat-value">{forensicsStats.changeTypeBreakdown.created}</div>
           </div>
         </div>
 
-        <div class="stat-card warning">
-          <div class="stat-icon">✏️</div>
+        <div class="stat-card warning" role="status" aria-label="Files modified: {forensicsStats.changeTypeBreakdown.modified}">
+          <div class="stat-icon" aria-hidden="true">✏️</div>
           <div class="stat-content">
             <div class="stat-label">Modified</div>
             <div class="stat-value">{forensicsStats.changeTypeBreakdown.modified}</div>
           </div>
         </div>
 
-        <div class="stat-card error">
-          <div class="stat-icon">🗑️</div>
+        <div class="stat-card error" role="status" aria-label="Files deleted: {forensicsStats.changeTypeBreakdown.deleted}">
+          <div class="stat-icon" aria-hidden="true">🗑️</div>
           <div class="stat-content">
             <div class="stat-label">Deleted</div>
             <div class="stat-value">{forensicsStats.changeTypeBreakdown.deleted}</div>
@@ -508,67 +510,70 @@
           </div>
         </div>
       </div>
-    </div>
+    </section>
   {/if}
 
   <div class="header">
-    <span class="count">{filteredEvents.length} / {events.length} events</span>
-    <div class="header-actions">
-      <button class="export-btn" on:click={exportToJSON} title="Export to JSON">
-        📥 JSON
+    <span class="count" role="status" aria-live="polite" aria-label="{filteredEvents.length} of {events.length} events displayed">{filteredEvents.length} / {events.length} events</span>
+    <div class="header-actions" role="toolbar" aria-label="Event actions">
+      <button class="export-btn" on:click={exportToJSON} aria-label="Export events to JSON file">
+        <span aria-hidden="true">📥</span> JSON
       </button>
-      <button class="export-btn" on:click={exportToCSV} title="Export to CSV">
-        📥 CSV
+      <button class="export-btn" on:click={exportToCSV} aria-label="Export events to CSV file">
+        <span aria-hidden="true">📥</span> CSV
       </button>
-      <button class="clear-btn" on:click={clearEvents} title="Clear events (C)">
-        🗑️ Clear
+      <button class="clear-btn" on:click={clearEvents} aria-label="Clear all events">
+        <span aria-hidden="true">🗑️</span> Clear
       </button>
     </div>
   </div>
 
-  <div class="filters">
+  <div class="filters" role="search" aria-label="Filter events">
+    <label for="event-search" class="visually-hidden">Search events by filename or conversation</label>
     <input
+      id="event-search"
       type="text"
       class="search-input"
       placeholder="Search by filename or conversation..."
       use:debounceInput={{ delay: 300 }}
       on:debounced={handleDebouncedSearch}
+      aria-label="Search events by filename or conversation"
     />
-    <div class="type-filters">
-      <div class="filter-group">
-        <span class="filter-group-label">Files:</span>
-        <label class="filter-checkbox" title="Toggle created events (1)">
-          <input type="checkbox" bind:checked={selectedTypes.created} />
+    <div class="type-filters" role="group" aria-label="Event type filters">
+      <fieldset class="filter-group">
+        <legend class="filter-group-label">Files:</legend>
+        <label class="filter-checkbox">
+          <input type="checkbox" bind:checked={selectedTypes.created} aria-label="Show created files" />
           <span class="filter-label created">Created</span>
         </label>
-        <label class="filter-checkbox" title="Toggle modified events (2)">
-          <input type="checkbox" bind:checked={selectedTypes.modified} />
+        <label class="filter-checkbox">
+          <input type="checkbox" bind:checked={selectedTypes.modified} aria-label="Show modified files" />
           <span class="filter-label modified">Modified</span>
         </label>
-        <label class="filter-checkbox" title="Toggle deleted events (3)">
-          <input type="checkbox" bind:checked={selectedTypes.deleted} />
+        <label class="filter-checkbox">
+          <input type="checkbox" bind:checked={selectedTypes.deleted} aria-label="Show deleted files" />
           <span class="filter-label deleted">Deleted</span>
         </label>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Conversations:</span>
-        <label class="filter-checkbox" title="Toggle user messages">
-          <input type="checkbox" bind:checked={selectedTypes.user_message} />
-          <span class="filter-label conversation">💬 User</span>
+      </fieldset>
+      <fieldset class="filter-group">
+        <legend class="filter-group-label">Conversations:</legend>
+        <label class="filter-checkbox">
+          <input type="checkbox" bind:checked={selectedTypes.user_message} aria-label="Show user messages" />
+          <span class="filter-label conversation"><span aria-hidden="true">💬</span> User</span>
         </label>
-        <label class="filter-checkbox" title="Toggle Claude responses">
-          <input type="checkbox" bind:checked={selectedTypes.assistant_text} />
-          <span class="filter-label conversation">🤖 Claude</span>
+        <label class="filter-checkbox">
+          <input type="checkbox" bind:checked={selectedTypes.assistant_text} aria-label="Show Claude responses" />
+          <span class="filter-label conversation"><span aria-hidden="true">🤖</span> Claude</span>
         </label>
-        <label class="filter-checkbox" title="Toggle tool calls">
-          <input type="checkbox" bind:checked={selectedTypes.tool_call} />
-          <span class="filter-label conversation">🔧 Tools</span>
+        <label class="filter-checkbox">
+          <input type="checkbox" bind:checked={selectedTypes.tool_call} aria-label="Show tool calls" />
+          <span class="filter-label conversation"><span aria-hidden="true">🔧</span> Tools</span>
         </label>
-        <label class="filter-checkbox" title="Toggle tool results">
-          <input type="checkbox" bind:checked={selectedTypes.tool_result} />
-          <span class="filter-label conversation">✅ Results</span>
+        <label class="filter-checkbox">
+          <input type="checkbox" bind:checked={selectedTypes.tool_result} aria-label="Show tool results" />
+          <span class="filter-label conversation"><span aria-hidden="true">✅</span> Results</span>
         </label>
-      </div>
+      </fieldset>
     </div>
   </div>
 
@@ -735,11 +740,16 @@
 
 <!-- Diff Viewer Modal -->
 {#if showDiffModal && selectedEventForDiff}
-  <div class="modal-overlay" on:click={closeDiffModal}>
-    <div class="modal-content" on:click|stopPropagation>
+  <div class="modal-overlay" on:click={closeDiffModal} role="presentation">
+    <div
+      class="modal-content"
+      on:click|stopPropagation
+      role="dialog"
+      aria-labelledby="diff-modal-title"
+      aria-modal="true">
       <div class="modal-header">
-        <h3>📝 File Diff</h3>
-        <button class="close-btn" on:click={closeDiffModal}>✕</button>
+        <h3 id="diff-modal-title"><span aria-hidden="true">📝</span> File Diff</h3>
+        <button class="close-btn" on:click={closeDiffModal} aria-label="Close diff viewer">✕</button>
       </div>
 
       <div class="modal-body">
@@ -1640,5 +1650,29 @@
   /* Similar Changes Section */
   .similar-changes-section {
     margin-top: 24px;
+  }
+
+  /* Accessibility */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Override fieldset default styles for filter groups */
+  fieldset.filter-group {
+    border: none;
+    padding: 8px 12px;
+    margin: 0;
+  }
+
+  legend.filter-group-label {
+    padding: 0;
   }
 </style>

@@ -86,10 +86,10 @@
   }
 </script>
 
-<div class="health-status">
-  <div class="health-summary" on:click={() => expanded = !expanded}>
-    <div class="status-badge" style="background: {getStatusColor(healthStatus)}">
-      <span class="status-icon">{getStatusIcon(healthStatus)}</span>
+<div class="health-status" role="region" aria-label="System health status">
+  <button class="health-summary" on:click={() => expanded = !expanded} aria-expanded={expanded} aria-controls="health-details">
+    <div class="status-badge" style="background: {getStatusColor(healthStatus)}" role="status" aria-live="polite">
+      <span class="status-icon" aria-hidden="true">{getStatusIcon(healthStatus)}</span>
       <span class="status-text">
         {#if loading}
           Loading health...
@@ -106,24 +106,24 @@
     </div>
     {#if healthResults && healthResults.summary}
       <div class="status-stats">
-        <span class="stat">{healthResults.summary.passed}/{healthResults.summary.total} passed</span>
+        <span class="stat" role="status">{healthResults.summary.passed}/{healthResults.summary.total} passed</span>
         {#if !loading}
-          <button class="expand-btn" aria-label="Toggle details">
+          <span class="expand-btn" aria-hidden="true">
             {expanded ? '▼' : '▶'}
-          </button>
+          </span>
         {/if}
       </div>
     {/if}
-  </div>
+  </button>
 
   {#if expanded && healthResults && healthResults.checks}
-    <div class="health-details">
+    <div class="health-details" id="health-details" role="region" aria-label="Health check details">
       {#each Object.entries(healthResults.summary.byCategory || {}) as [category, stats]}
-        <div class="category-section">
+        <section class="category-section" aria-labelledby="category-{category}">
           <div class="category-header">
-            <span class="category-icon">{getCategoryIcon(category)}</span>
-            <span class="category-name">{category}</span>
-            <span class="category-stats">
+            <span class="category-icon" aria-hidden="true">{getCategoryIcon(category)}</span>
+            <span class="category-name" id="category-{category}">{category}</span>
+            <span class="category-stats" role="status">
               {stats.passed}/{stats.passed + stats.failed}
               {#if stats.failed > 0}
                 <span class="failed-count">({stats.failed} failed)</span>
@@ -131,15 +131,15 @@
             </span>
           </div>
 
-          <div class="category-checks">
+          <div class="category-checks" role="list" aria-label="{category} health checks">
             {#each healthResults.checks.filter(c => c.category === category) as check}
-              <div class="check-item" class:failed={!check.passed}>
-                <span class="check-icon">
+              <div class="check-item" class:failed={!check.passed} role="listitem">
+                <span class="check-icon" aria-hidden="true">
                   {check.passed ? '✅' : '❌'}
                 </span>
                 <div class="check-info">
                   <div class="check-name">{check.name}</div>
-                  <div class="check-message" class:error={!check.passed}>
+                  <div class="check-message" class:error={!check.passed} role={check.passed ? 'status' : 'alert'}>
                     {check.message}
                   </div>
                 </div>
@@ -147,7 +147,7 @@
               </div>
             {/each}
           </div>
-        </div>
+        </section>
       {/each}
     </div>
   {/if}
@@ -168,6 +168,12 @@
     padding: 12px 16px;
     cursor: pointer;
     transition: background 0.2s;
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
   }
 
   .health-summary:hover {

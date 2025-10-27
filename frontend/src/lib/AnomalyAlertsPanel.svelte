@@ -124,24 +124,24 @@
   }
 </script>
 
-<div class="anomaly-alerts-panel">
+<div class="anomaly-alerts-panel" role="region" aria-label="Anomaly detection alerts">
   <div class="panel-header">
     <div class="header-left">
-      <h2>🚨 Anomaly Detection</h2>
+      <h2 id="anomaly-heading"><span aria-hidden="true">🚨</span> Anomaly Detection</h2>
       <p class="subtitle">Smart alerts for unusual patterns</p>
     </div>
-    <div class="header-right">
-      <span class="last-update">Updated: {timeSinceUpdate}</span>
-      <button class="btn-secondary" on:click={handleExportCSV}>Export CSV</button>
-      <button class="btn-secondary" on:click={handleExportJSON}>Export JSON</button>
-      <button class="btn-primary" on:click={loadAnomalies}>↻ Refresh</button>
+    <div class="header-right" role="toolbar" aria-label="Anomaly panel actions">
+      <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
+      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export anomalies as CSV">Export CSV</button>
+      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export anomalies as JSON">Export JSON</button>
+      <button class="btn-primary" on:click={loadAnomalies} aria-label="Refresh anomaly detection"><span aria-hidden="true">↻</span> Refresh</button>
     </div>
   </div>
 
-  <div class="controls">
+  <div class="controls" role="group" aria-labelledby="anomaly-heading">
     <div class="control-group">
       <label for="hours-select">Lookback:</label>
-      <select id="hours-select" bind:value={lookbackHours} on:change={loadAnomalies}>
+      <select id="hours-select" bind:value={lookbackHours} on:change={loadAnomalies} aria-label="Select lookback period">
         <option value="6">6 hours</option>
         <option value="12">12 hours</option>
         <option value="24">24 hours</option>
@@ -168,48 +168,48 @@
     </div>
   </div>
 
-  <div class="stats-row">
-    <div class="stat-badge critical">
-      <span class="badge-icon">🔴</span>
+  <div class="stats-row" role="group" aria-label="Anomaly statistics">
+    <div class="stat-badge critical" role="status">
+      <span class="badge-icon" aria-hidden="true">🔴</span>
       <span class="badge-count">{criticalCount}</span>
       <span class="badge-label">Critical</span>
     </div>
-    <div class="stat-badge warning">
-      <span class="badge-icon">⚠️</span>
+    <div class="stat-badge warning" role="status">
+      <span class="badge-icon" aria-hidden="true">⚠️</span>
       <span class="badge-count">{warningCount}</span>
       <span class="badge-label">Warnings</span>
     </div>
-    <div class="stat-badge info">
-      <span class="badge-icon">🔵</span>
+    <div class="stat-badge info" role="status">
+      <span class="badge-icon" aria-hidden="true">🔵</span>
       <span class="badge-count">{infoCount}</span>
       <span class="badge-label">Info</span>
     </div>
-    <div class="stat-badge baseline">
-      <span class="badge-icon">📊</span>
+    <div class="stat-badge baseline" role="status">
+      <span class="badge-icon" aria-hidden="true">📊</span>
       <span class="badge-count">{baseline.avg_per_hour || 0}</span>
       <span class="badge-label">Avg/Hour</span>
     </div>
   </div>
 
   {#if loading}
-    <LoadingSkeleton />
+    <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton /></div>
   {:else if error}
-    <div class="error-state">
+    <div class="error-state" role="alert">
       <p>❌ Error loading anomalies: {error}</p>
-      <button on:click={loadAnomalies}>Try Again</button>
+      <button on:click={loadAnomalies} aria-label="Retry loading anomalies">Try Again</button>
     </div>
   {:else if filteredAnomalies.length === 0}
-    <div class="empty-state">
+    <div class="empty-state" role="status">
       <p>✅ No anomalies detected</p>
       <p class="hint">All activity patterns look normal for the selected period</p>
     </div>
   {:else}
-    <div class="anomalies-list">
+    <div class="anomalies-list" role="feed" aria-label="Anomaly alerts">
       {#each filteredAnomalies as anomaly (anomaly.timestamp + anomaly.type)}
-        <div class="anomaly-card {getSeverityClass(anomaly.severity)}">
+        <article class="anomaly-card {getSeverityClass(anomaly.severity)}" role="article">
           <div class="anomaly-header">
-            <span class="anomaly-icon">{getSeverityIcon(anomaly.severity)}</span>
-            <span class="anomaly-timestamp">{formatTimestamp(anomaly.timestamp)}</span>
+            <span class="anomaly-icon" aria-hidden="true">{getSeverityIcon(anomaly.severity)}</span>
+            <time class="anomaly-timestamp" datetime="{anomaly.timestamp}">{formatTimestamp(anomaly.timestamp)}</time>
             <span class="anomaly-type">{anomaly.type.replace(/_/g, ' ')}</span>
           </div>
           <div class="anomaly-message">{anomaly.message}</div>
@@ -222,7 +222,7 @@
               {/each}
             </div>
           {/if}
-        </div>
+        </article>
       {/each}
     </div>
   {/if}

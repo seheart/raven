@@ -62,32 +62,32 @@
   }
 </script>
 
-<div class="file-browser">
+<div class="file-browser" role="region" aria-label="File browser">
   <div class="browser-header">
-    <h3>📂 Tracked Files</h3>
-    <button class="refresh-btn" on:click={loadFiles} disabled={loading}>
-      {loading ? '⟳' : '↻'} Refresh
+    <h3 id="files-heading"><span aria-hidden="true">📂</span> Tracked Files</h3>
+    <button class="refresh-btn" on:click={loadFiles} disabled={loading} aria-label="Refresh file list">
+      <span aria-hidden="true">{loading ? '⟳' : '↻'}</span> Refresh
     </button>
   </div>
 
   {#if loading}
-    <div class="loading">Loading files...</div>
+    <div class="loading" role="status" aria-live="polite" aria-busy="true">Loading files...</div>
   {:else if files.length === 0}
-    <div class="empty">
+    <div class="empty" role="status">
       <p>No files tracked yet</p>
       <p class="hint">Edit files in test_workspace/ to start tracking</p>
     </div>
   {:else}
-    <div class="file-list">
+    <div class="file-list" role="list" aria-labelledby="files-heading">
       {#each files || [] as filepath (filepath)}
-        <div class="file-item" on:click={() => viewFileHistory(filepath)}>
-          <div class="file-icon">{getFileIcon(filepath)}</div>
+        <button class="file-item" on:click={() => viewFileHistory(filepath)} role="listitem" aria-label="View history for {getFileName(filepath)}">
+          <div class="file-icon" aria-hidden="true">{getFileIcon(filepath)}</div>
           <div class="file-info">
             <div class="file-name">{getFileName(filepath)}</div>
             <div class="file-path">{getFilePath(filepath)}</div>
           </div>
-          <div class="view-btn">View History →</div>
-        </div>
+          <div class="view-btn" aria-hidden="true">View History →</div>
+        </button>
       {/each}
     </div>
   {/if}
@@ -184,6 +184,11 @@
     cursor: pointer;
     transition: all 0.2s;
     border: 1px solid transparent;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
   }
 
   .file-item:hover {

@@ -38,6 +38,7 @@
 </script>
 
 {#if show}
+  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
   <div
     class="dialog-overlay"
     on:click={handleCancel}
@@ -52,6 +53,7 @@
       class="dialog-content dialog-{type}"
       on:click|stopPropagation
       transition:scale={{ duration: 200, start: 0.9 }}
+      role="document"
     >
       <div class="dialog-header">
         <span class="dialog-icon" aria-hidden="true">{getIcon()}</span>
@@ -62,11 +64,12 @@
         {message}
       </div>
 
-      <div class="dialog-footer">
+      <div class="dialog-footer" role="group" aria-label="Dialog actions">
         <button
           class="btn btn-cancel"
           on:click={handleCancel}
           tabindex="0"
+          aria-label="Cancel and close dialog"
         >
           {cancelText}
         </button>
@@ -75,6 +78,7 @@
           on:click={handleConfirm}
           tabindex="0"
           autofocus
+          aria-label="Confirm action"
         >
           {confirmText}
         </button>

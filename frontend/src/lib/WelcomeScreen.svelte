@@ -68,10 +68,10 @@
     </div>
 
     <!-- Features Grid -->
-    <div class="features-grid">
+    <div class="features-grid" role="list" aria-label="Raven features">
       {#each features as feature}
-        <div class="feature-card">
-          <span class="feature-icon">{feature.icon}</span>
+        <div class="feature-card" role="listitem">
+          <span class="feature-icon" aria-hidden="true">{feature.icon}</span>
           <h3 class="feature-title">{feature.title}</h3>
           <p class="feature-description">{feature.description}</p>
         </div>

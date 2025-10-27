@@ -38,17 +38,17 @@
   });
 </script>
 
-<div class="about-page" transition:fade={{ duration: 300 }}>
+<div class="about-page" transition:fade={{ duration: 300 }} role="main" aria-label="About Raven page">
   <div class="about-container">
     <div class="about-header">
       <RavenLogo size={48} />
-      <h1>About Raven</h1>
+      <h1 id="about-heading">About Raven</h1>
       <p class="tagline">Your AI Coding Companion That Learns Who You Are</p>
     </div>
 
     <div class="about-content">
-      <section class="about-section">
-        <h2>What is Raven?</h2>
+      <section class="about-section" aria-labelledby="what-heading">
+        <h2 id="what-heading">What is Raven?</h2>
         <p>
           Raven is a <strong>real-time monitoring dashboard</strong> designed specifically for AI coding agents like Claude Code.
           Track performance metrics, agent activity, system resources, and custom triggers—all with instant, real-time updates.
@@ -59,44 +59,44 @@
         </p>
       </section>
 
-      <section class="about-section">
-        <h2>✨ Features</h2>
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">📊</div>
+      <section class="about-section" aria-labelledby="features-heading">
+        <h2 id="features-heading"><span aria-hidden="true">✨</span> Features</h2>
+        <div class="features-grid" role="list" aria-label="Key features">
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon" aria-hidden="true">📊</div>
             <h3>Real-Time Monitoring</h3>
             <p>1-second system metrics via WebSocket with no polling overhead</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">🤖</div>
+          </article>
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon" aria-hidden="true">🤖</div>
             <h3>Agent Tracking</h3>
             <p>Monitor AI agent activity, events, and telemetry in real-time</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">⚡️</div>
+          </article>
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon" aria-hidden="true">⚡️</div>
             <h3>Performance Profiling</h3>
             <p>CPU, memory, network, and process-level metrics with charts</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">🔔</div>
+          </article>
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon" aria-hidden="true">🔔</div>
             <h3>Custom Triggers</h3>
             <p>Set up alerts for CPU spikes, memory usage, or custom patterns</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">🎬</div>
+          </article>
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon" aria-hidden="true">🎬</div>
             <h3>Session Replay</h3>
             <p>Review historical agent sessions and analyze behavior</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">🔌</div>
+          </article>
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon" aria-hidden="true">🔌</div>
             <h3>WebSocket Architecture</h3>
             <p>Instant updates with bidirectional communication, no HTTP polling</p>
-          </div>
+          </article>
         </div>
       </section>
 
-      <section class="about-section">
-        <h2>🛠️ Tech Stack</h2>
+      <section class="about-section" aria-labelledby="tech-heading">
+        <h2 id="tech-heading"><span aria-hidden="true">🛠️</span> Tech Stack</h2>
         <div class="tech-stack">
           <div class="tech-category">
             <h3>Backend</h3>
@@ -128,17 +128,17 @@
         </div>
       </section>
 
-      <section class="about-section">
-        <h2>📊 Current Session</h2>
-        <div class="session-info">
+      <section class="about-section" aria-labelledby="session-heading">
+        <h2 id="session-heading"><span aria-hidden="true">📊</span> Current Session</h2>
+        <div class="session-info" role="region" aria-label="Current session information">
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">Version</span>
-              <span class="info-value">0.8.0</span>
+              <span class="info-value" role="status">0.8.0</span>
             </div>
             <div class="info-item">
               <span class="info-label">Session ID</span>
-              <span class="info-value mono">{typeof sessionId === 'string' ? sessionId.slice(0, 8) + '...' : 'Loading...'}</span>
+              <span class="info-value mono" role="status">{typeof sessionId === 'string' ? sessionId.slice(0, 8) + '...' : 'Loading...'}</span>
             </div>            <div class="info-item">
               <span class="info-label">Backend URL</span>
               <span class="info-value mono">http://localhost:3030</span>
@@ -149,20 +149,20 @@
             </div>
             <div class="info-item">
               <span class="info-label">WebSocket Status</span>
-              <span class="info-value status {websocketConnected ? 'online' : 'offline'}">
-                {websocketConnected ? '🟢 Connected' : '🔴 Disconnected'}
+              <span class="info-value status {websocketConnected ? 'online' : 'offline'}" role="status" aria-live="polite">
+                <span aria-hidden="true">{websocketConnected ? '🟢' : '🔴'}</span> {websocketConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
             <div class="info-item">
               <span class="info-label">Real-Time Updates</span>
-              <span class="info-value status online">✅ Enabled</span>
+              <span class="info-value status online" role="status"><span aria-hidden="true">✅</span> Enabled</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="about-section">
-        <h2>🎯 Use Cases</h2>
+      <section class="about-section" aria-labelledby="usecases-heading">
+        <h2 id="usecases-heading"><span aria-hidden="true">🎯</span> Use Cases</h2>
         <ul class="use-cases">
           <li>Monitor Claude Code's resource usage during intensive coding tasks</li>
           <li>Track performance impact of AI-generated code builds and tests</li>
@@ -172,12 +172,12 @@
         </ul>
       </section>
 
-      <section class="about-section footer-section">
+      <section class="about-section footer-section" role="contentinfo">
         <p class="built-with">
-          Built with ❤️ for real-time AI agent monitoring
+          Built with <span aria-label="love">❤️</span> for real-time AI agent monitoring
         </p>
         <p class="github-link">
-          <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" aria-label="View Raven on GitHub (opens in new tab)">
             View on GitHub →
           </a>
         </p>

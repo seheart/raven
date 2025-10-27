@@ -277,34 +277,34 @@
   }
 </script>
 
-<div class="health-widget" style="--status-color: {config.color}">
+<div class="health-widget" style="--status-color: {config.color}" role="region" aria-label="Project health status">
   {#if loading}
-    <div class="health-loading">
-      <div class="spinner"></div>
+    <div class="health-loading" role="status" aria-live="polite" aria-busy="true">
+      <div class="spinner" aria-hidden="true"></div>
       <p>Checking health...</p>
     </div>
   {:else if error}
-    <div class="health-error">
+    <div class="health-error" role="alert">
       <p>❌ {error}</p>
-      <button on:click={fetchHealth}>Try Again</button>
+      <button on:click={fetchHealth} aria-label="Retry health check">Try Again</button>
     </div>
   {:else}
     <div class="health-compact">
       <div class="health-row">
         <!-- Status Badge -->
-        <div class="status-section">
-          <div class="health-icon">{config.icon}</div>
+        <div class="status-section" role="status" aria-live="polite">
+          <div class="health-icon" aria-hidden="true">{config.icon}</div>
           <div class="health-title">
-            <h3>Project Health</h3>
+            <h3 id="health-title">Project Health</h3>
             <p class="health-status">{config.message}</p>
           </div>
-          <button class="refresh-btn" on:click={fetchHealth} title="Refresh health check">
-            ↻
+          <button class="refresh-btn" on:click={fetchHealth} aria-label="Refresh health check">
+            <span aria-hidden="true">↻</span>
           </button>
         </div>
 
         <!-- Health Checks (horizontal) -->
-        <div class="health-checks">
+        <div class="health-checks" role="group" aria-labelledby="health-title">
         <!-- Startup Health Check Badge -->
         <div
           class="check-item startup-check"
@@ -314,7 +314,9 @@
           role="button"
           tabindex="0"
           style="color: {getStartupStatusColor(startupHealthStatus)}"
-          title="Click to view startup health check details"
+          aria-label="Startup health check: {getStartupStatusText(startupHealthStatus)}"
+          aria-expanded={startupHealthExpanded}
+          aria-controls="startup-details"
         >
           <span class="check-icon">{getStartupStatusIcon(startupHealthStatus)}</span>
           <span class="check-label">
@@ -346,29 +348,29 @@
         </div>
 
         <!-- Today's Stats (horizontal) -->
-        <div class="today-stats">
-          <div class="stat">
+        <div class="today-stats" role="group" aria-label="Today's statistics">
+          <div class="stat" role="status">
             <span class="stat-value">{health.todayStats.filesChanged}</span>
             <span class="stat-label">files</span>
           </div>
-          <div class="stat">
+          <div class="stat" role="status">
             <span class="stat-value">+{health.todayStats.linesAdded}</span>
             <span class="stat-label">added</span>
           </div>
-          <div class="stat">
+          <div class="stat" role="status">
             <span class="stat-value">-{health.todayStats.linesDeleted}</span>
             <span class="stat-label">deleted</span>
           </div>
-          <div class="last-check">Updated {timeAgo(health.lastCheck)}</div>
+          <div class="last-check" role="status" aria-live="polite">Updated {timeAgo(health.lastCheck)}</div>
         </div>
       </div>
 
       <!-- Expandable Startup Health Details -->
       {#if startupHealthExpanded && startupHealthResults && startupHealthResults.checks}
-        <div class="startup-details">
+        <div class="startup-details" id="startup-details" role="region" aria-label="Startup health check details">
           {#each startupHealthResults.checks as check}
-            <div class="startup-check-item" class:failed={!check.passed}>
-              <span class="check-icon">{check.passed ? '✅' : '❌'}</span>
+            <div class="startup-check-item" class:failed={!check.passed} role="status">
+              <span class="check-icon" aria-hidden="true">{check.passed ? '✅' : '❌'}</span>
               <span class="check-name">{check.name}</span>
               <span class="check-message" class:error={!check.passed}>{check.message}</span>
               <span class="check-duration">{check.duration}ms</span>

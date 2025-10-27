@@ -17,14 +17,16 @@
 </script>
 
 {#if showDot}
-  <span class="project-badge-with-dot {size}">
-    <span class="project-dot" style="background-color: {projectColor};"></span>
+  <span class="project-badge-with-dot {size}" role="status" aria-label="Project: {project}">
+    <span class="project-dot" style="background-color: {projectColor};" aria-hidden="true"></span>
     <span class="project-name">{project}</span>
   </span>
 {:else}
   <span
     class="project-badge {size}"
     style="background-color: {projectColor}20; border-color: {projectColor}; color: {projectColor};"
+    role="status"
+    aria-label="Project: {project}"
   >
     {project}
   </span>

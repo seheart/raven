@@ -101,24 +101,24 @@
   });
 </script>
 
-<div class="insights-panel">
+<div class="insights-panel" role="region" aria-label="Developer insights panel">
   <!-- Controls -->
-  <div class="controls">
+  <div class="controls" role="toolbar" aria-label="Insights panel actions">
     <label class="auto-refresh">
-      <input type="checkbox" bind:checked={autoRefresh} />
+      <input type="checkbox" bind:checked={autoRefresh} aria-label="Enable auto-refresh on file changes" />
       Auto-refresh
     </label>
 
-    <button class="btn-refresh" on:click={loadAllData} disabled={loading}>
-      {#if loading}⏳{:else}🔄{/if} Refresh
+    <button class="btn-refresh" on:click={loadAllData} disabled={loading} aria-label={loading ? "Loading insights data" : "Refresh insights data"}>
+      <span aria-hidden="true">{#if loading}⏳{:else}🔄{/if}</span> Refresh
     </button>
 
-    <button class="btn-export" on:click={exportData}>
-      📤 Export
+    <button class="btn-export" on:click={exportData} aria-label="Export developer insights to JSON file">
+      <span aria-hidden="true">📤</span> Export
     </button>
 
     {#if lastUpdate}
-      <div class="last-update">
+      <div class="last-update" role="status" aria-live="polite">
         Updated: {formatTime(lastUpdate.toISOString())}
       </div>
     {/if}
@@ -128,9 +128,9 @@
     <LoadingSkeleton count={5} height="120px" />
   {:else if totalDataPoints === 0}
     <!-- Empty State -->
-    <div class="empty-state">
-      <div class="empty-icon">🌱</div>
-      <h2>Your Developer Persona is Growing</h2>
+    <div class="empty-state" role="status">
+      <div class="empty-icon" aria-hidden="true">🌱</div>
+      <h2 id="empty-heading">Your Developer Persona is Growing</h2>
       <p>Raven is learning about your development patterns, but needs data to provide insights.</p>
 
       <div class="empty-info">
@@ -153,109 +153,111 @@
     </div>
   {:else}
     <!-- Stats Overview -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">🤖</div>
+    <div class="stats-grid" role="list" aria-label="Developer insights statistics">
+      <article class="stat-card" role="listitem">
+        <div class="stat-icon" aria-hidden="true">🤖</div>
         <div class="stat-content">
           <div class="stat-label">Agent Interactions</div>
-          <div class="stat-value">{stats.counts.agent_interactions.toLocaleString()}</div>
+          <div class="stat-value" role="status">{stats.counts.agent_interactions.toLocaleString()}</div>
           <div class="stat-desc">Prompts & responses tracked</div>
         </div>
-      </div>
+      </article>
 
-      <div class="stat-card">
-        <div class="stat-icon">💻</div>
+      <article class="stat-card" role="listitem">
+        <div class="stat-icon" aria-hidden="true">💻</div>
         <div class="stat-content">
           <div class="stat-label">Code Patterns</div>
-          <div class="stat-value">{stats.counts.code_patterns.toLocaleString()}</div>
+          <div class="stat-value" role="status">{stats.counts.code_patterns.toLocaleString()}</div>
           <div class="stat-desc">Coding style observations</div>
         </div>
-      </div>
+      </article>
 
-      <div class="stat-card">
-        <div class="stat-icon">⚡</div>
+      <article class="stat-card" role="listitem">
+        <div class="stat-icon" aria-hidden="true">⚡</div>
         <div class="stat-content">
           <div class="stat-label">Workflow Events</div>
-          <div class="stat-value">{stats.counts.workflow_events.toLocaleString()}</div>
+          <div class="stat-value" role="status">{stats.counts.workflow_events.toLocaleString()}</div>
           <div class="stat-desc">Work pattern data points</div>
         </div>
-      </div>
+      </article>
 
-      <div class="stat-card">
-        <div class="stat-icon">🔧</div>
+      <article class="stat-card" role="listitem">
+        <div class="stat-icon" aria-hidden="true">🔧</div>
         <div class="stat-content">
           <div class="stat-label">Error Recoveries</div>
-          <div class="stat-value">{stats.counts.error_recovery.toLocaleString()}</div>
+          <div class="stat-value" role="status">{stats.counts.error_recovery.toLocaleString()}</div>
           <div class="stat-desc">Debugging patterns learned</div>
         </div>
-      </div>
+      </article>
 
-      <div class="stat-card">
-        <div class="stat-icon">🔄</div>
+      <article class="stat-card" role="listitem">
+        <div class="stat-icon" aria-hidden="true">🔄</div>
         <div class="stat-content">
           <div class="stat-label">Context Switches</div>
-          <div class="stat-value">{stats.counts.context_switches.toLocaleString()}</div>
+          <div class="stat-value" role="status">{stats.counts.context_switches.toLocaleString()}</div>
           <div class="stat-desc">Project switches tracked</div>
         </div>
-      </div>
+      </article>
 
-      <div class="stat-card">
-        <div class="stat-icon">⚙️</div>
+      <article class="stat-card" role="listitem">
+        <div class="stat-icon" aria-hidden="true">⚙️</div>
         <div class="stat-content">
           <div class="stat-label">Preferences</div>
-          <div class="stat-value">{stats.counts.preferences.toLocaleString()}</div>
+          <div class="stat-value" role="status">{stats.counts.preferences.toLocaleString()}</div>
           <div class="stat-desc">Learned preferences</div>
         </div>
-      </div>
+      </article>
     </div>
 
     <!-- Language Breakdown -->
     {#if stats.languages.length > 0}
-      <div class="section">
-        <h2 class="section-title">🔤 Language Breakdown</h2>
-        <div class="languages-grid">
+      <section class="section" aria-labelledby="languages-heading">
+        <h2 class="section-title" id="languages-heading"><span aria-hidden="true">🔤</span> Language Breakdown</h2>
+        <div class="languages-grid" role="list" aria-label="Programming languages used">
           {#each stats.languages as lang (lang.language)}
-            <div class="language-card">
+            <article class="language-card" role="listitem">
               <div class="language-name">{lang.language}</div>
-              <div class="language-count">{lang.count.toLocaleString()} patterns</div>
-              <div class="language-bar">
+              <div class="language-count" role="status">{lang.count.toLocaleString()} patterns</div>
+              <div class="language-bar" role="img" aria-label="{lang.language} usage: {((lang.count / stats.languages[0].count) * 100).toFixed(0)}%">
                 <div
                   class="language-bar-fill"
                   style="width: {(lang.count / stats.languages[0].count) * 100}%"
+                  aria-hidden="true"
                 ></div>
               </div>
-            </div>
+            </article>
           {/each}
         </div>
-      </div>
+      </section>
     {/if}
 
     <!-- Project Activity -->
     {#if stats.projects.length > 0}
-      <div class="section">
-        <h2 class="section-title">📊 Project Activity</h2>
-        <div class="projects-grid">
+      <section class="section" aria-labelledby="projects-heading">
+        <h2 class="section-title" id="projects-heading"><span aria-hidden="true">📊</span> Project Activity</h2>
+        <div class="projects-grid" role="list" aria-label="Project interaction counts">
           {#each stats.projects as proj (proj.project)}
-            <div class="project-card">
+            <article class="project-card" role="listitem">
               <div class="project-name">{proj.project}</div>
-              <div class="project-count">{proj.count.toLocaleString()} interactions</div>
-              <div class="project-bar">
+              <div class="project-count" role="status">{proj.count.toLocaleString()} interactions</div>
+              <div class="project-bar" role="img" aria-label="{proj.project} activity: {((proj.count / stats.projects[0].count) * 100).toFixed(0)}%">
                 <div
                   class="project-bar-fill"
                   style="width: {(proj.count / stats.projects[0].count) * 100}%"
+                  aria-hidden="true"
                 ></div>
               </div>
-            </div>
+            </article>
           {/each}
         </div>
-      </div>
+      </section>
     {/if}
 
     <!-- Hourly Activity Heatmap -->
     {#if stats.hourly_activity.length > 0}
-      <div class="section">
-        <h2 class="section-title">🕐 Coding Hours Heatmap</h2>
-        <div class="heatmap">
+      <section class="section" aria-labelledby="heatmap-heading">
+        <h2 class="section-title" id="heatmap-heading"><span aria-hidden="true">🕐</span> Coding Hours Heatmap</h2>
+        <div class="heatmap" role="img" aria-label="24-hour coding activity heatmap showing most active hours">
           {#each Array(24).fill(0).map((_, i) => i) as hour (hour)}
             {@const activity = stats.hourly_activity.find(a => a.hour_of_day === hour)}
             {@const count = activity ? activity.count : 0}
@@ -266,6 +268,7 @@
               class:active={count > 0}
               style="background: rgba(var(--accent-rgb, 136, 192, 208), {intensity})"
               title="{hour}:00 - {count} events"
+              aria-hidden="true"
             >
               <div class="hour-label">{hour}</div>
               {#if count > 0}
@@ -274,21 +277,21 @@
             </div>
           {/each}
         </div>
-        <div class="heatmap-legend">
+        <div class="heatmap-legend" aria-hidden="true">
           <span>Midnight</span>
           <span>Noon</span>
           <span>Midnight</span>
         </div>
-      </div>
+      </section>
     {/if}
 
     <!-- Recent Interactions -->
     {#if interactions.length > 0}
-      <div class="section">
-        <h2 class="section-title">🤖 Recent Agent Interactions</h2>
-        <div class="interactions-list">
+      <section class="section" aria-labelledby="interactions-heading">
+        <h2 class="section-title" id="interactions-heading"><span aria-hidden="true">🤖</span> Recent Agent Interactions</h2>
+        <div class="interactions-list" role="list" aria-label="Recent AI agent interactions">
           {#each interactions as interaction (interaction.id || interaction.timestamp)}
-            <div class="interaction-item">
+            <article class="interaction-item" role="listitem">
               <div class="interaction-header">
                 <span class="interaction-project">{interaction.project || 'Unknown'}</span>
                 <span class="interaction-agent">{interaction.agent_name}</span>
@@ -308,19 +311,19 @@
                   <span class="meta-tag">±{interaction.lines_changed} lines</span>
                 {/if}
               </div>
-            </div>
+            </article>
           {/each}
         </div>
-      </div>
+      </section>
     {/if}
 
     <!-- Recent Code Patterns -->
     {#if patterns.length > 0}
-      <div class="section">
-        <h2 class="section-title">💻 Recent Code Patterns</h2>
-        <div class="patterns-list">
+      <section class="section" aria-labelledby="patterns-heading">
+        <h2 class="section-title" id="patterns-heading"><span aria-hidden="true">💻</span> Recent Code Patterns</h2>
+        <div class="patterns-list" role="list" aria-label="Recent coding patterns detected">
           {#each patterns as pattern (pattern.id || pattern.timestamp)}
-            <div class="pattern-item">
+            <article class="pattern-item" role="listitem">
               <div class="pattern-header">
                 <span class="pattern-lang">{pattern.language || 'Unknown'}</span>
                 <span class="pattern-type">{pattern.edit_type || 'Edit'}</span>
@@ -338,10 +341,10 @@
                   <span class="pattern-badge">Tests</span>
                 {/if}
               </div>
-            </div>
+            </article>
           {/each}
         </div>
-      </div>
+      </section>
     {/if}
   {/if}
 </div>

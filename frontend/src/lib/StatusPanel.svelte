@@ -225,25 +225,25 @@
   });
 </script>
 
-<div class="status-panel">
+<div class="status-panel" role="region" aria-label="System status monitoring">
   <div class="header">
-    <h2>🏥 System Status</h2>
-    <div class="header-actions">
-      <span class="last-updated">Updated: {timeAgo}</span>
-      <button on:click={() => checkBackendHealth(true)} class="btn-refresh" disabled={loading}>
-        <span class="refresh-icon" class:spinning={isManualRefresh}>↻</span>
-        Refresh
+    <h2 id="status-heading"><span aria-hidden="true">🏥</span> System Status</h2>
+    <div class="header-actions" role="toolbar" aria-label="Status panel actions">
+      <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
+      <button on:click={() => checkBackendHealth(true)} class="btn-refresh" disabled={loading} aria-label="Refresh system status">
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
+        <span>Refresh</span>
       </button>
     </div>
   </div>
 
-  <div class="status-grid">
+  <div class="status-grid" role="group" aria-labelledby="status-heading">
     <!-- Backend Status Card -->
-    <div class="status-card">
+    <article class="status-card" role="article" aria-labelledby="backend-heading">
       <div class="card-header">
-        <h3>⚙️ Backend Server</h3>
-        <div class="status-indicator" class:online={backendStatus.connected} class:offline={!backendStatus.connected}>
-          {backendStatus.connected ? '🟢 Online' : '🔴 Offline'}
+        <h3 id="backend-heading"><span aria-hidden="true">⚙️</span> Backend Server</h3>
+        <div class="status-indicator" class:online={backendStatus.connected} class:offline={!backendStatus.connected} role="status" aria-live="polite">
+          <span aria-hidden="true">{backendStatus.connected ? '🟢' : '🔴'}</span> {backendStatus.connected ? 'Online' : 'Offline'}
         </div>
       </div>
       <div class="card-body">
@@ -294,20 +294,20 @@
             </span>
           </div>
         {:else}
-          <div class="error-message">
+          <div class="error-message" role="alert">
             ❌ Cannot connect to backend server
             <p class="hint">Make sure the backend is running on port 3030</p>
           </div>
         {/if}
       </div>
-    </div>
+    </article>
 
     <!-- WebSocket Status Card -->
-    <div class="status-card">
+    <article class="status-card" role="article" aria-labelledby="websocket-heading">
       <div class="card-header">
-        <h3>🔌 WebSocket Connection</h3>
-        <div class="status-indicator" class:online={websocketStatus.connected} class:offline={!websocketStatus.connected}>
-          {websocketStatus.connected ? '🟢 Connected' : '🔴 Disconnected'}
+        <h3 id="websocket-heading"><span aria-hidden="true">🔌</span> WebSocket Connection</h3>
+        <div class="status-indicator" class:online={websocketStatus.connected} class:offline={!websocketStatus.connected} role="status" aria-live="polite">
+          <span aria-hidden="true">{websocketStatus.connected ? '🟢' : '🔴'}</span> {websocketStatus.connected ? 'Connected' : 'Disconnected'}
         </div>
       </div>
       <div class="card-body">
@@ -328,20 +328,20 @@
             ✅ Receiving real-time events from backend
           </div>
         {:else}
-          <div class="error-message">
+          <div class="error-message" role="alert">
             ⚠️ WebSocket disconnected
             <p class="hint">Falling back to HTTP polling</p>
           </div>
         {/if}
       </div>
-    </div>
+    </article>
 
     <!-- Telemetry Bridge Status Card -->
-    <div class="status-card">
+    <article class="status-card" role="article" aria-labelledby="telemetry-heading">
       <div class="card-header">
-        <h3>🔗 Telemetry Bridge</h3>
-        <div class="status-indicator" class:online={backendStatus.telemetry_bridge.healthy} class:offline={!backendStatus.telemetry_bridge.healthy}>
-          {backendStatus.telemetry_bridge.healthy ? '🟢 Running' : '🔴 Stopped'}
+        <h3 id="telemetry-heading"><span aria-hidden="true">🔗</span> Telemetry Bridge</h3>
+        <div class="status-indicator" class:online={backendStatus.telemetry_bridge.healthy} class:offline={!backendStatus.telemetry_bridge.healthy} role="status" aria-live="polite">
+          <span aria-hidden="true">{backendStatus.telemetry_bridge.healthy ? '🟢' : '🔴'}</span> {backendStatus.telemetry_bridge.healthy ? 'Running' : 'Stopped'}
         </div>
       </div>
       <div class="card-body">
@@ -362,65 +362,68 @@
             <div class="info-message">
               ✅ Claude Code operations are being tracked
             </div>
-            <button on:click={restartBridge} class="btn-restart" disabled={restartingBridge}>
-              <span class="refresh-icon" class:spinning={restartingBridge}>↻</span>
+            <button on:click={restartBridge} class="btn-restart" disabled={restartingBridge} aria-label="Restart telemetry bridge">
+              <span class="refresh-icon" class:spinning={restartingBridge} aria-hidden="true">↻</span>
               {restartingBridge ? 'Restarting...' : 'Restart Bridge'}
             </button>
           {:else}
-            <div class="error-message">
+            <div class="error-message" role="alert">
               ⚠️ Telemetry bridge is not running
               <p class="hint">Claude Code operations will not be tracked</p>
             </div>
-            <button on:click={restartBridge} class="btn-restart btn-start" disabled={restartingBridge}>
-              <span class="refresh-icon" class:spinning={restartingBridge}>↻</span>
+            <button on:click={restartBridge} class="btn-restart btn-start" disabled={restartingBridge} aria-label="Start telemetry bridge">
+              <span class="refresh-icon" class:spinning={restartingBridge} aria-hidden="true">↻</span>
               {restartingBridge ? 'Starting...' : 'Start Bridge'}
             </button>
           {/if}
         {:else}
-          <div class="error-message">
+          <div class="error-message" role="alert">
             ❌ Cannot check bridge status
             <p class="hint">Backend must be online first</p>
           </div>
         {/if}
       </div>
-    </div>
+    </article>
 
     <!-- Monitored Projects Card -->
-    <div class="status-card full-width">
+    <article class="status-card full-width" role="article" aria-labelledby="projects-heading">
       <div class="card-header">
-        <h3>👁️ Monitored Projects</h3>
-        <div class="status-indicator online">
-          🟢 {$availableProjects.length} Active
+        <h3 id="projects-heading"><span aria-hidden="true">👁️</span> Monitored Projects</h3>
+        <div class="status-indicator online" role="status">
+          <span aria-hidden="true">🟢</span> {$availableProjects.length} Active
         </div>
       </div>
       <div class="card-body">
-        <div class="projects-list">
+        <div class="projects-list" role="list" aria-label="Monitored projects">
           {#each $availableProjects as project}
             <button
               class="project-item"
               class:selected={$projectFilter === project}
               on:click={() => projectFilter.set(project)}
+              role="listitem"
+              aria-label="Switch to project {project}"
+              aria-pressed={$projectFilter === project}
             >
-              <div class="project-status-dot"></div>
+              <div class="project-status-dot" aria-hidden="true"></div>
               <span class="project-name">{project}</span>
               {#if $projectFilter === project}
-                <span class="project-badge">viewing</span>
+                <span class="project-badge" aria-label="Currently viewing">viewing</span>
               {/if}
             </button>
           {/each}
         </div>
-        <div class="info-message">
+        <div class="info-message" role="status">
           ✅ Global multi-project monitoring active
         </div>
       </div>
-    </div>
+    </article>
 
     <!-- Git Repository Status Card -->
-    <div class="status-card full-width">
+    <article class="status-card full-width" role="article" aria-labelledby="git-heading">
       <div class="card-header">
-        <h3>🌳 Git Repository</h3>
-        <div class="status-indicator" class:online={gitStatus.available} class:offline={!gitStatus.available}>
-          {gitStatus.available ? '🟢 Available' : '⚫ Not a Git Repo'}
+        <h3 id="git-heading"><span aria-hidden="true">🌳</span> Git Repository</h3>
+        <div class="status-indicator" class:online={gitStatus.available} class:offline={!gitStatus.available} role="status">
+          <span aria-hidden="true">{gitStatus.available ? '🟢' : '⚫'}</span> {gitStatus.available ? 'Available' : 'Not a Git Repo'}
         </div>
       </div>
       <div class="card-body">
@@ -484,7 +487,7 @@
           </div>
         {/if}
       </div>
-    </div>
+    </article>
 
     <!-- Endpoints Card -->
     <div class="status-card full-width">

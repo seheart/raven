@@ -325,57 +325,63 @@
   });
 </script>
 
-<div class="activity-log">
+<div class="activity-log" role="region" aria-label="Activity Log">
   <div class="log-header">
     <div class="header-title">
-      <h1>📜 Activity Log</h1>
+      <h1 id="activity-log-title"><span aria-hidden="true">📜</span> Activity Log</h1>
       <p class="subtitle">Complete audit trail of all Raven activity</p>
     </div>
-    <div class="header-actions">
-      <span class="last-updated">Updated: {timeAgo}</span>
+    <div class="header-actions" role="toolbar" aria-label="Activity log actions">
+      <span class="last-updated" role="status" aria-live="polite" aria-label="Last updated {timeAgo}">Updated: {timeAgo}</span>
       <button
         class="refresh-btn"
         on:click={() => loadActivities(true)}
         disabled={loading}
-        title="Refresh activity log"
+        aria-label="Refresh activity log"
       >
-        <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
         Refresh
       </button>
-      <button class="btn-export" on:click={exportLog}>
-        💾 Export JSON
+      <button class="btn-export" on:click={exportLog} aria-label="Export activity log to JSON file">
+        <span aria-hidden="true">💾</span> Export JSON
       </button>
     </div>
   </div>
 
   <!-- Search and Filters -->
-  <div class="controls">
+  <div class="controls" role="search" aria-label="Activity search and filters">
     <div class="controls-row">
       <div class="search-bar">
+        <label for="activity-search" class="visually-hidden">Search activities</label>
         <input
+          id="activity-search"
           type="text"
           placeholder="Search activities..."
           bind:value={searchQuery}
           on:keydown={(e) => e.key === 'Enter' && search()}
+          aria-label="Search activities by description, type, or target"
         />
-        <button on:click={search}>🔍 Search</button>
+        <button on:click={search} aria-label="Execute search"><span aria-hidden="true">🔍</span> Search</button>
       </div>
 
-      <div class="view-controls">
+      <div class="view-controls" role="group" aria-label="View options">
         <button
           class="view-toggle"
           class:active={groupBySession}
           on:click={() => { groupBySession = !groupBySession; groupActivitiesBySession(); }}
-          title="Group by session"
+          aria-label="{groupBySession ? 'Disable' : 'Enable'} session grouping"
+          aria-pressed={groupBySession}
         >
-          📦 Session View
+          <span aria-hidden="true">📦</span> Session View
         </button>
 
+        <label for="time-grouping" class="visually-hidden">Time grouping</label>
         <select
+          id="time-grouping"
           class="time-grouping"
           bind:value={groupByTime}
           on:change={() => groupActivitiesBySession()}
-          title="Group by time"
+          aria-label="Group activities by time period"
         >
           <option value="none">📅 No Time Grouping</option>
           <option value="hour">⏰ Group by Hour</option>
@@ -383,10 +389,13 @@
         </select>
 
         {#if groupBySession && sessions.length > 1}
+          <label for="session-filter" class="visually-hidden">Filter by session</label>
           <select
+            id="session-filter"
             class="session-filter"
             bind:value={selectedSession}
             on:change={() => groupActivitiesBySession()}
+            aria-label="Filter activities by session"
           >
             <option value="all">All Sessions ({sessions.length})</option>
             {#each sessions as session}
@@ -399,11 +408,14 @@
       </div>
     </div>
 
-    <div class="filter-tabs">
+    <div class="filter-tabs" role="tablist" aria-label="Activity type filters">
       <button
         class="filter-tab"
         class:active={selectedType === 'all'}
         on:click={() => setFilter('all')}
+        role="tab"
+        aria-selected={selectedType === 'all'}
+        aria-label="Show all activities ({total} total)"
       >
         All ({total})
       </button>
@@ -411,33 +423,44 @@
         class="filter-tab"
         class:active={selectedType === 'file'}
         on:click={() => setFilter('file')}
+        role="tab"
+        aria-selected={selectedType === 'file'}
+        aria-label="Show file activities ({stats.file} files)"
       >
-        📁 Files ({stats.file})
+        <span aria-hidden="true">📁</span> Files ({stats.file})
       </button>
       <button
         class="filter-tab"
         class:active={selectedType === 'agent'}
         on:click={() => setFilter('agent')}
+        role="tab"
+        aria-selected={selectedType === 'agent'}
+        aria-label="Show agent activities ({stats.agent} agents)"
       >
-        🤖 Agents ({stats.agent})
+        <span aria-hidden="true">🤖</span> Agents ({stats.agent})
       </button>
       <button
         class="filter-tab"
         class:active={selectedType === 'system'}
         on:click={() => setFilter('system')}
+        role="tab"
+        aria-selected={selectedType === 'system'}
+        aria-label="Show system activities ({stats.system} system events)"
       >
-        ⚙️ System ({stats.system})
+        <span aria-hidden="true">⚙️</span> System ({stats.system})
       </button>
     </div>
   </div>
 
   <!-- Activity Timeline -->
-  <div class="timeline">
+  <div class="timeline" role="feed" aria-label="Activity timeline" aria-busy={loading}>
     {#if loading && activities.length === 0}
-      <LoadingSkeleton count={5} height="80px" />
+      <div role="status" aria-live="polite" aria-label="Loading activities">
+        <LoadingSkeleton count={5} height="80px" />
+      </div>
     {:else if activities.length === 0}
-      <div class="empty-state">
-        <div class="empty-icon">📭</div>
+      <div class="empty-state" role="status">
+        <div class="empty-icon" aria-hidden="true">📭</div>
         <h2>No Activities Found</h2>
         {#if selectedType !== 'all'}
           <p>No <strong>{selectedType}</strong> activities found. Try changing filters or search query.</p>
@@ -446,48 +469,50 @@
         {:else}
           <p>No activity has been logged yet. Start coding and Raven will track all changes!</p>
         {/if}
-        <button class="clear-filters-btn" on:click={() => { selectedType = 'all'; searchQuery = ''; loadActivities(); }}>
+        <button class="clear-filters-btn" on:click={() => { selectedType = 'all'; searchQuery = ''; loadActivities(); }} aria-label="Clear all filters and reload">
           Clear Filters
         </button>
       </div>
     {:else if groupBySession && sessions.length > 0}
       <!-- Session Grouped View -->
       {#each sessions.filter(s => selectedSession === 'all' || s.id === selectedSession) as session (session.id)}
-        <div class="session-group">
+        <article class="session-group" aria-labelledby="session-{session.id}">
           <!-- Session Summary Card -->
-          <div
+          <button
             class="session-header"
             class:collapsed={collapsedSessions.has(session.id)}
             on:click={() => toggleSession(session.id)}
+            aria-expanded={!collapsedSessions.has(session.id)}
+            aria-controls="session-activities-{session.id}"
           >
             <div class="session-header-left">
-              <span class="expand-arrow">{collapsedSessions.has(session.id) ? '▶' : '▼'}</span>
+              <span class="expand-arrow" aria-hidden="true">{collapsedSessions.has(session.id) ? '▶' : '▼'}</span>
               <div class="session-info">
                 <div class="session-title">
-                  <span class="session-icon">🔖</span>
-                  <span class="session-id">Session: {session.id.substring(0, 12)}</span>
+                  <span class="session-icon" aria-hidden="true">🔖</span>
+                  <span class="session-id" id="session-{session.id}">Session: {session.id.substring(0, 12)}</span>
                 </div>
-                <div class="session-stats">
-                  <span class="stat">⏱️ {formatDuration(session.duration)}</span>
-                  <span class="stat-separator">•</span>
-                  <span class="stat">📊 {session.totalEvents} events</span>
-                  <span class="stat-separator">•</span>
-                  <span class="stat">📁 {session.filesCount} files</span>
-                  <span class="stat-separator">•</span>
-                  <span class="stat">🤖 {session.agentCount} agent</span>
-                  <span class="stat-separator">•</span>
-                  <span class="stat">⚙️ {session.systemCount} system</span>
+                <div class="session-stats" aria-label="Session stats: {formatDuration(session.duration)}, {session.totalEvents} events, {session.filesCount} files, {session.agentCount} agent activities, {session.systemCount} system activities">
+                  <span class="stat"><span aria-hidden="true">⏱️</span> {formatDuration(session.duration)}</span>
+                  <span class="stat-separator" aria-hidden="true">•</span>
+                  <span class="stat"><span aria-hidden="true">📊</span> {session.totalEvents} events</span>
+                  <span class="stat-separator" aria-hidden="true">•</span>
+                  <span class="stat"><span aria-hidden="true">📁</span> {session.filesCount} files</span>
+                  <span class="stat-separator" aria-hidden="true">•</span>
+                  <span class="stat"><span aria-hidden="true">🤖</span> {session.agentCount} agent</span>
+                  <span class="stat-separator" aria-hidden="true">•</span>
+                  <span class="stat"><span aria-hidden="true">⚙️</span> {session.systemCount} system</span>
                 </div>
               </div>
             </div>
             <div class="session-header-right">
-              <span class="session-time">{formatTimestamp(session.startTime)}</span>
+              <time class="session-time" datetime={session.startTime}>{formatTimestamp(session.startTime)}</time>
             </div>
-          </div>
+          </button>
 
           <!-- Session Activities (collapsible) -->
           {#if !collapsedSessions.has(session.id)}
-            <div class="session-activities">
+            <div class="session-activities" id="session-activities-{session.id}" role="list" aria-label="Activities in session {session.id.substring(0, 8)}">
               {#each session.activities as activity (activity.id + activity.category)}
                 <div class="activity-item" class:expanded={expandedActivity?.id === activity.id}>
                   <div class="activity-header" on:click={() => toggleActivity(activity)}>
@@ -557,7 +582,7 @@
               {/each}
             </div>
           {/if}
-        </div>
+        </article>
       {/each}
     {:else}
       <!-- Flat List View -->
@@ -635,7 +660,7 @@
 
       {#if hasMore}
         <div class="load-more">
-          <button on:click={loadMore} disabled={loading}>
+          <button on:click={loadMore} disabled={loading} aria-label="Load more activities, {total - activities.length} remaining" aria-live="polite">
             {loading ? 'Loading...' : `Load More (${total - activities.length} remaining)`}
           </button>
         </div>
@@ -1216,6 +1241,26 @@
   .load-more button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* Accessibility */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Make session-header work as button */
+  .session-header {
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
   }
 
   @media (max-width: 768px) {
