@@ -1,7 +1,7 @@
 {
   "name": "raven-backend",
-  "version": "0.15.0",
-  "description": "Enterprise-grade backend for Raven AI monitoring with comprehensive security",
+  "version": "1.5.0",
+  "description": "Enterprise-grade backend for Raven AI monitoring with revolutionary log-based architecture",
   "main": "server.js",
   "type": "module",
   "scripts": {
