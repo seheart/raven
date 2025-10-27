@@ -1,0 +1,2 @@
+Final test - ClaudeLogWatcher with directory watching and polling.
+This SHOULD be detected!

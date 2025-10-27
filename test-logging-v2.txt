@@ -1,0 +1,2 @@
+Testing ClaudeLogWatcher with enhanced logging.
+This should trigger log messages now.

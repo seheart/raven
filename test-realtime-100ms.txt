@@ -1,0 +1,5 @@
+Testing real-time detection with 100ms polling interval.
+This should be detected almost instantly!
+
+EDIT: This line was added to test Edit operation detection.
+Real-time confirmed! ✅
