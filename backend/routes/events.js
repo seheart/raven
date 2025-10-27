@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { logger } from '../utils/logger.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { validate } from '../middleware/validation.js';
 
 const execAsync = promisify(exec);
 
@@ -18,7 +19,7 @@ export function createEventsRoutes(deps) {
    * GET /api/tracked-files
    * Get list of tracked files (with Git fallback)
    */
-  router.get('/tracked-files', async (req, res) => {
+  router.get('/tracked-files', validate('trackedFilesQuery', 'query'), async (req, res) => {
     try {
       let files = projectState.db.getTrackedFiles();
 
@@ -47,7 +48,7 @@ export function createEventsRoutes(deps) {
    * GET /api/events-by-session/:sessionId
    * Get events for a specific session
    */
-  router.get('/events-by-session/:sessionId', (req, res) => {
+  router.get('/events-by-session/:sessionId', validate('eventsBySessionParams', 'params'), (req, res) => {
     try {
       const { sessionId } = req.params;
       const events = projectState.db.getEventsBySession(sessionId);
@@ -62,7 +63,7 @@ export function createEventsRoutes(deps) {
    * GET /api/file-events
    * Get file events for a project (or active project)
    */
-  router.get('/file-events', (req, res) => {
+  router.get('/file-events', validate('fileEventsQuery', 'query'), (req, res) => {
     try {
       const limit = parseInt(req.query.limit) || 100;
       const includeDiff = req.query.diff === 'true';
@@ -103,7 +104,7 @@ export function createEventsRoutes(deps) {
    * GET /api/all-file-events
    * Get file events from ALL projects (multi-project aggregation)
    */
-  router.get('/all-file-events', async (req, res) => {
+  router.get('/all-file-events', validate('allFileEventsQuery', 'query'), async (req, res) => {
     try {
       const limit = parseInt(req.query.limit) || 100;
       const includeDiff = req.query.diff === 'true';
@@ -142,7 +143,7 @@ export function createEventsRoutes(deps) {
    * GET /api/activity-log
    * Get unified activity log with filtering options
    */
-  router.get('/activity-log', (req, res) => {
+  router.get('/activity-log', validate('activityLogQuery', 'query'), (req, res) => {
     try {
       const options = {
         limit: parseInt(req.query.limit) || 500,

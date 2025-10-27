@@ -186,6 +186,36 @@ export const schemas = {
   // ID parameter
   id: Joi.object({
     id: Joi.number().integer().positive().required()
+  }),
+
+  // Events routes validation
+  trackedFilesQuery: Joi.object({
+    project: Joi.string().pattern(/^[a-zA-Z0-9_-]+$/).max(100).optional(),
+    limit: Joi.number().integer().min(1).max(1000).default(100)
+  }),
+
+  eventsBySessionParams: Joi.object({
+    sessionId: Joi.string().uuid({ version: 'uuidv4' }).required()
+  }),
+
+  fileEventsQuery: Joi.object({
+    limit: Joi.number().integer().min(1).max(1000).default(100),
+    project: Joi.string().pattern(/^[a-zA-Z0-9_-]+$/).max(100).optional(),
+    diff: Joi.string().valid('true', 'false').default('false')
+  }),
+
+  allFileEventsQuery: Joi.object({
+    limit: Joi.number().integer().min(1).max(1000).default(100),
+    diff: Joi.string().valid('true', 'false').default('false')
+  }),
+
+  activityLogQuery: Joi.object({
+    limit: Joi.number().integer().min(1).max(1000).default(500),
+    offset: Joi.number().integer().min(0).default(0),
+    search: Joi.string().max(200).allow('').default(''),
+    type: Joi.string().valid('all', 'add', 'change', 'unlink').default('all'),
+    startDate: Joi.string().isoDate().optional(),
+    endDate: Joi.string().isoDate().optional()
   })
 };
 

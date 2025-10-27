@@ -3,6 +3,7 @@
   import { fade } from 'svelte/transition';
   import RavenLogo from './RavenLogo.svelte';
   import { API_CONFIG } from '../config.js';
+  import { websocketService } from './websocket.js';
 
   const dispatch = createEventDispatcher();
   const API_BASE = API_CONFIG.API_BASE;
@@ -25,8 +26,15 @@
 
   onMount(() => {
     loadSessionId();
-    // TODO: Add WebSocket status check
-    websocketConnected = true;
+    // Check WebSocket connection status
+    websocketConnected = websocketService.connected;
+
+    // Update status when connection changes
+    const checkInterval = setInterval(() => {
+      websocketConnected = websocketService.connected;
+    }, 1000);
+
+    return () => clearInterval(checkInterval);
   });
 </script>
 

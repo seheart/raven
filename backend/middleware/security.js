@@ -118,27 +118,78 @@ export function requestLogger(req, res, next) {
 }
 
 /**
- * Error handler middleware
+ * Error handler middleware (enhanced version)
+ * Provides standardized error responses with error codes
  */
 export function errorHandler(err, req, res, next) {
-  logger.error('Error:', err);
+  // Default to 500 internal server error
+  const statusCode = err.statusCode || err.status || 500;
+  const errorCode = err.errorCode || 'INTERNAL_ERROR';
+  const message = err.message || 'An unexpected error occurred';
+
+  // Log error with context
+  const errorLog = {
+    message: err.message,
+    statusCode,
+    errorCode,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  };
+
+  if (statusCode >= 500) {
+    logger.error('Server error', { ...errorLog, stack: err.stack });
+  } else if (statusCode >= 400) {
+    logger.warn('Client error', errorLog);
+  }
 
   // Don't leak error details in production
   const isDev = process.env.NODE_ENV !== 'production';
 
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    ...(isDev && { stack: err.stack })
-  });
+  // Build error response
+  const errorResponse = {
+    error: {
+      message,
+      code: errorCode,
+      statusCode
+    }
+  };
+
+  // Add details if available
+  if (err.details) {
+    errorResponse.error.details = err.details;
+  }
+
+  // Add stack trace in development
+  if (isDev && err.stack) {
+    errorResponse.error.stack = err.stack.split('\n');
+  }
+
+  // Add request ID if available
+  if (req.id) {
+    errorResponse.error.requestId = req.id;
+  }
+
+  res.status(statusCode).json(errorResponse);
 }
 
 /**
- * 404 handler
+ * 404 handler (enhanced version)
  */
 export function notFoundHandler(req, res) {
+  logger.warn('Route not found', {
+    path: req.path,
+    method: req.method,
+    ip: req.ip
+  });
+
   res.status(404).json({
-    error: 'Not found',
-    path: req.path
+    error: {
+      message: `Route not found: ${req.method} ${req.path}`,
+      code: 'NOT_FOUND',
+      statusCode: 404
+    }
   });
 }
 

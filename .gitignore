@@ -55,3 +55,4 @@ Thumbs.db
 # Test workspace changes (optional - comment out if you want to track test changes)
 /test_workspace/**
 !/test_workspace/README.md
+.raven/.jwt-secret

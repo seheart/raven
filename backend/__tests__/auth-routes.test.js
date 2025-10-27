@@ -18,6 +18,9 @@ describe('Auth Routes', () => {
   const testDbPath = './__tests__/test-routes-auth.db';
 
   beforeAll(async () => {
+    // Set test admin password
+    process.env.ADMIN_PASSWORD = 'admin123';
+
     // Create express app
     app = express();
     app.use(express.json());
@@ -49,6 +52,8 @@ describe('Auth Routes', () => {
     } catch (error) {
       // Ignore
     }
+    // Clean up environment variable
+    delete process.env.ADMIN_PASSWORD;
   });
 
   describe('POST /auth/login', () => {

@@ -3,11 +3,11 @@
  * Tests the self-healing control endpoints (restart-bridge, clear-cache, etc.)
  */
 
+import { jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createControlRoutes } from '../../routes/control.js';
 import fs from 'fs';
-import { jest } from '@jest/globals';
 
 // Mock fs module
 jest.mock('fs');
@@ -59,7 +59,13 @@ describe('Control Routes', () => {
       projectStateMutex: mockProjectStateMutex,
       initializeWatcher: mockInitializeWatcher,
       PORT: 3030,
-      execAsync: mockExecAsync
+      execAsync: mockExecAsync,
+      // Mock auth middleware to bypass authentication in tests
+      authMiddleware: (req, res, next) => {
+        req.user = { id: 1, username: 'admin', role: 'admin' };
+        next();
+      },
+      authzMiddleware: () => (req, res, next) => next()
     };
 
     // Create Express app with control routes
@@ -204,7 +210,11 @@ describe('Control Routes', () => {
     });
 
     test('should fail if bridge does not start', async () => {
-      fs.existsSync.mockReturnValue(false);
+      // Mock fs.existsSync to return true for scripts, false for PID file
+      fs.existsSync.mockImplementation((path) => {
+        if (path.includes('.pid')) return false;
+        return true; // Scripts exist
+      });
 
       const response = await request(app).post('/api/control/restart-bridge');
 
@@ -225,7 +235,11 @@ describe('Control Routes', () => {
     });
 
     test('should include stdout/stderr on verification failure', async () => {
-      fs.existsSync.mockReturnValue(false);
+      // Mock fs.existsSync to return true for scripts, false for PID file
+      fs.existsSync.mockImplementation((path) => {
+        if (path.includes('.pid')) return false;
+        return true; // Scripts exist
+      });
       mockExecAsync.mockResolvedValue({
         stdout: 'Bridge output',
         stderr: 'Bridge error'

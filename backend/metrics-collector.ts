@@ -10,6 +10,7 @@ import { RavenDB } from './db.js';
 import { EventBus, TelemetryEvent } from './modules/eventBus.js';
 import { telemetryCollector } from './modules/telemetry.js';
 import type { Server as SocketIOServer } from 'socket.io';
+import { logger } from './utils/logger.js';
 
 export interface ProcessPattern {
   pattern: RegExp;
@@ -71,9 +72,7 @@ export class MetricsCollector {
         this.sessionId
       );
 
-      console.log(
-        `📊 System metrics: CPU ${event.cpu.toFixed(1)}% | RAM ${event.mem.toFixed(1)}% (${memory_used_mb}MB/${memory_total_mb}MB)`
-      );
+      logger.info(`📊 System metrics: CPU ${event.cpu.toFixed(1)}% | RAM ${event.mem.toFixed(1)}% (${memory_used_mb}MB/${memory_total_mb}MB)`);
 
       // Emit to Socket.IO
       if (this.io) {
@@ -88,7 +87,7 @@ export class MetricsCollector {
         });
       }
     } catch (error) {
-      console.error('❌ Error handling telemetry event:', error);
+      logger.error('❌ Error handling telemetry event:', error);
     }
   }
 
@@ -123,13 +122,11 @@ export class MetricsCollector {
             this.sessionId
           );
 
-          console.log(
-            `🤖 Process metrics: ${name} (PID ${proc.pid}) - CPU ${cpu_usage.toFixed(1)}% | RAM ${memory_mb}MB`
-          );
+          logger.info(`🤖 Process metrics: ${name} (PID ${proc.pid}) - CPU ${cpu_usage.toFixed(1)}% | RAM ${memory_mb}MB`);
         }
       }
     } catch (error) {
-      console.error('❌ Error collecting process metrics:', error);
+      logger.error('❌ Error collecting process metrics:', error);
     }
   }
 
@@ -138,11 +135,11 @@ export class MetricsCollector {
    */
   start(): void {
     if (this.isRunning) {
-      console.log('⚠️  Metrics collector already running');
+      logger.warn('⚠️  Metrics collector already running');
       return;
     }
 
-    console.log('🚀 Starting metrics collector');
+    logger.info('🚀 Starting metrics collector');
     this.isRunning = true;
 
     // Start system metrics collection via TelemetryCollector
@@ -165,7 +162,7 @@ export class MetricsCollector {
       return;
     }
 
-    console.log('🛑 Stopping metrics collector');
+    logger.info('🛑 Stopping metrics collector');
     this.isRunning = false;
 
     // Stop system metrics collection

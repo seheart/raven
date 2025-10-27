@@ -346,8 +346,67 @@ const SESSION_ID = randomUUID();
 // ==================== Logger & Cache (imported from modules) ====================
 // logger, fileCache, addToFileCache imported from utils/ (Phase 3)
 
-// Track files currently being processed to prevent race conditions
-const filesInProgress = new Set();
+/**
+ * File Processing Lock Manager
+ * Provides proper locking mechanism to prevent race conditions when processing file changes
+ */
+class FileProcessingLock {
+  constructor() {
+    this.locks = new Map(); // filepath -> AsyncMutex
+    this.cleanupInterval = setInterval(() => this.cleanup(), 60000); // Cleanup every minute
+  }
+
+  /**
+   * Acquire a lock for a specific file
+   * @param {string} filepath - Absolute file path
+   * @returns {Promise<Function>} - Release function to call when done
+   */
+  async acquire(filepath) {
+    // Get or create mutex for this file
+    if (!this.locks.has(filepath)) {
+      this.locks.set(filepath, new AsyncMutex());
+    }
+
+    const mutex = this.locks.get(filepath);
+    await mutex.acquire();
+
+    // Return release function
+    return () => {
+      mutex.release();
+      // Mark for potential cleanup
+      mutex.lastUsed = Date.now();
+    };
+  }
+
+  /**
+   * Clean up old unused locks to prevent memory leaks
+   */
+  cleanup() {
+    const now = Date.now();
+    const LOCK_TTL = 5 * 60 * 1000; // 5 minutes
+
+    for (const [filepath, mutex] of this.locks.entries()) {
+      // Only cleanup if not locked and hasn't been used recently
+      if (!mutex.locked && mutex.lastUsed && (now - mutex.lastUsed > LOCK_TTL)) {
+        this.locks.delete(filepath);
+      }
+    }
+  }
+
+  /**
+   * Stop cleanup interval (for graceful shutdown)
+   */
+  destroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.locks.clear();
+  }
+}
+
+// File processing lock manager (replaces simple Set for proper race condition prevention)
+const fileProcessingLock = new FileProcessingLock();
 
 // Watcher statistics
 const watcherStats = {
@@ -622,14 +681,9 @@ async function saveSnapshot(filepath, content, projectName) {
 }
 
 async function handleFileChange(eventType, filepath) {
-  // Prevent race conditions: skip if file is already being processed
-  if (filesInProgress.has(filepath)) {
-    logger.debug('Skipping file - already processing', { filepath });
-    return;
-  }
-
-  // Mark file as being processed
-  filesInProgress.add(filepath);
+  // Acquire lock for this file to prevent race conditions
+  // This ensures only one handler processes a file at a time
+  const release = await fileProcessingLock.acquire(filepath);
 
   try {
     // Detect which project this file belongs to
@@ -811,8 +865,8 @@ async function handleFileChange(eventType, filepath) {
   } catch (error) {
     logger.error('❌ File change handler error:', error);
   } finally {
-    // Always remove file from in-progress set to prevent deadlock
-    filesInProgress.delete(filepath);
+    // Always release the lock to prevent deadlock
+    release();
   }
 }
 
@@ -1922,6 +1976,16 @@ async function gracefulShutdown(signal) {
       logger.info('✅ Stopped Claude Log Watcher');
     } catch (error) {
       logger.error('Error stopping Claude Log Watcher:', error);
+    }
+  }
+
+  // Clean up file processing lock manager
+  if (fileProcessingLock) {
+    try {
+      fileProcessingLock.destroy();
+      logger.info('✅ Cleaned up file processing locks');
+    } catch (error) {
+      logger.error('Error cleaning up file processing locks:', error);
     }
   }
 

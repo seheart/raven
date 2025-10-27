@@ -46,11 +46,16 @@ echo -e "${YELLOW}[1/5]${NC} Cleaning up existing processes..."
 pkill -f "node.*dist/server.js" 2>/dev/null || true
 pkill -f "node server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
-# Kill processes on specific ports
+# Kill processes on specific ports (cross-platform compatible)
 BACKEND_PORT_PID=$(check_port 3030)
 FRONTEND_PORT_PID=$(check_port 5173)
-[ -n "$BACKEND_PORT_PID" ] && kill -9 $BACKEND_PORT_PID 2>/dev/null || true
-[ -n "$FRONTEND_PORT_PID" ] && kill -9 $FRONTEND_PORT_PID 2>/dev/null || true
+# Only kill if PID is numeric (not "in_use" string from netstat)
+if [[ "$BACKEND_PORT_PID" =~ ^[0-9]+$ ]]; then
+  kill -9 $BACKEND_PORT_PID 2>/dev/null || true
+fi
+if [[ "$FRONTEND_PORT_PID" =~ ^[0-9]+$ ]]; then
+  kill -9 $FRONTEND_PORT_PID 2>/dev/null || true
+fi
 sleep 1
 
 # Step 1.5: Check backend build

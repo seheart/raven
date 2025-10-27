@@ -146,14 +146,14 @@
     for (let i = 0; i < maxRetries; i++) {
       try {
         loadingMessage = `Connecting to backend server... (${i + 1}/${maxRetries})`;
-        const response = await fetch(`${API_CONFIG.API_BASE}/health`, {
+        const response = await fetch(API_CONFIG.ENDPOINTS.HEALTH, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
         });
 
         if (response.ok) {
           const health = await response.json();
-          if (health.status === 'healthy') {
+          if (health.status) {
             loadingMessage = 'Backend server connected!';
             return true;
           }

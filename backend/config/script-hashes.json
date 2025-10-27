@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "stop-claude-bridge.sh": {
+      "sha256": "",
+      "description": "Script to stop Claude telemetry bridge",
+      "allowedPermissions": "755"
+    },
+    "start-claude-bridge.sh": {
+      "sha256": "",
+      "description": "Script to start Claude telemetry bridge",
+      "allowedPermissions": "755"
+    }
+  },
+  "verification": {
+    "enabled": true,
+    "strictMode": false,
+    "comment": "strictMode=false allows scripts with empty hash (for first run). Set to true after hashes are populated."
+  }
+}

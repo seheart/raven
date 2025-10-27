@@ -20,7 +20,7 @@ export default [
     },
     rules: {
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      'no-console': ['warn', { allow: ['warn', 'error'] }],  // TODO: Change to 'error' after logging migration
+      'no-console': ['warn', { allow: ['warn', 'error'] }],  // Warn for console usage; tests may use console
       semi: ['error', 'always'],
       quotes: ['error', 'single', { avoidEscape: true }],
       indent: ['error', 2],

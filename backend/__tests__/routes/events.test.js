@@ -111,12 +111,23 @@ describe('Events Routes', () => {
 
   describe('GET /api/events-by-session/:sessionId', () => {
     test('should return events for specific session', async () => {
+      // Use a valid UUIDv4 for the session ID (required by validation)
+      const validSessionId = '550e8400-e29b-41d4-a716-446655440000';
       const response = await request(app)
-        .get('/api/events-by-session/test-session-123')
+        .get(`/api/events-by-session/${validSessionId}`)
         .expect('Content-Type', /json/)
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    test('should reject invalid session ID format', async () => {
+      const response = await request(app)
+        .get('/api/events-by-session/invalid-session-id')
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body.error).toBe('Validation failed');
     });
   });
 });

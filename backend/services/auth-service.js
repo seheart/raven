@@ -69,6 +69,10 @@ export class AuthService {
 
     // Only display password on console (not in logs) if auto-generated
     if (!customPassword) {
+      // NOTE: console.log is INTENTIONALLY used here instead of logger
+      // REASON: This is sensitive credential information that MUST be visible on stdout
+      // but MUST NOT be written to log files for security reasons.
+      // The logger writes to files, console.log only writes to stdout.
       console.log('\n' + '='.repeat(70));
       console.log('🔐 DEFAULT ADMIN CREDENTIALS (save these securely):');
       console.log('   Username: admin');

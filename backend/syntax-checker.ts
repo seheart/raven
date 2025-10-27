@@ -9,6 +9,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
 import { readFile } from 'fs/promises';
+import { logger } from './utils/logger.js';
 
 const execAsync = promisify(exec);
 
@@ -107,7 +108,7 @@ export class SyntaxChecker {
         checkedAt: new Date()
       };
     } catch (error: any) {
-      console.error(`Syntax check failed for ${filePath}:`, error);
+      logger.error(`Syntax check failed for ${filePath}:`, error);
       return {
         valid: true, // Don't report checker failures as syntax errors
         errors: [],
