@@ -2,6 +2,7 @@
   import { onMount, createEventDispatcher } from 'svelte';
   import { fade } from 'svelte/transition';
   import { marked } from 'marked';
+  import DOMPurify from 'dompurify';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
 
@@ -63,7 +64,8 @@
       }
 
       markdown = data.markdown;
-      html = marked(data.markdown);
+      // Sanitize HTML to prevent XSS attacks
+      html = DOMPurify.sanitize(marked(data.markdown));
       selectedDoc = filepath;
     } catch (err) {
       error = `Failed to load ${filepath}`;

@@ -153,8 +153,14 @@ if (env.ENABLE_METRICS) {
   app.use(metricsMiddleware);
 }
 
-// CORS
-app.use(cors());
+// CORS - properly configured for security
+app.use(cors({
+  origin: CORS_ORIGIN,
+  credentials: true,  // Allow cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+}));
+logger.info(`CORS enabled for origin: ${CORS_ORIGIN}`);
 
 // JSON payload parsing with size limit
 const JSON_LIMIT = process.env.JSON_PAYLOAD_LIMIT || '10mb';

@@ -113,17 +113,28 @@ export async function checkServerHealth() {
   try {
     const health = await api.get('/health');
 
-    // Check for critical health issues
-    if (health.status !== 'healthy') {
-      notifications.serverUnhealthy(health.status);
+    // Handle different health statuses
+    if (health.status === 'critical' || health.status === 'error') {
+      // Critical issues - show error notification
+      const issuesList = health.issues?.join(', ') || health.status;
+      notifications.serverUnhealthy(issuesList);
       return false;
+    } else if (health.status === 'warning') {
+      // Warning status - show warning (not error) with specific issues
+      const issuesList = health.issues?.join(', ') || 'System resources under pressure';
+      notifications.warning(issuesList, {
+        title: 'Server Health Warning',
+        duration: 5000
+      });
+      // Still return true - server is operational, just under stress
     }
 
     // Check memory usage
     const memUsagePercent = (health.memory.process.heapUsed / health.memory.process.heapTotal) * 100;
     if (memUsagePercent > 90) {
       notifications.warning(`Server memory usage high: ${memUsagePercent.toFixed(1)}%`, {
-        title: 'High Memory Usage'
+        title: 'High Memory Usage',
+        duration: 5000
       });
     }
 
@@ -138,6 +149,10 @@ export async function checkServerHealth() {
     return true;
   } catch (error) {
     logger.error('Health check failed:', error);
+    notifications.error('Failed to connect to server', {
+      title: 'Connection Error',
+      duration: 0
+    });
     return false;
   }
 }

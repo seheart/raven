@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { logger } from '../utils/logger.js';
 import fs from 'fs';
-import { join } from 'path';
+import { join, resolve, normalize } from 'path';
 import { promisify } from 'util';
 import { gunzip } from 'zlib';
 
@@ -100,8 +100,26 @@ export function createSnapshotsRoutes(deps) {
         content = data.toString('utf8');
       }
 
-      // Restore to original location
-      const targetFilePath = join(projectState.watchPath, restoredFilepath);
+      // Restore to original location with path traversal protection
+      const targetFilePath = resolve(projectState.watchPath, normalize(restoredFilepath));
+
+      // Security: Ensure the resolved path is within the project directory
+      if (!targetFilePath.startsWith(resolve(projectState.watchPath) + '/') &&
+          targetFilePath !== resolve(projectState.watchPath)) {
+        logger.error('❌ Path traversal attempt detected', {
+          project,
+          filepath: restoredFilepath,
+          resolved: targetFilePath,
+          basePath: projectState.watchPath
+        });
+        return res.status(400).json({
+          error: 'Invalid file path - must be within project directory'
+        });
+      }
+
+      // Ensure parent directory exists
+      await fs.promises.mkdir(join(targetFilePath, '..'), { recursive: true });
+
       await fs.promises.writeFile(targetFilePath, content, 'utf8');
 
       logger.info(`🔄 Restored ${restoredFilepath} from snapshot`, {

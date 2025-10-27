@@ -1,6 +1,6 @@
 <script>
   import { logger } from './logger.js';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { API_CONFIG } from '../config.js';

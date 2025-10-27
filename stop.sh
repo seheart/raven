@@ -35,7 +35,18 @@ fi
 # Fallback: kill by process name and port
 pkill -f "node server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
-fuser -k 3030/tcp 5173/tcp 2>/dev/null || true
+
+# Kill processes on ports (works on both Linux and macOS)
+if command -v fuser &> /dev/null; then
+  # Linux: use fuser
+  fuser -k 3030/tcp 5173/tcp 2>/dev/null || true
+elif command -v lsof &> /dev/null; then
+  # macOS: use lsof
+  for port in 3030 5173; do
+    PID=$(lsof -ti:$port 2>/dev/null)
+    [ -n "$PID" ] && kill -9 $PID 2>/dev/null || true
+  done
+fi
 
 sleep 1
 

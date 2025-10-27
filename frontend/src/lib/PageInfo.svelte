@@ -1,4 +1,6 @@
 <script>
+  import DOMPurify from 'dompurify';
+
   export let title = '';
   export let description = '';
   export let keyPoints = [];
@@ -17,13 +19,16 @@
     }
   }
 
-  // Simple markdown parser for basic formatting
+  // Simple markdown parser for basic formatting with XSS protection
   function parseMarkdown(text) {
-    return text
+    const dirty = text
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // **bold**
       .replace(/\*(.+?)\*/g, '<em>$1</em>')              // *italic*
       .replace(/`(.+?)`/g, '<code>$1</code>')             // `code`
       .replace(/\n/g, '<br>');                            // newlines
+
+    // Sanitize to prevent XSS attacks
+    return DOMPurify.sanitize(dirty);
   }
 </script>
 

@@ -25,15 +25,19 @@ echo "║          🐦‍⬛ Raven - Starting...              ║"
 echo "╚════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Helper function to check ports
+# Helper function to check ports (works on both Linux and macOS)
 check_port() {
   local port=$1
   if command -v lsof &> /dev/null; then
+    # lsof works on both Linux and macOS
     lsof -ti:$port 2>/dev/null
   elif command -v ss &> /dev/null; then
+    # ss is Linux-only
     ss -tlnp 2>/dev/null | grep ":$port " | awk '{print $NF}' | grep -o '[0-9]*' | head -1
   elif command -v netstat &> /dev/null; then
-    netstat -tlnp 2>/dev/null | grep ":$port " | awk '{print $NF}' | grep -o '[0-9]*' | head -1
+    # netstat syntax differs between Linux and macOS
+    # On macOS, netstat doesn't support -p flag, so just check if port is in use
+    netstat -an 2>/dev/null | grep "LISTEN" | grep -q ":$port " && echo "in_use"
   fi
 }
 
@@ -72,12 +76,8 @@ FRONTEND_PID=$!
 echo $FRONTEND_PID > /tmp/raven-frontend.pid
 cd ..
 
-# Step 5: Start Claude telemetry bridge
-echo -e "${YELLOW}[5/5]${NC} Starting Claude telemetry bridge..."
-./scripts/start-claude-bridge.sh > /dev/null 2>&1 || echo -e "${YELLOW}⚠${NC}  Telemetry bridge failed to start (non-critical)"
-
-# Step 6: Wait for both servers to be ready
-echo -e "${YELLOW}[6/6]${NC} Waiting for servers to be ready..."
+# Step 5: Wait for both servers to be ready
+echo -e "${YELLOW}[5/6]${NC} Waiting for servers to be ready..."
 
 # Wait for backend (max 10 seconds)
 for i in {1..20}; do
@@ -104,6 +104,10 @@ for i in {1..20}; do
     exit 1
   fi
 done
+
+# Step 6: Start Claude telemetry bridge (after backend is ready)
+echo -e "${YELLOW}[6/6]${NC} Starting Claude telemetry bridge..."
+./scripts/start-claude-bridge.sh > /dev/null 2>&1 || echo -e "${YELLOW}⚠${NC}  Telemetry bridge failed to start (non-critical)"
 
 # Get session info
 SESSION_INFO=$(curl -s http://localhost:3030/health | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)

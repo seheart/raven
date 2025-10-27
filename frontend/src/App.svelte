@@ -8,6 +8,7 @@
   import LoadingSkeleton from './lib/LoadingSkeleton.svelte';
   import ConfirmDialog from './lib/ConfirmDialog.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
+  import AppLoadingScreen from './lib/AppLoadingScreen.svelte';
   // import LoginPage from './lib/LoginPage.svelte'; // Authentication removed
   import UserMenu from './lib/UserMenu.svelte';
 
@@ -57,6 +58,8 @@
   import { setupNotificationListeners } from './lib/notificationListener.js';
   import { websocketService } from './lib/websocket.js';
   import { checkServerHealth } from './lib/apiClient.js';
+  import { dataService } from './lib/dataService.js';
+  import { logger } from './lib/logger.js';
   import { API_CONFIG } from './config.js';
   // Authentication disabled
   // import { authService, isAuthenticated } from './lib/authStore.js';
@@ -84,6 +87,11 @@
   let showHelp = false;
   let showWelcome = false;
   let showQuickStart = false;
+
+  // Initial loading state
+  let isInitialLoading = true;
+  let loadingProgress = 0;
+  let loadingMessage = 'Initializing Raven...';
 
   const startTime = Date.now();
   let uptimeInterval;
@@ -130,26 +138,99 @@
     notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
+  // Helper function to wait for backend to be ready
+  async function waitForBackend() {
+    const maxRetries = 30; // 30 seconds max
+    const retryDelay = 1000; // 1 second between retries
+
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        loadingMessage = `Connecting to backend server... (${i + 1}/${maxRetries})`;
+        const response = await fetch(`${API_CONFIG.API_BASE}/health`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (response.ok) {
+          const health = await response.json();
+          if (health.status === 'healthy') {
+            loadingMessage = 'Backend server connected!';
+            return true;
+          }
+        }
+      } catch (error) {
+        // Backend not ready yet, will retry
+        logger.debug(`Backend not ready (attempt ${i + 1}/${maxRetries}):`, error.message);
+      }
+
+      // Wait before next retry
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
+
+    // Backend didn't come up in time
+    loadingMessage = 'Backend server unavailable - please check if it\'s running';
+    return false;
+  }
+
   onMount(async () => {
+    // Start loading sequence with progress updates
+    loadingMessage = 'Loading configuration...';
+    loadingProgress = 10;
+
+    // Load saved theme from localStorage
+    theme = localStorage.getItem('raven-theme') || 'theme--night';
+    document.body.className = theme;
+
+    // Always start at Overview tab on fresh load
+    activeTab = 'overview';
+
+    loadingMessage = 'Connecting to server...';
+    loadingProgress = 20;
+
+    // Wait for backend to be ready before proceeding
+    const backendReady = await waitForBackend();
+    if (!backendReady) {
+      // Backend not available - stay on loading screen with error
+      loadingProgress = 0;
+      isInitialLoading = true; // Keep loading screen visible
+      return;
+    }
+
+    loadingProgress = 30;
+
+    // Load session ID
     loadSessionId();
 
     // Start uptime tracking
     updateUptime();
     uptimeInterval = setInterval(updateUptime, 1000);
 
-    // Load saved theme from localStorage
-    theme = localStorage.getItem('raven-theme') || 'theme--night';
-    document.body.className = theme;
-
-    // Load saved tab from localStorage
-    activeTab = localStorage.getItem('raven-active-tab') || 'overview';
+    loadingMessage = 'Initializing services...';
+    loadingProgress = 40;
 
     // Setup global error handler
     setupGlobalErrorHandler();
 
+    loadingMessage = 'Establishing WebSocket connection...';
+    loadingProgress = 50;
+
     // Initialize WebSocket connection and notification listeners
     websocketService.connect();
     setupNotificationListeners();
+
+    loadingMessage = 'Preloading dashboard data...';
+    loadingProgress = 60;
+
+    // Preload all initial data - this prevents duplicate API calls
+    const dataLoaded = await dataService.preloadInitialData();
+
+    if (dataLoaded) {
+      loadingProgress = 85;
+      loadingMessage = 'Finalizing...';
+    } else {
+      loadingProgress = 75;
+      loadingMessage = 'Loading completed with some errors...';
+    }
 
     // Start periodic health checks (every 60 seconds)
     checkServerHealth(); // Initial check
@@ -160,7 +241,9 @@
       checkServerHealth();
     });
 
-    // Register help shortcut
+    loadingProgress = 95;
+
+    // Register keyboard shortcuts
     keyboard.register('?', () => showHelp = !showHelp);
     keyboard.register('Escape', () => {
       showHelp = false;
@@ -171,6 +254,15 @@
     tabs.forEach(tab => {
       keyboard.register(tab.shortcut, () => handleTabChange(tab.id));
     });
+
+    loadingProgress = 100;
+    loadingMessage = 'Ready!';
+
+    // Small delay to show 100% completion
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Hide loading screen
+    isInitialLoading = false;
 
     // Show Quick Start Wizard for first-time users
     if (!localStorage.getItem('raven-quick-start-completed')) {
@@ -185,7 +277,7 @@
           duration: 5000
         });
         localStorage.setItem('raven-visited', 'true');
-      }, 1000);
+      }, 500);
     }
   });
 
@@ -204,6 +296,11 @@
 </script>
 
 <ErrorBoundary>
+
+<!-- Initial Loading Screen -->
+{#if isInitialLoading}
+  <AppLoadingScreen progress={loadingProgress} message={loadingMessage} />
+{:else}
 
 <!-- Authentication removed - app is always accessible -->
 <main>
@@ -627,6 +724,9 @@
   onChangelogClick={() => activeTab = 'changelog'}
   onDocsClick={() => activeTab = 'docs'}
 />
+
+{/if}
+<!-- End of isInitialLoading conditional -->
 
 </ErrorBoundary>
 

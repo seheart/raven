@@ -5,6 +5,7 @@ const DEFAULT_DURATION = 3000;
 function createToastStore() {
   const { subscribe, update } = writable([]);
   let nextId = 0;
+  const timers = new Map(); // Track active timers to prevent memory leaks
 
   return {
     subscribe,
@@ -22,9 +23,11 @@ function createToastStore() {
       update(toasts => [...toasts, toast]);
 
       if (duration > 0) {
-        setTimeout(() => {
+        // Store timer reference for cleanup
+        const timer = setTimeout(() => {
           this.dismiss(id);
         }, duration);
+        timers.set(id, timer);
       }
 
       return id;
@@ -47,10 +50,18 @@ function createToastStore() {
     },
 
     dismiss(id) {
+      // Clear timer if it exists
+      if (timers.has(id)) {
+        clearTimeout(timers.get(id));
+        timers.delete(id);
+      }
       update(toasts => toasts.filter(t => t.id !== id));
     },
 
     clear() {
+      // Clear all active timers
+      timers.forEach(timer => clearTimeout(timer));
+      timers.clear();
       update(() => []);
     }
   };

@@ -1,9 +1,10 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { logger } from './logger.js';
-  
+  import { logError } from './errorLogger.js';
+
   export let fallback = null; // Optional custom error UI
-  
+
   let hasError = false;
   let errorDetails = null;
   let errorCount = 0;
@@ -14,7 +15,7 @@
     hasError = true;
     errorCount++;
     errorTimestamp = new Date().toISOString();
-    
+
     errorDetails = {
       message: event.error?.message || event.message || 'Unknown error',
       stack: event.error?.stack || null,
@@ -26,6 +27,14 @@
 
     logger.error('ErrorBoundary caught error:', errorDetails);
 
+    // Log to backend error_log table
+    const error = event.error || new Error(errorDetails.message);
+    logError(error, 'ErrorBoundary', {
+      filename: errorDetails.filename,
+      lineno: errorDetails.lineno,
+      colno: errorDetails.colno
+    }, 'error');
+
     // Prevent default browser error handling
     event.preventDefault();
   }
@@ -35,7 +44,7 @@
     hasError = true;
     errorCount++;
     errorTimestamp = new Date().toISOString();
-    
+
     errorDetails = {
       message: event.reason?.message || String(event.reason) || 'Unhandled promise rejection',
       stack: event.reason?.stack || null,
@@ -44,6 +53,12 @@
 
     logger.error('ErrorBoundary caught promise rejection:', errorDetails);
 
+    // Log to backend error_log table
+    const error = event.reason instanceof Error ? event.reason : new Error(errorDetails.message);
+    logError(error, 'ErrorBoundary', {
+      type: 'unhandled_rejection'
+    }, 'error');
+
     // Prevent default browser handling
     event.preventDefault();
   }
@@ -51,7 +66,7 @@
   function resetError() {
     hasError = false;
     errorDetails = null;
-    
+
     // Reload the page to recover
     window.location.reload();
   }

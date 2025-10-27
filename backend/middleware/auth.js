@@ -4,13 +4,38 @@
  */
 
 import jwt from 'jsonwebtoken';
+import { logger } from '../utils/logger.js';
 
-// JWT Secret - MUST be changed in production via environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'raven-dev-secret-change-in-production';
+// Validate JWT secret in production
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_PRODUCTION = NODE_ENV === 'production';
+
+// JWT Secret - MUST be set in production via environment variable
+const DEFAULT_JWT_SECRET = 'raven-dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
+
+// Security: Enforce JWT_SECRET in production
+if (IS_PRODUCTION && JWT_SECRET === DEFAULT_JWT_SECRET) {
+  logger.error('❌ SECURITY ERROR: JWT_SECRET must be set in production!');
+  logger.error('Set environment variable: JWT_SECRET=<your-secure-random-secret>');
+  throw new Error('JWT_SECRET is required in production mode');
+}
+
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
-// Authentication disabled flag (for backwards compatibility during migration)
-const AUTH_DISABLED = process.env.DISABLE_AUTH === 'true';
+// Authentication disabled flag - ONLY allowed in development
+const AUTH_DISABLED = process.env.DISABLE_AUTH === 'true' && !IS_PRODUCTION;
+
+// Log warnings for security configurations
+if (AUTH_DISABLED) {
+  logger.warn('⚠️  Authentication is DISABLED (development mode only)');
+} else if (process.env.DISABLE_AUTH === 'true' && IS_PRODUCTION) {
+  logger.error('❌ DISABLE_AUTH is not allowed in production mode - ignoring');
+}
+
+if (!IS_PRODUCTION && JWT_SECRET === DEFAULT_JWT_SECRET) {
+  logger.warn('⚠️  Using default JWT secret in development - change for production');
+}
 
 /**
  * Generate JWT token for user

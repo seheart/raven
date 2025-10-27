@@ -2,10 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
-  import { API_CONFIG } from '../config.js';
+  import { dataService } from './dataService.js';
   import { logger } from './logger.js';
-
-  const API_BASE = API_CONFIG.API_BASE;
 
   // Health status
   let health = {
@@ -59,8 +57,7 @@
   // Fetch startup health checks
   async function loadStartupHealthChecks() {
     try {
-      const response = await fetch(`${API_BASE}/health-checks`);
-      const data = await response.json();
+      const data = await dataService.fetchHealthChecks();
 
       startupHealthStatus = data.status;
       startupHealthResults = data;
@@ -92,11 +89,8 @@
       // Fetch startup health checks first
       await loadStartupHealthChecks();
 
-      // Fetch recent events to calculate health
-      const response = await fetch('/api/all-file-events?limit=100');
-      if (!response.ok) throw new Error('Failed to fetch events');
-
-      const events = await response.json();
+      // Fetch recent events to calculate health - uses dataService with caching
+      const events = await dataService.fetchFileEvents(100);
 
       // Calculate health metrics
       const today = new Date();

@@ -4,6 +4,7 @@
  */
 
 import bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { generateToken } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 
@@ -44,16 +45,37 @@ export class AuthService {
   }
 
   /**
+   * Generate a secure random password
+   */
+  generateSecurePassword(length = 20) {
+    return randomBytes(length).toString('base64').slice(0, length);
+  }
+
+  /**
    * Create default admin user
    */
   async createDefaultAdmin() {
-    const defaultPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    logger.warn('Creating default admin user - CHANGE PASSWORD IMMEDIATELY!', {
+    const customPassword = process.env.ADMIN_PASSWORD;
+    const defaultPassword = customPassword || this.generateSecurePassword();
+
+    // SECURITY: Never log passwords - only log the username
+    logger.warn('⚠️  Creating default admin user - CHANGE PASSWORD IMMEDIATELY!', {
       username: 'admin',
-      password: defaultPassword
+      role: 'admin'
+      // Password intentionally NOT logged for security
     });
 
     await this.createUser('admin', defaultPassword, 'admin');
+
+    // Only display password on console (not in logs) if auto-generated
+    if (!customPassword) {
+      console.log('\n' + '='.repeat(70));
+      console.log('🔐 DEFAULT ADMIN CREDENTIALS (save these securely):');
+      console.log('   Username: admin');
+      console.log(`   Password: ${defaultPassword}`);
+      console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!');
+      console.log('='.repeat(70) + '\n');
+    }
   }
 
   /**

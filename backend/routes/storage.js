@@ -42,7 +42,26 @@ export function createStorageRoutes(deps) {
           const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
           let totalRecords = 0;
 
+          // Whitelist of allowed table names for security
+          const ALLOWED_TABLES = [
+            'events', 'telemetry', 'metrics', 'sessions', 'errors',
+            'notifications', 'conversations', 'triggers', 'users',
+            'developer_profiles', 'preferences', 'safety', 'health_checks'
+          ];
+
           for (const table of tables) {
+            // Validate table name format (defense in depth)
+            if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table.name)) {
+              logger.warn(`Skipping invalid table name: ${table.name}`);
+              continue;
+            }
+
+            // Check against whitelist
+            if (!ALLOWED_TABLES.includes(table.name)) {
+              logger.warn(`Skipping non-whitelisted table: ${table.name}`);
+              continue;
+            }
+
             const count = db.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get();
             recordCounts[table.name] = count.count;
             totalRecords += count.count;
@@ -291,8 +310,27 @@ export function createStorageRoutes(deps) {
       // Get all tables
       const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
 
+      // Whitelist of allowed table names for security
+      const ALLOWED_TABLES = [
+        'events', 'telemetry', 'metrics', 'sessions', 'errors',
+        'notifications', 'conversations', 'triggers', 'users',
+        'developer_profiles', 'preferences', 'safety', 'health_checks'
+      ];
+
       // Delete old records from each table that has a timestamp column
       for (const table of tables) {
+        // Validate table name format (defense in depth)
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table.name)) {
+          logger.warn(`Skipping invalid table name during cleanup: ${table.name}`);
+          continue;
+        }
+
+        // Check against whitelist
+        if (!ALLOWED_TABLES.includes(table.name)) {
+          logger.warn(`Skipping non-whitelisted table during cleanup: ${table.name}`);
+          continue;
+        }
+
         const tableInfo = db.prepare(`PRAGMA table_info(${table.name})`).all();
         const hasTimestamp = tableInfo.some(col => col.name === 'timestamp' || col.name === 'created_at');
 

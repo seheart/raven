@@ -24,21 +24,71 @@ export class FileWatcherService {
 
     // Configuration
     this.FILE_WATCH_DEBOUNCE_MS = options.debounceMs || 150;
+
+    // Memoization cache for shouldIgnore results (LRU cache with 1000 entries)
+    this.ignoreCache = new Map();
+    this.maxIgnoreCacheSize = 1000;
     this.defaultIgnored = [
-      /(^|[\/\\])\../, // Ignore dotfiles
+      // Dotfiles (regex)
+      /(^|[\/\\])\../,
+
+      // Node.js
       '**/node_modules/**',
+      /node_modules/,
+
+      // Version control
       '**/.git/**',
+      /\.git/,
+
+      // Build outputs
       '**/target/**',
-      '**/.raven/**',
-      '**/*.log',
       '**/dist/**',
       '**/build/**',
+      /\/(target|dist|build)\//,
+
+      // Cache directories
       '**/.cache/**',
       '**/.next/**',
       '**/.turbo/**',
       '**/.svelte-kit/**',
       '**/coverage/**',
-      '**/.DS_Store'
+      /\/(\.cache|\.next|\.turbo|\.svelte-kit|coverage)\//,
+
+      // Raven specific
+      '**/.raven/**',
+      /\.raven/,
+
+      // Log files
+      '**/*.log',
+      /\.log$/,
+
+      // Python virtual environments (both glob and regex for reliability)
+      '**/venv/**',
+      '**/.venv/**',
+      '**/env/**',
+      '**/virtualenv/**',
+      /\/(venv|\.venv|env|virtualenv)\//,
+
+      // Python cache and compiled files
+      '**/__pycache__/**',
+      '**/*.pyc',
+      '**/*.pyo',
+      '**/.pytest_cache/**',
+      /__pycache__/,
+      /\.py[co]$/,
+
+      // Python site-packages (this is where torch and other heavy packages live)
+      '**/site-packages/**',
+      '**/dist-packages/**',
+      /\/(site-packages|dist-packages)\//,
+
+      // Vendor directories
+      '**/vendor/**',
+      /\/vendor\//,
+
+      // macOS
+      '**/.DS_Store',
+      /\.DS_Store$/
     ];
   }
 
@@ -74,19 +124,96 @@ export class FileWatcherService {
     // Platform detection
     const isMacOS = process.platform === 'darwin';
 
-    // Special handling for raven project to avoid watching its own node_modules
+    // Special handling for projects with heavy dependencies
     const isRavenProject = projectName === 'raven';
-    const watchPaths = isRavenProject ? [
-      join(projectPath, 'docs'),
-      join(projectPath, 'test_workspace'),
-      join(projectPath, 'backend/*.js'),
-      join(projectPath, 'frontend/src'),
-      join(projectPath, '*.md'),
-      join(projectPath, '*.sh')
-    ] : projectPath;
+    const isEchoProject = projectName === 'echo';
+
+    // Skip echo project entirely due to massive venv directories
+    if (isEchoProject) {
+      logger.warn(`⚠️  Skipping file watcher for ${projectName} (has massive Python venv directories)`);
+      logger.warn(`   To manually track changes in ${projectName}, use git or manual refresh`);
+      return null;
+    }
+
+    let watchPaths;
+    if (isRavenProject) {
+      // Raven: only watch specific directories
+      watchPaths = [
+        join(projectPath, 'docs'),
+        join(projectPath, 'test_workspace'),
+        join(projectPath, 'backend/*.js'),
+        join(projectPath, 'frontend/src'),
+        join(projectPath, '*.md'),
+        join(projectPath, '*.sh')
+      ];
+    } else {
+      watchPaths = projectPath;
+    }
+
+    // Create a function to check if path should be ignored (with memoization)
+    const shouldIgnore = (path, stats) => {
+      // Normalize path to use forward slashes
+      const normalizedPath = path.replace(/\\/g, '/');
+
+      // Check memoization cache first
+      if (this.ignoreCache.has(normalizedPath)) {
+        return this.ignoreCache.get(normalizedPath);
+      }
+
+      let shouldIgnoreResult = false;
+
+      // AGGRESSIVE: Check for Python venv directories first (most common cause of issues)
+      const venvPatterns = ['/venv/', '/.venv/', '/env/', '/virtualenv/',
+                            '/site-packages/', '/dist-packages/', '/__pycache__/'];
+
+      for (const pattern of venvPatterns) {
+        if (normalizedPath.includes(pattern)) {
+          shouldIgnoreResult = true;
+          break;
+        }
+      }
+
+      // Check if path ends with common venv directory names
+      if (!shouldIgnoreResult) {
+        const pathParts = normalizedPath.split('/');
+        const lastPart = pathParts[pathParts.length - 1];
+        if (['venv', '.venv', 'env', 'virtualenv', 'site-packages', 'dist-packages', '__pycache__'].includes(lastPart)) {
+          shouldIgnoreResult = true;
+        }
+      }
+
+      // Check against default patterns
+      if (!shouldIgnoreResult) {
+        for (const pattern of [...this.defaultIgnored, ...customIgnored]) {
+          if (pattern instanceof RegExp) {
+            if (pattern.test(normalizedPath)) {
+              shouldIgnoreResult = true;
+              break;
+            }
+          } else if (typeof pattern === 'string') {
+            // Simple glob matching for common patterns
+            const cleanPattern = pattern.replace(/\*\*/g, '').replace(/\*/g, '');
+            if (normalizedPath.includes(cleanPattern)) {
+              shouldIgnoreResult = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Store in cache with LRU eviction
+      if (this.ignoreCache.size >= this.maxIgnoreCacheSize) {
+        // Remove oldest entry (first key in Map maintains insertion order)
+        const firstKey = this.ignoreCache.keys().next().value;
+        this.ignoreCache.delete(firstKey);
+      }
+      this.ignoreCache.set(normalizedPath, shouldIgnoreResult);
+
+      return shouldIgnoreResult;
+    };
 
     const watcher = chokidar.watch(watchPaths, {
-      ignored: [...this.defaultIgnored, ...customIgnored],
+      ignored: shouldIgnore,
       persistent: true,
       ignoreInitial: true,
       awaitWriteFinish: {

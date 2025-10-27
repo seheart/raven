@@ -1,6 +1,6 @@
 <script>
   import { logger } from './logger.js';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { notifications } from './notificationService.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';

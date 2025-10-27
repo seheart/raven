@@ -2,9 +2,7 @@
   import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
-  import { API_CONFIG } from '../config.js';
-
-  const API_BASE = API_CONFIG.API_BASE;
+  import { dataService } from './dataService.js';
 
   let projectsData = [];
   let availableProjects = [];
@@ -12,14 +10,13 @@
 
   async function loadProjectsOverview() {
     try {
-      // Fetch available projects
-      const projectsRes = await fetch(`${API_BASE}/projects/list`);
-      const projectsJson = await projectsRes.json();
-      availableProjects = projectsJson.projects || [];
+      // Use dataService - it handles caching and deduplication
+      const [projects, events] = await Promise.all([
+        dataService.fetchProjects(),
+        dataService.fetchFileEvents(500)
+      ]);
 
-      // Fetch recent file events to determine project activity
-      const eventsRes = await fetch(`${API_BASE}/all-file-events?limit=500`);
-      const events = await eventsRes.json();
+      availableProjects = projects;
 
       // Aggregate stats per project
       const projectStats = {};

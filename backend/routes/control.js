@@ -2,9 +2,17 @@ import { Router } from 'express';
 import fs from 'fs';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import { join, resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { logger } from '../utils/logger.js';
+import { authenticate, authorize } from '../middleware/auth.js';
 
 const defaultExecAsync = promisify(exec);
+
+// Get project root directory (backend/../)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PROJECT_ROOT = resolve(__dirname, '../..');
 
 /**
  * Creates control routes (system management endpoints)
@@ -23,7 +31,8 @@ export function createControlRoutes(deps) {
   } = deps;
 
   // POST /api/control/clear-cache - Clear file cache
-  router.post('/clear-cache', (req, res) => {
+  // Requires admin role for security
+  router.post('/clear-cache', authenticate, authorize('admin'), (req, res) => {
     try {
       const previousSize = fileCache.size;
       fileCache.clear();
@@ -40,7 +49,8 @@ export function createControlRoutes(deps) {
   });
 
   // POST /api/control/restart-watcher - Restart file watcher
-  router.post('/restart-watcher', async (req, res) => {
+  // Requires admin role for security
+  router.post('/restart-watcher', authenticate, authorize('admin'), async (req, res) => {
     try {
       // Protected by mutex to prevent race conditions with project switching
       await projectStateMutex.runExclusive(async () => {
@@ -68,12 +78,20 @@ export function createControlRoutes(deps) {
   });
 
   // POST /api/control/restart-bridge - Restart telemetry bridge (SELF-HEALING)
-  router.post('/restart-bridge', async (req, res) => {
+  // Requires admin role for security - controls system process execution
+  router.post('/restart-bridge', authenticate, authorize('admin'), async (req, res) => {
     try {
       logger.info('Restarting telemetry bridge');
 
       // Stop existing bridge if running
-      const stopScript = '../scripts/stop-claude-bridge.sh';
+      // Use absolute path for security
+      const stopScript = join(PROJECT_ROOT, 'scripts', 'stop-claude-bridge.sh');
+
+      // Validate script exists before executing
+      if (!fs.existsSync(stopScript)) {
+        throw new Error(`Stop script not found: ${stopScript}`);
+      }
+
       try {
         await execAsync(stopScript);
         logger.info('Stopped existing bridge');
@@ -86,7 +104,14 @@ export function createControlRoutes(deps) {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Start the bridge
-      const startScript = '../scripts/start-claude-bridge.sh';
+      // Use absolute path for security
+      const startScript = join(PROJECT_ROOT, 'scripts', 'start-claude-bridge.sh');
+
+      // Validate script exists before executing
+      if (!fs.existsSync(startScript)) {
+        throw new Error(`Start script not found: ${startScript}`);
+      }
+
       const { stdout, stderr } = await execAsync(startScript);
 
       // Check if it started successfully by reading the PID file

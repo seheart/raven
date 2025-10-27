@@ -1,8 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSync, execFile } from 'child_process';
+import { promisify } from 'util';
 import toml from 'toml';
 import { logger } from './utils/logger.js';
+
+const execFileAsync = promisify(execFile);
 
 export class TriggerEngine {
   constructor(configPath, io = null, db = null) {
@@ -22,6 +25,38 @@ export class TriggerEngine {
 
   setDb(db) {
     this.db = db;
+  }
+
+  /**
+   * Sanitize user input to prevent command injection
+   * Removes shell metacharacters and limits length
+   */
+  sanitizeShellArg(arg) {
+    if (typeof arg !== 'string') {
+      arg = String(arg);
+    }
+
+    // Remove shell metacharacters
+    return arg
+      .replace(/[;&|`$(){}[\]<>\\'"]/g, '')
+      .replace(/\n/g, ' ')
+      .replace(/\r/g, '')
+      .trim()
+      .slice(0, 500); // Limit length
+  }
+
+  /**
+   * Format message safely by sanitizing all replaced values
+   */
+  formatMessageSafe(template, event) {
+    return template
+      .replace(/\{file\}/g, this.sanitizeShellArg(event.file || ''))
+      .replace(/\{agent\}/g, this.sanitizeShellArg(event.agent || ''))
+      .replace(/\{event_type\}/g, this.sanitizeShellArg(event.event_type || ''))
+      .replace(/\{lines_changed\}/g, this.sanitizeShellArg(event.lines_changed || ''))
+      .replace(/\{duration_ms\}/g, this.sanitizeShellArg(event.duration_ms || ''))
+      .replace(/\{cpu_percent\}/g, this.sanitizeShellArg(event.cpu_percent || ''))
+      .replace(/\{memory_percent\}/g, this.sanitizeShellArg(event.memory_percent || ''));
   }
 
   loadConfig() {
@@ -100,7 +135,7 @@ cooldown_seconds = 300
         }
 
         // Execute trigger
-        const message = this.formatMessage(trigger.message || 'Trigger fired', event);
+        const message = this.formatMessageSafe(trigger.message || 'Trigger fired', event);
         this.executeAction(trigger, message, event);
 
         // Record trigger
@@ -253,15 +288,13 @@ cooldown_seconds = 300
     }
   }
 
+  /**
+   * @deprecated Use formatMessageSafe() instead for security
+   * This method is kept for backward compatibility but does not sanitize input
+   */
   formatMessage(template, event) {
-    return template
-      .replace(/\{file\}/g, event.file || '')
-      .replace(/\{agent\}/g, event.agent || '')
-      .replace(/\{event_type\}/g, event.event_type || '')
-      .replace(/\{lines_changed\}/g, event.lines_changed || '')
-      .replace(/\{duration_ms\}/g, event.duration_ms || '')
-      .replace(/\{cpu_percent\}/g, event.cpu_percent || '')
-      .replace(/\{memory_percent\}/g, event.memory_percent || '');
+    logger.warn('formatMessage() is deprecated. Use formatMessageSafe() instead for security.');
+    return this.formatMessageSafe(template, event);
   }
 
   executeAction(trigger, message, event) {
@@ -284,19 +317,25 @@ cooldown_seconds = 300
     }
   }
 
-  sendNotification(message) {
+  async sendNotification(message) {
     try {
-      // Platform-specific notifications
+      // Sanitize message to prevent injection
+      const safeMessage = this.sanitizeShellArg(message);
+
+      // Platform-specific notifications using execFile for security
       if (process.platform === 'linux') {
-        execSync(`notify-send "Raven Trigger" "${message}"`);
+        await execFileAsync('notify-send', ['Raven Trigger', safeMessage]);
       } else if (process.platform === 'darwin') {
-        execSync(`osascript -e 'display notification "${message}" with title "Raven Trigger"'`);
+        await execFileAsync('osascript', [
+          '-e',
+          `display notification "${safeMessage}" with title "Raven Trigger"`
+        ]);
       } else if (process.platform === 'win32') {
-        // Windows notification (simplified)
-        logger.info(`📢 Notification: ${message}`);
+        // Windows notification (simplified - log only for safety)
+        logger.info(`📢 Notification: ${safeMessage}`);
       }
     } catch (error) {
-      logger.error(`❌ Failed to send notification: ${error}`);
+      logger.error(`❌ Failed to send notification: ${error.message}`);
     }
   }
 
@@ -313,22 +352,23 @@ cooldown_seconds = 300
     }
   }
 
-  executeCommand(command, event) {
+  async executeCommand(command, event) {
     try {
-      const formattedCommand = this.formatMessage(command, event);
-
-      // Security: Whitelist of allowed command prefixes to prevent arbitrary code execution
+      // Security: Whitelist of allowed commands to prevent arbitrary code execution
       const ALLOWED_COMMANDS = [
         'echo',
         'notify-send',
         'osascript', // macOS notifications
-        'powershell.exe', // Windows notifications (must be followed by specific params)
         'logger', // System logger
         'wall' // Write to all users
+        // Note: Removed powershell.exe for security - use logger instead
       ];
 
-      // Extract the base command (first word)
-      const baseCommand = formattedCommand.trim().split(/\s+/)[0];
+      // Parse command template to extract base command and arguments
+      const formattedCommand = this.formatMessageSafe(command, event);
+      const parts = formattedCommand.trim().split(/\s+/);
+      const baseCommand = parts[0];
+      const args = parts.slice(1);
 
       // Check if command is whitelisted
       const isAllowed = ALLOWED_COMMANDS.some(allowed =>
@@ -336,15 +376,24 @@ cooldown_seconds = 300
       );
 
       if (!isAllowed) {
-        logger.error(`❌ Command execution blocked: '${baseCommand}' is not in whitelist. Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
-        logger.error('⚠️  To enable custom commands, add them to the ALLOWED_COMMANDS whitelist in trigger-engine.js');
+        logger.error(`❌ Command execution blocked: '${baseCommand}' is not in whitelist`);
+        logger.error(`   Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
+        logger.error(`   To enable custom commands, add them to ALLOWED_COMMANDS in trigger-engine.js`);
         return;
       }
 
-      execSync(formattedCommand, { timeout: 5000 }); // Add 5-second timeout
-      logger.info(`⚙️  Executed command: ${formattedCommand}`);
+      // Additional sanitization of arguments (defense in depth)
+      const sanitizedArgs = args.map(arg => this.sanitizeShellArg(arg));
+
+      // Use execFile with separated arguments (more secure than shell execution)
+      await execFileAsync(baseCommand, sanitizedArgs, {
+        timeout: 5000,
+        shell: false  // Explicitly disable shell execution
+      });
+
+      logger.info(`⚙️  Executed command: ${baseCommand} ${sanitizedArgs.join(' ')}`);
     } catch (error) {
-      logger.error(`❌ Failed to execute command: ${error}`);
+      logger.error(`❌ Failed to execute command: ${error.message}`);
     }
   }
 

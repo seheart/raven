@@ -84,15 +84,28 @@ function validateSyncConfig(config) {
 
 /**
  * Execute SSH command with timeout using execFile (safer than exec)
+ * @param {boolean} options.disableHostKeyCheck - Disable host key checking (not recommended)
  */
-async function execSSH(host, port, user, command, timeoutMs = SSH_TIMEOUT_MS) {
+async function execSSH(host, port, user, command, timeoutMs = SSH_TIMEOUT_MS, options = {}) {
   validateSyncConfig({ host, port, user });
+
+  // Security: StrictHostKeyChecking is enabled by default
+  // Only disable if explicitly requested via environment variable or options
+  const disableHostKeyCheck = options.disableHostKeyCheck ||
+                               process.env.SSH_DISABLE_HOST_KEY_CHECK === 'true';
+
+  if (disableHostKeyCheck) {
+    logger.warn('⚠️  SSH host key checking is DISABLED - vulnerable to MITM attacks', {
+      host,
+      user
+    });
+  }
 
   const args = [
     '-p', port.toString(),
     '-o', 'ConnectTimeout=10',
     '-o', 'BatchMode=yes',
-    '-o', 'StrictHostKeyChecking=no',
+    '-o', `StrictHostKeyChecking=${disableHostKeyCheck ? 'no' : 'yes'}`,
     `${user}@${host}`,
     command
   ];

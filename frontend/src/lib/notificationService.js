@@ -16,6 +16,22 @@ class NotificationService {
     this.recentNotifications = new Map(); // key -> timestamp
     this.rateLimitWindow = 5000; // 5 seconds
 
+    // Lazy AudioContext initialization (to avoid autoplay warnings)
+    this.audioContext = null;
+    this.userHasInteracted = false;
+
+    // Listen for first user interaction to enable audio
+    const enableAudio = () => {
+      this.userHasInteracted = true;
+      // Remove listeners after first interaction
+      document.removeEventListener('click', enableAudio);
+      document.removeEventListener('keydown', enableAudio);
+      document.removeEventListener('touchstart', enableAudio);
+    };
+    document.addEventListener('click', enableAudio, { once: true });
+    document.addEventListener('keydown', enableAudio, { once: true });
+    document.addEventListener('touchstart', enableAudio, { once: true });
+
     // Subscribe to settings changes for real-time updates
     settingsStore.subscribe(newSettings => {
       this.settings = newSettings;
@@ -107,9 +123,21 @@ class NotificationService {
   playSound(type = 'info') {
     if (!this.settings.notifications.soundEnabled) return;
 
+    // Don't create AudioContext until user has interacted with the page
+    if (!this.userHasInteracted) return;
+
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const now = audioContext.currentTime;
+      // Lazy initialization of AudioContext (avoids autoplay warnings)
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      // Resume context if suspended (happens after creation before user interaction)
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
+
+      const now = this.audioContext.currentTime;
 
       // Different sound patterns for different notification types
       const soundPatterns = {
@@ -140,11 +168,11 @@ class NotificationService {
       const pattern = soundPatterns[type] || soundPatterns.info;
 
       pattern.forEach(note => {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
 
         oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        gainNode.connect(this.audioContext.destination);
 
         oscillator.frequency.value = note.freq;
         oscillator.type = 'sine';
@@ -159,7 +187,11 @@ class NotificationService {
         oscillator.stop(endTime);
       });
     } catch (e) {
-      logger.warn('Failed to play notification sound:', e);
+      // Silently fail for AudioContext errors (e.g., before user interaction)
+      // Only log if it's not an autoplay/user interaction error
+      if (!e.message.includes('user gesture') && !e.message.includes('play()')) {
+        logger.warn('Failed to play notification sound:', e);
+      }
     }
   }
 
@@ -340,6 +372,23 @@ class NotificationService {
     } else if (status === 'stopped' || status === 'failed') {
       this.warning(message, { title: 'Agent Stopped' });
     }
+  }
+
+  /**
+   * Cleanup method to properly dispose of resources
+   * Call this when the service is no longer needed
+   */
+  destroy() {
+    // Close AudioContext if it exists
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+
+    // Clear recent notifications map
+    this.recentNotifications.clear();
+
+    logger.debug('NotificationService destroyed');
   }
 }
 

@@ -6,13 +6,11 @@
   import { notifications } from './notificationService.js';
   import ProjectsOverview from './ProjectsOverview.svelte';
   import HealthWidget from './HealthWidget.svelte';
-  import { API_CONFIG } from '../config.js';
+  import { dataService } from './dataService.js';
   import { logger } from './logger.js';
 
   export let sessionId = 'Loading...';
   export let sessionUptime = '0s';
-
-  const API_BASE = API_CONFIG.API_BASE;
 
   // Combined state from Dashboard, Metrics, and Git
   let stats = {
@@ -95,18 +93,18 @@
       }
       isManualRefresh = manual;
 
-      // Load all data in parallel
+      // Use dataService - it handles caching and deduplication
       const [statsData, metricsData, activityData, filesData] = await Promise.all([
-        fetch(`${API_BASE}/dashboard-stats`).then(r => r.json()),
-        fetch(`${API_BASE}/system-metrics?limit=1`).then(r => r.json()),
-        fetch(`${API_BASE}/all-file-events?limit=5`).then(r => r.json()),
-        fetch(`${API_BASE}/top-modified-files?limit=5`).then(r => r.json())
+        dataService.fetchDashboardStats(manual),
+        dataService.fetchSystemMetrics(1, manual),
+        dataService.fetchFileEvents(5, manual),
+        dataService.fetchTopFiles(5, manual)
       ]);
 
       stats = statsData;
-      systemMetrics = metricsData?.[0] || systemMetrics;
+      systemMetrics = metricsData;
       recentActivity = activityData || [];
-      topFiles = filesData.files || [];
+      topFiles = filesData || [];
 
       loading = false;
       lastUpdated = new Date();
@@ -132,16 +130,21 @@
 
   const handleFileChanged = async () => {
     // Reload activity and stats on file changes
+    // dataService will invalidate cache and fetch fresh data
     try {
+      dataService.invalidateCache('/all-file-events');
+      dataService.invalidateCache('/dashboard-stats');
+      dataService.invalidateCache('/top-modified-files');
+
       const [activityData, statsData, filesData] = await Promise.all([
-        fetch(`${API_BASE}/all-file-events?limit=5`).then(r => r.json()),
-        fetch(`${API_BASE}/dashboard-stats`).then(r => r.json()),
-        fetch(`${API_BASE}/top-modified-files?limit=5`).then(r => r.json())
+        dataService.fetchFileEvents(5, true),
+        dataService.fetchDashboardStats(true),
+        dataService.fetchTopFiles(5, true)
       ]);
 
       recentActivity = activityData || [];
       stats = statsData;
-      topFiles = filesData.files || [];
+      topFiles = filesData || [];
       lastUpdated = new Date();
     } catch (error) {
       logger.error('Failed to update activity:', error);

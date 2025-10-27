@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { notifications } from './notificationService.js';
   import { settings as settingsStore } from './settingsStore.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
@@ -17,7 +17,6 @@
   });
 
   // Clean up subscription on destroy
-  import { onDestroy } from 'svelte';
   onDestroy(() => {
     if (unsubscribe) unsubscribe();
   });
