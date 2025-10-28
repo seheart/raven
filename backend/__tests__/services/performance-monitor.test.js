@@ -206,4 +206,84 @@ describe('PerformanceMonitor', () => {
       expect(stats.lastCheck).not.toBeNull();
     });
   });
+
+  describe('Interval Monitoring', () => {
+    test('should call checkPerformance on interval', async () => {
+      const spy = jest.spyOn(monitor, 'checkPerformance');
+
+      monitor.start();
+
+      // Wait for at least one interval to fire
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      expect(spy).toHaveBeenCalled();
+      expect(monitor.stats.checksPerformed).toBeGreaterThan(0);
+
+      spy.mockRestore();
+    });
+  });
+
+  describe('Alert Conditions', () => {
+    test('should emit critical system memory alert when threshold exceeded', () => {
+      // Set extremely low thresholds so current memory usage will trigger critical alert
+      monitor.updateThresholds({
+        memory: { critical: 0.001, warning: 0.0001 }, // 0.001% threshold - will always trigger
+        heap: { warning: 200 } // Very high so heap doesn't trigger
+      });
+
+      monitor.checkPerformance();
+
+      expect(mockIO.emit).toHaveBeenCalledWith('performance-alert', expect.objectContaining({
+        type: 'memory',
+        severity: 'critical',
+        title: 'Critical System Memory'
+      }));
+    });
+
+    test('should emit heap warning when heap usage is high', () => {
+      // Set extremely low heap threshold so current heap usage triggers warning
+      monitor.updateThresholds({
+        memory: { critical: 200, warning: 199 }, // Very high so memory doesn't trigger
+        heap: { warning: 0.001 } // 0.001% threshold - will always trigger
+      });
+
+      monitor.checkPerformance();
+
+      expect(mockIO.emit).toHaveBeenCalledWith('performance-alert', expect.objectContaining({
+        type: 'heap',
+        severity: 'warning',
+        title: 'High Heap Memory'
+      }));
+    });
+
+    test('should emit system memory warning when threshold exceeded', () => {
+      // Set thresholds so memory warning triggers but not critical
+      // And heap threshold is high so it doesn't trigger
+      monitor.updateThresholds({
+        memory: { critical: 200, warning: 0.001 }, // Warning at 0.001%, critical at 200%
+        heap: { warning: 200 } // Very high so heap doesn't trigger
+      });
+
+      monitor.checkPerformance();
+
+      expect(mockIO.emit).toHaveBeenCalledWith('performance-alert', expect.objectContaining({
+        type: 'memory',
+        severity: 'warning',
+        title: 'High System Memory'
+      }));
+    });
+
+    test('should handle errors in checkPerformance gracefully', () => {
+      // Mock process.memoryUsage to throw error
+      const originalMemUsage = process.memoryUsage;
+      process.memoryUsage = jest.fn().mockImplementation(() => {
+        throw new Error('Memory check failed');
+      });
+
+      // Should not throw
+      expect(() => monitor.checkPerformance()).not.toThrow();
+
+      process.memoryUsage = originalMemUsage;
+    });
+  });
 });

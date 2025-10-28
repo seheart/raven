@@ -78,7 +78,7 @@ export class BehaviorProfiler {
       });
 
       return profile;
-    } catch (_e) {
+    } catch (e) {
       logger.error('Error building agent profile', { error: e, projectName, agent });
       return null;
     }
@@ -174,7 +174,7 @@ export class BehaviorProfiler {
         severity: Math.max(...deviations.map(d => d.severity)),
         message: this.generateBehaviorChangeMessage(baseline.mood, currentMood, deviations)
       };
-    } catch (_e) {
+    } catch (e) {
       logger.error('Error detecting behavior change', { error: e, projectName, agent });
       return null;
     }
@@ -278,7 +278,7 @@ export class BehaviorProfiler {
       comparisons.sort((a, b) => b.totalChanges - a.totalChanges);
 
       return comparisons;
-    } catch (_e) {
+    } catch (e) {
       logger.error('Error comparing agents', { error: e, projectName });
       return [];
     }
@@ -352,7 +352,7 @@ export class BehaviorProfiler {
       }
 
       logger.info('Updated agent stats', { projectName, date: dateStr });
-    } catch (_e) {
+    } catch (e) {
       logger.error('Error updating daily stats', { error: e, projectName });
     }
   }

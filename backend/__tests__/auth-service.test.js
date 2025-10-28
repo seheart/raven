@@ -2,7 +2,7 @@
  * Authentication Service Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import Database from 'better-sqlite3';
 import { AuthService } from '../services/auth-service.js';
 import { unlink } from 'fs/promises';
@@ -153,6 +153,12 @@ describe('AuthService', () => {
         authService.changePassword(userId, 'password123', 'weak')
       ).rejects.toThrow('New password must be at least 8 characters');
     });
+
+    it('should reject password change for non-existent user', async () => {
+      await expect(
+        authService.changePassword(99999, 'oldpass', 'newpassword123')
+      ).rejects.toThrow('User not found');
+    });
   });
 
   describe('User Management', () => {
@@ -229,6 +235,36 @@ describe('AuthService', () => {
       expect(result.token).toBeTruthy();
       expect(typeof result.token).toBe('string');
       expect(result.token.split('.')).toHaveLength(3); // JWT has 3 parts
+    });
+  });
+
+  describe('Initialization Errors', () => {
+    it('should handle createDefaultAdmin errors gracefully', async () => {
+      // Create a fresh database to trigger default admin creation
+      const freshDbPath = './__tests__/test-auth-fresh.db';
+      const freshDb = new Database(freshDbPath);
+
+      // Spy on createUser before creating AuthService
+      const createUserSpy = jest.spyOn(AuthService.prototype, 'createUser')
+        .mockRejectedValue(new Error('Simulated create user failure'));
+
+      // Create AuthService - this will trigger createDefaultAdmin which will fail
+      // The error will be caught by the error handler at lines 44-49
+      new AuthService(freshDb);
+
+      // Wait for async initialization and error handling
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Restore spy
+      createUserSpy.mockRestore();
+
+      freshDb.close();
+
+      try {
+        await unlink(freshDbPath);
+      } catch (_error) {
+        // Ignore cleanup errors
+      }
     });
   });
 });

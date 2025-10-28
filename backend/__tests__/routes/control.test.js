@@ -8,6 +8,7 @@ import express from 'express';
 import request from 'supertest';
 import { createControlRoutes } from '../../routes/control.js';
 import fs from 'fs';
+import { exec } from 'child_process';
 
 // Mock fs module
 jest.mock('fs');
@@ -310,6 +311,315 @@ describe('Control Routes', () => {
       expect(response.headers['content-disposition']).toMatch(
         /^attachment; filename="raven-health-\d+\.json"$/
       );
+    });
+  });
+
+  describe('Script Integrity Verification', () => {
+    beforeEach(() => {
+      // Reset fs mocks
+      jest.clearAllMocks();
+    });
+
+    test('should handle script verification with verification disabled', async () => {
+      // Mock config file with verification disabled
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: false, strictMode: false },
+            scripts: {}
+          });
+        }
+        if (path.includes('.pid')) return '12345';
+        return '';
+      });
+
+      fs.existsSync.mockReturnValue(true);
+      process.kill.mockImplementation(() => {}); // Success
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should handle script not registered in hash config', async () => {
+      // Mock config file with verification enabled but script not registered
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: true },
+            scripts: {} // No scripts registered
+          });
+        }
+        return '';
+      });
+
+      fs.existsSync.mockReturnValue(true);
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('script_not_registered');
+    });
+
+    test('should handle hash calculation failure', async () => {
+      // Mock config with verification enabled
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: false },
+            scripts: {
+              'stop-claude-bridge.sh': { sha256: 'abc123' }
+            }
+          });
+        }
+        // Throw on actual script read
+        throw new Error('File read error');
+      });
+
+      fs.existsSync.mockReturnValue(true);
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('hash_calculation_failed');
+    });
+
+    test('should handle first run scenario (no hash, non-strict mode)', async () => {
+      // Mock config with empty hash in non-strict mode
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: false },
+            scripts: {
+              'stop-claude-bridge.sh': { sha256: '' }, // Empty hash
+              'start-claude-bridge.sh': { sha256: '' }
+            }
+          });
+        }
+        if (path.includes('.pid')) return '12345';
+        return 'script content';
+      });
+
+      fs.existsSync.mockReturnValue(true);
+      fs.statSync = jest.fn().mockReturnValue({ mode: parseInt('755', 8) }); // Good permissions
+      process.kill.mockImplementation(() => {}); // Success
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should handle hash mismatch', async () => {
+      // Mock config with wrong hash
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: true },
+            scripts: {
+              'stop-claude-bridge.sh': { sha256: 'wrong_hash_value' }
+            }
+          });
+        }
+        return 'script content';
+      });
+
+      fs.existsSync.mockReturnValue(true);
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('hash_mismatch');
+    });
+
+    test('should detect world-writable scripts', async () => {
+      // Mock config with valid hash
+      const scriptContent = 'script content';
+      const crypto = await import('crypto');
+      const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
+
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: true },
+            scripts: {
+              'stop-claude-bridge.sh': { sha256: validHash }
+            }
+          });
+        }
+        return scriptContent;
+      });
+
+      fs.existsSync.mockReturnValue(true);
+      fs.statSync = jest.fn().mockReturnValue({ mode: parseInt('777', 8) }); // World-writable!
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('insecure_permissions');
+    });
+
+    test('should handle permission check failure', async () => {
+      // Mock config with valid hash
+      const scriptContent = 'script content';
+      const crypto = await import('crypto');
+      const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
+
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: true },
+            scripts: {
+              'stop-claude-bridge.sh': { sha256: validHash }
+            }
+          });
+        }
+        return scriptContent;
+      });
+
+      fs.existsSync.mockReturnValue(true);
+      fs.statSync = jest.fn().mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('permission_check_failed');
+    });
+
+    test('should handle missing script-hashes.json config', async () => {
+      // Mock readFileSync to throw error
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          throw new Error('ENOENT: no such file or directory');
+        }
+        if (path.includes('.pid')) return '12345';
+        return 'script content';
+      });
+
+      fs.existsSync.mockReturnValue(true);
+      process.kill.mockImplementation(() => {}); // Success
+
+      // Should fall back to disabled verification
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should verify script successfully with correct hash and permissions', async () => {
+      // Mock config with valid hash
+      const scriptContent = 'script content for testing';
+      const crypto = await import('crypto');
+      const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
+
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: true },
+            scripts: {
+              'stop-claude-bridge.sh': { sha256: validHash },
+              'start-claude-bridge.sh': { sha256: validHash }
+            }
+          });
+        }
+        if (path.includes('.pid')) return '12345';
+        return scriptContent;
+      });
+
+      fs.existsSync.mockReturnValue(true);
+      fs.statSync = jest.fn().mockReturnValue({ mode: parseInt('755', 8) }); // Good permissions
+      process.kill.mockImplementation(() => {}); // Success
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('successfully');
+    });
+
+    test('should fail when stop script file does not exist', async () => {
+      // Mock existsSync to return false for stop script
+      fs.existsSync.mockImplementation((path) => {
+        if (path.includes('stop-claude-bridge.sh')) return false;
+        return true;
+      });
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Stop script not found');
+    });
+
+    test('should fail when start script file does not exist', async () => {
+      // Mock config with valid hash for stop script
+      const scriptContent = 'script content';
+      const crypto = await import('crypto');
+      const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
+
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: true },
+            scripts: {
+              'stop-claude-bridge.sh': { sha256: validHash }
+            }
+          });
+        }
+        return scriptContent;
+      });
+
+      // Mock existsSync to return true for stop script, false for start script
+      fs.existsSync.mockImplementation((path) => {
+        if (path.includes('start-claude-bridge.sh')) return false;
+        return true;
+      });
+
+      fs.statSync = jest.fn().mockReturnValue({ mode: parseInt('755', 8) });
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Start script not found');
+    });
+
+    test('should fail when start script integrity verification fails', async () => {
+      // Mock config with valid hash for stop script, invalid for start script
+      const scriptContent = 'script content';
+      const crypto = await import('crypto');
+      const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
+
+      fs.readFileSync.mockImplementation((path) => {
+        if (path.includes('script-hashes.json')) {
+          return JSON.stringify({
+            verification: { enabled: true, strictMode: true },
+            scripts: {
+              'stop-claude-bridge.sh': { sha256: validHash },
+              'start-claude-bridge.sh': { sha256: 'wrong_hash_for_start_script' }
+            }
+          });
+        }
+        return scriptContent;
+      });
+
+      fs.existsSync.mockReturnValue(true);
+      fs.statSync = jest.fn().mockReturnValue({ mode: parseInt('755', 8) });
+
+      const response = await request(app).post('/api/control/restart-bridge');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Script integrity verification failed');
+      expect(response.body.error).toContain('hash_mismatch');
     });
   });
 });

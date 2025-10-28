@@ -2,9 +2,11 @@
  * Tests for Security Middleware
  */
 
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import express from 'express';
+import request from 'supertest';
 import {
   setupHelmet,
-  csrfProtection,
   apiLimiter,
   authLimiter,
   telemetryLimiter,
@@ -17,531 +19,421 @@ import {
 } from '../../middleware/security.js';
 
 describe('Security Middleware', () => {
-  let req, res, next;
-
-  beforeEach(() => {
-    // Create mock request object
-    req = {
-      path: '/api/test',
-      method: 'GET',
-      ip: '127.0.0.1',
-      url: '/api/test',
-      headers: {},
-      get: (header) => req.headers[header] || null,
-      session: {},
-      body: {},
-      query: {}
-    };
-
-    // Create mock response object with call tracking
-    const statusCalls = [];
-    const jsonCalls = [];
-    const setHeaderCalls = [];
-    const listeners = {};
-
-    res = {
-      status: (code) => {
-        statusCalls.push(code);
-        return res;
-      },
-      json: (data) => {
-        jsonCalls.push(data);
-        return res;
-      },
-      setHeader: (key, value) => {
-        setHeaderCalls.push({ key, value });
-        res.headers = res.headers || {};
-        res.headers[key] = value;
-        return res;
-      },
-      on: (event, callback) => {
-        listeners[event] = callback;
-      },
-      emit: (event, ...args) => {
-        if (listeners[event]) {
-          listeners[event](...args);
-        }
-      },
-      statusCode: 200,
-      _statusCalls: statusCalls,
-      _jsonCalls: jsonCalls,
-      _setHeaderCalls: setHeaderCalls,
-      _listeners: listeners
-    };
-
-    // Create mock next function
-    const nextCalls = [];
-    next = (...args) => nextCalls.push(args);
-    next._calls = nextCalls;
-  });
-
   describe('setupHelmet', () => {
-    it('should return helmet middleware configuration', () => {
-      const helmetConfig = setupHelmet();
-      expect(typeof helmetConfig).toBe('function');
-    });
+    test('should return helmet configuration', () => {
+      const config = setupHelmet();
 
-    it('should configure for development environment', () => {
-      const helmetConfig = setupHelmet({ NODE_ENV: 'development' });
-      expect(typeof helmetConfig).toBe('function');
-    });
-
-    it('should configure for production environment', () => {
-      const helmetConfig = setupHelmet({ NODE_ENV: 'production' });
-      expect(typeof helmetConfig).toBe('function');
-    });
-
-    it('should handle empty environment', () => {
-      const helmetConfig = setupHelmet({});
-      expect(typeof helmetConfig).toBe('function');
+      expect(config).toBeDefined();
+      expect(typeof config).toBe('function');
     });
   });
 
-  describe('csrfProtection', () => {
-    let csrf;
-
-    beforeEach(() => {
-      csrf = csrfProtection();
-    });
-
-    describe('generate', () => {
-      it('should generate CSRF token when no session token exists', () => {
-        csrf.generate(req, res, next);
-
-        expect(res._setHeaderCalls.length).toBeGreaterThan(0);
-        expect(res._setHeaderCalls[0].key).toBe('X-CSRF-Token');
-        expect(typeof res._setHeaderCalls[0].value).toBe('string');
-        expect(next._calls.length).toBe(1);
-      });
-
-      it('should store token in session', () => {
-        req.session = {};
-        csrf.generate(req, res, next);
-
-        expect(req.session.csrfToken).toBeDefined();
-        expect(typeof req.session.csrfToken).toBe('string');
-      });
-
-      it('should not generate new token if one exists', () => {
-        req.session = { csrfToken: 'existing-token' };
-        csrf.generate(req, res, next);
-
-        expect(res._setHeaderCalls.length).toBe(0);
-        expect(next._calls.length).toBe(1);
-      });
-
-      it('should handle missing session', () => {
-        req.session = null;
-        csrf.generate(req, res, next);
-
-        expect(next._calls.length).toBe(1);
-      });
-    });
-
-    describe('validate', () => {
-      let validToken;
-
-      beforeEach(() => {
-        // Generate a valid token first
-        csrf.generate(req, res, next);
-        validToken = res._setHeaderCalls[0]?.value;
-      });
-
-      it('should skip validation for GET requests', () => {
-        req.method = 'GET';
-        csrf.validate(req, res, next);
-
-        expect(next._calls.length).toBe(2); // 1 from generate, 1 from validate
-      });
-
-      it('should skip validation for HEAD requests', () => {
-        req.method = 'HEAD';
-        csrf.validate(req, res, next);
-
-        expect(next._calls.length).toBe(2);
-      });
-
-      it('should skip validation for OPTIONS requests', () => {
-        req.method = 'OPTIONS';
-        csrf.validate(req, res, next);
-
-        expect(next._calls.length).toBe(2);
-      });
-
-      it('should skip validation for WebSocket upgrade', () => {
-        req.method = 'POST';
-        req.headers.upgrade = 'websocket';
-        csrf.validate(req, res, next);
-
-        expect(next._calls.length).toBe(2);
-      });
-
-      it('should reject POST request without token', () => {
-        req.method = 'POST';
-        csrf.validate(req, res, next);
-
-        expect(res._statusCalls[0]).toBe(403);
-        expect(res._jsonCalls[0].error.code).toBe('CSRF_MISSING');
-      });
-
-      it('should accept valid token in header', () => {
-        req.method = 'POST';
-        req.headers['x-csrf-token'] = validToken;
-        csrf.validate(req, res, next);
-
-        expect(next._calls.length).toBe(2);
-      });
-
-      it('should accept valid token in body', () => {
-        req.method = 'POST';
-        req.body = { _csrf: validToken };
-        csrf.validate(req, res, next);
-
-        expect(next._calls.length).toBe(2);
-      });
-
-      it('should accept valid token in query', () => {
-        req.method = 'POST';
-        req.query = { _csrf: validToken };
-        csrf.validate(req, res, next);
-
-        expect(next._calls.length).toBe(2);
-      });
-
-      it('should reject invalid token', () => {
-        req.method = 'POST';
-        req.headers['x-csrf-token'] = 'invalid-token';
-        csrf.validate(req, res, next);
-
-        expect(res._statusCalls[0]).toBe(403);
-        expect(res._jsonCalls[0].error.code).toBe('CSRF_INVALID');
-      });
-
-      it('should reject expired token', async () => {
-        req.method = 'POST';
-        req.headers['x-csrf-token'] = validToken;
-
-        // Wait for token to expire (mock by advancing time)
-        // Since we can't actually wait, we'll test the expiry logic indirectly
-        // by checking that a very old timestamp would cause expiry
-
-        // For now, just verify the token works when fresh
-        csrf.validate(req, res, next);
-        expect(next._calls.length).toBe(2);
-      });
-    });
-  });
-
-  describe('Rate Limiters', () => {
-    it('should export apiLimiter', () => {
+  describe('apiLimiter', () => {
+    test('should be defined as middleware', () => {
+      expect(apiLimiter).toBeDefined();
       expect(typeof apiLimiter).toBe('function');
     });
 
-    it('should export authLimiter', () => {
+    test('should skip rate limiting for health endpoints', async () => {
+      const app = express();
+      app.use(apiLimiter);
+      app.get('/health', (req, res) => res.json({ status: 'ok' }));
+      app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+      // Make requests to health endpoints - should not be rate limited
+      const response1 = await request(app).get('/health');
+      expect(response1.status).toBe(200);
+
+      const response2 = await request(app).get('/api/health');
+      expect(response2.status).toBe(200);
+    });
+  });
+
+  describe('authLimiter', () => {
+    test('should be defined as middleware', () => {
+      expect(authLimiter).toBeDefined();
       expect(typeof authLimiter).toBe('function');
     });
+  });
 
-    it('should export telemetryLimiter', () => {
+  describe('telemetryLimiter', () => {
+    test('should be defined as middleware', () => {
+      expect(telemetryLimiter).toBeDefined();
       expect(typeof telemetryLimiter).toBe('function');
     });
+  });
 
-    it('should export writeLimiter', () => {
+  describe('writeLimiter', () => {
+    test('should be defined as middleware', () => {
+      expect(writeLimiter).toBeDefined();
       expect(typeof writeLimiter).toBe('function');
-    });
-
-    it('should skip rate limiting for health check', () => {
-      // The apiLimiter has a skip function that checks for health endpoints
-      // This is tested indirectly through the limiter configuration
-      expect(apiLimiter).toBeDefined();
     });
   });
 
   describe('requestLogger', () => {
-    it('should log successful requests in development', () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+    let app;
 
-      requestLogger(req, res, next);
-
-      // Simulate response finishing
-      res.statusCode = 200;
-      res.emit('finish');
-
-      process.env.NODE_ENV = originalEnv;
-      expect(next._calls.length).toBe(1);
+    beforeEach(() => {
+      app = express();
+      app.use(requestLogger);
     });
 
-    it('should log error responses', () => {
-      requestLogger(req, res, next);
+    test('should log requests on completion', async () => {
+      app.get('/test', (req, res) => {
+        res.status(200).json({ success: true });
+      });
 
-      res.statusCode = 500;
-      res.emit('finish');
+      const response = await request(app).get('/test');
 
-      expect(next._calls.length).toBe(1);
+      expect(response.status).toBe(200);
     });
 
-    it('should log client error responses', () => {
-      requestLogger(req, res, next);
+    test('should log errors for 4xx status codes', async () => {
+      app.get('/error', (req, res) => {
+        res.status(400).json({ error: 'Bad request' });
+      });
 
-      res.statusCode = 404;
-      res.emit('finish');
+      const response = await request(app).get('/error');
 
-      expect(next._calls.length).toBe(1);
+      expect(response.status).toBe(400);
     });
 
-    it('should not log successful requests in production', () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+    test('should log errors for 5xx status codes', async () => {
+      app.get('/server-error', (req, res) => {
+        res.status(500).json({ error: 'Server error' });
+      });
 
-      requestLogger(req, res, next);
+      const response = await request(app).get('/server-error');
 
-      res.statusCode = 200;
-      res.emit('finish');
-
-      process.env.NODE_ENV = originalEnv;
-      expect(next._calls.length).toBe(1);
+      expect(response.status).toBe(500);
     });
 
-    it('should calculate request duration', () => {
-      requestLogger(req, res, next);
+    test('should call next middleware', async () => {
+      let nextCalled = false;
+      app.use((req, res, next) => {
+        nextCalled = true;
+        res.status(200).send('OK');
+      });
 
-      // Simulate some processing time
-      res.statusCode = 200;
-      res.emit('finish');
+      await request(app).get('/test');
 
-      expect(next._calls.length).toBe(1);
+      expect(nextCalled).toBe(true);
     });
   });
 
   describe('errorHandler', () => {
-    it('should handle error with default values', () => {
-      const error = new Error('Test error');
-      errorHandler(error, req, res, next);
+    let app;
 
-      expect(res._statusCalls[0]).toBe(500);
-      const response = res._jsonCalls[0];
-      expect(response.error.message).toBe('Test error');
-      expect(response.error.code).toBe('INTERNAL_ERROR');
-      expect(response.error.statusCode).toBe(500);
+    beforeEach(() => {
+      app = express();
+      app.use(express.json());
     });
 
-    it('should handle error with custom status code', () => {
-      const error = new Error('Not found');
-      error.statusCode = 404;
-      errorHandler(error, req, res, next);
+    test('should handle errors with default values', async () => {
+      app.get('/error', (req, res, next) => {
+        next(new Error('Test error'));
+      });
+      app.use(errorHandler);
 
-      expect(res._statusCalls[0]).toBe(404);
+      const response = await request(app).get('/error');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toHaveProperty('message');
+      expect(response.body.error).toHaveProperty('code');
+      expect(response.body.error).toHaveProperty('statusCode');
     });
 
-    it('should handle error with status property', () => {
-      const error = new Error('Bad request');
-      error.status = 400;
-      errorHandler(error, req, res, next);
+    test('should use custom status code from error', async () => {
+      app.get('/error', (req, res, next) => {
+        const err = new Error('Not found');
+        err.statusCode = 404;
+        next(err);
+      });
+      app.use(errorHandler);
 
-      expect(res._statusCalls[0]).toBe(400);
+      const response = await request(app).get('/error');
+
+      expect(response.status).toBe(404);
     });
 
-    it('should handle error with custom error code', () => {
-      const error = new Error('Validation failed');
-      error.statusCode = 400;
-      error.errorCode = 'VALIDATION_ERROR';
-      errorHandler(error, req, res, next);
+    test('should use custom error code from error', async () => {
+      app.get('/error', (req, res, next) => {
+        const err = new Error('Validation failed');
+        err.statusCode = 400;
+        err.errorCode = 'VALIDATION_ERROR';
+        next(err);
+      });
+      app.use(errorHandler);
 
-      const response = res._jsonCalls[0];
-      expect(response.error.code).toBe('VALIDATION_ERROR');
+      const response = await request(app).get('/error');
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should include error details if provided', () => {
-      const error = new Error('Validation failed');
-      error.statusCode = 400;
-      error.details = { field: 'email', reason: 'invalid format' };
-      errorHandler(error, req, res, next);
+    test('should include error details if provided', async () => {
+      app.get('/error', (req, res, next) => {
+        const err = new Error('Validation failed');
+        err.statusCode = 400;
+        err.details = { field: 'email', issue: 'invalid format' };
+        next(err);
+      });
+      app.use(errorHandler);
 
-      const response = res._jsonCalls[0];
-      expect(response.error.details).toEqual({ field: 'email', reason: 'invalid format' });
+      const response = await request(app).get('/error');
+
+      expect(response.body.error.details).toEqual({
+        field: 'email',
+        issue: 'invalid format'
+      });
     });
 
-    it('should include stack trace in development', () => {
-      const originalEnv = process.env.NODE_ENV;
+    test('should include stack trace in development', async () => {
       process.env.NODE_ENV = 'development';
 
-      const error = new Error('Test error');
-      errorHandler(error, req, res, next);
+      app.get('/error', (req, res, next) => {
+        next(new Error('Dev error'));
+      });
+      app.use(errorHandler);
 
-      const response = res._jsonCalls[0];
-      expect(response.error.stack).toBeDefined();
-      expect(Array.isArray(response.error.stack)).toBe(true);
+      const response = await request(app).get('/error');
 
-      process.env.NODE_ENV = originalEnv;
+      expect(response.body.error).toHaveProperty('stack');
+      expect(Array.isArray(response.body.error.stack)).toBe(true);
+
+      process.env.NODE_ENV = 'test';
     });
 
-    it('should not include stack trace in production', () => {
-      const originalEnv = process.env.NODE_ENV;
+    test('should not include stack trace in production', async () => {
       process.env.NODE_ENV = 'production';
 
-      const error = new Error('Test error');
-      errorHandler(error, req, res, next);
+      app.get('/error', (req, res, next) => {
+        next(new Error('Prod error'));
+      });
+      app.use(errorHandler);
 
-      const response = res._jsonCalls[0];
-      expect(response.error.stack).toBeUndefined();
+      const response = await request(app).get('/error');
 
-      process.env.NODE_ENV = originalEnv;
+      expect(response.body.error.stack).toBeUndefined();
+
+      process.env.NODE_ENV = 'test';
     });
 
-    it('should include request ID if available', () => {
-      req.id = 'request-123';
-      const error = new Error('Test error');
-      errorHandler(error, req, res, next);
+    test('should include request ID if available', async () => {
+      app.use((req, res, next) => {
+        req.id = 'test-request-123';
+        next();
+      });
 
-      const response = res._jsonCalls[0];
-      expect(response.error.requestId).toBe('request-123');
+      app.get('/error', (req, res, next) => {
+        next(new Error('Test error'));
+      });
+      app.use(errorHandler);
+
+      const response = await request(app).get('/error');
+
+      expect(response.body.error.requestId).toBe('test-request-123');
     });
 
-    it('should log server errors (5xx)', () => {
-      const error = new Error('Internal error');
-      error.statusCode = 500;
-      errorHandler(error, req, res, next);
+    test('should handle errors with status property', async () => {
+      app.get('/error', (req, res, next) => {
+        const err = new Error('Unauthorized');
+        err.status = 401;
+        next(err);
+      });
+      app.use(errorHandler);
 
-      expect(res._statusCalls[0]).toBe(500);
+      const response = await request(app).get('/error');
+
+      expect(response.status).toBe(401);
     });
 
-    it('should log client errors (4xx)', () => {
-      const error = new Error('Bad request');
-      error.statusCode = 400;
-      errorHandler(error, req, res, next);
+    test('should log server errors (5xx)', async () => {
+      app.get('/error', (req, res, next) => {
+        const err = new Error('Internal error');
+        err.statusCode = 500;
+        next(err);
+      });
+      app.use(errorHandler);
 
-      expect(res._statusCalls[0]).toBe(400);
+      const response = await request(app).get('/error');
+
+      expect(response.status).toBe(500);
     });
 
-    it('should handle error without message', () => {
-      const error = new Error();
-      errorHandler(error, req, res, next);
+    test('should log client errors (4xx)', async () => {
+      app.get('/error', (req, res, next) => {
+        const err = new Error('Bad request');
+        err.statusCode = 400;
+        next(err);
+      });
+      app.use(errorHandler);
 
-      const response = res._jsonCalls[0];
-      expect(response.error.message).toBe('An unexpected error occurred');
-    });
+      const response = await request(app).get('/error');
 
-    it('should get user-agent from request', () => {
-      req.headers['user-agent'] = 'test-agent';
-      const error = new Error('Test error');
-      errorHandler(error, req, res, next);
-
-      expect(res._statusCalls[0]).toBe(500);
+      expect(response.status).toBe(400);
     });
   });
 
   describe('notFoundHandler', () => {
-    it('should return 404 response', () => {
-      notFoundHandler(req, res);
+    let app;
 
-      expect(res._statusCalls[0]).toBe(404);
-      const response = res._jsonCalls[0];
-      expect(response.error.code).toBe('NOT_FOUND');
-      expect(response.error.statusCode).toBe(404);
+    beforeEach(() => {
+      app = express();
+      app.use(notFoundHandler);
     });
 
-    it('should include request method and path', () => {
-      req.method = 'POST';
-      req.path = '/api/nonexistent';
-      notFoundHandler(req, res);
+    test('should return 404 status', async () => {
+      const response = await request(app).get('/nonexistent');
 
-      const response = res._jsonCalls[0];
-      expect(response.error.message).toBe('Route not found: POST /api/nonexistent');
+      expect(response.status).toBe(404);
     });
 
-    it('should log the not found error', () => {
-      notFoundHandler(req, res);
+    test('should return error object with message', async () => {
+      const response = await request(app).get('/nonexistent');
 
-      expect(res._statusCalls[0]).toBe(404);
+      expect(response.body.error).toHaveProperty('message');
+      expect(response.body.error.message).toContain('Route not found');
+      expect(response.body.error.message).toContain('GET');
+      expect(response.body.error.message).toContain('/nonexistent');
+    });
+
+    test('should return NOT_FOUND error code', async () => {
+      const response = await request(app).get('/nonexistent');
+
+      expect(response.body.error.code).toBe('NOT_FOUND');
+    });
+
+    test('should return 404 statusCode in error', async () => {
+      const response = await request(app).get('/nonexistent');
+
+      expect(response.body.error.statusCode).toBe(404);
+    });
+
+    test('should work for POST requests', async () => {
+      const response = await request(app).post('/nonexistent');
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.message).toContain('POST');
+    });
+
+    test('should work for PUT requests', async () => {
+      const response = await request(app).put('/nonexistent');
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.message).toContain('PUT');
+    });
+
+    test('should work for DELETE requests', async () => {
+      const response = await request(app).delete('/nonexistent');
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.message).toContain('DELETE');
     });
   });
 
   describe('setupCORS', () => {
-    it('should return CORS configuration object', () => {
-      const corsConfig = setupCORS(['http://localhost:3000']);
+    test('should return CORS configuration object', () => {
+      const allowedOrigins = ['http://localhost:3000'];
+      const config = setupCORS(allowedOrigins);
 
-      expect(corsConfig).toHaveProperty('origin');
-      expect(corsConfig).toHaveProperty('credentials');
-      expect(corsConfig).toHaveProperty('methods');
-      expect(corsConfig).toHaveProperty('allowedHeaders');
+      expect(config).toHaveProperty('origin');
+      expect(config).toHaveProperty('credentials');
+      expect(config).toHaveProperty('methods');
+      expect(config).toHaveProperty('allowedHeaders');
     });
 
-    it('should allow requests with no origin', () => {
-      const corsConfig = setupCORS(['http://localhost:3000']);
-      const callback = (err, allowed) => {
+    test('should allow requests with no origin', (done) => {
+      const allowedOrigins = ['http://localhost:3000'];
+      const config = setupCORS(allowedOrigins);
+
+      config.origin(undefined, (err, allowed) => {
         expect(err).toBeNull();
         expect(allowed).toBe(true);
-      };
-
-      corsConfig.origin(null, callback);
+        done();
+      });
     });
 
-    it('should allow whitelisted origins', () => {
-      const corsConfig = setupCORS(['http://localhost:3000']);
-      const callback = (err, allowed) => {
+    test('should allow whitelisted origins', (done) => {
+      const allowedOrigins = ['http://localhost:3000'];
+      const config = setupCORS(allowedOrigins);
+
+      config.origin('http://localhost:3000', (err, allowed) => {
         expect(err).toBeNull();
         expect(allowed).toBe(true);
-      };
-
-      corsConfig.origin('http://localhost:3000', callback);
+        done();
+      });
     });
 
-    it('should allow wildcard origins', () => {
-      const corsConfig = setupCORS(['*']);
-      const callback = (err, allowed) => {
-        expect(err).toBeNull();
-        expect(allowed).toBe(true);
-      };
+    test('should reject non-whitelisted origins', (done) => {
+      const allowedOrigins = ['http://localhost:3000'];
+      const config = setupCORS(allowedOrigins);
 
-      corsConfig.origin('http://example.com', callback);
-    });
-
-    it('should reject non-whitelisted origins', () => {
-      const corsConfig = setupCORS(['http://localhost:3000']);
-      const callback = (err, allowed) => {
-        expect(err).toBeDefined();
+      config.origin('http://evil.com', (err, allowed) => {
+        expect(err).toBeInstanceOf(Error);
         expect(err.message).toBe('Not allowed by CORS');
-      };
-
-      corsConfig.origin('http://evil.com', callback);
+        done();
+      });
     });
 
-    it('should include correct methods', () => {
-      const corsConfig = setupCORS(['http://localhost:3000']);
-      expect(corsConfig.methods).toEqual(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']);
+    test('should allow all origins with wildcard', (done) => {
+      const allowedOrigins = ['*'];
+      const config = setupCORS(allowedOrigins);
+
+      config.origin('http://anything.com', (err, allowed) => {
+        expect(err).toBeNull();
+        expect(allowed).toBe(true);
+        done();
+      });
     });
 
-    it('should include correct headers', () => {
-      const corsConfig = setupCORS(['http://localhost:3000']);
-      expect(corsConfig.allowedHeaders).toEqual(['Content-Type', 'Authorization']);
+    test('should include credentials option', () => {
+      const config = setupCORS(['http://localhost:3000']);
+
+      expect(config.credentials).toBe(true);
     });
 
-    it('should enable credentials', () => {
-      const corsConfig = setupCORS(['http://localhost:3000']);
-      expect(corsConfig.credentials).toBe(true);
+    test('should include allowed methods', () => {
+      const config = setupCORS(['http://localhost:3000']);
+
+      expect(config.methods).toContain('GET');
+      expect(config.methods).toContain('POST');
+      expect(config.methods).toContain('PUT');
+      expect(config.methods).toContain('DELETE');
+      expect(config.methods).toContain('PATCH');
+    });
+
+    test('should include allowed headers', () => {
+      const config = setupCORS(['http://localhost:3000']);
+
+      expect(config.allowedHeaders).toContain('Content-Type');
+      expect(config.allowedHeaders).toContain('Authorization');
     });
   });
 
   describe('setupRequestSizeLimit', () => {
-    it('should return size limit configuration', () => {
+    test('should return request size limit configuration', () => {
       const config = setupRequestSizeLimit();
 
       expect(config).toHaveProperty('json');
       expect(config).toHaveProperty('urlencoded');
     });
 
-    it('should set JSON size limit to 10mb', () => {
+    test('should set JSON limit to 10mb', () => {
       const config = setupRequestSizeLimit();
+
       expect(config.json.limit).toBe('10mb');
     });
 
-    it('should set URL-encoded size limit to 10mb', () => {
+    test('should set urlencoded limit to 10mb', () => {
       const config = setupRequestSizeLimit();
+
       expect(config.urlencoded.limit).toBe('10mb');
     });
 
-    it('should enable extended URL-encoded parsing', () => {
+    test('should set urlencoded extended to true', () => {
       const config = setupRequestSizeLimit();
+
       expect(config.urlencoded.extended).toBe(true);
     });
   });

@@ -190,5 +190,294 @@ describe('Conversations Routes', () => {
       expect(response.body).toHaveProperty('imported');
       expect(response.body.imported).toHaveProperty('total');
     });
+
+    test('should import session file with tool results', async () => {
+      const sessionFile = join(testDir, 'tool-session.jsonl');
+      const sessionData = [
+        {
+          type: 'user',
+          message: {
+            role: 'user',
+            content: [{
+              type: 'tool_result',
+              tool_use_id: 'tool-123',
+              content: 'Command output here',
+              is_error: false
+            }]
+          },
+          timestamp: new Date().toISOString(),
+          sessionId: 'tool-session'
+        }
+      ];
+      writeFileSync(sessionFile, sessionData.map(d => JSON.stringify(d)).join('\n'));
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.imported.toolResults).toBe(1);
+    });
+
+    test('should import session file with tool calls', async () => {
+      const sessionFile = join(testDir, 'toolcall-session.jsonl');
+      const sessionData = [
+        {
+          type: 'assistant',
+          message: {
+            content: [
+              { type: 'text', text: 'Running command...' },
+              { type: 'tool_use', id: 'tool-456', name: 'bash', input: { command: 'ls' } }
+            ]
+          },
+          timestamp: new Date().toISOString(),
+          sessionId: 'toolcall-session'
+        }
+      ];
+      writeFileSync(sessionFile, sessionData.map(d => JSON.stringify(d)).join('\n'));
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.imported.toolCalls).toBe(1);
+      expect(response.body.imported.assistantMessages).toBe(1);
+    });
+
+    test('should skip summary entries', async () => {
+      const sessionFile = join(testDir, 'summary-session.jsonl');
+      const sessionData = [
+        { type: 'summary', content: 'Summary data' },
+        { type: 'user', message: { role: 'user', content: 'real message' }, timestamp: new Date().toISOString(), sessionId: 'sess' }
+      ];
+      writeFileSync(sessionFile, sessionData.map(d => JSON.stringify(d)).join('\n'));
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.imported.total).toBe(1); // Only the user message
+    });
+
+    test('should skip file-history-snapshot entries', async () => {
+      const sessionFile = join(testDir, 'snapshot-session.jsonl');
+      const sessionData = [
+        { type: 'file-history-snapshot', content: 'Snapshot data' },
+        { type: 'user', message: { role: 'user', content: 'real message' }, timestamp: new Date().toISOString(), sessionId: 'sess' }
+      ];
+      writeFileSync(sessionFile, sessionData.map(d => JSON.stringify(d)).join('\n'));
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.imported.total).toBe(1);
+    });
+
+    test('should handle malformed JSON lines gracefully', async () => {
+      const sessionFile = join(testDir, 'malformed-session.jsonl');
+      const content = 'invalid json line\n' +
+        JSON.stringify({ type: 'user', message: { role: 'user', content: 'valid' }, timestamp: new Date().toISOString(), sessionId: 'sess' });
+      writeFileSync(sessionFile, content);
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.imported.total).toBe(1); // Only valid line
+    });
+
+    test('should handle tool result with error flag', async () => {
+      const sessionFile = join(testDir, 'error-tool-session.jsonl');
+      const sessionData = [
+        {
+          type: 'user',
+          message: {
+            role: 'user',
+            content: [{
+              type: 'tool_result',
+              tool_use_id: 'tool-error',
+              content: 'Error output',
+              is_error: true
+            }]
+          },
+          timestamp: new Date().toISOString(),
+          sessionId: 'error-session'
+        }
+      ];
+      writeFileSync(sessionFile, sessionData.map(d => JSON.stringify(d)).join('\n'));
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.imported.toolResults).toBe(1);
+    });
+
+    test('should handle tool result with object content', async () => {
+      const sessionFile = join(testDir, 'obj-tool-session.jsonl');
+      const sessionData = [
+        {
+          type: 'user',
+          message: {
+            role: 'user',
+            content: [{
+              type: 'tool_result',
+              tool_use_id: 'tool-obj',
+              content: { result: 'data', nested: { value: 123 } },
+              is_error: false
+            }]
+          },
+          timestamp: new Date().toISOString(),
+          sessionId: 'obj-session'
+        }
+      ];
+      writeFileSync(sessionFile, sessionData.map(d => JSON.stringify(d)).join('\n'));
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.imported.toolResults).toBe(1);
+    });
+
+    test('should handle user message with object content', async () => {
+      const sessionFile = join(testDir, 'obj-user-session.jsonl');
+      const sessionData = [
+        {
+          type: 'user',
+          message: {
+            role: 'user',
+            content: { text: 'structured content' }
+          },
+          timestamp: new Date().toISOString(),
+          sessionId: 'obj-user-session'
+        }
+      ];
+      writeFileSync(sessionFile, sessionData.map(d => JSON.stringify(d)).join('\n'));
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.imported.userMessages).toBe(1);
+    });
+  });
+
+  describe('Error Handling', () => {
+    test('should handle missing raven database', async () => {
+      const appNoRaven = express();
+      appNoRaven.use(express.json());
+
+      const depsNoRaven = {
+        projectDatabases: new Map(), // No raven database
+        projectState: { db: ravenDb }
+      };
+
+      appNoRaven.use('/api', createConversationRoutes(depsNoRaven));
+
+      const response = await request(appNoRaven)
+        .get('/api/conversations')
+        .expect(500);
+
+      expect(response.body.error).toContain('Raven database not found');
+    });
+
+    test('should handle errors in getConversations', async () => {
+      const originalFn = ravenDb.getConversations;
+      ravenDb.getConversations = () => {
+        throw new Error('Query failed');
+      };
+
+      const response = await request(app)
+        .get('/api/conversations')
+        .expect(500);
+
+      expect(response.body.error).toBe('Query failed');
+
+      ravenDb.getConversations = originalFn;
+    });
+
+    test('should handle errors in getConversationStats', async () => {
+      const originalFn = ravenDb.getConversationStats;
+      ravenDb.getConversationStats = () => {
+        throw new Error('Stats failed');
+      };
+
+      const response = await request(app)
+        .get('/api/conversations/stats')
+        .expect(500);
+
+      expect(response.body.error).toBe('Stats failed');
+
+      ravenDb.getConversationStats = originalFn;
+    });
+
+    test('should handle errors in getConversationsBySession', async () => {
+      const originalFn = ravenDb.getConversationsBySession;
+      ravenDb.getConversationsBySession = () => {
+        throw new Error('Session query failed');
+      };
+
+      const response = await request(app)
+        .get('/api/conversations/session/session-1')
+        .expect(500);
+
+      expect(response.body.error).toBe('Session query failed');
+
+      ravenDb.getConversationsBySession = originalFn;
+    });
+
+    test('should handle errors during import', async () => {
+      // Create a file that will cause read error
+      const sessionFile = join(testDir, 'corrupt-session.jsonl');
+      writeFileSync(sessionFile, 'data');
+
+      // Mock insertConversation to throw error
+      const originalFn = ravenDb.insertConversation;
+      ravenDb.insertConversation = () => {
+        throw new Error('Insert failed');
+      };
+
+      // Errors inside line handler are caught and logged, import succeeds with 0 entries
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile, project: 'test-project' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.imported.total).toBe(0); // No valid entries imported
+
+      ravenDb.insertConversation = originalFn;
+    });
+
+    test('should handle stream errors during import', async () => {
+      // Create a directory instead of a file - passes existsSync but fails createReadStream
+      const dirPath = join(testDir, 'bad-session.jsonl');
+      mkdirSync(dirPath, { recursive: true });
+
+      const response = await request(app)
+        .post('/api/conversations/import')
+        .send({ sessionFile: dirPath, project: 'test-project' })
+        .expect(500);
+
+      expect(response.body.error).toBeDefined();
+
+      // Clean up
+      rmSync(dirPath, { recursive: true, force: true });
+    });
   });
 });

@@ -191,4 +191,96 @@ describe('Sessions Routes', () => {
       expect(mockSessionTracker.getSessionStats).toHaveBeenCalledWith('test-project', 7);
     });
   });
+
+  describe('Error Handling', () => {
+    test('should handle errors in getActiveSession', async () => {
+      mockSessionTracker.getActiveSession.mockImplementation(() => {
+        throw new Error('Session retrieval failed');
+      });
+
+      const response = await request(app)
+        .get('/api/sessions/current')
+        .expect(500);
+
+      expect(response.body.error).toBe('Session retrieval failed');
+    });
+
+    test('should handle missing session tracker in quality endpoint', async () => {
+      const appNoTracker = express();
+      appNoTracker.use(express.json());
+      appNoTracker.use('/api/sessions', createSessionRoutes({
+        projectDatabases: mockProjectDatabases
+      }));
+
+      const response = await request(appNoTracker)
+        .get('/api/sessions/quality')
+        .expect(503);
+
+      expect(response.body.error).toBe('Session tracker not initialized');
+    });
+
+    test('should handle errors in calculateSessionQuality', async () => {
+      mockSessionTracker.calculateSessionQuality.mockImplementation(() => {
+        throw new Error('Quality calculation failed');
+      });
+
+      const response = await request(app)
+        .get('/api/sessions/quality')
+        .expect(500);
+
+      expect(response.body.error).toBe('Quality calculation failed');
+    });
+
+    test('should handle missing session tracker in break-recommendation endpoint', async () => {
+      const appNoTracker = express();
+      appNoTracker.use(express.json());
+      appNoTracker.use('/api/sessions', createSessionRoutes({
+        projectDatabases: mockProjectDatabases
+      }));
+
+      const response = await request(appNoTracker)
+        .get('/api/sessions/break-recommendation')
+        .expect(503);
+
+      expect(response.body.error).toBe('Session tracker not initialized');
+    });
+
+    test('should handle errors in getBreakRecommendation', async () => {
+      mockSessionTracker.getBreakRecommendation.mockImplementation(() => {
+        throw new Error('Break recommendation failed');
+      });
+
+      const response = await request(app)
+        .get('/api/sessions/break-recommendation')
+        .expect(500);
+
+      expect(response.body.error).toBe('Break recommendation failed');
+    });
+
+    test('should handle missing session tracker in stats endpoint', async () => {
+      const appNoTracker = express();
+      appNoTracker.use(express.json());
+      appNoTracker.use('/api/sessions', createSessionRoutes({
+        projectDatabases: mockProjectDatabases
+      }));
+
+      const response = await request(appNoTracker)
+        .get('/api/sessions/stats')
+        .expect(503);
+
+      expect(response.body.error).toBe('Session tracker not initialized');
+    });
+
+    test('should handle errors in getSessionStats', async () => {
+      mockSessionTracker.getSessionStats.mockImplementation(() => {
+        throw new Error('Stats retrieval failed');
+      });
+
+      const response = await request(app)
+        .get('/api/sessions/stats')
+        .expect(500);
+
+      expect(response.body.error).toBe('Stats retrieval failed');
+    });
+  });
 });
