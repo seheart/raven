@@ -3,6 +3,19 @@ import { toasts } from './toastStore.js';
 import { settings as settingsStore } from './settingsStore.js';
 
 /**
+ * @typedef {'info'|'success'|'warning'|'error'|'trigger'|'performance'} NotificationType
+ */
+
+/**
+ * @typedef {Object} NotificationOptions
+ * @property {string} [title='Raven'] - Notification title
+ * @property {number} [duration] - Auto-dismiss duration in ms
+ * @property {boolean} [browserNotification=false] - Show browser notification
+ * @property {boolean} [playSound] - Play notification sound
+ * @property {boolean} [critical] - Mark as critical (for warnings)
+ */
+
+/**
  * Centralized notification service that respects user preferences
  * Handles: toasts, browser notifications, and sounds
  */
@@ -218,7 +231,12 @@ class NotificationService {
     }
   }
 
-  // Main notification method
+  /**
+   * Main notification method
+   * @param {string} message - Notification message
+   * @param {NotificationType} [type='info'] - Notification type
+   * @param {NotificationOptions} [options={}] - Notification options
+   */
   notify(message, type = 'info', options = {}) {
     // Check if this notification type should be shown
     if (!this.shouldShow(type)) return;
@@ -254,7 +272,11 @@ class NotificationService {
     }
   }
 
-  // Convenience methods
+  /**
+   * Show error notification
+   * @param {string} message - Error message
+   * @param {NotificationOptions} [options={}] - Notification options
+   */
   error(message, options = {}) {
     this.notify(message, 'error', {
       ...options,
@@ -263,6 +285,11 @@ class NotificationService {
     });
   }
 
+  /**
+   * Show warning notification
+   * @param {string} message - Warning message
+   * @param {NotificationOptions} [options={}] - Notification options
+   */
   warning(message, options = {}) {
     this.notify(message, 'warning', {
       ...options,
@@ -270,10 +297,20 @@ class NotificationService {
     });
   }
 
+  /**
+   * Show success notification
+   * @param {string} message - Success message
+   * @param {NotificationOptions} [options={}] - Notification options
+   */
   success(message, options = {}) {
     this.notify(message, 'success', options);
   }
 
+  /**
+   * Show info notification
+   * @param {string} message - Info message
+   * @param {NotificationOptions} [options={}] - Notification options
+   */
   info(message, options = {}) {
     this.notify(message, 'info', options);
   }

@@ -5,16 +5,73 @@ import { API_CONFIG } from '../config.js';
 const API_BASE = API_CONFIG.API_BASE;
 
 /**
+ * @typedef {Object} CacheEntry
+ * @property {any} data - Cached data
+ * @property {number} timestamp - When the data was cached
+ * @property {number} accessTime - Last access time for LRU eviction
+ */
+
+/**
+ * @typedef {Object} FetchOptions
+ * @property {number} [ttl] - Time-to-live in milliseconds
+ * @property {boolean} [forceRefresh] - Bypass cache
+ * @property {Record<string, string|number>} [params] - URL query parameters
+ */
+
+/**
+ * @typedef {Object} FileEvent
+ * @property {string} id - Event ID
+ * @property {string} filepath - File path
+ * @property {string} change_type - Type of change (add, change, unlink)
+ * @property {string} timestamp - ISO timestamp
+ * @property {string} [project] - Project name
+ * @property {number} [lines_added] - Lines added
+ * @property {number} [lines_deleted] - Lines deleted
+ */
+
+/**
+ * @typedef {Object} DashboardStats
+ * @property {number} total_events - Total events count
+ * @property {number} total_files - Total files count
+ * @property {number} total_agents - Total agents count
+ * @property {number} session_duration_seconds - Session duration
+ * @property {number} active_files_today - Active files today
+ * @property {number} total_changes - Total changes
+ * @property {number} creates - Number of creates
+ * @property {number} edits - Number of edits
+ * @property {number} deletes - Number of deletes
+ * @property {number} unique_files_modified - Unique files modified
+ */
+
+/**
+ * @typedef {Object} SystemMetrics
+ * @property {number} cpu_percent - CPU usage percentage
+ * @property {number} memory_percent - Memory usage percentage
+ * @property {number} memory_used_mb - Memory used in MB
+ * @property {number} memory_total_mb - Total memory in MB
+ */
+
+/**
+ * @typedef {Object} HealthCheckResult
+ * @property {string} status - Health status (healthy, unhealthy, pending)
+ * @property {Object} summary - Summary of checks
+ * @property {number} summary.total - Total checks
+ * @property {number} summary.passed - Passed checks
+ * @property {number} summary.failed - Failed checks
+ * @property {boolean} [summary.allPassed] - Whether all checks passed
+ * @property {Array<Object>} checks - Individual check results
+ */
+
+/**
  * Centralized Data Service with Caching and Request Deduplication
  * Prevents duplicate API calls and shares data across components
  */
 class DataService {
   constructor() {
-    // Cache storage: endpoint -> { data, timestamp, accessTime }
+    /** @type {Map<string, CacheEntry>} */
     this.cache = new Map();
 
-    // In-flight requests: endpoint -> Promise
-    // Prevents duplicate simultaneous requests
+    /** @type {Map<string, Promise<any>>} */
     this.inflightRequests = new Map();
 
     // Cache configuration
@@ -39,6 +96,9 @@ class DataService {
 
   /**
    * Fetch data with caching and deduplication
+   * @param {string} endpoint - API endpoint path
+   * @param {FetchOptions} [options] - Fetch options
+   * @returns {Promise<any>} Response data
    */
   async fetch(endpoint, options = {}) {
     const {
@@ -121,6 +181,9 @@ class DataService {
   /**
    * Fetch all file events with intelligent caching
    * Components can specify their limit, but we always fetch max and cache it
+   * @param {number} [limit=500] - Maximum number of events to return
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<FileEvent[]>} Array of file events
    */
   async fetchFileEvents(limit = 500, forceRefresh = false) {
     // Always fetch the max to satisfy all components
@@ -140,6 +203,8 @@ class DataService {
 
   /**
    * Fetch dashboard stats
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<DashboardStats>} Dashboard statistics
    */
   async fetchDashboardStats(forceRefresh = false) {
     const data = await this.fetch('/dashboard-stats', { forceRefresh });
@@ -149,6 +214,9 @@ class DataService {
 
   /**
    * Fetch system metrics
+   * @param {number} [limit=1] - Number of metric snapshots to return
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<SystemMetrics>} System metrics
    */
   async fetchSystemMetrics(limit = 1, forceRefresh = false) {
     const data = await this.fetch('/system-metrics', {
@@ -185,6 +253,8 @@ class DataService {
 
   /**
    * Fetch health checks
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<HealthCheckResult>} Health check results
    */
   async fetchHealthChecks(forceRefresh = false) {
     return this.fetch('/health-checks', { forceRefresh });
