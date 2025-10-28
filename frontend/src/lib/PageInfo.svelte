@@ -118,6 +118,11 @@
     opacity: 1;
   }
 
+  .info-button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .modal-overlay {
     position: fixed;
     top: 0;
@@ -175,6 +180,11 @@
   .close-button:hover {
     background: var(--error);
     color: white;
+  }
+
+  .close-button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .modal-body {

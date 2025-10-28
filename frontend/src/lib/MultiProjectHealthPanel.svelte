@@ -377,6 +377,11 @@
     border-color: var(--accent);
   }
 
+  .sort-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -541,6 +546,12 @@
   .btn-secondary:hover {
     background: var(--surface-2);
     border-color: var(--accent);
+  }
+
+  .btn-primary:focus,
+  .btn-secondary:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .empty-state, .error-state {

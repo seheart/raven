@@ -401,6 +401,12 @@
     cursor: not-allowed;
   }
 
+  .btn-refresh:focus,
+  .btn-export:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .last-update {
     margin-left: auto;
     font-size: 12px;

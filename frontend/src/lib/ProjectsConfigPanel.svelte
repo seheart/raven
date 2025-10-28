@@ -788,6 +788,15 @@
     color: var(--text);
   }
 
+  .btn-toggle:focus,
+  .btn-sm:focus,
+  .btn-primary:focus,
+  .btn-secondary:focus,
+  .modal-close:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .modal-body {
     padding: 20px;
   }

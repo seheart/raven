@@ -272,6 +272,11 @@
     font-family: var(--mono);
   }
 
+  select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

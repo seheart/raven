@@ -316,6 +316,11 @@
     cursor: grabbing;
   }
 
+  .slider-handle:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .handle-label {
     position: absolute;
     bottom: 100%;

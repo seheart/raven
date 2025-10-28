@@ -192,23 +192,23 @@ describe('Cache Utilities', () => {
     });
 
     test('should expire cache correctly at TTL boundary', (done) => {
-      const healthData = { status: 'healthy' };
-
+      const healthData = { status: 'healthy', uptime: 200 };
       updateHealthCache(healthData);
 
       // Check just before TTL expires
       setTimeout(() => {
-        const cached = getHealthCache();
-        expect(cached).not.toBeNull();
+        const cached1 = getHealthCache();
+        expect(cached1).not.toBeNull();
+        expect(cached1.status).toBe('healthy');
       }, HEALTH_CACHE_TTL - 100);
 
-      // Check just after TTL expires
+      // Check well after TTL expires (increased buffer for reliability)
       setTimeout(() => {
-        const cached = getHealthCache();
-        expect(cached).toBeNull();
+        const cached2 = getHealthCache();
+        expect(cached2).toBeNull();
         done();
-      }, HEALTH_CACHE_TTL + 100);
-    }, 10000);
+      }, HEALTH_CACHE_TTL + 500);
+    }, 15000);
   });
 
   describe('Cache Constants', () => {

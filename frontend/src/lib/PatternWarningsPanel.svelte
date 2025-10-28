@@ -317,6 +317,11 @@
     transform: rotate(180deg);
   }
 
+  .refresh-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   /* Category Filter */
   .category-filter {
     display: flex;
@@ -348,6 +353,11 @@
     background: var(--accent);
     border-color: var(--accent);
     color: white;
+  }
+
+  .category-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .category-icon {
@@ -600,5 +610,10 @@
     background: #10b981;
     border-color: #10b981;
     color: white;
+  }
+
+  .resolve-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 </style>

@@ -460,6 +460,12 @@
     border-color: var(--accent);
   }
 
+  .btn-primary:focus,
+  .btn-secondary:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .empty-state, .error-state {
     text-align: center;
     padding: 60px 20px;

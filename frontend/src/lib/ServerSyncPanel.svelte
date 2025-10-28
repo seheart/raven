@@ -869,6 +869,13 @@
     transform: translateY(-1px);
   }
 
+  .btn-refresh:focus,
+  .btn:focus,
+  .btn-sync:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   /* Connection Status */
   .connection-status {
     display: flex;

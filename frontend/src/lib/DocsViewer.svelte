@@ -338,6 +338,11 @@
     font-weight: 600;
   }
 
+  .doc-item:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .doc-icon {
     font-size: 14px;
     flex-shrink: 0;

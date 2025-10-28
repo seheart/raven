@@ -35,7 +35,16 @@ vi.mock('../logger.js', () => ({
   }
 }));
 
+// Mock dataService
+vi.mock('../dataService.js', () => ({
+  dataService: {
+    fetchFileEvents: vi.fn(),
+    fetchHealthChecks: vi.fn()
+  }
+}));
+
 import HealthWidget from '../HealthWidget.svelte';
+import { dataService } from '../dataService.js';
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -45,37 +54,28 @@ describe('HealthWidget', () => {
     // Reset mocks
     vi.clearAllMocks();
 
-    // Default mock responses
+    // Default mock responses for dataService
+    dataService.fetchHealthChecks.mockResolvedValue({
+      status: 'healthy',
+      summary: { total: 9, passed: 9, failed: 0, allPassed: true },
+      checks: [
+        { name: 'Database Connection', passed: true, message: 'OK', duration: 5 },
+        { name: 'WebSocket Connection', passed: true, message: 'OK', duration: 3 }
+      ]
+    });
+
+    dataService.fetchFileEvents.mockResolvedValue([
+      {
+        filepath: 'test.js',
+        change_type: 'change',
+        timestamp: new Date().toISOString(),
+        lines_added: 10,
+        lines_deleted: 5
+      }
+    ]);
+
+    // Default mock responses for fetch (syntax errors endpoint)
     global.fetch.mockImplementation((url) => {
-      if (url.includes('/health-checks')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            status: 'healthy',
-            summary: { total: 9, passed: 9, failed: 0, allPassed: true },
-            checks: [
-              { name: 'Database Connection', passed: true, message: 'OK', duration: 5 },
-              { name: 'WebSocket Connection', passed: true, message: 'OK', duration: 3 }
-            ]
-          })
-        });
-      }
-
-      if (url.includes('/all-file-events')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([
-            {
-              filepath: 'test.js',
-              change_type: 'change',
-              timestamp: new Date().toISOString(),
-              lines_added: 10,
-              lines_deleted: 5
-            }
-          ])
-        });
-      }
-
       if (url.includes('/syntax-errors/count')) {
         return Promise.resolve({
           ok: true,
@@ -153,28 +153,27 @@ describe('HealthWidget', () => {
     });
 
     it('should show warning status for issues detected', async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([
-              {
-                filepath: 'test.js',
-                change_type: 'change',
-                timestamp: new Date().toISOString(),
-                lines_deleted: 150 // Large deletion
-              }
-            ])
-          });
+      dataService.fetchFileEvents.mockResolvedValue([
+        {
+          filepath: 'test.js',
+          change_type: 'change',
+          timestamp: new Date().toISOString(),
+          lines_deleted: 150 // Large deletion
         }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ count: 0 }) });
+      ]);
+
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'healthy',
+        summary: { total: 9, passed: 9, failed: 0 },
+        checks: []
       });
 
       render(HealthWidget);
 
       await waitFor(() => {
-        const warningIcons = screen.queryAllByText(/⚠️/);
-        expect(warningIcons.length).toBeGreaterThan(0);
+        // Should show warning status for large deletions
+        const warningText = screen.queryByText(/Some Issues Detected/i);
+        expect(warningText).toBeTruthy();
       });
     });
 
@@ -304,38 +303,20 @@ describe('HealthWidget', () => {
     });
 
     it('should display failure count when checks fail', async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes('/health-checks')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              status: 'unhealthy',
-              summary: { total: 9, passed: 7, failed: 2, allPassed: false },
-              checks: []
-            })
-          });
-        }
-        if (url.includes('/syntax-errors/count')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ count: 0 })
-          });
-        }
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([])
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'unhealthy',
+        summary: { total: 9, passed: 7, failed: 2, allPassed: false },
+        checks: []
       });
+
+      dataService.fetchFileEvents.mockResolvedValue([]);
 
       render(HealthWidget);
 
       await waitFor(() => {
-        // Should show warning status for failed checks
-        const warningIcons = screen.queryAllByText(/⚠️/);
-        expect(warningIcons.length).toBeGreaterThan(0);
+        // Should show the failed checks count
+        const failedText = screen.queryByText(/2 Checks Failed/i);
+        expect(failedText).toBeTruthy();
       }, { timeout: 3000 });
     });
   });
@@ -433,7 +414,7 @@ describe('HealthWidget', () => {
       render(HealthWidget);
 
       await waitFor(() => {
-        const refreshButton = screen.queryByTitle(/Refresh health check/i);
+        const refreshButton = screen.queryByLabelText(/Refresh health check/i);
         expect(refreshButton).toBeTruthy();
       });
     });
@@ -442,7 +423,7 @@ describe('HealthWidget', () => {
       render(HealthWidget);
 
       await waitFor(() => {
-        const refreshButton = screen.queryByTitle(/Refresh health check/i);
+        const refreshButton = screen.queryByLabelText(/Refresh health check/i);
         if (refreshButton) {
           fireEvent.click(refreshButton);
         }
@@ -457,27 +438,25 @@ describe('HealthWidget', () => {
 
   describe('Large Deletions Detection', () => {
     it('should detect large deletions (>100 lines)', async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([
-              {
-                filepath: 'test.js',
-                change_type: 'change',
-                timestamp: new Date().toISOString(),
-                lines_deleted: 150
-              }
-            ])
-          });
+      dataService.fetchFileEvents.mockResolvedValue([
+        {
+          filepath: 'test.js',
+          change_type: 'change',
+          timestamp: new Date().toISOString(),
+          lines_deleted: 150
         }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ count: 0 }) });
+      ]);
+
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'healthy',
+        summary: { total: 9, passed: 9, failed: 0 },
+        checks: []
       });
 
       render(HealthWidget);
 
       await waitFor(() => {
-        const deletionsText = screen.queryByText(/Deletions.*1/i);
+        const deletionsText = screen.queryByText(/Deletions \(1\)/i);
         expect(deletionsText).toBeTruthy();
       });
     });
@@ -497,13 +476,23 @@ describe('HealthWidget', () => {
             ])
           });
         }
+        if (url.includes('/health-checks')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              status: 'healthy',
+              summary: { total: 9, passed: 9, failed: 0 },
+              checks: []
+            })
+          });
+        }
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ count: 0 }) });
       });
 
       render(HealthWidget);
 
       await waitFor(() => {
-        const deletionsText = screen.queryByText(/Deletions.*0/i);
+        const deletionsText = screen.queryByText(/Deletions \(0\)/i);
         expect(deletionsText).toBeTruthy();
       });
     });
@@ -511,81 +500,75 @@ describe('HealthWidget', () => {
 
   describe('Security File Changes', () => {
     it('should detect .env file changes', async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([
-              {
-                filepath: '.env',
-                change_type: 'change',
-                timestamp: new Date().toISOString()
-              }
-            ])
-          });
+      dataService.fetchFileEvents.mockResolvedValue([
+        {
+          filepath: '.env',
+          change_type: 'change',
+          timestamp: new Date().toISOString()
         }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ count: 0 }) });
+      ]);
+
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'healthy',
+        summary: { total: 9, passed: 9, failed: 0 },
+        checks: []
       });
 
       render(HealthWidget);
 
       await waitFor(() => {
-        const securityText = screen.queryByText(/Security.*1/i);
+        const securityText = screen.queryByText(/Security \(1\)/i);
         expect(securityText).toBeTruthy();
       });
     });
 
     it('should detect credential file changes', async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([
-              {
-                filepath: 'credentials.json',
-                change_type: 'change',
-                timestamp: new Date().toISOString()
-              }
-            ])
-          });
+      dataService.fetchFileEvents.mockResolvedValue([
+        {
+          filepath: 'credentials.json',
+          change_type: 'change',
+          timestamp: new Date().toISOString()
         }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ count: 0 }) });
+      ]);
+
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'healthy',
+        summary: { total: 9, passed: 9, failed: 0 },
+        checks: []
       });
 
       render(HealthWidget);
 
       await waitFor(() => {
-        const securityText = screen.queryByText(/Security.*1/i);
+        const securityText = screen.queryByText(/Security \(1\)/i);
         expect(securityText).toBeTruthy();
       });
     });
 
     it('should detect .pem and .key file changes', async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([
-              {
-                filepath: 'private.pem',
-                change_type: 'change',
-                timestamp: new Date().toISOString()
-              },
-              {
-                filepath: 'secret.key',
-                change_type: 'change',
-                timestamp: new Date().toISOString()
-              }
-            ])
-          });
+      dataService.fetchFileEvents.mockResolvedValue([
+        {
+          filepath: 'private.pem',
+          change_type: 'change',
+          timestamp: new Date().toISOString()
+        },
+        {
+          filepath: 'secret.key',
+          change_type: 'change',
+          timestamp: new Date().toISOString()
         }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ count: 0 }) });
+      ]);
+
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'healthy',
+        summary: { total: 9, passed: 9, failed: 0 },
+        checks: []
       });
 
       render(HealthWidget);
 
       await waitFor(() => {
-        const securityText = screen.queryByText(/Security.*2/i);
+        const securityText = screen.queryByText(/Security \(2\)/i);
         expect(securityText).toBeTruthy();
       });
     });
@@ -593,23 +576,23 @@ describe('HealthWidget', () => {
 
   describe('Error Handling', () => {
     it('should display error state on fetch failure', async () => {
-      global.fetch.mockRejectedValue(new Error('Network error'));
+      dataService.fetchFileEvents.mockRejectedValue(new Error('Network error'));
 
       render(HealthWidget);
 
       await waitFor(() => {
-        const errorElement = screen.queryByText(/error|failed/i);
+        const errorElement = screen.queryByText(/Network error/i);
         expect(errorElement).toBeTruthy();
       }, { timeout: 2000 });
     });
 
     it('should have retry button on error', async () => {
-      global.fetch.mockRejectedValue(new Error('Network error'));
+      dataService.fetchFileEvents.mockRejectedValue(new Error('Network error'));
 
       render(HealthWidget);
 
       await waitFor(() => {
-        const retryButton = screen.queryByText(/Try Again/i);
+        const retryButton = screen.queryByLabelText(/Retry health check/i);
         expect(retryButton).toBeTruthy();
       }, { timeout: 2000 });
     });

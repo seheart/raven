@@ -311,6 +311,11 @@
     border-color: var(--accent);
   }
 
+  .control-group select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .chart-container {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -477,6 +482,12 @@
   .btn-secondary:hover {
     background: var(--surface-2);
     border-color: var(--accent);
+  }
+
+  .btn-primary:focus,
+  .btn-secondary:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .empty-state, .error-state {

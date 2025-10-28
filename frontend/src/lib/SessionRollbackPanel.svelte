@@ -666,4 +666,12 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  .refresh-btn:focus,
+  .close-btn:focus,
+  .cancel-btn:focus,
+  .rollback-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 </style>

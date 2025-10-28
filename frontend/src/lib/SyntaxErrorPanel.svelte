@@ -232,6 +232,11 @@
     transform: rotate(180deg);
   }
 
+  .refresh-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .loading {
     display: flex;
     flex-direction: column;
@@ -408,5 +413,10 @@
     background: #10b981;
     border-color: #10b981;
     color: white;
+  }
+
+  .resolve-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 </style>

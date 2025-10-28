@@ -425,6 +425,11 @@
     opacity: 0.9;
   }
 
+  .btn-primary:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .error-state {
     text-align: center;
     padding: 60px 20px;
@@ -446,6 +451,11 @@
     border: none;
     border-radius: var(--radius);
     cursor: pointer;
+  }
+
+  .error-state button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   @media (max-width: 1200px) {

@@ -644,6 +644,11 @@
     cursor: not-allowed;
   }
 
+  .btn-refresh:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .refresh-icon {
     display: inline-block;
     font-size: 14px;
@@ -781,6 +786,11 @@
   .tab-btn.active {
     color: var(--warning);
     border-bottom-color: var(--warning);
+  }
+
+  .tab-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   /* Correlations Styles */
@@ -927,6 +937,11 @@
     border-color: var(--accent);
   }
 
+  .btn-export:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   /* Alerts Banner */
   .alerts-banner {
     background: color-mix(in srgb, var(--warning) 10%, var(--surface));
@@ -957,6 +972,11 @@
 
   .btn-dismiss:hover {
     color: var(--error);
+  }
+
+  .btn-dismiss:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .alerts-list {
@@ -1020,6 +1040,11 @@
     color: var(--text);
     font-size: 12px;
     cursor: pointer;
+  }
+
+  .time-range-select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .chart-legend {

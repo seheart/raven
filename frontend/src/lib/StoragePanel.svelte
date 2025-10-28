@@ -873,6 +873,14 @@
     cursor: not-allowed;
   }
 
+  .btn-refresh:focus,
+  .btn-sm:focus,
+  .btn-primary:focus,
+  .btn-secondary:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   /* Loading State */
   .loading {
     display: flex;

@@ -253,6 +253,12 @@
     cursor: not-allowed;
   }
 
+  .btn-refresh:focus,
+  .btn-export:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .sort-info {
     margin-left: auto;
     font-size: 13px;
@@ -292,6 +298,11 @@
 
   .table-header > div:hover {
     color: var(--accent);
+  }
+
+  .table-header > div:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .table-row {

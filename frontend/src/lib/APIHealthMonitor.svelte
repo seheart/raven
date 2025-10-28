@@ -658,6 +658,12 @@
     border-color: var(--accent);
   }
 
+  .btn-refresh:focus,
+  .btn-test:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   @media (max-width: 768px) {
     .endpoint-row {
       grid-template-columns: 30px 60px 1fr 80px 40px;
