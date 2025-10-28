@@ -43,7 +43,7 @@ export class DatabaseMigrator {
         SELECT MAX(version) as version FROM migrations
       `).get();
       return result?.version || 0;
-    } catch (err) {
+    } catch (_err) {
       return 0;
     }
   }
@@ -123,12 +123,12 @@ export class DatabaseMigrator {
           this.db.prepare('COMMIT').run();
 
           logger.info(`✓ Applied migration ${migration.version}: ${migration.name}`);
-        } catch (err) {
+        } catch (_err) {
           // Rollback on error
           this.db.prepare('ROLLBACK').run();
           throw err;
         }
-      } catch (err) {
+      } catch (_err) {
         logger.error(`✗ Failed to apply migration ${migration.filename}:`, err);
         throw err;
       }
@@ -188,11 +188,11 @@ export class DatabaseMigrator {
           this.db.prepare('COMMIT').run();
 
           logger.info(`✓ Rolled back migration ${migration.version}: ${migration.name}`);
-        } catch (err) {
+        } catch (_err) {
           this.db.prepare('ROLLBACK').run();
           throw err;
         }
-      } catch (err) {
+      } catch (_err) {
         logger.error(`✗ Failed to rollback migration ${migration.filename}:`, err);
         throw err;
       }
@@ -275,7 +275,7 @@ export async function migrateAllProjects(projectDatabases) {
     try {
       const migrator = new DatabaseMigrator(projectDb.db, projectName);
       results[projectName] = await migrator.migrate();
-    } catch (err) {
+    } catch (_err) {
       logger.error(`Failed to migrate ${projectName}:`, err);
       results[projectName] = { error: err.message };
     }

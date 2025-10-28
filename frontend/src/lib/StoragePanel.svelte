@@ -303,7 +303,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each storageData?.databases || [] as db}
+            {#each storageData?.databases || [] as db (db.name)}
               <tr class:active={db.isActive} class:expanded={expandedDatabase === db.name}>
                 <td>
                   <strong>{db.filename}</strong>
@@ -354,7 +354,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          {#each db.tableStats as table (table)}
+                          {#each db.tableStats as table (table.name)}
                             <tr>
                               <td><code>{table.name}</code></td>
                               <td>{formatNumber(table.records)}</td>
@@ -395,7 +395,7 @@
               </tr>
             </thead>
             <tbody>
-              {#each storageData?.snapshots || [] as snapshot}
+              {#each storageData?.snapshots || [] as snapshot (snapshot.project)}
                 <tr>
                   <td><strong>{snapshot.project}</strong></td>
                   <td>{formatNumber(snapshot.files)}</td>

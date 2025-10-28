@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import { logger } from './logger.js';
 import { API_CONFIG } from '../config.js';
 

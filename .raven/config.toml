@@ -82,10 +82,22 @@ log_file = "raven.log"
 [projects]
 active = "ant"
 
-[[projects.available]]
-name = "raven"
-path = "raven"
-description = "Raven monitoring project"
+# Auto-discover projects from database files (discovery happens once at startup)
+# Comment out [[projects.available]] sections to enable auto-discovery
+
+# Projects to skip watching (useful for projects with massive dependencies)
+# These projects will still be tracked in the database, but won't have file watchers
+skip_projects = [
+    "echo",           # Has massive Python venv directories
+    "archive",        # Old archived projects
+    # Add other heavy projects here as needed
+]
+
+# To manually configure projects, uncomment and add:
+# [[projects.available]]
+# name = "raven"
+# path = "/home/seth/Projects/raven"
+# description = "Raven monitoring project"
 
 # ==================== Custom Triggers ====================
 

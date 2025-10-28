@@ -235,7 +235,7 @@
           class="session-select"
           aria-label="Filter events by session"
         >
-          {#each allSessions || [] as session}
+          {#each allSessions || [] as session (session.id)}
             <option value={session.id}>{session.label}</option>
           {/each}
         </select>
@@ -358,7 +358,7 @@
     <section class="timeline" aria-labelledby="recent-activity-heading">
       <h3 id="recent-activity-heading"><span aria-hidden="true">📜</span> Recent Activity (<span role="status">{displayedEvents.length} events</span>)</h3>
       <div class="events-list" role="feed" aria-label="Recent activity events">
-        {#each displayedEvents || [] as event}
+        {#each displayedEvents || [] as event (event.id || event.timestamp)}
           <article class="event-item" style="border-left-color: {getEventColor(event.event_type)}" role="article">
             <div class="event-header">
               <time class="timestamp" datetime="{event.timestamp}">{formatTimestamp(event.timestamp)}</time>

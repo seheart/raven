@@ -130,6 +130,7 @@ describe('Errors Routes', () => {
     });
 
     test('should handle project query parameter', async () => {
+      // eslint-disable-next-line no-unused-vars
       const response = await request(app)
         .get('/api/errors/stats?project=test-project')
         .expect(200);

@@ -196,7 +196,7 @@
               {#if quality.factors && quality.factors.length > 0}
                 <div class="quality-factors">
                   <div class="factors-title">Quality Factors:</div>
-                  {#each quality.factors as factor (factor)}
+                  {#each quality.factors as factor (factor.type)}
                     <div class="factor-item">
                       <span class="factor-icon">
                         {#if factor.type === 'high_rollback_rate'}
@@ -231,7 +231,7 @@
               {/if}
               {#if breakRecommendation.reasons && breakRecommendation.reasons.length > 0}
                 <div class="break-reasons">
-                  {#each breakRecommendation.reasons as reason (reason)}
+                  {#each breakRecommendation.reasons as reason, i (i)}
                     <div class="reason-item">• {reason}</div>
                   {/each}
                 </div>
@@ -288,7 +288,7 @@
             <div class="peak-hours-section">
               <div class="peak-hours-title">🔥 Peak Productivity Hours</div>
               <div class="peak-hours-list">
-                {#each stats.peakHours as peak (peak)}
+                {#each stats.peakHours as peak (peak.hour)}
                   <div class="peak-hour-item">
                     <div class="peak-hour-time">
                       {peak.hour}:00
@@ -312,7 +312,7 @@
             <div class="recent-sessions-section">
               <div class="recent-sessions-title">Recent Sessions</div>
               <div class="recent-sessions-list">
-                {#each stats.recentSessions.slice(0, 5) as session}
+                {#each stats.recentSessions.slice(0, 5) as session (session.start_time)}
                   <div class="recent-session-item">
                     <div class="session-info">
                       <span class="session-time">{formatTimeAgo(session.start_time)}</span>

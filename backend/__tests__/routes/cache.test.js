@@ -2,7 +2,6 @@
  * Tests for Cache Routes
  */
 
-import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { createCacheRoutes } from '../../routes/cache.js';

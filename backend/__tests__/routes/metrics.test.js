@@ -2,7 +2,6 @@
  * Tests for Metrics Routes
  */
 
-import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { createMetricsRoutes } from '../../routes/metrics.js';
@@ -51,7 +50,7 @@ describe('Metrics Routes', () => {
     }
     try {
       rmSync(testDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch (_error) {
       // Ignore
     }
   });

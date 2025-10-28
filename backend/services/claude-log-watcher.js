@@ -16,12 +16,12 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+// import { fileURLToPath } from 'url';
 import chokidar from 'chokidar';
 import { homedir } from 'os';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// // const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 export class ClaudeLogWatcher {
   constructor(eventCallback, logger) {
@@ -84,7 +84,7 @@ export class ClaudeLogWatcher {
     });
 
     this.logWatcher.on('ready', () => {
-      this.logger.info(`📡 Chokidar ready event fired`);
+      this.logger.info('📡 Chokidar ready event fired');
 
       // Check watched files after a delay (polling takes time to discover files)
       setTimeout(() => {
@@ -103,13 +103,13 @@ export class ClaudeLogWatcher {
         if (watchedFiles.length > 0) {
           this.logger.info(`   Sample: ${watchedFiles.slice(0, 3).map(f => path.basename(f)).join(', ')}`);
         } else {
-          this.logger.warn(`⚠️  No .jsonl files discovered yet!`);
+          this.logger.warn('⚠️  No .jsonl files discovered yet!');
         }
       }, 2000);
     });
 
     const stats = await this.getWatchStats();
-    this.logger.info(`✅ Claude Log Watcher started`);
+    this.logger.info('✅ Claude Log Watcher started');
     this.logger.info(`   Watching ${stats.fileCount} log files`);
     this.logger.info(`   Inotify watches: ~${stats.fileCount} (vs 500k+ with chokidar)`);
   }
@@ -216,31 +216,31 @@ export class ClaudeLogWatcher {
       let filePath = null;
 
       switch (name) {
-        case 'Write':
-          eventType = 'add'; // New file created
-          filePath = input.file_path;
-          break;
+      case 'Write':
+        eventType = 'add'; // New file created
+        filePath = input.file_path;
+        break;
 
-        case 'Edit':
-          eventType = 'change'; // Existing file modified
-          filePath = input.file_path;
-          break;
+      case 'Edit':
+        eventType = 'change'; // Existing file modified
+        filePath = input.file_path;
+        break;
 
-        case 'Read':
-          // We could track reads, but probably not necessary for file monitoring
-          // Uncomment if you want to track file reads:
-          // eventType = 'read';
-          // filePath = input.file_path;
-          break;
+      case 'Read':
+        // We could track reads, but probably not necessary for file monitoring
+        // Uncomment if you want to track file reads:
+        // eventType = 'read';
+        // filePath = input.file_path;
+        break;
 
-        case 'Bash':
-          // Could parse bash commands for file operations (rm, mv, etc.)
-          // but probably not necessary - Write/Edit cover most cases
-          break;
+      case 'Bash':
+        // Could parse bash commands for file operations (rm, mv, etc.)
+        // but probably not necessary - Write/Edit cover most cases
+        break;
 
-        default:
-          // Ignore other tools (Glob, Grep, etc.)
-          break;
+      default:
+        // Ignore other tools (Glob, Grep, etc.)
+        break;
       }
 
       if (eventType && filePath) {

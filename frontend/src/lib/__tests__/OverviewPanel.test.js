@@ -577,7 +577,8 @@ describe('OverviewPanel', () => {
       });
 
       // Loading component should be visible initially
-      const loadingElement = document.querySelector('.loading, .skeleton');
+      // eslint-disable-next-line no-unused-vars
+      const _loadingElement = document.querySelector('.loading, .skeleton');
       // Component might load too fast to catch, so we just check it renders
       expect(true).toBe(true);
     });

@@ -342,7 +342,7 @@
         </div>
       {:else}
         <div class="rules-grid" role="list" aria-label="Trigger rules">
-          {#each filteredTriggers || [] as trigger}
+          {#each filteredTriggers || [] as trigger (trigger.name)}
             <article class="trigger-card" class:disabled={!enabledTriggers.has(trigger.name)} role="listitem">
               <div class="trigger-header">
                 <div class="trigger-title-row">
@@ -367,7 +367,7 @@
                   <div class="conditions">
                     <span class="label">Conditions:</span>
                     <ul>
-                      {#each getConditionsList(trigger) || [] as condition}
+                      {#each getConditionsList(trigger) || [] as condition (condition)}
                         <li>{condition}</li>
                       {/each}
                     </ul>
@@ -427,7 +427,7 @@
         </div>
       {:else}
         <div class="events-list" role="list" aria-label="Triggered events">
-          {#each filteredEvents || [] as event}
+          {#each filteredEvents || [] as event (event.timestamp)}
             <article class="event-row" role="listitem">
               <span class="event-icon" aria-hidden="true">{getActionIcon(event.action)}</span>
               <div class="event-details">
@@ -465,7 +465,7 @@
           <article class="stat-card full-width" role="listitem">
             <h3 id="fire-counts-heading">Trigger Fire Counts</h3>
             <div class="trigger-counts" role="list" aria-labelledby="fire-counts-heading">
-              {#each Object.entries(stats?.trigger_counts || {}).sort((a, b) => b[1] - a[1]) as [name, count]}
+              {#each Object.entries(stats?.trigger_counts || {}).sort((a, b) => b[1] - a[1]) as [name, count] (name)}
                 <div class="count-row" role="listitem">
                   <span class="count-name">{name}</span>
                   <span class="count-value" role="status">{count}</span>

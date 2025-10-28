@@ -2,7 +2,6 @@
  * Tests for Search Routes
  */
 
-import { jest} from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { createSearchRoutes } from '../../routes/search.js';
@@ -62,7 +61,7 @@ describe('Search Routes', () => {
     }
     try {
       rmSync(testDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch (_error) {
       // Ignore cleanup errors
     }
   });

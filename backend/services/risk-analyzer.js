@@ -8,7 +8,7 @@
  * - Recent incidents
  */
 
-import { basename, extname } from 'path';
+import { basename} from 'path';
 import { logger } from '../utils/logger.js';
 
 export class RiskAnalyzer {
@@ -115,7 +115,7 @@ export class RiskAnalyzer {
     if (cached) return cached;
 
     const filename = basename(filepath).toLowerCase();
-    const ext = extname(filepath).toLowerCase();
+    // const ext = extname(filepath).toLowerCase();
 
     // Critical patterns (security, auth, payments, database)
     const criticalPatterns = [

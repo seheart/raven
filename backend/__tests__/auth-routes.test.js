@@ -2,7 +2,7 @@
  * Authentication Routes Integration Tests
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import Database from 'better-sqlite3';
@@ -49,7 +49,7 @@ describe('Auth Routes', () => {
     }
     try {
       await unlink(testDbPath);
-    } catch (error) {
+    } catch (_error) {
       // Ignore
     }
     // Clean up environment variable

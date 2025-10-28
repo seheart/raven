@@ -454,7 +454,7 @@
             <div class="git-section">
               <h4 class="section-title">🌿 All Branches ({gitStatus?.branches?.length || 0})</h4>
               <div class="branches-list">
-                {#each gitStatus?.branches || [] as branch}
+                {#each gitStatus?.branches || [] as branch (branch)}
                   <span class="branch-tag" class:active={branch === gitStatus?.branch}>
                     {branch === gitStatus?.branch ? '● ' : ''}{branch}
                   </span>
@@ -468,7 +468,7 @@
             <div class="git-section">
               <h4 class="section-title">📜 Recent Commits</h4>
               <div class="commits-list">
-                {#each gitStatus?.commits || [] as commit}
+                {#each gitStatus?.commits || [] as commit (commit.hash)}
                   <div class="commit-item">
                     <div class="commit-header">
                       <span class="commit-hash">{commit?.hash?.slice(0, 7) || 'unknown'}</span>

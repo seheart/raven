@@ -396,7 +396,7 @@
           </div>
         {:else}
           <div class="changes-list" role="feed" aria-label="Code changes feed" aria-busy={loading}>
-            {#each codeChanges || [] as change}
+            {#each codeChanges || [] as change (change.id || `${change.filepath}-${change.timestamp}`)}
               <div class="change-item">
                 <div class="change-header">
                   <div class="change-meta">
@@ -420,7 +420,7 @@
 
                 {#if change.diff}
                   <div class="change-diff">
-                    {#each parseDiffLines(change.diff) as line (line)}
+                    {#each parseDiffLines(change.diff) as line (line.index)}
                       <div class="diff-line {line.type}">
                         <span class="line-number">{line.lineNum}</span>
                         <code class="line-content">{line.text}</code>
@@ -457,7 +457,7 @@
           </div>
         {:else}
           <div class="activity-list" role="feed" aria-label="Recent activity feed" aria-busy={loading}>
-            {#each recentActivity || [] as activity}
+            {#each recentActivity || [] as activity (`${activity.type}-${activity.timestamp}`)}
               <div class="activity-item" class:file={activity.type === 'file'} class:agent={activity.type === 'agent'}>
                 <div class="activity-icon">
                   {#if activity.type === 'file'}

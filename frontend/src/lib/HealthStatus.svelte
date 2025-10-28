@@ -118,7 +118,7 @@
 
   {#if expanded && healthResults && healthResults.checks}
     <div class="health-details" id="health-details" role="region" aria-label="Health check details">
-      {#each Object.entries(healthResults.summary.byCategory || {}) as [category, stats]}
+      {#each Object.entries(healthResults.summary.byCategory || {}) as [category, stats] (category)}
         <section class="category-section" aria-labelledby="category-{category}">
           <div class="category-header">
             <span class="category-icon" aria-hidden="true">{getCategoryIcon(category)}</span>
@@ -132,7 +132,7 @@
           </div>
 
           <div class="category-checks" role="list" aria-label="{category} health checks">
-            {#each healthResults.checks.filter(c => c.category === category) as check}
+            {#each healthResults.checks.filter(c => c.category === category) as check (check.name)}
               <div class="check-item" class:failed={!check.passed} role="listitem">
                 <span class="check-icon" aria-hidden="true">
                   {check.passed ? '✅' : '❌'}

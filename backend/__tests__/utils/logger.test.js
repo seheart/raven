@@ -3,7 +3,6 @@
  * Tests Winston-based logging system
  */
 
-import { jest } from '@jest/globals';
 import { logger } from '../../utils/logger.js';
 import winston from 'winston';
 import { Writable } from 'stream';

@@ -3,7 +3,6 @@
  * Tests for file system monitoring and change detection
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { writeFile, unlink, mkdir, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -13,6 +12,7 @@ describe('File Watcher Service', () => {
   const testDir = join(process.cwd(), '__tests__', 'test-watch-dir');
   const testFile = join(testDir, 'test.js');
   let watcher;
+  // eslint-disable-next-line no-unused-vars
   let events;
 
   beforeEach(async () => {
@@ -46,7 +46,7 @@ describe('File Watcher Service', () => {
       if (existsSync(testDir)) {
         await rmdir(testDir);
       }
-    } catch (error) {
+    } catch (_error) {
       // Ignore cleanup errors
     }
   });
@@ -163,7 +163,7 @@ describe('File Watcher Service', () => {
         try {
           await mkdir(join(testDir, 'node_modules'), { recursive: true });
           await writeFile(nodeModulesFile, 'test');
-        } catch (error) {
+        } catch (_error) {
           // Ignore
         }
 
@@ -194,7 +194,7 @@ describe('File Watcher Service', () => {
         try {
           await mkdir(join(testDir, '.git'), { recursive: true });
           await writeFile(gitFile, 'test');
-        } catch (error) {
+        } catch (_error) {
           // Ignore
         }
 

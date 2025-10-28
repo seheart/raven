@@ -2,7 +2,6 @@
  * Tests for Conversations Routes
  */
 
-import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { createConversationRoutes } from '../../routes/conversations.js';
@@ -52,7 +51,7 @@ describe('Conversations Routes', () => {
     }
     try {
       rmSync(testDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch (_error) {
       // Ignore cleanup errors
     }
   });

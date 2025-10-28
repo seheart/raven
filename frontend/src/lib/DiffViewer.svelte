@@ -78,7 +78,7 @@
     {#if diffLines.length > 0}
       <!-- Unified diff view -->
       <div class="unified-diff" role="region" aria-label="Unified diff view">
-        <pre class="diff-content" aria-label="Code differences">{#each diffLines || [] as line}
+        <pre class="diff-content" aria-label="Code differences">{#each diffLines || [] as line (line.lineNum)}
 <span class="diff-line {getLineClass(line.type)}">{line.content}
 </span>{/each}</pre>
       </div>
@@ -88,7 +88,7 @@
         <div class="diff-pane" role="region" aria-label="Before changes">
           <div class="pane-header">Before</div>
           <div class="pane-content">
-            {#each leftLines || [] as line}
+            {#each leftLines || [] as line (line.lineNum)}
               <div class="code-line {getLineClass(line.type)}">
                 <span class="line-num">{line.lineNum}</span>
                 <span class="line-content">{line.content || ' '}</span>
@@ -102,7 +102,7 @@
         <div class="diff-pane" role="region" aria-label="After changes">
           <div class="pane-header">After</div>
           <div class="pane-content">
-            {#each rightLines || [] as line}
+            {#each rightLines || [] as line (line.lineNum)}
               <div class="code-line {getLineClass(line.type)}">
                 <span class="line-num">{line.lineNum}</span>
                 <span class="line-content">{line.content || ' '}</span>

@@ -2,7 +2,6 @@
  * Tests for Storage Routes
  */
 
-import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { createStorageRoutes } from '../../routes/storage.js';

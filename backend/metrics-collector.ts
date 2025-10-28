@@ -87,7 +87,7 @@ export class MetricsCollector {
         });
       }
     } catch (error) {
-      logger.error('❌ Error handling telemetry event:', error);
+      logger.error('❌ Error handling telemetry event:', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -126,7 +126,7 @@ export class MetricsCollector {
         }
       }
     } catch (error) {
-      logger.error('❌ Error collecting process metrics:', error);
+      logger.error('❌ Error collecting process metrics:', error instanceof Error ? error : new Error(String(error)));
     }
   }
 

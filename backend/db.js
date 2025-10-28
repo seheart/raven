@@ -548,7 +548,7 @@ export class RavenDB {
 
   // ==================== Dashboard Statistics ====================
 
-  getTopModifiedFiles(session_id = null, limit = 10) {
+  getTopModifiedFiles(_session_id = null, limit = 10) {
     // Optimized: Use SQL aggregation instead of loading all events into memory
     const stmt = this.prepareStatement(`
       SELECT

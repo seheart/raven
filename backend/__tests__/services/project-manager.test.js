@@ -2,7 +2,6 @@
  * Tests for ProjectManager
  */
 
-import { jest } from '@jest/globals';
 import { ProjectManager } from '../../services/project-manager.js';
 import { mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -32,7 +31,7 @@ describe('ProjectManager', () => {
     // Clean up test directory
     try {
       rmSync(testDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch (_error) {
       // Ignore cleanup errors
     }
   });

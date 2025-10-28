@@ -2,7 +2,6 @@
  * Tests for Request Tracing Middleware
  */
 
-import { jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { requestTracing, errorLogging } from '../../middleware/request-tracing.js';
@@ -146,7 +145,7 @@ describe('Error Logging Middleware', () => {
     app.use(errorLogging);
 
     // Add error handler to prevent unhandled error
-    app.use((err, req, res, next) => {
+    app.use((err, req, res, _next) => {
       res.status(err.statusCode || 500).json({ error: err.message });
     });
   });
@@ -168,7 +167,7 @@ describe('Error Logging Middleware', () => {
       });
 
       testApp.use(errorLogging);
-      testApp.use((err, req, res, next) => {
+      testApp.use((err, req, res, _next) => {
         res.status(err.statusCode || 500).json({ error: err.message });
       });
 
@@ -197,7 +196,7 @@ describe('Error Logging Middleware', () => {
       });
 
       appNoTracing.use(errorLogging);
-      appNoTracing.use((err, req, res, next) => {
+      appNoTracing.use((err, req, res, _next) => {
         res.status(500).json({ error: err.message });
       });
 
@@ -216,7 +215,7 @@ describe('Error Logging Middleware', () => {
       });
 
       appNoTracing.use(errorLogging);
-      appNoTracing.use((err, req, res, next) => {
+      appNoTracing.use((err, req, res, _next) => {
         res.status(500).json({ error: err.message });
       });
 
@@ -240,7 +239,7 @@ describe('Error Logging Middleware', () => {
       testApp.use(errorLogging);
 
       // Then add final handler
-      testApp.use((err, req, res, next) => {
+      testApp.use((err, req, res, _next) => {
         finalHandlerCalled = true;
         res.status(500).json({ error: 'final-handler' });
       });
@@ -266,7 +265,7 @@ describe('Error Logging Middleware', () => {
       testApp.use(errorLogging);
 
       // Add handler that checks error properties
-      testApp.use((err, req, res, next) => {
+      testApp.use((err, req, res, _next) => {
         capturedError = err;
         res.status(err.statusCode).json({ error: err.message });
       });

@@ -49,7 +49,7 @@ export function setupNotificationListeners() {
   });
 
   // Agent status changes
-  websocketService.on('agent-event', (event) => {
+  websocketService.on('agent-event', (_event) => {
     if (event.event_type === 'status_change') {
       const agentName = event.agent_name || 'Unknown Agent';
       const newStatus = event.metadata?.status || event.status;
@@ -123,7 +123,7 @@ export function teardownNotificationListeners() {
     'trigger-fired'
   ];
 
-  events.forEach(event => {
+  events.forEach(_event => {
     // Note: We'd need to store callbacks to properly remove them
     // For now, disconnect will handle cleanup
   });

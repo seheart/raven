@@ -4,7 +4,7 @@
 
 import { jest } from '@jest/globals';
 import { FileWatcherService } from '../../services/file-watcher-service.js';
-import { EventEmitter } from 'events';
+// import { EventEmitter } from 'events';
 
 describe('FileWatcherService', () => {
   let service;

@@ -2,7 +2,6 @@
  * Tests for Events Routes
  */
 
-import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { createEventsRoutes } from '../../routes/events.js';
@@ -47,7 +46,7 @@ describe('Events Routes', () => {
     }
     try {
       rmSync(testDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch (_error) {
       // Ignore cleanup errors
     }
   });

@@ -2,7 +2,7 @@
  * WebSocket service tests
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect  } from 'vitest';
 
 describe('WebSocket Service', () => {
   it('should initialize connection', () => {

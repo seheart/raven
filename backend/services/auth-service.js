@@ -40,7 +40,13 @@ export class AuthService {
     // Create default admin user if no users exist
     const userCount = this.db.prepare('SELECT COUNT(*) as count FROM users').get();
     if (userCount.count === 0) {
-      this.createDefaultAdmin();
+      // Fire and forget - errors are logged but don't block initialization
+      this.createDefaultAdmin().catch(err => {
+        // Silently ignore if database is closed (happens in tests)
+        if (!err.message?.includes('database connection is not open')) {
+          logger.error('Failed to create default admin user:', err);
+        }
+      });
     }
   }
 
@@ -73,12 +79,14 @@ export class AuthService {
       // REASON: This is sensitive credential information that MUST be visible on stdout
       // but MUST NOT be written to log files for security reasons.
       // The logger writes to files, console.log only writes to stdout.
+      /* eslint-disable no-console */
       console.log('\n' + '='.repeat(70));
       console.log('🔐 DEFAULT ADMIN CREDENTIALS (save these securely):');
       console.log('   Username: admin');
       console.log(`   Password: ${defaultPassword}`);
       console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!');
       console.log('='.repeat(70) + '\n');
+      /* eslint-enable no-console */
     }
   }
 

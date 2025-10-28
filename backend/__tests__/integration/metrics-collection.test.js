@@ -27,7 +27,7 @@ describe('Metrics Integration Tests', () => {
     // Create mock dependencies
     mockDeps = {
       projectDatabases: new Map(),
-      cacheMiddleware: jest.fn((cache) => (req, res, next) => next()),
+      cacheMiddleware: jest.fn((_cache) => (req, res, next) => next()),
       metricsCache: new Map(),
       analyticsCache: new Map(),
       dashboardCache: new Map()

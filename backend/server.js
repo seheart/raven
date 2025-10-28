@@ -15,7 +15,7 @@ import { createDefaultHealthChecks } from './health-checks.js';
 import { join, relative, normalize, isAbsolute } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
-import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
+
 import { readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import * as Diff from 'diff';
@@ -326,14 +326,11 @@ const authService = new AuthService(authDB);
 logger.info('Authentication service initialized', { path: AUTH_DB_PATH });
 
 // Multi-project state: Maps for managing all projects simultaneously
-const projectWatchers = new Map();      // projectName -> chokidar watcher (DEPRECATED - replaced by ClaudeLogWatcher)
+const projectWatchers = new Map();      // projectName -> chokidar watcher (reactive, ignoreInitial=true)
 const projectDatabases = new Map();     // projectName -> RavenDB instance
 const projectGitMonitors = new Map();   // projectName -> GitMonitor instance
 const projectPaths = new Map();         // projectName -> absolute path
 const projectSnapshotDirs = new Map();  // projectName -> snapshots directory
-
-// Claude Log Watcher (replaces per-project chokidar watchers)
-let claudeLogWatcher = null;            // Single watcher for all Claude operations
 
 // Available projects list
 const availableProjects = discoveredProjects.length > 0
@@ -1059,7 +1056,17 @@ function initializeWatcher(projectName) {
     '**/.turbo/**',
     '**/.svelte-kit/**',
     '**/coverage/**',
-    '**/.DS_Store'
+    '**/.DS_Store',
+    // Python virtual environments
+    '**/venv/**',
+    '**/.venv/**',
+    '**/env/**',
+    '**/virtualenv/**',
+    '**/__pycache__/**',
+    '**/*.pyc',
+    '**/*.pyo',
+    '**/site-packages/**',
+    '**/dist-packages/**'
   ];
 
   // Allow custom ignore patterns via environment variable (comma-separated)
@@ -1127,55 +1134,67 @@ function initializeWatcher(projectName) {
 }
 
 /**
- * Initialize watchers for ALL projects using ClaudeLogWatcher
+ * Initialize watchers for ALL projects using chokidar
  *
- * NEW ARCHITECTURE (Option 5):
- * Instead of watching 500k+ files with chokidar, we watch Claude's operation logs.
- * - Watches only ~/.claude/projects/ log files (~20 inotify watches)
- * - Parses Claude's tool operations (Read, Write, Edit)
- * - 99.996% reduction in watches, ~80% reduction in memory
+ * SMART ARCHITECTURE:
+ * - Watches file system changes across all projects
+ * - Uses OS-level events (inotify) - lightweight, reactive only
+ * - ignoreInitial: true - only tracks NEW changes, no pre-loading
+ * - Skip list for heavy projects (echo, archive, etc.)
+ * - Aggressive ignore patterns (node_modules, venv, dist, etc.)
+ * - Only stores data about files that ACTUALLY change
  */
 async function initializeAllWatchers() {
-  logger.info('🚀 Starting Claude Log Watcher (Option 5 Architecture)');
-  logger.info('   Old: 524k+ file watches | New: ~20 log file watches');
+  logger.info('🚀 Starting file watchers for all projects');
+  logger.info('   Mode: Reactive (ignoreInitial=true) - only tracking new changes');
 
   try {
-    // Create callback that integrates with existing handleFileChange
-    const onClaudeOperation = async (event) => {
-      // event contains: { type, path, projectName, timestamp, source, tool }
-      await handleFileChange(event.type, event.path);
-    };
+    // Get skip list from config
+    const skipProjects = config.projects?.skip_projects || ['echo', 'archive'];
+    logger.info(`   Skip list: ${skipProjects.join(', ')}`);
 
-    // Create and start Claude Log Watcher
-    claudeLogWatcher = new ClaudeLogWatcher(onClaudeOperation, logger);
-    await claudeLogWatcher.start();
+    let successCount = 0;
+    let failCount = 0;
+    let skippedCount = 0;
 
-    const stats = await claudeLogWatcher.getWatchStats();
+    // Initialize watchers for all projects (except skipped ones)
+    for (const [projectName, projectPath] of projectPaths.entries()) {
+      // Check skip list
+      if (skipProjects.includes(projectName)) {
+        logger.warn(`⚠️  Skipping file watcher for ${projectName} (in skip list)`);
+        skippedCount++;
+        continue;
+      }
 
-    logger.info('✅ Claude Log Watcher initialized', {
-      logFiles: stats.fileCount,
-      watchMode: 'claude-logs',
-      reduction: '99.996%'
+      try {
+        const watcher = initializeWatcher(projectName);
+        if (watcher) {
+          projectWatchers.set(projectName, watcher);
+          successCount++;
+          logger.info(`✅ Watcher started for ${projectName}`, { path: projectPath });
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        logger.error(`❌ Failed to start watcher for ${projectName}:`, error);
+        failCount++;
+      }
+    }
+
+    logger.info('✅ File watchers initialized', {
+      success: successCount,
+      failed: failCount,
+      skipped: skippedCount,
+      total: projectPaths.size
     });
 
-    return { successCount: stats.fileCount, failCount: 0 };
+    return { successCount, failCount, skippedCount };
   } catch (error) {
-    logger.error('❌ Failed to initialize Claude Log Watcher:', error);
-    return { successCount: 0, failCount: 1 };
+    logger.error('❌ Failed to initialize file watchers:', error);
+    return { successCount: 0, failCount: 1, skippedCount: 0 };
   }
 }
 
-/**
- * DEPRECATED: Initialize file watcher for a specific project (chokidar-based)
- * This function is kept for backward compatibility but is no longer used.
- * The new architecture uses ClaudeLogWatcher instead.
- */
-function initializeWatcher_DEPRECATED(projectName) {
-  // This code is preserved but not actively used
-  // See initializeAllWatchers() for the new Claude Log Watcher implementation
-  logger.warn('⚠️  initializeWatcher called but deprecated - using ClaudeLogWatcher instead');
-  return null;
-}
 
 // NOTE: switchProject() function removed - now watching all projects simultaneously
 // The old single-project switching model is deprecated
@@ -1603,13 +1622,13 @@ app.get('/health', async (req, res) => {
           bridgeStatus.running = true;
           bridgeStatus.pid = bridgePid;
           bridgeStatus.healthy = true;
-        } catch (err) {
+        } catch (_err) {
           // Process doesn't exist
           bridgeStatus.running = false;
           bridgeStatus.healthy = false;
         }
       }
-    } catch (err) {
+    } catch (_err) {
       logger.error('Error checking bridge status:', err);
     }
 
@@ -1618,7 +1637,7 @@ app.get('/health', async (req, res) => {
     try {
       const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'));
       version = packageJson.version;
-    } catch (err) {
+    } catch (_err) {
       logger.error('Failed to read version:', err);
     }
 
@@ -1632,10 +1651,10 @@ app.get('/health', async (req, res) => {
 
     try {
       // Try to query database to verify it's accessible
-      const testQuery = projectState.db.db.prepare('SELECT COUNT(*) as count FROM sqlite_master').get();
+      // const testQuery = projectState.db.db.prepare('SELECT COUNT(*) as count FROM sqlite_master').get();
       databaseHealth.accessible = true;
       databaseHealth.status = 'healthy';
-    } catch (err) {
+    } catch (_err) {
       databaseHealth.accessible = false;
       databaseHealth.status = 'error';
       databaseHealth.lastError = err.message;
@@ -1809,7 +1828,7 @@ async function runStartupDiagnostics() {
       try {
         process.kill(bridgePid, 0);
         bridgeRunning = true;
-      } catch (err) {
+      } catch (_err) {
         bridgeRunning = false;
       }
     }
@@ -1843,7 +1862,7 @@ async function runStartupDiagnostics() {
               diagnostics.bridge.status = 'healthy';
               diagnostics.bridge.fixed = true;
               logger.info('Telemetry Bridge: Auto-started successfully', { pid: newPid });
-            } catch (err) {
+            } catch (_err) {
               logger.warn('Telemetry Bridge auto-start attempt failed - process not running', { attempt: retryCount, maxRetries });
             }
           } else {
@@ -1969,13 +1988,24 @@ async function gracefulShutdown(signal) {
     logger.info('✅ Stopped performance monitor interval');
   }
 
-  // Close Claude Log Watcher
-  if (claudeLogWatcher) {
+  // Close all file watchers
+  if (projectWatchers.size > 0) {
     try {
-      await claudeLogWatcher.stop();
-      logger.info('✅ Stopped Claude Log Watcher');
+      const closePromises = [];
+      for (const [projectName, watcher] of projectWatchers.entries()) {
+        closePromises.push(
+          watcher.close().then(() => {
+            logger.info(`✅ Closed watcher for ${projectName}`);
+          }).catch(error => {
+            logger.error(`Error closing watcher for ${projectName}:`, error);
+          })
+        );
+      }
+      await Promise.all(closePromises);
+      projectWatchers.clear();
+      logger.info('✅ All file watchers stopped');
     } catch (error) {
-      logger.error('Error stopping Claude Log Watcher:', error);
+      logger.error('Error stopping file watchers:', error);
     }
   }
 

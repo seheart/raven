@@ -24,6 +24,7 @@ export class FileWatcherService {
 
     // Configuration
     this.FILE_WATCH_DEBOUNCE_MS = options.debounceMs || 150;
+    this.skipProjects = options.skipProjects || ['echo']; // Projects to skip watching
 
     // Memoization cache for shouldIgnore results (LRU cache with 1000 entries)
     this.ignoreCache = new Map();
@@ -124,16 +125,15 @@ export class FileWatcherService {
     // Platform detection
     const isMacOS = process.platform === 'darwin';
 
-    // Special handling for projects with heavy dependencies
-    const isRavenProject = projectName === 'raven';
-    const isEchoProject = projectName === 'echo';
-
-    // Skip echo project entirely due to massive venv directories
-    if (isEchoProject) {
-      logger.warn(`⚠️  Skipping file watcher for ${projectName} (has massive Python venv directories)`);
+    // Check if project should be skipped (configured in skip list)
+    if (this.skipProjects.includes(projectName)) {
+      logger.warn(`⚠️  Skipping file watcher for ${projectName} (in skip list)`);
       logger.warn(`   To manually track changes in ${projectName}, use git or manual refresh`);
       return null;
     }
+
+    // Special handling for projects with heavy dependencies
+    const isRavenProject = projectName === 'raven';
 
     let watchPaths;
     if (isRavenProject) {
@@ -151,7 +151,7 @@ export class FileWatcherService {
     }
 
     // Create a function to check if path should be ignored (with memoization)
-    const shouldIgnore = (path, stats) => {
+    const shouldIgnore = (path, _stats) => {
       // Normalize path to use forward slashes
       const normalizedPath = path.replace(/\\/g, '/');
 
@@ -164,7 +164,7 @@ export class FileWatcherService {
 
       // AGGRESSIVE: Check for Python venv directories first (most common cause of issues)
       const venvPatterns = ['/venv/', '/.venv/', '/env/', '/virtualenv/',
-                            '/site-packages/', '/dist-packages/', '/__pycache__/'];
+        '/site-packages/', '/dist-packages/', '/__pycache__/'];
 
       for (const pattern of venvPatterns) {
         if (normalizedPath.includes(pattern)) {

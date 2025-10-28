@@ -131,7 +131,7 @@ export async function clearErrorLogs(olderThanDays = null) {
   try {
     const endpoint = olderThanDays
       ? `/errors?olderThanDays=${olderThanDays}`
-      : `/errors`;
+      : '/errors';
 
     const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
       method: 'DELETE'

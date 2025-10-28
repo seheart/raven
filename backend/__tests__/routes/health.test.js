@@ -89,7 +89,7 @@ describe('Health Routes', () => {
     }
     try {
       await unlink(testDbPath);
-    } catch (error) {
+    } catch (_error) {
       // Ignore cleanup errors
     }
   });

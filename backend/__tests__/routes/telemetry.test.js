@@ -48,7 +48,7 @@ describe('Telemetry Routes', () => {
       availableProjects: [{ name: 'test-project' }],
       SESSION_ID: 'test-session-123',
       agentRegistry: mockAgentRegistry,
-      getAgentColor: (name) => '#FF0000',
+      getAgentColor: (_name) => '#FF0000',
       triggerEngine: mockTriggerEngine,
       io: mockIo
     };

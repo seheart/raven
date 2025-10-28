@@ -2,7 +2,6 @@
  * Tests for API Documentation Routes
  */
 
-import { jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createApiDocsRoutes } from '../../routes/api-docs.js';

@@ -135,7 +135,7 @@
     aria-busy={isLoading}
     aria-invalid={!!error}
   >
-    {#each $availableProjects || [] as project}
+    {#each $availableProjects || [] as project (project)}
       <option value={project}>{project}</option>
     {/each}
   </select>

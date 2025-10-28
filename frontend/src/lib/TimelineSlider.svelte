@@ -144,7 +144,7 @@
   <div class="slider-container" bind:this={sliderRef} aria-labelledby="timeline-label" aria-describedby="timeline-info">
     <!-- Event density visualization -->
     <div class="density-bars" aria-hidden="true">
-      {#each eventDensity || [] as density, i}
+      {#each eventDensity || [] as density, i (i)}
         <div
           class="density-bar"
           style="height: {density * 100}%; left: {i}%; opacity: {density * 0.8 + 0.2}"

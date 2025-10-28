@@ -3,7 +3,6 @@
  * Tests aggregated statistics with real database queries
  */
 
-import { jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createDashboardRoutes } from '../../routes/dashboard.js';
@@ -70,7 +69,7 @@ describe('Dashboard Integration Tests', () => {
     }
   });
 
-  function seedDatabase(db, sessionId, project) {
+  function seedDatabase(db, sessionId, _project) {
     const events = [
       {
         session_id: sessionId,

@@ -9,7 +9,7 @@ import { notifications } from '../stores/notifications.js';
 describe('Toast Component', () => {
   beforeEach(() => {
     // Mock element.animate for jsdom (Web Animations API not available)
-    Element.prototype.animate = vi.fn((keyframes, options) => {
+    Element.prototype.animate = vi.fn((_keyframes, _options) => {
       // Create a mock animation that immediately completes
       const animation = {
         finished: Promise.resolve(),
@@ -87,6 +87,7 @@ describe('Toast Component', () => {
   it('should call remove when close button clicked', async () => {
     const { container, getByText, queryByText } = render(Toast);
 
+    // eslint-disable-next-line no-unused-vars
     const id = notifications.add({ type: 'info', message: 'Test message', timeout: 0 });
 
     await waitFor(() => {

@@ -29,7 +29,7 @@ describe('AuthService', () => {
 
     try {
       await unlink(testDbPath);
-    } catch (error) {
+    } catch (_error) {
       // Ignore errors if file doesn't exist
     }
   });
@@ -222,6 +222,7 @@ describe('AuthService', () => {
 
   describe('Token Generation', () => {
     it('should generate valid JWT token', async () => {
+      // eslint-disable-next-line no-unused-vars
       const userId = await authService.createUser('testuser', 'password123');
       const result = await authService.authenticate('testuser', 'password123');
 

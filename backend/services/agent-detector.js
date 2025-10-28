@@ -218,7 +218,7 @@ export class AgentDetector {
       } else if (author.toLowerCase().includes('ant')) {
         return { agent: 'ant', confidence: 70, signal: 'git_author', value: author };
       }
-    } catch (e) {
+    } catch (_e) {
       // Git command failed, that's okay
     }
     return null;
@@ -287,7 +287,7 @@ export class AgentDetector {
           }
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Process listing failed
     }
 

@@ -41,7 +41,7 @@ describe('Dashboard Routes', () => {
       getAgentStats: jest.fn().mockReturnValue({ total: 10, avg_duration: 100 }),
       db: {
         prepare: jest.fn((sql) => ({
-          all: jest.fn((sessionId) => {
+          all: jest.fn((_sessionId) => {
             // Mock agent queries for project1 - return 2 unique agents
             if (sql.includes('DISTINCT agent FROM agent_events')) {
               return [{ agent: 'agent1' }, { agent: 'agent2' }];
@@ -74,7 +74,7 @@ describe('Dashboard Routes', () => {
       getAgentStats: jest.fn().mockReturnValue({ total: 20, avg_duration: 200 }),
       db: {
         prepare: jest.fn((sql) => ({
-          all: jest.fn((sessionId) => {
+          all: jest.fn((_sessionId) => {
             // Mock agent queries for project2 - return 3 unique agents (no overlap)
             if (sql.includes('DISTINCT agent FROM agent_events')) {
               return [{ agent: 'agent3' }, { agent: 'agent4' }, { agent: 'agent5' }];
@@ -99,7 +99,7 @@ describe('Dashboard Routes', () => {
       projectState: mockProjectState,
       SESSION_ID: 'test-session-123',
       agentRegistry: new Map(),
-      getAgentColor: (name) => '#FF0000'
+      getAgentColor: (_name) => '#FF0000'
     };
 
     // Create Express app with dashboard routes
@@ -346,7 +346,7 @@ describe('Dashboard Routes', () => {
     test('should query all databases concurrently not sequentially', async () => {
       let db1Called = false;
       let db2Called = false;
-      let bothCalledSimultaneously = false;
+      // let bothCalledSimultaneously = false;
 
       mockDb1.getDashboardStats = jest.fn(() => {
         db1Called = true;

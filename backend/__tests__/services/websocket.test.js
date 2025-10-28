@@ -3,7 +3,6 @@
  * Tests for real-time event broadcasting and connection management
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { Server as SocketIOServer } from 'socket.io';
 import { createServer } from 'http';
 

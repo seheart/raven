@@ -113,7 +113,7 @@ export class RateLimitError extends AppError {
  * Centralized error handler middleware
  * Should be the last middleware in the chain
  */
-export function errorHandler(err, req, res, next) {
+export function errorHandler(err, req, res, _next) {
   // Default to 500 internal server error
   let statusCode = err.statusCode || 500;
   let errorCode = err.errorCode || ErrorCodes.UNKNOWN_ERROR;
@@ -224,8 +224,8 @@ export function notFoundHandler(req, res) {
  * Usage: router.get('/path', asyncHandler(async (req, res) => { ... }))
  */
 export function asyncHandler(fn) {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+  return (req, res, _next) => {
+    Promise.resolve(fn(req, res, _next)).catch(next);
   };
 }
 

@@ -378,7 +378,7 @@ cooldown_seconds = 300
       if (!isAllowed) {
         logger.error(`❌ Command execution blocked: '${baseCommand}' is not in whitelist`);
         logger.error(`   Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
-        logger.error(`   To enable custom commands, add them to ALLOWED_COMMANDS in trigger-engine.js`);
+        logger.error('   To enable custom commands, add them to ALLOWED_COMMANDS in trigger-engine.js');
         return;
       }
 

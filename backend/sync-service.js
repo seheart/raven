@@ -1,12 +1,12 @@
 import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
-import { readFile, writeFile, mkdir, access, constants as fsConstants } from 'fs/promises';
+import { readFile, writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import os from 'os';
 import { logger } from './utils/logger.js';
 
-const execAsync = promisify(exec);
+// const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
 // Constants
@@ -131,7 +131,7 @@ export async function checkRsyncInstalled() {
   try {
     await execFileAsync('which', ['rsync']);
     return { installed: true };
-  } catch (error) {
+  } catch (_error) {
     return {
       installed: false,
       message: 'rsync is not installed. Install it with: sudo pacman -S rsync (or apt/yum/brew)'
@@ -336,7 +336,7 @@ export async function performSync(config, projectPath) {
       setTimeout(() => reject(new Error(`Sync timeout after ${RSYNC_TIMEOUT_MS}ms`)), RSYNC_TIMEOUT_MS)
     );
 
-    const { stdout, stderr } = await Promise.race([rsyncPromise, timeoutPromise]);
+    const { stdout /*, stderr */ } = await Promise.race([rsyncPromise, timeoutPromise]);
 
     const duration = Date.now() - startTime;
 
@@ -431,7 +431,7 @@ function parseRsyncOutput(output) {
   try {
     // Look for "sent X bytes  received Y bytes"
     const sentMatch = output.match(/sent ([\d,]+) bytes/);
-    const receivedMatch = output.match(/received ([\d,]+) bytes/);
+    // const receivedMatch = output.match(/received ([\d,]+) bytes/);
 
     if (sentMatch) {
       const sent = parseInt(sentMatch[1].replace(/,/g, ''));
