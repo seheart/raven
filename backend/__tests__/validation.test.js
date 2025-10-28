@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { sanitizeFilePath, schemas } from '../middleware/validation.js';
+import { sanitizeFilePath, schemas, validate, validateFilePath } from '../middleware/validation.js';
 
 describe('Validation', () => {
   describe('sanitizeFilePath', () => {
@@ -327,6 +327,511 @@ describe('Validation', () => {
       });
 
       expect(error).toBeDefined();
+    });
+  });
+
+  describe('sanitizeFilePath - Advanced', () => {
+    it('should reject null bytes', () => {
+      expect(() => sanitizeFilePath('file\0.txt')).toThrow('Null bytes detected');
+    });
+
+    it('should reject non-string input', () => {
+      expect(sanitizeFilePath(123)).toBeNull();
+      expect(sanitizeFilePath({})).toBeNull();
+      expect(sanitizeFilePath([])).toBeNull();
+    });
+
+    it('should handle baseDir validation', () => {
+      const baseDir = '/tmp/project';
+      const result = sanitizeFilePath('src/file.js', baseDir);
+      expect(result).toContain(baseDir);
+    });
+
+    it('should reject paths outside baseDir', () => {
+      const baseDir = '/tmp/project';
+      expect(() => sanitizeFilePath('../outside/file.js', baseDir))
+        .toThrow('Path traversal detected');
+    });
+
+    it('should block sensitive paths', () => {
+      expect(() => sanitizeFilePath('/etc/passwd')).toThrow('Access to sensitive path denied');
+      expect(() => sanitizeFilePath('/etc/shadow')).toThrow('Access to sensitive path denied');
+      expect(() => sanitizeFilePath('/home/user/.ssh/id_rsa')).toThrow('Access to sensitive path denied');
+      expect(() => sanitizeFilePath('/home/user/.aws/credentials')).toThrow('Access to sensitive path denied');
+      expect(() => sanitizeFilePath('/app/.env')).toThrow('Access to sensitive path denied');
+    });
+
+    it('should normalize relative paths', () => {
+      expect(sanitizeFilePath('src/./././file.js')).toBe('src/file.js');
+    });
+
+    it('should handle empty string', () => {
+      expect(sanitizeFilePath('')).toBeNull();
+    });
+  });
+
+  describe('Register Schema', () => {
+    it('should validate registration with default role', () => {
+      const { error, value } = schemas.register.validate({
+        username: 'newuser',
+        password: 'password123'
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.role).toBe('user');
+    });
+
+    it('should validate with admin role', () => {
+      const { error, value } = schemas.register.validate({
+        username: 'admin',
+        password: 'password123',
+        role: 'admin'
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.role).toBe('admin');
+    });
+
+    it('should reject invalid roles', () => {
+      const { error } = schemas.register.validate({
+        username: 'test',
+        password: 'password123',
+        role: 'superuser'
+      });
+
+      expect(error).toBeDefined();
+    });
+  });
+
+  describe('Change Password Schema', () => {
+    it('should validate password change', () => {
+      const { error } = schemas.changePassword.validate({
+        oldPassword: 'oldpass123',
+        newPassword: 'newpass123'
+      });
+
+      expect(error).toBeUndefined();
+    });
+
+    it('should require old password', () => {
+      const { error } = schemas.changePassword.validate({
+        newPassword: 'newpass123'
+      });
+
+      expect(error).toBeDefined();
+    });
+
+    it('should enforce new password length', () => {
+      const { error } = schemas.changePassword.validate({
+        oldPassword: 'oldpass123',
+        newPassword: 'short'
+      });
+
+      expect(error).toBeDefined();
+    });
+  });
+
+  describe('Storage Cleanup Schema', () => {
+    it('should validate with days', () => {
+      const { error, value } = schemas.storageCleanup.validate({
+        olderThanDays: 30
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.olderThanDays).toBe(30);
+    });
+
+    it('should allow empty object', () => {
+      const { error } = schemas.storageCleanup.validate({});
+      expect(error).toBeUndefined();
+    });
+
+    it('should reject days over 365', () => {
+      const { error } = schemas.storageCleanup.validate({
+        olderThanDays: 400
+      });
+
+      expect(error).toBeDefined();
+    });
+  });
+
+  describe('Sync Config Schema', () => {
+    it('should validate complete sync config', () => {
+      const { error, value } = schemas.syncConfig.validate({
+        enabled: true,
+        host: 'example.com',
+        port: 22,
+        username: 'user',
+        remotePath: '/remote/path',
+        schedule: '0 * * * *'
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.enabled).toBe(true);
+    });
+
+    it('should require enabled field', () => {
+      const { error } = schemas.syncConfig.validate({});
+      expect(error).toBeDefined();
+    });
+
+    it('should validate port range', () => {
+      const { error: error1 } = schemas.syncConfig.validate({
+        enabled: true,
+        port: 0
+      });
+      const { error: error2 } = schemas.syncConfig.validate({
+        enabled: true,
+        port: 99999
+      });
+
+      expect(error1).toBeDefined();
+      expect(error2).toBeDefined();
+    });
+  });
+
+  describe('Pagination Schema', () => {
+    it('should apply defaults', () => {
+      const { error, value } = schemas.pagination.validate({});
+
+      expect(error).toBeUndefined();
+      expect(value.limit).toBe(100);
+      expect(value.offset).toBe(0);
+    });
+  });
+
+  describe('Error Query Schema', () => {
+    it('should validate with defaults', () => {
+      const { error, value } = schemas.errorQuery.validate({});
+
+      expect(error).toBeUndefined();
+      expect(value.severity).toBe('all');
+    });
+  });
+
+  describe('Activity Log Query Schema', () => {
+    it('should validate with defaults', () => {
+      const { error, value } = schemas.activityLogQuery.validate({});
+
+      expect(error).toBeUndefined();
+      expect(value.limit).toBe(500);
+      expect(value.type).toBe('all');
+    });
+
+    it('should validate type values', () => {
+      ['all', 'add', 'change', 'unlink'].forEach(type => {
+        const { error } = schemas.activityLogQuery.validate({ type });
+        expect(error).toBeUndefined();
+      });
+    });
+  });
+
+  describe('Tracked Files Query Schema', () => {
+    it('should validate project parameter', () => {
+      const { error, value } = schemas.trackedFilesQuery.validate({
+        project: 'my-project',
+        limit: 50
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.project).toBe('my-project');
+    });
+
+    it('should reject invalid project names', () => {
+      const { error } = schemas.trackedFilesQuery.validate({
+        project: 'invalid@project'
+      });
+
+      expect(error).toBeDefined();
+    });
+  });
+
+  describe('Events By Session Params Schema', () => {
+    it('should validate UUID v4', () => {
+      const { error, value } = schemas.eventsBySessionParams.validate({
+        sessionId: '550e8400-e29b-41d4-a716-446655440000'
+      });
+
+      expect(error).toBeUndefined();
+    });
+
+    it('should reject invalid UUID', () => {
+      const { error } = schemas.eventsBySessionParams.validate({
+        sessionId: 'not-a-uuid'
+      });
+
+      expect(error).toBeDefined();
+    });
+  });
+
+  describe('File Events Query Schema', () => {
+    it('should validate diff parameter', () => {
+      const { error, value } = schemas.fileEventsQuery.validate({
+        diff: 'true'
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.diff).toBe('true');
+    });
+
+    it('should apply defaults', () => {
+      const { error, value } = schemas.fileEventsQuery.validate({});
+
+      expect(error).toBeUndefined();
+      expect(value.diff).toBe('false');
+      expect(value.limit).toBe(100);
+    });
+  });
+
+  describe('All File Events Query Schema', () => {
+    it('should validate query', () => {
+      const { error, value } = schemas.allFileEventsQuery.validate({
+        limit: 200,
+        diff: 'true'
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.limit).toBe(200);
+    });
+  });
+
+  describe('Create Notification Schema', () => {
+    it('should validate complete notification', () => {
+      const { error, value } = schemas.createNotification.validate({
+        type: 'update',
+        severity: 'info',
+        title: 'New Update',
+        message: 'System updated successfully',
+        metadata: { version: '1.0.0' }
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.type).toBe('update');
+    });
+
+    it('should require all mandatory fields', () => {
+      const { error } = schemas.createNotification.validate({
+        type: 'update'
+      });
+
+      expect(error).toBeDefined();
+    });
+
+    it('should validate severity options', () => {
+      ['info', 'warning', 'error', 'success'].forEach(severity => {
+        const { error } = schemas.createNotification.validate({
+          type: 'test',
+          severity,
+          title: 'Test',
+          message: 'Test message'
+        });
+        expect(error).toBeUndefined();
+      });
+    });
+  });
+
+  describe('validate() middleware', () => {
+    let req, res, next;
+
+    beforeEach(() => {
+      req = { body: {}, query: {}, params: {} };
+
+      const statusCalls = [];
+      const jsonCalls = [];
+      res = {
+        status: (code) => {
+          statusCalls.push(code);
+          return res;
+        },
+        json: (data) => {
+          jsonCalls.push(data);
+          return res;
+        },
+        _statusCalls: statusCalls,
+        _jsonCalls: jsonCalls
+      };
+
+      const nextCalls = [];
+      next = (...args) => nextCalls.push(args);
+      next._calls = nextCalls;
+    });
+
+    it('should validate body data', () => {
+      req.body = { username: 'testuser', password: 'password123' };
+
+      const middleware = validate('login', 'body');
+      middleware(req, res, next);
+
+      expect(next._calls).toHaveLength(1);
+      expect(res._statusCalls).toHaveLength(0);
+    });
+
+    it('should validate query data', () => {
+      req.query = { limit: '50', offset: '10' };
+
+      const middleware = validate('pagination', 'query');
+      middleware(req, res, next);
+
+      expect(next._calls).toHaveLength(1);
+    });
+
+    it('should validate params data', () => {
+      req.params = { id: '42' };
+
+      const middleware = validate('id', 'params');
+      middleware(req, res, next);
+
+      expect(next._calls).toHaveLength(1);
+    });
+
+    it('should reject invalid data', () => {
+      req.body = { username: 'ab', password: 'short' };
+
+      const middleware = validate('login', 'body');
+      middleware(req, res, next);
+
+      expect(res._statusCalls[0]).toBe(400);
+      expect(res._jsonCalls[0].error).toBe('Validation failed');
+      expect(res._jsonCalls[0].details).toBeDefined();
+      expect(next._calls).toHaveLength(0);
+    });
+
+    it('should return multiple validation errors', () => {
+      req.body = {};
+
+      const middleware = validate('login', 'body');
+      middleware(req, res, next);
+
+      expect(res._jsonCalls[0].details.length).toBeGreaterThan(1);
+    });
+
+    it('should strip unknown fields', () => {
+      req.body = {
+        username: 'testuser',
+        password: 'password123',
+        unknownField: 'should be removed'
+      };
+
+      const middleware = validate('login', 'body');
+      middleware(req, res, next);
+
+      expect(req.body.unknownField).toBeUndefined();
+    });
+
+    it('should handle invalid schema name', () => {
+      const middleware = validate('nonexistentSchema', 'body');
+      middleware(req, res, next);
+
+      expect(res._statusCalls[0]).toBe(500);
+      expect(res._jsonCalls[0].error).toBe('Invalid validation schema');
+    });
+
+    it('should default to body source', () => {
+      req.body = { username: 'testuser', password: 'password123' };
+
+      const middleware = validate('login');
+      middleware(req, res, next);
+
+      expect(next._calls).toHaveLength(1);
+    });
+
+    it('should apply defaults for optional fields', () => {
+      req.body = {};
+
+      const middleware = validate('eventQuery', 'body');
+      middleware(req, res, next);
+
+      expect(req.body.limit).toBe(100);
+      expect(req.body.offset).toBe(0);
+    });
+  });
+
+  describe('validateFilePath() middleware', () => {
+    let req, res, next;
+
+    beforeEach(() => {
+      req = { body: {}, query: {}, params: {} };
+
+      const statusCalls = [];
+      const jsonCalls = [];
+      res = {
+        status: (code) => {
+          statusCalls.push(code);
+          return res;
+        },
+        json: (data) => {
+          jsonCalls.push(data);
+          return res;
+        },
+        _statusCalls: statusCalls,
+        _jsonCalls: jsonCalls
+      };
+
+      const nextCalls = [];
+      next = (...args) => nextCalls.push(args);
+      next._calls = nextCalls;
+    });
+
+    it('should sanitize filepath in body', () => {
+      req.body.filepath = 'src/./file.js';
+
+      validateFilePath(req, res, next);
+
+      expect(req.body.filepath).toBe('src/file.js');
+      expect(next._calls).toHaveLength(1);
+    });
+
+    it('should sanitize filepath in query', () => {
+      req.query.filepath = 'src//file.js';
+
+      validateFilePath(req, res, next);
+
+      expect(req.query.filepath).toBe('src/file.js');
+      expect(next._calls).toHaveLength(1);
+    });
+
+    it('should sanitize filepath in params', () => {
+      req.params.filepath = 'src/file.js';
+
+      validateFilePath(req, res, next);
+
+      expect(req.params.filepath).toBe('src/file.js');
+      expect(next._calls).toHaveLength(1);
+    });
+
+    it('should reject path traversal in body', () => {
+      req.body.filepath = '../etc/passwd';
+
+      validateFilePath(req, res, next);
+
+      expect(res._statusCalls[0]).toBe(400);
+      expect(res._jsonCalls[0].error).toBe('Path traversal detected');
+      expect(next._calls).toHaveLength(0);
+    });
+
+    it('should reject null bytes', () => {
+      req.body.filepath = 'file\0.txt';
+
+      validateFilePath(req, res, next);
+
+      expect(res._statusCalls[0]).toBe(400);
+      expect(res._jsonCalls[0].error).toBe('Null bytes detected in path');
+    });
+
+    it('should reject sensitive paths', () => {
+      req.params.filepath = '/etc/passwd';
+
+      validateFilePath(req, res, next);
+
+      expect(res._statusCalls[0]).toBe(400);
+      expect(res._jsonCalls[0].error).toBe('Access to sensitive path denied');
+    });
+
+    it('should handle requests without filepath', () => {
+      validateFilePath(req, res, next);
+
+      expect(next._calls).toHaveLength(1);
+      expect(res._statusCalls).toHaveLength(0);
     });
   });
 });
