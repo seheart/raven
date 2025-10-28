@@ -264,6 +264,12 @@
     opacity: 1;
   }
 
+  .toggle-password:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    opacity: 1;
+  }
+
   .toggle-password:disabled {
     cursor: not-allowed;
   }

@@ -602,6 +602,11 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
+  .template-card:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .template-card.selected {
     border-color: var(--accent);
     background: var(--surface-2);
@@ -739,6 +744,12 @@
   .btn-primary:hover:not(:disabled) {
     opacity: 0.9;
     transform: translateY(-1px);
+  }
+
+  .btn-primary:focus,
+  .btn-secondary:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .btn-primary:disabled {

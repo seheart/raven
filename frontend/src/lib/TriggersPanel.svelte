@@ -603,6 +603,11 @@
     background: var(--surface);
   }
 
+  .tab:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
   .tab.active {
     color: var(--warning);
     border-bottom-color: var(--warning);

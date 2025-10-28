@@ -68,7 +68,15 @@
   }
 </script>
 
-<div class="diff-modal-overlay" on:click={onClose} role="dialog" aria-modal="true" aria-labelledby="diff-title">
+<div
+  class="diff-modal-overlay"
+  on:click={onClose}
+  on:keydown={(e) => e.key === 'Escape' && onClose()}
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="diff-title"
+  tabindex="-1"
+>
   <div class="diff-modal-content" on:click|stopPropagation role="document">
     <div class="diff-header">
       <h2 id="diff-title"><span aria-hidden="true">📊</span> Diff Viewer</h2>
@@ -174,6 +182,11 @@
 
   .close-btn:hover {
     color: var(--text);
+  }
+
+  .close-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .unified-diff {

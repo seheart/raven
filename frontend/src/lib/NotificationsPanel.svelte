@@ -418,8 +418,11 @@
           class:unread={!notification.read}
           class:expanded={expandedNotification?.id === notification.id}
           on:click={() => toggleExpand(notification)}
+          on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleExpand(notification))}
           role="listitem"
           aria-expanded={expandedNotification?.id === notification.id}
+          aria-controls="notification-details-{notification.id}"
+          aria-label="{notification.severity} {notification.type}: {notification.title}"
           tabindex="0"
         >
           <div class="notification-header">
@@ -462,7 +465,7 @@
           </div>
 
           {#if expandedNotification?.id === notification.id}
-            <div class="notification-details" role="region" aria-label="Notification details">
+            <div class="notification-details" id="notification-details-{notification.id}" role="region" aria-label="Notification details">
               <div class="detail-section">
                 <div class="detail-label">Message</div>
                 <div class="detail-value">{notification.message}</div>
@@ -699,6 +702,11 @@
   .notification-item:hover {
     border-color: var(--accent);
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .notification-item:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .notification-item.unread {

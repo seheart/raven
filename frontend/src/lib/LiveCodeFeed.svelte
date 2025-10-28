@@ -587,6 +587,11 @@
     box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
   }
 
+  .btn-pause:focus {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+
   .pause-text {
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -783,6 +788,11 @@
   .btn-copy:hover {
     background: var(--surface-2);
     border-color: var(--accent);
+  }
+
+  .btn-copy:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .change-file {

@@ -200,10 +200,10 @@
   <!-- Main Stats Grid -->
   <div class="stats-grid" role="group" aria-label="Dashboard statistics">
     <!-- Current Session Card -->
-    <div class="stat-card session-card" aria-label="Current session statistics">
+    <div class="stat-card session-card" role="article" aria-labelledby="session-card-heading">
       <div class="card-header">
-        <span class="card-icon">⏱️</span>
-        <h3>Current Session</h3>
+        <span class="card-icon" aria-hidden="true">⏱️</span>
+        <h3 id="session-card-heading">Current Session</h3>
       </div>
       {#if loading}
         <LoadingSkeleton type="text" count={4} />
@@ -232,18 +232,26 @@
     </div>
 
     <!-- System Metrics Card -->
-    <div class="stat-card metrics-card" aria-label="System metrics">
+    <div class="stat-card metrics-card" role="article" aria-labelledby="metrics-card-heading">
       <div class="card-header">
-        <span class="card-icon">📊</span>
-        <h3>System Health</h3>
+        <span class="card-icon" aria-hidden="true">📊</span>
+        <h3 id="metrics-card-heading">System Health</h3>
       </div>
       {#if loading}
         <LoadingSkeleton type="chart" height="100px" />
       {:else}
-        <div class="metrics-display">
+        <div class="metrics-display" role="group" aria-label="System resource usage">
           <div class="metric-item">
-            <div class="metric-label">CPU</div>
-            <div class="metric-bar">
+            <div class="metric-label" id="cpu-metric-label">CPU</div>
+            <div
+              class="metric-bar"
+              role="progressbar"
+              aria-labelledby="cpu-metric-label"
+              aria-valuenow="{systemMetrics.cpu_percent?.toFixed(1)}"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-label="CPU usage: {systemMetrics.cpu_percent?.toFixed(1)}%"
+            >
               <div
                 class="metric-fill"
                 style="width: {systemMetrics.cpu_percent}%; background: {systemMetrics.cpu_percent > 80 ? 'var(--error)' : systemMetrics.cpu_percent > 50 ? 'var(--warning)' : 'var(--success)'};"
@@ -252,8 +260,16 @@
             <div class="metric-value">{systemMetrics.cpu_percent?.toFixed(1)}%</div>
           </div>
           <div class="metric-item">
-            <div class="metric-label">Memory</div>
-            <div class="metric-bar">
+            <div class="metric-label" id="memory-metric-label">Memory</div>
+            <div
+              class="metric-bar"
+              role="progressbar"
+              aria-labelledby="memory-metric-label"
+              aria-valuenow="{systemMetrics.memory_percent?.toFixed(1)}"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-label="Memory usage: {systemMetrics.memory_percent?.toFixed(1)}% ({systemMetrics.memory_used_mb?.toFixed(0)} of {systemMetrics.memory_total_mb?.toFixed(0)} MB)"
+            >
               <div
                 class="metric-fill"
                 style="width: {systemMetrics.memory_percent}%; background: {systemMetrics.memory_percent > 85 ? 'var(--error)' : systemMetrics.memory_percent > 60 ? 'var(--warning)' : 'var(--success)'};"
@@ -270,17 +286,23 @@
   </div>
 
   <!-- Live Activity Stream -->
-  <div class="activity-section">
+  <section class="activity-section" aria-labelledby="activity-heading">
     <div class="section-header">
-      <h3>Live Activity Stream</h3>
-      <div class="header-actions">
-        <span class="last-updated">Updated: {timeAgo}</span>
-        <button class="refresh-btn" on:click={() => loadAllData(true)} disabled={loading} title="Refresh now">
-          <span class="refresh-icon" class:spinning={loading}>🔄</span>
+      <h3 id="activity-heading">Live Activity Stream</h3>
+      <div class="header-actions" role="toolbar" aria-label="Activity stream controls">
+        <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
+        <button
+          class="refresh-btn"
+          on:click={() => loadAllData(true)}
+          disabled={loading}
+          aria-label="Refresh activity stream"
+          aria-busy={loading}
+        >
+          <span class="refresh-icon" class:spinning={loading} aria-hidden="true">🔄</span>
           Refresh
         </button>
-        <span class="live-indicator" aria-label="Real-time updates active">
-          <span class="live-dot"></span>
+        <span class="live-indicator" role="status" aria-label="Real-time updates active">
+          <span class="live-dot" aria-hidden="true"></span>
           Live
         </span>
       </div>
@@ -289,10 +311,10 @@
     {#if loading}
       <LoadingSkeleton type="list" count={3} />
     {:else if recentActivity.length > 0}
-      <div class="activity-list">
+      <ul class="activity-list" role="list" aria-label="Recent file changes">
         {#each recentActivity as event (event.id || event.timestamp)}
-          <div class="activity-item" role="listitem">
-            <span class="activity-icon">
+          <li class="activity-item">
+            <span class="activity-icon" aria-hidden="true">
               {#if event.change_type === 'add'}
                 ➕
               {:else if event.change_type === 'change'}
@@ -314,30 +336,30 @@
                 {event.change_type} • {formatDateTime(event.timestamp)}
               </div>
             </div>
-          </div>
+          </li>
         {/each}
-      </div>
+      </ul>
     {:else}
-      <div class="empty-state">
-        <span class="empty-icon">💤</span>
+      <div class="empty-state" role="status" aria-label="No recent activity">
+        <span class="empty-icon" aria-hidden="true">💤</span>
         <p>No recent activity</p>
       </div>
     {/if}
-  </div>
+  </section>
 
   <!-- Top Files Section -->
   {#if topFiles.length > 0}
-    <div class="files-section">
-      <h3>Most Active Files</h3>
-      <div class="files-list">
+    <section class="files-section" aria-labelledby="top-files-heading">
+      <h3 id="top-files-heading">Most Active Files</h3>
+      <ul class="files-list" role="list" aria-label="Files with most changes">
         {#each topFiles as file (file.id || file.name || file)}
-          <div class="file-item">
+          <li class="file-item">
             <span class="file-name">{file.filepath}</span>
-            <span class="file-changes">{file.edit_count} changes</span>
-          </div>
+            <span class="file-changes" aria-label="{file.edit_count} changes">{file.edit_count} changes</span>
+          </li>
         {/each}
-      </div>
-    </div>
+      </ul>
+    </section>
   {/if}
 </div>
 
@@ -605,6 +627,9 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
   }
 
   .activity-item {
@@ -676,6 +701,9 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
   }
 
   .file-item {

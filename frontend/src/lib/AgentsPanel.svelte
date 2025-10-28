@@ -574,6 +574,11 @@
     background: var(--surface-2);
   }
 
+  .btn-export:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .export-menu {
     display: none;
     position: absolute;
@@ -588,7 +593,8 @@
     min-width: 150px;
   }
 
-  .export-dropdown:hover .export-menu {
+  .export-dropdown:hover .export-menu,
+  .export-dropdown:focus-within .export-menu {
     display: block;
   }
 
@@ -712,6 +718,11 @@
   .tab:hover {
     color: var(--text);
     background: var(--surface);
+  }
+
+  .tab:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
   .tab.active {

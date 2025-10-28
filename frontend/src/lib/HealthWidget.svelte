@@ -327,41 +327,41 @@
           </span>
         </div>
 
-        <div class="check-divider"></div>
+        <div class="check-divider" aria-hidden="true"></div>
 
-        <div class="check-item" class:ok={health.checks.syntaxErrors === 0}>
-          <span class="check-icon">{health.checks.syntaxErrors === 0 ? '✅' : '❌'}</span>
+        <div class="check-item" class:ok={health.checks.syntaxErrors === 0} role="status" aria-label="Syntax errors: {health.checks.syntaxErrors}">
+          <span class="check-icon" aria-hidden="true">{health.checks.syntaxErrors === 0 ? '✅' : '❌'}</span>
           <span class="check-label">Syntax</span>
         </div>
-        <div class="check-item" class:ok={health.checks.testFailures === 0}>
-          <span class="check-icon">{health.checks.testFailures === 0 ? '✅' : '❌'}</span>
+        <div class="check-item" class:ok={health.checks.testFailures === 0} role="status" aria-label="Test failures: {health.checks.testFailures}">
+          <span class="check-icon" aria-hidden="true">{health.checks.testFailures === 0 ? '✅' : '❌'}</span>
           <span class="check-label">Tests</span>
         </div>
-        <div class="check-item" class:warning={health.checks.largeDeletions > 0}>
-          <span class="check-icon">{health.checks.largeDeletions === 0 ? '✅' : '⚠️'}</span>
+        <div class="check-item" class:warning={health.checks.largeDeletions > 0} role="status" aria-label="Large deletions: {health.checks.largeDeletions}">
+          <span class="check-icon" aria-hidden="true">{health.checks.largeDeletions === 0 ? '✅' : '⚠️'}</span>
           <span class="check-label">Deletions ({health.checks.largeDeletions})</span>
         </div>
-        <div class="check-item" class:critical={health.checks.securityChanges > 0}>
-          <span class="check-icon">{health.checks.securityChanges === 0 ? '✅' : '🚨'}</span>
+        <div class="check-item" class:critical={health.checks.securityChanges > 0} role="status" aria-label="Security file changes: {health.checks.securityChanges}">
+          <span class="check-icon" aria-hidden="true">{health.checks.securityChanges === 0 ? '✅' : '🚨'}</span>
           <span class="check-label">Security ({health.checks.securityChanges})</span>
         </div>
         </div>
 
         <!-- Today's Stats (horizontal) -->
         <div class="today-stats" role="group" aria-label="Today's statistics">
-          <div class="stat" role="status">
+          <div class="stat" role="status" aria-label="{health.todayStats.filesChanged} files changed today">
             <span class="stat-value">{health.todayStats.filesChanged}</span>
             <span class="stat-label">files</span>
           </div>
-          <div class="stat" role="status">
+          <div class="stat" role="status" aria-label="{health.todayStats.linesAdded} lines added today">
             <span class="stat-value">+{health.todayStats.linesAdded}</span>
             <span class="stat-label">added</span>
           </div>
-          <div class="stat" role="status">
+          <div class="stat" role="status" aria-label="{health.todayStats.linesDeleted} lines deleted today">
             <span class="stat-value">-{health.todayStats.linesDeleted}</span>
             <span class="stat-label">deleted</span>
           </div>
-          <div class="last-check" role="status" aria-live="polite">Updated {timeAgo(health.lastCheck)}</div>
+          <div class="last-check" role="status" aria-live="polite" aria-label="Last health check: {timeAgo(health.lastCheck)}">Updated {timeAgo(health.lastCheck)}</div>
         </div>
       </div>
 
@@ -369,11 +369,11 @@
       {#if startupHealthExpanded && startupHealthResults && startupHealthResults.checks}
         <div class="startup-details" id="startup-details" role="region" aria-label="Startup health check details">
           {#each startupHealthResults.checks as check (check.path || check.name)}
-            <div class="startup-check-item" class:failed={!check.passed} role="status">
+            <div class="startup-check-item" class:failed={!check.passed} role="status" aria-label="{check.name}: {check.passed ? 'passed' : 'failed'} - {check.message}">
               <span class="check-icon" aria-hidden="true">{check.passed ? '✅' : '❌'}</span>
               <span class="check-name">{check.name}</span>
               <span class="check-message" class:error={!check.passed}>{check.message}</span>
-              <span class="check-duration">{check.duration}ms</span>
+              <span class="check-duration" aria-label="Duration: {check.duration} milliseconds">{check.duration}ms</span>
             </div>
           {/each}
         </div>

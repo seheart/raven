@@ -48,6 +48,7 @@
     aria-modal="true"
     aria-labelledby="dialog-title"
     aria-describedby="dialog-message"
+    tabindex="-1"
   >
     <div
       class="dialog-content dialog-{type}"

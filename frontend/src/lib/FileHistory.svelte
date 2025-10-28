@@ -217,7 +217,13 @@
   }
 </script>
 
-<div class="modal-overlay" on:click={onClose} role="presentation">
+<div
+  class="modal-overlay"
+  on:click={onClose}
+  on:keydown={(e) => e.key === 'Escape' && onClose()}
+  role="presentation"
+  tabindex="-1"
+>
   <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="file-history-heading">
     <div class="modal-header">
       <h2 id="file-history-heading"><span aria-hidden="true">📜</span> File History</h2>
@@ -365,6 +371,11 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    cursor: pointer;
+  }
+
+  .modal-content {
+    cursor: default;
   }
 
   .modal-content {
@@ -410,6 +421,11 @@
 
   .close-btn:hover {
     color: var(--text);
+  }
+
+  .close-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .file-path {
@@ -559,6 +575,13 @@
   .btn-view:hover {
     background: var(--info);
     color: white;
+  }
+
+  .btn-view:focus,
+  .btn-diff:focus,
+  .btn-restore:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .btn-diff {

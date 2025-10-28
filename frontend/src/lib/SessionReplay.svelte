@@ -797,6 +797,11 @@
     transform: translateY(-2px);
   }
 
+  .timeline-bucket:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .timeline-bucket.selected {
     transform: translateY(-4px);
   }

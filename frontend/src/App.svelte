@@ -297,6 +297,13 @@
   <AppLoadingScreen progress={loadingProgress} message={loadingMessage} />
 {:else}
 
+<!-- Skip Links for Keyboard Navigation -->
+<div class="skip-links">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <a href="#main-navigation" class="skip-link">Skip to navigation</a>
+  <a href="#theme-switcher" class="skip-link">Skip to theme switcher</a>
+</div>
+
 <!-- Authentication removed - app is always accessible -->
 <main>
   <header role="banner">
@@ -306,7 +313,7 @@
         <h1>Raven</h1>
       </div>
 
-      <nav class="header-nav" role="navigation" aria-label="Main navigation">
+      <nav id="main-navigation" class="header-nav" role="navigation" aria-label="Main navigation">
         {#each tabs as tab (tab.id)}
           <button
             class="nav-tab"
@@ -315,41 +322,47 @@
             aria-current={activeTab === tab.id ? 'page' : undefined}
             aria-label="{tab.label} - Press {tab.shortcut} for shortcut"
           >
-            <span class="tab-icon">{tab.icon}</span>
+            <span class="tab-icon" aria-hidden="true">{tab.icon}</span>
             <span class="tab-label">{tab.label}</span>
-            <span class="tab-shortcut">{tab.shortcut}</span>
+            <span class="tab-shortcut" aria-label="Shortcut key {tab.shortcut}">{tab.shortcut}</span>
           </button>
         {/each}
       </nav>
 
-      <div class="header-right">
-        <div class="theme-switcher">
+      <div id="theme-switcher" class="header-right">
+        <div class="theme-switcher" role="toolbar" aria-label="Theme selection">
           <button
             class="theme-btn"
             class:active={theme === 'theme--day'}
             on:click={() => switchTheme('theme--day')}
-            aria-label="Day theme"
+            aria-label="Switch to day theme"
+            aria-pressed={theme === 'theme--day'}
             title="Day (Gruvbox)"
           >
-            ☀️
+            <span aria-hidden="true">☀️</span>
+            <span class="sr-only">Day theme</span>
           </button>
           <button
             class="theme-btn"
             class:active={theme === 'theme--dusk'}
             on:click={() => switchTheme('theme--dusk')}
-            aria-label="Dusk theme"
+            aria-label="Switch to dusk theme"
+            aria-pressed={theme === 'theme--dusk'}
             title="Dusk (Ristretto)"
           >
-            🌅
+            <span aria-hidden="true">🌅</span>
+            <span class="sr-only">Dusk theme</span>
           </button>
           <button
             class="theme-btn"
             class:active={theme === 'theme--night'}
             on:click={() => switchTheme('theme--night')}
-            aria-label="Night theme"
+            aria-label="Switch to night theme"
+            aria-pressed={theme === 'theme--night'}
             title="Night (Tokyo Night)"
           >
-            🌙
+            <span aria-hidden="true">🌙</span>
+            <span class="sr-only">Night theme</span>
           </button>
         </div>
         <UserMenu />
@@ -365,7 +378,7 @@
   </header>
 
   <!-- Consolidated View Container -->
-  <div class="view-container" role="main">
+  <div id="main-content" class="view-container" role="main" tabindex="-1">
     {#if activeTab === 'overview'}
       <!-- Overview: Dashboard + Projects Comparison + Multi-Project Health -->
       <div class="tab-content">

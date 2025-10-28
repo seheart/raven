@@ -10,7 +10,15 @@
 </script>
 
 {#if visible}
-  <div class="modal-backdrop" on:click={handleBackdropClick} role="dialog" aria-modal="true" aria-labelledby="about-title">
+  <div
+    class="modal-backdrop"
+    on:click={handleBackdropClick}
+    on:keydown={(e) => e.key === 'Escape' && onClose()}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="about-title"
+    tabindex="-1"
+  >
     <div class="modal" role="document">
       <div class="modal-header">
         <h2 id="about-title">About Raven</h2>
@@ -174,6 +182,11 @@
   .close-btn:hover {
     background: var(--surface-2);
     color: var(--accent);
+  }
+
+  .close-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .modal-content {

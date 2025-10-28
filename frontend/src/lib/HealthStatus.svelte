@@ -180,6 +180,11 @@
     background: var(--surface-2);
   }
 
+  .health-summary:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
   .status-badge {
     display: flex;
     align-items: center;

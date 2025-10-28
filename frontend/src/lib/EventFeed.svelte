@@ -472,42 +472,42 @@
       <div class="forensics-grid">
         <!-- Top 5 Most Changed Files -->
         <div class="forensics-panel">
-          <h3>🔥 Top 5 Most Changed Files</h3>
-          <div class="top-files-list">
+          <h3 id="top-files-heading"><span aria-hidden="true">🔥</span> Top 5 Most Changed Files</h3>
+          <ul class="top-files-list" role="list" aria-labelledby="top-files-heading">
             {#each forensicsStats.topFiles as file (file.filepath)}
-              <div class="top-file-item">
+              <li class="top-file-item">
                 <div class="file-path">{file.filepath}</div>
                 <div class="file-count">{file.count} changes</div>
-                <div class="file-bar">
+                <div class="file-bar" role="progressbar" aria-valuenow="{file.count}" aria-valuemin="0" aria-valuemax="{forensicsStats.topFiles[0].count}" aria-label="{file.count} changes">
                   <div
                     class="file-bar-fill"
                     style="width: {(file.count / forensicsStats.topFiles[0].count) * 100}%"
                   ></div>
                 </div>
-              </div>
+              </li>
             {/each}
-          </div>
+          </ul>
         </div>
 
         <!-- Busiest Hours Heat Map -->
         <div class="forensics-panel">
-          <h3>⏰ Busiest Hours</h3>
-          <div class="hours-heatmap">
+          <h3 id="busiest-hours-heading"><span aria-hidden="true">⏰</span> Busiest Hours</h3>
+          <ul class="hours-heatmap" role="list" aria-labelledby="busiest-hours-heading">
             {#each forensicsStats.busiestHours as hourData (hourData.hour)}
-              <div class="hour-item">
+              <li class="hour-item">
                 <div class="hour-label">
                   {hourData.hour.toString().padStart(2, '0')}:00
                 </div>
                 <div class="hour-count">{hourData.count} events</div>
-                <div class="hour-bar">
+                <div class="hour-bar" role="progressbar" aria-valuenow="{hourData.count}" aria-valuemin="0" aria-valuemax="{forensicsStats.busiestHours[0].count}" aria-label="{hourData.count} events at {hourData.hour}:00">
                   <div
                     class="hour-bar-fill"
                     style="width: {(hourData.count / forensicsStats.busiestHours[0].count) * 100}%"
                   ></div>
                 </div>
-              </div>
+              </li>
             {/each}
-          </div>
+          </ul>
         </div>
       </div>
     </section>
@@ -594,7 +594,14 @@
       >
         {#if item.eventCategory === 'file'}
           <!-- File Event -->
-          <div class="event-card {getChangeClass(item.changeType)}" on:click={() => openDiffModal(item)}>
+          <div
+            class="event-card {getChangeClass(item.changeType)}"
+            role="button"
+            tabindex="0"
+            on:click={() => openDiffModal(item)}
+            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && openDiffModal(item)}
+            aria-label="File {item.changeType}: {item.filepath} at {formatTime(item.timestamp)}. Click to view diff."
+          >
             <div class="event-type-indicator">
               <span class="event-icon">
                 {#if item.changeType === 'created'}
@@ -659,7 +666,15 @@
           </div>
         {:else if item.eventCategory === 'conversation'}
           <!-- Conversation Event -->
-          <div class="event-card conversation {item.changeType}" on:click={() => toggleExpanded(item.id)}>
+          <div
+            class="event-card conversation {item.changeType}"
+            role="button"
+            tabindex="0"
+            on:click={() => toggleExpanded(item.id)}
+            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleExpanded(item.id)}
+            aria-label="{item.changeType.replace('_', ' ')}: {truncate(item.content || item.toolName || 'Event', 50)}. Click to {expandedEvents.has(item.id) ? 'collapse' : 'expand'} details."
+            aria-expanded={expandedEvents.has(item.id)}
+          >
             <div class="event-type-indicator conversation">
               <span class="event-icon">{getConversationIcon(item.changeType)}</span>
             </div>
@@ -1235,6 +1250,9 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
   }
 
   .top-file-item {
@@ -1275,6 +1293,9 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
   }
 
   .hour-item {

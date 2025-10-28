@@ -197,6 +197,11 @@
     transform: translateX(2px);
   }
 
+  .file-item:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .file-icon {
     font-size: 20px;
   }

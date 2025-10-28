@@ -261,14 +261,21 @@
             <span class="value">{formatUptime(backendStatus.uptime)}</span>
           </div>
           <div class="uptime-visualization">
-            <div class="uptime-bar">
+            <div
+              class="uptime-bar"
+              role="progressbar"
+              aria-valuenow="{(backendStatus.uptime / 86400) * 100}"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-label="Server uptime: {((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24 hours"
+            >
               <div
                 class="uptime-fill"
                 style="width: {Math.min((backendStatus.uptime / 86400) * 100, 100)}%"
-                title="{((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24 hours"
+                aria-hidden="true"
               ></div>
             </div>
-            <span class="uptime-label">{((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24h</span>
+            <span class="uptime-label" aria-hidden="true">{((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24h</span>
           </div>
           <div class="info-row">
             <span class="label">Session ID:</span>

@@ -64,13 +64,13 @@
         </div>
       </div>
 
-      <div class="menu-divider"></div>
+      <div class="menu-divider" aria-hidden="true"></div>
 
       <div class="menu-section">
         <EmergencyStopButton />
       </div>
 
-      <div class="menu-divider"></div>
+      <div class="menu-divider" aria-hidden="true"></div>
 
       <button
         class="menu-item"

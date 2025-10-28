@@ -234,6 +234,11 @@
     border-color: var(--accent);
   }
 
+  .preset-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .preset-btn.active {
     background: var(--accent);
     color: white;
@@ -315,6 +320,12 @@
 
   .btn-apply:hover {
     opacity: 0.9;
+  }
+
+  .btn-apply:focus,
+  .btn-reset:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .btn-reset {

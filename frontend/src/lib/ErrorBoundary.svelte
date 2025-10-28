@@ -291,6 +291,12 @@
     border: 1px solid var(--border, #414868);
   }
 
+  .btn-primary:focus,
+  .btn-secondary:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .btn-secondary:hover {
     background: var(--surface-2, #24283b);
     border-color: var(--accent, #7aa2f7);

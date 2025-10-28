@@ -278,6 +278,11 @@
     transform: scale(1.1) rotate(90deg);
   }
 
+  .dismiss-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .dismiss-btn:active {
     transform: scale(0.9) rotate(90deg);
   }

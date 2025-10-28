@@ -221,10 +221,11 @@
           <input
             type="checkbox"
             bind:checked={settings.notifications.enabled}
+            aria-describedby="notif-enabled-desc"
           />
           Enable notifications
         </label>
-        <span class="setting-description">Show notifications for events and alerts</span>
+        <span class="setting-description" id="notif-enabled-desc">Show notifications for events and alerts</span>
       </div>
 
       <div class="setting-row" class:disabled={!settings.notifications.enabled}>
@@ -261,7 +262,7 @@
           Enable desktop notifications
         </label>
         <div class="permission-controls">
-          <span class="permission-status {getPermissionStatusClass()}">
+          <span class="permission-status {getPermissionStatusClass()}" role="status" aria-live="polite" aria-label="Desktop notification permission status: {getPermissionStatusText()}">
             {getPermissionStatusText()}
           </span>
           {#if notificationPermission !== 'granted'}
@@ -269,6 +270,7 @@
               class="btn-permission"
               on:click={requestNotificationPermission}
               disabled={!settings.notifications.enabled}
+              aria-label="Request desktop notification permission"
             >
               Request Permission
             </button>
@@ -350,12 +352,13 @@
         <select
           id="theme-select"
           bind:value={settings.ui.theme}
+          aria-describedby="theme-desc"
         >
           <option value="theme--day">Day (Gruvbox)</option>
           <option value="theme--dusk">Dusk (Ristretto)</option>
           <option value="theme--night">Night (Tokyo Night)</option>
         </select>
-        <span class="setting-description">Choose your color theme</span>
+        <span class="setting-description" id="theme-desc">Choose your color theme</span>
       </div>
 
       <div class="setting-row">

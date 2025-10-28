@@ -109,46 +109,48 @@
   });
 </script>
 
-<div class="projects-overview">
+<section class="projects-overview" role="region" aria-labelledby="projects-heading">
   <div class="header">
-    <h3>Projects ({availableProjects.length})</h3>
-    <button class="view-all" style="visibility: hidden;">
+    <h3 id="projects-heading"><span aria-hidden="true">📁</span> Projects ({availableProjects.length})</h3>
+    <button class="view-all" style="visibility: hidden;" aria-hidden="true">
       View All
     </button>
   </div>
 
   {#if loading}
-    <div class="loading">Loading projects...</div>
+    <div class="loading" role="status" aria-live="polite" aria-busy="true">Loading projects...</div>
   {:else if projectsData.length === 0}
-    <div class="empty">No projects found</div>
+    <div class="empty" role="status">No projects found</div>
   {:else}
-    <div class="projects-grid">
+    <div class="projects-grid" role="list" aria-label="Available projects">
       {#each projectsData as project (project.name || project)}
         <button
           class="project-card"
+          role="listitem"
           on:click={() => selectProject(project.name)}
+          aria-label="{project.name}: {project.recentChanges} recent changes, last activity {formatRelativeTime(project.lastActivity)}, {project.active ? 'currently active' : 'inactive'}"
         >
           <div class="project-header">
             <div class="project-name">
               {project.name}
             </div>
-            <div class="status-indicator" class:active={project.active}></div>
+            <div class="status-indicator" class:active={project.active} role="status" aria-label="{project.active ? 'Active' : 'Inactive'}"></div>
           </div>
-          <div class="project-stats">
+          <div class="project-stats" role="group" aria-label="Project statistics">
             <div class="stat">
               <span class="stat-label">Recent</span>
-              <span class="stat-value">{project.recentChanges}</span>
+              <span class="stat-value" aria-label="{project.recentChanges} recent changes">{project.recentChanges}</span>
             </div>
             <div class="stat">
               <span class="stat-label">Activity</span>
-              <span class="stat-value">{formatRelativeTime(project.lastActivity)}</span>
+              <span class="stat-value" aria-label="Last activity {formatRelativeTime(project.lastActivity)}">{formatRelativeTime(project.lastActivity)}</span>
             </div>
           </div>
         </button>
       {/each}
     </div>
   {/if}
-</div>
+</section>
 
 <style>
   .projects-overview {

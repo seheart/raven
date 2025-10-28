@@ -514,8 +514,15 @@
           {#if !collapsedSessions.has(session.id)}
             <div class="session-activities" id="session-activities-{session.id}" role="list" aria-label="Activities in session {session.id.substring(0, 8)}">
               {#each session.activities as activity (activity.id + activity.category)}
-                <div class="activity-item" class:expanded={expandedActivity?.id === activity.id}>
-                  <div class="activity-header" on:click={() => toggleActivity(activity)}>
+                <div class="activity-item" class:expanded={expandedActivity?.id === activity.id} role="listitem">
+                  <button
+                    class="activity-header"
+                    on:click={() => toggleActivity(activity)}
+                    on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleActivity(activity)}
+                    aria-expanded={expandedActivity?.id === activity.id}
+                    aria-controls="activity-details-{activity.id}"
+                    aria-label="{activity.description} at {formatTimestamp(activity.timestamp)}"
+                  >
                     <div class="activity-left">
                       <span class="expand-arrow">{expandedActivity?.id === activity.id ? '▼' : '▶'}</span>
                       <span class="activity-icon" style="color: {getCategoryColor(activity.category)}">
@@ -534,10 +541,10 @@
                       <span class="activity-time">{formatTimestamp(activity.timestamp)}</span>
                       <span class="activity-category">{activity.category}</span>
                     </div>
-                  </div>
+                  </button>
 
                   {#if expandedActivity?.id === activity.id}
-                    <div class="activity-details">
+                    <div class="activity-details" id="activity-details-{activity.id}" role="region" aria-label="Activity details">
                       <div class="details-grid">
                         <div class="detail-item">
                           <span class="detail-label">ID:</span>
@@ -586,9 +593,17 @@
       {/each}
     {:else}
       <!-- Flat List View -->
+      <div role="list" aria-label="Activity list">
       {#each activities as activity (activity.id + activity.category)}
-        <div class="activity-item" class:expanded={expandedActivity?.id === activity.id}>
-          <div class="activity-header" on:click={() => toggleActivity(activity)}>
+        <div class="activity-item" class:expanded={expandedActivity?.id === activity.id} role="listitem">
+          <button
+            class="activity-header"
+            on:click={() => toggleActivity(activity)}
+            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleActivity(activity)}
+            aria-expanded={expandedActivity?.id === activity.id}
+            aria-controls="activity-flat-details-{activity.id}"
+            aria-label="{activity.description} at {formatTimestamp(activity.timestamp)}"
+          >
             <div class="activity-left">
               <span class="expand-arrow">{expandedActivity?.id === activity.id ? '▼' : '▶'}</span>
               <span class="activity-icon" style="color: {getCategoryColor(activity.category)}">
@@ -611,10 +626,10 @@
               <span class="activity-time">{formatTimestamp(activity.timestamp)}</span>
               <span class="activity-category">{activity.category}</span>
             </div>
-          </div>
+          </button>
 
           {#if expandedActivity?.id === activity.id}
-            <div class="activity-details">
+            <div class="activity-details" id="activity-flat-details-{activity.id}" role="region" aria-label="Activity details">
               <div class="details-grid">
                 <div class="detail-item">
                   <span class="detail-label">ID:</span>
@@ -657,6 +672,7 @@
           {/if}
         </div>
       {/each}
+      </div>
 
       {#if hasMore}
         <div class="load-more">
@@ -1076,6 +1092,17 @@
     padding: 16px 20px;
     cursor: pointer;
     user-select: none;
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+  }
+
+  .activity-header:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
   .activity-left {

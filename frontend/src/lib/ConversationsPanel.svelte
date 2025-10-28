@@ -265,7 +265,8 @@
         aria-label="Search conversations"
       />
 
-      <select class="filter-select" bind:value={filterType} on:change={loadConversations} aria-label="Filter by event type">
+      <label for="filter-type" class="visually-hidden">Filter by event type</label>
+      <select id="filter-type" class="filter-select" bind:value={filterType} on:change={loadConversations} aria-label="Filter by event type">
         <option value="all">All Types</option>
         <option value="user_message">User Messages</option>
         <option value="assistant_text">Assistant</option>
@@ -273,7 +274,8 @@
         <option value="tool_result">Tool Results</option>
       </select>
 
-      <select class="filter-select" bind:value={filterProject} on:change={loadConversations}>
+      <label for="filter-project" class="visually-hidden">Filter by project</label>
+      <select id="filter-project" class="filter-select" bind:value={filterProject} on:change={loadConversations} aria-label="Filter by project">
         <option value="all">All Projects</option>
         {#each Object.keys(stats.by_project || {}) as project (project)}
           <option value={project}>{project} ({stats.by_project[project]})</option>
@@ -322,12 +324,19 @@
       </div>
 
       {#each filteredConversations as conv (conv.id)}
-        <article class="conversation-item {getEventClass(conv.event_type)}" role="article">
-          <button class="conv-header" on:click={() => toggleExpanded(conv.id)} aria-expanded={expandedConversations.includes(conv.id)} aria-controls="conv-details-{conv.id}" aria-label="Toggle conversation details">
+        <article class="conversation-item {getEventClass(conv.event_type)}" role="article" aria-labelledby="conv-type-{conv.id}">
+          <button
+            class="conv-header"
+            on:click={() => toggleExpanded(conv.id)}
+            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleExpanded(conv.id))}
+            aria-expanded={expandedConversations.includes(conv.id)}
+            aria-controls="conv-details-{conv.id}"
+            aria-label="{conv.event_type} at {formatTime(conv.timestamp)}"
+          >
             <div class="conv-icon" aria-hidden="true">{getEventIcon(conv.event_type)}</div>
             <div class="conv-info">
               <div class="conv-type-row">
-                <span class="conv-type">{conv.event_type}</span>
+                <span class="conv-type" id="conv-type-{conv.id}">{conv.event_type}</span>
                 {#if conv.tool_name}
                   <span class="tool-badge">{conv.tool_name}</span>
                 {/if}
@@ -417,7 +426,15 @@
 
 <!-- Import Dialog -->
 {#if showImportDialog}
-  <div class="modal-overlay" on:click={() => showImportDialog = false} role="dialog" aria-modal="true" aria-labelledby="import-dialog-title">
+  <div
+    class="modal-overlay"
+    on:click={() => showImportDialog = false}
+    on:keydown={(e) => e.key === 'Escape' && (showImportDialog = false)}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="import-dialog-title"
+    tabindex="-1"
+  >
     <div class="modal-content" on:click|stopPropagation role="document">
       <h2 id="import-dialog-title">Import Claude Conversations</h2>
       <p>Import conversation history from Claude Code .jsonl session files.</p>
@@ -635,10 +652,21 @@
     padding: 16px;
     cursor: pointer;
     transition: background 0.2s;
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
   }
 
   .conv-header:hover {
     background: var(--bg);
+  }
+
+  .conv-header:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
   .conv-icon {
@@ -916,5 +944,18 @@
   .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* Accessibility */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 </style>

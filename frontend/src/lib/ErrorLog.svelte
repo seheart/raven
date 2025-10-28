@@ -713,6 +713,11 @@
     border-color: var(--accent);
   }
 
+  .filter-tab:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   .filter-tab.active {
     background: var(--accent);
     color: white;
@@ -738,6 +743,11 @@
   .action-buttons button:hover {
     background: var(--surface-2);
     border-color: var(--accent);
+  }
+
+  .action-buttons button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .btn-danger {
@@ -991,6 +1001,11 @@
   .pagination button:hover:not(:disabled) {
     background: var(--surface-2);
     border-color: var(--accent);
+  }
+
+  .pagination button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .pagination button:disabled {
