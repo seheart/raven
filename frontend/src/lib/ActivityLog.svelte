@@ -398,7 +398,7 @@
             aria-label="Filter activities by session"
           >
             <option value="all">All Sessions ({sessions.length})</option>
-            {#each sessions as session}
+            {#each sessions as session (session.id)}
               <option value={session.id}>
                 {session.id.substring(0, 8)} ({session.totalEvents} events)
               </option>

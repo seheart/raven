@@ -76,7 +76,7 @@
           <p>No changelog entries found</p>
         </div>
       {:else}
-        {#each changelog as release}
+        {#each changelog as release (release.id || release.name || release)}
         <article class="release-section" aria-labelledby="version-{release.version}">
           <div class="release-header">
             <div class="release-title">
@@ -89,7 +89,7 @@
           </div>
 
           <div class="changes-list" role="list" aria-label="Changes in version {release.version}">
-            {#each release.changes as change}
+            {#each release.changes as change (change.id || change.name || change)}
               <div class="change-item" role="listitem">
                 <span
                   class="change-icon"

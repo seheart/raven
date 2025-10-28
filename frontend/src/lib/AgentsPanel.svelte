@@ -405,7 +405,7 @@
           <div class="performance-card">
             <h3>Response Time Comparison</h3>
             <div class="performance-bars">
-              {#each filteredAgentStats.sort((a, b) => (b.avg_duration_ms || 0) - (a.avg_duration_ms || 0)) as stat (stat.agent)}
+              {#each filteredAgentStats.slice().sort((a, b) => (b.avg_duration_ms || 0) - (a.avg_duration_ms || 0)) as stat (stat.agent)}
                 {@const maxDuration = Math.max(...filteredAgentStats.map(s => s.avg_duration_ms || 0), 1)}
                 <div class="bar-row">
                   <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
@@ -426,7 +426,7 @@
           <div class="performance-card">
             <h3>Activity Distribution</h3>
             <div class="performance-bars">
-              {#each filteredAgentStats.sort((a, b) => b.event_count - a.event_count) as stat (stat.agent)}
+              {#each filteredAgentStats.slice().sort((a, b) => b.event_count - a.event_count) as stat (stat.agent)}
                 {@const maxEvents = filteredAgentStats.length > 0 ? Math.max(...filteredAgentStats.map(s => s?.event_count || 0)) : 1}
                 <div class="bar-row">
                   <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
@@ -447,7 +447,7 @@
           <div class="performance-card">
             <h3>Code Impact</h3>
             <div class="performance-bars">
-              {#each filteredAgentStats.sort((a, b) => (b.total_lines_changed || 0) - (a.total_lines_changed || 0)) as stat (stat.agent)}
+              {#each filteredAgentStats.slice().sort((a, b) => (b.total_lines_changed || 0) - (a.total_lines_changed || 0)) as stat (stat.agent)}
                 {@const maxLines = filteredAgentStats.length > 0 ? Math.max(...filteredAgentStats.map(s => s?.total_lines_changed || 0)) : 1}
                 <div class="bar-row">
                   <span class="bar-label" style="color: {getAgentColor(stat.agent)}">

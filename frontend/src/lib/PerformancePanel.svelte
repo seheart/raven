@@ -242,7 +242,7 @@
         <button class="btn-dismiss" on:click={() => showAlerts = false} aria-label="Dismiss performance alerts">✕</button>
       </div>
       <div class="alerts-list" role="list" aria-label="Active performance alerts">
-        {#each activeAlerts as alert}
+        {#each activeAlerts as alert (alert)}
           <div class="alert-item alert-{alert.level}" role="listitem">
             <span class="alert-icon" aria-hidden="true">{alert.level === 'critical' ? '🔴' : '🟡'}</span>
             <span class="alert-message">{alert.message}</span>
@@ -338,7 +338,7 @@
               <div class="threshold-line warning" style="bottom: {thresholds.cpu.warning}%">
                 <span class="threshold-label">{thresholds.cpu.warning}%</span>
               </div>
-              {#each systemMetrics.slice().reverse() as metric, i}
+              {#each systemMetrics.slice().reverse() as metric, i (i)}
                 <div
                   class="data-point cpu-point"
                   class:above-critical={metric.cpu_percent >= thresholds.cpu.critical}
@@ -369,7 +369,7 @@
               <div class="threshold-line warning" style="bottom: {thresholds.memory.warning}%">
                 <span class="threshold-label">{thresholds.memory.warning}%</span>
               </div>
-              {#each systemMetrics.slice().reverse() as metric, i}
+              {#each systemMetrics.slice().reverse() as metric, i (i)}
                 <div
                   class="data-point mem-point"
                   class:above-critical={metric.memory_percent >= thresholds.memory.critical}
@@ -539,7 +539,7 @@
         </div>
 
         <div class="correlations-grid" role="list" aria-label="Performance correlations">
-          {#each correlations as correlation}
+          {#each correlations as correlation (correlation)}
             <article class="correlation-card" role="listitem">
               <div class="correlation-header">
                 <span class="file-name">{correlation.filepath}</span>

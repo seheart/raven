@@ -85,9 +85,9 @@
   // Get severity color
   function getSeverityColor(severity) {
     switch (severity) {
-      case 'error': return '#ef4444';
-      case 'warning': return '#f59e0b';
-      default: return '#6b7280';
+    case 'error': return '#ef4444';
+    case 'warning': return '#f59e0b';
+    default: return '#6b7280';
     }
   }
 
@@ -130,7 +130,7 @@
     </div>
   {:else}
     <div class="errors-list" role="region" aria-label="Syntax errors grouped by file" aria-labelledby="syntax-errors-heading">
-      {#each Object.entries(errorsByFile) as [filepath, fileErrors]}
+      {#each Object.entries(errorsByFile) as [filepath, fileErrors] (filepath)}
         <section class="file-group" role="group" aria-label="Errors in {filepath}">
           <div class="file-header">
             <span class="file-icon" aria-hidden="true">📄</span>
@@ -139,7 +139,7 @@
           </div>
 
           <div class="errors" role="list" aria-label="Syntax errors in {filepath}">
-            {#each fileErrors as error}
+            {#each fileErrors as error (error.id || error.name || error)}
               <article class="error-item" style="--severity-color: {getSeverityColor(error.severity)}" role="listitem">
                 <div class="error-header">
                   <span class="language-icon" aria-hidden="true">{getLanguageIcon(error.language)}</span>

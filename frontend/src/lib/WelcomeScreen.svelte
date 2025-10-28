@@ -69,7 +69,7 @@
 
     <!-- Features Grid -->
     <div class="features-grid" role="list" aria-label="Raven features">
-      {#each features as feature}
+      {#each features as feature (feature)}
         <div class="feature-card" role="listitem">
           <span class="feature-icon" aria-hidden="true">{feature.icon}</span>
           <h3 class="feature-title">{feature.title}</h3>
@@ -82,7 +82,7 @@
     <div class="quick-start">
       <h2>Quick Start</h2>
       <div class="tips-list">
-        {#each quickTips as tip}
+        {#each quickTips as tip (tip)}
           <div class="tip-item">
             <kbd>{tip.keys}</kbd>
             <span>{tip.tip}</span>

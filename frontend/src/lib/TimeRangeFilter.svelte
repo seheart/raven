@@ -30,51 +30,51 @@
     let start;
 
     switch (preset) {
-      case '1h':
-        start = new Date(now.getTime() - 60 * 60 * 1000);
-        break;
-      case '6h':
-        start = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-        break;
-      case '24h':
-        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case '7d':
-        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case '30d':
-        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'today':
-        start = new Date(now);
-        start.setHours(0, 0, 0, 0);
-        break;
-      case 'yesterday':
-        start = new Date(now);
-        start.setDate(start.getDate() - 1);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(start);
-        end.setHours(23, 59, 59, 999);
-        // Create new object to avoid mutation
-        value = {
-          preset,
-          start: start.toISOString(),
-          end: end.toISOString()
-        };
-        dispatch('change', value);
-        return;
-      case 'thisWeek':
-        start = new Date(now);
-        const day = start.getDay();
-        const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Monday
-        start.setDate(diff);
-        start.setHours(0, 0, 0, 0);
-        break;
-      case 'thisMonth':
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      default:
-        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    case '1h':
+      start = new Date(now.getTime() - 60 * 60 * 1000);
+      break;
+    case '6h':
+      start = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+      break;
+    case '24h':
+      start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      break;
+    case '7d':
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case '30d':
+      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case 'today':
+      start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      break;
+    case 'yesterday':
+      start = new Date(now);
+      start.setDate(start.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setHours(23, 59, 59, 999);
+      // Create new object to avoid mutation
+      value = {
+        preset,
+        start: start.toISOString(),
+        end: end.toISOString()
+      };
+      dispatch('change', value);
+      return;
+    case 'thisWeek':
+      start = new Date(now);
+      const day = start.getDay();
+      const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Monday
+      start.setDate(diff);
+      start.setHours(0, 0, 0, 0);
+      break;
+    case 'thisMonth':
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    default:
+      start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     }
 
     // Create new object to avoid mutation and trigger reactivity
@@ -144,7 +144,7 @@
 
 <div class="time-range-filter" role="region" aria-label="Time range filter">
   <div class="preset-buttons" role="group" aria-label="Time range presets">
-    {#each presets as preset}
+    {#each presets as preset (preset)}
       <button
         class="preset-btn"
         class:active={value.preset === preset && !showCustom}

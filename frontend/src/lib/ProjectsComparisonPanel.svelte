@@ -134,7 +134,7 @@
 
 <div class="comparison-panel" role="region" aria-label="Projects comparison panel">
   <div class="controls" role="toolbar" aria-label="Comparison controls">
-    <button class="btn-refresh" on:click={loadProjects} disabled={loading} aria-label={loading ? "Loading projects" : "Refresh projects"}>
+    <button class="btn-refresh" on:click={loadProjects} disabled={loading} aria-label={loading ? 'Loading projects' : 'Refresh projects'}>
       <span aria-hidden="true">{#if loading}⏳{:else}🔄{/if}</span> Refresh
     </button>
 
@@ -170,7 +170,7 @@
         <div class="col-status" role="columnheader">Status</div>
       </div>
 
-      {#each projects as project}
+      {#each projects as project (project.name || project)}
         {@const status = getActivityStatus(project.last_activity)}
         <div class="table-row" role="row">
           <div class="col-project" role="cell">

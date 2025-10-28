@@ -278,7 +278,7 @@
         <div class="step-content">
           <p class="description">{steps[2].description}</p>
           <div class="templates-grid" role="radiogroup" aria-label="Select alert template">
-            {#each templates as template}
+            {#each templates as template (template)}
               <button
                 class="template-card"
                 class:selected={selectedTemplate === template.id}

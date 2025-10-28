@@ -290,7 +290,7 @@
       <LoadingSkeleton type="list" count={3} />
     {:else if recentActivity.length > 0}
       <div class="activity-list">
-        {#each recentActivity as event}
+        {#each recentActivity as event (event.id || event.timestamp)}
           <div class="activity-item" role="listitem">
             <span class="activity-icon">
               {#if event.change_type === 'add'}
@@ -330,7 +330,7 @@
     <div class="files-section">
       <h3>Most Active Files</h3>
       <div class="files-list">
-        {#each topFiles as file}
+        {#each topFiles as file (file.id || file.name || file)}
           <div class="file-item">
             <span class="file-name">{file.filepath}</span>
             <span class="file-changes">{file.edit_count} changes</span>

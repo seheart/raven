@@ -29,7 +29,7 @@
 
 <nav class="tab-navigation" aria-label="Main navigation">
   <div class="tabs-container" role="tablist" aria-label="Dashboard sections">
-    {#each tabs as tab}
+    {#each tabs as tab (tab)}
       <button
         class="tab-button"
         class:active={activeTab === tab.id}

@@ -15,6 +15,7 @@ export default [
       '.env.*'
     ]
   },
+  ...svelte.configs['flat/recommended'],
   {
     languageOptions: {
       ecmaVersion: 'latest',
@@ -33,8 +34,10 @@ export default [
       'quotes': ['error', 'single', { avoidEscape: true }],
       'indent': ['error', 2],
       'comma-dangle': ['error', 'never'],
-      'eol-last': ['error', 'always']
+      'eol-last': ['error', 'always'],
+      // Disable Svelte 5 runes rules (project uses Svelte 4)
+      'svelte/prefer-svelte-reactivity': 'off',
+      'svelte/no-immutable-reactive-statements': 'off'
     }
-  },
-  ...svelte.configs['flat/recommended']
+  }
 ];

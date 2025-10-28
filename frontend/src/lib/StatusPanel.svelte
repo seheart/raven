@@ -395,7 +395,7 @@
       </div>
       <div class="card-body">
         <div class="projects-list" role="list" aria-label="Monitored projects">
-          {#each $availableProjects as project}
+          {#each $availableProjects as project (project.name || project)}
             <button
               class="project-item"
               class:selected={$projectFilter === project}

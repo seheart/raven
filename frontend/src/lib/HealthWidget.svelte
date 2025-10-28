@@ -247,21 +247,21 @@
   // Startup health check helpers
   function getStartupStatusIcon(status) {
     switch (status) {
-      case 'healthy': return '✅';
-      case 'unhealthy': return '⚠️';
-      case 'error': return '❌';
-      case 'pending': return '⏳';
-      default: return '❓';
+    case 'healthy': return '✅';
+    case 'unhealthy': return '⚠️';
+    case 'error': return '❌';
+    case 'pending': return '⏳';
+    default: return '❓';
     }
   }
 
   function getStartupStatusColor(status) {
     switch (status) {
-      case 'healthy': return 'var(--success)';
-      case 'unhealthy': return 'var(--warning)';
-      case 'error': return 'var(--error)';
-      case 'pending': return 'var(--muted)';
-      default: return 'var(--muted)';
+    case 'healthy': return 'var(--success)';
+    case 'unhealthy': return 'var(--warning)';
+    case 'error': return 'var(--error)';
+    case 'pending': return 'var(--muted)';
+    default: return 'var(--muted)';
     }
   }
 
@@ -368,7 +368,7 @@
       <!-- Expandable Startup Health Details -->
       {#if startupHealthExpanded && startupHealthResults && startupHealthResults.checks}
         <div class="startup-details" id="startup-details" role="region" aria-label="Startup health check details">
-          {#each startupHealthResults.checks as check}
+          {#each startupHealthResults.checks as check (check.path || check.name)}
             <div class="startup-check-item" class:failed={!check.passed} role="status">
               <span class="check-icon" aria-hidden="true">{check.passed ? '✅' : '❌'}</span>
               <span class="check-name">{check.name}</span>

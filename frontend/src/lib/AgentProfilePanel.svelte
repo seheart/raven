@@ -110,7 +110,7 @@
     <div class="panel-controls" role="toolbar" aria-label="Agent profiles actions">
       <select class="project-select" bind:value={selectedProject} on:change={handleProjectChange} aria-label="Filter agents by project">
         <option value="all">All Projects</option>
-        {#each availableProjects as project}
+        {#each availableProjects as project (project.name || project)}
           <option value={project.name}>{project.name}</option>
         {/each}
       </select>

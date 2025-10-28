@@ -49,14 +49,14 @@
       </div>
 
       <div class="shortcuts-content">
-        {#each shortcuts as section}
+        {#each shortcuts as section (section)}
           <section class="shortcuts-section" aria-labelledby="section-{section.category}">
             <h3 id="section-{section.category}">{section.category}</h3>
             <div class="shortcuts-list" role="list">
-              {#each shortcut.items as shortcut}
+              {#each shortcut.items as shortcut (shortcut)}
                 <div class="shortcut-item" role="listitem">
                   <div class="shortcut-keys">
-                    {#each shortcut.keys as key}
+                    {#each shortcut.keys as key (key)}
                       <kbd class="key">{key}</kbd>
                     {/each}
                   </div>

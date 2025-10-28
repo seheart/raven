@@ -117,7 +117,7 @@
 
       {#if recommendation.reasons && recommendation.reasons.length > 0}
         <div class="alert-reasons">
-          {#each recommendation.reasons as reason}
+          {#each recommendation.reasons as reason (reason)}
             <div class="reason-item">• {reason}</div>
           {/each}
         </div>

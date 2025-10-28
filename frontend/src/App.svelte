@@ -1,19 +1,15 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { get } from 'svelte/store';
   // New consolidated components
   import ErrorBoundary from './lib/ErrorBoundary.svelte';
   import OverviewPanel from './lib/OverviewPanel.svelte';
   import ToastContainer from './lib/ToastContainer.svelte';
-  import LoadingSkeleton from './lib/LoadingSkeleton.svelte';
-  import ConfirmDialog from './lib/ConfirmDialog.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
   import AppLoadingScreen from './lib/AppLoadingScreen.svelte';
   // import LoginPage from './lib/LoginPage.svelte'; // Authentication removed
   import UserMenu from './lib/UserMenu.svelte';
 
   // Existing components for consolidated views
-  import Dashboard from './lib/Dashboard.svelte';
   import SessionReplay from './lib/SessionReplay.svelte';
   import PerformancePanel from './lib/PerformancePanel.svelte';
   import TriggersPanel from './lib/TriggersPanel.svelte';
@@ -53,7 +49,6 @@
   import TestResultsPanel from './lib/TestResultsPanel.svelte';
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
-  import { toasts } from './lib/toastStore.js';
   import { notifications } from './lib/notificationService.js';
   import { setupNotificationListeners } from './lib/notificationListener.js';
   import { websocketService } from './lib/websocket.js';
@@ -67,7 +62,7 @@
   const API_BASE = API_CONFIG.API_BASE;
 
   // Check if authentication is disabled on backend
-  const AUTH_DISABLED = false; // Will be detected from backend
+  // const AUTH_DISABLED = false; // Will be detected from backend
 
   // Main navigation tabs
   const tabs = [
@@ -312,7 +307,7 @@
       </div>
 
       <nav class="header-nav" role="navigation" aria-label="Main navigation">
-        {#each tabs as tab}
+        {#each tabs as tab (tab.id)}
           <button
             class="nav-tab"
             class:active={activeTab === tab.id}
@@ -696,7 +691,7 @@
 <!-- Quick Start Wizard for New Users -->
 {#if showQuickStart}
   <QuickStartWizard
-    on:complete={(e) => {
+    on:complete={(_e) => {
       showQuickStart = false;
       notifications.success('Welcome to Raven! You\'re all set up and protected.');
     }}

@@ -578,7 +578,7 @@
           {#if remoteStats.projects && remoteStats.projects.length > 0}
             <div class="projects-list">
               <h4>Backed Up Projects</h4>
-              {#each remoteStats.projects as project}
+              {#each remoteStats.projects as project (project.name || project)}
                 <div class="project-item">
                   <div class="project-name">{project.name}</div>
                   <div class="project-details">
@@ -610,7 +610,7 @@
       <section class="history-section">
         <h3>Recent Syncs</h3>
         <div class="history-list">
-          {#each syncHistory as sync}
+          {#each syncHistory as sync (sync)}
             <div class="history-item">
               <div class="history-time">{formatDateTime(sync.timestamp)}</div>
               <div class="history-status status-{sync.status}">

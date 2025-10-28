@@ -133,7 +133,7 @@
       <h2 id="test-results-heading">Test Results</h2>
       <div class="header-actions" role="toolbar" aria-label="Test actions">
         {#if frameworks.length > 0}
-          <button class="run-btn" on:click={() => runTests()} disabled={running} aria-label={running ? "Running tests" : "Run tests"}>
+          <button class="run-btn" on:click={() => runTests()} disabled={running} aria-label={running ? 'Running tests' : 'Run tests'}>
             <span aria-hidden="true">{running ? '⏳' : '▶️'}</span> Run Tests
           </button>
         {/if}
@@ -152,7 +152,7 @@
     <div class="frameworks-section" role="region" aria-labelledby="frameworks-heading">
       <h3 id="frameworks-heading">Detected Frameworks</h3>
       <div class="frameworks-list" role="list" aria-label="Detected test frameworks">
-        {#each frameworks as framework}
+        {#each frameworks as framework (framework)}
           <div class="framework-badge" role="listitem">
             <span aria-hidden="true">🧪</span> {framework.name}
           </div>
@@ -205,7 +205,7 @@
     <div class="results-history" role="region" aria-labelledby="test-history-heading">
       <h3 id="test-history-heading">Test History</h3>
       <div class="results-list" role="list" aria-label="Past test results">
-        {#each results as result}
+        {#each results as result (result)}
           <article class="result-item" style="--status-color: {getStatusColor(result.passed)}" role="listitem">
             <div class="result-status-icon" aria-hidden="true">{result.passed ? '✅' : '❌'}</div>
             <div class="result-details">

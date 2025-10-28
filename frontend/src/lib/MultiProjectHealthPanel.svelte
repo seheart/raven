@@ -19,16 +19,16 @@
 
   $: sortedProjects = [...projects].sort((a, b) => {
     switch (sortBy) {
-      case 'health':
-        return b.health_score - a.health_score;
-      case 'name':
-        return a.name.localeCompare(b.name);
-      case 'activity':
-        return b.recent_events - a.recent_events;
-      case 'errors':
-        return b.error_count - a.error_count;
-      default:
-        return 0;
+    case 'health':
+      return b.health_score - a.health_score;
+    case 'name':
+      return a.name.localeCompare(b.name);
+    case 'activity':
+      return b.recent_events - a.recent_events;
+    case 'errors':
+      return b.error_count - a.error_count;
+    default:
+      return 0;
     }
   });
 

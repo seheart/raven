@@ -420,7 +420,7 @@
 
                 {#if change.diff}
                   <div class="change-diff">
-                    {#each parseDiffLines(change.diff) as line}
+                    {#each parseDiffLines(change.diff) as line (line)}
                       <div class="diff-line {line.type}">
                         <span class="line-number">{line.lineNum}</span>
                         <code class="line-content">{line.text}</code>

@@ -227,7 +227,7 @@
           class:active={comparisonMode}
           on:click={toggleComparisonMode}
           aria-pressed={comparisonMode}
-          aria-label={comparisonMode ? "Exit comparison mode" : "Enter comparison mode"}
+          aria-label={comparisonMode ? 'Exit comparison mode' : 'Enter comparison mode'}
         >
           <span aria-hidden="true">{comparisonMode ? '✓' : '🔍'}</span> {comparisonMode ? 'Comparison Mode' : 'Compare Snapshots'}
         </button>
@@ -236,7 +236,7 @@
             class="btn-compare"
             on:click={compareSelectedSnapshots}
             disabled={comparingSnapshots}
-            aria-label={comparingSnapshots ? "Comparing snapshots" : "Compare selected snapshots"}
+            aria-label={comparingSnapshots ? 'Comparing snapshots' : 'Compare selected snapshots'}
           >
             <span aria-hidden="true">{comparingSnapshots ? '⏳' : '⚡'}</span> {comparingSnapshots ? 'Comparing...' : 'Compare Selected'}
           </button>
@@ -326,7 +326,7 @@
                   class="btn-restore"
                   on:click={() => restoreToEvent(event)}
                   disabled={restoring}
-                  aria-label={restoring ? "Restoring file" : "Restore file to this snapshot"}
+                  aria-label={restoring ? 'Restoring file' : 'Restore file to this snapshot'}
                 >
                   <span aria-hidden="true">{#if restoring}⏳{:else}🔄{/if}</span> {#if restoring}Restoring...{:else}Undo Claude{/if}
                 </button>

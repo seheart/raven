@@ -196,7 +196,7 @@
               {#if quality.factors && quality.factors.length > 0}
                 <div class="quality-factors">
                   <div class="factors-title">Quality Factors:</div>
-                  {#each quality.factors as factor}
+                  {#each quality.factors as factor (factor)}
                     <div class="factor-item">
                       <span class="factor-icon">
                         {#if factor.type === 'high_rollback_rate'}
@@ -231,7 +231,7 @@
               {/if}
               {#if breakRecommendation.reasons && breakRecommendation.reasons.length > 0}
                 <div class="break-reasons">
-                  {#each breakRecommendation.reasons as reason}
+                  {#each breakRecommendation.reasons as reason (reason)}
                     <div class="reason-item">• {reason}</div>
                   {/each}
                 </div>
@@ -288,7 +288,7 @@
             <div class="peak-hours-section">
               <div class="peak-hours-title">🔥 Peak Productivity Hours</div>
               <div class="peak-hours-list">
-                {#each stats.peakHours as peak}
+                {#each stats.peakHours as peak (peak)}
                   <div class="peak-hour-item">
                     <div class="peak-hour-time">
                       {peak.hour}:00

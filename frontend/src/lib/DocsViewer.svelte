@@ -184,10 +184,10 @@
     </div>
 
     <div class="docs-list" role="region" aria-labelledby="docs-heading">
-      {#each Object.entries(organizedDocs) as [category, categoryDocs]}
+      {#each Object.entries(organizedDocs) as [category, categoryDocs] (category)}
         <div class="docs-category">
           <h3 class="category-title">{category === 'root' ? 'Getting Started' : category.toUpperCase()}</h3>
-          {#each categoryDocs as doc}
+          {#each categoryDocs as doc (doc.id || doc.name || doc)}
             <button
               class="doc-item"
               class:active={selectedDoc === doc.path}
@@ -223,6 +223,7 @@
       </div>
     {:else if html}
       <article class="markdown-content" on:click={handleMarkdownClick}>
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html html}
       </article>
     {:else}

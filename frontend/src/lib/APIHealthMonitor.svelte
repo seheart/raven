@@ -288,7 +288,7 @@
         <input type="checkbox" bind:checked={alertsEnabled} aria-label="Enable health alerts" />
         <span>Alerts</span>
       </label>
-      <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn-refresh" aria-label={checkingAll ? "Checking all endpoints" : "Check all endpoints"}>
+      <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn-refresh" aria-label={checkingAll ? 'Checking all endpoints' : 'Check all endpoints'}>
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         {checkingAll ? 'Checking...' : 'Check All'}
       </button>
@@ -304,11 +304,11 @@
     </div>
   {:else}
     <div class="categories" role="list" aria-labelledby="api-health-heading">
-      {#each Object.entries(grouped) as [category, endpoints]}
+      {#each Object.entries(grouped) as [category, endpoints] (category)}
         <section class="category-section" role="listitem" aria-labelledby="category-{category}">
           <h3 class="category-title" id="category-{category}">{category}</h3>
           <div class="endpoints-list" role="list" aria-label="{category} endpoints">
-            {#each endpoints || [] as endpoint}
+            {#each endpoints || [] as endpoint (endpoint.path)}
               {@const status = healthStatus[endpoint.path]}
               <div class="endpoint-row" class:healthy={status?.status === 'healthy'} class:error={status?.status === 'error'} role="listitem">
                 <div class="endpoint-status">
@@ -345,7 +345,7 @@
                   {/if}
                   {#if status?.history && status.history.length > 0}
                     <div class="sparkline" title="Response time history (last 10 checks)" role="img" aria-label="Response time sparkline showing last 10 checks">
-                      {#each status.history as check, i}
+                      {#each status.history as check, i (i)}
                         <div
                           class="spark-bar"
                           class:bar-success={check.success}

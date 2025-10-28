@@ -173,7 +173,7 @@
         <div class="changes-list" role="region" aria-labelledby="files-heading">
           <h4 id="files-heading">Files that will be restored:</h4>
           <div role="list" aria-label="Files to restore">
-            {#each previewData.changes as change}
+            {#each previewData.changes as change (change.id || change.name || change)}
               <div class="change-item" class:has-backup={change.hasBackup} role="listitem">
                 <span class="change-icon" aria-hidden="true">{change.hasBackup ? '✅' : '❌'}</span>
                 <span class="change-path">{change.filepath}</span>
@@ -204,7 +204,7 @@
   {:else}
     <!-- Sessions List -->
     <div class="sessions-list" role="list" aria-labelledby="session-rollback-heading">
-      {#each sessions as session}
+      {#each sessions as session (session.id)}
         <article class="session-card" role="listitem">
           <div class="session-header">
             <div class="session-icon" aria-hidden="true">🔄</div>

@@ -273,7 +273,7 @@
       <p class="subtitle">Manage which projects Raven monitors</p>
     </div>
     <div class="header-right" role="toolbar" aria-label="Project configuration actions">
-      <button class="btn-secondary" on:click={discoverProjects} disabled={discovering} aria-label={discovering ? "Discovering projects" : "Discover projects automatically"}>
+      <button class="btn-secondary" on:click={discoverProjects} disabled={discovering} aria-label={discovering ? 'Discovering projects' : 'Discover projects automatically'}>
         <span aria-hidden="true">{discovering ? '🔍' : '🔍'}</span> {discovering ? 'Discovering...' : 'Discover Projects'}
       </button>
       <button class="btn-primary" on:click={openAddModal} aria-label="Add new project">+ Add Project</button>

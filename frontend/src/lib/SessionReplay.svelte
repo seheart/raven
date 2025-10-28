@@ -240,7 +240,7 @@
           {/each}
         </select>
       </div>
-      <button on:click={() => loadEvents(true)} class="btn-refresh" disabled={loading} aria-label={loading ? "Loading events" : "Refresh events"}>
+      <button on:click={() => loadEvents(true)} class="btn-refresh" disabled={loading} aria-label={loading ? 'Loading events' : 'Refresh events'}>
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         Refresh
       </button>
@@ -294,7 +294,7 @@
           <div class="filter-label">Agent:</div>
           <select class="agent-select" bind:value={selectedAgent} aria-label="Filter events by agent">
             <option value="all">All Agents ({uniqueAgents.length})</option>
-            {#each uniqueAgents as agent}
+            {#each uniqueAgents as agent (agent.agent || agent.name || agent)}
               <option value={agent}>{agent}</option>
             {/each}
           </select>
@@ -316,7 +316,7 @@
         {selectedTimeBucket ? `Showing ${selectedTimeBucket.count} events from ${selectedTimeBucket.label}` : 'Click a time bucket to filter events'}
       </p>
       <div class="timeline-buckets" role="group" aria-label="Activity timeline by hour">
-        {#each timelineBuckets as bucket}
+        {#each timelineBuckets as bucket (bucket)}
           <button
             class="timeline-bucket"
             class:selected={bucket === selectedTimeBucket}

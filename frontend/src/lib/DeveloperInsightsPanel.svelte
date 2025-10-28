@@ -109,7 +109,7 @@
       Auto-refresh
     </label>
 
-    <button class="btn-refresh" on:click={loadAllData} disabled={loading} aria-label={loading ? "Loading insights data" : "Refresh insights data"}>
+    <button class="btn-refresh" on:click={loadAllData} disabled={loading} aria-label={loading ? 'Loading insights data' : 'Refresh insights data'}>
       <span aria-hidden="true">{#if loading}⏳{:else}🔄{/if}</span> Refresh
     </button>
 

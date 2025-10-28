@@ -123,7 +123,7 @@
     <div class="empty">No projects found</div>
   {:else}
     <div class="projects-grid">
-      {#each projectsData as project}
+      {#each projectsData as project (project.name || project)}
         <button
           class="project-card"
           on:click={() => selectProject(project.name)}

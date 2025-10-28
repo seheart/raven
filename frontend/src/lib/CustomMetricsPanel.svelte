@@ -169,7 +169,7 @@
             <span class="breakdown-title" id="events-by-type-heading">Events by Type</span>
           </div>
           <div class="breakdown-grid" role="list" aria-label="Event types">
-            {#each Object.entries(metrics.events_by_type) as [type, count]}
+            {#each Object.entries(metrics.events_by_type) as [type, count] (type)}
               <div class="breakdown-item" role="listitem">
                 <div class="breakdown-type">{type}</div>
                 <div class="breakdown-count" role="status">{count.toLocaleString()}</div>

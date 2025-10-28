@@ -1,3 +1,4 @@
+import { writable, get } from 'svelte/store';
 import { logger } from './logger.js';
 /**
  * Global Project Filter Store
@@ -6,7 +7,6 @@ import { logger } from './logger.js';
  * "all" means show data from all projects, or select a specific project name.
  */
 
-import { writable, derived, get } from 'svelte/store';
 import {
   ALL_PROJECTS,
   matchesFilter,

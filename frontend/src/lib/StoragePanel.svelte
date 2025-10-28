@@ -354,7 +354,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          {#each db.tableStats as table}
+                          {#each db.tableStats as table (table)}
                             <tr>
                               <td><code>{table.name}</code></td>
                               <td>{formatNumber(table.records)}</td>

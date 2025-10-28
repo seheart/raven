@@ -91,6 +91,7 @@
 
 {#if hasError}
   {#if fallback}
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html fallback}
   {:else}
     <div class="error-boundary" role="alert" aria-live="assertive">

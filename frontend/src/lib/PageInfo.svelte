@@ -51,6 +51,7 @@
       <div class="modal-body">
         <section class="info-section" aria-labelledby="what-section">
           <h3 id="what-section">What this page is</h3>
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
           <p>{@html parseMarkdown(description)}</p>
         </section>
 
@@ -58,7 +59,8 @@
           <section class="info-section" aria-labelledby="lookfor-section">
             <h3 id="lookfor-section">What to look for</h3>
             <ul>
-              {#each keyPoints as point}
+              {#each keyPoints as point (point)}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 <li>{@html parseMarkdown(point)}</li>
               {/each}
             </ul>
@@ -68,6 +70,7 @@
         {#if whenToCheck}
           <section class="info-section" aria-labelledby="when-section">
             <h3 id="when-section">When to check it</h3>
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
             <p>{@html parseMarkdown(whenToCheck)}</p>
           </section>
         {/if}
@@ -76,7 +79,8 @@
           <section class="info-section warning" aria-labelledby="warnings-section" role="alert">
             <h3 id="warnings-section"><span aria-hidden="true">⚠️</span> Warning signs</h3>
             <ul>
-              {#each warnings as warning}
+              {#each warnings as warning (warning.id || warning.name || warning)}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 <li>{@html parseMarkdown(warning)}</li>
               {/each}
             </ul>

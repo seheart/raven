@@ -248,7 +248,7 @@
       <button on:click={clearCooldowns} class="btn-action" aria-label="Clear all trigger cooldowns">
         <span aria-hidden="true">⏰</span> Clear Cooldowns
       </button>
-      <button on:click={() => loadAllData(true)} class="btn-refresh" disabled={loading} aria-label={loading ? "Loading triggers data" : "Refresh triggers data"}>
+      <button on:click={() => loadAllData(true)} class="btn-refresh" disabled={loading} aria-label={loading ? 'Loading triggers data' : 'Refresh triggers data'}>
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         Refresh
       </button>

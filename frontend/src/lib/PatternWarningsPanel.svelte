@@ -107,10 +107,10 @@
   // Get severity color
   function getSeverityColor(severity) {
     switch (severity) {
-      case 'critical': return '#ef4444';
-      case 'warning': return '#f59e0b';
-      case 'info': return '#3b82f6';
-      default: return '#6b7280';
+    case 'critical': return '#ef4444';
+    case 'warning': return '#f59e0b';
+    case 'info': return '#3b82f6';
+    default: return '#6b7280';
     }
   }
 
@@ -142,7 +142,7 @@
 
   <!-- Category Filter -->
   <div class="category-filter" role="radiogroup" aria-label="Filter warnings by category" aria-labelledby="pattern-warnings-heading">
-    {#each categories as category}
+    {#each categories as category (category)}
       <button
         class="category-btn"
         class:active={selectedCategory === category.id}
@@ -207,7 +207,7 @@
     </div>
   {:else}
     <div class="warnings-list" role="region" aria-label="Pattern warnings grouped by file">
-      {#each Object.entries(warningsByFile) as [filepath, fileWarnings]}
+      {#each Object.entries(warningsByFile) as [filepath, fileWarnings] (filepath)}
         <section class="file-group" role="group" aria-label="Warnings in {filepath}">
           <div class="file-header">
             <span class="file-icon" aria-hidden="true">📄</span>
@@ -221,7 +221,7 @@
           </div>
 
           <div class="warnings" role="list" aria-label="Warnings in {filepath}">
-            {#each fileWarnings as warning}
+            {#each fileWarnings as warning (warning.id || warning.name || warning)}
               <article class="warning-item" style="--severity-color: {getSeverityColor(warning.severity)}" role="listitem">
                 <div class="warning-header">
                   <span class="category-icon" aria-hidden="true">{getCategoryIcon(warning.category)}</span>

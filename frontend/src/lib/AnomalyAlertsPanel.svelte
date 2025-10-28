@@ -215,7 +215,7 @@
           <div class="anomaly-message">{anomaly.message}</div>
           {#if anomaly.details}
             <div class="anomaly-details">
-              {#each Object.entries(anomaly.details) as [key, value]}
+              {#each Object.entries(anomaly.details) as [key, value] (key)}
                 <span class="detail-item">
                   <strong>{key.replace(/_/g, ' ')}:</strong> {value}
                 </span>
