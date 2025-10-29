@@ -148,20 +148,15 @@
     }
   }
 
-  function getTotalEvents() {
-    return agentStats.reduce((sum, stat) => sum + (stat?.event_count || 0), 0);
-  }
-
-  function getTotalLinesChanged() {
-    return agentStats.reduce((sum, stat) => sum + (stat?.total_lines_changed || 0), 0);
-  }
-
-  function getAverageResponseTime() {
+  // Reactive computed values
+  $: totalEvents = agentStats.reduce((sum, stat) => sum + (stat?.event_count || 0), 0);
+  $: totalLinesChanged = agentStats.reduce((sum, stat) => sum + (stat?.total_lines_changed || 0), 0);
+  $: averageResponseTime = (() => {
     const length = agentStats.length;
     if (length === 0) return 0;
     const total = agentStats.reduce((sum, stat) => sum + (stat.avg_duration_ms || 0), 0);
     return Math.round(total / length);
-  }
+  })();
 
   // Filter agents by search query
   $: filteredAgentStats = searchQuery
@@ -194,9 +189,9 @@
     const data = {
       exported_at: new Date().toISOString(),
       total_agents: agentStats.length,
-      total_events: getTotalEvents(),
-      total_lines_changed: getTotalLinesChanged(),
-      avg_response_time: getAverageResponseTime(),
+      total_events: totalEvents,
+      total_lines_changed: totalLinesChanged,
+      avg_response_time: averageResponseTime,
       agents: agentStats
     };
 
@@ -244,15 +239,15 @@
       <div class="stat-label">Active Agents</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value">{getTotalEvents()}</div>
+      <div class="stat-value">{totalEvents}</div>
       <div class="stat-label">Total Events</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value">{getTotalLinesChanged()}</div>
+      <div class="stat-value">{totalLinesChanged}</div>
       <div class="stat-label">Lines Changed</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value">{formatDuration(getAverageResponseTime())}</div>
+      <div class="stat-value">{formatDuration(averageResponseTime)}</div>
       <div class="stat-label">Avg Response Time</div>
     </div>
   </div>
