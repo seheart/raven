@@ -108,11 +108,14 @@ export class PatternChecker {
         const warningId = this.db.insertPatternWarning(
           timestamp,
           filepath,
+          this.projectName,
           warning.category,
           warning.severity,
           warning.name,
           warning.message,
           warning.line,
+          warning.matchText,
+          warning.context,
           warning.suggestion,
           this.sessionId
         );
@@ -123,11 +126,14 @@ export class PatternChecker {
             id: warningId,
             timestamp,
             filepath,
+            project_name: this.projectName,
             category: warning.category,
             severity: warning.severity,
             pattern_name: warning.name,
             message: warning.message,
-            line_number: warning.line
+            line_number: warning.line,
+            match_text: warning.matchText,
+            context: warning.context
           });
         }
       }
@@ -153,7 +159,9 @@ export class PatternChecker {
         if (line.length > 200) {
           matches.push({
             ...pattern,
-            line: index + 1
+            line: index + 1,
+            matchText: line.substring(0, 100) + '...',
+            context: line.substring(0, 200)
           });
         }
       });
@@ -161,11 +169,14 @@ export class PatternChecker {
       // For regex patterns, find all matches
       while ((match = regex.exec(content)) !== null) {
         const position = match.index;
-        const line = content.substring(0, position).split('\n').length;
+        const lineNumber = content.substring(0, position).split('\n').length;
+        const lineContent = lines[lineNumber - 1] || '';
 
         matches.push({
           ...pattern,
-          line
+          line: lineNumber,
+          matchText: match[0],
+          context: lineContent.trim()
         });
       }
     }

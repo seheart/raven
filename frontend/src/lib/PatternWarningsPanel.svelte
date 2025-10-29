@@ -231,17 +231,26 @@
                   </span>
                 </div>
 
-                <div class="warning-description">{warning.pattern_description || ''}</div>
+                {#if warning.project_name}
+                  <div class="warning-project">
+                    <span class="project-label">Project:</span>
+                    <span class="project-name">{warning.project_name}</span>
+                  </div>
+                {/if}
+
+                <div class="warning-description">{warning.message || ''}</div>
 
                 <div class="warning-location">
                   <span class="location-label">Line {warning.line_number}:</span>
-                  <code class="warning-context">{warning.context}</code>
+                  <code class="warning-context">{warning.context || ''}</code>
                 </div>
 
-                <div class="warning-match">
-                  <span class="match-label">Matched:</span>
-                  <code class="match-text">{warning.match_text}</code>
-                </div>
+                {#if warning.match_text}
+                  <div class="warning-match">
+                    <span class="match-label">Matched:</span>
+                    <code class="match-text">{warning.match_text}</code>
+                  </div>
+                {/if}
 
                 <div class="warning-actions">
                   <time class="warning-timestamp" datetime="{warning.timestamp}">
@@ -547,6 +556,24 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
+  }
+
+  .warning-project {
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  .project-label {
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 6px;
+  }
+
+  .project-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
   }
 
   .warning-description {

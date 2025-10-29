@@ -189,11 +189,14 @@ export class RavenDB {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT NOT NULL,
         filepath TEXT NOT NULL,
+        project_name TEXT,
         category TEXT NOT NULL,
         severity TEXT DEFAULT 'warning',
         pattern_name TEXT NOT NULL,
         message TEXT NOT NULL,
         line_number INTEGER,
+        match_text TEXT,
+        context TEXT,
         suggestion TEXT,
         resolved INTEGER DEFAULT 0,
         resolved_at TEXT,
@@ -1548,20 +1551,23 @@ export class RavenDB {
 
   // ==================== Pattern Warnings ====================
 
-  insertPatternWarning(timestamp, filepath, category, severity, patternName, message, lineNumber, suggestion, session_id) {
+  insertPatternWarning(timestamp, filepath, projectName, category, severity, patternName, message, lineNumber, matchText, context, suggestion, session_id) {
     const stmt = this.prepareStatement(`
-      INSERT INTO pattern_warnings (timestamp, filepath, category, severity, pattern_name, message, line_number, suggestion, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO pattern_warnings (timestamp, filepath, project_name, category, severity, pattern_name, message, line_number, match_text, context, suggestion, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
       timestamp,
       filepath,
+      projectName || null,
       category,
       severity,
       patternName,
       message,
       lineNumber,
+      matchText || null,
+      context || null,
       suggestion,
       session_id || null
     );

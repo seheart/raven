@@ -326,13 +326,16 @@ export function createSafetyRoutes(deps) {
   router.post('/pattern-warnings/check', async (req, res) => {
     try {
       const db = getDb();
-      const { filepath } = req.body;
+      const { filepath, projectName } = req.body;
 
       if (!filepath) {
         return res.status(400).json({ error: 'filepath is required' });
       }
 
-      const checker = new PatternChecker(db, SESSION_ID, io);
+      // Use provided project name or try to determine from projectDatabases keys
+      const project = projectName || Array.from(projectDatabases.keys())[0] || 'unknown';
+
+      const checker = new PatternChecker(db, SESSION_ID, io, project);
       const warnings = await checker.checkFile(filepath);
 
       res.json({ success: true, warnings, count: warnings.length });
