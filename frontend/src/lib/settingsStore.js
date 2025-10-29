@@ -23,6 +23,9 @@ const DEFAULT_SETTINGS = {
     autoRefresh: true,
     refreshInterval: 10
   },
+  editor: {
+    defaultEditor: 'auto'
+  },
   performance: {
     enableMetrics: true,
     metricsInterval: 10,
@@ -41,6 +44,7 @@ function loadSettings() {
       return {
         notifications: { ...DEFAULT_SETTINGS.notifications, ...parsed.notifications },
         ui: { ...DEFAULT_SETTINGS.ui, ...parsed.ui },
+        editor: { ...DEFAULT_SETTINGS.editor, ...parsed.editor },
         performance: { ...DEFAULT_SETTINGS.performance, ...parsed.performance }
       };
     } catch (e) {
@@ -158,6 +162,7 @@ export const settings = {
       const merged = {
         notifications: { ...DEFAULT_SETTINGS.notifications, ...imported.notifications },
         ui: { ...DEFAULT_SETTINGS.ui, ...imported.ui },
+        editor: { ...DEFAULT_SETTINGS.editor, ...imported.editor },
         performance: { ...DEFAULT_SETTINGS.performance, ...imported.performance }
       };
       settingsStore.set(merged);

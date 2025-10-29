@@ -409,6 +409,29 @@
       </div>
     </section>
 
+    <!-- Editor Section -->
+    <section class="settings-section" aria-labelledby="editor-heading">
+      <h3 id="editor-heading"><span aria-hidden="true">📝</span> Editor</h3>
+
+      <div class="setting-row">
+        <label for="default-editor">Default Editor</label>
+        <select
+          id="default-editor"
+          bind:value={settings.editor.defaultEditor}
+          aria-describedby="editor-desc"
+        >
+          <option value="auto">🖥️ System Default</option>
+          <option value="vscode">💻 VS Code</option>
+          <option value="cursor">⚡ Cursor</option>
+          <option value="sublime">📝 Sublime Text</option>
+          <option value="intellij">🧠 IntelliJ IDEA</option>
+          <option value="vim">🟢 Vim</option>
+          <option value="nvim">🟩 Neovim</option>
+        </select>
+        <span class="setting-description" id="editor-desc">Choose which editor opens files from error panels</span>
+      </div>
+    </section>
+
     <!-- Performance Section -->
     <section class="settings-section" aria-labelledby="performance-heading">
       <h3 id="performance-heading"><span aria-hidden="true">⚡</span> Performance</h3>
