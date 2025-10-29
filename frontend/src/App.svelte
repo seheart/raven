@@ -366,10 +366,10 @@
 <main>
   <header role="banner">
     <div class="header-content">
-      <div class="header-left">
+      <button class="header-left header-home-button" on:click={() => handleTabChange('overview')} aria-label="Go to Overview">
         <RavenLogo size={32} />
         <h1>Raven</h1>
-      </div>
+      </button>
 
       <nav id="main-navigation" class="header-nav" role="navigation" aria-label="Main navigation">
         {#each tabs as tab (tab.id)}
@@ -806,6 +806,23 @@
     display: flex;
     align-items: center;
     gap: var(--space-md);
+  }
+
+  .header-home-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .header-home-button:hover {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+
+  .header-home-button:active {
+    transform: scale(0.98);
   }
 
   .header-right {

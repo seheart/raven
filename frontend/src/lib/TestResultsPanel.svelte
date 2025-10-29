@@ -223,7 +223,7 @@
 <div class="test-results-panel" role="region" aria-label="Test results panel">
   <div class="panel-header">
     <div class="header-top">
-      <h2 id="test-results-heading">Test Results</h2>
+      <h2 id="test-results-heading">Test Results <span class="self-diagnosis-badge">Raven Self-Diagnosis</span></h2>
       <div class="header-actions" role="toolbar" aria-label="Test actions">
         {#if frameworks.length > 0}
           <button class="run-btn" on:click={() => runTests()} disabled={running} aria-label={running ? 'Running tests' : 'Run tests'}>
@@ -236,18 +236,18 @@
       </div>
     </div>
     <p class="panel-description">
-      Runs your project's automated tests to verify code quality and catch bugs early
+      These are Raven's own internal tests that verify Raven itself is working correctly. This does NOT test your other projects - those have their own test suites.
     </p>
   </div>
 
   <!-- Frameworks Info -->
   {#if frameworks.length > 0}
     <div class="frameworks-section" role="region" aria-labelledby="frameworks-heading">
-      <h3 id="frameworks-heading">What's Being Tested</h3>
+      <h3 id="frameworks-heading">🔍 What's Being Tested: Raven's Own Codebase</h3>
       <div class="test-info">
         <div class="info-row">
-          <span class="label">Project:</span>
-          <span class="value">raven (backend & services)</span>
+          <span class="label">Target Project:</span>
+          <span class="value">Raven itself (backend & services)</span>
         </div>
         <div class="info-row">
           <span class="label">Test Framework:</span>
@@ -255,7 +255,11 @@
         </div>
         <div class="info-row">
           <span class="label">Test Files:</span>
-          <span class="value">__tests__/ directory</span>
+          <span class="value">Raven's __tests__/ directory</span>
+        </div>
+        <div class="info-note">
+          <span class="note-icon">ℹ️</span>
+          <span class="note-text">These tests verify that Raven is functioning properly. Your other monitored projects are not affected.</span>
         </div>
       </div>
     </div>
@@ -417,6 +421,22 @@
     font-size: 20px;
     font-weight: 600;
     color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .self-diagnosis-badge {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
   }
 
   .header-actions {
@@ -509,6 +529,28 @@
     font-family: var(--mono);
     font-size: 13px;
     color: var(--text);
+  }
+
+  .info-note {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 4px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .note-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .note-text {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.5;
   }
 
   .frameworks-list {

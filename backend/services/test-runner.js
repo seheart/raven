@@ -186,10 +186,29 @@ export class TestRunner {
    * Parse Jest output
    */
   parseJestOutput(output) {
-    const results = [];
+    let results = [];
     const lines = output.split('\n');
 
-    // Extract test file results
+    // First, try to extract the summary line for accurate totals
+    // Format: "Tests:       53 failed, 1747 passed, 1800 total"
+    let totalPassed = 0;
+    let totalFailed = 0;
+    let totalSkipped = 0;
+    let totalTests = 0;
+
+    for (const line of lines) {
+      const testSummaryMatch = line.match(/Tests:\s+(?:(\d+)\s+failed,?\s*)?(?:(\d+)\s+passed,?\s*)?(?:(\d+)\s+skipped,?\s*)?(\d+)\s+total/);
+      if (testSummaryMatch) {
+        totalFailed = parseInt(testSummaryMatch[1] || '0');
+        totalPassed = parseInt(testSummaryMatch[2] || '0');
+        totalSkipped = parseInt(testSummaryMatch[3] || '0');
+        totalTests = parseInt(testSummaryMatch[4]);
+        logger.info(`Jest summary parsed: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped, ${totalTests} total`);
+        break;
+      }
+    }
+
+    // Extract test file results and individual failing tests
     let currentFile = null;
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -249,6 +268,52 @@ export class TestRunner {
           stack: null
         });
       }
+    }
+
+    // If we found a summary, use ONLY the summary line (ignore parsed results to avoid duplicates)
+    if (totalTests > 0) {
+      logger.info(`Using Jest summary line: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped, ${totalTests} total`);
+
+      // Clear results and rebuild entirely from summary
+      results = [];
+
+      // Add failed tests
+      for (let i = 0; i < totalFailed; i++) {
+        results.push({
+          name: `Failed test ${i + 1}`,
+          status: 'failed',
+          duration: 0,
+          file: null,
+          error: 'Test failed - see Jest output for details',
+          stack: null
+        });
+      }
+
+      // Add passing tests
+      for (let i = 0; i < totalPassed; i++) {
+        results.push({
+          name: `Passing test ${i + 1}`,
+          status: 'passed',
+          duration: 0,
+          file: null,
+          error: null,
+          stack: null
+        });
+      }
+
+      // Add skipped tests
+      for (let i = 0; i < totalSkipped; i++) {
+        results.push({
+          name: `Skipped test ${i + 1}`,
+          status: 'skipped',
+          duration: 0,
+          file: null,
+          error: null,
+          stack: null
+        });
+      }
+
+      logger.info(`Created ${results.length} synthetic test entries (matches Jest total: ${totalTests})`);
     }
 
     // If we couldn't parse any results, create a summary entry
