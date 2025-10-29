@@ -164,6 +164,58 @@ export class RavenDB {
       )
     `);
 
+    // Syntax errors table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS syntax_errors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        filepath TEXT NOT NULL,
+        language TEXT NOT NULL,
+        severity TEXT DEFAULT 'error',
+        message TEXT NOT NULL,
+        line_number INTEGER,
+        column_number INTEGER,
+        code_snippet TEXT,
+        resolved INTEGER DEFAULT 0,
+        resolved_at TEXT,
+        session_id TEXT
+      )
+    `);
+
+    // Pattern warnings table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS pattern_warnings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        filepath TEXT NOT NULL,
+        category TEXT NOT NULL,
+        severity TEXT DEFAULT 'warning',
+        pattern_name TEXT NOT NULL,
+        message TEXT NOT NULL,
+        line_number INTEGER,
+        suggestion TEXT,
+        resolved INTEGER DEFAULT 0,
+        resolved_at TEXT,
+        session_id TEXT
+      )
+    `);
+
+    // Test results table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS test_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        framework TEXT NOT NULL,
+        test_file TEXT,
+        test_name TEXT,
+        status TEXT NOT NULL,
+        duration_ms INTEGER,
+        error_message TEXT,
+        error_stack TEXT,
+        session_id TEXT
+      )
+    `);
+
     // Create indexes for performance (prevents full table scans)
     this.db.exec(`
       -- Events table indexes
@@ -203,6 +255,25 @@ export class RavenDB {
       CREATE INDEX IF NOT EXISTS idx_conversations_session ON conversations(claude_session_id);
       CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(event_type);
       CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project);
+
+      -- Syntax errors indexes
+      CREATE INDEX IF NOT EXISTS idx_syntax_errors_timestamp ON syntax_errors(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_syntax_errors_filepath ON syntax_errors(filepath);
+      CREATE INDEX IF NOT EXISTS idx_syntax_errors_resolved ON syntax_errors(resolved);
+      CREATE INDEX IF NOT EXISTS idx_syntax_errors_session ON syntax_errors(session_id);
+
+      -- Pattern warnings indexes
+      CREATE INDEX IF NOT EXISTS idx_pattern_warnings_timestamp ON pattern_warnings(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_pattern_warnings_filepath ON pattern_warnings(filepath);
+      CREATE INDEX IF NOT EXISTS idx_pattern_warnings_category ON pattern_warnings(category);
+      CREATE INDEX IF NOT EXISTS idx_pattern_warnings_resolved ON pattern_warnings(resolved);
+      CREATE INDEX IF NOT EXISTS idx_pattern_warnings_session ON pattern_warnings(session_id);
+
+      -- Test results indexes
+      CREATE INDEX IF NOT EXISTS idx_test_results_timestamp ON test_results(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_test_results_framework ON test_results(framework);
+      CREATE INDEX IF NOT EXISTS idx_test_results_status ON test_results(status);
+      CREATE INDEX IF NOT EXISTS idx_test_results_session ON test_results(session_id);
     `);
 
     // Add WAL checkpoint management for better performance
@@ -1407,6 +1478,270 @@ export class RavenDB {
       const result = stmt.run();
       return { deleted: result.changes };
     }
+  }
+
+  // ==================== Syntax Errors ====================
+
+  insertSyntaxError(timestamp, filepath, language, severity, message, lineNumber, columnNumber, codeSnippet, session_id) {
+    const stmt = this.prepareStatement(`
+      INSERT INTO syntax_errors (timestamp, filepath, language, severity, message, line_number, column_number, code_snippet, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      filepath,
+      language,
+      severity,
+      message,
+      lineNumber,
+      columnNumber,
+      codeSnippet,
+      session_id || null
+    );
+
+    return result.lastInsertRowid;
+  }
+
+  getSyntaxErrors(options = {}) {
+    const { limit = 50, offset = 0, resolved = false } = options;
+
+    const stmt = this.prepareStatement(`
+      SELECT * FROM syntax_errors
+      WHERE resolved = ?
+      ORDER BY timestamp DESC
+      LIMIT ? OFFSET ?
+    `);
+
+    const errors = stmt.all(resolved ? 1 : 0, limit, offset);
+
+    // Get count
+    const countStmt = this.prepareStatement(`
+      SELECT COUNT(*) as count FROM syntax_errors WHERE resolved = ?
+    `);
+    const { count } = countStmt.get(resolved ? 1 : 0);
+
+    return { errors, count };
+  }
+
+  resolveSyntaxError(errorId) {
+    const stmt = this.prepareStatement(`
+      UPDATE syntax_errors
+      SET resolved = 1, resolved_at = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(new Date().toISOString(), errorId);
+  }
+
+  clearSyntaxErrors(filepath = null) {
+    if (filepath) {
+      const stmt = this.prepareStatement('DELETE FROM syntax_errors WHERE filepath = ?');
+      stmt.run(filepath);
+    } else {
+      const stmt = this.prepareStatement('DELETE FROM syntax_errors');
+      stmt.run();
+    }
+  }
+
+  // ==================== Pattern Warnings ====================
+
+  insertPatternWarning(timestamp, filepath, category, severity, patternName, message, lineNumber, suggestion, session_id) {
+    const stmt = this.prepareStatement(`
+      INSERT INTO pattern_warnings (timestamp, filepath, category, severity, pattern_name, message, line_number, suggestion, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      filepath,
+      category,
+      severity,
+      patternName,
+      message,
+      lineNumber,
+      suggestion,
+      session_id || null
+    );
+
+    return result.lastInsertRowid;
+  }
+
+  getPatternWarnings(options = {}) {
+    const { limit = 100, offset = 0, category = 'all', resolved = false } = options;
+
+    let query = 'SELECT * FROM pattern_warnings WHERE resolved = ?';
+    const params = [resolved ? 1 : 0];
+
+    if (category !== 'all') {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const stmt = this.prepareStatement(query);
+    const warnings = stmt.all(...params);
+
+    // Get count
+    let countQuery = 'SELECT COUNT(*) as count FROM pattern_warnings WHERE resolved = ?';
+    const countParams = [resolved ? 1 : 0];
+
+    if (category !== 'all') {
+      countQuery += ' AND category = ?';
+      countParams.push(category);
+    }
+
+    const countStmt = this.prepareStatement(countQuery);
+    const { count } = countStmt.get(...countParams);
+
+    return { warnings, count };
+  }
+
+  resolvePatternWarning(warningId) {
+    const stmt = this.prepareStatement(`
+      UPDATE pattern_warnings
+      SET resolved = 1, resolved_at = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(new Date().toISOString(), warningId);
+  }
+
+  clearPatternWarnings(filepath = null) {
+    if (filepath) {
+      const stmt = this.prepareStatement('DELETE FROM pattern_warnings WHERE filepath = ?');
+      stmt.run(filepath);
+    } else {
+      const stmt = this.prepareStatement('DELETE FROM pattern_warnings');
+      stmt.run();
+    }
+  }
+
+  // ==================== Test Results ====================
+
+  insertTestResult(timestamp, framework, testFile, testName, status, durationMs, errorMessage, errorStack, session_id) {
+    const stmt = this.prepareStatement(`
+      INSERT INTO test_results (timestamp, framework, test_file, test_name, status, duration_ms, error_message, error_stack, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      timestamp,
+      framework,
+      testFile,
+      testName,
+      status,
+      durationMs,
+      errorMessage,
+      errorStack,
+      session_id || null
+    );
+
+    return result.lastInsertRowid;
+  }
+
+  getTestResults(options = {}) {
+    const { limit = 20, offset = 0, framework = 'all', status = 'all' } = options;
+
+    let query = 'SELECT * FROM test_results WHERE 1=1';
+    const params = [];
+
+    if (framework !== 'all') {
+      query += ' AND framework = ?';
+      params.push(framework);
+    }
+
+    if (status !== 'all') {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+
+    query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const stmt = this.prepareStatement(query);
+    const results = stmt.all(...params);
+
+    // Get count
+    let countQuery = 'SELECT COUNT(*) as count FROM test_results WHERE 1=1';
+    const countParams = [];
+
+    if (framework !== 'all') {
+      countQuery += ' AND framework = ?';
+      countParams.push(framework);
+    }
+
+    if (status !== 'all') {
+      countQuery += ' AND status = ?';
+      countParams.push(status);
+    }
+
+    const countStmt = this.prepareStatement(countQuery);
+    const { count } = countStmt.get(...countParams);
+
+    return { results, total: count };
+  }
+
+  // ==================== Sessions ====================
+
+  insertSession(projectName, startTime, session_id) {
+    const stmt = this.prepareStatement(`
+      INSERT INTO sessions (project_name, start_time, session_id)
+      VALUES (?, ?, ?)
+    `);
+
+    const result = stmt.run(projectName, startTime, session_id || null);
+    return result.lastInsertRowid;
+  }
+
+  updateSession(sessionId, updates) {
+    const { end_time, changes_count, rollbacks_count, break_minutes, quality_score } = updates;
+
+    const stmt = this.prepareStatement(`
+      UPDATE sessions
+      SET end_time = COALESCE(?, end_time),
+          changes_count = COALESCE(?, changes_count),
+          rollbacks_count = COALESCE(?, rollbacks_count),
+          break_minutes = COALESCE(?, break_minutes),
+          quality_score = COALESCE(?, quality_score)
+      WHERE id = ?
+    `);
+
+    stmt.run(end_time, changes_count, rollbacks_count, break_minutes, quality_score, sessionId);
+  }
+
+  getSessions(options = {}) {
+    const { limit = 10, offset = 0, projectName = null } = options;
+
+    let query = 'SELECT * FROM sessions WHERE 1=1';
+    const params = [];
+
+    if (projectName) {
+      query += ' AND project_name = ?';
+      params.push(projectName);
+    }
+
+    query += ' ORDER BY start_time DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const stmt = this.prepareStatement(query);
+    const sessions = stmt.all(...params);
+
+    // Get count
+    let countQuery = 'SELECT COUNT(*) as count FROM sessions WHERE 1=1';
+    const countParams = [];
+
+    if (projectName) {
+      countQuery += ' AND project_name = ?';
+      countParams.push(projectName);
+    }
+
+    const countStmt = this.prepareStatement(countQuery);
+    const { count } = countStmt.get(...countParams);
+
+    return { sessions, total: count };
   }
 
   close() {

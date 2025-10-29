@@ -791,6 +791,36 @@ async function handleFileChange(eventType, filepath) {
     } else if (eventType === 'unlink') {
       // File deleted - remove from cache
       fileCache.delete(filepath);
+
+      // Clear syntax errors and pattern warnings for deleted files
+      db.clearSyntaxErrors(filepath);
+      db.clearPatternWarnings(filepath);
+    }
+
+    // Run syntax and pattern checks on added/changed files (async, non-blocking)
+    if ((eventType === 'add' || eventType === 'change') && content) {
+      // Import checkers dynamically to avoid circular dependencies
+      setImmediate(async () => {
+        try {
+          const { SyntaxChecker } = await import('./services/syntax-checker.js');
+          const { PatternChecker } = await import('./services/pattern-checker.js');
+
+          const syntaxChecker = new SyntaxChecker(db, SESSION_ID, io);
+          const patternChecker = new PatternChecker(db, SESSION_ID, io);
+
+          // Run checks in parallel
+          await Promise.all([
+            syntaxChecker.checkFile(filepath).catch(err =>
+              logger.error(`Syntax check failed for ${filepath}:`, err)
+            ),
+            patternChecker.checkFile(filepath).catch(err =>
+              logger.error(`Pattern check failed for ${filepath}:`, err)
+            )
+          ]);
+        } catch (error) {
+          logger.error('Error running safety checks:', error);
+        }
+      });
     }
 
     // Get system metrics
@@ -1372,7 +1402,7 @@ app.use('/api/projects', createProjectRoutes({
 }));
 
 // Safety routes (errors, syntax checking, tests, pause/resume, pattern warnings)
-app.use('/api', createSafetyRoutes({ projectState, io, SESSION_ID }));
+app.use('/api', createSafetyRoutes({ projectDatabases, io, SESSION_ID, projectWatchers }));
 
 // Health & Status routes (system health, session ID, status, health checks, project health)
 // Note: healthCheckSystem will be set later via getHealthCheckSystem()

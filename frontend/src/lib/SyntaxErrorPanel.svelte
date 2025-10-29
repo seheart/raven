@@ -45,6 +45,19 @@
     }
   }
 
+  // Open file in default editor
+  function openFile(filepath, lineNumber) {
+    // Try to open with VSCode URL protocol
+    const vscodeUrl = `vscode://file${filepath}:${lineNumber}`;
+    window.open(vscodeUrl, '_blank');
+
+    // Also show file path for manual opening
+    notifications.info(`File: ${filepath}:${lineNumber}`, {
+      duration: 5000,
+      title: 'Open in Editor'
+    });
+  }
+
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('syntax-error', (data) => {
@@ -154,7 +167,14 @@
 
                 <div class="error-message">{error.message}</div>
 
+                {#if error.code_snippet}
+                  <pre class="code-snippet" aria-label="Code snippet showing error context"><code>{error.code_snippet}</code></pre>
+                {/if}
+
                 <div class="error-actions">
+                  <button class="open-file-btn" on:click={() => openFile(error.filepath, error.line_number)} aria-label="Open {error.filepath} at line {error.line_number}">
+                    📂 Open File
+                  </button>
                   <time class="error-timestamp" datetime="{error.timestamp}">
                     {new Date(error.timestamp).toLocaleString()}
                   </time>
@@ -385,11 +405,59 @@
     border-radius: 4px;
   }
 
+  .code-snippet {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    margin: 12px 0;
+    padding: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow-x: auto;
+    color: var(--text);
+  }
+
+  .code-snippet code {
+    white-space: pre;
+    display: block;
+  }
+
   .error-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .open-file-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .open-file-btn:hover {
+    background: var(--accent-hover, var(--accent));
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .open-file-btn:active {
+    transform: translateY(0);
+  }
+
+  .open-file-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .error-timestamp {
