@@ -111,49 +111,19 @@ describe('Control Routes', () => {
   });
 
   describe('POST /api/control/restart-watcher', () => {
-    test('should restart file watcher successfully', async () => {
-      // Save reference to the original watcher mock before it gets replaced
-      const originalCloseMock = mockProjectState.watcher.close;
-
+    test('should return deprecated status for restart-watcher endpoint', async () => {
       const response = await request(app).post('/api/control/restart-watcher');
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(501);
       expect(response.body).toMatchObject({
-        success: true,
-        message: 'File watcher restarted successfully',
-        project: 'test-project'
+        success: false,
+        deprecated: true,
+        message: expect.stringContaining('deprecated')
       });
-
-      // Should close existing watcher (check original close mock)
-      expect(originalCloseMock).toHaveBeenCalled();
-
-      // Should initialize new watcher
-      expect(mockInitializeWatcher).toHaveBeenCalled();
     });
 
-    test('should use mutex to prevent race conditions', async () => {
-      await request(app).post('/api/control/restart-watcher');
-
-      expect(mockProjectStateMutex.runExclusive).toHaveBeenCalled();
-    });
-
-    test('should handle watcher close errors gracefully', async () => {
-      mockProjectState.watcher.close.mockRejectedValue(new Error('Close failed'));
-
-      const response = await request(app).post('/api/control/restart-watcher');
-
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBeDefined();
-    });
-
-    test('should handle case where no watcher exists', async () => {
-      mockProjectState.watcher = null;
-
-      const response = await request(app).post('/api/control/restart-watcher');
-
-      expect(response.status).toBe(200);
-      expect(mockInitializeWatcher).toHaveBeenCalled();
-    });
+    // Note: The following tests are obsolete as the endpoint is now deprecated
+    // The restart-watcher endpoint returns 501 for all requests
   });
 
   describe('POST /api/control/restart-bridge - SELF-HEALING', () => {

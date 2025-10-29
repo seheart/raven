@@ -135,7 +135,7 @@ export function authenticate(req, res, next) {
   // Extract token from Authorization header
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.status(401).json({ error: 'No authorization header provided' });
+    return res.status(401).json({ error: 'Authentication required' });
   }
 
   const token = authHeader.startsWith('Bearer ')

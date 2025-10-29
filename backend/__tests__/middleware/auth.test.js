@@ -154,7 +154,7 @@ describe('Authentication Middleware', () => {
       authenticate(req, res, next);
 
       expect(res._statusCalls[0]).toBe(401);
-      expect(res._jsonCalls[0]).toEqual({ error: 'No authorization header provided' });
+      expect(res._jsonCalls[0]).toEqual({ error: 'Authentication required' });
       expect(next._calls).toHaveLength(0);
     });
 
@@ -487,7 +487,7 @@ describe('Authentication Middleware', () => {
       authenticate(req, res, next);
 
       expect(res._statusCalls[0]).toBe(401);
-      expect(res._jsonCalls[0].error).toBe('No authorization header provided');
+      expect(res._jsonCalls[0].error).toBe('Authentication required');
     });
 
     test('authenticate should handle empty Bearer token', () => {
