@@ -58,6 +58,27 @@
     });
   }
 
+  // Copy error details to clipboard
+  async function copyError(error) {
+    const errorText = `Syntax Error in ${error.filepath}
+
+Project: ${error.project_name || 'N/A'}
+Language: ${error.language}
+Location: Line ${error.line_number}${error.column_number ? `, Column ${error.column_number}` : ''}
+Severity: ${error.severity}
+Message: ${error.message}
+
+${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
+
+    try {
+      await navigator.clipboard.writeText(errorText);
+      notifications.success('Error details copied to clipboard');
+    } catch (err) {
+      logger.error('Failed to copy to clipboard:', err);
+      notifications.error('Failed to copy to clipboard');
+    }
+  }
+
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('syntax-error', (data) => {
@@ -162,6 +183,9 @@
                       , Col {error.column_number}
                     {/if}
                   </span>
+                  {#if error.project_name}
+                    <span class="project-badge" role="status">{error.project_name}</span>
+                  {/if}
                   <span class="severity-badge" role="status">{error.severity}</span>
                 </div>
 
@@ -174,6 +198,9 @@
                 <div class="error-actions">
                   <button class="open-file-btn" on:click={() => openFile(error.filepath, error.line_number)} aria-label="Open {error.filepath} at line {error.line_number}">
                     📂 Open File
+                  </button>
+                  <button class="copy-btn" on:click={() => copyError(error)} aria-label="Copy error details">
+                    📋 Copy
                   </button>
                   <time class="error-timestamp" datetime="{error.timestamp}">
                     {new Date(error.timestamp).toLocaleString()}
@@ -394,6 +421,15 @@
     color: white;
   }
 
+  .project-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #3b82f6;
+    color: white;
+  }
+
   .error-message {
     font-family: var(--mono);
     font-size: 13px;
@@ -456,6 +492,38 @@
   }
 
   .open-file-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .copy-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .copy-btn:hover {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .copy-btn:active {
+    transform: translateY(0);
+  }
+
+  .copy-btn:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }

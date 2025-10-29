@@ -7,10 +7,11 @@ import { logger } from '../utils/logger.js';
  * Detects common anti-patterns and code quality issues
  */
 export class PatternChecker {
-  constructor(db, sessionId, io) {
+  constructor(db, sessionId, io, projectName = null) {
     this.db = db;
     this.sessionId = sessionId;
     this.io = io;
+    this.projectName = projectName;
 
     // Define patterns to check
     this.patterns = [

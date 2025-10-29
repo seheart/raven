@@ -7,10 +7,11 @@ import { logger } from '../utils/logger.js';
  * Checks files for syntax errors using AST parsing
  */
 export class SyntaxChecker {
-  constructor(db, sessionId, io) {
+  constructor(db, sessionId, io, projectName = null) {
     this.db = db;
     this.sessionId = sessionId;
     this.io = io;
+    this.projectName = projectName;
   }
 
   /**
@@ -50,6 +51,7 @@ export class SyntaxChecker {
           error.line,
           error.column,
           codeSnippet,
+          this.projectName,
           this.sessionId
         );
 
@@ -64,6 +66,7 @@ export class SyntaxChecker {
           line_number: error.line,
           column_number: error.column,
           code_snippet: codeSnippet,
+          project_name: this.projectName,
           errors: [error]
         });
       }

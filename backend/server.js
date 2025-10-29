@@ -805,8 +805,8 @@ async function handleFileChange(eventType, filepath) {
           const { SyntaxChecker } = await import('./services/syntax-checker.js');
           const { PatternChecker } = await import('./services/pattern-checker.js');
 
-          const syntaxChecker = new SyntaxChecker(db, SESSION_ID, io);
-          const patternChecker = new PatternChecker(db, SESSION_ID, io);
+          const syntaxChecker = new SyntaxChecker(db, SESSION_ID, io, projectName);
+          const patternChecker = new PatternChecker(db, SESSION_ID, io, projectName);
 
           // Run checks in parallel
           await Promise.all([

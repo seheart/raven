@@ -176,6 +176,7 @@ export class RavenDB {
         line_number INTEGER,
         column_number INTEGER,
         code_snippet TEXT,
+        project_name TEXT,
         resolved INTEGER DEFAULT 0,
         resolved_at TEXT,
         session_id TEXT
@@ -1482,10 +1483,10 @@ export class RavenDB {
 
   // ==================== Syntax Errors ====================
 
-  insertSyntaxError(timestamp, filepath, language, severity, message, lineNumber, columnNumber, codeSnippet, session_id) {
+  insertSyntaxError(timestamp, filepath, language, severity, message, lineNumber, columnNumber, codeSnippet, projectName, session_id) {
     const stmt = this.prepareStatement(`
-      INSERT INTO syntax_errors (timestamp, filepath, language, severity, message, line_number, column_number, code_snippet, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO syntax_errors (timestamp, filepath, language, severity, message, line_number, column_number, code_snippet, project_name, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -1497,6 +1498,7 @@ export class RavenDB {
       lineNumber,
       columnNumber,
       codeSnippet,
+      projectName || null,
       session_id || null
     );
 
