@@ -3,6 +3,8 @@
  * Provides CSV, JSON, and Excel-compatible export functions for all panels
  */
 
+import { formatDateTime, formatDateOnly, formatTimeOnly } from './timeFormat.js';
+
 /**
  * Export data as CSV
  * @param {Array<Object>} data - Array of objects to export
@@ -165,22 +167,19 @@ export const formatters = {
   // Format timestamp to readable date
   date: (value) => {
     if (!value) return '';
-    const date = new Date(value);
-    return date.toLocaleString();
+    return formatDateTime(value);
   },
 
   // Format timestamp to date only
   dateOnly: (value) => {
     if (!value) return '';
-    const date = new Date(value);
-    return date.toLocaleDateString();
+    return formatDateOnly(value);
   },
 
   // Format timestamp to time only
   timeOnly: (value) => {
     if (!value) return '';
-    const date = new Date(value);
-    return date.toLocaleTimeString();
+    return formatTimeOnly(value);
   },
 
   // Format number with thousand separators

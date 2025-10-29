@@ -2,6 +2,7 @@
   import { logger } from './logger.js';
   import { onMount } from 'svelte';
   import { notifications } from './notificationService.js';
+  import { formatDateTime } from './timeFormat.js';
 
   let sessions = [];
   let loading = true;
@@ -96,8 +97,7 @@
 
   // Format date
   function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleString();
+    return formatDateTime(dateString);
   }
 
   // Format duration

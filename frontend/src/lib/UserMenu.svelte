@@ -2,11 +2,19 @@
   import { currentUser, authService } from './authStore.js';
   import { notifications } from './notificationService.js';
   import EmergencyStopButton from './EmergencyStopButton.svelte';
+  import { createEventDispatcher } from 'svelte';
+
+  const dispatch = createEventDispatcher();
 
   let showMenu = false;
 
   function toggleMenu() {
     showMenu = !showMenu;
+  }
+
+  function handleSettings() {
+    showMenu = false;
+    dispatch('openSettings');
   }
 
   function handleLogout() {
@@ -71,6 +79,16 @@
       </div>
 
       <div class="menu-divider" aria-hidden="true"></div>
+
+      <button
+        class="menu-item"
+        on:click={handleSettings}
+        role="menuitem"
+        aria-label="Open settings"
+      >
+        <span class="menu-icon" aria-hidden="true">⚙️</span>
+        <span class="menu-label">Settings</span>
+      </button>
 
       <button
         class="menu-item"

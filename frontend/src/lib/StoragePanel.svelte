@@ -4,6 +4,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
   import { websocketService } from './websocket.js';
+  import { formatDateTime } from './timeFormat.js';
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -86,8 +87,7 @@
 
   function formatDate(dateString) {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleString();
+    return formatDateTime(dateString);
   }
 
   function toggleDatabaseExpansion(dbName) {

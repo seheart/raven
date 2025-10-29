@@ -4,6 +4,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { API_CONFIG } from '../config.js';
+  import { formatDateTime } from './timeFormat.js';
 
   let searchQuery = '';
   let results = [];
@@ -68,12 +69,7 @@
   }
 
   function formatTimestamp(timestamp) {
-    return new Date(timestamp).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
+    return formatDateTime(timestamp);
   }
 
   function clearSearch() {

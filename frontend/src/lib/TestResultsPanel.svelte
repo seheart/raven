@@ -5,6 +5,7 @@
   import { desktopNotifications } from './services/desktopNotifications.js';
   import { logger } from './logger.js';
   import { formatNumber } from './numberFormat.js';
+  import { formatDateTime } from './timeFormat.js';
 
   let results = [];
   let latestResult = null;
@@ -12,6 +13,9 @@
   let loading = true;
   let running = false;
   let ws = null;
+  let expandedTests = false;
+  let allTests = [];
+  let testsLoading = false;
 
   // Fetch test frameworks
   async function fetchFrameworks() {
@@ -53,6 +57,14 @@
   async function runTests(framework = null) {
     if (running) return;
 
+    // If no framework specified, use the first detected one
+    const selectedFramework = framework || (frameworks.length > 0 ? frameworks[0] : null);
+
+    if (!selectedFramework) {
+      notifications.error('No test framework detected');
+      return;
+    }
+
     try {
       running = true;
       notifications.info('Running tests...', { title: 'Test Runner' });
@@ -60,7 +72,7 @@
       const response = await fetch('/api/tests/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ framework })
+        body: JSON.stringify({ framework: selectedFramework })
       });
 
       if (!response.ok) throw new Error('Failed to run tests');
@@ -68,12 +80,20 @@
       const result = await response.json();
       running = false;
 
-      if (result.passed) {
-        notifications.success(`Tests passed: ${formatNumber(result.passedTests)}/${formatNumber(result.totalTests)}`, {
+      // Check if all tests passed (failed count is 0)
+      const allPassed = result.failed === 0 && result.total > 0;
+
+      if (allPassed) {
+        notifications.success(`All ${formatNumber(result.total)} tests passed!`, {
+          title: 'Test Runner'
+        });
+      } else if (result.total === 0) {
+        notifications.warning('No tests were found', {
           title: 'Test Runner'
         });
       } else {
-        notifications.error(`Tests failed: ${formatNumber(result.failedTests)}/${formatNumber(result.totalTests)} failed`, {
+        const passRate = Math.round((result.passed / result.total) * 100);
+        notifications.error(`${formatNumber(result.failed)} of ${formatNumber(result.total)} tests failed (${passRate}% passed)`, {
           title: 'Test Runner',
           duration: 10000
         });
@@ -126,6 +146,78 @@
   function getStatusColor(passed) {
     return passed ? '#10b981' : '#ef4444';
   }
+
+  // Toggle test details view
+  async function toggleTestDetails(timestamp) {
+    if (testsLoading) return;
+
+    // If already expanded, collapse it
+    if (expandedTests) {
+      expandedTests = false;
+      allTests = [];
+      return;
+    }
+
+    try {
+      testsLoading = true;
+      expandedTests = true;
+
+      const response = await fetch(`/api/tests/details/${encodeURIComponent(timestamp)}`);
+      if (!response.ok) throw new Error('Failed to fetch test details');
+
+      const data = await response.json();
+      allTests = data.tests;
+      testsLoading = false;
+    } catch (error) {
+      logger.error('Failed to fetch test details:', error);
+      notifications.error('Failed to load test details');
+      testsLoading = false;
+      expandedTests = false;
+    }
+  }
+
+  // Copy failed tests to clipboard
+  async function copyFailedTests(timestamp) {
+    try {
+      const response = await fetch(`/api/tests/details/${encodeURIComponent(timestamp)}`);
+      if (!response.ok) throw new Error('Failed to fetch test details');
+
+      const data = await response.json();
+      const failures = data.tests.filter(t => t.status === 'failed');
+
+      // Format for easy pasting to AI
+      let text = `# Test Failures (${failures.length} failures)\n\n`;
+
+      let currentFile = '';
+      for (const test of failures) {
+        if (test.test_file !== currentFile) {
+          currentFile = test.test_file;
+          text += `\n## ${currentFile}\n\n`;
+        }
+
+        text += `### ${test.test_name}\n`;
+        if (test.error_message) {
+          text += `**Error:** ${test.error_message}\n`;
+        }
+        text += '\n';
+      }
+
+      text += `\n---\nGenerated from Raven test results at ${formatDateTime(timestamp)}`;
+
+      await navigator.clipboard.writeText(text);
+      notifications.success(`Copied ${failures.length} failed test${failures.length === 1 ? '' : 's'} to clipboard`, {
+        title: 'Copied!'
+      });
+    } catch (error) {
+      logger.error('Failed to copy failures:', error);
+      notifications.error('Failed to copy to clipboard');
+    }
+  }
+
+  // Download CSV export
+  function downloadCSV(timestamp) {
+    window.open(`/api/tests/export/${encodeURIComponent(timestamp)}`, '_blank');
+  }
 </script>
 
 <div class="test-results-panel" role="region" aria-label="Test results panel">
@@ -144,27 +236,35 @@
       </div>
     </div>
     <p class="panel-description">
-      Automatic test running and results tracking
+      Runs your project's automated tests to verify code quality and catch bugs early
     </p>
   </div>
 
   <!-- Frameworks Info -->
   {#if frameworks.length > 0}
     <div class="frameworks-section" role="region" aria-labelledby="frameworks-heading">
-      <h3 id="frameworks-heading">Detected Frameworks</h3>
-      <div class="frameworks-list" role="list" aria-label="Detected test frameworks">
-        {#each frameworks as framework (framework)}
-          <div class="framework-badge" role="listitem">
-            <span aria-hidden="true">🧪</span> {framework.name}
-          </div>
-        {/each}
+      <h3 id="frameworks-heading">What's Being Tested</h3>
+      <div class="test-info">
+        <div class="info-row">
+          <span class="label">Project:</span>
+          <span class="value">raven (backend & services)</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Test Framework:</span>
+          <span class="value">{frameworks[0] === 'jest' ? 'Jest (JavaScript testing framework)' : frameworks[0]}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Test Files:</span>
+          <span class="value">__tests__/ directory</span>
+        </div>
       </div>
     </div>
   {:else if !loading}
     <div class="no-frameworks" role="status">
       <span class="icon" aria-hidden="true">🔍</span>
-      <p>No test frameworks detected in this project</p>
-      <p class="hint">Supported: Jest, Pytest, Mocha, Vitest, Go Test</p>
+      <p>No automated tests detected in this project</p>
+      <p class="hint">Supported frameworks: Jest, Pytest, Mocha, Vitest, Go Test</p>
+      <p class="hint">Add tests to your project to enable automatic testing</p>
     </div>
   {/if}
 
@@ -174,8 +274,16 @@
       <div class="result-header">
         <span class="result-status" aria-hidden="true">{latestResult.passed ? '✅' : '❌'}</span>
         <div class="result-info">
-          <h3 id="latest-result-heading">{latestResult.passed ? 'Tests Passed' : 'Tests Failed'}</h3>
-          <p class="result-framework">{latestResult.framework}</p>
+          <h3 id="latest-result-heading">
+            {#if latestResult.passed}
+              All Tests Passed
+            {:else}
+              {formatNumber(latestResult.failed_tests)} Test{latestResult.failed_tests === 1 ? '' : 's'} Need Attention
+            {/if}
+          </h3>
+          <p class="result-framework">
+            {formatNumber(latestResult.total_tests)} total test{latestResult.total_tests === 1 ? '' : 's'} in {latestResult.framework}
+          </p>
         </div>
         <div class="result-stats" role="group" aria-label="Test results breakdown">
           <div class="stat passed" role="status">{formatNumber(latestResult.passed_tests)} passed</div>
@@ -184,9 +292,55 @@
         </div>
       </div>
       <div class="result-meta">
-        <span class="duration">{formatDuration(latestResult.duration)}</span>
-        <time class="timestamp" datetime="{latestResult.timestamp}">{new Date(latestResult.timestamp).toLocaleString()}</time>
+        <span class="duration">Completed in {formatDuration(latestResult.duration)}</span>
+        <time class="timestamp" datetime="{latestResult.timestamp}">{formatDateTime(latestResult.timestamp)}</time>
       </div>
+      <div class="result-actions">
+        <button class="action-btn view-details" on:click={() => toggleTestDetails(latestResult.timestamp)}>
+          <span aria-hidden="true">{expandedTests ? '▼' : '▶'}</span> {expandedTests ? 'Hide' : 'View'} All {formatNumber(latestResult.total_tests)} Test{latestResult.total_tests === 1 ? '' : 's'}
+        </button>
+        {#if !latestResult.passed}
+          <button class="action-btn copy-failures" on:click={() => copyFailedTests(latestResult.timestamp)}>
+            <span aria-hidden="true">📋</span> Copy {formatNumber(latestResult.failed_tests)} Failure{latestResult.failed_tests === 1 ? '' : 's'}
+          </button>
+        {/if}
+        <button class="action-btn download-csv" on:click={() => downloadCSV(latestResult.timestamp)}>
+          <span aria-hidden="true">📄</span> Download CSV
+        </button>
+      </div>
+
+      <!-- Expanded Test Details -->
+      {#if expandedTests}
+        <div class="test-details-expanded">
+          {#if testsLoading}
+            <div class="loading-inline">Loading test details...</div>
+          {:else if allTests.length === 0}
+            <div class="empty-inline">No tests found</div>
+          {:else}
+            <div class="tests-list">
+              {#each allTests as test}
+                <div class="test-item" class:failed={test.status === 'failed'} class:passed={test.status === 'passed'} class:skipped={test.status === 'skipped'}>
+                  <div class="test-status-icon">
+                    {#if test.status === 'passed'}✅
+                    {:else if test.status === 'failed'}❌
+                    {:else}⊘{/if}
+                  </div>
+                  <div class="test-content">
+                    <div class="test-header-row">
+                      <span class="test-file">{test.test_file || 'Unknown'}</span>
+                      <span class="test-status-badge {test.status}">{test.status}</span>
+                    </div>
+                    <div class="test-name">{test.test_name}</div>
+                    {#if test.error_message}
+                      <div class="test-error">{test.error_message}</div>
+                    {/if}
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
   {/if}
 
@@ -200,7 +354,8 @@
     <div class="empty-state" role="status">
       <div class="empty-icon" aria-hidden="true">🧪</div>
       <h3>No Test Results Yet</h3>
-      <p>Run tests to see results here</p>
+      <p>Click "Run Tests" above to execute your automated tests</p>
+      <p class="hint">Tests will verify your code is working correctly and catch potential bugs</p>
     </div>
   {:else if results.length > 0}
     <div class="results-history" role="region" aria-labelledby="test-history-heading">
@@ -211,13 +366,19 @@
             <div class="result-status-icon" aria-hidden="true">{result.passed ? '✅' : '❌'}</div>
             <div class="result-details">
               <div class="result-row">
-                <span class="framework-name">{result.framework}</span>
+                <span class="framework-name">
+                  {#if result.passed}
+                    All tests passed
+                  {:else}
+                    {formatNumber(result.failed_tests)} test{result.failed_tests === 1 ? '' : 's'} failed
+                  {/if}
+                </span>
                 <span class="result-count" role="status">
-                  {formatNumber(result.passed_tests)}/{formatNumber(result.total_tests)} passed
+                  {formatNumber(result.passed_tests)}/{formatNumber(result.total_tests)}
                 </span>
               </div>
               <div class="result-row meta">
-                <time class="timestamp" datetime="{result.timestamp}">{new Date(result.timestamp).toLocaleString()}</time>
+                <time class="timestamp" datetime="{result.timestamp}">{formatDateTime(result.timestamp)}</time>
                 <span class="duration">{formatDuration(result.duration)}</span>
               </div>
             </div>
@@ -321,6 +482,35 @@
     margin: 0 0 12px 0;
   }
 
+  .test-info {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .info-row {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  .info-row .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    min-width: 120px;
+  }
+
+  .info-row .value {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+  }
+
   .frameworks-list {
     display: flex;
     gap: 8px;
@@ -349,9 +539,11 @@
     margin-bottom: 12px;
   }
 
-  .no-frameworks .hint {
+  .no-frameworks .hint,
+  .empty-state .hint {
     font-size: 12px;
     margin-top: 8px;
+    color: var(--muted);
   }
 
   .latest-result {
@@ -512,5 +704,150 @@
 
   .duration {
     font-family: var(--mono);
+  }
+
+  .result-actions {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 8px 16px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* Expanded Test Details */
+  .test-details-expanded {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .loading-inline,
+  .empty-inline {
+    padding: 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .tests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .test-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .test-item.failed {
+    border-left: 3px solid #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+  }
+
+  .test-item.passed {
+    border-left: 3px solid #10b981;
+  }
+
+  .test-item.skipped {
+    border-left: 3px solid #9ca3af;
+    opacity: 0.7;
+  }
+
+  .test-status-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .test-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .test-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .test-file {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .test-status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+  }
+
+  .test-status-badge.passed {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .test-status-badge.failed {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .test-status-badge.skipped {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  .test-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .test-error {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #ef4444;
+    background: var(--surface);
+    padding: 8px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.5;
   }
 </style>

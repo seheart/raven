@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
+  import { formatDateTime as formatTimestamp } from './timeFormat.js';
 
   const dispatch = createEventDispatcher();
 
@@ -124,13 +125,8 @@
 
   function formatDateTime(isoString) {
     if (!isoString) return 'Not set';
-    const date = new Date(isoString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    // Use the user's preferred time format from settings
+    return formatTimestamp(isoString);
   }
 
   // Initialize with default preset only once

@@ -21,7 +21,8 @@ const DEFAULT_SETTINGS = {
     compactMode: false,
     animationsEnabled: true,
     autoRefresh: true,
-    refreshInterval: 10
+    refreshInterval: 10,
+    timeFormat: '24h' // '12h' or '24h'
   },
   editor: {
     defaultEditor: 'auto'

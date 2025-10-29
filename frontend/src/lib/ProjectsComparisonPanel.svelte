@@ -4,6 +4,7 @@
   import { api } from './apiClient.js';
   import { notifications } from './notificationService.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { formatDateTime } from './timeFormat.js';
 
   let projects = [];
   let loading = true;
@@ -185,7 +186,7 @@
           </div>
           <div class="col-activity" role="cell">
             {#if project.last_activity}
-              <time datetime="{project.last_activity}">{new Date(project.last_activity).toLocaleString()}</time>
+              <time datetime="{project.last_activity}">{formatDateTime(project.last_activity)}</time>
             {:else}
               Never
             {/if}

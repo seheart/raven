@@ -167,6 +167,11 @@
     localStorage.setItem('raven-active-tab', newTab);
   }
 
+  function handleOpenSettings() {
+    activeTab = 'settings';
+    currentSubView = '';
+  }
+
   function switchTheme(newTheme) {
     theme = newTheme;
     document.body.className = theme;
@@ -386,9 +391,9 @@
         <!-- Today's Activity -->
         <div class="today-activity-header" role="region" aria-label="Today's coding activity">
           <span class="activity-title">Today:</span>
-          <div class="activity-stat" role="status" aria-label="{todayStats.filesChanged} files changed today">
+          <div class="activity-stat" role="status" aria-label="{todayStats.filesChanged} files modified today">
             <span class="stat-value">{todayStats.filesChanged}</span>
-            <span class="stat-label">files</span>
+            <span class="stat-label">modified</span>
           </div>
           <div class="activity-divider" aria-hidden="true">|</div>
           <div class="activity-stat" role="status" aria-label="{todayStats.linesAdded} lines added today">
@@ -401,7 +406,7 @@
             <span class="stat-label">deleted</span>
           </div>
         </div>
-        <UserMenu />
+        <UserMenu on:openSettings={handleOpenSettings} />
         <button
           class="help-button"
           on:click={() => showHelp = !showHelp}
@@ -690,13 +695,6 @@
           >
             API Health
           </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'settings'}
-            on:click={() => currentSubView = 'settings'}
-          >
-            Settings
-          </button>
         </div>
         {#if !currentSubView}
           <StatusPanel />
@@ -714,10 +712,11 @@
           <ErrorLog />
         {:else if currentSubView === 'api'}
           <APIHealthMonitor />
-        {:else if currentSubView === 'settings'}
-          <SettingsPanel />
         {/if}
       </div>
+    {:else if activeTab === 'settings'}
+      <!-- Settings Page -->
+      <SettingsPanel />
     {:else if activeTab === 'about'}
       <!-- About Page -->
       <AboutPage on:close={() => activeTab = 'overview'} />
@@ -1179,5 +1178,82 @@
     .sub-tab {
       white-space: nowrap;
     }
+  }
+
+  /* Settings Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .modal-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    position: relative;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .settings-modal {
+    width: 900px;
+    max-width: 90vw;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 1;
+  }
+
+  .modal-close:hover {
+    background: var(--error);
+    border-color: var(--error);
+    color: white;
+    transform: rotate(90deg);
   }
 </style>

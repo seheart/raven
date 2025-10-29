@@ -400,6 +400,94 @@ export function createSafetyRoutes(deps) {
   });
 
   /**
+   * GET /api/tests/details/:timestamp
+   * Get all test details for a specific test run (failures first, then passed)
+   */
+  router.get('/tests/details/:timestamp', (req, res) => {
+    try {
+      const db = getDb();
+      const { timestamp } = req.params;
+
+      // Get all tests for this timestamp - failed first, then passed
+      const stmt = db.db.prepare(`
+        SELECT
+          test_file,
+          test_name,
+          status,
+          error_message,
+          error_stack,
+          duration_ms
+        FROM test_results
+        WHERE timestamp = ?
+        ORDER BY
+          CASE status
+            WHEN 'failed' THEN 1
+            WHEN 'skipped' THEN 2
+            WHEN 'passed' THEN 3
+          END,
+          test_file,
+          test_name
+      `);
+
+      const tests = stmt.all(timestamp);
+
+      res.json({
+        tests,
+        timestamp,
+        total: tests.length,
+        failed: tests.filter(t => t.status === 'failed').length,
+        passed: tests.filter(t => t.status === 'passed').length,
+        skipped: tests.filter(t => t.status === 'skipped').length
+      });
+    } catch (error) {
+      logger.error('Error fetching test details:', error);
+      res.status(500).json({ error: error.message, tests: [] });
+    }
+  });
+
+  /**
+   * GET /api/tests/export/:timestamp
+   * Export test results to CSV
+   */
+  router.get('/tests/export/:timestamp', (req, res) => {
+    try {
+      const db = getDb();
+      const { timestamp } = req.params;
+
+      // Get all tests for this timestamp
+      const stmt = db.db.prepare(`
+        SELECT
+          test_file,
+          test_name,
+          status,
+          error_message,
+          duration_ms
+        FROM test_results
+        WHERE timestamp = ?
+        ORDER BY status DESC, test_file, test_name
+      `);
+
+      const tests = stmt.all(timestamp);
+
+      // Generate CSV
+      let csv = 'File,Test Name,Status,Error,Duration (ms)\n';
+      for (const test of tests) {
+        const file = (test.test_file || '').replace(/"/g, '""');
+        const name = (test.test_name || '').replace(/"/g, '""');
+        const error = (test.error_message || '').replace(/"/g, '""').replace(/\n/g, ' ');
+        csv += `"${file}","${name}","${test.status}","${error}",${test.duration_ms || 0}\n`;
+      }
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="test-results-${timestamp}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      logger.error('Error exporting test results:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * POST /api/tests/run
    * Run tests
    */

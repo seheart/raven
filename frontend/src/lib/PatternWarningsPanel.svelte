@@ -5,6 +5,7 @@
   import { notifications } from './notificationService.js';
   import { desktopNotifications } from './services/desktopNotifications.js';
   import { formatNumber } from './numberFormat.js';
+  import { formatDateTime } from './timeFormat.js';
 
   let warnings = [];
   let loading = true;
@@ -255,7 +256,7 @@
 
                 <div class="warning-actions">
                   <time class="warning-timestamp" datetime="{warning.timestamp}">
-                    {new Date(warning.timestamp).toLocaleString()}
+                    {formatDateTime(warning.timestamp)}
                   </time>
                   <button class="resolve-btn" on:click={() => resolveWarning(warning.id)} aria-label="Mark {warning.pattern_name} as resolved">
                     Mark as Resolved

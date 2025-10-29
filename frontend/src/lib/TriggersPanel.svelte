@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
-  import { formatUnixDateTime } from './timeFormat.js';
+  import { formatDateTime } from './timeFormat.js';
   import { projectFilter, availableProjects, matchesFilter } from './projectFilterStore.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { getEmptyStateMessage } from './utils/projectFilter.js';
@@ -211,8 +211,8 @@
   }
 
   function formatTimestamp(timestamp) {
-    // timestamp is Unix timestamp in seconds
-    return formatUnixDateTime(timestamp);
+    // timestamp is Unix timestamp in seconds, convert to milliseconds for Date
+    return formatDateTime(new Date(timestamp * 1000));
   }
 
   function getActionIcon(action) {

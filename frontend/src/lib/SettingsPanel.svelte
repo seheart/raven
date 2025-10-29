@@ -362,6 +362,19 @@
       </div>
 
       <div class="setting-row">
+        <label for="time-format-select">Time Format</label>
+        <select
+          id="time-format-select"
+          bind:value={settings.ui.timeFormat}
+          aria-describedby="time-format-desc"
+        >
+          <option value="12h">12-hour (AM/PM)</option>
+          <option value="24h">24-hour</option>
+        </select>
+        <span class="setting-description" id="time-format-desc">Choose how times are displayed throughout the app</span>
+      </div>
+
+      <div class="setting-row">
         <label>
           <input
             type="checkbox"

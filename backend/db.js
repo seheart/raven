@@ -475,6 +475,30 @@ export class RavenDB {
   }
 
   /**
+   * Get total count of all events (file events + agent events)
+   * @returns {number} Total count of events
+   */
+  getTotalEventCount() {
+    try {
+      // Count events from file system watcher
+      const fileEventsCount = this.db.prepare(`
+        SELECT COUNT(*) as count FROM events
+      `).get();
+
+      // Count events from AI agents
+      const agentEventsCount = this.db.prepare(`
+        SELECT COUNT(*) as count FROM agent_events
+        WHERE event_type IN ('create', 'edit', 'delete')
+      `).get();
+
+      return (fileEventsCount.count || 0) + (agentEventsCount.count || 0);
+    } catch (error) {
+      // If there's an error (e.g., table doesn't exist), return 0
+      return 0;
+    }
+  }
+
+  /**
    * Get a single event by ID
    * @param {number} eventId - Event ID
    * @returns {object|null} Event object or null if not found
@@ -1684,7 +1708,20 @@ export class RavenDB {
   getTestResults(options = {}) {
     const { limit = 20, offset = 0, framework = 'all', status = 'all' } = options;
 
-    let query = 'SELECT * FROM test_results WHERE 1=1';
+    // Get all test results grouped by test run (timestamp + framework)
+    let query = `
+      SELECT
+        timestamp,
+        framework,
+        COUNT(*) as total_tests,
+        SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed_tests,
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_tests,
+        SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped_tests,
+        SUM(duration_ms) as duration,
+        MIN(id) as first_test_id
+      FROM test_results
+      WHERE 1=1
+    `;
     const params = [];
 
     if (framework !== 'all') {
@@ -1692,29 +1729,45 @@ export class RavenDB {
       params.push(framework);
     }
 
-    if (status !== 'all') {
-      query += ' AND status = ?';
-      params.push(status);
+    query += ' GROUP BY timestamp, framework';
+
+    // Filter by status after aggregation (if a test run has any failed tests, it failed)
+    if (status === 'passed') {
+      query += ' HAVING failed_tests = 0';
+    } else if (status === 'failed') {
+      query += ' HAVING failed_tests > 0';
     }
 
     query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
     const stmt = this.prepareStatement(query);
-    const results = stmt.all(...params);
+    const testRuns = stmt.all(...params);
 
-    // Get count
-    let countQuery = 'SELECT COUNT(*) as count FROM test_results WHERE 1=1';
+    // Transform to match frontend expectations
+    const results = testRuns.map(run => ({
+      id: run.first_test_id,
+      timestamp: run.timestamp,
+      framework: run.framework,
+      total_tests: run.total_tests,
+      passed_tests: run.passed_tests,
+      failed_tests: run.failed_tests,
+      skipped_tests: run.skipped_tests,
+      duration: run.duration || 0,
+      passed: run.failed_tests === 0
+    }));
+
+    // Get count of unique test runs
+    let countQuery = `
+      SELECT COUNT(DISTINCT timestamp || '|' || framework) as count
+      FROM test_results
+      WHERE 1=1
+    `;
     const countParams = [];
 
     if (framework !== 'all') {
       countQuery += ' AND framework = ?';
       countParams.push(framework);
-    }
-
-    if (status !== 'all') {
-      countQuery += ' AND status = ?';
-      countParams.push(status);
     }
 
     const countStmt = this.prepareStatement(countQuery);

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { logger } from './logger.js';
   import { logError } from './errorLogger.js';
+  import { formatDateTime } from './timeFormat.js';
 
   export let fallback = null; // Optional custom error UI
 
@@ -116,7 +117,7 @@
 
           <div class="error-meta" role="status">
             <div>Error Count: {errorCount}</div>
-            <div>Time: {new Date(errorTimestamp).toLocaleString()}</div>
+            <div>Time: {formatDateTime(errorTimestamp)}</div>
             {#if errorDetails.filename}
               <div>File: {errorDetails.filename}:{errorDetails.lineno}:{errorDetails.colno}</div>
             {/if}

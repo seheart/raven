@@ -5,6 +5,7 @@
   import { websocketService } from './websocket.js';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
+  import { formatDateTime, formatDateOnly, formatTimeOnly } from './timeFormat.js';
 
   let trends = [];
   let loading = true;
@@ -75,16 +76,11 @@
 
   function formatPeriod(periodStr) {
     if (period === 'hourly') {
-      return new Date(periodStr).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric'
-      });
+      // Show date and time for hourly view
+      return formatDateTime(periodStr);
     } else if (period === 'daily') {
-      return new Date(periodStr).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-      });
+      // Show just date for daily view
+      return formatDateOnly(periodStr);
     } else {
       return periodStr;
     }

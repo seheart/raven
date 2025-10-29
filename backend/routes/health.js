@@ -436,6 +436,18 @@ export function createHealthRoutes(deps) {
           `).get();
           const totalRecentEvents = (recentFileEvents.count || 0) + (recentAgentEvents.count || 0);
 
+          // Get error count from error_logs table
+          let errorCount = 0;
+          try {
+            const errorData = db.db.prepare(`
+              SELECT COUNT(*) as count FROM error_logs
+            `).get();
+            errorCount = errorData.count || 0;
+          } catch (errorQueryError) {
+            // error_logs table doesn't exist - no errors to count
+            errorCount = 0;
+          }
+
           healthData.push({
             name: projectName,
             status,
@@ -456,7 +468,7 @@ export function createHealthRoutes(deps) {
                 null
             },
             recent_events: totalRecentEvents,
-            error_count: 0,
+            error_count: errorCount,
             last_activity: latest?.timestamp || null
           });
         } catch (projectError) {

@@ -90,17 +90,38 @@ export class TestRunner {
       throw new Error(`Unknown framework: ${framework}`);
     }
 
+    let stdout = '';
+    let stderr = '';
+    let commandFailed = false;
+
     try {
       logger.info(`Running ${framework} tests in ${projectPath}`);
 
-      const { stdout, stderr } = await execAsync(frameworkConfig.runCommand, {
+      const result = await execAsync(frameworkConfig.runCommand, {
         cwd: projectPath,
         timeout: 60000, // 60 second timeout
         maxBuffer: 1024 * 1024 * 10 // 10MB buffer
       });
 
+      stdout = result.stdout;
+      stderr = result.stderr;
+    } catch (error) {
+      // Tests failed (non-zero exit code) - but we still want to parse the output
+      commandFailed = true;
+      stdout = error.stdout || '';
+      stderr = error.stderr || '';
+
+      // If it's a real error (not just test failures), throw it
+      if (!stdout && !stderr) {
+        logger.error(`Error running ${framework} tests:`, error);
+        throw error;
+      }
+    }
+
+    try {
       // Parse the output
-      const results = frameworkConfig.parseOutput(stdout + stderr);
+      const output = stdout + stderr;
+      const results = frameworkConfig.parseOutput(output);
 
       // Store results in database
       const timestamp = new Date().toISOString();
@@ -121,6 +142,7 @@ export class TestRunner {
       // Emit WebSocket event with summary
       const passed = results.filter(r => r.status === 'passed').length;
       const failed = results.filter(r => r.status === 'failed').length;
+      const skipped = results.filter(r => r.status === 'skipped').length;
 
       this.io.emit('test-results', {
         timestamp,
@@ -128,12 +150,19 @@ export class TestRunner {
         total: results.length,
         passed,
         failed,
+        skipped,
         duration: results.reduce((sum, r) => sum + (r.duration || 0), 0)
       });
 
-      return { results, passed, failed, total: results.length };
-    } catch (error) {
-      logger.error(`Error running ${framework} tests:`, error);
+      return {
+        results,
+        passed,
+        failed,
+        skipped,
+        total: results.length
+      };
+    } catch (parseError) {
+      logger.error(`Error parsing ${framework} test output:`, parseError);
 
       // Store failure
       const timestamp = new Date().toISOString();
@@ -144,12 +173,12 @@ export class TestRunner {
         'Test Run',
         'failed',
         0,
-        error.message,
-        error.stack,
+        parseError.message,
+        parseError.stack,
         this.sessionId
       );
 
-      throw error;
+      throw parseError;
     }
   }
 
@@ -158,30 +187,80 @@ export class TestRunner {
    */
   parseJestOutput(output) {
     const results = [];
-
-    // Simple parsing - in production this would be more robust
-    // Looking for patterns like "✓ test name" or "✗ test name"
     const lines = output.split('\n');
-    for (const line of lines) {
-      if (line.includes('✓') || line.includes('PASS')) {
+
+    // Extract test file results
+    let currentFile = null;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Match PASS/FAIL lines to get test files
+      const passMatch = line.match(/PASS\s+(.+\.(?:test|spec)\.[jt]sx?)/);
+      const failMatch = line.match(/FAIL\s+(.+\.(?:test|spec)\.[jt]sx?)/);
+
+      if (passMatch) {
+        currentFile = passMatch[1];
         results.push({
-          name: line.trim(),
+          name: `Test suite: ${currentFile}`,
           status: 'passed',
           duration: 0,
-          file: null,
+          file: currentFile,
           error: null,
           stack: null
         });
-      } else if (line.includes('✗') || line.includes('FAIL')) {
+      } else if (failMatch) {
+        currentFile = failMatch[1];
+        // Look ahead for individual test failures
+        let errorMessage = '';
+        for (let j = i + 1; j < Math.min(i + 50, lines.length); j++) {
+          if (lines[j].includes('●')) {
+            errorMessage = lines[j].replace('●', '').trim();
+            break;
+          }
+        }
         results.push({
-          name: line.trim(),
+          name: `Test suite: ${currentFile}`,
           status: 'failed',
           duration: 0,
-          file: null,
-          error: line.trim(),
+          file: currentFile,
+          error: errorMessage || 'Test suite failed',
           stack: null
         });
       }
+
+      // Match individual test failures (lines starting with ●)
+      const testFailMatch = line.match(/^\s+●\s+(.+)/);
+      if (testFailMatch && currentFile) {
+        const testName = testFailMatch[1];
+        // Look for error details in following lines
+        let errorDetails = '';
+        for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
+          if (lines[j].includes('expect(') || lines[j].includes('TypeError') || lines[j].includes('Error:')) {
+            errorDetails = lines[j].trim();
+            break;
+          }
+        }
+        results.push({
+          name: testName,
+          status: 'failed',
+          duration: 0,
+          file: currentFile,
+          error: errorDetails || 'Test failed',
+          stack: null
+        });
+      }
+    }
+
+    // If we couldn't parse any results, create a summary entry
+    if (results.length === 0) {
+      results.push({
+        name: 'Test Run',
+        status: output.includes('FAIL') ? 'failed' : 'passed',
+        duration: 0,
+        file: null,
+        error: output.includes('FAIL') ? 'Tests failed - see output' : null,
+        stack: null
+      });
     }
 
     return results;

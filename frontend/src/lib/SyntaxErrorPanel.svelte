@@ -6,6 +6,7 @@
   import { logger } from './logger.js';
   import { settings as settingsStore } from './settingsStore.js';
   import { formatNumber } from './numberFormat.js';
+  import { formatDateTime } from './timeFormat.js';
 
   let errors = [];
   let loading = true;
@@ -139,7 +140,7 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
     }).join('\n\n' + '='.repeat(80) + '\n\n');
 
     const finalText = `Syntax Errors Report
-Generated: ${new Date().toLocaleString()}
+Generated: ${formatDateTime(new Date())}
 Total Errors: ${errors.length}
 
 ${'='.repeat(80)}
@@ -316,7 +317,7 @@ ${allErrorsText}`;
                     📋 Copy
                   </button>
                   <time class="error-timestamp" datetime="{error.timestamp}">
-                    {new Date(error.timestamp).toLocaleString()}
+                    {formatDateTime(error.timestamp)}
                   </time>
                   <button class="resolve-btn" on:click={() => resolveError(error.id)} aria-label="Mark error on line {error.line_number} as resolved">
                     Mark as Resolved
