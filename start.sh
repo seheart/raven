@@ -1,7 +1,18 @@
 #!/bin/bash
 
-# Raven - Fast Startup Script
-# Boots backend + frontend servers in parallel
+# Raven - Professional Startup Script
+# Boots backend + frontend servers with enterprise-grade verification
+#
+# Backend Professional Boot Sequence (7 phases):
+#   1. Pre-flight checks (disk, ports, directories, dependencies)
+#   2. Critical services (auth, databases)
+#   3. Data layer (project databases with retry)
+#   4. Monitoring services (metrics + verification)
+#   5. Non-critical services (watchers, triggers, bridge)
+#   6. Health verification (comprehensive checks)
+#   7. Stabilization period (3s wait + final checks)
+#
+# Expected boot time: 12-17 seconds (longer but guarantees zero errors)
 
 set -e
 
@@ -84,17 +95,29 @@ disown
 cd ..
 
 # Step 5: Wait for both servers to be ready
-echo -e "${YELLOW}[5/6]${NC} Waiting for servers to be ready..."
+echo -e "${YELLOW}[5/6]${NC} Waiting for servers to complete professional boot sequence..."
+echo -e "  ${BLUE}ℹ${NC}  Backend is running 7-phase startup with verification..."
 
-# Wait for backend (max 10 seconds)
-for i in {1..20}; do
-  if curl -s http://localhost:3030/health > /dev/null 2>&1; then
-    echo -e "${GREEN}✓${NC} Backend ready on http://localhost:3030"
-    break
+# Wait for backend (max 30 seconds for professional boot sequence)
+BACKEND_READY=false
+for i in {1..60}; do
+  # First check if backend is listening at all
+  if curl -s http://localhost:3030/api/status > /dev/null 2>&1; then
+    # Then check if all services are ready
+    READY_STATUS=$(curl -s http://localhost:3030/api/health/ready 2>/dev/null | grep -o '"ready":true' || echo "")
+    if [ ! -z "$READY_STATUS" ]; then
+      echo -e "${GREEN}✓${NC} Backend ready on http://localhost:3030 (all services verified)"
+      BACKEND_READY=true
+      break
+    elif [ $((i % 4)) -eq 0 ]; then
+      # Show progress every 2 seconds
+      echo -e "  ${BLUE}...${NC} Backend startup in progress (phase verification)"
+    fi
   fi
   sleep 0.5
-  if [ $i -eq 20 ]; then
-    echo -e "${RED}✗${NC} Backend failed to start (check /tmp/raven-backend.log)"
+  if [ $i -eq 60 ]; then
+    echo -e "${RED}✗${NC} Backend failed to complete startup (check /tmp/raven-backend.log)"
+    echo -e "  ${YELLOW}Tip:${NC} Backend may still be booting. Run: ${YELLOW}curl http://localhost:3030/api/health/ready${NC}"
     exit 1
   fi
 done

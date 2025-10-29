@@ -15,11 +15,6 @@
       largeDeletions: 0,
       securityChanges: 0
     },
-    todayStats: {
-      filesChanged: 0,
-      linesAdded: 0,
-      linesDeleted: 0
-    },
     lastCheck: new Date()
   };
 
@@ -96,9 +91,6 @@
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      let filesChanged = new Set();
-      let linesAdded = 0;
-      let linesDeleted = 0;
       let largeDeletions = 0;
       let securityChanges = 0;
 
@@ -106,14 +98,6 @@
         const eventDate = new Date(event.timestamp);
 
         if (eventDate >= today) {
-          // Use filepath (not file_path) - this is the correct field name
-          if (event.filepath) {
-            filesChanged.add(event.filepath);
-          }
-
-          if (event.lines_added) linesAdded += event.lines_added;
-          if (event.lines_deleted) linesDeleted += event.lines_deleted;
-
           // Check for large deletions
           if (event.lines_deleted && event.lines_deleted > 100) {
             largeDeletions++;
@@ -126,12 +110,6 @@
           }
         }
       });
-
-      health.todayStats = {
-        filesChanged: filesChanged.size,
-        linesAdded,
-        linesDeleted
-      };
 
       // Fetch syntax error count
       let syntaxErrorCount = 0;
@@ -294,13 +272,8 @@
         <!-- Status Badge -->
         <div class="status-section" role="status" aria-live="polite">
           <div class="health-icon" aria-hidden="true">{config.icon}</div>
-          <div class="health-title">
-            <h3 id="health-title">Project Health</h3>
-            <p class="health-status">{config.message}</p>
-          </div>
-          <button class="refresh-btn" on:click={fetchHealth} aria-label="Refresh health check">
-            <span aria-hidden="true">↻</span>
-          </button>
+          <h3 id="health-title">Project Health</h3>
+          <p class="health-status">{config.message}</p>
         </div>
 
         <!-- Health Checks (horizontal) -->
@@ -347,26 +320,14 @@
         </div>
         </div>
 
-        <!-- Today's Stats (horizontal) -->
-        <div class="today-stats" role="group" aria-label="Today's statistics">
-          <div class="stat" role="status" aria-label="{health.todayStats.filesChanged} files changed today">
-            <span class="stat-value">{health.todayStats.filesChanged}</span>
-            <span class="stat-label">files</span>
-          </div>
-          <div class="stat" role="status" aria-label="{health.todayStats.linesAdded} lines added today">
-            <span class="stat-value">+{health.todayStats.linesAdded}</span>
-            <span class="stat-label">added</span>
-          </div>
-          <div class="stat" role="status" aria-label="{health.todayStats.linesDeleted} lines deleted today">
-            <span class="stat-value">-{health.todayStats.linesDeleted}</span>
-            <span class="stat-label">deleted</span>
-          </div>
-          <div class="last-check" role="status" aria-live="polite" aria-label="Last health check: {timeAgo(health.lastCheck)}">Updated {timeAgo(health.lastCheck)}</div>
-        </div>
+        <!-- Refresh Button (far right) -->
+        <button class="refresh-btn" on:click={async () => { await loadStartupHealthChecks(); await fetchHealth(); }} aria-label="Refresh all health checks">
+          <span aria-hidden="true">↻</span>
+        </button>
       </div>
 
-      <!-- Expandable Startup Health Details -->
-      {#if startupHealthExpanded && startupHealthResults && startupHealthResults.checks}
+    <!-- Expandable Startup Health Details -->
+    {#if startupHealthExpanded && startupHealthResults && startupHealthResults.checks}
         <div class="startup-details" id="startup-details" role="region" aria-label="Startup health check details">
           {#each startupHealthResults.checks as check (check.path || check.name)}
             <div class="startup-check-item" class:failed={!check.passed} role="status" aria-label="{check.name}: {check.passed ? 'passed' : 'failed'} - {check.message}">
@@ -378,9 +339,9 @@
           {/each}
         </div>
       {/if}
-    </div>
+    </div>  <!-- close health-compact -->
   {/if}
-</div>
+</div>  <!-- close health-widget -->
 
 <style>
   .health-widget {
@@ -402,13 +363,13 @@
     display: flex;
     align-items: center;
     gap: 24px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .status-section {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
   }
 
   .health-icon {
@@ -416,46 +377,50 @@
     line-height: 1;
   }
 
-  .health-title {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .health-title h3 {
+  .status-section h3 {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
     font-family: var(--mono);
+    white-space: nowrap;
   }
 
   .health-status {
     margin: 0;
-    font-size: 11px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     color: var(--status-color);
     font-family: var(--mono);
+    white-space: nowrap;
   }
 
   .refresh-btn {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
+    background: var(--accent);
+    border: 2px solid var(--accent);
     border-radius: 6px;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
+    color: white;
     transition: all 0.2s;
+    margin-left: auto;
+    flex-shrink: 0;
   }
 
   .refresh-btn:hover {
-    background: var(--accent);
-    color: white;
+    background: var(--accent-hover, var(--accent));
+    border-color: var(--accent-hover, var(--accent));
     transform: rotate(180deg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .refresh-btn:active {
+    transform: rotate(180deg) scale(0.95);
   }
 
   .health-loading, .health-error {
@@ -481,6 +446,7 @@
     display: flex;
     gap: 16px;
     align-items: center;
+    flex: 1;
   }
 
   .check-item {
@@ -588,40 +554,6 @@
   .check-duration {
     color: var(--muted);
     text-align: right;
-  }
-
-  .today-stats {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    margin-left: auto;
-  }
-
-  .stat {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-
-  .stat-value {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text);
-    font-family: var(--mono);
-  }
-
-  .stat-label {
-    font-size: 11px;
-    color: var(--muted);
-    font-weight: 500;
-    font-family: var(--mono);
-  }
-
-  .last-check {
-    font-size: 11px;
-    color: var(--muted);
-    font-family: var(--mono);
-    white-space: nowrap;
   }
 
   .health-error button {

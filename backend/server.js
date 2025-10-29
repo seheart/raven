@@ -28,6 +28,9 @@ import { gzip } from 'zlib';
 // Security imports
 import { authenticate, authenticateSocket } from './middleware/auth.js';
 
+// Professional startup imports
+import { StartupOrchestrator } from './core/startup-orchestrator.js';
+
 // Logger
 import { logger } from './utils/logger.js';
 import {
@@ -383,8 +386,8 @@ class FileProcessingLock {
     const LOCK_TTL = 5 * 60 * 1000; // 5 minutes
 
     for (const [filepath, mutex] of this.locks.entries()) {
-      // Only cleanup if not locked and hasn't been used recently
-      if (!mutex.locked && mutex.lastUsed && (now - mutex.lastUsed > LOCK_TTL)) {
+      // Only cleanup if mutex exists, not locked, and hasn't been used recently
+      if (mutex && !mutex.locked && mutex.lastUsed && (now - mutex.lastUsed > LOCK_TTL)) {
         this.locks.delete(filepath);
       }
     }
@@ -431,6 +434,31 @@ let healthCheckSystem;
 
 // In-memory agent registry
 const agentRegistry = new Map();
+const MAX_AGENTS = 10000; // Prevent unbounded memory growth
+
+/**
+ * Enforce size limit on agent registry using LRU eviction
+ * Removes 20% oldest agents when limit is exceeded
+ */
+function enforceAgentRegistryLimit() {
+  if (agentRegistry.size > MAX_AGENTS) {
+    // Sort by last_seen timestamp (oldest first)
+    const sortedEntries = Array.from(agentRegistry.entries())
+      .sort((a, b) => {
+        const timeA = new Date(a[1].last_seen).getTime();
+        const timeB = new Date(b[1].last_seen).getTime();
+        return timeA - timeB;
+      });
+
+    // Remove oldest 20% to avoid thrashing
+    const toRemove = Math.floor(MAX_AGENTS * 0.2);
+    const removedAgents = sortedEntries.slice(0, toRemove);
+
+    removedAgents.forEach(([name]) => agentRegistry.delete(name));
+
+    logger.warn(`🚨 Agent registry limit exceeded (${agentRegistry.size}), evicted ${toRemove} oldest agents`);
+  }
+}
 
 // Cleanup inactive agents periodically (every hour, remove agents not seen in 24 hours)
 const agentCleanupInterval = setInterval(() => {
@@ -452,7 +480,14 @@ const agentCleanupInterval = setInterval(() => {
 }, AGENT_CLEANUP_INTERVAL_MS);
 
 // Cleanup old snapshots periodically (daily, remove snapshots older than 30 days)
+let isSnapshotCleanupRunning = false;
 const snapshotCleanupInterval = setInterval(async () => {
+  if (isSnapshotCleanupRunning) {
+    logger.debug('Snapshot cleanup already running, skipping this interval');
+    return;
+  }
+
+  isSnapshotCleanupRunning = true;
   try {
     const SNAPSHOT_TTL_MS = parseInt(process.env.SNAPSHOT_TTL_DAYS || '30') * 24 * 60 * 60 * 1000;
     const now = Date.now();
@@ -480,6 +515,8 @@ const snapshotCleanupInterval = setInterval(async () => {
     }
   } catch (error) {
     logger.error('Error cleaning snapshots:', error);
+  } finally {
+    isSnapshotCleanupRunning = false;
   }
 }, SNAPSHOT_CLEANUP_INTERVAL_MS);
 
@@ -1269,6 +1306,7 @@ const routeDependencies = {
 
   // Registry & State
   agentRegistry,
+  enforceAgentRegistryLimit,
   availableProjects,
   SESSION_ID,
 
@@ -1338,8 +1376,9 @@ app.use('/api', createSafetyRoutes({ projectState, io, SESSION_ID }));
 
 // Health & Status routes (system health, session ID, status, health checks, project health)
 // Note: healthCheckSystem will be set later via getHealthCheckSystem()
-const healthDeps = { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases };
+const healthDeps = { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, projectWatchers };
 healthDeps.getHealthCheckSystem = () => healthCheckSystem;
+healthDeps.getMetricsDatabase = getMetricsDatabase;
 app.use('/api', createHealthRoutes(healthDeps));
 
 // Analytics routes (anomaly detection, trends, agent monitoring, pattern matching)
@@ -1629,7 +1668,7 @@ app.get('/health', async (req, res) => {
         }
       }
     } catch (_err) {
-      logger.error('Error checking bridge status:', err);
+      logger.error('Error checking bridge status:', _err);
     }
 
     // Read version from package.json
@@ -1638,7 +1677,7 @@ app.get('/health', async (req, res) => {
       const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'));
       version = packageJson.version;
     } catch (_err) {
-      logger.error('Failed to read version:', err);
+      logger.error('Failed to read version:', _err);
     }
 
     // Database health check
@@ -1657,7 +1696,7 @@ app.get('/health', async (req, res) => {
     } catch (_err) {
       databaseHealth.accessible = false;
       databaseHealth.status = 'error';
-      databaseHealth.lastError = err.message;
+      databaseHealth.lastError = _err.message;
     }
 
     const healthData = {
@@ -1902,67 +1941,210 @@ async function runStartupDiagnostics() {
   }
 }
 
+// ==================== Professional Startup Helpers ====================
+
+/**
+ * Helper methods for StartupOrchestrator
+ * Wraps existing functionality in async/await friendly format
+ */
+const startupHelpers = {
+  // Initialize auth service
+  async initializeAuthService() {
+    // Auth service is already initialized above, just verify
+    if (!authService) {
+      throw new Error('Auth service not available');
+    }
+    return true;
+  },
+
+  // Initialize developer DB
+  async initializeDeveloperDB() {
+    if (!developerDB) {
+      throw new Error('Developer DB not available');
+    }
+    return true;
+  },
+
+  // Initialize all projects (returns result object)
+  async initializeAllProjects() {
+    return initializeAllProjects();
+  },
+
+  // Start metrics collection
+  async startMetricsCollection() {
+    const firstDb = getMetricsDatabase();
+
+    if (!firstDb) {
+      throw new Error('No database available for metrics');
+    }
+
+    metricsCollector = new MetricsCollector(firstDb, SESSION_ID, io);
+    metricsCollector.start();
+
+    return true;
+  },
+
+  // Verify metrics are being collected
+  async verifyMetricsCollecting() {
+    const firstDb = getMetricsDatabase();
+    if (!firstDb) return false;
+
+    try {
+      const recentMetrics = firstDb.getRecentSystemMetrics(1);
+      if (!recentMetrics || recentMetrics.length === 0) {
+        return false;
+      }
+
+      const latest = recentMetrics[0];
+      const age = Date.now() - new Date(latest.timestamp).getTime();
+
+      // Metrics should be less than 30 seconds old
+      return age < 30000;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  // Initialize health checks
+  async initializeHealthChecks() {
+    const firstDb = getMetricsDatabase();
+    if (!firstDb) {
+      throw new Error('No database available for health checks');
+    }
+
+    healthCheckSystem = createDefaultHealthChecks(firstDb, io);
+    return true;
+  },
+
+  // Initialize all file watchers
+  async initializeAllWatchers() {
+    return await initializeAllWatchers();
+  },
+
+  // Initialize trigger engine
+  async initializeTriggerEngine() {
+    const firstDb = getMetricsDatabase();
+    if (!firstDb) {
+      throw new Error('No database available for trigger engine');
+    }
+
+    triggerEngine = new TriggerEngine(RAVEN_DIR, io, firstDb);
+    return true;
+  },
+
+  // Start telemetry bridge
+  async startTelemetryBridge() {
+    try {
+      await runStartupDiagnostics();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  // Run health checks
+  async runHealthChecks() {
+    if (!healthCheckSystem) {
+      throw new Error('Health check system not initialized');
+    }
+
+    const summary = await healthCheckSystem.runAllChecks();
+    const results = healthCheckSystem.getResults();
+
+    return {
+      ...summary,
+      ...results
+    };
+  },
+
+  // Verify WebSocket
+  async verifyWebSocket() {
+    try {
+      return io && io.engine && io.engine.clientsCount >= 0;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  // Get system stats
+  async getSystemStats() {
+    return {
+      projects: projectDatabases.size,
+      watchers: projectWatchers.size,
+      wsClients: io ? (io.engine ? io.engine.clientsCount : 0) : 0,
+      uptime: process.uptime()
+    };
+  }
+};
+
+/**
+ * Get deterministic database for metrics/health checks
+ * Always returns same database to prevent mismatch between collectors and health checks
+ * Priority: 'raven' project > alphabetically first project
+ */
+function getMetricsDatabase() {
+  // Prefer 'raven' database if it exists
+  const ravenDb = projectDatabases.get('raven');
+  if (ravenDb) {
+    return ravenDb;
+  }
+
+  // Otherwise use alphabetically first project (deterministic)
+  const sortedProjects = Array.from(projectDatabases.keys()).sort();
+  if (sortedProjects.length > 0) {
+    return projectDatabases.get(sortedProjects[0]);
+  }
+
+  return null;
+}
+
 // ==================== Server Start ====================
 
 // Start server
-httpServer.listen(PORT, () => {
-  logger.info('Raven Backend Server started', {
+httpServer.listen(PORT, async () => {
+  logger.info('HTTP server listening', {
     port: PORT,
-    webSocket: 'enabled',
-    sessionId: SESSION_ID,
-    status: 'ready'
+    sessionId: SESSION_ID
   });
 
-  // Check if rsync is installed (required for server sync feature)
-  SyncService.checkRsyncInstalled().then(result => {
-    if (!result.installed) {
-      logger.warn('rsync not installed - server sync will not work. Install with: sudo pacman -S rsync (or apt/yum/brew)');
-    }
-  });
+  // Run professional startup sequence
+  const config = {
+    PORT,
+    FRONTEND_PORT: 5173,
+    RAVEN_DIR,
+    SESSION_ID
+  };
 
-  // Initialize ALL projects for global monitoring
-  initializeAllProjects();
+  const orchestrator = new StartupOrchestrator(config, startupHelpers);
 
-  // Get first project database for trigger engine and metrics collector
-  // (They'll work across all projects via events)
-  const firstDb = projectDatabases.values().next().value;
+  try {
+    const result = await orchestrator.run();
 
-  if (firstDb) {
-    // Initialize trigger engine with io instance
-    triggerEngine = new TriggerEngine(RAVEN_DIR, io, firstDb);
+    if (result.success) {
+      // Add triggerEngine to shared deps after successful startup
+      triggersDeps.triggerEngine = triggerEngine;
 
-    // Add triggerEngine to shared deps object so routes can access it
-    triggersDeps.triggerEngine = triggerEngine;
-    logger.info('✅ Trigger engine initialized and added to routes');
+      logger.info('🎉 Raven is ready!', {
+        elapsed: result.elapsed,
+        warnings: result.warnings.length
+      });
 
-    // Initialize metrics collector with io instance
-    metricsCollector = new MetricsCollector(firstDb, SESSION_ID, io);
-
-    // Start real-time metrics collection
-    metricsCollector.start();
-
-    // Run startup health checks
-    healthCheckSystem = createDefaultHealthChecks(firstDb, io);
-    healthCheckSystem.runAllChecks().then(summary => {
-      if (!summary.allPassed) {
-        logger.error(`\n⚠️  ${summary.failed} health check(s) failed - check notifications panel\n`);
-      } else {
-        logger.info(`\n✅ All ${summary.total} health checks passed!\n`);
+      if (result.warnings.length > 0) {
+        logger.warn('Startup warnings:', result.warnings);
       }
-    }).catch(error => {
-      logger.error(`\n❌ Health check system error: ${error.message}\n`);
-    });
+    } else {
+      logger.error('❌ Startup failed:', {
+        error: result.error,
+        phase: result.phase
+      });
 
-    // Run startup diagnostics and self-healing
-    setTimeout(() => runStartupDiagnostics(), 2000);
-  } else {
-    logger.error('❌ No databases available - trigger engine and metrics collector not started');
+      // Don't exit - server is listening, but may have limited functionality
+      logger.warn('Server is running but some services may not be available');
+    }
+  } catch (error) {
+    logger.error('❌ Fatal startup error:', error);
+    // Server will stay up but may have issues
   }
-
-  // Initialize file watchers for ALL projects
-  initializeAllWatchers();
-
-  logger.info('\n🎉 Global multi-project monitoring is active!\n');
 });
 
 // Graceful shutdown handler
@@ -2016,19 +2198,6 @@ async function gracefulShutdown(signal) {
       logger.info('✅ Cleaned up file processing locks');
     } catch (error) {
       logger.error('Error cleaning up file processing locks:', error);
-    }
-  }
-
-  // Close all file watchers (deprecated - kept for backward compatibility)
-  if (projectWatchers.size > 0) {
-    logger.info(`\n🔒 Closing ${projectWatchers.size} legacy file watchers...`);
-    for (const [projectName, watcher] of projectWatchers.entries()) {
-      try {
-        watcher.close();
-        logger.info(`✅ Closed watcher: ${projectName}`);
-      } catch (error) {
-        logger.error(`Error closing watcher ${projectName}:`, error);
-      }
     }
   }
 

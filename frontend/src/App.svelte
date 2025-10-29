@@ -83,6 +83,13 @@
   let showWelcome = false;
   let showQuickStart = false;
 
+  // Today's Activity stats
+  let todayStats = {
+    filesChanged: 0,
+    linesAdded: 0,
+    linesDeleted: 0
+  };
+
   // Initial loading state
   let isInitialLoading = true;
   let loadingProgress = 0;
@@ -118,12 +125,46 @@
     }
   }
 
+  async function fetchTodayActivity() {
+    try {
+      // Fetch recent events to calculate today's activity
+      const events = await dataService.fetchFileEvents(100);
+
+      // Calculate today's metrics
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let filesChanged = new Set();
+      let linesAdded = 0;
+      let linesDeleted = 0;
+
+      events.forEach(event => {
+        const eventDate = new Date(event.timestamp);
+
+        if (eventDate >= today) {
+          if (event.filepath) {
+            filesChanged.add(event.filepath);
+          }
+
+          if (event.lines_added) linesAdded += event.lines_added;
+          if (event.lines_deleted) linesDeleted += event.lines_deleted;
+        }
+      });
+
+      todayStats = {
+        filesChanged: filesChanged.size,
+        linesAdded,
+        linesDeleted
+      };
+    } catch (error) {
+      logger.error('Failed to fetch today activity:', error);
+    }
+  }
 
   function handleTabChange(newTab) {
     activeTab = newTab;
     currentSubView = '';
     localStorage.setItem('raven-active-tab', newTab);
-    notifications.info(`Switched to ${newTab} view`);
   }
 
   function switchTheme(newTheme) {
@@ -227,6 +268,14 @@
       loadingMessage = 'Loading completed with some errors...';
     }
 
+    // Fetch today's activity stats
+    await fetchTodayActivity();
+
+    // Listen for file changes to update today's activity
+    websocketService.on('file-changed', () => {
+      fetchTodayActivity();
+    });
+
     // Start periodic health checks (every 60 seconds)
     checkServerHealth(); // Initial check
     healthCheckInterval = setInterval(checkServerHealth, 60000);
@@ -234,6 +283,7 @@
     // Check health on WebSocket reconnect
     websocketService.onReconnect(() => {
       checkServerHealth();
+      fetchTodayActivity();
     });
 
     loadingProgress = 95;
@@ -330,40 +380,23 @@
       </nav>
 
       <div id="theme-switcher" class="header-right">
-        <div class="theme-switcher" role="toolbar" aria-label="Theme selection">
-          <button
-            class="theme-btn"
-            class:active={theme === 'theme--day'}
-            on:click={() => switchTheme('theme--day')}
-            aria-label="Switch to day theme"
-            aria-pressed={theme === 'theme--day'}
-            title="Day (Gruvbox)"
-          >
-            <span aria-hidden="true">☀️</span>
-            <span class="sr-only">Day theme</span>
-          </button>
-          <button
-            class="theme-btn"
-            class:active={theme === 'theme--dusk'}
-            on:click={() => switchTheme('theme--dusk')}
-            aria-label="Switch to dusk theme"
-            aria-pressed={theme === 'theme--dusk'}
-            title="Dusk (Ristretto)"
-          >
-            <span aria-hidden="true">🌅</span>
-            <span class="sr-only">Dusk theme</span>
-          </button>
-          <button
-            class="theme-btn"
-            class:active={theme === 'theme--night'}
-            on:click={() => switchTheme('theme--night')}
-            aria-label="Switch to night theme"
-            aria-pressed={theme === 'theme--night'}
-            title="Night (Tokyo Night)"
-          >
-            <span aria-hidden="true">🌙</span>
-            <span class="sr-only">Night theme</span>
-          </button>
+        <!-- Today's Activity -->
+        <div class="today-activity-header" role="region" aria-label="Today's coding activity">
+          <span class="activity-title">Today:</span>
+          <div class="activity-stat" role="status" aria-label="{todayStats.filesChanged} files changed today">
+            <span class="stat-value">{todayStats.filesChanged}</span>
+            <span class="stat-label">files</span>
+          </div>
+          <div class="activity-divider" aria-hidden="true">|</div>
+          <div class="activity-stat" role="status" aria-label="{todayStats.linesAdded} lines added today">
+            <span class="stat-value">+{todayStats.linesAdded > 0 ? todayStats.linesAdded : '0'}</span>
+            <span class="stat-label">added</span>
+          </div>
+          <div class="activity-divider" aria-hidden="true">|</div>
+          <div class="activity-stat" role="status" aria-label="{todayStats.linesDeleted} lines deleted today">
+            <span class="stat-value">-{todayStats.linesDeleted > 0 ? todayStats.linesDeleted : '0'}</span>
+            <span class="stat-label">deleted</span>
+          </div>
         </div>
         <UserMenu />
         <button
@@ -833,6 +866,50 @@
   .theme-btn:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  /* Today's Activity in Header */
+  .today-activity-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 6px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+  }
+
+  .activity-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .activity-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .activity-stat .stat-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .activity-stat .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .activity-divider {
+    color: var(--muted);
+    font-size: 12px;
   }
 
   .help-button {

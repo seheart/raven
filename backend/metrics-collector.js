@@ -22,8 +22,12 @@ export class MetricsCollector {
 
       // Get memory info
       const mem = await si.mem();
-      const memory_percent = (mem.used / mem.total) * 100;
-      const memory_used_mb = Math.floor(mem.used / (1024 * 1024));
+      // Use 'active' or calculate from 'available' to exclude buffers/cache
+      // mem.active = truly used memory (excluding cache/buffers)
+      // or: (mem.total - mem.available) = non-reclaimable used memory
+      const actualUsed = mem.active || (mem.total - mem.available);
+      const memory_percent = (actualUsed / mem.total) * 100;
+      const memory_used_mb = Math.floor(actualUsed / (1024 * 1024));
       const memory_total_mb = Math.floor(mem.total / (1024 * 1024));
 
       // Get network stats

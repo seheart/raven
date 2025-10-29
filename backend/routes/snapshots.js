@@ -101,13 +101,17 @@ export function createSnapshotsRoutes(deps) {
       }
 
       // Restore to original location with path traversal protection
+      if (!projectState.watchPath) {
+        return res.status(500).json({ error: 'Project watch path not available' });
+      }
+
       const targetFilePath = resolve(projectState.watchPath, normalize(restoredFilepath));
 
       // Security: Ensure the resolved path is within the project directory
       if (!targetFilePath.startsWith(resolve(projectState.watchPath) + '/') &&
           targetFilePath !== resolve(projectState.watchPath)) {
         logger.error('❌ Path traversal attempt detected', {
-          project,
+          project: projectState.activeProject,
           filepath: restoredFilepath,
           resolved: targetFilePath,
           basePath: projectState.watchPath

@@ -72,7 +72,7 @@
   </div>
 
   <div class="status" role="status" aria-live="polite">
-    <div class="status-indicator" aria-hidden="true"></div>
+    <div class="metrics-status-dot" aria-hidden="true"></div>
     <span>Monitoring Active</span>
   </div>
 </div>
@@ -134,11 +134,16 @@
     border-top: 1px solid var(--border);
   }
 
-  .status-indicator {
+  .metrics-status-dot {
     width: 10px;
     height: 10px;
+    min-width: 10px;
+    min-height: 10px;
     border-radius: 50%;
     background: var(--success);
+    flex-shrink: 0;
+    display: block;
+    padding: 0;
     animation: pulse 2s infinite;
   }
 

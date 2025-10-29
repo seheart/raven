@@ -157,26 +157,18 @@ export function createControlRoutes(deps) {
 
   // POST /api/control/restart-watcher - Restart file watcher
   // Requires admin role for security
+  // NOTE: This endpoint is deprecated in multi-project architecture
+  // File watchers are now managed per-project in the projectWatchers Map
   router.post('/restart-watcher', authMiddleware, authzMiddleware('admin'), async (req, res) => {
     try {
-      // Protected by mutex to prevent race conditions with project switching
-      await projectStateMutex.runExclusive(async () => {
-        logger.info('Restarting file watcher', { project: projectState.activeProject });
+      logger.warn('restart-watcher endpoint is deprecated in multi-project architecture');
 
-        // Close existing watcher
-        if (projectState.watcher) {
-          await projectState.watcher.close();
-          logger.info('Closed watcher');
-        }
-
-        // Reinitialize watcher
-        projectState.watcher = initializeWatcher();
-      });
-
-      res.json({
-        success: true,
-        message: 'File watcher restarted successfully',
-        project: projectState.activeProject
+      // Return deprecation notice
+      return res.status(501).json({
+        success: false,
+        message: 'This endpoint is deprecated. File watchers are now managed per-project automatically.',
+        deprecated: true,
+        suggestion: 'Use the project-specific watcher management endpoints instead'
       });
     } catch (error) {
       logger.error('Error restarting watcher', { error });

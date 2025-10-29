@@ -144,6 +144,9 @@ export function createDashboardRoutes(deps) {
   // GET /api/longest-edits - Get longest running edit operations
   router.get('/longest-edits', (req, res) => {
     try {
+      if (!projectState.db) {
+        return res.status(500).json({ error: 'No active project database' });
+      }
       const limit = parseInt(req.query.limit) || 10;
       const edits = projectState.db.getLongestEdits(limit);
       res.json(edits);
@@ -156,6 +159,9 @@ export function createDashboardRoutes(deps) {
   // GET /api/agents-status - Get all agent statuses
   router.get('/agents-status', (req, res) => {
     try {
+      if (!projectState.db) {
+        return res.status(500).json({ error: 'No active project database' });
+      }
       const now = new Date();
 
       // Get historical agents from database
@@ -203,6 +209,9 @@ export function createDashboardRoutes(deps) {
   // GET /api/agent-stats - Get agent statistics
   router.get('/agent-stats', (req, res) => {
     try {
+      if (!projectState.db) {
+        return res.status(500).json({ error: 'No active project database' });
+      }
       const stats = projectState.db.getAgentStats();
       res.json(stats);
     } catch (error) {

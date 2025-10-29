@@ -166,8 +166,13 @@
   .status-dot {
     width: 8px;
     height: 8px;
+    min-width: 8px;
+    min-height: 8px;
     background: var(--success);
     border-radius: 50%;
+    flex-shrink: 0;
+    display: block;
+    padding: 0;
     animation: pulse 2s infinite;
   }
 

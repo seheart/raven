@@ -149,6 +149,21 @@ export class RavenDB {
       )
     `);
 
+    // Sessions table for tracking development sessions
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT,
+        changes_count INTEGER DEFAULT 0,
+        rollbacks_count INTEGER DEFAULT 0,
+        break_minutes INTEGER DEFAULT 0,
+        quality_score REAL DEFAULT 100.0,
+        session_id TEXT
+      )
+    `);
+
     // Create indexes for performance (prevents full table scans)
     this.db.exec(`
       -- Events table indexes

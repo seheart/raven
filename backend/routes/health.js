@@ -2,15 +2,16 @@ import { Router } from 'express';
 import { logger } from '../utils/logger.js';
 import fs from 'fs';
 import { join } from 'path';
+import si from 'systeminformation';
 
 /**
  * Creates health and status monitoring routes
- * @param {object} deps - Dependencies { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, getHealthCheckSystem }
+ * @param {object} deps - Dependencies { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, projectWatchers, getHealthCheckSystem, getMetricsDatabase }
  * @returns {Router} Express router
  */
 export function createHealthRoutes(deps) {
   const router = Router();
-  const { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, getHealthCheckSystem } = deps;
+  const { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, projectWatchers, getHealthCheckSystem, getMetricsDatabase } = deps;
 
   /**
    * GET /api/health
@@ -20,11 +21,14 @@ export function createHealthRoutes(deps) {
     try {
       const os = await import('os');
 
-      // Memory usage
-      const totalMemory = os.totalmem();
-      const freeMemory = os.freemem();
-      const usedMemory = totalMemory - freeMemory;
-      const memoryPercent = (usedMemory / totalMemory) * 100;
+      // Memory usage (using systeminformation for accurate memory calculation)
+      const mem = await si.mem();
+      const totalMemory = mem.total;
+      const freeMemory = mem.free;
+      // Use active memory or calculate from available to exclude buffers/cache
+      const actualUsed = mem.active || (mem.total - mem.available);
+      const usedMemory = actualUsed;
+      const memoryPercent = (actualUsed / mem.total) * 100;
 
       // Process memory
       const processMemory = process.memoryUsage();
@@ -200,6 +204,88 @@ export function createHealthRoutes(deps) {
       res.status(500).json({
         status: 'error',
         error: error.message
+      });
+    }
+  });
+
+  /**
+   * GET /api/health/ready
+   * Professional readiness endpoint - verifies all critical services are operational
+   * Returns 200 when system is fully ready, 503 if not ready
+   */
+  router.get('/health/ready', async (req, res) => {
+    try {
+      const ready = {
+        status: 'ready',
+        checks: {
+          databases: false,
+          metrics: false,
+          watchers: false,
+          websocket: false,
+          healthSystem: false
+        },
+        stats: {
+          projects: 0,
+          watchers: 0,
+          wsClients: 0,
+          uptime: process.uptime(),
+          memory: process.memoryUsage()
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Check 1: Databases loaded
+      ready.checks.databases = projectDatabases && projectDatabases.size > 0;
+      ready.stats.projects = projectDatabases ? projectDatabases.size : 0;
+
+      // Check 2: Metrics collection is working
+      if (getMetricsDatabase) {
+        const metricsDb = getMetricsDatabase();
+        if (metricsDb) {
+          try {
+            const recentMetrics = metricsDb.getRecentSystemMetrics(1);
+            if (recentMetrics && recentMetrics.length > 0) {
+              const latest = recentMetrics[0];
+              const age = Date.now() - new Date(latest.timestamp).getTime();
+              // Metrics should be less than 30 seconds old
+              ready.checks.metrics = age < 30000;
+            }
+          } catch (error) {
+            ready.checks.metrics = false;
+          }
+        }
+      }
+
+      // Check 3: File watchers active
+      ready.checks.watchers = projectWatchers && projectWatchers.size > 0;
+      ready.stats.watchers = projectWatchers ? projectWatchers.size : 0;
+
+      // Check 4: WebSocket server operational
+      try {
+        ready.checks.websocket = io && io.engine && io.engine.clientsCount >= 0;
+        ready.stats.wsClients = io && io.engine ? io.engine.clientsCount : 0;
+      } catch (error) {
+        ready.checks.websocket = false;
+      }
+
+      // Check 5: Health check system initialized
+      const healthCheckSystem = getHealthCheckSystem();
+      ready.checks.healthSystem = healthCheckSystem !== null;
+
+      // Determine overall readiness
+      ready.ready = Object.values(ready.checks).every(v => v === true);
+
+      // Return appropriate status code
+      const statusCode = ready.ready ? 200 : 503;
+
+      res.status(statusCode).json(ready);
+    } catch (error) {
+      logger.error('Ready check error:', error);
+      res.status(503).json({
+        status: 'error',
+        ready: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
       });
     }
   });

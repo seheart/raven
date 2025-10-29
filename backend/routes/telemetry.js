@@ -15,6 +15,7 @@ export function createTelemetryRoutes(deps) {
     SESSION_ID = null,
     activeProject = null,
     agentRegistry = new Map(),
+    enforceAgentRegistryLimit = () => {},
     getAgentColor = () => '#3498db',
     triggerEngine = null,
     io = { emit: () => {} }
@@ -109,6 +110,11 @@ export function createTelemetryRoutes(deps) {
 
       // Update agent registry (if available and is a Map)
       if (agentRegistry && typeof agentRegistry.has === 'function') {
+        // Enforce size limit before adding new agents
+        if (!agentRegistry.has(agent) && enforceAgentRegistryLimit) {
+          enforceAgentRegistryLimit();
+        }
+
         if (!agentRegistry.has(agent)) {
           agentRegistry.set(agent, {
             agent_name: agent,

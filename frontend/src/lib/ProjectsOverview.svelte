@@ -134,7 +134,7 @@
             <div class="project-name">
               {project.name}
             </div>
-            <div class="status-indicator" class:active={project.active} role="status" aria-label="{project.active ? 'Active' : 'Inactive'}"></div>
+            <div class="project-status-dot" class:active={project.active} role="status" aria-label="{project.active ? 'Active' : 'Inactive'}"></div>
           </div>
           <div class="project-stats" role="group" aria-label="Project statistics">
             <div class="stat">
@@ -242,14 +242,19 @@
     color: var(--text);
   }
 
-  .status-indicator {
+  .project-status-dot {
     width: 8px;
     height: 8px;
+    min-width: 8px;
+    min-height: 8px;
     border-radius: 50%;
     background: var(--muted);
+    flex-shrink: 0;
+    display: block;
+    padding: 0;
   }
 
-  .status-indicator.active {
+  .project-status-dot.active {
     background: var(--success);
     box-shadow: 0 0 4px var(--success);
   }
