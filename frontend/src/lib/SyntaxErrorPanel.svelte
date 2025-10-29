@@ -4,11 +4,31 @@
   import { notifications } from './notificationService.js';
   import { desktopNotifications } from './services/desktopNotifications.js';
   import { logger } from './logger.js';
+  import { preferences } from './services/preferences.js';
 
   let errors = [];
   let loading = true;
   let errorCount = 0;
   let ws = null;
+  let selectedEditor = preferences.getEditor();
+
+  // Available editors
+  const editorOptions = [
+    { value: 'auto', label: 'System Default', icon: '🖥️' },
+    { value: 'vscode', label: 'VS Code', icon: '💻' },
+    { value: 'cursor', label: 'Cursor', icon: '⚡' },
+    { value: 'sublime', label: 'Sublime Text', icon: '📝' },
+    { value: 'intellij', label: 'IntelliJ IDEA', icon: '🧠' },
+    { value: 'vim', label: 'Vim', icon: '🟢' },
+    { value: 'nvim', label: 'Neovim', icon: '🟩' }
+  ];
+
+  // Update editor preference
+  function changeEditor(event) {
+    selectedEditor = event.target.value;
+    preferences.setEditor(selectedEditor);
+    notifications.success(`Editor set to ${editorOptions.find(e => e.value === selectedEditor)?.label}`);
+  }
 
   // Fetch syntax errors
   async function fetchErrors() {
@@ -45,17 +65,45 @@
     }
   }
 
-  // Open file in default editor
-  function openFile(filepath, lineNumber) {
-    // Try to open with VSCode URL protocol
-    const vscodeUrl = `vscode://file${filepath}:${lineNumber}`;
-    window.open(vscodeUrl, '_blank');
+  // Open file in editor
+  async function openFile(filepath, lineNumber) {
+    try {
+      const editor = preferences.getEditor();
 
-    // Also show file path for manual opening
-    notifications.info(`File: ${filepath}:${lineNumber}`, {
-      duration: 5000,
-      title: 'Open in Editor'
-    });
+      const response = await fetch('/api/open-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filepath,
+          lineNumber,
+          editor
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const editorName = result.editor === 'auto' ? 'default editor' : result.editor;
+        notifications.success(`Opening in ${editorName}...`);
+
+        if (result.fallback) {
+          notifications.info('Your configured editor was not found, opened with system default', {
+            duration: 5000
+          });
+        }
+      } else {
+        throw new Error(result.message || 'Failed to open file');
+      }
+    } catch (error) {
+      logger.error('Failed to open file:', error);
+      notifications.error(`Failed to open file: ${error.message}`);
+
+      // Show file path as fallback
+      notifications.info(`File: ${filepath}:${lineNumber}`, {
+        duration: 7000,
+        title: 'Copy this path to open manually'
+      });
+    }
   }
 
   // Copy error details to clipboard
@@ -146,6 +194,14 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
         {errorCount} {errorCount === 1 ? 'error' : 'errors'}
       </span>
     {/if}
+    <div class="editor-selector">
+      <label for="editor-select" class="editor-label">Editor:</label>
+      <select id="editor-select" bind:value={selectedEditor} on:change={changeEditor} class="editor-select" aria-label="Select editor">
+        {#each editorOptions as option}
+          <option value={option.value}>{option.icon} {option.label}</option>
+        {/each}
+      </select>
+    </div>
     <button class="refresh-btn" on:click={fetchErrors} aria-label="Refresh syntax errors">
       <span aria-hidden="true">↻</span>
     </button>
@@ -257,6 +313,42 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
   .error-count.has-errors {
     background: #fef2f2;
     color: #ef4444;
+  }
+
+  .editor-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .editor-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .editor-select {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 180px;
+  }
+
+  .editor-select:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+  }
+
+  .editor-select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .refresh-btn {

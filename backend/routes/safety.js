@@ -1,8 +1,12 @@
 import { Router } from 'express';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { logger } from '../utils/logger.js';
 import { SyntaxChecker } from '../services/syntax-checker.js';
 import { PatternChecker } from '../services/pattern-checker.js';
 import { TestRunner } from '../services/test-runner.js';
+
+const execAsync = promisify(exec);
 
 /**
  * Creates safety-related routes (errors, syntax checking, tests, sessions, pattern warnings)
@@ -185,6 +189,73 @@ export function createSafetyRoutes(deps) {
     } catch (error) {
       logger.error('Error checking syntax:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/open-file
+   * Open a file in the configured editor
+   */
+  router.post('/open-file', async (req, res) => {
+    try {
+      const { filepath, lineNumber, editor } = req.body;
+
+      if (!filepath) {
+        return res.status(400).json({ error: 'filepath is required' });
+      }
+
+      const line = lineNumber || 1;
+      const editorType = editor || 'auto';
+
+      logger.info(`Opening file: ${filepath}:${line} with editor: ${editorType}`);
+
+      // Editor command templates
+      const editorCommands = {
+        'vscode': `code --goto "${filepath}:${line}"`,
+        'cursor': `cursor --goto "${filepath}:${line}"`,
+        'sublime': `subl "${filepath}:${line}"`,
+        'intellij': `idea --line ${line} "${filepath}"`,
+        'vim': `gnome-terminal -- vim "+${line}" "${filepath}"`,
+        'nvim': `gnome-terminal -- nvim "+${line}" "${filepath}"`,
+        'nano': `gnome-terminal -- nano "+${line}" "${filepath}"`,
+        'auto': process.platform === 'darwin' ? `open "${filepath}"` : `xdg-open "${filepath}"`
+      };
+
+      const command = editorCommands[editorType] || editorCommands['auto'];
+
+      try {
+        await execAsync(command);
+        res.json({
+          success: true,
+          message: `Opened ${filepath}:${line}`,
+          editor: editorType
+        });
+      } catch (error) {
+        // If the specific editor fails, try system default
+        if (editorType !== 'auto') {
+          logger.warn(`Failed to open with ${editorType}, trying system default`);
+          try {
+            await execAsync(editorCommands['auto']);
+            res.json({
+              success: true,
+              message: `Opened ${filepath} with system default editor`,
+              editor: 'auto',
+              fallback: true
+            });
+          } catch (fallbackError) {
+            throw fallbackError;
+          }
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      logger.error('Error opening file:', error);
+      res.status(500).json({
+        error: 'Failed to open file',
+        message: error.message,
+        suggestion: 'Please check that your editor is installed and in your PATH'
+      });
     }
   });
 
