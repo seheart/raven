@@ -32,6 +32,12 @@ const DEBOUNCE_MS = 1000;
 // Track file sizes to detect edits vs creates
 const fileSizes = new Map();
 
+// Duration tracking - measure time between related operations
+let operationStartTime = null;
+let lastOperationTime = null;
+let pendingOperations = [];
+const OPERATION_WINDOW_MS = 3000; // Group operations within 3 seconds
+
 console.log(`🔗 Claude Code Telemetry Bridge starting...`);
 console.log(`📂 Watching: ${WATCH_DIR}`);
 console.log(`🎯 Target: ${RAVEN_API}/telemetry`);
@@ -39,9 +45,61 @@ console.log(`🤖 Agent: ${AGENT_NAME}`);
 console.log('');
 
 /**
+ * Track operation timing and send batched telemetry
+ */
+function trackOperation(eventType, filepath, linesChanged, message) {
+  const now = Date.now();
+
+  // Start new operation window if this is first operation or previous window closed
+  if (!operationStartTime || (now - lastOperationTime) > OPERATION_WINDOW_MS) {
+    // Flush any pending operations from previous window
+    if (pendingOperations.length > 0) {
+      flushPendingOperations();
+    }
+
+    operationStartTime = now;
+  }
+
+  lastOperationTime = now;
+
+  // Add to pending operations
+  pendingOperations.push({
+    eventType,
+    filepath,
+    linesChanged,
+    message,
+    timestamp: now
+  });
+
+  // Set timer to flush operations after window closes
+  clearTimeout(trackOperation.flushTimer);
+  trackOperation.flushTimer = setTimeout(() => {
+    flushPendingOperations();
+  }, OPERATION_WINDOW_MS + 100);
+}
+
+/**
+ * Flush pending operations with calculated duration
+ */
+function flushPendingOperations() {
+  if (pendingOperations.length === 0) return;
+
+  const duration = lastOperationTime - operationStartTime;
+
+  // Send all pending operations with the calculated duration
+  for (const op of pendingOperations) {
+    sendTelemetry(op.eventType, op.filepath, op.linesChanged, op.message, duration);
+  }
+
+  pendingOperations = [];
+  operationStartTime = null;
+  lastOperationTime = null;
+}
+
+/**
  * Send telemetry event to Raven
  */
-function sendTelemetry(eventType, filepath, linesChanged = null, message = null) {
+function sendTelemetry(eventType, filepath, linesChanged = null, message = null, durationMs = null) {
   const relativePath = path.relative(WATCH_DIR, filepath);
 
   // Skip node_modules, .git, etc.
@@ -76,6 +134,10 @@ function sendTelemetry(eventType, filepath, linesChanged = null, message = null)
     payload.lines_changed = linesChanged;
   }
 
+  if (durationMs !== null && durationMs > 0) {
+    payload.duration_ms = Math.round(durationMs);
+  }
+
   const data = JSON.stringify(payload);
 
   const options = {
@@ -91,7 +153,8 @@ function sendTelemetry(eventType, filepath, linesChanged = null, message = null)
 
   const req = http.request(options, (res) => {
     if (res.statusCode === 200) {
-      console.log(`✓ ${eventType.padEnd(6)} ${relativePath}`);
+      const durationStr = durationMs ? ` (${Math.round(durationMs)}ms)` : '';
+      console.log(`✓ ${eventType.padEnd(6)} ${relativePath}${durationStr}`);
     } else {
       console.error(`✗ Failed to send telemetry (${res.statusCode}): ${relativePath}`);
     }
@@ -140,7 +203,7 @@ function watchDirectory(dir) {
       fs.stat(filepath, (err, stats) => {
         if (err) {
           // File doesn't exist - it was deleted
-          sendTelemetry('delete', filepath, null, `Deleted ${filename}`);
+          trackOperation('delete', filepath, null, `Deleted ${filename}`);
           fileSizes.delete(filepath);
         } else if (stats.isFile()) {
           const wasTracked = fileSizes.has(filepath);
@@ -148,10 +211,10 @@ function watchDirectory(dir) {
 
           if (wasTracked) {
             // File existed before - it's an edit
-            sendTelemetry('edit', filepath, linesChanged, `Edited ${filename}`);
+            trackOperation('edit', filepath, linesChanged, `Edited ${filename}`);
           } else {
             // New file - it's a create
-            sendTelemetry('create', filepath, linesChanged, `Created ${filename}`);
+            trackOperation('create', filepath, linesChanged, `Created ${filename}`);
           }
         }
       });
@@ -218,11 +281,13 @@ function initializeFileSizes(dir) {
  */
 process.on('SIGINT', () => {
   console.log('\n\n🛑 Shutting down telemetry bridge...');
+  flushPendingOperations(); // Flush any pending operations
   sendTelemetry('session-end', WATCH_DIR, null, `Claude Code session ended in ${PROJECT_NAME}`);
   setTimeout(() => process.exit(0), 500);
 });
 
 process.on('SIGTERM', () => {
+  flushPendingOperations(); // Flush any pending operations
   sendTelemetry('session-end', WATCH_DIR, null, `Claude Code session ended in ${PROJECT_NAME}`);
   setTimeout(() => process.exit(0), 500);
 });
