@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
+  import { formatNumber } from './numberFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { notifications } from './notificationService.js';
   import ProjectsOverview from './ProjectsOverview.svelte';
@@ -215,11 +216,11 @@
           </div>
           <div class="stat-row">
             <span class="stat-label">Files touched:</span>
-            <span class="stat-value">{stats.unique_files_modified}</span>
+            <span class="stat-value">{formatNumber(stats.unique_files_modified)}</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">Total changes:</span>
-            <span class="stat-value">{stats.total_events}</span>
+            <span class="stat-value">{formatNumber(stats.total_events)}</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">Current flow:</span>
@@ -268,7 +269,7 @@
               aria-valuenow="{systemMetrics.memory_percent?.toFixed(1)}"
               aria-valuemin="0"
               aria-valuemax="100"
-              aria-label="Memory usage: {systemMetrics.memory_percent?.toFixed(1)}% ({systemMetrics.memory_used_mb?.toFixed(0)} of {systemMetrics.memory_total_mb?.toFixed(0)} MB)"
+              aria-label="Memory usage: {systemMetrics.memory_percent?.toFixed(1)}% ({formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} of {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB)"
             >
               <div
                 class="metric-fill"
@@ -276,7 +277,7 @@
               ></div>
             </div>
             <div class="metric-value">
-              {systemMetrics.memory_used_mb?.toFixed(0)} / {systemMetrics.memory_total_mb?.toFixed(0)} MB
+              {formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} / {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB
             </div>
           </div>
         </div>
@@ -354,8 +355,13 @@
       <ul class="files-list" role="list" aria-label="Files with most changes">
         {#each topFiles as file (file.id || file.name || file)}
           <li class="file-item">
-            <span class="file-name">{file.filepath}</span>
-            <span class="file-changes" aria-label="{file.edit_count} changes">{file.edit_count} changes</span>
+            <span class="file-name">
+              {#if file.project}
+                <span class="file-project">{file.project}/</span>
+              {/if}
+              {file.filepath}
+            </span>
+            <span class="file-changes" aria-label="{formatNumber(file.edit_count || file.change_count)} changes">{formatNumber(file.edit_count || file.change_count)} changes</span>
           </li>
         {/each}
       </ul>
@@ -719,6 +725,11 @@
 
   .file-name {
     color: var(--text);
+  }
+
+  .file-project {
+    color: #3b82f6;
+    font-weight: 600;
   }
 
   .file-changes {

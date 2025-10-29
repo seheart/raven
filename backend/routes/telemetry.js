@@ -85,7 +85,8 @@ export function createTelemetryRoutes(deps) {
         duration_ms,
         message,
         metadata,
-        SESSION_ID
+        SESSION_ID,
+        projectName
       );
 
       // ALSO log to global developer persona database (if available)

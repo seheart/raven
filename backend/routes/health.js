@@ -312,53 +312,94 @@ export function createHealthRoutes(deps) {
           const velocityScore = Math.min((changesPerDay / 50) * 20, 20); // Max 20 points if 50+ changes/day
 
           // Component 2: Rollback Rate (25 points) - Stability measure
-          const rollbackData = db.db.prepare(`
-            SELECT
-              COUNT(DISTINCT e.id) as total_changes,
-              COUNT(DISTINCT r.id) as rollback_count
-            FROM events e
-            LEFT JOIN rollbacks r ON e.id = r.event_id
-            WHERE e.timestamp >= datetime('now', '-30 days')
-          `).get();
-          const rollbackRate = rollbackData.total_changes > 0
-            ? rollbackData.rollback_count / rollbackData.total_changes
-            : 0;
-          const stabilityScore = Math.max((1 - rollbackRate) * 25, 0); // Max 25 points if 0% rollback
+          let stabilityScore = 25; // Default to full points if rollbacks table doesn't exist
+          let rollbackRate = 0; // Declare outside try-catch for later use
+          try {
+            const rollbackData = db.db.prepare(`
+              SELECT
+                COUNT(DISTINCT e.id) as total_changes,
+                COUNT(DISTINCT r.id) as rollback_count
+              FROM events e
+              LEFT JOIN rollbacks r ON e.id = r.event_id
+              WHERE e.timestamp >= datetime('now', '-30 days')
+            `).get();
+            rollbackRate = rollbackData.total_changes > 0
+              ? rollbackData.rollback_count / rollbackData.total_changes
+              : 0;
+            stabilityScore = Math.max((1 - rollbackRate) * 25, 0); // Max 25 points if 0% rollback
+          } catch (rollbackError) {
+            // Rollbacks table doesn't exist - assume no rollbacks (full stability score)
+            rollbackRate = 0;
+            stabilityScore = 25;
+          }
 
           // Component 3: Agent Reliability (20 points) - Agent success rates
-          const agentStats = db.db.prepare(`
-            SELECT
-              agent,
-              COUNT(*) as total,
-              COUNT(CASE WHEN agent_confidence > 70 THEN 1 END) as high_confidence
-            FROM events
-            WHERE timestamp >= datetime('now', '-30 days')
-            AND agent IS NOT NULL
-            GROUP BY agent
-          `).all();
-          let avgConfidence = 0;
-          if (agentStats.length > 0) {
-            avgConfidence = agentStats.reduce((sum, a) => sum + (a.high_confidence / a.total), 0) / agentStats.length;
+          let reliabilityScore = 15; // Default to 75% if agent data not available
+          try {
+            const agentStats = db.db.prepare(`
+              SELECT
+                agent,
+                COUNT(*) as total,
+                COUNT(CASE WHEN agent_confidence > 70 THEN 1 END) as high_confidence
+              FROM events
+              WHERE timestamp >= datetime('now', '-30 days')
+              AND agent IS NOT NULL
+              GROUP BY agent
+            `).all();
+            let avgConfidence = 0;
+            if (agentStats.length > 0) {
+              avgConfidence = agentStats.reduce((sum, a) => sum + (a.high_confidence / a.total), 0) / agentStats.length;
+            }
+            reliabilityScore = avgConfidence * 20; // Max 20 points if 100% high confidence
+          } catch (agentError) {
+            // Agent column doesn't exist - use default score
+            reliabilityScore = 15;
           }
-          const reliabilityScore = avgConfidence * 20; // Max 20 points if 100% high confidence
 
           // Component 4: Change Complexity (15 points) - Smaller, focused changes are better
-          const complexityData = db.db.prepare(`
-            SELECT AVG(LENGTH(diff)) as avg_diff_size
-            FROM events
-            WHERE timestamp >= datetime('now', '-7 days')
-            AND diff IS NOT NULL
-          `).get();
-          const avgDiffSize = complexityData.avg_diff_size || 0;
-          // Score inversely - smaller changes = better (ideal: 200-500 bytes)
-          const complexityScore = avgDiffSize > 0
-            ? Math.max(15 - ((avgDiffSize - 350) / 100), 0)
-            : 15;
+          let complexityScore = 15; // Default to full points if diff data not available
+          let avgDiffSize = 0; // Declare outside try-catch for later use
+          try {
+            const complexityData = db.db.prepare(`
+              SELECT AVG(LENGTH(diff)) as avg_diff_size
+              FROM events
+              WHERE timestamp >= datetime('now', '-7 days')
+              AND diff IS NOT NULL
+            `).get();
+            avgDiffSize = complexityData.avg_diff_size || 0;
+            // Score inversely - smaller changes = better (ideal: 200-500 bytes)
+            complexityScore = avgDiffSize > 0
+              ? Math.max(15 - ((avgDiffSize - 350) / 100), 0)
+              : 15;
+          } catch (complexityError) {
+            // Diff column doesn't exist - use default score
+            avgDiffSize = 0;
+            complexityScore = 15;
+          }
 
           // Component 5: Activity Recency (20 points) - How recent is development
-          const latest = db.db.prepare(`
+          // Check BOTH file events AND agent events for most recent activity
+          const latestFileEvent = db.db.prepare(`
             SELECT timestamp FROM events ORDER BY timestamp DESC LIMIT 1
           `).get();
+          const latestAgentEvent = db.db.prepare(`
+            SELECT timestamp FROM agent_events ORDER BY timestamp DESC LIMIT 1
+          `).get();
+
+          // Get the most recent timestamp from either table
+          let latestTimestamp = null;
+          if (latestFileEvent && latestAgentEvent) {
+            latestTimestamp = new Date(latestFileEvent.timestamp) > new Date(latestAgentEvent.timestamp)
+              ? latestFileEvent.timestamp
+              : latestAgentEvent.timestamp;
+          } else if (latestFileEvent) {
+            latestTimestamp = latestFileEvent.timestamp;
+          } else if (latestAgentEvent) {
+            latestTimestamp = latestAgentEvent.timestamp;
+          }
+
+          const latest = latestTimestamp ? { timestamp: latestTimestamp } : null;
+
           let recencyScore = 0;
           if (latest) {
             const hoursSinceActivity = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60);
@@ -375,20 +416,25 @@ export function createHealthRoutes(deps) {
             Math.min(complexityScore, 15) + recencyScore
           );
 
-          // Determine status
+          // Determine status based on most recent activity (file OR agent events)
           let status = 'inactive';
           if (latest) {
-            const lastActivityHours = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60);
-            if (lastActivityHours < 1) status = 'active';
-            else if (lastActivityHours < 24) status = 'recent';
-            else if (lastActivityHours < 168) status = 'idle';
+            const minutesSinceActivity = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60);
+            if (minutesSinceActivity < 5) status = 'active';  // Active in last 5 minutes
+            else if (minutesSinceActivity < 60) status = 'recent';  // Active in last hour
+            else if (minutesSinceActivity < 1440) status = 'idle';  // Active in last 24 hours
           }
 
-          // Get recent event count
-          const recentEvents = db.db.prepare(`
+          // Get recent event count from BOTH tables
+          const recentFileEvents = db.db.prepare(`
             SELECT COUNT(*) as count FROM events
             WHERE timestamp >= datetime('now', '-24 hours')
           `).get();
+          const recentAgentEvents = db.db.prepare(`
+            SELECT COUNT(*) as count FROM agent_events
+            WHERE timestamp >= datetime('now', '-24 hours')
+          `).get();
+          const totalRecentEvents = (recentFileEvents.count || 0) + (recentAgentEvents.count || 0);
 
           healthData.push({
             name: projectName,
@@ -409,7 +455,8 @@ export function createHealthRoutes(deps) {
                 ((Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1) :
                 null
             },
-            recent_events: recentEvents.count || 0,
+            recent_events: totalRecentEvents,
+            error_count: 0,
             last_activity: latest?.timestamp || null
           });
         } catch (projectError) {
@@ -427,13 +474,17 @@ export function createHealthRoutes(deps) {
       // Sort by health score descending
       healthData.sort((a, b) => b.health_score - a.health_score);
 
+      const activeCount = healthData.filter(p => p.status === 'active').length;
+      const recentCount = healthData.filter(p => p.status === 'recent').length;
+      const idleCount = healthData.filter(p => p.status === 'idle').length;
+      const inactiveCount = healthData.filter(p => p.status === 'inactive').length;
+
       res.json({
         projects: healthData,
         total_projects: projectDatabases.size,
-        active_projects: healthData.filter(p => p.status === 'active').length,
-        recent_projects: healthData.filter(p => p.status === 'recent').length,
-        idle_projects: healthData.filter(p => p.status === 'idle').length,
-        inactive_projects: healthData.filter(p => p.status === 'inactive').length,
+        active_projects: activeCount,
+        recent_projects: recentCount,
+        idle_projects: idleCount + inactiveCount,  // Combine idle and inactive for display
         average_health: healthData.length > 0
           ? Math.round(healthData.reduce((sum, p) => sum + p.health_score, 0) / healthData.length)
           : 0

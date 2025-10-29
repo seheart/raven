@@ -6,6 +6,7 @@
   import { projectFilter, availableProjects } from './projectFilterStore.js';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
+  import { formatNumber } from './numberFormat.js';
 
   const API_BASE = API_CONFIG.BASE_URL;
 
@@ -283,7 +284,7 @@
           </div>
           <div class="info-row">
             <span class="label">Active Agents:</span>
-            <span class="value">{backendStatus?.active_agents || 0}</span>
+            <span class="value">{formatNumber(backendStatus?.active_agents || 0)}</span>
           </div>
           <div class="info-row">
             <span class="label">Database:</span>
@@ -397,7 +398,7 @@
       <div class="card-header">
         <h3 id="projects-heading"><span aria-hidden="true">👁️</span> Monitored Projects</h3>
         <div class="status-indicator online" role="status">
-          <span aria-hidden="true">🟢</span> {$availableProjects.length} Active
+          <span aria-hidden="true">🟢</span> {formatNumber($availableProjects.length)} Active
         </div>
       </div>
       <div class="card-body">
@@ -444,22 +445,22 @@
             </div>
             <div class="info-row">
               <span class="label">Modified Files:</span>
-              <span class="value">{gitStatus.modified.length}</span>
+              <span class="value">{formatNumber(gitStatus.modified.length)}</span>
             </div>
             <div class="info-row">
               <span class="label">New Files:</span>
-              <span class="value">{gitStatus.created.length}</span>
+              <span class="value">{formatNumber(gitStatus.created.length)}</span>
             </div>
             <div class="info-row">
               <span class="label">Deleted Files:</span>
-              <span class="value">{gitStatus.deleted.length}</span>
+              <span class="value">{formatNumber(gitStatus.deleted.length)}</span>
             </div>
           </div>
 
           <!-- All Branches -->
           {#if gitStatus?.branches?.length > 0}
             <div class="git-section">
-              <h4 class="section-title">🌿 All Branches ({gitStatus?.branches?.length || 0})</h4>
+              <h4 class="section-title">🌿 All Branches ({formatNumber(gitStatus?.branches?.length || 0)})</h4>
               <div class="branches-list">
                 {#each gitStatus?.branches || [] as branch (branch)}
                   <span class="branch-tag" class:active={branch === gitStatus?.branch}>

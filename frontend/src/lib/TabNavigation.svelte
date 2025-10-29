@@ -5,7 +5,7 @@
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊', shortcut: '1' },
     { id: 'agents', label: 'Agents', icon: '🤖', shortcut: '2' },
-    { id: 'activity', label: 'Activity', icon: '⚡️', shortcut: '3' },
+    { id: 'activity', label: 'Activity', icon: '⚡', shortcut: '3' },
     { id: 'analysis', label: 'Analysis', icon: '📈', shortcut: '4' },
     { id: 'system', label: 'System', icon: '⚙️', shortcut: '5' }
   ];

@@ -498,7 +498,7 @@ registry.register(custom);
 
 ---
 
-## ⚡️ Performance
+## ⚡ Performance
 
 ### Polling Overhead
 - **Per-agent HTTP request:** ~5-50ms (depending on agent)

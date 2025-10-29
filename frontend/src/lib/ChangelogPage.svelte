@@ -33,7 +33,7 @@
     switch (type) {
     case 'feature': return '✨';
     case 'fix': return '🐛';
-    case 'improvement': return '⚡️';
+    case 'improvement': return '⚡';
     case 'breaking': return '💥';
     case 'security': return '🔒';
     case 'docs': return '📝';

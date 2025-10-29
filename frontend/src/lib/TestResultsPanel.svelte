@@ -4,6 +4,7 @@
   import { notifications } from './notificationService.js';
   import { desktopNotifications } from './services/desktopNotifications.js';
   import { logger } from './logger.js';
+  import { formatNumber } from './numberFormat.js';
 
   let results = [];
   let latestResult = null;
@@ -68,11 +69,11 @@
       running = false;
 
       if (result.passed) {
-        notifications.success(`Tests passed: ${result.passedTests}/${result.totalTests}`, {
+        notifications.success(`Tests passed: ${formatNumber(result.passedTests)}/${formatNumber(result.totalTests)}`, {
           title: 'Test Runner'
         });
       } else {
-        notifications.error(`Tests failed: ${result.failedTests}/${result.totalTests} failed`, {
+        notifications.error(`Tests failed: ${formatNumber(result.failedTests)}/${formatNumber(result.totalTests)} failed`, {
           title: 'Test Runner',
           duration: 10000
         });
@@ -96,7 +97,7 @@
       if (!data.passed) {
         desktopNotifications.show({
           title: 'Tests Failed!',
-          body: `${data.failedTests}/${data.totalTests} tests failed`,
+          body: `${formatNumber(data.failedTests)}/${formatNumber(data.totalTests)} tests failed`,
           severity: 'critical',
           requireInteraction: true
         });
@@ -177,9 +178,9 @@
           <p class="result-framework">{latestResult.framework}</p>
         </div>
         <div class="result-stats" role="group" aria-label="Test results breakdown">
-          <div class="stat passed" role="status">{latestResult.passed_tests} passed</div>
-          <div class="stat failed" role="status">{latestResult.failed_tests} failed</div>
-          <div class="stat skipped" role="status">{latestResult.skipped_tests} skipped</div>
+          <div class="stat passed" role="status">{formatNumber(latestResult.passed_tests)} passed</div>
+          <div class="stat failed" role="status">{formatNumber(latestResult.failed_tests)} failed</div>
+          <div class="stat skipped" role="status">{formatNumber(latestResult.skipped_tests)} skipped</div>
         </div>
       </div>
       <div class="result-meta">
@@ -212,7 +213,7 @@
               <div class="result-row">
                 <span class="framework-name">{result.framework}</span>
                 <span class="result-count" role="status">
-                  {result.passed_tests}/{result.total_tests} passed
+                  {formatNumber(result.passed_tests)}/{formatNumber(result.total_tests)} passed
                 </span>
               </div>
               <div class="result-row meta">

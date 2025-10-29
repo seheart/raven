@@ -431,7 +431,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 
 ---
 
-## ⚡️ Triggers & Alerts
+## ⚡ Triggers & Alerts
 
 ### GET /api/triggers-config
 

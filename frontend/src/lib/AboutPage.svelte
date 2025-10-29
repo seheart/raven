@@ -73,7 +73,7 @@
             <p>Monitor AI agent activity, events, and telemetry in real-time</p>
           </article>
           <article class="feature-card" role="listitem">
-            <div class="feature-icon" aria-hidden="true">⚡️</div>
+            <div class="feature-icon" aria-hidden="true">⚡</div>
             <h3>Performance Profiling</h3>
             <p>CPU, memory, network, and process-level metrics with charts</p>
           </article>

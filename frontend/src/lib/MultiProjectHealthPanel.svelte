@@ -77,15 +77,6 @@
     }
   }
 
-  function getStatusIcon(status) {
-    return {
-      active: '🟢',
-      recent: '🟡',
-      idle: '🟠',
-      inactive: '⚪'
-    }[status] || '⚫';
-  }
-
   function getStatusLabel(status) {
     return {
       active: 'Active',
@@ -219,11 +210,24 @@
   {:else}
     <div class="projects-grid" role="list" aria-labelledby="multi-project-heading">
       {#each sortedProjects as project (project.name)}
-        <article class="project-card {getHealthColor(project.health_score)}" role="listitem">
+        <article
+          class="project-card"
+          class:card-active={project.status === 'active'}
+          class:card-recent={project.status === 'recent'}
+          class:card-idle={project.status === 'idle' || project.status === 'inactive'}
+          role="listitem"
+        >
           <div class="project-header">
             <div class="project-name">{project.name}</div>
             <div class="project-status">
-              <span class="status-icon" aria-label="{getStatusLabel(project.status)}" role="img">{getStatusIcon(project.status)}</span>
+              <span
+                class="status-dot"
+                class:status-active={project.status === 'active'}
+                class:status-recent={project.status === 'recent'}
+                class:status-idle={project.status === 'idle' || project.status === 'inactive'}
+                aria-label="{getStatusLabel(project.status)}"
+                role="img"
+              ></span>
               <span class="status-label">{getStatusLabel(project.status)}</span>
             </div>
           </div>
@@ -310,15 +314,15 @@
   }
 
   .stat-card.active {
-    border-color: var(--success, #10b981);
+    border-color: #10b981;
   }
 
   .stat-card.recent {
-    border-color: var(--warning, #e0af68);
+    border-color: #3b82f6;
   }
 
   .stat-card.idle {
-    border-color: var(--muted);
+    border-color: #6b7280;
   }
 
   .stat-value {
@@ -401,20 +405,16 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  .project-card.health-excellent {
-    border-color: var(--success, #10b981);
+  .project-card.card-active {
+    border-color: #10b981;
   }
 
-  .project-card.health-good {
-    border-color: var(--accent, #7aa2f7);
+  .project-card.card-recent {
+    border-color: #3b82f6;
   }
 
-  .project-card.health-fair {
-    border-color: var(--warning, #e0af68);
-  }
-
-  .project-card.health-poor {
-    border-color: var(--error, #f7768e);
+  .project-card.card-idle {
+    border-color: #6b7280;
   }
 
   .project-header {
@@ -437,8 +437,27 @@
     gap: 6px;
   }
 
-  .status-icon {
-    font-size: 14px;
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #6b7280;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+  }
+
+  .status-dot.status-active {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  }
+
+  .status-dot.status-recent {
+    background: #3b82f6;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  }
+
+  .status-dot.status-idle {
+    background: #6b7280;
   }
 
   .status-label {

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
+  import { formatNumber } from './numberFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
 
@@ -235,15 +236,15 @@
   <!-- Summary Stats -->
   <div class="summary-stats" role="group" aria-labelledby="agents-heading">
     <div class="stat-card" role="status">
-      <div class="stat-value">{agentStats.length}</div>
+      <div class="stat-value">{formatNumber(agentStats.length)}</div>
       <div class="stat-label">Active Agents</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value">{totalEvents}</div>
+      <div class="stat-value">{formatNumber(totalEvents)}</div>
       <div class="stat-label">Total Events</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value">{totalLinesChanged}</div>
+      <div class="stat-value">{formatNumber(totalLinesChanged)}</div>
       <div class="stat-label">Lines Changed</div>
     </div>
     <div class="stat-card" role="status">
@@ -296,7 +297,7 @@
       aria-controls="agents-tabpanel"
       id="performance-tab"
     >
-      <span aria-hidden="true">⚡️</span> Performance
+      <span aria-hidden="true">⚡</span> Performance
     </button>
   </div>
 
@@ -332,11 +333,11 @@
               <div class="agent-stats" role="group" aria-label="{stat.agent} statistics">
                 <div class="stat-row">
                   <span class="label">Events:</span>
-                  <span class="value">{stat.event_count}</span>
+                  <span class="value">{formatNumber(stat.event_count)}</span>
                 </div>
                 <div class="stat-row">
                   <span class="label">Lines Changed:</span>
-                  <span class="value">{stat.total_lines_changed || 0}</span>
+                  <span class="value">{formatNumber(stat.total_lines_changed || 0)}</span>
                 </div>
                 <div class="stat-row">
                   <span class="label">Avg Duration:</span>
@@ -370,7 +371,12 @@
                 </div>
                 <div class="event-message">{event.message}</div>
                 {#if event.file}
-                  <div class="event-file">📄 {event.file}</div>
+                  <div class="event-file">
+                    {#if event.project_name}
+                      <span class="file-project">{event.project_name}/</span>
+                    {/if}
+                    📄 {event.file}
+                  </div>
                 {/if}
               </div>
               <div class="event-meta">
@@ -378,7 +384,7 @@
                   <span class="event-duration">{formatDuration(event.duration_ms)}</span>
                 {/if}
                 {#if event.lines_changed}
-                  <span class="event-lines">{event.lines_changed} lines</span>
+                  <span class="event-lines">{formatNumber(event.lines_changed)} lines</span>
                 {/if}
                 <time class="event-time" datetime="{event.timestamp}">{formatTimestamp(event.timestamp)}</time>
               </div>
@@ -391,75 +397,84 @@
       <!-- Performance Tab -->
       {#if filteredAgentStats.length === 0}
         <div class="empty">
-          <div class="icon">⚡️</div>
+          <div class="icon">⚡</div>
           <h3>No Performance Data</h3>
           <p>Performance metrics will appear here once agents are active.</p>
         </div>
       {:else}
-        <div class="performance-grid">
-          <div class="performance-card">
-            <h3>Response Time Comparison</h3>
-            <div class="performance-bars">
-              {#each filteredAgentStats.slice().sort((a, b) => (b.avg_duration_ms || 0) - (a.avg_duration_ms || 0)) as stat (stat.agent)}
-                {@const maxDuration = Math.max(...filteredAgentStats.map(s => s.avg_duration_ms || 0), 1)}
-                <div class="bar-row">
-                  <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
-                    {stat.agent}
-                  </span>
-                  <div class="bar-container">
-                    <div
-                      class="bar-fill"
-                      style="width: {stat.avg_duration_ms ? ((stat.avg_duration_ms / maxDuration) * 100) : 0}%; background-color: {getAgentColor(stat.agent)}"
-                    ></div>
-                  </div>
-                  <span class="bar-value">{stat.avg_duration_ms ? formatDuration(stat.avg_duration_ms) : 'N/A'}</span>
-                </div>
-              {/each}
-            </div>
-          </div>
+        {#each filteredAgentStats as stat (stat.agent)}
+          <div class="agent-performance-section">
+            <h3 class="agent-section-title" style="color: {getAgentColor(stat.agent)}">{stat.agent}</h3>
 
-          <div class="performance-card">
-            <h3>Activity Distribution</h3>
-            <div class="performance-bars">
-              {#each filteredAgentStats.slice().sort((a, b) => b.event_count - a.event_count) as stat (stat.agent)}
-                {@const maxEvents = filteredAgentStats.length > 0 ? Math.max(...filteredAgentStats.map(s => s?.event_count || 0)) : 1}
-                <div class="bar-row">
-                  <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
-                    {stat.agent}
-                  </span>
-                  <div class="bar-container">
-                    <div
-                      class="bar-fill"
-                      style="width: {(stat.event_count / maxEvents) * 100}%; background-color: {getAgentColor(stat.agent)}"
-                    ></div>
+            <div class="performance-grid">
+              <!-- Response Time Card -->
+              <div class="performance-card detail-card">
+                <h4>⚡ Response Time</h4>
+                <div class="metric-grid">
+                  <div class="metric-item">
+                    <span class="metric-label">Average</span>
+                    <span class="metric-value primary">{stat.avg_duration_ms ? formatDuration(stat.avg_duration_ms) : 'N/A'}</span>
                   </div>
-                  <span class="bar-value">{stat.event_count} events</span>
+                  <div class="metric-item">
+                    <span class="metric-label">Fastest</span>
+                    <span class="metric-value success">{stat.min_duration_ms ? formatDuration(stat.min_duration_ms) : 'N/A'}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Slowest</span>
+                    <span class="metric-value warning">{stat.max_duration_ms ? formatDuration(stat.max_duration_ms) : 'N/A'}</span>
+                  </div>
                 </div>
-              {/each}
-            </div>
-          </div>
+              </div>
 
-          <div class="performance-card">
-            <h3>Code Impact</h3>
-            <div class="performance-bars">
-              {#each filteredAgentStats.slice().sort((a, b) => (b.total_lines_changed || 0) - (a.total_lines_changed || 0)) as stat (stat.agent)}
-                {@const maxLines = filteredAgentStats.length > 0 ? Math.max(...filteredAgentStats.map(s => s?.total_lines_changed || 0)) : 1}
-                <div class="bar-row">
-                  <span class="bar-label" style="color: {getAgentColor(stat.agent)}">
-                    {stat.agent}
-                  </span>
-                  <div class="bar-container">
-                    <div
-                      class="bar-fill"
-                      style="width: {maxLines > 0 ? ((stat.total_lines_changed || 0) / maxLines) * 100 : 0}%; background-color: {getAgentColor(stat.agent)}"
-                    ></div>
+              <!-- Activity Breakdown Card -->
+              <div class="performance-card detail-card">
+                <h4>📊 Activity Breakdown</h4>
+                <div class="breakdown-grid">
+                  <div class="breakdown-item">
+                    <span class="breakdown-icon create">➕</span>
+                    <div class="breakdown-info">
+                      <span class="breakdown-value">{formatNumber(stat.create_count || 0)}</span>
+                      <span class="breakdown-label">Creates</span>
+                    </div>
                   </div>
-                  <span class="bar-value">{stat.total_lines_changed || 0} lines</span>
+                  <div class="breakdown-item">
+                    <span class="breakdown-icon edit">✏️</span>
+                    <div class="breakdown-info">
+                      <span class="breakdown-value">{formatNumber(stat.edit_count || 0)}</span>
+                      <span class="breakdown-label">Edits</span>
+                    </div>
+                  </div>
+                  <div class="breakdown-item">
+                    <span class="breakdown-icon delete">🗑️</span>
+                    <div class="breakdown-info">
+                      <span class="breakdown-value">{formatNumber(stat.delete_count || 0)}</span>
+                      <span class="breakdown-label">Deletes</span>
+                    </div>
+                  </div>
                 </div>
-              {/each}
+              </div>
+
+              <!-- Code Impact Card -->
+              <div class="performance-card detail-card">
+                <h4>💻 Code Impact</h4>
+                <div class="metric-grid">
+                  <div class="metric-item">
+                    <span class="metric-label">Total Lines</span>
+                    <span class="metric-value primary">{formatNumber(stat.total_lines_changed || 0)}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Per Event</span>
+                    <span class="metric-value">{stat.event_count > 0 ? formatNumber(Math.round((stat.total_lines_changed || 0) / stat.event_count)) : '0'}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Total Events</span>
+                    <span class="metric-value">{formatNumber(stat.event_count)}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        {/each}
       {/if}
     {/if}
   </div>
@@ -909,6 +924,11 @@
     font-family: monospace;
   }
 
+  .file-project {
+    color: #3b82f6;
+    font-weight: 600;
+  }
+
   .event-meta {
     display: flex;
     flex-direction: column;
@@ -926,9 +946,20 @@
   }
 
   /* Performance Tab */
+  .agent-performance-section {
+    margin-bottom: 24px;
+  }
+
+  .agent-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
   .performance-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 12px;
   }
 
@@ -936,54 +967,110 @@
     background: var(--surface);
     border: 1px solid var(--surface-2);
     border-radius: 8px;
-    padding: 12px;
+    padding: 16px;
   }
 
-  .performance-card h3 {
+  .performance-card h4 {
     color: var(--text);
-    font-size: 15px;
-    margin-bottom: 10px;
+    font-size: 14px;
+    margin: 0 0 12px 0;
     font-weight: 600;
   }
 
-  .performance-bars {
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .metric-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .metric-value {
+    font-size: 15px;
+    color: var(--text);
+    font-weight: 700;
+    font-family: var(--mono);
+  }
+
+  .metric-value.primary {
+    color: var(--accent);
+  }
+
+  .metric-value.success {
+    color: #10b981;
+  }
+
+  .metric-value.warning {
+    color: var(--warning);
+  }
+
+  .breakdown-grid {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
 
-  .bar-row {
-    display: grid;
-    grid-template-columns: 120px 1fr 80px;
-    gap: 12px;
+  .breakdown-item {
+    display: flex;
     align-items: center;
-  }
-
-  .bar-label {
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .bar-container {
-    height: 8px;
+    gap: 12px;
+    padding: 8px;
     background: var(--surface-2);
-    border-radius: 4px;
-    overflow: hidden;
+    border-radius: 6px;
   }
 
-  .bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s ease;
+  .breakdown-icon {
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    flex-shrink: 0;
   }
 
-  .bar-value {
-    font-size: 12px;
+  .breakdown-icon.create {
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  .breakdown-icon.edit {
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .breakdown-icon.delete {
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .breakdown-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .breakdown-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    font-family: var(--mono);
+  }
+
+  .breakdown-label {
+    font-size: 11px;
     color: var(--muted);
-    text-align: right;
+    text-transform: uppercase;
+    font-weight: 600;
   }
 
   /* Footer */

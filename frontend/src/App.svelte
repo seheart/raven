@@ -69,7 +69,7 @@
     { id: 'overview', label: 'Overview', icon: '📊', shortcut: '1' },
     { id: 'safety', label: 'Safety', icon: '🛡️', shortcut: '2' },
     { id: 'agents', label: 'Agents', icon: '🤖', shortcut: '3' },
-    { id: 'activity', label: 'Activity', icon: '⚡️', shortcut: '4' },
+    { id: 'activity', label: 'Activity', icon: '⚡', shortcut: '4' },
     { id: 'analysis', label: 'Analysis', icon: '📈', shortcut: '5' },
     { id: 'system', label: 'System', icon: '⚙️', shortcut: '6' }
   ];
@@ -250,9 +250,8 @@
     loadingMessage = 'Establishing WebSocket connection...';
     loadingProgress = 50;
 
-    // Initialize WebSocket connection and notification listeners
+    // Initialize WebSocket connection (but don't set up notification listeners yet)
     websocketService.connect();
-    setupNotificationListeners();
 
     loadingMessage = 'Preloading dashboard data...';
     loadingProgress = 60;
@@ -308,6 +307,10 @@
 
     // Hide loading screen
     isInitialLoading = false;
+
+    // NOW set up notification listeners (after loading screen is gone)
+    // This prevents startup warnings from showing on the loading screen
+    setupNotificationListeners();
 
     // Show Quick Start Wizard for first-time users
     if (!localStorage.getItem('raven-quick-start-completed')) {

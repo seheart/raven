@@ -5,6 +5,7 @@
   import { desktopNotifications } from './services/desktopNotifications.js';
   import { logger } from './logger.js';
   import { settings as settingsStore } from './settingsStore.js';
+  import { formatNumber } from './numberFormat.js';
 
   let errors = [];
   let loading = true;
@@ -147,7 +148,7 @@ ${allErrorsText}`;
 
     try {
       await navigator.clipboard.writeText(finalText);
-      notifications.success(`Copied ${errors.length} errors to clipboard`);
+      notifications.success(`Copied ${formatNumber(errors.length)} errors to clipboard`);
     } catch (err) {
       logger.error('Failed to copy all errors:', err);
       notifications.error('Failed to copy to clipboard');
@@ -161,7 +162,7 @@ ${allErrorsText}`;
       return;
     }
 
-    if (!confirm(`Are you sure you want to clear all ${errors.length} syntax errors?`)) {
+    if (!confirm(`Are you sure you want to clear all ${formatNumber(errors.length)} syntax errors?`)) {
       return;
     }
 
@@ -173,7 +174,7 @@ ${allErrorsText}`;
 
       await Promise.all(promises);
 
-      notifications.success(`Cleared ${errors.length} syntax errors`);
+      notifications.success(`Cleared ${formatNumber(errors.length)} syntax errors`);
       await fetchErrors();
     } catch (err) {
       logger.error('Failed to clear errors:', err);
@@ -245,7 +246,7 @@ ${allErrorsText}`;
     <h2 id="syntax-errors-heading">Syntax Errors</h2>
     {#if !loading}
       <span class="error-count" class:has-errors={errorCount > 0} role="status">
-        {errorCount} {errorCount === 1 ? 'error' : 'errors'}
+        {formatNumber(errorCount)} {errorCount === 1 ? 'error' : 'errors'}
       </span>
     {/if}
     <div class="header-actions">
@@ -281,7 +282,7 @@ ${allErrorsText}`;
           <div class="file-header">
             <span class="file-icon" aria-hidden="true">📄</span>
             <span class="file-path">{filepath}</span>
-            <span class="file-error-count" role="status">{fileErrors.length}</span>
+            <span class="file-error-count" role="status">{formatNumber(fileErrors.length)}</span>
           </div>
 
           <div class="errors" role="list" aria-label="Syntax errors in {filepath}">

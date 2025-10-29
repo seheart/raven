@@ -62,9 +62,17 @@ export class RavenDB {
         duration_ms INTEGER,
         message TEXT NOT NULL,
         metadata TEXT,
-        session_id TEXT
+        session_id TEXT,
+        project_name TEXT
       )
     `);
+
+    // Add project_name column to existing agent_events tables (migration)
+    try {
+      this.db.exec(`ALTER TABLE agent_events ADD COLUMN project_name TEXT`);
+    } catch (err) {
+      // Column already exists, ignore
+    }
 
     // Performance metrics table
     this.db.exec(`
@@ -295,11 +303,12 @@ export class RavenDB {
     duration_ms,
     message,
     metadata,
-    session_id
+    session_id,
+    project_name
   ) {
     const stmt = this.prepareStatement(`
-      INSERT INTO agent_events (timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO agent_events (timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -311,7 +320,8 @@ export class RavenDB {
       duration_ms || null,
       message,
       metadata ? JSON.stringify(metadata) : null,
-      session_id || null
+      session_id || null,
+      project_name || null
     );
 
     return result.lastInsertRowid;
@@ -319,7 +329,7 @@ export class RavenDB {
 
   getRecentAgentEvents(limit = 100) {
     const stmt = this.prepareStatement(`
-      SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+      SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, project_name
       FROM agent_events
       ORDER BY timestamp DESC
       LIMIT ?
@@ -330,7 +340,7 @@ export class RavenDB {
 
   getEventsByAgent(agent, limit = 100) {
     const stmt = this.prepareStatement(`
-      SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+      SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, project_name
       FROM agent_events
       WHERE agent = ?
       ORDER BY timestamp DESC
@@ -346,7 +356,12 @@ export class RavenDB {
         agent,
         COUNT(*) as event_count,
         AVG(duration_ms) as avg_duration_ms,
-        SUM(lines_changed) as total_lines_changed
+        MIN(duration_ms) as min_duration_ms,
+        MAX(duration_ms) as max_duration_ms,
+        SUM(lines_changed) as total_lines_changed,
+        SUM(CASE WHEN event_type = 'create' THEN 1 ELSE 0 END) as create_count,
+        SUM(CASE WHEN event_type = 'edit' THEN 1 ELSE 0 END) as edit_count,
+        SUM(CASE WHEN event_type = 'delete' THEN 1 ELSE 0 END) as delete_count
       FROM agent_events
       GROUP BY agent
       ORDER BY event_count DESC
@@ -354,6 +369,22 @@ export class RavenDB {
     `);
 
     return stmt.all(limit);
+  }
+
+  getTopFilesByAgent(agent, limit = 5) {
+    const stmt = this.prepareStatement(`
+      SELECT
+        file,
+        COUNT(*) as edit_count,
+        SUM(lines_changed) as total_lines
+      FROM agent_events
+      WHERE agent = ? AND file IS NOT NULL
+      GROUP BY file
+      ORDER BY edit_count DESC
+      LIMIT ?
+    `);
+
+    return stmt.all(agent, limit);
   }
 
   // Get historical agents with last_seen and request counts (for agents panel)

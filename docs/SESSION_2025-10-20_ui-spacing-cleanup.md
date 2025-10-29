@@ -104,7 +104,7 @@ This session focused on comprehensive UI cleanup across the Raven frontend, addr
 **Solution:** Changed to filled yellow lightning bolt to match quick start guide.
 
 **File Modified:** `frontend/src/lib/TabNavigation.svelte`
-- Changed icon from `⚡` to `⚡️` (line 8)
+- Changed icon from `⚡` to `⚡` (line 8)
 
 **Result:** Consistent iconography across documentation and UI.
 

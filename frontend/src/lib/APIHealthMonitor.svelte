@@ -365,7 +365,7 @@
 
                 <div class="endpoint-actions">
                   <button on:click={() => checkEndpoint(endpoint)} class="btn-test" aria-label="Test {endpoint.path} endpoint">
-                    <span aria-hidden="true">⚡️</span>
+                    <span aria-hidden="true">⚡</span>
                   </button>
                 </div>
               </div>

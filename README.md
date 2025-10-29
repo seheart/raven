@@ -6,13 +6,50 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 1.6.0 - Security Hardening & Code Quality
+**Version:** 1.6.1 - UI/UX Polish & Multi-Project Health
 
-## 🚀 Current Status: V1.6.0 COMPLETE - Enterprise-Grade Security
+## 🚀 Current Status: V1.6.1 COMPLETE - UI/UX Polish & Multi-Project Health
 
-✅ **Production-ready with enterprise-grade security hardening and code quality improvements. Comprehensive audit fixes including auto-generated JWT secrets, script integrity verification, standardized error handling, and race condition elimination. 575/575 tests passing (100%).**
+✅ **Production-ready with comprehensive UI/UX improvements, multi-project health enhancements, and developer-focused metrics. Number formatting throughout, project tracking in activity feeds, redesigned performance metrics, and robust error handling for database operations.**
 
-### 🎉 What's New in 1.6.0 - Security Hardening & Code Quality (October 2025)
+### 🎉 What's New in 1.6.1 - UI/UX Polish & Multi-Project Improvements (October 2025)
+
+**📊 UI/UX Enhancements:**
+- ✅ **Number Formatting** - Thousand-separator formatting (commas) for all numbers in UI
+- ✅ **Project Tracking** - Project names displayed in activity feeds and overview panels
+- ✅ **Performance Metrics Redesign** - Replaced comparison bars with actionable metric cards:
+  - Response Time Card (min/avg/max with color coding)
+  - Activity Breakdown Card (creates/edits/deletes counts)
+  - Code Impact Card (total lines, per-event average, total events)
+- ✅ **Visual Consistency** - Standardized colored bolt emoji (⚡) across codebase and documentation
+
+**🏥 Multi-Project Health Improvements:**
+- ✅ **Enhanced Activity Detection** - Checks both file events AND agent events (telemetry)
+- ✅ **Improved Color Scheme** - Green (active), Blue (recent), Grey (idle) - removed confusing red
+- ✅ **Accurate Status** - Projects show as active when using telemetry-based tools like Claude Code
+- ✅ **Robust Error Handling** - Graceful handling of missing database tables/columns
+- ✅ **Better Status Dots** - Visual indicators with glow effects for active projects
+
+**🔧 Backend Improvements:**
+- ✅ **Database Schema** - Added `project_name` column to `agent_events` table
+- ✅ **Enhanced Statistics** - `getAgentStats()` now includes min/max duration and activity breakdown
+- ✅ **New API Method** - `getTopFilesByAgent()` for per-agent file analysis
+- ✅ **Error Resilience** - Try-catch blocks prevent crashes from missing tables/columns
+- ✅ **Dual Event Tracking** - Health calculations check both file changes and agent activity
+
+**🎨 Frontend Polish:**
+- ✅ **Loading Screen UX** - Delayed notification listeners until app fully loads
+- ✅ **Centralized Formatting** - New `numberFormat.js` utility for consistent number display
+- ✅ **Project Context** - Project names shown in blue throughout activity feeds
+- ✅ **Clean Startup** - Removed confusing warning icons from loading screen
+
+**📝 Files Added:**
+- `frontend/src/lib/numberFormat.js` - Number formatting utilities (formatNumber, formatBytes)
+
+**💡 Why This Matters:**
+Version 1.6.1 focuses on polish and usability improvements based on real-world usage. The multi-project health system now accurately tracks activity from both file watchers and telemetry bridges, making it reliable for Claude Code workflows. The redesigned performance metrics provide actionable insights rather than meaningless comparison bars. Number formatting and project context throughout the UI make information more readable and easier to understand at a glance.
+
+### Previous Release - 1.6.0 - Security Hardening & Code Quality (October 2025)
 
 **🔒 Enterprise-Grade Security:**
 - ✅ **Auto-Generated JWT Secrets** - Secure 128-character secrets with file-based persistence
@@ -947,8 +984,8 @@ MIT License - See [LICENSE](LICENSE) file
 
 **Seth Eheart**
 Codename: Raven
-Version: 1.6.0 (Security Hardening & Code Quality)
+Version: 1.6.1 (UI/UX Polish & Multi-Project Health)
 
 ---
 
-**Status:** 🚀 **V1.6.0 PRODUCTION READY** - Enterprise-grade security with auto-generated JWT secrets, script integrity verification, comprehensive input validation, and standardized error handling. Revolutionary log-based monitoring using 99.97% fewer system resources (145 MB RAM, 3.2% CPU). Code quality score: 8.0/10. Security score: 9/10. Zero breaking changes. 575/575 tests passing (100%).
+**Status:** 🚀 **V1.6.1 PRODUCTION READY** - Comprehensive UI/UX polish with number formatting, project tracking in activity feeds, redesigned performance metrics, and enhanced multi-project health monitoring. Improved color scheme (green/blue/grey), dual event tracking (file + telemetry), and robust error handling. Revolutionary log-based monitoring using 99.97% fewer system resources (145 MB RAM, 3.2% CPU). Zero breaking changes.

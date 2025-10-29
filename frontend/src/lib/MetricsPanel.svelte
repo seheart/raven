@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { API_CONFIG } from '../config.js';
+  import { formatNumber } from './numberFormat.js';
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -68,7 +69,7 @@
     <div class="bar" role="progressbar" aria-valuenow={memory || 0} aria-valuemin="0" aria-valuemax="100" aria-label="Memory usage progress bar">
       <div class="fill memory" style="width: {memory || 0}%"></div>
     </div>
-    <div class="detail" aria-label="{memoryUsed || 0} megabytes used of {memoryTotal || 0} megabytes total">{memoryUsed || 0} MB / {memoryTotal || 0} MB</div>
+    <div class="detail" aria-label="{memoryUsed || 0} megabytes used of {memoryTotal || 0} megabytes total">{formatNumber(memoryUsed || 0)} MB / {formatNumber(memoryTotal || 0)} MB</div>
   </div>
 
   <div class="status" role="status" aria-live="polite">

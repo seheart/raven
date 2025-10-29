@@ -445,7 +445,7 @@
     <!-- Right Column: Recent Activity -->
     <section class="activity-column" aria-labelledby="recent-activity-heading">
       <div class="column-header">
-        <h3 id="recent-activity-heading"><span aria-hidden="true">⚡️</span> Recent Activity</h3>
+        <h3 id="recent-activity-heading"><span aria-hidden="true">⚡</span> Recent Activity</h3>
       </div>
       <div class="activity-content">
         {#if loading}

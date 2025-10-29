@@ -4,6 +4,7 @@
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
   import { desktopNotifications } from './services/desktopNotifications.js';
+  import { formatNumber } from './numberFormat.js';
 
   let warnings = [];
   let loading = true;
@@ -162,26 +163,26 @@
     <div class="stats-bar" role="region" aria-label="Warning statistics">
       <div class="stat-item">
         <span class="stat-label">Total:</span>
-        <span class="stat-value" role="status">{warningCount}</span>
+        <span class="stat-value" role="status">{formatNumber(warningCount)}</span>
       </div>
       {#if severityStats.critical}
         <div class="stat-item critical">
           <span class="stat-icon" aria-hidden="true">🚨</span>
-          <span class="stat-value" role="status">{severityStats.critical}</span>
+          <span class="stat-value" role="status">{formatNumber(severityStats.critical)}</span>
           <span class="stat-label">Critical</span>
         </div>
       {/if}
       {#if severityStats.warning}
         <div class="stat-item warning">
           <span class="stat-icon" aria-hidden="true">⚠️</span>
-          <span class="stat-value" role="status">{severityStats.warning}</span>
+          <span class="stat-value" role="status">{formatNumber(severityStats.warning)}</span>
           <span class="stat-label">Warning</span>
         </div>
       {/if}
       {#if severityStats.info}
         <div class="stat-item info">
           <span class="stat-icon" aria-hidden="true">ℹ️</span>
-          <span class="stat-value" role="status">{severityStats.info}</span>
+          <span class="stat-value" role="status">{formatNumber(severityStats.info)}</span>
           <span class="stat-label">Info</span>
         </div>
       {/if}
@@ -216,7 +217,7 @@
               {#if fileWarnings.some(w => w.severity === 'critical')}
                 <span class="severity-badge critical" role="status">CRITICAL</span>
               {/if}
-              <span class="warning-count" role="status">{fileWarnings.length}</span>
+              <span class="warning-count" role="status">{formatNumber(fileWarnings.length)}</span>
             </div>
           </div>
 

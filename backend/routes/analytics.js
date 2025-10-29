@@ -38,6 +38,25 @@ export function createAnalyticsRoutes(deps) {
   });
 
   /**
+   * GET /api/agent/:agent/top-files
+   * Get top modified files for an agent
+   */
+  router.get('/agent/:agent/top-files', (req, res) => {
+    try {
+      if (!projectState.db) {
+        return res.status(500).json({ error: 'Database not initialized' });
+      }
+      const { agent } = req.params;
+      const limit = parseInt(req.query.limit) || 5;
+      const topFiles = projectState.db.getTopFilesByAgent(agent, limit);
+      res.json(topFiles);
+    } catch (error) {
+      logger.error('Top files error:', error);
+      res.status(500).json({ error: 'Failed to retrieve top files' });
+    }
+  });
+
+  /**
    * GET /api/events-by-agent/:agent
    * Get events filtered by agent name
    */

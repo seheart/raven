@@ -10,7 +10,7 @@
 
 | For... | Start Here |
 |--------|------------|
-| **New Users** | [Quick Start Guide](QUICK_START.md) ⚡️ |
+| **New Users** | [Quick Start Guide](QUICK_START.md) ⚡ |
 | **Installation** | [Setup Guide](SETUP.md) 🔧 |
 | **API Integration** | [REST API Reference](api/REST_API.md) 📡 |
 | **Real-time Events** | [WebSocket API](api/WEBSOCKET_API.md) 🔌 |
@@ -163,7 +163,7 @@ Raven is a **local-first AI agent monitoring tool** that tracks file changes, ag
 - ✅ Metrics charts (CPU/memory over time)
 - ✅ Activity timeline
 
-### ⚡️ Alerts
+### ⚡ Alerts
 
 - ✅ Custom trigger system
 - ✅ TOML-based configuration

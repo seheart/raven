@@ -11,12 +11,35 @@
   async function loadProjectsOverview() {
     try {
       // Use dataService - it handles caching and deduplication
-      const [projects, events] = await Promise.all([
+      // Fetch both file events AND agent events to detect activity
+      const [projects, fileEvents, agentEventsResponse] = await Promise.all([
         dataService.fetchProjects(),
-        dataService.fetchFileEvents(500)
+        dataService.fetchFileEvents(500),
+        fetch(`${window.location.protocol}//${window.location.hostname}:3030/api/agent-events?limit=500`)
+          .then(r => r.json())
+          .catch(() => [])
       ]);
 
       availableProjects = projects;
+
+      // Combine file events and agent events
+      const events = [...fileEvents];
+
+      // Add agent events to the mix (they also have project and timestamp)
+      if (Array.isArray(agentEventsResponse)) {
+        agentEventsResponse.forEach(ae => {
+          if (ae.project_name) {
+            events.push({
+              timestamp: ae.timestamp,
+              project: ae.project_name,
+              type: 'agent-event'
+            });
+          }
+        });
+      }
+
+      // Sort all events by timestamp (newest first)
+      events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       // Aggregate stats per project
       const projectStats = {};
@@ -25,10 +48,25 @@
         const projectName = project.name || project; // Handle both object and string formats
         const projectEvents = events.filter(e => e.project === projectName);
 
-        // Get most recent event timestamp
+        // Get most recent event timestamp (from either file changes or agent activity)
         const lastEvent = projectEvents.length > 0
           ? projectEvents[0].timestamp
           : null;
+
+        // Determine status based on recency
+        let status = 'idle';
+        if (lastEvent) {
+          const timeSinceLastEvent = Date.now() - new Date(lastEvent).getTime();
+          const fiveMinutesAgo = 5 * 60 * 1000; // 5 minutes
+          const oneHourAgo = 60 * 60 * 1000; // 1 hour
+
+          if (timeSinceLastEvent < fiveMinutesAgo) {
+            status = 'active'; // Green - active right now
+          } else if (timeSinceLastEvent < oneHourAgo) {
+            status = 'recent'; // Blue - recently active
+          }
+          // else idle - grey
+        }
 
         // Count recent events (last hour)
         const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
@@ -36,7 +74,7 @@
 
         projectStats[projectName] = {
           name: projectName,
-          active: recentCount > 0,
+          status: status,
           lastActivity: lastEvent,
           eventCount: projectEvents.length,
           recentChanges: recentCount
@@ -49,7 +87,7 @@
           const name = project.name || project;
           return projectStats[name] || {
             name,
-            active: false,
+            status: 'idle',
             lastActivity: null,
             eventCount: 0,
             recentChanges: 0
@@ -128,13 +166,20 @@
           class="project-card"
           role="listitem"
           on:click={() => selectProject(project.name)}
-          aria-label="{project.name}: {project.recentChanges} recent changes, last activity {formatRelativeTime(project.lastActivity)}, {project.active ? 'currently active' : 'inactive'}"
+          aria-label="{project.name}: {project.recentChanges} recent changes, last activity {formatRelativeTime(project.lastActivity)}, status: {project.status}"
         >
           <div class="project-header">
             <div class="project-name">
               {project.name}
             </div>
-            <div class="project-status-dot" class:active={project.active} role="status" aria-label="{project.active ? 'Active' : 'Inactive'}"></div>
+            <div
+              class="project-status-dot"
+              class:active={project.status === 'active'}
+              class:recent={project.status === 'recent'}
+              class:idle={project.status === 'idle'}
+              role="status"
+              aria-label="{project.status === 'active' ? 'Active now' : project.status === 'recent' ? 'Recently active' : 'Idle'}"
+            ></div>
           </div>
           <div class="project-stats" role="group" aria-label="Project statistics">
             <div class="stat">
@@ -248,15 +293,26 @@
     min-width: 8px;
     min-height: 8px;
     border-radius: 50%;
-    background: var(--muted);
+    background: #9ca3af;
     flex-shrink: 0;
     display: block;
     padding: 0;
+    transition: all 0.3s ease;
   }
 
   .project-status-dot.active {
-    background: var(--success);
-    box-shadow: 0 0 4px var(--success);
+    background: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  }
+
+  .project-status-dot.recent {
+    background: #3b82f6;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+  }
+
+  .project-status-dot.idle {
+    background: #6b7280;
+    box-shadow: none;
   }
 
   .project-stats {

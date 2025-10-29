@@ -4,7 +4,7 @@
 
 ---
 
-## ⚡️ 60-Second Install
+## ⚡ 60-Second Install
 
 ```bash
 # 1. Clone repository

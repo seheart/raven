@@ -5,6 +5,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { formatTime } from './timeFormat.js';
   import { API_CONFIG } from '../config.js';
+  import { formatNumber } from './numberFormat.js';
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -218,7 +219,7 @@
 
 <div class="performance-panel" role="region" aria-label="Performance profiling panel">
   <div class="header">
-    <h2 id="performance-heading"><span class="lightning-icon" aria-hidden="true">⚡️</span> Performance Profiling</h2>
+    <h2 id="performance-heading"><span class="lightning-icon" aria-hidden="true">⚡</span> Performance Profiling</h2>
     <div class="header-actions" role="toolbar" aria-label="Performance panel actions">
       <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
       <button on:click={exportToJSON} class="btn-export" aria-label="Export performance data as JSON">
@@ -431,7 +432,7 @@
         </div>
         <div class="metric-row">
           <span class="label">RAM Used:</span>
-          <span class="value">{latestMetrics.memory_used_mb} MB / {latestMetrics.memory_total_mb} MB</span>
+          <span class="value">{formatNumber(latestMetrics.memory_used_mb)} MB / {formatNumber(latestMetrics.memory_total_mb)} MB</span>
         </div>
         {#if latestMetrics.network_rx_bytes}
           <div class="metric-row">
@@ -464,11 +465,11 @@
           </div>
           <div class="metric-row">
             <span class="label">Memory:</span>
-            <span class="value">{latestProcessMetrics.memory_mb} MB</span>
+            <span class="value">{formatNumber(latestProcessMetrics.memory_mb)} MB</span>
           </div>
           <div class="metric-row">
             <span class="label">Virtual Mem:</span>
-            <span class="value">{latestProcessMetrics.virtual_memory_mb} MB</span>
+            <span class="value">{formatNumber(latestProcessMetrics.virtual_memory_mb)} MB</span>
           </div>
           {#if latestProcessMetrics.disk_read_bytes}
             <div class="metric-row">
@@ -518,7 +519,7 @@
           </div>
           <div class="metric-row">
             <span class="label">Samples:</span>
-            <span class="value" role="status">{stats.sample_count}</span>
+            <span class="value" role="status">{formatNumber(stats.sample_count)}</span>
           </div>
         </article>
       {/if}
@@ -564,7 +565,7 @@
               <div class="correlation-footer">
                 <span class="timestamp"><time datetime={correlation.event_timestamp}>{formatTimestamp(correlation.event_timestamp)}</time></span>
                 {#if correlation.diff_size}
-                  <span class="diff-size" role="status">{correlation.diff_size} chars changed</span>
+                  <span class="diff-size" role="status">{formatNumber(correlation.diff_size)} chars changed</span>
                 {/if}
               </div>
             </article>

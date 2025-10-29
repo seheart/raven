@@ -5,6 +5,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
+  import { formatNumber } from './numberFormat.js';
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -113,7 +114,7 @@
   async function markAllAsRead() {
     if (stats.unread === 0) return;
 
-    if (!confirm(`Mark all ${stats.unread} notification(s) as read?`)) {
+    if (!confirm(`Mark all ${formatNumber(stats.unread)} notification(s) as read?`)) {
       return;
     }
 
@@ -259,7 +260,7 @@
     switch(type) {
     case 'error': return '⚠️';
     case 'trigger': return '🔔';
-    case 'performance': return '⚡️';
+    case 'performance': return '⚡';
     case 'git': return '🌳';
     case 'agent': return '🤖';
     case 'file': return '📁';
@@ -337,23 +338,23 @@
   <div class="stats-bar" role="region" aria-label="Notification statistics">
     <div class="stat-card" role="status" aria-label="Total notifications: {stats.total}">
       <div class="stat-label">Total</div>
-      <div class="stat-value">{stats.total}</div>
+      <div class="stat-value">{formatNumber(stats.total)}</div>
     </div>
     <div class="stat-card unread-stat" role="status" aria-label="Unread notifications: {stats.unread}">
       <div class="stat-label">Unread</div>
-      <div class="stat-value">{stats.unread}</div>
+      <div class="stat-value">{formatNumber(stats.unread)}</div>
     </div>
     <div class="stat-card" role="status" aria-label="Error notifications: {stats.by_type?.error || 0}">
       <div class="stat-label">Errors</div>
-      <div class="stat-value">{stats.by_type?.error || 0}</div>
+      <div class="stat-value">{formatNumber(stats.by_type?.error || 0)}</div>
     </div>
     <div class="stat-card" role="status" aria-label="Trigger notifications: {stats.by_type?.trigger || 0}">
       <div class="stat-label">Triggers</div>
-      <div class="stat-value">{stats.by_type?.trigger || 0}</div>
+      <div class="stat-value">{formatNumber(stats.by_type?.trigger || 0)}</div>
     </div>
     <div class="stat-card" role="status" aria-label="Performance notifications: {stats.by_type?.performance || 0}">
       <div class="stat-label">Performance</div>
-      <div class="stat-value">{stats.by_type?.performance || 0}</div>
+      <div class="stat-value">{formatNumber(stats.by_type?.performance || 0)}</div>
     </div>
   </div>
 
@@ -391,7 +392,7 @@
     </div>
 
     <div class="filter-results" role="status" aria-live="polite">
-      Showing {filteredCount} of {stats.total} notifications
+      Showing {formatNumber(filteredCount)} of {formatNumber(stats.total)} notifications
     </div>
   </div>
 
@@ -432,7 +433,7 @@
                 <div class="notification-title">
                   {notification.title}
                   {#if notification.count > 1}
-                    <span class="count-badge" title="{notification.count} duplicate notifications" role="status">{notification.count}×</span>
+                    <span class="count-badge" title="{notification.count} duplicate notifications" role="status">{formatNumber(notification.count)}×</span>
                   {/if}
                 </div>
                 <div class="notification-meta">
