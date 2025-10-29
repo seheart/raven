@@ -68,17 +68,19 @@ fi
 # Step 3: Start backend in background
 echo -e "${YELLOW}[3/5]${NC} Starting backend server..."
 cd backend
-DISABLE_AUTH=true node server.js > /tmp/raven-backend.log 2>&1 &
+nohup env DISABLE_AUTH=true node server.js > /tmp/raven-backend.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > /tmp/raven-backend.pid
+disown
 cd ..
 
 # Step 4: Start frontend in background
 echo -e "${YELLOW}[4/5]${NC} Starting frontend server..."
 cd frontend
-npm run dev > /tmp/raven-frontend.log 2>&1 &
+nohup npm run dev > /tmp/raven-frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo $FRONTEND_PID > /tmp/raven-frontend.pid
+disown
 cd ..
 
 # Step 5: Wait for both servers to be ready

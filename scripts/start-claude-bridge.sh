@@ -42,6 +42,7 @@ echo ""
 # Start bridge in background
 nohup node "$BRIDGE_SCRIPT" "$PROJECT_DIR" > "$LOG_FILE" 2>&1 &
 BRIDGE_PID=$!
+disown
 
 # Save PID
 echo "$BRIDGE_PID" > "$PID_FILE"
