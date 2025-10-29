@@ -154,36 +154,11 @@ body.using-keyboard *:focus {
    ========================================================================== */
 
 /**
- * Visual styling for live regions (optional, can be invisible)
+ * ARIA live regions are screen-reader only and should have no visual styling
+ * The aria-live attributes remain on elements for accessibility but are invisible
  */
-[aria-live] {
-  position: relative;
-}
 
-/* Polite announcements (non-critical updates) */
-[aria-live="polite"]::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--info);
-  border-radius: 2px;
-  opacity: 0;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-/* Assertive announcements (critical updates) */
-[aria-live="assertive"] {
-  border-left: 4px solid var(--error);
-  padding-left: 12px;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 0.5; }
-}
+/* No visual styling - live regions are invisible to sighted users */
 
 /* ==========================================================================
    Loading States

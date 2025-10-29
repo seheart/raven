@@ -118,6 +118,69 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
     }
   }
 
+  // Copy all errors to clipboard
+  async function copyAllErrors() {
+    if (errors.length === 0) {
+      notifications.info('No errors to copy');
+      return;
+    }
+
+    const allErrorsText = errors.map((error, index) => {
+      return `[${index + 1}/${errors.length}] Syntax Error in ${error.filepath}
+
+Project: ${error.project_name || 'N/A'}
+Language: ${error.language}
+Location: Line ${error.line_number}${error.column_number ? `, Column ${error.column_number}` : ''}
+Severity: ${error.severity}
+Message: ${error.message}
+
+${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
+    }).join('\n\n' + '='.repeat(80) + '\n\n');
+
+    const finalText = `Syntax Errors Report
+Generated: ${new Date().toLocaleString()}
+Total Errors: ${errors.length}
+
+${'='.repeat(80)}
+
+${allErrorsText}`;
+
+    try {
+      await navigator.clipboard.writeText(finalText);
+      notifications.success(`Copied ${errors.length} errors to clipboard`);
+    } catch (err) {
+      logger.error('Failed to copy all errors:', err);
+      notifications.error('Failed to copy to clipboard');
+    }
+  }
+
+  // Clear all errors
+  async function clearAllErrors() {
+    if (errors.length === 0) {
+      notifications.info('No errors to clear');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to clear all ${errors.length} syntax errors?`)) {
+      return;
+    }
+
+    try {
+      // Resolve all errors
+      const promises = errors.map(error =>
+        fetch(`/api/syntax-errors/${error.id}/resolve`, { method: 'POST' })
+      );
+
+      await Promise.all(promises);
+
+      notifications.success(`Cleared ${errors.length} syntax errors`);
+      await fetchErrors();
+    } catch (err) {
+      logger.error('Failed to clear errors:', err);
+      notifications.error('Failed to clear errors');
+    }
+  }
+
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('syntax-error', (data) => {
@@ -185,9 +248,19 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
         {errorCount} {errorCount === 1 ? 'error' : 'errors'}
       </span>
     {/if}
-    <button class="refresh-btn" on:click={fetchErrors} aria-label="Refresh syntax errors">
-      <span aria-hidden="true">↻</span>
-    </button>
+    <div class="header-actions">
+      {#if errorCount > 0}
+        <button class="action-btn copy-all-btn" on:click={copyAllErrors} aria-label="Copy all errors">
+          <span aria-hidden="true">📋</span> Copy All
+        </button>
+        <button class="action-btn clear-all-btn" on:click={clearAllErrors} aria-label="Clear all errors">
+          <span aria-hidden="true">🗑️</span> Clear All
+        </button>
+      {/if}
+      <button class="refresh-btn" on:click={fetchErrors} aria-label="Refresh syntax errors">
+        <span aria-hidden="true">↻</span>
+      </button>
+    </div>
   </div>
 
   {#if loading}
@@ -296,6 +369,60 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
   .error-count.has-errors {
     background: #fef2f2;
     color: #ef4444;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .action-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .copy-all-btn {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .copy-all-btn:hover {
+    background: var(--accent-hover, var(--accent));
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .clear-all-btn {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .clear-all-btn:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .action-btn:active {
+    transform: translateY(0);
+  }
+
+  .action-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .refresh-btn {
