@@ -50,13 +50,13 @@ export class TriggerEngine {
    */
   formatMessageSafe(template, event) {
     return template
-      .replace(/\{file\}/g, this.sanitizeShellArg(event.file || ''))
-      .replace(/\{agent\}/g, this.sanitizeShellArg(event.agent || ''))
-      .replace(/\{event_type\}/g, this.sanitizeShellArg(event.event_type || ''))
-      .replace(/\{lines_changed\}/g, this.sanitizeShellArg(event.lines_changed || ''))
-      .replace(/\{duration_ms\}/g, this.sanitizeShellArg(event.duration_ms || ''))
-      .replace(/\{cpu_percent\}/g, this.sanitizeShellArg(event.cpu_percent || ''))
-      .replace(/\{memory_percent\}/g, this.sanitizeShellArg(event.memory_percent || ''));
+      .replace(/\{file\}/g, event.file ? this.sanitizeShellArg(event.file) : '')
+      .replace(/\{agent\}/g, event.agent ? this.sanitizeShellArg(event.agent) : '')
+      .replace(/\{event_type\}/g, event.event_type ? this.sanitizeShellArg(event.event_type) : '')
+      .replace(/\{lines_changed\}/g, event.lines_changed !== undefined ? this.sanitizeShellArg(event.lines_changed) : '')
+      .replace(/\{duration_ms\}/g, event.duration_ms !== undefined ? this.sanitizeShellArg(event.duration_ms) : '')
+      .replace(/\{cpu_percent\}/g, event.cpu_percent !== undefined ? this.sanitizeShellArg(event.cpu_percent) : '')
+      .replace(/\{memory_percent\}/g, event.memory_percent !== undefined ? this.sanitizeShellArg(event.memory_percent) : '');
   }
 
   loadConfig() {
@@ -436,5 +436,10 @@ cooldown_seconds = 300
   clearCooldowns() {
     this.cooldowns.clear();
     return 'All trigger cooldowns cleared';
+  }
+
+  // Alias for backward compatibility
+  evaluateTriggers(event) {
+    return this.evaluate(event);
   }
 }
