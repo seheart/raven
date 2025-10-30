@@ -92,6 +92,20 @@ show_logs() {
         echo -e "${RED}No logs found. Start Raven first.${NC}"
 }
 
+# Run health checks
+run_health_check() {
+    if ! is_running; then
+        echo -e "${RED}❌ Raven is not running${NC}"
+        echo -e "${YELLOW}Start Raven first with: raven start${NC}"
+        return 1
+    fi
+
+    echo -e "${CYAN}🏥 Running health validation...${NC}"
+    cd "$RAVEN_DIR/backend"
+    node scripts/run-startup-validation.js
+    cd - > /dev/null
+}
+
 # Open browser
 open_browser() {
     echo -e "${CYAN}🌐 Opening Raven in browser...${NC}"
@@ -116,6 +130,9 @@ case "${1:-open}" in
     logs)
         show_logs
         ;;
+    check)
+        run_health_check
+        ;;
     open|browser)
         if is_running; then
             echo -e "${GREEN}✓ Raven is already running${NC}"
@@ -138,6 +155,7 @@ case "${1:-open}" in
         echo "  stop        Stop Raven servers"
         echo "  restart     Restart Raven servers"
         echo "  status      Show running status"
+        echo "  check       Run health validation"
         echo "  logs        Tail server logs"
         echo "  open        Open in browser (starts if needed)"
         echo "  help        Show this help"
@@ -146,6 +164,7 @@ case "${1:-open}" in
         echo "  raven              # Quick open in browser"
         echo "  raven start        # Start servers only"
         echo "  raven status       # Check if running"
+        echo "  raven check        # Validate all systems"
         echo "  raven logs         # View logs"
         ;;
     *)

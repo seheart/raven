@@ -143,9 +143,9 @@ echo -e "${YELLOW}[6/7]${NC} Starting Claude telemetry bridge..."
 echo -e "${YELLOW}[7/7]${NC} Running comprehensive health checks..."
 echo -e "  ${BLUE}ℹ${NC}  Validating all features are operational..."
 
-# Run health checks and capture output
+# Run comprehensive startup validation and capture output
 cd backend
-HEALTH_OUTPUT=$(node scripts/run-health-checks.js --wait=2 2>&1)
+HEALTH_OUTPUT=$(node scripts/run-startup-validation.js --wait=2 2>&1)
 HEALTH_EXIT_CODE=$?
 cd ..
 
