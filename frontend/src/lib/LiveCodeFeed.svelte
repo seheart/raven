@@ -106,7 +106,7 @@
       sessionStats = {
         duration: data.session_duration_seconds || 0,
         files_touched: data.unique_files_modified || 0,
-        active_agents: data.active_agents || 0,
+        active_agents: data.total_agents || 0,
         session_id: data.session_id || 'unknown',
         total_events: data.total_events || 0
       };
@@ -173,7 +173,12 @@
     try {
       const data = await api.get('/file-events?limit=50&diff=true');
       // Handle both array and object responses
-      codeChanges = Array.isArray(data) ? data : (data.events || []);
+      let events = Array.isArray(data) ? data : (data.events || []);
+      // Add project field to each event if it's not already there
+      if (!Array.isArray(data) && data.project) {
+        events = events.map(e => ({ ...e, project: e.project || data.project }));
+      }
+      codeChanges = events;
     } catch (error) {
       logger.error('Failed to load code changes:', error);
     }
@@ -182,18 +187,23 @@
   async function loadRecentActivity() {
     try {
       // Get both file events and agent events
-      const [fileEventsResponse, agentEvents] = await Promise.all([
+      const [fileEventsResponse, agentEventsResponse] = await Promise.all([
         api.get('/file-events?limit=20'),
         api.get('/agent-events?limit=20')
       ]);
 
       // Extract events array from response (handle both array and object formats)
-      const fileEvents = Array.isArray(fileEventsResponse) ? fileEventsResponse : (fileEventsResponse.events || []);
+      let fileEvents = Array.isArray(fileEventsResponse) ? fileEventsResponse : (fileEventsResponse.events || []);
+      let agentEvents = Array.isArray(agentEventsResponse) ? agentEventsResponse : (agentEventsResponse.events || []);
+
+      // Add project field from response to each event
+      const fileProject = !Array.isArray(fileEventsResponse) ? fileEventsResponse.project : null;
+      const agentProject = !Array.isArray(agentEventsResponse) ? agentEventsResponse.project : null;
 
       // Combine and sort by timestamp
       const combined = [
-        ...(fileEvents || []).map(e => ({ ...e, type: 'file', project: e.project || null })),
-        ...(agentEvents || []).map(e => ({ ...e, type: 'agent', project: e.project || null }))
+        ...(fileEvents || []).map(e => ({ ...e, type: 'file', project: e.project || fileProject })),
+        ...(agentEvents || []).map(e => ({ ...e, type: 'agent', project: e.project || agentProject }))
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       recentActivity = combined.slice(0, 30);
@@ -474,12 +484,18 @@
                     <div class="activity-file">{truncatePath(activity.filepath)}</div>
                     <div class="activity-meta">
                       <span class="activity-type">{activity.change_type}</span>
+                      {#if activity.project}
+                        <ProjectBadge project={activity.project} size="small" />
+                      {/if}
                       <span class="activity-time">{formatTimestamp(activity.timestamp)}</span>
                     </div>
                   {:else}
                     <div class="activity-file">{activity.agent || 'Agent'}</div>
                     <div class="activity-meta">
                       <span class="activity-type">{activity.event_type}</span>
+                      {#if activity.project}
+                        <ProjectBadge project={activity.project} size="small" />
+                      {/if}
                       <span class="activity-time">{formatTimestamp(activity.timestamp)}</span>
                     </div>
                   {/if}
@@ -665,7 +681,7 @@
 
   .feed-layout {
     display: grid;
-    grid-template-columns: 1fr 440px;
+    grid-template-columns: 1fr 550px;
     gap: 0;
     height: 100%;
     overflow: hidden;
@@ -1008,7 +1024,7 @@
   /* Responsive */
   @media (max-width: 1200px) {
     .feed-layout {
-      grid-template-columns: 1fr 380px;
+      grid-template-columns: 1fr 475px;
     }
   }
 

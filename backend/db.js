@@ -547,6 +547,63 @@ export class RavenDB {
     return stmt.all(limit).map(row => row.filepath);
   }
 
+  /**
+   * Get complete history for a specific file
+   * Combines events from both events table (file watcher) and agent_events table (AI agents)
+   * @param {string} filepath - File path to get history for
+   * @returns {Array} Array of events sorted by timestamp (newest first)
+   */
+  getFileHistory(filepath) {
+    // Get file watcher events
+    const fileEventsStmt = this.prepareStatement(`
+      SELECT
+        id,
+        timestamp,
+        filepath,
+        change_type,
+        event_size,
+        file_hash,
+        cpu,
+        mem,
+        diff,
+        session_id
+      FROM events
+      WHERE filepath = ?
+      ORDER BY timestamp DESC
+    `);
+
+    // Get agent events for this file
+    const agentEventsStmt = this.prepareStatement(`
+      SELECT
+        id,
+        timestamp,
+        file as filepath,
+        event_type as change_type,
+        NULL as event_size,
+        NULL as file_hash,
+        NULL as cpu,
+        NULL as mem,
+        NULL as diff,
+        session_id,
+        agent,
+        lines_changed,
+        duration_ms,
+        message
+      FROM agent_events
+      WHERE file = ? AND event_type IN ('create', 'edit', 'delete')
+      ORDER BY timestamp DESC
+    `);
+
+    const fileEvents = fileEventsStmt.all(filepath);
+    const agentEvents = agentEventsStmt.all(filepath);
+
+    // Merge and sort by timestamp (newest first)
+    const allEvents = [...fileEvents, ...agentEvents]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return allEvents;
+  }
+
   // ==================== System Metrics ====================
 
   insertSystemMetrics(

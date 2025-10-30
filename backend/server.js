@@ -748,8 +748,8 @@ async function handleFileChange(eventType, filepath) {
     let eventSize = 0;
     let content = '';
 
-    // Read file content for 'add' and 'change' events
-    if (eventType === 'add' || eventType === 'change') {
+    // Read file content for 'create' and 'edit' events
+    if (eventType === 'create' || eventType === 'edit') {
       try {
         // Check file size before reading to prevent OOM errors
         const stats = await fs.promises.stat(filepath);
@@ -774,8 +774,8 @@ async function handleFileChange(eventType, filepath) {
         eventSize = content.length;
         fileHash = calculateFileHash(content);
 
-        // Generate diff for 'change' events
-        if (eventType === 'change' && fileCache.has(filepath)) {
+        // Generate diff for 'edit' events
+        if (eventType === 'edit' && fileCache.has(filepath)) {
           const oldContent = fileCache.get(filepath);
           diff = generateDiff(oldContent, content);
         }
@@ -791,7 +791,7 @@ async function handleFileChange(eventType, filepath) {
         logger.error(`Error reading file [${projectName}] ${relPath}:`, readError);
         return;
       }
-    } else if (eventType === 'unlink') {
+    } else if (eventType === 'delete') {
       // File deleted - remove from cache
       fileCache.delete(filepath);
 
@@ -801,7 +801,7 @@ async function handleFileChange(eventType, filepath) {
     }
 
     // Run syntax and pattern checks on added/changed files (async, non-blocking)
-    if ((eventType === 'add' || eventType === 'change') && content) {
+    if ((eventType === 'create' || eventType === 'edit') && content) {
       // Import checkers dynamically to avoid circular dependencies
       setImmediate(async () => {
         try {
@@ -871,7 +871,7 @@ async function handleFileChange(eventType, filepath) {
           project: projectName,
           language,
           file_type: filepath.split('.').pop(),
-          edit_type: eventType === 'add' ? 'create' : eventType === 'unlink' ? 'delete' : 'modify',
+          edit_type: eventType === 'create' ? 'create' : eventType === 'delete' ? 'delete' : 'modify',
           lines_added: linesAdded,
           lines_removed: linesRemoved,
           timestamp
@@ -1177,13 +1177,13 @@ function initializeWatcher(projectName) {
 
   watcher
     .on('add', filepath => {
-      handleFileChange('add', filepath);
+      handleFileChange('create', filepath);
     })
     .on('change', filepath => {
-      handleFileChange('change', filepath);
+      handleFileChange('edit', filepath);
     })
     .on('unlink', filepath => {
-      handleFileChange('unlink', filepath);
+      handleFileChange('delete', filepath);
     })
     .on('error', error => {
       logger.error(`❌ Watcher error [${projectName}]:`, error);
@@ -1478,7 +1478,8 @@ app.use('/api', createMetricsRoutes({
 // Events routes (tracked files, events by session, file events, activity log)
 app.use('/api', createEventsRoutes({
   projectState,
-  projectDatabases
+  projectDatabases,
+  projectPaths
 }));
 
 // Triggers routes (triggerEngine added to triggersDeps after initialization)
@@ -1676,9 +1677,13 @@ app.get('/health', async (req, res) => {
       ).all();
 
       eventTypes.forEach(row => {
-        if (row.change_type === 'add') dbAnalytics.eventBreakdown.add = row.count;
-        else if (row.change_type === 'change') dbAnalytics.eventBreakdown.change = row.count;
-        else if (row.change_type === 'unlink') dbAnalytics.eventBreakdown.unlink = row.count;
+        if (row.change_type === 'create') dbAnalytics.eventBreakdown.create = row.count;
+        else if (row.change_type === 'edit') dbAnalytics.eventBreakdown.edit = row.count;
+        else if (row.change_type === 'delete') dbAnalytics.eventBreakdown.delete = row.count;
+        // Legacy support for unmigrated databases
+        else if (row.change_type === 'add') dbAnalytics.eventBreakdown.create = row.count;
+        else if (row.change_type === 'change') dbAnalytics.eventBreakdown.edit = row.count;
+        else if (row.change_type === 'unlink') dbAnalytics.eventBreakdown.delete = row.count;
       });
     } catch (error) {
       logger.error('Error getting database analytics:', error);

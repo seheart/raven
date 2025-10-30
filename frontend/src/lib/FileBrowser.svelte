@@ -5,17 +5,37 @@
 
   let files = [];
   let loading = true;
-  let selectedFile = null;
-  let showHistory = false;
+  let expandedFile = null;
+  let projects = [];
+  let selectedProject = localStorage.getItem('raven-file-browser-project') || '';
+  let loadingProjects = true;
 
   onMount(async () => {
+    await loadProjects();
     await loadFiles();
   });
+
+  async function loadProjects() {
+    try {
+      loadingProjects = true;
+      const response = await fetch('http://localhost:3030/api/projects/');
+      const data = await response.json();
+      projects = data.projects || [];
+      loadingProjects = false;
+    } catch (error) {
+      logger.error('Failed to load projects:', error);
+      projects = [];
+      loadingProjects = false;
+    }
+  }
 
   async function loadFiles() {
     try {
       loading = true;
-      const response = await fetch('http://localhost:3030/api/tracked-files');
+      const url = selectedProject
+        ? `http://localhost:3030/api/tracked-files?project=${selectedProject}`
+        : 'http://localhost:3030/api/tracked-files';
+      const response = await fetch(url);
       files = await response.json();
       loading = false;
     } catch (error) {
@@ -30,14 +50,19 @@
     }
   }
 
-  function viewFileHistory(filepath) {
-    selectedFile = filepath;
-    showHistory = true;
+  async function handleProjectChange(event) {
+    selectedProject = event.target.value;
+    localStorage.setItem('raven-file-browser-project', selectedProject);
+    expandedFile = null; // Collapse any expanded files when switching projects
+    await loadFiles();
   }
 
-  function closeHistory() {
-    showHistory = false;
-    selectedFile = null;
+  function toggleFileHistory(filepath) {
+    if (expandedFile === filepath) {
+      expandedFile = null;
+    } else {
+      expandedFile = filepath;
+    }
   }
 
   function getFileIcon(filepath) {
@@ -65,9 +90,24 @@
 <div class="file-browser" role="region" aria-label="File browser">
   <div class="browser-header">
     <h3 id="files-heading"><span aria-hidden="true">📂</span> Tracked Files</h3>
-    <button class="refresh-btn" on:click={loadFiles} disabled={loading} aria-label="Refresh file list">
-      <span aria-hidden="true">{loading ? '⟳' : '↻'}</span> Refresh
-    </button>
+    <div class="header-controls">
+      {#if !loadingProjects && projects.length > 0}
+        <select
+          class="project-selector"
+          bind:value={selectedProject}
+          on:change={handleProjectChange}
+          aria-label="Select project"
+        >
+          <option value="">All Projects (Default)</option>
+          {#each projects as project}
+            <option value={project.name}>{project.name}</option>
+          {/each}
+        </select>
+      {/if}
+      <button class="refresh-btn" on:click={loadFiles} disabled={loading} aria-label="Refresh file list">
+        <span aria-hidden="true">{loading ? '⟳' : '↻'}</span> Refresh
+      </button>
+    </div>
   </div>
 
   {#if loading}
@@ -80,22 +120,34 @@
   {:else}
     <div class="file-list" role="list" aria-labelledby="files-heading">
       {#each files || [] as filepath (filepath)}
-        <button class="file-item" on:click={() => viewFileHistory(filepath)} role="listitem" aria-label="View history for {getFileName(filepath)}">
-          <div class="file-icon" aria-hidden="true">{getFileIcon(filepath)}</div>
-          <div class="file-info">
-            <div class="file-name">{getFileName(filepath)}</div>
-            <div class="file-path">{getFilePath(filepath)}</div>
-          </div>
-          <div class="view-btn" aria-hidden="true">View History →</div>
-        </button>
+        <div class="file-container">
+          <button
+            class="file-item"
+            class:expanded={expandedFile === filepath}
+            on:click={() => toggleFileHistory(filepath)}
+            role="listitem"
+            aria-label="View history for {getFileName(filepath)}"
+            aria-expanded={expandedFile === filepath}
+          >
+            <div class="expand-arrow" aria-hidden="true">{expandedFile === filepath ? '▼' : '▶'}</div>
+            <div class="file-icon" aria-hidden="true">{getFileIcon(filepath)}</div>
+            <div class="file-info">
+              <div class="file-name">{getFileName(filepath)}</div>
+              <div class="file-path">{getFilePath(filepath)}</div>
+            </div>
+            <div class="view-btn" aria-hidden="true">{expandedFile === filepath ? 'Hide' : 'Show'} History</div>
+          </button>
+
+          {#if expandedFile === filepath}
+            <div class="history-expansion">
+              <FileHistory filepath={filepath} inline={true} />
+            </div>
+          {/if}
+        </div>
       {/each}
     </div>
   {/if}
 </div>
-
-{#if showHistory && selectedFile}
-  <FileHistory filepath={selectedFile} onClose={closeHistory} />
-{/if}
 
 <style>
   .file-browser {
@@ -113,6 +165,7 @@
     margin-bottom: 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
+    gap: 12px;
   }
 
   h3 {
@@ -121,6 +174,34 @@
     font-size: 16px;
     font-family: var(--mono);
     font-weight: 600;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .project-selector {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--mono);
+    transition: all 0.2s;
+    min-width: 150px;
+  }
+
+  .project-selector:hover {
+    border-color: var(--info);
+  }
+
+  .project-selector:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .refresh-btn {
@@ -170,20 +251,27 @@
   .file-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     overflow-y: auto;
+  }
+
+  .file-container {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--surface-2);
   }
 
   .file-item {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    background: var(--surface-2);
-    border-radius: 6px;
+    gap: 12px;
+    padding: 12px 14px;
+    background: transparent;
     cursor: pointer;
     transition: all 0.2s;
-    border: 1px solid transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
     width: 100%;
     text-align: left;
     font-family: inherit;
@@ -193,13 +281,30 @@
 
   .file-item:hover {
     background: var(--surface);
-    border-color: var(--accent);
-    transform: translateX(2px);
+  }
+
+  .file-item.expanded {
+    border-bottom-color: var(--border);
+    background: var(--surface);
   }
 
   .file-item:focus {
     outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    outline-offset: -2px;
+  }
+
+  .expand-arrow {
+    font-size: 10px;
+    color: var(--muted);
+    width: 12px;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .history-expansion {
+    padding: 16px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
   }
 
   .file-icon {

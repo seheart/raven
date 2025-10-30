@@ -213,7 +213,7 @@ export const schemas = {
     limit: Joi.number().integer().min(1).max(1000).default(500),
     offset: Joi.number().integer().min(0).default(0),
     search: Joi.string().max(200).allow('').default(''),
-    type: Joi.string().valid('all', 'add', 'change', 'unlink').default('all'),
+    type: Joi.string().valid('all', 'file', 'agent', 'system').default('all'),
     startDate: Joi.string().isoDate().optional(),
     endDate: Joi.string().isoDate().optional()
   })

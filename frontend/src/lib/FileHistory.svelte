@@ -8,6 +8,7 @@
 
   export let onClose = () => {};
   export let filepath = '';
+  export let inline = false;
 
   let history = [];
   let loading = true;
@@ -217,6 +218,134 @@
   }
 </script>
 
+{#if inline}
+<div class="inline-content" role="region" aria-labelledby="file-history-heading">
+  <div class="inline-header">
+    <div class="header-actions" role="toolbar" aria-label="File history actions">
+      <button
+        class="btn-comparison-mode"
+        class:active={comparisonMode}
+        on:click={toggleComparisonMode}
+        aria-pressed={comparisonMode}
+        aria-label={comparisonMode ? 'Exit comparison mode' : 'Enter comparison mode'}
+      >
+        <span aria-hidden="true">{comparisonMode ? '✓' : '🔍'}</span> {comparisonMode ? 'Comparison Mode' : 'Compare Snapshots'}
+      </button>
+      {#if comparisonMode && selectedForComparison.length === 2}
+        <button
+          class="btn-compare"
+          on:click={compareSelectedSnapshots}
+          disabled={comparingSnapshots}
+          aria-label={comparingSnapshots ? 'Comparing snapshots' : 'Compare selected snapshots'}
+        >
+          <span aria-hidden="true">{comparingSnapshots ? '⏳' : '⚡'}</span> {comparingSnapshots ? 'Comparing...' : 'Compare Selected'}
+        </button>
+      {/if}
+    </div>
+  </div>
+
+  <!-- Inline mode content -->
+  {#if comparisonMode}
+    <div class="comparison-help">
+      Select 2 snapshots to compare ({selectedForComparison.length}/2 selected)
+    </div>
+  {/if}
+
+  {#if !loading && history.length > 0}
+    <div class="filter-bar" role="search" aria-label="Filter file history">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="🔍 Search by time, type, or event #..."
+          bind:value={searchQuery}
+          aria-label="Search file history"
+        />
+      </div>
+      <div class="type-filter">
+        <select bind:value={filterChangeType} aria-label="Filter by change type">
+          <option value="all">All Types ({history.length})</option>
+          <option value="modified">Modified Only</option>
+          <option value="created">Created Only</option>
+          <option value="deleted">Deleted Only</option>
+        </select>
+      </div>
+      <div class="filter-stats" role="status" aria-live="polite">
+        Showing {filteredHistory.length} of {history.length} snapshots
+      </div>
+    </div>
+  {/if}
+
+  {#if loading}
+    <div class="loading" role="status" aria-live="polite">Loading history...</div>
+  {:else if history.length === 0}
+    <div class="empty" role="status">No history found for this file</div>
+  {:else if filteredHistory.length === 0}
+    <div class="empty" role="status">No snapshots match your filters</div>
+  {:else}
+    <div class="timeline" role="feed" aria-label="File history timeline">
+      {#each filteredHistory || [] as event (event.id)}
+        <article
+          class="timeline-event {getChangeClass(event.change_type)}"
+          class:selected={isSelectedForComparison(event)}
+          class:selectable={comparisonMode}
+          role="article"
+        >
+          {#if comparisonMode}
+            <div class="event-checkbox">
+              <input
+                type="checkbox"
+                checked={isSelectedForComparison(event)}
+                on:change={() => toggleEventSelection(event)}
+                aria-label="Select event #{event.id} for comparison"
+              />
+            </div>
+          {/if}
+          <div class="event-marker" aria-hidden="true"></div>
+          <div class="event-content">
+            <div class="event-header">
+              <span class="badge {event.change_type}">{event.change_type}</span>
+              <time class="time" datetime="{event.timestamp}">{formatTime(event.timestamp)}</time>
+            </div>
+            <div class="event-meta">
+              <span class="metric">CPU: {(event.cpu ?? 0).toFixed(1)}%</span>
+              <span class="metric">MEM: {(event.mem ?? 0).toFixed(1)}%</span>
+              <span class="event-id">Event #{event.id}</span>
+            </div>
+            <div class="event-actions" role="group" aria-label="Event actions">
+              <button class="btn-view" on:click={() => viewSnapshot(event)} aria-label="View snapshot for event #{event.id}">
+                View Snapshot
+              </button>
+              {#if event.diff}
+                <button class="btn-diff" on:click={() => viewDiff(event)} aria-label="View diff for event #{event.id}">
+                  View Diff
+                </button>
+              {/if}
+              <button
+                class="btn-restore"
+                on:click={() => restoreToEvent(event)}
+                disabled={restoring}
+                aria-label={restoring ? 'Restoring file' : 'Restore file to this snapshot'}
+              >
+                <span aria-hidden="true">{#if restoring}⏳{:else}🔄{/if}</span> {#if restoring}Restoring...{:else}Undo Claude{/if}
+              </button>
+            </div>
+          </div>
+        </article>
+      {/each}
+    </div>
+  {/if}
+
+  {#if showSnapshot}
+    <div class="snapshot-viewer" role="document" aria-labelledby="snapshot-heading">
+      <div class="snapshot-header">
+        <h3 id="snapshot-heading">Snapshot - Event #{selectedEvent?.id || 'N/A'}</h3>
+        <button on:click={() => showSnapshot = false} aria-label="Close snapshot viewer">Close</button>
+      </div>
+      <pre class="snapshot-content" role="region" aria-label="Snapshot file content">{snapshotContent}</pre>
+    </div>
+  {/if}
+</div>
+{:else}
 <div
   class="modal-overlay"
   on:click={onClose}
@@ -253,14 +382,15 @@
 
     <div class="file-path">{filepath}</div>
 
+    <!-- Modal mode content -->
     {#if comparisonMode}
-      <div class="comparison-help">
-        Select 2 snapshots to compare ({selectedForComparison.length}/2 selected)
-      </div>
-    {/if}
+    <div class="comparison-help">
+      Select 2 snapshots to compare ({selectedForComparison.length}/2 selected)
+    </div>
+  {/if}
 
-    {#if !loading && history.length > 0}
-      <div class="filter-bar" role="search" aria-label="Filter file history">
+  {#if !loading && history.length > 0}
+    <div class="filter-bar" role="search" aria-label="Filter file history">
         <div class="search-box">
           <input
             type="text"
@@ -279,18 +409,18 @@
         </div>
         <div class="filter-stats" role="status" aria-live="polite">
           Showing {filteredHistory.length} of {history.length} snapshots
-        </div>
       </div>
-    {/if}
+    </div>
+  {/if}
 
-    {#if loading}
-      <div class="loading" role="status" aria-live="polite">Loading history...</div>
-    {:else if history.length === 0}
-      <div class="empty" role="status">No history found for this file</div>
-    {:else if filteredHistory.length === 0}
-      <div class="empty" role="status">No snapshots match your filters</div>
-    {:else}
-      <div class="timeline" role="feed" aria-label="File history timeline">
+  {#if loading}
+    <div class="loading" role="status" aria-live="polite">Loading history...</div>
+  {:else if history.length === 0}
+    <div class="empty" role="status">No history found for this file</div>
+  {:else if filteredHistory.length === 0}
+    <div class="empty" role="status">No snapshots match your filters</div>
+  {:else}
+    <div class="timeline" role="feed" aria-label="File history timeline">
         {#each filteredHistory || [] as event (event.id)}
           <article
             class="timeline-event {getChangeClass(event.change_type)}"
@@ -339,9 +469,9 @@
               </div>
             </div>
           </article>
-        {/each}
-      </div>
-    {/if}
+      {/each}
+    </div>
+  {/if}
 
     {#if showSnapshot}
       <div class="snapshot-viewer" role="document" aria-labelledby="snapshot-heading">
@@ -354,6 +484,7 @@
     {/if}
   </div>
 </div>
+{/if}
 
 {#if showDiff}
   <DiffViewer diff={diffContent} onClose={() => showDiff = false} />
@@ -658,5 +789,47 @@
     overflow-x: auto;
     white-space: pre-wrap;
     max-height: 60vh;
+  }
+
+  /* Inline styles */
+  .inline-content {
+    background: transparent;
+  }
+
+  .inline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .inline-content .timeline {
+    padding-left: 1.5rem;
+  }
+
+  .inline-content .timeline::before {
+    left: 6px;
+  }
+
+  .inline-content .event-marker {
+    left: -20px;
+    width: 10px;
+    height: 10px;
+  }
+
+  .inline-content .filter-bar {
+    margin-bottom: 12px;
+  }
+
+  .inline-content .comparison-help {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
   }
 </style>

@@ -226,9 +226,14 @@
   // Map backend change_type to frontend changeType
   function mapChangeType(backendType) {
     switch(backendType) {
+    // From events table (file watcher)
     case 'add': return 'created';
     case 'change': return 'modified';
     case 'unlink': return 'deleted';
+    // From agent_events table (AI agents)
+    case 'create': return 'created';
+    case 'edit': return 'modified';
+    case 'delete': return 'deleted';
     default: return 'modified';
     }
   }
@@ -288,9 +293,12 @@
   function calculateForensicsStats() {
     if (filteredEvents.length === 0) return;
 
+    // Only count file events (exclude conversation events)
+    const fileEvents = filteredEvents.filter(e => e.eventCategory === 'file' && e.filepath);
+
     // Count changes by file
     const fileChanges = new Map();
-    filteredEvents.forEach(event => {
+    fileEvents.forEach(event => {
       const count = fileChanges.get(event.filepath) || 0;
       fileChanges.set(event.filepath, count + 1);
     });
@@ -301,7 +309,7 @@
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Activity by hour
+    // Activity by hour (all events)
     const hourCounts = new Array(24).fill(0);
     filteredEvents.forEach(event => {
       const hour = new Date(event.timestamp).getHours();
@@ -313,11 +321,11 @@
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Change type breakdown
+    // Change type breakdown (file events only)
     forensicsStats.changeTypeBreakdown = {
-      created: filteredEvents.filter(e => e.changeType === 'created').length,
-      modified: filteredEvents.filter(e => e.changeType === 'modified').length,
-      deleted: filteredEvents.filter(e => e.changeType === 'deleted').length
+      created: fileEvents.filter(e => e.changeType === 'created').length,
+      modified: fileEvents.filter(e => e.changeType === 'modified').length,
+      deleted: fileEvents.filter(e => e.changeType === 'deleted').length
     };
 
     forensicsStats.totalChanges = filteredEvents.length;
@@ -336,7 +344,9 @@
     try {
       const data = await api.get('/file-events?limit=1000&diff=true');
       const eventsArray = Array.isArray(data) ? data : (data.events || []);
-      const eventWithDiff = eventsArray.find(e => e.id === event.id);
+      // Extract numeric ID from prefixed ID (e.g., "file-123" -> 123)
+      const numericId = parseInt(event.id.toString().replace(/^file-/, ''));
+      const eventWithDiff = eventsArray.find(e => e.id === numericId);
 
       if (eventWithDiff) {
         selectedEventForDiff = {

@@ -3,6 +3,9 @@ import { logger } from '../utils/logger.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { validate } from '../middleware/validation.js';
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 
 const execAsync = promisify(exec);
 
@@ -13,25 +16,47 @@ const execAsync = promisify(exec);
  */
 export function createEventsRoutes(deps) {
   const router = Router();
-  const { projectState, projectDatabases } = deps;
+  const { projectState, projectDatabases, projectPaths } = deps;
 
   /**
    * GET /api/tracked-files
    * Get list of tracked files (with Git fallback)
+   * Query params: project (optional) - specify which project to get files from
    */
   router.get('/tracked-files', validate('trackedFilesQuery', 'query'), async (req, res) => {
     try {
-      let files = projectState.db.getTrackedFiles();
+      const projectName = req.query.project;
+
+      logger.debug('tracked-files request', {
+        projectName,
+        hasProjectDatabases: !!projectDatabases,
+        hasProjectPaths: !!projectPaths,
+        projectDatabasesSize: projectDatabases?.size,
+        projectPathsSize: projectPaths?.size
+      });
+
+      // Get the appropriate database and path
+      let db, watchPath;
+      if (projectName && projectDatabases && projectDatabases.has(projectName)) {
+        db = projectDatabases.get(projectName);
+        watchPath = projectPaths.get(projectName);
+      } else {
+        // Use default project
+        db = projectState.db;
+        watchPath = projectState.watchPath;
+      }
+
+      let files = db.getTrackedFiles();
 
       // If no files tracked yet (fresh project), try to get files from Git
-      if (files.length === 0 && projectState.watchPath) {
+      if (files.length === 0 && watchPath) {
         try {
           const { stdout } = await execAsync('git ls-files', {
-            cwd: projectState.watchPath,
+            cwd: watchPath,
             maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large repos
           });
           files = stdout.split('\n').filter(f => f.trim() !== '');
-          logger.debug('Populated file list from Git', { fileCount: files.length });
+          logger.debug('Populated file list from Git', { fileCount: files.length, project: projectName || 'default' });
         } catch (gitError) {
           logger.debug('No Git repository or git ls-files failed, showing empty list');
         }
@@ -161,6 +186,97 @@ export function createEventsRoutes(deps) {
       res.status(500).json({ error: error.message });
     }
   });
+
+  /**
+   * GET /api/files/:filepath/history
+   * Get complete history for a specific file
+   */
+  router.get('/files/:filepath(*)/history', (req, res) => {
+    try {
+      const filepath = decodeURIComponent(req.params.filepath);
+      const history = projectState.db.getFileHistory(filepath);
+
+      // Map change_type to match frontend expectations
+      const mappedHistory = history.map(event => ({
+        ...event,
+        change_type: mapChangeType(event.change_type)
+      }));
+
+      res.json(mappedHistory);
+    } catch (error) {
+      logger.error('File history error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/snapshot/:eventId/:filename
+   * Get snapshot content for a specific event
+   */
+  router.get('/snapshot/:eventId/:filename', async (req, res) => {
+    try {
+      const { eventId, filename } = req.params;
+
+      // Get event details
+      const event = projectState.db.getEventById(parseInt(eventId));
+      if (!event) {
+        return res.status(404).json({ error: `Event ${eventId} not found` });
+      }
+
+      // Find snapshot file
+      const timestamp = new Date(event.timestamp).getTime();
+      const snapshotFilename = `${event.filepath.replace(/\//g, '_')}_${timestamp}.gz`;
+      const snapshotPath = path.join(projectState.snapshotsDir, snapshotFilename);
+
+      // Check if snapshot exists
+      if (!fs.existsSync(snapshotPath)) {
+        // Try without .gz extension (backwards compatibility)
+        const snapshotPathTxt = path.join(projectState.snapshotsDir, `${event.filepath.replace(/\//g, '_')}_${timestamp}.txt`);
+        if (fs.existsSync(snapshotPathTxt)) {
+          const content = await fs.promises.readFile(snapshotPathTxt, 'utf8');
+          return res.type('text/plain').send(content);
+        }
+
+        return res.status(404).json({
+          error: `Snapshot not found`,
+          details: `Looking for: ${snapshotFilename}`,
+          event_id: eventId,
+          filepath: event.filepath
+        });
+      }
+
+      // Read and decompress snapshot
+      const data = await fs.promises.readFile(snapshotPath);
+      const decompressed = await new Promise((resolve, reject) => {
+        zlib.gunzip(data, (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
+      });
+
+      const content = decompressed.toString('utf8');
+      res.type('text/plain').send(content);
+    } catch (error) {
+      logger.error('Snapshot retrieval error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Helper function to map change types to frontend expectations
+   */
+  function mapChangeType(type) {
+    const mapping = {
+      'create': 'created',
+      'edit': 'modified',
+      'delete': 'deleted',
+      // Keep these for backwards compatibility
+      'add': 'created',
+      'change': 'modified',
+      'unlink': 'deleted'
+    };
+    return mapping[type] || type;
+  }
 
   return router;
 }
