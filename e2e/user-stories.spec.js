@@ -14,6 +14,12 @@ test.describe('User Story: Activity Log Shows Latest Changes', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Wait for Raven to finish loading - look for navigation tabs to appear
+    await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
+
+    // Give the app a moment to fully render
+    await page.waitForTimeout(1000);
   });
 
   test('should display recent file changes in activity log', async ({ page }) => {
@@ -81,6 +87,12 @@ test.describe('User Story: Storage Information is Accurate', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Wait for Raven to finish loading - look for navigation tabs to appear
+    await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
+
+    // Give the app a moment to fully render
+    await page.waitForTimeout(1000);
   });
 
   test('should show storage usage on System page', async ({ page }) => {
@@ -88,6 +100,10 @@ test.describe('User Story: Storage Information is Accurate', () => {
 
     // Navigate to System page
     await page.click('text=/System/i');
+    await page.waitForTimeout(500);
+
+    // Click on Storage sub-tab
+    await page.click('text=/^Storage$/i');
     await page.waitForTimeout(500);
 
     // Storage section should be visible
@@ -106,6 +122,10 @@ test.describe('User Story: Storage Information is Accurate', () => {
     await page.click('text=/System/i');
     await page.waitForTimeout(500);
 
+    // Click on Storage sub-tab
+    await page.click('text=/^Storage$/i');
+    await page.waitForTimeout(500);
+
     // Look for storage/database information
     await expect(page.getByText(/Storage|Database|Size/i)).toBeVisible({ timeout: 5000 });
 
@@ -118,6 +138,10 @@ test.describe('User Story: Storage Information is Accurate', () => {
     // User Story: "Can I clean up old data?"
 
     await page.click('text=/System/i');
+    await page.waitForTimeout(500);
+
+    // Click on Storage sub-tab
+    await page.click('text=/^Storage$/i');
     await page.waitForTimeout(500);
 
     // Look for cleanup or maintenance buttons
@@ -137,6 +161,12 @@ test.describe('User Story: Project Switching Works Correctly', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Wait for Raven to finish loading - look for navigation tabs to appear
+    await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
+
+    // Give the app a moment to fully render
+    await page.waitForTimeout(1000);
   });
 
   test('should show project selector', async ({ page }) => {
@@ -152,10 +182,14 @@ test.describe('User Story: Project Switching Works Correctly', () => {
 
     // Project name should be visible somewhere on the page
     // Look in common locations: header, overview, system page
-    await expect(page.getByText(/Project|raven/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Project|raven/i).first()).toBeVisible({ timeout: 5000 });
 
     // Navigate to System page to see project details
     await page.click('text=/System/i');
+    await page.waitForTimeout(500);
+
+    // Click on Projects sub-tab
+    await page.click('text=/^Projects$/i');
     await page.waitForTimeout(500);
 
     // Should show project information
@@ -186,6 +220,12 @@ test.describe('User Story: Error Detection and Alerts', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Wait for Raven to finish loading - look for navigation tabs to appear
+    await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
+
+    // Give the app a moment to fully render
+    await page.waitForTimeout(1000);
   });
 
   test('should show syntax errors if any exist', async ({ page }) => {
@@ -220,6 +260,10 @@ test.describe('User Story: Error Detection and Alerts', () => {
     await page.click('text=/Safety/i');
     await page.waitForTimeout(500);
 
+    // Click on Pattern Warnings sub-tab
+    await page.click('text=/Pattern Warnings/i');
+    await page.waitForTimeout(500);
+
     // Should have pattern warnings section
     await expect(page.getByText(/Pattern|Warnings|Quality/i)).toBeVisible({ timeout: 5000 });
   });
@@ -229,6 +273,12 @@ test.describe('User Story: Performance Monitoring', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Wait for Raven to finish loading - look for navigation tabs to appear
+    await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
+
+    // Give the app a moment to fully render
+    await page.waitForTimeout(1000);
   });
 
   test('should display system resource usage', async ({ page }) => {
@@ -268,6 +318,12 @@ test.describe('User Story: Navigation and Usability', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Wait for Raven to finish loading - look for navigation tabs to appear
+    await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
+
+    // Give the app a moment to fully render
+    await page.waitForTimeout(1000);
   });
 
   test('should load quickly and be responsive', async ({ page }) => {
