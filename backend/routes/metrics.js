@@ -214,9 +214,11 @@ export function createMetricsRoutes(deps) {
 
           for (const row of eventsByType) {
             let normalizedType = row.change_type;
-            if (row.change_type === 'add') normalizedType = 'created';
-            else if (row.change_type === 'change') normalizedType = 'modified';
-            else if (row.change_type === 'unlink') normalizedType = 'deleted';
+            // Map legacy types to new standardized types
+            if (row.change_type === 'add') normalizedType = 'create';
+            else if (row.change_type === 'change') normalizedType = 'edit';
+            else if (row.change_type === 'unlink') normalizedType = 'delete';
+            // New types are already normalized (create, edit, delete)
 
             metrics.events_by_type[normalizedType] = (metrics.events_by_type[normalizedType] || 0) + row.count;
           }
@@ -251,7 +253,7 @@ export function createMetricsRoutes(deps) {
             LIMIT 1000
           `).all();
           for (const stat of fileStats) {
-            const key = '${projectName}/${stat.filepath}';
+            const key = `${projectName}/${stat.filepath}`;
             fileActivity.set(key, (fileActivity.get(key) || 0) + stat.count);
           }
 
@@ -282,7 +284,7 @@ export function createMetricsRoutes(deps) {
             hourlyActivity.set(h.hour, (hourlyActivity.get(h.hour) || 0) + h.count);
           }
         } catch (dbError) {
-          logger.error('Error querying ${projectName} database:', dbError);
+          logger.error(`Error querying ${projectName} database:`, dbError);
         }
       }
 

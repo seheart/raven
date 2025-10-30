@@ -861,17 +861,17 @@
     text-transform: uppercase;
   }
 
-  .type-add {
+  .type-add, .type-create, .type-created {
     background: color-mix(in srgb, var(--success) 20%, transparent);
     color: var(--success);
   }
 
-  .type-change {
+  .type-change, .type-edit, .type-modified {
     background: color-mix(in srgb, var(--warning) 20%, transparent);
     color: var(--warning);
   }
 
-  .type-unlink {
+  .type-unlink, .type-delete, .type-deleted {
     background: color-mix(in srgb, var(--error) 20%, transparent);
     color: var(--error);
   }

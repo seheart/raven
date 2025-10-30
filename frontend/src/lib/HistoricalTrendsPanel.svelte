@@ -74,14 +74,24 @@
     return (value / maxEventCount) * 100;
   }
 
+  // Get the height of a bar segment as a percentage of that period's total
+  function getSegmentHeight(value, total) {
+    if (total === 0) return 0;
+    return (value / total) * 100;
+  }
+
+  // Get the overall bar height for a period (in pixels)
+  function getPeriodBarHeight(eventCount) {
+    const maxHeight = 280; // Max height in pixels (chart is 300px, leave some padding)
+    return (eventCount / maxEventCount) * maxHeight;
+  }
+
   function formatPeriod(periodStr) {
-    if (period === 'hourly') {
-      // Show date and time for hourly view
-      return formatDateTime(periodStr);
-    } else if (period === 'daily') {
-      // Show just date for daily view
+    if (period === 'hourly' || period === 'daily') {
+      // Show just date (no time)
       return formatDateOnly(periodStr);
     } else {
+      // Weekly format stays as-is (e.g., "2025-W42")
       return periodStr;
     }
   }
@@ -173,25 +183,25 @@
       <div class="chart" role="img" aria-label="Historical trends chart showing activity over {period} periods">
         {#each trends as trend (trend.period)}
           <div class="bar-group" aria-hidden="true">
-            <div class="bar-stack">
+            <div class="bar-count">{trend.event_count}</div>
+            <div class="bar-stack" style="height: {getPeriodBarHeight(trend.event_count)}px">
               <div
-                class="bar bar-created"
-                style="height: {getBarHeight(trend.creations)}%"
-                title="{trend.creations} created"
+                class="bar bar-deleted"
+                style="height: {getSegmentHeight(trend.deletions, trend.event_count)}%"
+                title="{trend.deletions} deleted"
               ></div>
               <div
                 class="bar bar-modified"
-                style="height: {getBarHeight(trend.modifications)}%"
+                style="height: {getSegmentHeight(trend.modifications, trend.event_count)}%"
                 title="{trend.modifications} modified"
               ></div>
               <div
-                class="bar bar-deleted"
-                style="height: {getBarHeight(trend.deletions)}%"
-                title="{trend.deletions} deleted"
+                class="bar bar-created"
+                style="height: {getSegmentHeight(trend.creations, trend.event_count)}%"
+                title="{trend.creations} created"
               ></div>
             </div>
             <div class="bar-label">{formatPeriod(trend.period)}</div>
-            <div class="bar-count">{trend.event_count}</div>
           </div>
         {/each}
       </div>
@@ -322,16 +332,18 @@
   }
 
   .chart {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    align-items: end;
     gap: 6px;
     height: 300px;
     padding: 0 8px;
   }
 
   .bar-group {
-    flex: 1;
+    flex: 0 0 auto;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -340,21 +352,26 @@
 
   .bar-stack {
     width: 100%;
-    flex: 1;
     display: flex;
-    flex-direction: column-reverse;
-    justify-content: flex-start;
-    gap: 1px;
-    min-height: 0;
+    flex-direction: column;
+    min-height: 10px;
+    position: relative;
   }
 
   .bar {
     width: 100%;
-    min-height: 3px;
-    border-radius: 2px 2px 0 0;
+    min-height: 2px;
     transition: all 0.3s ease;
     cursor: pointer;
     flex-shrink: 0;
+  }
+
+  .bar:first-child {
+    border-radius: 0 0 2px 2px;
+  }
+
+  .bar:last-child {
+    border-radius: 2px 2px 0 0;
   }
 
   .bar:hover {
@@ -363,28 +380,26 @@
   }
 
   .bar-created {
-    background: var(--success, #10b981);
+    background: #10b981; /* Green */
   }
 
   .bar-modified {
-    background: var(--accent, #7aa2f7);
+    background: #7aa2f7; /* Blue */
   }
 
   .bar-deleted {
-    background: var(--error, #f7768e);
+    background: #f7768e; /* Red */
   }
 
   .bar-label {
     font-size: 9px;
     color: var(--muted);
-    text-align: center;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    max-height: 60px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-align: right;
+    transform: rotate(-45deg);
+    transform-origin: right bottom;
     white-space: nowrap;
-    margin-top: 4px;
+    margin-top: 8px;
+    margin-left: -20px;
   }
 
   .bar-count {
@@ -392,7 +407,7 @@
     font-weight: 600;
     color: var(--text);
     font-family: var(--mono);
-    margin-top: 2px;
+    margin-bottom: 4px;
   }
 
   .stats-grid {

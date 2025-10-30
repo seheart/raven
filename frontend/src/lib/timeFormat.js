@@ -28,10 +28,10 @@ export function formatTime(timestamp, options = {}) {
 
   // Date part
   if (includeDate) {
-    // Format: MM/DD/YYYY
+    // Format: MM/DD/YY
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
+    const year = String(date.getFullYear()).slice(-2); // Get last 2 digits
     parts.push(`${month}/${day}/${year}`);
   }
 

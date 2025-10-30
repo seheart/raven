@@ -227,9 +227,9 @@ export function createAnalyticsRoutes(deps) {
             ELSE strftime('%Y-%m-%d %H:00:00', timestamp)
           END as period,
           COUNT(*) as event_count,
-          SUM(CASE WHEN change_type = 'change' THEN 1 ELSE 0 END) as modifications,
-          SUM(CASE WHEN change_type = 'add' THEN 1 ELSE 0 END) as creations,
-          SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as deletions,
+          SUM(CASE WHEN change_type IN ('change', 'edit') THEN 1 ELSE 0 END) as modifications,
+          SUM(CASE WHEN change_type IN ('add', 'create') THEN 1 ELSE 0 END) as creations,
+          SUM(CASE WHEN change_type IN ('unlink', 'delete') THEN 1 ELSE 0 END) as deletions,
           COUNT(DISTINCT filepath) as unique_files
         FROM events
         WHERE timestamp >= ?

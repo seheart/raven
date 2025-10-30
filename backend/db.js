@@ -724,10 +724,12 @@ export class RavenDB {
         ae.id as event_id,
         ae.timestamp as event_timestamp,
         ae.agent,
-        ae.event_type,
+        ae.event_type as change_type,
+        ae.file as filepath,
         ae.duration_ms,
-        rm.cpu_percent as system_cpu_percent,
-        rm.memory_percent as system_memory_percent,
+        ae.lines_changed as diff_size,
+        rm.cpu_percent as cpu_percent,
+        rm.memory_percent as mem_percent,
         pm.cpu_usage as process_cpu_percent,
         pm.memory_mb as process_memory_mb
       FROM agent_events ae
