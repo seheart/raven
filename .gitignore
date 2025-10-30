@@ -56,3 +56,7 @@ Thumbs.db
 /test_workspace/**
 !/test_workspace/README.md
 .raven/.jwt-secret
+
+# Playwright test artifacts
+playwright-report/
+test-results/
