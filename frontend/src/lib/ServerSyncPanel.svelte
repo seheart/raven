@@ -610,7 +610,7 @@
       <section class="history-section">
         <h3>Recent Syncs</h3>
         <div class="history-list">
-          {#each syncHistory as sync (sync)}
+          {#each syncHistory as sync (sync.timestamp)}
             <div class="history-item">
               <div class="history-time">{formatDateTime(sync.timestamp)}</div>
               <div class="history-status status-{sync.status}">

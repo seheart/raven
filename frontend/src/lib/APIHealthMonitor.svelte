@@ -268,7 +268,7 @@
       <h2 id="api-health-heading"><span aria-hidden="true">🔌</span> API Health Monitor</h2>
       <div class="status-indicators">
         {#if realtimeActive}
-          <span class="realtime-badge" role="status" aria-live="polite"><span aria-hidden="true">🔴</span> Live Update</span>
+          <span class="realtime-badge" role="status" aria-live="polite"><span aria-hidden="true">⚡</span> Checking...</span>
         {/if}
       </div>
     </div>

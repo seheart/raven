@@ -201,7 +201,7 @@
     </div>
   {:else}
     <div class="anomalies-list" role="feed" aria-label="Anomaly alerts">
-      {#each filteredAnomalies as anomaly (anomaly.timestamp + anomaly.type)}
+      {#each filteredAnomalies as anomaly (anomaly.message)}
         <article class="anomaly-card {getSeverityClass(anomaly.severity)}" role="article">
           <div class="anomaly-header">
             <span class="anomaly-icon" aria-hidden="true">{getSeverityIcon(anomaly.severity)}</span>

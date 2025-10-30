@@ -334,7 +334,7 @@
         class:active={severityFilter === 'all'}
         on:click={() => handleSeverityFilter('all')}
       >
-        All ({totalErrors})
+        All ({stats.total})
       </button>
       <button
         class="filter-tab"
