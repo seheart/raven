@@ -88,6 +88,8 @@ export function createAnalyticsRoutes(deps) {
       const lookbackTime = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
 
       const allAnomalies = [];
+      let totalAvgPerHour = 0;
+      let projectCount = 0;
 
       // Aggregate across all projects
       for (const [projectName, db] of projectDatabases.entries()) {
@@ -104,6 +106,10 @@ export function createAnalyticsRoutes(deps) {
           const stdDev = Math.sqrt(
             baseline.reduce((sum, h) => sum + Math.pow(h.count - avgPerHour, 2), 0) / Math.max(baseline.length, 1)
           );
+
+          // Accumulate for global baseline
+          totalAvgPerHour += avgPerHour;
+          projectCount++;
 
           // Check recent activity
           const recent = db.db.prepare(`
@@ -178,12 +184,18 @@ export function createAnalyticsRoutes(deps) {
       // Sort by timestamp descending
       allAnomalies.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+      // Calculate global baseline
+      const globalAvgPerHour = projectCount > 0 ? Math.round(totalAvgPerHour / projectCount) : 0;
+
       res.json({
         lookback_hours: lookbackHours,
         threshold,
         anomalies: allAnomalies,
         total_anomalies: allAnomalies.length,
-        projects_scanned: projectDatabases.size
+        projects_scanned: projectDatabases.size,
+        baseline: {
+          avg_per_hour: globalAvgPerHour
+        }
       });
     } catch (error) {
       logger.error('Anomaly detection error:', error);
