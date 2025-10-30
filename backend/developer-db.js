@@ -14,7 +14,6 @@
  */
 
 import Database from 'better-sqlite3';
-// import { basename } from 'path';
 import { logger } from './utils/logger.js';
 
 class DeveloperDB {

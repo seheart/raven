@@ -6,7 +6,6 @@
   import ToastContainer from './lib/ToastContainer.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
   import AppLoadingScreen from './lib/AppLoadingScreen.svelte';
-  // import LoginPage from './lib/LoginPage.svelte'; // Authentication removed
   import UserMenu from './lib/UserMenu.svelte';
 
   // Existing components for consolidated views
@@ -56,13 +55,8 @@
   import { dataService } from './lib/dataService.js';
   import { logger } from './lib/logger.js';
   import { API_CONFIG } from './config.js';
-  // Authentication disabled
-  // import { authService, isAuthenticated } from './lib/authStore.js';
 
   const API_BASE = API_CONFIG.API_BASE;
-
-  // Check if authentication is disabled on backend
-  // const AUTH_DISABLED = false; // Will be detected from backend
 
   // Main navigation tabs
   const tabs = [

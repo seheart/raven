@@ -49,6 +49,9 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+# Temporary files
+*.tmp
+
 # Logs
 *.log
 
