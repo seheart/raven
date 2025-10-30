@@ -29,7 +29,7 @@ export function createUtilityRoutes(deps) {
       // Calculate cutoff timestamp
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
-      const cutoffTimestamp = cutoffDate.getTime();
+      const cutoffTimestamp = cutoffDate.toISOString();
 
       // Delete from all tables
       // Security: Whitelist of allowed tables to prevent SQL injection
