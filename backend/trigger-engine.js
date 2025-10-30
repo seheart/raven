@@ -143,7 +143,8 @@ cooldown_seconds = 300
           trigger_name: name,
           timestamp: Math.floor(now / 1000), // Unix timestamp in seconds
           message,
-          action: trigger.action
+          action: trigger.action,
+          project: event.project || null // Preserve project info for frontend filtering
         };
 
         this.triggeredEvents.unshift(triggerEvent);
