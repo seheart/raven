@@ -519,7 +519,7 @@ describe('Validation', () => {
     });
 
     it('should validate type values', () => {
-      ['all', 'add', 'change', 'unlink'].forEach(type => {
+      ['all', 'file', 'agent', 'system'].forEach(type => {
         const { error } = schemas.activityLogQuery.validate({ type });
         expect(error).toBeUndefined();
       });

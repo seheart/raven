@@ -35,37 +35,63 @@ describe('Sessions Routes', () => {
   });
 
   describe('GET /api/sessions', () => {
-    test('should return stub message for sessions list', async () => {
-      const response = await request(app)
+    test('should return empty sessions list when no database', async () => {
+      // Create app without mock database
+      const appNoDb = express();
+      appNoDb.use(express.json());
+      appNoDb.use('/api/sessions', createSessionRoutes({
+        sessionTracker: mockSessionTracker,
+        projectDatabases: new Map() // Empty map - no databases
+      }));
+
+      const response = await request(appNoDb)
         .get('/api/sessions')
         .expect('Content-Type', /json/)
         .expect(200);
 
       expect(response.body).toHaveProperty('sessions');
-      expect(response.body).toHaveProperty('message');
+      expect(response.body).toHaveProperty('total');
       expect(Array.isArray(response.body.sessions)).toBe(true);
+      expect(response.body.sessions).toHaveLength(0);
+      expect(response.body.total).toBe(0);
     });
   });
 
   describe('GET /api/sessions/:sessionId/preview', () => {
-    test('should return 404 for preview endpoint', async () => {
-      const response = await request(app)
+    test('should return 404 when project database not found', async () => {
+      // Create app without mock database
+      const appNoDb = express();
+      appNoDb.use(express.json());
+      appNoDb.use('/api/sessions', createSessionRoutes({
+        sessionTracker: mockSessionTracker,
+        projectDatabases: new Map() // Empty map - no databases
+      }));
+
+      const response = await request(appNoDb)
         .get('/api/sessions/session-123/preview')
         .expect('Content-Type', /json/)
         .expect(404);
 
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('error', 'Project database not found');
     });
   });
 
   describe('POST /api/sessions/:sessionId/rollback', () => {
-    test('should return 501 for rollback endpoint', async () => {
-      const response = await request(app)
+    test('should return 404 when project database not found', async () => {
+      // Create app without mock database
+      const appNoDb = express();
+      appNoDb.use(express.json());
+      appNoDb.use('/api/sessions', createSessionRoutes({
+        sessionTracker: mockSessionTracker,
+        projectDatabases: new Map() // Empty map - no databases
+      }));
+
+      const response = await request(appNoDb)
         .post('/api/sessions/session-123/rollback')
         .expect('Content-Type', /json/)
-        .expect(501);
+        .expect(404);
 
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('error', 'Project database not found');
     });
   });
 
