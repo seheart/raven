@@ -10,10 +10,57 @@ import { test, expect } from '@playwright/test';
  * Run these tests continuously to catch workflow issues!
  */
 
+/**
+ * Helper function to dismiss the welcome wizard if it appears
+ */
+async function dismissWizardIfPresent(page) {
+  try {
+    // Check if wizard dialog is present
+    const wizardDialog = page.locator('[role="dialog"][aria-modal="true"]');
+    const wizardVisible = await wizardDialog.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (wizardVisible) {
+      // Try multiple strategies to dismiss the wizard
+
+      // Strategy 1: Look for "Skip Setup" button (exact text from the screenshot)
+      const skipSetupBtn = page.locator('button:has-text("Skip Setup")');
+      if (await skipSetupBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await skipSetupBtn.click();
+        await page.waitForTimeout(1000);
+        return;
+      }
+
+      // Strategy 2: Try pressing Escape key
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(1000);
+
+      // Verify wizard is gone
+      const stillVisible = await wizardDialog.isVisible({ timeout: 1000 }).catch(() => false);
+      if (!stillVisible) {
+        return;
+      }
+
+      // Strategy 3: Try clicking any dismiss/close button
+      const closeButtons = page.locator('button').filter({ hasText: /Skip|Close|Dismiss|Cancel/i });
+      const closeCount = await closeButtons.count();
+      if (closeCount > 0) {
+        await closeButtons.first().click();
+        await page.waitForTimeout(1000);
+      }
+    }
+  } catch (error) {
+    // If dismissing wizard fails, just continue - the test might still work
+    console.log(`Note: Could not dismiss wizard: ${error.message}`);
+  }
+}
+
 test.describe('User Story: Activity Log Shows Latest Changes', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -92,6 +139,9 @@ test.describe('User Story: Storage Information is Accurate', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
+
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
 
@@ -166,6 +216,9 @@ test.describe('User Story: Project Switching Works Correctly', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
+
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
 
@@ -225,6 +278,9 @@ test.describe('User Story: Error Detection and Alerts', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
+
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
 
@@ -283,6 +339,9 @@ test.describe('User Story: Performance Monitoring', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
+
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
 
@@ -328,6 +387,9 @@ test.describe('User Story: Navigation and Usability', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -411,6 +473,9 @@ test.describe('User Story: Critical Boot-up and First Load', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -507,6 +572,9 @@ test.describe('User Story: Data Integrity and Persistence', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -621,6 +689,9 @@ test.describe('User Story: Real-time WebSocket Features', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
+
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
 
@@ -702,6 +773,9 @@ test.describe('User Story: Error Handling and Recovery', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -804,6 +878,9 @@ test.describe('User Story: Performance Under Load', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
+
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
 
@@ -898,6 +975,9 @@ test.describe('User Story: API Integration Health', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Dismiss welcome wizard if present
+    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
