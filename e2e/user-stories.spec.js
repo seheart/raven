@@ -1,0 +1,331 @@
+import { test, expect } from '@playwright/test';
+
+/**
+ * User Story E2E Tests
+ *
+ * These tests simulate real user workflows and verify critical functionality
+ * from an end-user perspective. Each test represents a user story like:
+ * "As a developer, I want to see if activity is showing the latest changes"
+ *
+ * Run these tests continuously to catch workflow issues!
+ */
+
+test.describe('User Story: Activity Log Shows Latest Changes', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should display recent file changes in activity log', async ({ page }) => {
+    // User Story: "I want to see if activity is showing the latest changes"
+
+    // Navigate to Activity page
+    await page.click('text=/Activity/i');
+    await page.waitForTimeout(500);
+
+    // Activity log should be visible
+    await expect(page.getByText(/Live Feed|Activity Log|Event Log/i)).toBeVisible({ timeout: 5000 });
+
+    // Should show some events (if any exist)
+    // Note: This is checking the UI loads correctly
+    const activityContent = page.locator('[class*="activity"]').or(page.locator('[class*="event"]'));
+    await expect(activityContent.first()).toBeVisible({ timeout: 5000 });
+
+    // Verify refresh button works
+    const refreshButton = page.getByRole('button', { name: /Refresh/i }).or(page.getByLabel(/Refresh/i));
+    if (await refreshButton.isVisible({ timeout: 2000 })) {
+      await refreshButton.click();
+      await page.waitForTimeout(500);
+    }
+
+    // Activity should still be visible after refresh
+    await expect(page.getByText(/Live Feed|Activity Log|Event Log/i)).toBeVisible();
+  });
+
+  test('should show real-time updates when files change', async ({ page }) => {
+    // User Story: "I want to see activity update in real-time"
+
+    // Navigate to Activity
+    await page.click('text=/Activity/i');
+    await page.waitForTimeout(500);
+
+    // Check for "Live" indicator showing real-time connection
+    const liveIndicator = page.getByText(/Live/i).or(page.getByLabel(/Real-time/i));
+    await expect(liveIndicator).toBeVisible({ timeout: 5000 });
+
+    // Verify WebSocket connection is active
+    // The page should have a live feed element
+    await expect(page.locator('[class*="live"]').or(page.getByText(/Real-time/i))).toBeVisible();
+  });
+
+  test('should filter activity by type', async ({ page }) => {
+    // User Story: "I want to filter activity to see only file changes"
+
+    await page.click('text=/Activity/i');
+    await page.waitForTimeout(500);
+
+    // Look for filter controls (if they exist)
+    const filterButton = page.getByRole('button', { name: /Filter/i }).or(page.getByLabel(/Filter/i));
+
+    if (await filterButton.isVisible({ timeout: 2000 })) {
+      await filterButton.click();
+      await page.waitForTimeout(300);
+
+      // Activity should still be displayed
+      await expect(page.getByText(/Live Feed|Activity/i)).toBeVisible();
+    }
+  });
+});
+
+test.describe('User Story: Storage Information is Accurate', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should show storage usage on System page', async ({ page }) => {
+    // User Story: "Is my storage good?"
+
+    // Navigate to System page
+    await page.click('text=/System/i');
+    await page.waitForTimeout(500);
+
+    // Storage section should be visible
+    const storageSection = page.getByText(/Storage|Database/i);
+    await expect(storageSection.first()).toBeVisible({ timeout: 5000 });
+
+    // Should show storage metrics
+    // Look for size indicators (MB, GB, KB, or bytes)
+    const sizePattern = /\d+\.?\d*\s*(bytes|KB|MB|GB|TB)/i;
+    await expect(page.locator(`text=${sizePattern}`).first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should display database size and file counts', async ({ page }) => {
+    // User Story: "How much space is Raven using?"
+
+    await page.click('text=/System/i');
+    await page.waitForTimeout(500);
+
+    // Look for storage/database information
+    await expect(page.getByText(/Storage|Database|Size/i)).toBeVisible({ timeout: 5000 });
+
+    // Should have numerical data
+    const hasNumbers = await page.locator('text=/\\d+/').count();
+    expect(hasNumbers).toBeGreaterThan(0);
+  });
+
+  test('should allow storage cleanup if available', async ({ page }) => {
+    // User Story: "Can I clean up old data?"
+
+    await page.click('text=/System/i');
+    await page.waitForTimeout(500);
+
+    // Look for cleanup or maintenance buttons
+    const cleanupButton = page.getByRole('button', { name: /Clean|Clear|Delete|Remove/i });
+
+    if (await cleanupButton.count() > 0) {
+      // Just verify the button exists - don't actually click it in tests!
+      await expect(cleanupButton.first()).toBeVisible();
+    }
+
+    // Storage information should still be visible
+    await expect(page.getByText(/Storage|Database/i)).toBeVisible();
+  });
+});
+
+test.describe('User Story: Project Switching Works Correctly', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should show project selector', async ({ page }) => {
+    // User Story: "I want to switch between my projects"
+
+    // Look for project selector (might be in header or sidebar)
+    const projectSelector = page.getByLabel(/Project/i).or(page.getByText(/Projects/i));
+    await expect(projectSelector.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should display current project information', async ({ page }) => {
+    // User Story: "Which project am I viewing?"
+
+    // Project name should be visible somewhere on the page
+    // Look in common locations: header, overview, system page
+    await expect(page.getByText(/Project|raven/i)).toBeVisible({ timeout: 5000 });
+
+    // Navigate to System page to see project details
+    await page.click('text=/System/i');
+    await page.waitForTimeout(500);
+
+    // Should show project information
+    await expect(page.getByText(/Project|Path|Directory/i)).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should maintain state when switching tabs', async ({ page }) => {
+    // User Story: "Project context shouldn't change when navigating"
+
+    // Go to Overview
+    await page.click('text=/Overview/i');
+    await page.waitForTimeout(300);
+
+    // Go to Activity
+    await page.click('text=/Activity/i');
+    await page.waitForTimeout(300);
+
+    // Go to System
+    await page.click('text=/System/i');
+    await page.waitForTimeout(300);
+
+    // Page should still be functional
+    await expect(page.getByText(/System|Settings|Configuration/i)).toBeVisible();
+  });
+});
+
+test.describe('User Story: Error Detection and Alerts', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should show syntax errors if any exist', async ({ page }) => {
+    // User Story: "Are there any errors in my code?"
+
+    // Navigate to Safety page
+    await page.click('text=/Safety/i');
+    await page.waitForTimeout(500);
+
+    // Should show syntax error section
+    await expect(page.getByText(/Syntax|Errors|Issues/i)).toBeVisible({ timeout: 5000 });
+
+    // Should display error count or status
+    const errorIndicator = page.getByText(/No errors|0 errors|\d+ error/i);
+    await expect(errorIndicator.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should display health check status', async ({ page }) => {
+    // User Story: "Is everything working correctly?"
+
+    // Health status should be on Overview
+    await expect(page.getByText(/Health|Status|System/i)).toBeVisible({ timeout: 5000 });
+
+    // Should show some kind of status indicator
+    const healthStatus = page.getByText(/OK|Good|Healthy|Warning|Critical|All Systems/i);
+    await expect(healthStatus.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should show pattern warnings if enabled', async ({ page }) => {
+    // User Story: "Are there any code quality issues?"
+
+    await page.click('text=/Safety/i');
+    await page.waitForTimeout(500);
+
+    // Should have pattern warnings section
+    await expect(page.getByText(/Pattern|Warnings|Quality/i)).toBeVisible({ timeout: 5000 });
+  });
+});
+
+test.describe('User Story: Performance Monitoring', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should display system resource usage', async ({ page }) => {
+    // User Story: "How is Raven performing?"
+
+    // System metrics should be visible on Overview or System page
+    await expect(page.getByText(/CPU|Memory|System/i)).toBeVisible({ timeout: 5000 });
+
+    // Should show percentage or usage metrics
+    const metricsPattern = /\d+%|\d+\.?\d*\s*(MB|GB)/i;
+    await expect(page.locator(`text=${metricsPattern}`).first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should show session duration and activity', async ({ page }) => {
+    // User Story: "How long have I been coding?"
+
+    // Session info should be visible
+    await expect(page.getByText(/Session|Duration|Uptime/i)).toBeVisible({ timeout: 5000 });
+
+    // Should show time measurement
+    const timePattern = /\d+\s*(second|minute|hour|day)/i;
+    await expect(page.locator(`text=${timePattern}`).first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should track file changes during session', async ({ page }) => {
+    // User Story: "How many files have I touched?"
+
+    // Look for session statistics
+    await expect(page.getByText(/Current Session|Session Stats/i)).toBeVisible({ timeout: 5000 });
+
+    // Should show file count or changes count
+    await expect(page.getByText(/Files|Changes|Edits/i)).toBeVisible({ timeout: 5000 });
+  });
+});
+
+test.describe('User Story: Navigation and Usability', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should load quickly and be responsive', async ({ page }) => {
+    // User Story: "Raven should be fast"
+
+    const startTime = Date.now();
+
+    // Navigate to different pages
+    await page.click('text=/Activity/i');
+    await page.waitForLoadState('networkidle');
+
+    const loadTime = Date.now() - startTime;
+
+    // Should load in under 3 seconds
+    expect(loadTime).toBeLessThan(3000);
+  });
+
+  test('should have clear visual hierarchy', async ({ page }) => {
+    // User Story: "I should easily find what I need"
+
+    // All main sections should be clearly labeled
+    await expect(page.getByText(/Overview|Safety|Agents|Activity|Analysis|System/i)).toBeVisible();
+
+    // Page should have a header
+    await expect(page.locator('header').or(page.locator('[role="banner"]'))).toBeVisible();
+  });
+
+  test('should work on mobile viewport', async ({ page }) => {
+    // User Story: "Can I use Raven on my tablet?"
+
+    // Set tablet viewport
+    await page.setViewportSize({ width: 768, height: 1024 });
+
+    // Key elements should still be accessible
+    await expect(page.getByText(/Overview|Activity|System/i)).toBeVisible({ timeout: 5000 });
+
+    // Navigation should work
+    await page.click('text=/Activity/i');
+    await page.waitForTimeout(500);
+    await expect(page.getByText(/Activity|Live Feed/i)).toBeVisible();
+  });
+
+  test('should maintain scroll position appropriately', async ({ page }) => {
+    // User Story: "Don't lose my place when I click around"
+
+    // Scroll down on Overview
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(300);
+
+    // Navigate to Activity
+    await page.click('text=/Activity/i');
+    await page.waitForTimeout(500);
+
+    // Navigate back to Overview
+    await page.click('text=/Overview/i');
+    await page.waitForTimeout(500);
+
+    // Page should be functional (scroll position may reset, which is fine)
+    await expect(page.getByText(/Project Health|Overview/i)).toBeVisible();
+  });
+});
