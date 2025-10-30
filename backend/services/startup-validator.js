@@ -102,10 +102,10 @@ export class StartupValidator {
       { name: 'Activity Log data flow', fn: () => this.checkDataFlow('/api/activity-log') },
       { name: 'Anomaly Alerts data flow', fn: () => this.checkDataFlow('/api/anomalies/detect?hours=24&threshold=2') },
       { name: 'Error Log data flow', fn: () => this.checkDataFlow('/api/errors') },
-      { name: 'Metrics data flow', fn: () => this.checkDataFlow('/api/metrics?limit=10') },
+      { name: 'Metrics data flow', fn: () => this.checkDataFlow('/api/system-metrics?limit=10') },
       { name: 'Notifications data flow', fn: () => this.checkDataFlow('/api/notifications?limit=10') },
       { name: 'API Health Monitor', fn: () => this.checkDataFlow('/api/endpoints') },
-      { name: 'Server Sync status', fn: () => this.checkDataFlow('/api/sync/status') },
+      { name: 'Server Sync panel', fn: () => this.checkDataFlow('/api/projects') },
       { name: 'File Browser tree', fn: () => this.checkDataFlow('/api/tracked-files') },
     ];
 
@@ -376,8 +376,9 @@ export class StartupValidator {
       throw new Error(`Projects endpoint failed: HTTP ${response.status}`);
     }
     const data = await response.json();
-    if (!Array.isArray(data)) {
-      throw new Error('Projects endpoint returned invalid data');
+    // Projects endpoint returns {autoDiscover, basePath, projects: [...]}
+    if (!data.projects || !Array.isArray(data.projects)) {
+      throw new Error('Projects endpoint returned invalid data structure');
     }
   }
 
