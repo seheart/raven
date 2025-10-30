@@ -76,7 +76,7 @@ export function createEventsRoutes(deps) {
   router.get('/events-by-session/:sessionId', validate('eventsBySessionParams', 'params'), (req, res) => {
     try {
       const { sessionId } = req.params;
-      const events = projectState.db.getEventsBySession(sessionId);
+      const events = projectState.db.getAgentEventsBySession(sessionId);
       res.json(events);
     } catch (error) {
       logger.error('Events by session error:', error);

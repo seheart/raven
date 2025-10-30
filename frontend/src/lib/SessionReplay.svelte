@@ -294,7 +294,7 @@
           <div class="filter-label">Agent:</div>
           <select class="agent-select" bind:value={selectedAgent} aria-label="Filter events by agent">
             <option value="all">All Agents ({uniqueAgents.length})</option>
-            {#each uniqueAgents as agent (agent.agent || agent.name || agent)}
+            {#each uniqueAgents as agent (agent)}
               <option value={agent}>{agent}</option>
             {/each}
           </select>

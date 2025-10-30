@@ -159,7 +159,7 @@ export function createApiRouter(deps: ApiDependencies): Router {
   router.get('/api/events-by-session/:sessionId', (req: Request, res: Response) => {
     try {
       const { sessionId: sid } = req.params;
-      const events = db.getEventsBySession(sid);
+      const events = db.getAgentEventsBySession(sid);
       res.json(events);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

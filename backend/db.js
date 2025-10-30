@@ -526,7 +526,7 @@ export class RavenDB {
 
   getAgentEventsBySession(session_id) {
     const stmt = this.prepareStatement(`
-      SELECT id, timestamp, agent, event_type as change_type, file as filepath, lines_changed, duration_ms, message
+      SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message
       FROM agent_events
       WHERE session_id = ?
       ORDER BY timestamp ASC
