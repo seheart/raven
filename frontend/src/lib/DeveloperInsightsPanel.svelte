@@ -266,7 +266,7 @@
             <div
               class="heatmap-cell"
               class:active={count > 0}
-              style="background: rgba(var(--accent-rgb, 136, 192, 208), {intensity})"
+              style="background: color-mix(in srgb, var(--accent) {intensity * 100}%, transparent)"
               title="{hour}:00 - {count} events"
               aria-hidden="true"
             >
