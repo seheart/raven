@@ -20,13 +20,15 @@ async function dismissWizardIfPresent(page) {
     const wizardVisible = await wizardDialog.isVisible({ timeout: 2000 }).catch(() => false);
 
     if (wizardVisible) {
-      // Try multiple strategies to dismiss the wizard
+      // Strategy 1: Use getByRole to find the skip button by accessible name
+      const skipButton = page.getByRole('button', { name: /Skip setup|Skip Setup|Skip/i });
+      const hasSkipButton = await skipButton.count();
 
-      // Strategy 1: Look for "Skip Setup" button (exact text from the screenshot)
-      const skipSetupBtn = page.locator('button:has-text("Skip Setup")');
-      if (await skipSetupBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await skipSetupBtn.click();
-        await page.waitForTimeout(1000);
+      if (hasSkipButton > 0) {
+        await skipButton.first().click({ force: true });
+        // Wait for dialog to animate away
+        await page.waitForTimeout(1500);
+        await wizardDialog.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
         return;
       }
 
@@ -40,13 +42,9 @@ async function dismissWizardIfPresent(page) {
         return;
       }
 
-      // Strategy 3: Try clicking any dismiss/close button
-      const closeButtons = page.locator('button').filter({ hasText: /Skip|Close|Dismiss|Cancel/i });
-      const closeCount = await closeButtons.count();
-      if (closeCount > 0) {
-        await closeButtons.first().click();
-        await page.waitForTimeout(1000);
-      }
+      // Strategy 3: Force click the dialog overlay background to close
+      await page.click('[role="dialog"]', { position: { x: 5, y: 5 }, force: true }).catch(() => {});
+      await page.waitForTimeout(1000);
     }
   } catch (error) {
     // If dismissing wizard fails, just continue - the test might still work
