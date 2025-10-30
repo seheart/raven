@@ -60,3 +60,6 @@ Thumbs.db
 # Playwright test artifacts
 playwright-report/
 test-results/
+
+# Nightly test logs
+logs/nightly-tests/
