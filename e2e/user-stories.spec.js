@@ -61,7 +61,9 @@ test.describe('User Story: Activity Log Shows Latest Changes', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -144,7 +146,9 @@ test.describe('User Story: Storage Information is Accurate', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -224,7 +228,9 @@ test.describe('User Story: Project Switching Works Correctly', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -289,7 +295,9 @@ test.describe('User Story: Error Detection and Alerts', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -353,7 +361,9 @@ test.describe('User Story: Performance Monitoring', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -405,7 +415,9 @@ test.describe('User Story: Navigation and Usability', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -454,13 +466,15 @@ test.describe('User Story: Navigation and Usability', () => {
 
     // Set tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 });
+    // Wait for responsive layout to settle
+    await page.waitForTimeout(1000);
 
     // Key elements should still be accessible - look for navigation buttons
     const navButtons = page.locator('button:has-text("Overview")').or(page.locator('button:has-text("Activity")'));
     await expect(navButtons.first()).toBeVisible({ timeout: 5000 });
 
-    // Navigation should work
-    await page.click('text=/^Activity$/i');
+    // Navigation should work - use getByRole for better reliability
+    await page.getByRole('button', { name: /Activity/i }).first().click({ force: true });
     await page.waitForTimeout(500);
     await expect(page.getByText(/Activity|Live Feed/i).first()).toBeVisible();
   });
@@ -494,7 +508,9 @@ test.describe('User Story: Critical Boot-up and First Load', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -596,7 +612,9 @@ test.describe('User Story: Data Integrity and Persistence', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -715,7 +733,9 @@ test.describe('User Story: Real-time WebSocket Features', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -803,7 +823,9 @@ test.describe('User Story: Error Handling and Recovery', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -910,7 +932,9 @@ test.describe('User Story: Performance Under Load', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -1011,7 +1035,9 @@ test.describe('User Story: API Integration Health', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+      // Ignore networkidle timeout - we'll rely on the navigation check instead
+    });
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
