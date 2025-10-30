@@ -60,6 +60,62 @@
     }
   }
 
+  // Resolve all warnings
+  async function resolveAllWarnings() {
+    if (!confirm(`Are you sure you want to resolve all ${warningCount} pattern warnings?`)) {
+      return;
+    }
+
+    try {
+      const url = selectedCategory === 'all'
+        ? '/api/pattern-warnings/resolve-all'
+        : `/api/pattern-warnings/resolve-all?category=${selectedCategory}`;
+
+      const response = await fetch(url, { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to resolve all warnings');
+
+      const data = await response.json();
+      notifications.success(data.message || 'All warnings resolved');
+      await fetchWarnings();
+    } catch (error) {
+      logger.error('Failed to resolve all warnings:', error);
+      notifications.error('Failed to resolve all warnings');
+    }
+  }
+
+  // Export warnings
+  async function exportWarnings(format = 'csv') {
+    try {
+      const categoryParam = selectedCategory === 'all' ? '' : `&category=${selectedCategory}`;
+      const url = `/api/pattern-warnings/export?format=${format}${categoryParam}`;
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to export warnings');
+
+      // Get filename from Content-Disposition header or generate one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+        : `pattern-warnings-${Date.now()}.${format}`;
+
+      // Download file
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      notifications.success(`Exported ${warningCount} warning(s) as ${format.toUpperCase()}`);
+    } catch (error) {
+      logger.error('Failed to export warnings:', error);
+      notifications.error('Failed to export warnings');
+    }
+  }
+
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('pattern-warning', (data) => {
@@ -133,9 +189,30 @@
   <div class="panel-header">
     <div class="header-top">
       <h2 id="pattern-warnings-heading">Code Pattern Warnings</h2>
-      <button class="refresh-btn" on:click={fetchWarnings} aria-label="Refresh pattern warnings">
-        <span aria-hidden="true">↻</span>
-      </button>
+      <div class="header-actions">
+        <button class="action-btn" on:click={fetchWarnings} aria-label="Refresh pattern warnings" title="Refresh">
+          <span aria-hidden="true">↻</span>
+        </button>
+        {#if warningCount > 0}
+          <div class="export-dropdown">
+            <button class="action-btn export-btn" aria-label="Export warnings" title="Export">
+              <span aria-hidden="true">⬇</span>
+            </button>
+            <div class="dropdown-menu">
+              <button on:click={() => exportWarnings('csv')} aria-label="Export as CSV">
+                Export as CSV
+              </button>
+              <button on:click={() => exportWarnings('json')} aria-label="Export as JSON">
+                Export as JSON
+              </button>
+            </div>
+          </div>
+          <button class="action-btn resolve-all-btn" on:click={resolveAllWarnings} aria-label="Resolve all warnings" title="Resolve All">
+            <span aria-hidden="true">✓</span>
+            <span class="btn-label">Resolve All</span>
+          </button>
+        {/if}
+      </div>
     </div>
     <p class="panel-description">
       Automatic detection of problematic patterns: hardcoded secrets, debug statements, and code quality issues
@@ -308,29 +385,103 @@
     line-height: 1.5;
   }
 
-  .refresh-btn {
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-btn {
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 6px;
-    width: 32px;
+    min-width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
+    padding: 0 10px;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
     transition: all 0.2s;
   }
 
-  .refresh-btn:hover {
+  .action-btn:hover {
     background: var(--accent);
     color: white;
+    border-color: var(--accent);
+  }
+
+  .action-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .action-btn:first-child:hover {
     transform: rotate(180deg);
   }
 
-  .refresh-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+  .resolve-all-btn {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+  }
+
+  .resolve-all-btn:hover {
+    background: #059669;
+    border-color: #059669;
+  }
+
+  .btn-label {
+    font-size: 13px;
+  }
+
+  /* Export Dropdown */
+  .export-dropdown {
+    position: relative;
+  }
+
+  .export-dropdown:hover .dropdown-menu {
+    display: block;
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 140px;
+    z-index: 1000;
+    overflow: hidden;
+  }
+
+  .dropdown-menu button {
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    transition: background 0.2s;
+  }
+
+  .dropdown-menu button:hover {
+    background: var(--surface-2);
+  }
+
+  .dropdown-menu button:not(:last-child) {
+    border-bottom: 1px solid var(--border);
   }
 
   /* Category Filter */

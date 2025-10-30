@@ -396,6 +396,103 @@ export function createSafetyRoutes(deps) {
     }
   });
 
+  /**
+   * POST /api/pattern-warnings/resolve-all
+   * Resolve all pattern warnings
+   */
+  router.post('/pattern-warnings/resolve-all', (req, res) => {
+    try {
+      const db = getDb();
+
+      // Check if method exists (stub for tests)
+      if (!db.resolveAllPatternWarnings) {
+        return res.status(501).json({
+          error: 'Bulk resolution not available in this configuration'
+        });
+      }
+
+      const category = req.query.category || null;
+      const result = db.resolveAllPatternWarnings(category);
+
+      res.json({
+        success: true,
+        message: `Resolved ${result.count} pattern warning(s)`,
+        count: result.count
+      });
+    } catch (error) {
+      logger.error('Error resolving all pattern warnings:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/pattern-warnings/export
+   * Export pattern warnings as CSV or JSON
+   */
+  router.get('/pattern-warnings/export', (req, res) => {
+    try {
+      const db = getDb();
+
+      // Check if method exists (stub for tests)
+      if (!db.getPatternWarnings) {
+        return res.status(501).json({
+          error: 'Pattern warnings export not available in this configuration'
+        });
+      }
+
+      const format = req.query.format || 'csv';
+      const category = req.query.category || 'all';
+      const resolved = req.query.resolved === 'true';
+
+      // Get all warnings (no limit)
+      const result = db.getPatternWarnings({ limit: 999999, category, resolved });
+      const warnings = result.warnings || [];
+
+      if (format === 'json') {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="pattern-warnings-${Date.now()}.json"`);
+        res.json({ warnings, count: warnings.length, exported_at: new Date().toISOString() });
+      } else {
+        // CSV format
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="pattern-warnings-${Date.now()}.csv"`);
+
+        // CSV header
+        const csvHeaders = [
+          'ID', 'Timestamp', 'Filepath', 'Project', 'Category', 'Severity',
+          'Pattern Name', 'Message', 'Line Number', 'Match Text', 'Context',
+          'Suggestion', 'Resolved'
+        ];
+        let csv = csvHeaders.join(',') + '\n';
+
+        // CSV rows
+        for (const warning of warnings) {
+          const row = [
+            warning.id || '',
+            warning.timestamp || '',
+            `"${(warning.filepath || '').replace(/"/g, '""')}"`,
+            `"${(warning.project_name || '').replace(/"/g, '""')}"`,
+            warning.category || '',
+            warning.severity || '',
+            `"${(warning.pattern_name || '').replace(/"/g, '""')}"`,
+            `"${(warning.message || '').replace(/"/g, '""')}"`,
+            warning.line_number || '',
+            `"${(warning.match_text || '').replace(/"/g, '""')}"`,
+            `"${(warning.context || '').replace(/"/g, '""')}"`,
+            `"${(warning.suggestion || '').replace(/"/g, '""')}"`,
+            warning.resolved ? 'Yes' : 'No'
+          ];
+          csv += row.join(',') + '\n';
+        }
+
+        res.send(csv);
+      }
+    } catch (error) {
+      logger.error('Error exporting pattern warnings:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ==================== Test Results ====================
 
   /**
@@ -583,6 +680,34 @@ export function createSafetyRoutes(deps) {
       res.json({ success: true, ...result });
     } catch (error) {
       logger.error('Error running tests:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * DELETE /api/tests/results
+   * Clear all test results
+   */
+  router.delete('/tests/results', (req, res) => {
+    try {
+      const db = getDb();
+
+      // Check if method exists (stub for tests)
+      if (!db.clearTestResults) {
+        return res.status(501).json({
+          error: 'Test result clearing not available in this configuration'
+        });
+      }
+
+      const result = db.clearTestResults();
+
+      res.json({
+        success: true,
+        message: `Cleared ${result.count} test result(s)`,
+        count: result.count
+      });
+    } catch (error) {
+      logger.error('Error clearing test results:', error);
       res.status(500).json({ error: error.message });
     }
   });

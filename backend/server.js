@@ -11,7 +11,7 @@ import { TriggerEngine } from './trigger-engine.js';
 import { GitMonitor } from './dist/modules/git.js';
 import { randomUUID } from 'crypto';
 import * as SyncService from './sync-service.js';
-import { createDefaultHealthChecks } from './health-checks.js';
+import { createDefaultHealthChecks, registerConversationHealthChecks } from './health-checks.js';
 import { join, relative, normalize, isAbsolute } from 'path';
 import chokidar from 'chokidar';
 import fs from 'fs';
@@ -77,6 +77,8 @@ import { createRiskAnalyzer } from './services/risk-analyzer.js';
 import { createBehaviorProfiler } from './services/behavior-profiler.js';
 import { createPatternMatcher } from './services/pattern-matcher.js';
 import { createSessionTracker } from './services/session-tracker.js';
+import { ConversationSync } from './services/conversation-sync.js';
+import { GitBackfillService } from './services/git-backfill.js';
 import { createDeveloperRoutes } from './routes/developer.js';
 
 // Utilities (Phase 3)
@@ -332,6 +334,7 @@ logger.info('Authentication service initialized', { path: AUTH_DB_PATH });
 const projectWatchers = new Map();      // projectName -> chokidar watcher (reactive, ignoreInitial=true)
 const projectDatabases = new Map();     // projectName -> RavenDB instance
 const projectGitMonitors = new Map();   // projectName -> GitMonitor instance
+const projectConversationSyncs = new Map();  // projectName -> ConversationSync instance
 const projectPaths = new Map();         // projectName -> absolute path
 const projectSnapshotDirs = new Map();  // projectName -> snapshots directory
 
@@ -1239,6 +1242,19 @@ async function initializeAllWatchers() {
           projectWatchers.set(projectName, watcher);
           successCount++;
           logger.info(`✅ Watcher started for ${projectName}`, { path: projectPath });
+
+          // Start conversation sync for this project
+          try {
+            const db = projectDatabases.get(projectName);
+            if (db) {
+              const conversationSync = new ConversationSync(db, SESSION_ID, io, projectPath);
+              await conversationSync.start();
+              projectConversationSyncs.set(projectName, conversationSync);
+            }
+          } catch (syncError) {
+            logger.warn(`⚠️  Conversation sync failed for ${projectName}:`, syncError.message);
+            // Non-fatal - continue without conversation sync
+          }
         } else {
           failCount++;
         }
@@ -1254,6 +1270,36 @@ async function initializeAllWatchers() {
       skipped: skippedCount,
       total: projectPaths.size
     });
+
+    // Register conversation health checks now that syncs are started
+    if (healthCheckSystem && projectConversationSyncs.size > 0) {
+      const firstDb = getMetricsDatabase();
+      if (firstDb) {
+        registerConversationHealthChecks(healthCheckSystem, firstDb, projectConversationSyncs);
+        logger.info('✅ Conversation health checks registered');
+      }
+    }
+
+    // Backfill missed changes from git status (ensures accuracy after restarts)
+    logger.info('🔄 Reconciling changes with git status...');
+    let totalBackfilled = 0;
+    for (const [projectName, projectPath] of projectPaths.entries()) {
+      const db = projectDatabases.get(projectName);
+      if (db) {
+        try {
+          const backfillService = new GitBackfillService(db, projectPath, SESSION_ID);
+          const result = await backfillService.backfillMissedChanges();
+          totalBackfilled += result.backfilled || 0;
+        } catch (error) {
+          logger.warn(`⚠️  Git backfill failed for ${projectName}:`, error.message);
+        }
+      }
+    }
+    if (totalBackfilled > 0) {
+      logger.info(`✅ Reconciled ${totalBackfilled} missed change(s) from git`);
+    } else {
+      logger.info('✅ All changes reconciled - telemetry is up to date');
+    }
 
     return { successCount, failCount, skippedCount };
   } catch (error) {
@@ -1390,6 +1436,7 @@ app.use('/api/git', createGitRoutes({ projectState }));
 // Session management routes
 // Sessions routes (sessionTracker added after initialization)
 sessionsDeps.projectDatabases = projectDatabases;
+sessionsDeps.projectState = projectState;
 app.use('/api/sessions', createSessionRoutes(sessionsDeps));
 
 // Project management routes
@@ -2218,6 +2265,20 @@ async function gracefulShutdown(signal) {
       logger.info('✅ All file watchers stopped');
     } catch (error) {
       logger.error('Error stopping file watchers:', error);
+    }
+  }
+
+  // Stop all conversation sync services
+  if (projectConversationSyncs.size > 0) {
+    try {
+      for (const [projectName, sync] of projectConversationSyncs.entries()) {
+        sync.stop();
+        logger.info(`✅ Stopped conversation sync for ${projectName}`);
+      }
+      projectConversationSyncs.clear();
+      logger.info('✅ All conversation syncs stopped');
+    } catch (error) {
+      logger.error('Error stopping conversation syncs:', error);
     }
   }
 

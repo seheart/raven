@@ -1672,6 +1672,28 @@ export class RavenDB {
     stmt.run(new Date().toISOString(), warningId);
   }
 
+  resolveAllPatternWarnings(category = null) {
+    const timestamp = new Date().toISOString();
+
+    let query = `
+      UPDATE pattern_warnings
+      SET resolved = 1, resolved_at = ?
+      WHERE resolved = 0
+    `;
+
+    const params = [timestamp];
+
+    if (category && category !== 'all') {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+
+    const stmt = this.prepareStatement(query);
+    const result = stmt.run(...params);
+
+    return { count: result.changes };
+  }
+
   clearPatternWarnings(filepath = null) {
     if (filepath) {
       const stmt = this.prepareStatement('DELETE FROM pattern_warnings WHERE filepath = ?');
@@ -1774,6 +1796,12 @@ export class RavenDB {
     const { count } = countStmt.get(...countParams);
 
     return { results, total: count };
+  }
+
+  clearTestResults() {
+    const stmt = this.prepareStatement('DELETE FROM test_results');
+    const result = stmt.run();
+    return { count: result.changes };
   }
 
   // ==================== Sessions ====================

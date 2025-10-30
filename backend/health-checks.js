@@ -390,4 +390,107 @@ function createDefaultHealthChecks(db, io) {
   return healthCheck;
 }
 
-export { HealthCheckSystem, createDefaultHealthChecks };
+/**
+ * Register conversation-specific health checks
+ * This is called AFTER conversation syncs are started
+ */
+function registerConversationHealthChecks(healthCheckSystem, db, conversationSyncs) {
+  // Check conversation data freshness
+  healthCheckSystem.registerCheck(
+    'Conversation Data Freshness',
+    'conversations',
+    async () => {
+      try {
+        // Query most recent conversation
+        const stmt = db.db.prepare(`
+          SELECT timestamp, event_type
+          FROM conversations
+          ORDER BY timestamp DESC
+          LIMIT 1
+        `);
+        const mostRecent = stmt.get();
+
+        if (!mostRecent) {
+          // No conversations yet - this is OK for new installations
+          return {
+            passed: true,
+            message: 'No conversations found (new installation)'
+          };
+        }
+
+        // Check if most recent conversation is within acceptable timeframe
+        const conversationTime = new Date(mostRecent.timestamp);
+        const now = new Date();
+        const hoursSinceLastConversation = (now - conversationTime) / (1000 * 60 * 60);
+
+        // If no conversation in last 24 hours, warn (may indicate sync issue)
+        if (hoursSinceLastConversation > 24) {
+          return {
+            passed: false,
+            message: `Stale conversation data (last: ${hoursSinceLastConversation.toFixed(1)}h ago). Sync may not be working.`
+          };
+        }
+
+        return {
+          passed: true,
+          message: `Last conversation: ${hoursSinceLastConversation.toFixed(1)}h ago`
+        };
+      } catch (error) {
+        return {
+          passed: false,
+          message: `Conversation freshness check failed: ${error.message}`
+        };
+      }
+    }
+  );
+
+  // Check conversation sync services
+  healthCheckSystem.registerCheck(
+    'Conversation Sync Services',
+    'conversations',
+    async () => {
+      try {
+        const activeCount = conversationSyncs.size;
+
+        if (activeCount === 0) {
+          return {
+            passed: true,
+            message: 'No conversation syncs active (no projects started yet)'
+          };
+        }
+
+        // Verify syncs are actually running
+        let runningCount = 0;
+        const statusList = [];
+        for (const [projectName, sync] of conversationSyncs.entries()) {
+          const status = sync.getStatus();
+          if (status.running) {
+            runningCount++;
+            statusList.push(`${projectName}: running`);
+          } else {
+            statusList.push(`${projectName}: NOT running`);
+          }
+        }
+
+        if (runningCount === 0 && activeCount > 0) {
+          return {
+            passed: false,
+            message: `${activeCount} sync(s) registered but none running`
+          };
+        }
+
+        return {
+          passed: true,
+          message: `${runningCount}/${activeCount} conversation sync(s) active`
+        };
+      } catch (error) {
+        return {
+          passed: false,
+          message: `Conversation sync check failed: ${error.message}`
+        };
+      }
+    }
+  );
+}
+
+export { HealthCheckSystem, createDefaultHealthChecks, registerConversationHealthChecks };

@@ -85,9 +85,9 @@
 
   // Today's Activity stats
   let todayStats = {
-    filesChanged: 0,
-    linesAdded: 0,
-    linesDeleted: 0
+    modified: 0,
+    added: 0,
+    deleted: 0
   };
 
   // Initial loading state
@@ -127,34 +127,58 @@
 
   async function fetchTodayActivity() {
     try {
-      // Fetch recent events to calculate today's activity
-      const events = await dataService.fetchFileEvents(100);
+      // Fetch all events from today (500 should be enough for a full day)
+      const events = await dataService.fetchFileEvents(500);
 
       // Calculate today's metrics
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      let filesChanged = new Set();
-      let linesAdded = 0;
-      let linesDeleted = 0;
+      // Track the most recent change type for each file
+      const fileStates = new Map();
 
       events.forEach(event => {
         const eventDate = new Date(event.timestamp);
 
-        if (eventDate >= today) {
-          if (event.filepath) {
-            filesChanged.add(event.filepath);
+        if (eventDate >= today && event.filepath && event.change_type) {
+          const existing = fileStates.get(event.filepath);
+          // Only update if this event is more recent
+          if (!existing || eventDate > existing.timestamp) {
+            fileStates.set(event.filepath, {
+              change_type: event.change_type,
+              timestamp: eventDate
+            });
           }
+        }
+      });
 
-          if (event.lines_added) linesAdded += event.lines_added;
-          if (event.lines_deleted) linesDeleted += event.lines_deleted;
+      // Count files by their final state
+      let modified = 0;
+      let added = 0;
+      let deleted = 0;
+
+      fileStates.forEach((state, filepath) => {
+        // Skip temp files, test databases, and SQLite internals
+        if (filepath.includes('.tmp.') ||
+            filepath.includes('test-databases') ||
+            filepath.endsWith('-wal') ||
+            filepath.endsWith('-shm')) {
+          return;
+        }
+
+        if (state.change_type === 'edit') {
+          modified++;
+        } else if (state.change_type === 'create') {
+          added++;
+        } else if (state.change_type === 'delete') {
+          deleted++;
         }
       });
 
       todayStats = {
-        filesChanged: filesChanged.size,
-        linesAdded,
-        linesDeleted
+        modified,
+        added,
+        deleted
       };
     } catch (error) {
       logger.error('Failed to fetch today activity:', error);
@@ -390,19 +414,19 @@
       <div id="theme-switcher" class="header-right">
         <!-- Today's Activity -->
         <div class="today-activity-header" role="region" aria-label="Today's coding activity">
-          <span class="activity-title">Today:</span>
-          <div class="activity-stat" role="status" aria-label="{todayStats.filesChanged} files modified today">
-            <span class="stat-value">{todayStats.filesChanged}</span>
+          <span class="activity-title">TODAY:</span>
+          <div class="activity-stat" role="status" aria-label="{todayStats.modified} files modified today">
+            <span class="stat-value">{todayStats.modified}</span>
             <span class="stat-label">modified</span>
           </div>
           <div class="activity-divider" aria-hidden="true">|</div>
-          <div class="activity-stat" role="status" aria-label="{todayStats.linesAdded} lines added today">
-            <span class="stat-value">+{todayStats.linesAdded > 0 ? todayStats.linesAdded : '0'}</span>
+          <div class="activity-stat" role="status" aria-label="{todayStats.added} files added today">
+            <span class="stat-value">+{todayStats.added}</span>
             <span class="stat-label">added</span>
           </div>
           <div class="activity-divider" aria-hidden="true">|</div>
-          <div class="activity-stat" role="status" aria-label="{todayStats.linesDeleted} lines deleted today">
-            <span class="stat-value">-{todayStats.linesDeleted > 0 ? todayStats.linesDeleted : '0'}</span>
+          <div class="activity-stat" role="status" aria-label="{todayStats.deleted} files deleted today">
+            <span class="stat-value">-{todayStats.deleted}</span>
             <span class="stat-label">deleted</span>
           </div>
         </div>
@@ -484,7 +508,7 @@
             class:active={currentSubView === 'tests'}
             on:click={() => currentSubView = 'tests'}
           >
-            🧪 Test Results
+            🩺 Self-Diagnosis
           </button>
         </div>
         {#if !currentSubView}

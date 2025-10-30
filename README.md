@@ -6,13 +6,57 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 1.6.2 - Real-Time Test Runner & Stability
+**Version:** 1.6.3 - Conversation Sync & Telemetry Accuracy
 
-## 🚀 Current Status: V1.6.2 COMPLETE - Real-Time Test Runner & Test Stability
+## 🚀 Current Status: V1.6.3 COMPLETE - Conversation Sync & Telemetry Accuracy
 
-✅ **Production-ready with real-time test runner featuring live terminal output, progress tracking, and comprehensive test stability improvements. Tests complete in 12 seconds with parallel execution, streaming output, and intelligent progress messages.**
+✅ **Production-ready with automatic Claude Code conversation import, git-based telemetry reconciliation, and enhanced health checks that detect stale data. File change statistics are now always accurate, even after restarts.**
 
-### 🎉 What's New in 1.6.2 - Real-Time Test Runner (October 2025)
+### 🎉 What's New in 1.6.3 - Conversation Sync & Telemetry Accuracy (October 2025)
+
+**💬 Automatic Conversation Import:**
+- ✅ **Real-Time Sync** - Monitors Claude Code `.jsonl` session files and auto-imports conversations
+- ✅ **Multi-Project Support** - Each project gets its own conversation sync service
+- ✅ **WebSocket Updates** - Frontend refreshes automatically when new conversations arrive
+- ✅ **Line-by-Line Tracking** - Incremental processing prevents duplicate imports
+- ✅ **Graceful Handling** - Continues without error if Claude directories don't exist
+
+**🎯 Git-Based Telemetry Reconciliation:**
+- ✅ **Startup Backfill** - Compares git status with database state on every restart
+- ✅ **Accurate Statistics** - Captures changes made during downtime (104 changes on first test!)
+- ✅ **Smart Filtering** - Skips temp files, test databases, and SQLite internals
+- ✅ **Multi-Project** - Reconciles all tracked projects in parallel
+- ✅ **Clear Logging** - Shows exactly how many changes were backfilled
+
+**🏥 Enhanced Health Checks:**
+- ✅ **Data Freshness Validation** - Detects stale conversation data (>24 hours old)
+- ✅ **Sync Service Monitoring** - Verifies conversation sync services are actively running
+- ✅ **Startup Audit** - Health checks now catch data capture issues immediately
+- ✅ **Comprehensive CLI** - `node scripts/run-health-checks.js` validates all 18 checks
+- ✅ **API Endpoint** - `/api/health-checks` for programmatic health monitoring
+
+**🛡️ Safety Panel Enhancements:**
+- ✅ **Pattern Warnings Bulk Actions** - "Resolve All" button with category filtering
+- ✅ **Export Functionality** - Export warnings as CSV or JSON with proper headers
+- ✅ **Test Results → Self-Diagnosis** - Renamed for clarity with "Clear All" button
+- ✅ **Confirmation Dialogs** - Destructive actions require explicit confirmation
+
+**📊 Accurate Header Statistics:**
+- ✅ **File-Based Counts** - All three numbers are FILE counts (not line counts)
+- ✅ **Final State Tracking** - Shows ultimate state of each file (modified/added/deleted)
+- ✅ **Smart Filtering** - Excludes temp files, test databases, SQLite WAL/SHM files
+- ✅ **Always Accurate** - Git backfill ensures statistics are correct after restarts
+
+**📝 New Files:**
+- `backend/services/conversation-sync.js` - Monitors Claude Code sessions
+- `backend/services/git-backfill.js` - Reconciles telemetry with git status
+- `backend/services/health-checker.js` - Unified health check system
+- `backend/scripts/run-health-checks.js` - CLI for manual health validation
+
+**💡 Why This Matters:**
+Version 1.6.3 solves two critical issues: stale conversation data and inaccurate telemetry after restarts. The conversation sync service automatically imports Claude Code sessions in real-time, while git-based reconciliation ensures file statistics are always accurate. Enhanced health checks now detect data capture problems immediately, preventing "why isn't this updating?" moments. The result is a monitoring system that's always accurate and trustworthy.
+
+### Previous Release - 1.6.2 - Real-Time Test Runner (October 2025)
 
 **🧪 Live Test Execution UI:**
 - ✅ **Real-Time Terminal Output** - Live streaming of Jest output with green-on-black terminal styling

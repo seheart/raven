@@ -68,6 +68,28 @@
     }
   }
 
+  // Clear all test results
+  async function clearAllResults() {
+    if (!confirm('Are you sure you want to clear all past test results? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/tests/results', {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) throw new Error('Failed to clear results');
+
+      const data = await response.json();
+      notifications.success(data.message || 'All test results cleared');
+      await fetchResults();
+    } catch (error) {
+      logger.error('Failed to clear test results:', error);
+      notifications.error('Failed to clear test results');
+    }
+  }
+
   // Run tests
   async function runTests(framework = null) {
     if (running) return;
@@ -269,11 +291,16 @@
 <div class="test-results-panel" role="region" aria-label="Test results panel">
   <div class="panel-header">
     <div class="header-top">
-      <h2 id="test-results-heading">Test Results <span class="self-diagnosis-badge">Raven Self-Diagnosis</span></h2>
+      <h2 id="test-results-heading">Self-Diagnosis <span class="self-diagnosis-badge">Raven Internal Tests</span></h2>
       <div class="header-actions" role="toolbar" aria-label="Test actions">
         {#if frameworks.length > 0}
           <button class="run-btn" on:click={() => runTests()} disabled={running} aria-label={running ? 'Running tests' : 'Run tests'}>
             <span aria-hidden="true">{running ? '⏳' : '▶️'}</span> Run Tests
+          </button>
+        {/if}
+        {#if results.length > 0}
+          <button class="clear-btn" on:click={clearAllResults} aria-label="Clear all test results" title="Clear All Results">
+            <span aria-hidden="true">🗑️</span> Clear All
           </button>
         {/if}
         <button class="refresh-btn" on:click={fetchResults} aria-label="Refresh test results">
@@ -418,8 +445,8 @@
     </div>
   {:else if results.length === 0 && frameworks.length > 0}
     <div class="empty-state" role="status">
-      <div class="empty-icon" aria-hidden="true">🧪</div>
-      <h3>No Test Results Yet</h3>
+      <div class="empty-icon" aria-hidden="true">🩺</div>
+      <h3>No Self-Diagnosis Yet</h3>
       <p>Click "Run Tests" above to execute your automated tests</p>
       <p class="hint">Tests will verify your code is working correctly and catch potential bugs</p>
     </div>
@@ -527,6 +554,28 @@
   .run-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .clear-btn {
+    padding: 8px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .clear-btn:hover {
+    background: #ef4444;
+    border-color: #dc2626;
+    color: white;
+    transform: translateY(-1px);
   }
 
   .refresh-btn {

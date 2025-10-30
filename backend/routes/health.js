@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { logger } from '../utils/logger.js';
+import { HealthChecker } from '../services/health-checker.js';
 import fs from 'fs';
 import { join } from 'path';
 import si from 'systeminformation';
@@ -505,6 +506,31 @@ export function createHealthRoutes(deps) {
     } catch (error) {
       logger.error('Multi-project health error:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/health-checks/comprehensive
+   * Run comprehensive health checks on all features
+   * This validates that every feature/tab is working correctly
+   */
+  router.get('/health-checks/comprehensive', async (req, res) => {
+    try {
+      const baseUrl = `http://localhost:${process.env.PORT || 3030}`;
+      const checker = new HealthChecker(baseUrl);
+      const summary = await checker.runAll();
+
+      res.json({
+        ...summary,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Comprehensive health check error:', error);
+      res.status(500).json({
+        error: error.message,
+        healthy: false,
+        timestamp: new Date().toISOString()
+      });
     }
   });
 

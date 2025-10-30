@@ -53,7 +53,7 @@ check_port() {
 }
 
 # Step 1: Kill existing processes
-echo -e "${YELLOW}[1/5]${NC} Cleaning up existing processes..."
+echo -e "${YELLOW}[1/6]${NC} Cleaning up existing processes..."
 pkill -f "node.*dist/server.js" 2>/dev/null || true
 pkill -f "node server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
@@ -70,14 +70,14 @@ fi
 sleep 1
 
 # Step 1.5: Check backend build
-echo -e "${YELLOW}[2/5]${NC} Checking backend build..."
+echo -e "${YELLOW}[2/6]${NC} Checking backend build..."
 if [ ! -d "backend/dist" ]; then
   echo -e "  📦 Building backend TypeScript (first run)..."
   cd backend && npm run build && cd ..
 fi
 
 # Step 3: Start backend in background
-echo -e "${YELLOW}[3/5]${NC} Starting backend server..."
+echo -e "${YELLOW}[3/6]${NC} Starting backend server..."
 cd backend
 nohup env DISABLE_AUTH=true node server.js > /tmp/raven-backend.log 2>&1 &
 BACKEND_PID=$!
@@ -86,7 +86,7 @@ disown
 cd ..
 
 # Step 4: Start frontend in background
-echo -e "${YELLOW}[4/5]${NC} Starting frontend server..."
+echo -e "${YELLOW}[4/6]${NC} Starting frontend server..."
 cd frontend
 nohup npm run dev > /tmp/raven-frontend.log 2>&1 &
 FRONTEND_PID=$!
@@ -95,7 +95,7 @@ disown
 cd ..
 
 # Step 5: Wait for both servers to be ready
-echo -e "${YELLOW}[5/6]${NC} Waiting for servers to complete professional boot sequence..."
+echo -e "${YELLOW}[5/7]${NC} Waiting for servers to complete professional boot sequence..."
 echo -e "  ${BLUE}ℹ${NC}  Backend is running 7-phase startup with verification..."
 
 # Wait for backend (max 30 seconds for professional boot sequence)
@@ -136,8 +136,48 @@ for i in {1..20}; do
 done
 
 # Step 6: Start Claude telemetry bridge (after backend is ready)
-echo -e "${YELLOW}[6/6]${NC} Starting Claude telemetry bridge..."
+echo -e "${YELLOW}[6/7]${NC} Starting Claude telemetry bridge..."
 ./scripts/start-claude-bridge.sh > /dev/null 2>&1 || echo -e "${YELLOW}⚠${NC}  Telemetry bridge failed to start (non-critical)"
+
+# Step 7: Run comprehensive health checks
+echo -e "${YELLOW}[7/7]${NC} Running comprehensive health checks..."
+echo -e "  ${BLUE}ℹ${NC}  Validating all features are operational..."
+
+# Run health checks and capture output
+cd backend
+HEALTH_OUTPUT=$(node scripts/run-health-checks.js --wait=2 2>&1)
+HEALTH_EXIT_CODE=$?
+cd ..
+
+# Parse health check results
+if [ $HEALTH_EXIT_CODE -eq 0 ]; then
+  # All checks passed
+  PASSED_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Passed: [0-9]*/[0-9]*" | head -1 | cut -d' ' -f2)
+  echo -e "${GREEN}✓${NC} Health checks passed ($PASSED_COUNT)"
+elif [ $HEALTH_EXIT_CODE -eq 2 ]; then
+  # Warnings only (non-critical failures)
+  PASSED_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Passed: [0-9]*/[0-9]*" | head -1 | cut -d' ' -f2)
+  WARNING_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Warnings: [0-9]*" | head -1 | cut -d' ' -f2)
+  echo -e "${YELLOW}⚠${NC}  Health checks passed with warnings ($PASSED_COUNT, $WARNING_COUNT warnings)"
+  echo -e "  ${YELLOW}Note:${NC} Some non-critical features may not be working. Check logs for details."
+else
+  # Critical failures
+  echo -e "${RED}✗${NC} Health checks FAILED - Critical features are broken!"
+  echo ""
+  echo -e "${RED}══════════════════════════════════════════════════${NC}"
+  echo -e "${RED}║  STARTUP ABORTED - FIX ERRORS BEFORE DEPLOYMENT${NC}"
+  echo -e "${RED}══════════════════════════════════════════════════${NC}"
+  echo ""
+  echo "$HEALTH_OUTPUT" | grep -E "❌|Error|Failed" | head -10
+  echo ""
+  echo -e "${YELLOW}Full health check report:${NC}"
+  echo -e "  curl http://localhost:3030/api/health-checks/comprehensive | jq"
+  echo ""
+  echo -e "${YELLOW}Backend logs:${NC}"
+  echo -e "  tail -50 /tmp/raven-backend.log"
+  echo ""
+  exit 1
+fi
 
 # Get session info
 SESSION_INFO=$(curl -s http://localhost:3030/health | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)
