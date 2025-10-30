@@ -404,17 +404,18 @@
       <div class="card-body">
         <div class="projects-list" role="list" aria-label="Monitored projects">
           {#each $availableProjects as project (project.name || project)}
+            {@const projectName = project.name || project}
             <button
               class="project-item"
-              class:selected={$projectFilter === project}
-              on:click={() => projectFilter.set(project)}
+              class:selected={$projectFilter === projectName}
+              on:click={() => projectFilter.set(projectName)}
               role="listitem"
-              aria-label="Switch to project {project}"
-              aria-pressed={$projectFilter === project}
+              aria-label="Switch to project {projectName}"
+              aria-pressed={$projectFilter === projectName}
             >
               <div class="project-status-dot" aria-hidden="true"></div>
-              <span class="project-name">{project}</span>
-              {#if $projectFilter === project}
+              <span class="project-name">{projectName}</span>
+              {#if $projectFilter === projectName}
                 <span class="project-badge" aria-label="Currently viewing">viewing</span>
               {/if}
             </button>
