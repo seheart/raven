@@ -54,11 +54,14 @@ async function dismissWizardIfPresent(page) {
 
 test.describe('User Story: Activity Log Shows Latest Changes', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -134,11 +137,14 @@ test.describe('User Story: Activity Log Shows Latest Changes', () => {
 
 test.describe('User Story: Storage Information is Accurate', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -211,11 +217,14 @@ test.describe('User Story: Storage Information is Accurate', () => {
 
 test.describe('User Story: Project Switching Works Correctly', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -248,7 +257,7 @@ test.describe('User Story: Project Switching Works Correctly', () => {
     await page.waitForTimeout(500);
 
     // Should show project information
-    await expect(page.getByText(/Project|Path|Directory/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Project|Path|Directory/i).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should maintain state when switching tabs', async ({ page }) => {
@@ -273,11 +282,14 @@ test.describe('User Story: Project Switching Works Correctly', () => {
 
 test.describe('User Story: Error Detection and Alerts', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -334,11 +346,14 @@ test.describe('User Story: Error Detection and Alerts', () => {
 
 test.describe('User Story: Performance Monitoring', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -351,7 +366,7 @@ test.describe('User Story: Performance Monitoring', () => {
     // User Story: "How is Raven performing?"
 
     // Overview should show some system information
-    await expect(page.getByText(/Overview|Project Health/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Overview|Project Health/i).first()).toBeVisible({ timeout: 5000 });
 
     // Should show some metrics or statistics (be flexible about what's shown)
     const hasMetrics = await page.locator('text=/\\d+/').count();
@@ -383,11 +398,14 @@ test.describe('User Story: Performance Monitoring', () => {
 
 test.describe('User Story: Navigation and Usability', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -418,9 +436,9 @@ test.describe('User Story: Navigation and Usability', () => {
     // User Story: "I should easily find what I need"
 
     // Main navigation tabs should be visible - look for navigation buttons
-    const overviewBtn = page.locator('button:has-text("Overview")');
-    const activityBtn = page.locator('button:has-text("Activity")');
-    const systemBtn = page.locator('button:has-text("System")');
+    const overviewBtn = page.locator('button:has-text("Overview")').first();
+    const activityBtn = page.locator('button:has-text("Activity")').first();
+    const systemBtn = page.locator('button:has-text("System")').first();
 
     await expect(overviewBtn).toBeVisible({ timeout: 5000 });
     await expect(activityBtn).toBeVisible({ timeout: 5000 });
@@ -469,11 +487,14 @@ test.describe('User Story: Navigation and Usability', () => {
 
 test.describe('User Story: Critical Boot-up and First Load', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -486,12 +507,12 @@ test.describe('User Story: Critical Boot-up and First Load', () => {
     // User Story: "Raven should load completely when I open it"
 
     // Check that all main navigation tabs are present using button locators
-    await expect(page.locator('button:has-text("Overview")')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('button:has-text("Safety")')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('button:has-text("Agents")')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('button:has-text("Activity")')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('button:has-text("Analysis")')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('button:has-text("System")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("Overview")').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("Safety")').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("Agents")').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("Activity")').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("Analysis")').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("System")').first()).toBeVisible({ timeout: 5000 });
 
     // Check that the page doesn't have any error messages
     const errorMessages = page.getByText(/error|failed|crashed/i);
@@ -539,7 +560,7 @@ test.describe('User Story: Critical Boot-up and First Load', () => {
     // User Story: "Can I see my project information immediately?"
 
     // Overview should be the default page and should show project info
-    await expect(page.getByText(/Overview|Project Health/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Overview|Project Health/i).first()).toBeVisible({ timeout: 5000 });
 
     // Should show some project metrics or information
     const hasProjectData = await page.locator('text=/\\d+/').count();
@@ -568,11 +589,14 @@ test.describe('User Story: Critical Boot-up and First Load', () => {
 
 test.describe('User Story: Data Integrity and Persistence', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -608,7 +632,7 @@ test.describe('User Story: Data Integrity and Persistence', () => {
     await page.waitForTimeout(500);
 
     // Activity should still be visible
-    await expect(page.getByText(/Activity Log|Activity/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Activity Log|Activity/i).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should maintain database integrity after navigation', async ({ page }) => {
@@ -644,7 +668,7 @@ test.describe('User Story: Data Integrity and Persistence', () => {
     await page.waitForTimeout(500);
 
     // Activity system should be running
-    await expect(page.getByText(/Activity|Live Feed/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Activity|Live Feed/i).first()).toBeVisible({ timeout: 5000 });
 
     // Navigate to multiple pages quickly to generate activity
     await page.click('text=/Overview/i');
@@ -657,7 +681,7 @@ test.describe('User Story: Data Integrity and Persistence', () => {
     await page.waitForTimeout(500);
 
     // Page should still be functional, no errors
-    await expect(page.getByText(/Activity|Live Feed/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Activity|Live Feed/i).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should recover gracefully from invalid data in database', async ({ page }) => {
@@ -668,14 +692,14 @@ test.describe('User Story: Data Integrity and Persistence', () => {
     await page.waitForTimeout(500);
 
     // System should load normally even if there's questionable data
-    await expect(page.getByText(/System/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/System/i).first()).toBeVisible({ timeout: 5000 });
 
     // Navigate to Activity page which reads from database
     await page.click('text=/Activity/i');
     await page.waitForTimeout(500);
 
     // Should show activity log even with edge cases
-    await expect(page.getByText(/Activity|Live Feed/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Activity|Live Feed/i).first()).toBeVisible({ timeout: 5000 });
 
     // App should not crash - main navigation should still work
     await expect(page.getByText(/Overview/i)).toBeVisible({ timeout: 5000 });
@@ -684,11 +708,14 @@ test.describe('User Story: Data Integrity and Persistence', () => {
 
 test.describe('User Story: Real-time WebSocket Features', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -769,11 +796,14 @@ test.describe('User Story: Real-time WebSocket Features', () => {
 
 test.describe('User Story: Error Handling and Recovery', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -809,21 +839,21 @@ test.describe('User Story: Error Handling and Recovery', () => {
     await page.waitForTimeout(500);
 
     // Overview should load
-    await expect(page.getByText(/Overview|Project Health/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Overview|Project Health/i).first()).toBeVisible({ timeout: 5000 });
 
     // Navigate to Activity
     await page.click('text=/Activity/i');
     await page.waitForTimeout(500);
 
     // Activity should work independently
-    await expect(page.getByText(/Activity|Live Feed/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Activity|Live Feed/i).first()).toBeVisible({ timeout: 5000 });
 
     // Navigate to System
     await page.click('text=/System/i');
     await page.waitForTimeout(500);
 
     // System should work
-    await expect(page.getByText(/System/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/System/i).first()).toBeVisible({ timeout: 5000 });
 
     // All tabs should remain accessible
     await expect(page.getByText(/Overview/i)).toBeVisible({ timeout: 5000 });
@@ -873,11 +903,14 @@ test.describe('User Story: Error Handling and Recovery', () => {
 
 test.describe('User Story: Performance Under Load', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -909,7 +942,7 @@ test.describe('User Story: Performance Under Load', () => {
     expect(totalTime).toBeLessThan(5000);
 
     // Final page should still be responsive
-    await expect(page.getByText(/System/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/System/i).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should render large activity logs efficiently', async ({ page }) => {
@@ -926,7 +959,7 @@ test.describe('User Story: Performance Under Load', () => {
     const startTime = Date.now();
 
     // Activity log should render
-    await expect(page.getByText(/Activity Log|Activity/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Activity Log|Activity/i).first()).toBeVisible({ timeout: 5000 });
 
     const renderTime = Date.now() - startTime;
 
@@ -949,7 +982,7 @@ test.describe('User Story: Performance Under Load', () => {
     const startTime = Date.now();
 
     // Overview should display all metrics quickly
-    await expect(page.getByText(/Overview|Project Health/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Overview|Project Health/i).first()).toBeVisible({ timeout: 5000 });
 
     // Should have rendered multiple data points
     const dataPoints = await page.locator('text=/\\d+/').count();
@@ -965,17 +998,20 @@ test.describe('User Story: Performance Under Load', () => {
     await page.waitForTimeout(500);
 
     // Should render quickly
-    await expect(page.getByText(/System/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/System/i).first()).toBeVisible({ timeout: 5000 });
   });
 });
 
 test.describe('User Story: API Integration Health', () => {
   test.beforeEach(async ({ page }) => {
+    // CRITICAL: Set localStorage BEFORE page loads to skip wizard entirely
+    await page.addInitScript(() => {
+      localStorage.setItem('raven-quick-start-completed', 'true');
+      localStorage.setItem('raven-welcome-seen', 'true');
+    });
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-
-    // Dismiss welcome wizard if present
-    await dismissWizardIfPresent(page);
 
     // Wait for Raven to finish loading - look for navigation tabs to appear
     await page.waitForSelector('text=/Overview|Activity|System/i', { timeout: 10000 });
@@ -992,7 +1028,7 @@ test.describe('User Story: API Integration Health', () => {
     await page.waitForTimeout(500);
 
     // Should display overview content from API
-    await expect(page.getByText(/Overview|Project Health/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Overview|Project Health/i).first()).toBeVisible({ timeout: 5000 });
 
     // Should show metrics that come from API
     const hasMetrics = await page.locator('text=/\\d+/').count();
