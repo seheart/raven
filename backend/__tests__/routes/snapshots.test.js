@@ -164,6 +164,7 @@ describe('Snapshots Routes', () => {
     });
 
     test('should reject path traversal attempts', async () => {
+      const { gzipSync } = await import('zlib');
       const appWithPathCheck = express();
       appWithPathCheck.use(express.json());
 
@@ -173,8 +174,8 @@ describe('Snapshots Routes', () => {
       // Calculate snapshot filename based on event
       const snapshotFilename = `${filepath.replace(/\//g, '_')}_${new Date(eventTimestamp).getTime()}.gz`;
 
-      // Create the matching snapshot file so it passes existence check
-      writeFileSync(join(snapshotsDir, snapshotFilename), 'content');
+      // Create the matching snapshot file so it passes existence check (gzipped)
+      writeFileSync(join(snapshotsDir, snapshotFilename), gzipSync('content'));
 
       const depsWithPathCheck = {
         projectState: {
@@ -243,19 +244,13 @@ describe('Snapshots Routes', () => {
 
   describe('Error Handling', () => {
     test('should handle errors in GET /snapshots', async () => {
-      const { readdir } = await import('fs/promises');
-      const originalReaddir = readdir;
-
-      // Mock readdir to throw an error
-      const fsPromises = await import('fs/promises');
-      fsPromises.readdir = jest.fn().mockRejectedValue(new Error('Read error'));
-
       const appWithError = express();
       appWithError.use(express.json());
 
+      // Create a scenario that causes an error - invalid snapshots directory
       const depsWithError = {
         projectState: {
-          snapshotsDir,
+          snapshotsDir: '/nonexistent/invalid/path/that/does/not/exist',
           watchPath: testDir,
           db: {
             getEventById: jest.fn()
@@ -270,9 +265,6 @@ describe('Snapshots Routes', () => {
         .expect(500);
 
       expect(response.body.error).toBeDefined();
-
-      // Restore
-      fsPromises.readdir = originalReaddir;
     });
   });
 

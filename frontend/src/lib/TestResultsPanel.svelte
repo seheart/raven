@@ -13,9 +13,24 @@
   let loading = true;
   let running = false;
   let ws = null;
+  let wsProgress = null;
+  let wsOutput = null;
   let expandedTests = false;
   let allTests = [];
   let testsLoading = false;
+
+  // Progress tracking
+  let testProgress = {
+    status: null,
+    message: '',
+    currentFile: '',
+    completedSuites: 0,
+    totalSuites: 0,
+    progress: 0
+  };
+
+  // Terminal output
+  let terminalOutput = '';
 
   // Fetch test frameworks
   async function fetchFrameworks() {
@@ -112,6 +127,7 @@
     ws = websocketService.subscribe('test-result', (data) => {
       logger.info('Test result received:', data);
       fetchResults();
+      running = false;
 
       // Show desktop notification for failures
       if (!data.passed) {
@@ -123,6 +139,34 @@
         });
       }
     });
+
+    // Subscribe to test progress updates
+    wsProgress = websocketService.subscribe('test-progress', (data) => {
+      logger.info('Test progress received:', data);
+      testProgress = data;
+
+      if (data.status === 'starting' || data.status === 'running') {
+        running = true;
+        if (data.status === 'starting') {
+          terminalOutput = ''; // Clear output for new run
+        }
+      } else if (data.status === 'completed') {
+        running = false;
+        // Keep terminal output visible after completion
+      }
+    });
+
+    // Subscribe to test output stream
+    wsOutput = websocketService.subscribe('test-output', (data) => {
+      terminalOutput += data.output;
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        const terminal = document.querySelector('.terminal-output');
+        if (terminal) {
+          terminal.scrollTop = terminal.scrollHeight;
+        }
+      }, 10);
+    });
   }
 
   onMount(() => {
@@ -133,6 +177,8 @@
 
   onDestroy(() => {
     if (ws) ws();
+    if (wsProgress) wsProgress();
+    if (wsOutput) wsOutput();
   });
 
   // Format duration
@@ -239,6 +285,22 @@
       These are Raven's own internal tests that verify Raven itself is working correctly. This does NOT test your other projects - those have their own test suites.
     </p>
   </div>
+
+  <!-- Test Terminal Output -->
+  {#if running}
+    <div class="test-runner-container" role="status" aria-live="polite">
+      <div class="progress-text">
+        {#if testProgress.completedSuites > 0 && testProgress.totalSuites > 0}
+          Tests running... {testProgress.completedSuites}/{testProgress.totalSuites} suites
+        {:else}
+          Tests running...
+        {/if}
+      </div>
+      <div class="terminal-output">
+        <pre>{terminalOutput || 'Waiting for output...'}</pre>
+      </div>
+    </div>
+  {/if}
 
   <!-- Frameworks Info -->
   {#if frameworks.length > 0}
@@ -892,4 +954,71 @@
     word-break: break-word;
     line-height: 1.5;
   }
+
+  /* Test Runner Container */
+  .test-runner-container {
+    background: var(--surface-2);
+    border: 2px solid #3b82f6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: #3b82f6; }
+    50% { border-color: #60a5fa; }
+  }
+
+  .terminal-output {
+    background: #000000 !important;
+    background-color: #000000 !important;
+    color: #00ff00;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 16px;
+    border-radius: 6px;
+    max-height: 250px;
+    overflow-y: auto;
+    margin-top: 12px;
+    border: 2px solid #00ff00;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+  }
+
+  .terminal-output pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    background: transparent;
+    color: inherit;
+  }
+
+  /* Terminal scrollbar styling */
+  .terminal-output::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .terminal-output::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+
+  .terminal-output::-webkit-scrollbar-thumb {
+    background: #00ff00;
+    border-radius: 5px;
+  }
+
+  .terminal-output::-webkit-scrollbar-thumb:hover {
+    background: #00cc00;
+  }
+
+  .progress-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-family: var(--mono);
+  }
+
 </style>

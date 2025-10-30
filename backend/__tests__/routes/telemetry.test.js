@@ -455,7 +455,8 @@ describe('Telemetry Routes', () => {
         undefined,
         'Test message',
         undefined,
-        'test-session-123'
+        'test-session-123',
+        'test-project'
       );
     });
 
@@ -649,7 +650,8 @@ describe('Telemetry Routes', () => {
         500,
         'Test message',
         { key: 'value' },
-        'test-session-123'
+        'test-session-123',
+        'test-project'
       );
     });
 
@@ -944,7 +946,8 @@ describe('Telemetry Routes', () => {
         undefined,
         'Test message',
         metadata,
-        'test-session-123'
+        'test-session-123',
+        'test-project'
       );
     });
   });

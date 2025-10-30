@@ -20,10 +20,10 @@ describe('Changelog Routes', () => {
     app = express();
     app.use(express.json());
 
-    // Create temp directories
+    // Create temp directories with unique name including process ID for parallel test safety
     // The changelog route does join(process.cwd(), '..', 'docs', 'CHANGELOG.md')
     // So if cwd is /tmp/test/backend, it will look for /tmp/test/docs/CHANGELOG.md
-    testDir = join(tmpdir(), `changelog-test-${Date.now()}`);
+    testDir = join(tmpdir(), `changelog-test-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const backendDir = join(testDir, 'backend');
     docsDir = join(testDir, 'docs');
     mkdirSync(backendDir, { recursive: true });
@@ -38,16 +38,20 @@ describe('Changelog Routes', () => {
     app.use('/api', createChangelogRoutes(deps));
   });
 
-  afterEach(() => {
-    // Restore process.cwd
+  afterEach(async () => {
+    // Restore process.cwd immediately to avoid affecting other tests
     if (originalCwd) {
       process.cwd = originalCwd;
+      originalCwd = null;
     }
 
+    // Small delay to allow any pending file operations to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
+
     // Clean up test directory
-    if (existsSync(testDir)) {
+    if (testDir && existsSync(testDir)) {
       try {
-        rmSync(testDir, { recursive: true, force: true });
+        rmSync(testDir, { recursive: true, force: true, maxRetries: 3 });
       } catch (err) {
         // Ignore cleanup errors
       }

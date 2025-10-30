@@ -25,9 +25,12 @@ describe('Safety Routes', () => {
       emit: jest.fn()
     };
 
-    // Create mock dependencies
+    // Create mock dependencies with projectDatabases Map
+    const projectDatabases = new Map();
+    projectDatabases.set('test-project', mockDb);
+
     mockDeps = {
-      projectState: { db: mockDb },
+      projectDatabases,
       io: mockIo,
       SESSION_ID: 'test-session-123'
     };

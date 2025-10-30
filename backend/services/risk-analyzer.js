@@ -110,6 +110,9 @@ export class RiskAnalyzer {
   }
 
   analyzeFileCriticality(filepath) {
+    // Handle undefined/null filepath
+    if (!filepath) return null;
+
     // Check cache first
     const cached = this.criticalityCache.get(filepath);
     if (cached) return cached;
@@ -167,14 +170,14 @@ export class RiskAnalyzer {
 
       // Get average change size for this file
       const avgSize = db.db.prepare(`
-        SELECT AVG(LENGTH(diff)) as avg_diff_size
+        SELECT AVG(LENGTH(diff)) as avg_size
         FROM events
         WHERE filepath = ?
         AND diff IS NOT NULL
         AND timestamp > datetime('now', '-30 days')
       `).get(change.filepath);
 
-      const avgDiffSize = avgSize?.avg_diff_size || 1000;
+      const avgDiffSize = avgSize?.avg_size || 1000;
       const currentSize = change.diff.length;
 
       // Large change if >3x average
@@ -204,26 +207,27 @@ export class RiskAnalyzer {
 
   analyzeRecentRollbacks(db, filepath) {
     try {
-      const recentRollback = db.db.prepare(`
-        SELECT e.id, r.timestamp, r.reason
+      const stats = db.db.prepare(`
+        SELECT
+          COUNT(CASE WHEN r.id IS NOT NULL THEN 1 END) as recent_rollbacks,
+          COUNT(*) as recent_changes
         FROM events e
-        JOIN rollbacks r ON e.id = r.event_id
+        LEFT JOIN rollbacks r ON e.id = r.event_id
         WHERE e.filepath = ?
-        ORDER BY r.timestamp DESC
-        LIMIT 1
+        AND e.timestamp > datetime('now', '-14 days')
       `).get(filepath);
 
-      if (!recentRollback) return null;
+      if (!stats || stats.recent_changes === 0) return null;
 
-      const rollbackDate = new Date(recentRollback.timestamp);
-      const daysSince = (Date.now() - rollbackDate.getTime()) / (1000 * 60 * 60 * 24);
+      const rollbackRate = stats.recent_rollbacks / stats.recent_changes;
 
-      if (daysSince < 7) {
+      // High risk if >30% of recent changes were rolled back
+      if (rollbackRate > 0.3) {
         return {
-          type: 'recent_rollback',
-          severity: Math.max(0.7 - (daysSince / 14), 0.3),
-          message: `Last rollback was ${Math.floor(daysSince)} days ago: "${recentRollback.reason || 'No reason given'}"`,
-          data: { daysSince, reason: recentRollback.reason }
+          type: 'recent_rollbacks',
+          severity: Math.min(rollbackRate * 1.5, 0.9),
+          message: `${stats.recent_rollbacks} of ${stats.recent_changes} recent changes were rolled back (${(rollbackRate * 100).toFixed(0)}%)`,
+          data: { recentRollbacks: stats.recent_rollbacks, recentChanges: stats.recent_changes, rollbackRate }
         };
       }
     } catch (e) {
@@ -234,29 +238,28 @@ export class RiskAnalyzer {
 
   analyzeChangePattern(db, change) {
     try {
-      // Get typical change types for this file
-      const patterns = db.db.prepare(`
-        SELECT change_type, COUNT(*) as count
-        FROM events
-        WHERE filepath = ?
-        AND timestamp > datetime('now', '-90 days')
-        GROUP BY change_type
-        ORDER BY count DESC
-      `).all(change.filepath);
+      // Get rollback statistics for this change type
+      const stats = db.db.prepare(`
+        SELECT
+          COUNT(*) as total_changes,
+          COUNT(CASE WHEN r.id IS NOT NULL THEN 1 END) as rollbacks
+        FROM events e
+        LEFT JOIN rollbacks r ON e.id = r.event_id
+        WHERE e.change_type = ?
+        AND e.timestamp > datetime('now', '-90 days')
+      `).get(change.change_type);
 
-      if (patterns.length === 0) return null;
+      if (!stats || stats.total_changes === 0) return null;
 
-      const dominant = patterns[0];
-      const total = patterns.reduce((sum, p) => sum + p.count, 0);
-      const dominantRate = dominant.count / total;
+      const rollbackRate = stats.rollbacks / stats.total_changes;
 
-      // If this change type is unusual for this file (dominant pattern is different)
-      if (dominantRate > 0.7 && dominant.change_type !== change.change_type) {
+      // High risk if >40% of this change type gets rolled back
+      if (rollbackRate > 0.4) {
         return {
-          type: 'unusual_change_type',
-          severity: 0.6,
-          message: `You typically ${dominant.change_type} this file (${(dominantRate * 100).toFixed(0)}% of the time), not ${change.change_type}`,
-          data: { dominant: dominant.change_type, current: change.change_type, dominantRate }
+          type: 'risky_change_pattern',
+          severity: Math.min(rollbackRate * 1.2, 0.9),
+          message: `${change.change_type} changes have a ${(rollbackRate * 100).toFixed(0)}% rollback rate`,
+          data: { changeType: change.change_type, totalChanges: stats.total_changes, rollbacks: stats.rollbacks, rollbackRate }
         };
       }
     } catch (e) {
@@ -266,7 +269,7 @@ export class RiskAnalyzer {
   }
 
   calculateRiskScore(riskFactors) {
-    if (riskFactors.length === 0) return 0.1; // Low baseline risk
+    if (riskFactors.length === 0) return 0; // No risk factors = no risk
 
     // Weighted average of risk factors
     const totalSeverity = riskFactors.reduce((sum, f) => sum + f.severity, 0);
@@ -279,9 +282,11 @@ export class RiskAnalyzer {
   }
 
   getRiskLevel(score) {
-    if (score > 0.7) return 'high';
+    if (score > 0.8) return 'critical';
+    if (score > 0.6) return 'high';
     if (score > 0.4) return 'medium';
-    return 'low';
+    if (score > 0.2) return 'low';
+    return 'minimal';
   }
 
   generateRecommendation(score, riskFactors) {
@@ -313,12 +318,12 @@ export class RiskAnalyzer {
       recommendations.push('Change looks safe based on historical patterns');
     }
 
-    return recommendations;
+    return recommendations.join('. ') + '.';
   }
 
   getRecentRollbacks(db, filepath, limit = 5) {
     try {
-      return db.db.prepare(`
+      const results = db.db.prepare(`
         SELECT
           e.id,
           e.timestamp as change_timestamp,
@@ -332,6 +337,9 @@ export class RiskAnalyzer {
         ORDER BY r.timestamp DESC
         LIMIT ?
       `).all(filepath, limit);
+
+      // Ensure limit is respected (defensive coding for mocked databases)
+      return results.slice(0, limit);
     } catch (e) {
       logger.error('Error getting recent rollbacks', { error: e, filepath });
       return [];
@@ -342,19 +350,20 @@ export class RiskAnalyzer {
     try {
       const stats = db.db.prepare(`
         SELECT
-          COUNT(DISTINCT e.id) as total_events,
-          COUNT(DISTINCT r.id) as rollback_count
+          (CAST(COUNT(DISTINCT r.id) AS FLOAT) / NULLIF(COUNT(DISTINCT e.id), 0)) as rate
         FROM events e
         LEFT JOIN rollbacks r ON e.id = r.event_id
         WHERE e.timestamp > datetime('now', '-90 days')
       `).get();
 
-      if (stats.total_events === 0) return 0.12; // Default 12% assumption
+      if (!stats || stats.rate === null || stats.rate === undefined) {
+        return 0;
+      }
 
-      return stats.rollback_count / stats.total_events;
+      return stats.rate;
     } catch (e) {
       logger.error('Error calculating overall rollback rate', { error: e });
-      return 0.12;
+      return 0;
     }
   }
 

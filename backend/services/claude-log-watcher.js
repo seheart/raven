@@ -88,6 +88,10 @@ export class ClaudeLogWatcher {
 
       // Check watched files after a delay (polling takes time to discover files)
       setTimeout(() => {
+        // Check if watcher still exists (may have been stopped during tests)
+        if (!this.logWatcher) {
+          return;
+        }
         const watched = this.logWatcher.getWatched();
         const fileCount = Object.values(watched).reduce((sum, files) => sum + files.length, 0);
         this.logger.info(`📡 Actually watching ${fileCount} files after discovery`);

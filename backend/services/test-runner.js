@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -22,7 +22,7 @@ export class TestRunner {
         name: 'jest',
         detectFiles: ['jest.config.js', 'jest.config.json', 'jest.config.ts'],
         detectPackage: 'jest',
-        runCommand: 'npm test',
+        runCommand: 'npm test -- --maxWorkers=50%', // Run with 50% of CPU cores (best balance of speed vs stability)
         parseOutput: this.parseJestOutput.bind(this)
       },
       {
@@ -90,192 +90,238 @@ export class TestRunner {
       throw new Error(`Unknown framework: ${framework}`);
     }
 
-    let stdout = '';
-    let stderr = '';
-    let commandFailed = false;
+    logger.info(`Running ${framework} tests in ${projectPath}`);
 
-    try {
-      logger.info(`Running ${framework} tests in ${projectPath}`);
+    // Emit initial progress
+    this.io.emit('test-progress', {
+      status: 'starting',
+      message: 'Getting ready...',
+      completedSuites: 0,
+      totalSuites: 54,
+      progress: 0
+    });
 
-      const result = await execAsync(frameworkConfig.runCommand, {
+    return new Promise((resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+      let currentTestFile = null;
+      let completedTests = 0;
+      let totalTests = 0;
+      let testSuites = 0;
+      let completedSuites = 0;
+      let testsStarted = false;
+
+      // Spawn the test process using shell to handle complex commands
+      logger.info(`Spawning test process: ${frameworkConfig.runCommand}`);
+      const testProcess = spawn(frameworkConfig.runCommand, {
         cwd: projectPath,
-        timeout: 60000, // 60 second timeout
-        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+        env: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+          USER: process.env.USER,
+          NODE_ENV: 'test'
+          // Don't inherit other env vars that might interfere
+        },
+        shell: true
       });
 
-      stdout = result.stdout;
-      stderr = result.stderr;
-    } catch (error) {
-      // Tests failed (non-zero exit code) - but we still want to parse the output
-      commandFailed = true;
-      stdout = error.stdout || '';
-      stderr = error.stderr || '';
+      logger.info(`Test process spawned with PID: ${testProcess.pid}`);
 
-      // If it's a real error (not just test failures), throw it
-      if (!stdout && !stderr) {
+      // Track start time for timeout
+      const startTime = Date.now();
+      const timeout = setTimeout(() => {
+        testProcess.kill();
+        reject(new Error('Test execution timed out after 5 minutes'));
+      }, 300000);
+
+      // Stream stdout line by line to UI
+      testProcess.stdout.on('data', (data) => {
+        const chunk = data.toString();
+        stdout += chunk;
+
+        // Emit raw output to UI for display
+        this.io.emit('test-output', {
+          output: chunk
+        });
+
+        // Simple progress tracking based on PASS/FAIL lines
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          const passMatch = line.match(/PASS|FAIL/);
+          if (passMatch) {
+            // First time we see test output, change message
+            if (!testsStarted) {
+              testsStarted = true;
+              this.io.emit('test-progress', {
+                status: 'running',
+                message: 'Running tests...',
+                completedSuites: 0,
+                totalSuites: 54,
+                progress: 1
+              });
+            }
+
+            completedSuites++;
+            testSuites = Math.max(testSuites, completedSuites + 10); // Estimate remaining
+
+            this.io.emit('test-progress', {
+              status: 'running',
+              message: 'Running tests...',
+              completedSuites,
+              totalSuites: testSuites,
+              progress: Math.min(95, Math.round((completedSuites / 54) * 100))
+            });
+          }
+        }
+      });
+
+      testProcess.stderr.on('data', (data) => {
+        const chunk = data.toString();
+        stderr += chunk;
+
+        // Also emit stderr to UI (Jest outputs to stderr)
+        this.io.emit('test-output', {
+          output: chunk
+        });
+      });
+
+      testProcess.on('close', (code) => {
+        clearTimeout(timeout);
+
+        // Emit completion
+        this.io.emit('test-progress', {
+          status: 'completed',
+          message: 'Tests completed',
+          progress: 100
+        });
+
+        resolve({ stdout, stderr, code });
+      });
+
+      testProcess.on('error', (error) => {
+        clearTimeout(timeout);
         logger.error(`Error running ${framework} tests:`, error);
-        throw error;
-      }
-    }
 
-    try {
-      // Parse the output
-      const output = stdout + stderr;
-      const results = frameworkConfig.parseOutput(output);
+        // Emit error progress
+        this.io.emit('test-progress', {
+          status: 'error',
+          message: `Error: ${error.message}`,
+          progress: 0
+        });
 
-      // Store results in database
-      const timestamp = new Date().toISOString();
-      for (const result of results) {
+        reject(error);
+      });
+    }).then(async ({ stdout, stderr, code }) => {
+      try {
+        // Parse the output
+        const output = stdout + stderr;
+
+        // Debug: Log last 30 lines of output to help diagnose parsing issues
+        const outputLines = output.split('\n');
+        logger.info(`Test output has ${outputLines.length} lines. Last 30 lines:`);
+        outputLines.slice(-30).forEach((line, i) => {
+          logger.info(`  Line ${outputLines.length - 30 + i}: ${line.substring(0, 150)}`);
+        });
+
+        const results = frameworkConfig.parseOutput(output);
+
+        // Store results in database
+        const timestamp = new Date().toISOString();
+        for (const result of results) {
+          this.db.insertTestResult(
+            timestamp,
+            framework,
+            result.file,
+            result.name,
+            result.status,
+            result.duration,
+            result.error,
+            result.stack,
+            this.sessionId
+          );
+        }
+
+        // Emit WebSocket event with summary
+        const passed = results.filter(r => r.status === 'passed').length;
+        const failed = results.filter(r => r.status === 'failed').length;
+        const skipped = results.filter(r => r.status === 'skipped').length;
+
+        this.io.emit('test-results', {
+          timestamp,
+          framework,
+          total: results.length,
+          passed,
+          failed,
+          skipped,
+          duration: results.reduce((sum, r) => sum + (r.duration || 0), 0)
+        });
+
+        return {
+          results,
+          passed,
+          failed,
+          skipped,
+          total: results.length
+        };
+      } catch (parseError) {
+        logger.error(`Error parsing ${framework} test output:`, parseError);
+
+        // Store failure
+        const timestamp = new Date().toISOString();
         this.db.insertTestResult(
           timestamp,
           framework,
-          result.file,
-          result.name,
-          result.status,
-          result.duration,
-          result.error,
-          result.stack,
+          null,
+          'Test Run',
+          'failed',
+          0,
+          parseError.message,
+          parseError.stack,
           this.sessionId
         );
+
+        throw parseError;
       }
-
-      // Emit WebSocket event with summary
-      const passed = results.filter(r => r.status === 'passed').length;
-      const failed = results.filter(r => r.status === 'failed').length;
-      const skipped = results.filter(r => r.status === 'skipped').length;
-
-      this.io.emit('test-results', {
-        timestamp,
-        framework,
-        total: results.length,
-        passed,
-        failed,
-        skipped,
-        duration: results.reduce((sum, r) => sum + (r.duration || 0), 0)
-      });
-
-      return {
-        results,
-        passed,
-        failed,
-        skipped,
-        total: results.length
-      };
-    } catch (parseError) {
-      logger.error(`Error parsing ${framework} test output:`, parseError);
-
-      // Store failure
-      const timestamp = new Date().toISOString();
-      this.db.insertTestResult(
-        timestamp,
-        framework,
-        null,
-        'Test Run',
-        'failed',
-        0,
-        parseError.message,
-        parseError.stack,
-        this.sessionId
-      );
-
-      throw parseError;
-    }
+    });
   }
 
   /**
    * Parse Jest output
    */
   parseJestOutput(output) {
-    let results = [];
     const lines = output.split('\n');
 
-    // First, try to extract the summary line for accurate totals
+    // ONLY extract the summary line - don't parse individual tests from console output
     // Format: "Tests:       53 failed, 1747 passed, 1800 total"
+    // IMPORTANT: Only match the FINAL summary line, not console output containing old summaries
     let totalPassed = 0;
     let totalFailed = 0;
     let totalSkipped = 0;
     let totalTests = 0;
 
-    for (const line of lines) {
-      const testSummaryMatch = line.match(/Tests:\s+(?:(\d+)\s+failed,?\s*)?(?:(\d+)\s+passed,?\s*)?(?:(\d+)\s+skipped,?\s*)?(\d+)\s+total/);
+    // Search from the END of output to find the ACTUAL test summary (not console.log output)
+    // Look for the line that starts exactly with "Tests:" followed by numbers and "total"
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 100); i--) {
+      const line = lines[i].trim();
+      // Match: "Tests:       4 skipped, 1796 passed, 1800 total"
+      // Or:    "Tests:       45 failed, 14 passed, 59 total"
+      const testSummaryMatch = line.match(/^Tests:\s+(?:(\d+)\s+failed,?\s*)?(?:(\d+)\s+skipped,?\s*)?(\d+)\s+passed,?\s*(\d+)\s+total/);
       if (testSummaryMatch) {
         totalFailed = parseInt(testSummaryMatch[1] || '0');
-        totalPassed = parseInt(testSummaryMatch[2] || '0');
-        totalSkipped = parseInt(testSummaryMatch[3] || '0');
+        totalSkipped = parseInt(testSummaryMatch[2] || '0');
+        totalPassed = parseInt(testSummaryMatch[3]);
         totalTests = parseInt(testSummaryMatch[4]);
-        logger.info(`Jest summary parsed: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped, ${totalTests} total`);
+        logger.info(`Jest summary found at line ${i}: "${line}"`);
+        logger.info(`Parsed: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped, ${totalTests} total`);
         break;
       }
     }
 
-    // Extract test file results and individual failing tests
-    let currentFile = null;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Match PASS/FAIL lines to get test files
-      const passMatch = line.match(/PASS\s+(.+\.(?:test|spec)\.[jt]sx?)/);
-      const failMatch = line.match(/FAIL\s+(.+\.(?:test|spec)\.[jt]sx?)/);
-
-      if (passMatch) {
-        currentFile = passMatch[1];
-        results.push({
-          name: `Test suite: ${currentFile}`,
-          status: 'passed',
-          duration: 0,
-          file: currentFile,
-          error: null,
-          stack: null
-        });
-      } else if (failMatch) {
-        currentFile = failMatch[1];
-        // Look ahead for individual test failures
-        let errorMessage = '';
-        for (let j = i + 1; j < Math.min(i + 50, lines.length); j++) {
-          if (lines[j].includes('●')) {
-            errorMessage = lines[j].replace('●', '').trim();
-            break;
-          }
-        }
-        results.push({
-          name: `Test suite: ${currentFile}`,
-          status: 'failed',
-          duration: 0,
-          file: currentFile,
-          error: errorMessage || 'Test suite failed',
-          stack: null
-        });
-      }
-
-      // Match individual test failures (lines starting with ●)
-      const testFailMatch = line.match(/^\s+●\s+(.+)/);
-      if (testFailMatch && currentFile) {
-        const testName = testFailMatch[1];
-        // Look for error details in following lines
-        let errorDetails = '';
-        for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
-          if (lines[j].includes('expect(') || lines[j].includes('TypeError') || lines[j].includes('Error:')) {
-            errorDetails = lines[j].trim();
-            break;
-          }
-        }
-        results.push({
-          name: testName,
-          status: 'failed',
-          duration: 0,
-          file: currentFile,
-          error: errorDetails || 'Test failed',
-          stack: null
-        });
-      }
-    }
-
-    // If we found a summary, use ONLY the summary line (ignore parsed results to avoid duplicates)
+    // If we found a summary, use ONLY the summary line
     if (totalTests > 0) {
       logger.info(`Using Jest summary line: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped, ${totalTests} total`);
 
-      // Clear results and rebuild entirely from summary
-      results = [];
+      const results = [];
 
       // Add failed tests
       for (let i = 0; i < totalFailed; i++) {
@@ -314,21 +360,19 @@ export class TestRunner {
       }
 
       logger.info(`Created ${results.length} synthetic test entries (matches Jest total: ${totalTests})`);
+      return results;
     }
 
-    // If we couldn't parse any results, create a summary entry
-    if (results.length === 0) {
-      results.push({
-        name: 'Test Run',
-        status: output.includes('FAIL') ? 'failed' : 'passed',
-        duration: 0,
-        file: null,
-        error: output.includes('FAIL') ? 'Tests failed - see output' : null,
-        stack: null
-      });
-    }
-
-    return results;
+    // If no summary found, Jest probably crashed - report as incomplete
+    logger.warn('No Jest summary line found - test run may have crashed or been interrupted');
+    return [{
+      name: 'Test Run Incomplete',
+      status: 'failed',
+      duration: 0,
+      file: null,
+      error: 'Test run did not complete - no Jest summary found. Check console output for errors.',
+      stack: null
+    }];
   }
 
   /**

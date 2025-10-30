@@ -423,6 +423,7 @@ export function createHealthRoutes(deps) {
             if (minutesSinceActivity < 5) status = 'active';  // Active in last 5 minutes
             else if (minutesSinceActivity < 60) status = 'recent';  // Active in last hour
             else if (minutesSinceActivity < 1440) status = 'idle';  // Active in last 24 hours
+            else if (minutesSinceActivity < 10080) status = 'idle';  // Active in last 7 days (168 hours)
           }
 
           // Get recent event count from BOTH tables

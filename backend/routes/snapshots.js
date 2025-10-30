@@ -17,6 +17,37 @@ export function createSnapshotsRoutes(deps) {
   const { projectState } = deps;
 
   /**
+   * GET /api/snapshots
+   * Get all snapshots
+   */
+  router.get('/snapshots', async (req, res) => {
+    try {
+      const files = await fs.promises.readdir(projectState.snapshotsDir);
+      const snapshots = files
+        .filter(f => !f.startsWith('.')) // Skip hidden files
+        .map(f => {
+          // Extract timestamp from filename (format: filepath_timestamp.gz)
+          const parts = f.split('_');
+          const timestampPart = parts[parts.length - 1].replace('.gz', '').replace('.txt', '');
+          const timestamp = parseInt(timestampPart) || 0;
+
+          return {
+            filename: f,
+            timestamp: timestamp,
+            date: timestamp ? new Date(timestamp).toISOString() : null,
+            path: join(projectState.snapshotsDir, f)
+          };
+        })
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      res.json(snapshots);
+    } catch (error) {
+      logger.error('❌ Snapshots list error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * GET /api/snapshots/:filepath
    * Get all snapshots for a specific file
    */

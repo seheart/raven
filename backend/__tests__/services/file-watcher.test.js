@@ -154,8 +154,11 @@ describe('File Watcher Service', () => {
 
       let eventFired = false;
 
-      watcher.on('add', () => {
-        eventFired = true;
+      watcher.on('add', (path) => {
+        // Only flag if it's the node_modules file we're testing
+        if (path === nodeModulesFile) {
+          eventFired = true;
+        }
       });
 
       watcher.on('ready', async () => {
@@ -170,8 +173,18 @@ describe('File Watcher Service', () => {
         // Wait to ensure event would have fired if it was going to
         setTimeout(() => {
           expect(eventFired).toBe(false);
+          if (watcher) {
+            watcher.close();
+          }
           done();
-        }, 500);
+        }, 1000);
+      });
+
+      watcher.on('error', (error) => {
+        if (watcher) {
+          watcher.close();
+        }
+        done(error);
       });
     });
 

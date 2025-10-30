@@ -10,7 +10,8 @@ import { unlink } from 'fs/promises';
 describe('AuthService', () => {
   let db;
   let authService;
-  const testDbPath = './__tests__/test-auth.db';
+  // Use unique DB path per test worker to avoid parallel test conflicts
+  const testDbPath = `./__tests__/test-auth-${process.pid}-${Date.now()}.db`;
 
   beforeEach(async () => {
     db = new Database(testDbPath);
@@ -241,7 +242,7 @@ describe('AuthService', () => {
   describe('Initialization Errors', () => {
     it('should handle createDefaultAdmin errors gracefully', async () => {
       // Create a fresh database to trigger default admin creation
-      const freshDbPath = './__tests__/test-auth-fresh.db';
+      const freshDbPath = `./__tests__/test-auth-fresh-${process.pid}-${Date.now()}.db`;
       const freshDb = new Database(freshDbPath);
 
       // Spy on createUser before creating AuthService
