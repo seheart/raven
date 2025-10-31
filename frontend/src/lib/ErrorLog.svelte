@@ -160,8 +160,14 @@
     const days = prompt('Clear errors older than how many days?', '7');
     if (!days) return;
 
+    const parsedDays = parseInt(days, 10);
+    if (isNaN(parsedDays)) {
+      alert('Invalid number of days');
+      return;
+    }
+
     try {
-      const result = await clearErrorLogs(parseInt(days));
+      const result = await clearErrorLogs(parsedDays);
       alert(result.message);
       await loadErrors();
       await loadStats();

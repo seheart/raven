@@ -66,8 +66,11 @@
   }
 
   function handleDaysChange(newDays) {
-    days = parseInt(newDays);
-    loadTrends();
+    const parsedDays = parseInt(newDays, 10);
+    if (!isNaN(parsedDays)) {
+      days = parsedDays;
+      loadTrends();
+    }
   }
 
   function getBarHeight(value) {

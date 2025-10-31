@@ -27,7 +27,9 @@
   const handleAgentEvent = async () => {
     try {
       // Reload dashboard stats when new events come in
-      const statsData = await fetch(`${API_BASE}/dashboard-stats`).then(r => r.json());
+      const response = await fetch(`${API_BASE}/dashboard-stats`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const statsData = await response.json();
       stats = statsData;
     } catch (error) {
       logger.error('Failed to handle agent event:', error);
@@ -37,7 +39,9 @@
   const handleAgentStats = async () => {
     try {
       // Reload agents status when stats update
-      const agentsData = await fetch(`${API_BASE}/agents-status`).then(r => r.json());
+      const response = await fetch(`${API_BASE}/agents-status`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const agentsData = await response.json();
       agents = agentsData;
     } catch (error) {
       logger.error('Failed to handle agent stats:', error);
@@ -87,10 +91,10 @@
   async function loadAllData() {
     try {
       const [statsData, filesData, editsData, agentsData] = await Promise.all([
-        fetch(`${API_BASE}/dashboard-stats`).then(r => r.json()),
-        fetch(`${API_BASE}/top-modified-files?limit=10`).then(r => r.json()),
-        fetch(`${API_BASE}/longest-edits?limit=10`).then(r => r.json()),
-        fetch(`${API_BASE}/agents-status`).then(r => r.json())
+        fetch(`${API_BASE}/dashboard-stats`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
+        fetch(`${API_BASE}/top-modified-files?limit=10`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
+        fetch(`${API_BASE}/longest-edits?limit=10`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
+        fetch(`${API_BASE}/agents-status`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       ]);
 
       stats = statsData;

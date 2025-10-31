@@ -358,7 +358,7 @@
       const data = await api.get(`/file-events?limit=${MAX_EVENTS_HISTORY}&diff=true`);
       const eventsArray = Array.isArray(data) ? data : (data.events || []);
       // Extract numeric ID from prefixed ID (e.g., "file-123" -> 123)
-      const numericId = parseInt(event.id.toString().replace(/^file-/, ''));
+      const numericId = parseInt(event.id.toString().replace(/^file-/, ''), 10);
       const eventWithDiff = eventsArray.find(e => e.id === numericId);
 
       if (eventWithDiff) {

@@ -153,7 +153,7 @@
     const days = prompt('Delete records older than how many days?', '30');
     if (!days) return;
 
-    const daysNum = parseInt(days);
+    const daysNum = parseInt(days, 10);
     if (isNaN(daysNum) || daysNum < 1) {
       alert('Please enter a valid number of days (1 or greater)');
       return;

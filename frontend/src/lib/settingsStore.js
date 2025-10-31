@@ -97,6 +97,12 @@ export const settings = {
       const updated = { ...current };
       const keys = path.split('.');
 
+      // Safety check: ensure keys array is not empty
+      if (keys.length === 0) {
+        logger.warn('Settings update called with empty path');
+        return updated;
+      }
+
       let obj = updated;
       for (let i = 0; i < keys.length - 1; i++) {
         obj = obj[keys[i]];
