@@ -12,6 +12,9 @@
   let ws = null;
   let durationInterval = null;
 
+  // Track timeouts for cleanup
+  let pulseTimeouts = [];
+
   // Fetch pause status
   async function fetchStatus() {
     try {
@@ -104,7 +107,8 @@
       logger.info('Monitoring paused:', data);
       fetchStatus();
       pulsing = true;
-      setTimeout(() => pulsing = false, 1000);
+      const timeout = setTimeout(() => pulsing = false, 1000);
+      pulseTimeouts.push(timeout);
     });
 
     websocketService.subscribe('monitoring-resumed', (data) => {
@@ -128,6 +132,9 @@
   onDestroy(() => {
     if (ws) ws();
     if (durationInterval) clearInterval(durationInterval);
+
+    // Clean up timeouts
+    pulseTimeouts.forEach(timeout => clearTimeout(timeout));
   });
 </script>
 

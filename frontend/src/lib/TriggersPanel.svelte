@@ -25,6 +25,9 @@
   let lastUpdated = null;
   let isManualRefresh = false;
 
+  // Track timeouts for cleanup
+  let successMessageTimeouts = [];
+
   // Enhanced features
   let searchQuery = '';
   let selectedActionFilter = 'all'; // 'all', 'notify', 'log', 'command'
@@ -97,6 +100,9 @@
     websocketService.off('trigger-fired', handleTriggerFired);
     websocketService.off('trigger-stats', handleTriggerStats);
     websocketService.off('project-switched', handleProjectSwitched);
+
+    // Clean up timeouts
+    successMessageTimeouts.forEach(timeout => clearTimeout(timeout));
   });
 
   async function loadAllData(manual = false) {
@@ -155,7 +161,8 @@
       const response = await fetch(`${API_BASE}/triggers-reload`, { method: 'POST' });
       const data = await response.json();
       successMessage = data.message;
-      setTimeout(() => successMessage = null, 3000);
+      const timeout = setTimeout(() => successMessage = null, 3000);
+      successMessageTimeouts.push(timeout);
       await loadAllData();
     } catch (e) {
       error = `Failed to reload config: ${e}`;
@@ -168,7 +175,8 @@
       const response = await fetch(`${API_BASE}/triggers-clear-cooldowns`, { method: 'POST' });
       const data = await response.json();
       successMessage = data.message;
-      setTimeout(() => successMessage = null, 3000);
+      const timeout = setTimeout(() => successMessage = null, 3000);
+      successMessageTimeouts.push(timeout);
     } catch (e) {
       error = `Failed to clear cooldowns: ${e}`;
       logger.error(error);
@@ -184,7 +192,8 @@
       successMessage = `Enabled trigger: ${triggerName}`;
     }
     enabledTriggers = enabledTriggers; // Trigger reactivity
-    setTimeout(() => successMessage = null, 2000);
+    const timeout = setTimeout(() => successMessage = null, 2000);
+    successMessageTimeouts.push(timeout);
   }
 
   async function testTrigger(trigger) {
@@ -204,7 +213,8 @@
       triggeredEvents = [testEvent, ...triggeredEvents].slice(0, 100);
 
       successMessage = `✅ Test fired: ${trigger.name}`;
-      setTimeout(() => successMessage = null, 3000);
+      const timeout = setTimeout(() => successMessage = null, 3000);
+      successMessageTimeouts.push(timeout);
     } catch (e) {
       error = `Failed to test trigger: ${e}`;
       logger.error(error);

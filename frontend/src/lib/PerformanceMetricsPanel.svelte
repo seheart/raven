@@ -82,10 +82,38 @@
     exportJSON({ metrics, range: timeRange, exported_at: new Date().toISOString() }, 'performance-metrics');
   }
 
-  $: avgCpu = metrics.length > 0 ? (metrics.reduce((sum, m) => sum + (m.cpu_percent || 0), 0) / metrics.length).toFixed(1) : 0;
-  $: avgMem = metrics.length > 0 ? (metrics.reduce((sum, m) => sum + (m.memory_percent || 0), 0) / metrics.length).toFixed(1) : 0;
-  $: maxCpu = metrics.length > 0 ? Math.max(...metrics.map(m => m.cpu_percent || 0)).toFixed(1) : 0;
-  $: maxMem = metrics.length > 0 ? Math.max(...metrics.map(m => m.memory_percent || 0)).toFixed(1) : 0;
+  // Optimized: compute all stats in a single pass through the metrics array
+  $: metricsStats = (() => {
+    if (metrics.length === 0) {
+      return { avgCpu: 0, avgMem: 0, maxCpu: 0, maxMem: 0 };
+    }
+
+    let sumCpu = 0;
+    let sumMem = 0;
+    let maxCpu = 0;
+    let maxMem = 0;
+
+    for (const m of metrics) {
+      const cpu = m.cpu_percent || 0;
+      const mem = m.memory_percent || 0;
+      sumCpu += cpu;
+      sumMem += mem;
+      if (cpu > maxCpu) maxCpu = cpu;
+      if (mem > maxMem) maxMem = mem;
+    }
+
+    return {
+      avgCpu: (sumCpu / metrics.length).toFixed(1),
+      avgMem: (sumMem / metrics.length).toFixed(1),
+      maxCpu: maxCpu.toFixed(1),
+      maxMem: maxMem.toFixed(1)
+    };
+  })();
+
+  $: avgCpu = metricsStats.avgCpu;
+  $: avgMem = metricsStats.avgMem;
+  $: maxCpu = metricsStats.maxCpu;
+  $: maxMem = metricsStats.maxMem;
 </script>
 
 <div class="performance-metrics-panel" role="region" aria-label="Performance metrics panel">

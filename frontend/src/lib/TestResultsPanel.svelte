@@ -32,6 +32,9 @@
   // Terminal output
   let terminalOutput = '';
 
+  // Track timeouts for cleanup
+  let scrollTimeouts = [];
+
   // Fetch test frameworks
   async function fetchFrameworks() {
     try {
@@ -182,12 +185,13 @@
     wsOutput = websocketService.subscribe('test-output', (data) => {
       terminalOutput += data.output;
       // Auto-scroll to bottom
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         const terminal = document.querySelector('.terminal-output');
         if (terminal) {
           terminal.scrollTop = terminal.scrollHeight;
         }
       }, 10);
+      scrollTimeouts.push(timeout);
     });
   }
 
@@ -201,6 +205,9 @@
     if (ws) ws();
     if (wsProgress) wsProgress();
     if (wsOutput) wsOutput();
+
+    // Clean up timeouts
+    scrollTimeouts.forEach(timeout => clearTimeout(timeout));
   });
 
   // Format duration

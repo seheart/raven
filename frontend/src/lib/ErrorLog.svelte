@@ -21,6 +21,9 @@
   let lastUpdated = null;
   let isManualRefresh = false;
 
+  // Track additional timeouts for cleanup
+  let reloadTimeouts = [];
+
   // Pagination
   let currentPage = 0;
   let pageSize = 50;
@@ -48,6 +51,9 @@
     if (loadErrorsTimeout) {
       clearTimeout(loadErrorsTimeout);
     }
+
+    // Clean up additional timeouts
+    reloadTimeouts.forEach(timeout => clearTimeout(timeout));
   });
 
   // Handle error-logged WebSocket event
@@ -228,10 +234,11 @@
         'warning'
       );
       // Reload after a short delay to let the backend process it
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         loadErrors();
         loadStats();
       }, 200);
+      reloadTimeouts.push(timeout);
     } catch (err) {
       alert('Failed to log test error: ' + err.message);
     }

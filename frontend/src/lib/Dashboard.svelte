@@ -24,20 +24,32 @@
 
   // WebSocket event handlers
   const handleAgentEvent = async () => {
-    // Reload dashboard stats when new events come in
-    const statsData = await fetch(`${API_BASE}/dashboard-stats`).then(r => r.json());
-    stats = statsData;
+    try {
+      // Reload dashboard stats when new events come in
+      const statsData = await fetch(`${API_BASE}/dashboard-stats`).then(r => r.json());
+      stats = statsData;
+    } catch (error) {
+      logger.error('Failed to handle agent event:', error);
+    }
   };
 
   const handleAgentStats = async () => {
-    // Reload agents status when stats update
-    const agentsData = await fetch(`${API_BASE}/agents-status`).then(r => r.json());
-    agents = agentsData;
+    try {
+      // Reload agents status when stats update
+      const agentsData = await fetch(`${API_BASE}/agents-status`).then(r => r.json());
+      agents = agentsData;
+    } catch (error) {
+      logger.error('Failed to handle agent stats:', error);
+    }
   };
 
   const handleProjectSwitched = async (data) => {
-    logger.info('📡 Project switched, reloading dashboard data:', data.project);
-    await loadAllData();
+    try {
+      logger.info('📡 Project switched, reloading dashboard data:', data.project);
+      await loadAllData();
+    } catch (error) {
+      logger.error('Failed to handle project switch:', error);
+    }
   };
 
   onMount(async () => {

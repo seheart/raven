@@ -24,11 +24,16 @@
   let alertsEnabled = true;
   let lastUpdated = null;
   let isManualRefresh = false;
+  let previousPollingInterval = 30; // Track previous value to prevent unnecessary restarts
+
+  // Track timeouts for cleanup
+  let realtimeTimeouts = [];
 
   function handleRealtimeUpdate() {
     // Quick health check when events occur
     realtimeActive = true;
-    setTimeout(() => { realtimeActive = false; }, 1000);
+    const timeout = setTimeout(() => { realtimeActive = false; }, 1000);
+    realtimeTimeouts.push(timeout);
 
     // Re-check critical endpoints on events
     const criticalEndpoints = (apiEndpoints || []).filter(e =>
@@ -72,10 +77,16 @@
     refreshInterval = setInterval(checkAllEndpoints, pollingInterval * 1000);
   }
 
-  // Watch for changes to polling interval (fix: removed refreshInterval dependency to prevent loop)
+  // Watch for changes to polling interval (fix: track previous value to prevent unnecessary restarts)
   $: {
-    if (pollingInterval > 0) {
-      startPolling();
+    if (pollingInterval !== previousPollingInterval) {
+      previousPollingInterval = pollingInterval;
+      if (pollingInterval > 0) {
+        startPolling();
+      } else if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
     }
   }
 
@@ -109,6 +120,9 @@
     if (refreshInterval) {
       clearInterval(refreshInterval);
     }
+
+    // Clean up timeouts
+    realtimeTimeouts.forEach(timeout => clearTimeout(timeout));
 
     // Cleanup WebSocket listeners
     websocketService.off('file-changed', handleRealtimeUpdate);

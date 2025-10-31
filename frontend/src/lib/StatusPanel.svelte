@@ -42,6 +42,9 @@
   let isManualRefresh = false;
   let loading = true;
 
+  // Track timeouts for cleanup
+  let healthCheckTimeouts = [];
+
   async function checkBackendHealth(manual = false) {
     if (!isMounted) return;
     isManualRefresh = manual;
@@ -160,7 +163,8 @@
 
       if (result.success) {
         // Refresh health status after a moment to reflect new state
-        setTimeout(() => checkBackendHealth(), 1000);
+        const timeout = setTimeout(() => checkBackendHealth(), 1000);
+        healthCheckTimeouts.push(timeout);
       } else {
         logger.error('Bridge restart failed:', result.error);
         alert(`Failed to restart bridge: ${result.error}`);
@@ -219,6 +223,9 @@
 
   onDestroy(() => {
     isMounted = false;
+
+    // Clean up timeouts
+    healthCheckTimeouts.forEach(timeout => clearTimeout(timeout));
 
     // Clean up WebSocket listeners
     websocketService.off('project-switched', handleProjectSwitched);

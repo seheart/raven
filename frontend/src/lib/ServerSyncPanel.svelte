@@ -38,6 +38,10 @@
   let isManualRefresh = false;
   let previousAutoSync = false; // Track previous value to prevent reactive loop
 
+  // Track timeouts for cleanup
+  let saveStatusTimeout = null;
+  let syncProgressTimeouts = [];
+
   async function loadConfig(manual = false) {
     try {
       loading = true;
@@ -77,7 +81,8 @@
         title: 'Server Config'
       });
 
-      setTimeout(() => saveStatus = null, 3000);
+      if (saveStatusTimeout) clearTimeout(saveStatusTimeout);
+      saveStatusTimeout = setTimeout(() => saveStatus = null, 3000);
     } catch (error) {
       logger.error('Failed to save config:', error);
       saveStatus = 'error';
@@ -203,9 +208,10 @@
       }
 
       syncing = false;
-      setTimeout(() => {
+      const timeout1 = setTimeout(() => {
         syncProgress = { stage: '', percent: 0, message: '' };
       }, 3000);
+      syncProgressTimeouts.push(timeout1);
     } catch (error) {
       logger.error('Sync failed:', error);
       syncing = false;
@@ -213,9 +219,10 @@
       notifications.error('Sync failed', {
         title: 'Sync Error'
       });
-      setTimeout(() => {
+      const timeout2 = setTimeout(() => {
         syncProgress = { stage: '', percent: 0, message: '' };
       }, 3000);
+      syncProgressTimeouts.push(timeout2);
     }
   }
 
@@ -323,6 +330,10 @@
   onDestroy(() => {
     // Clean up auto-sync interval
     stopAutoSync();
+
+    // Clean up timeouts
+    if (saveStatusTimeout) clearTimeout(saveStatusTimeout);
+    syncProgressTimeouts.forEach(timeout => clearTimeout(timeout));
   });
 </script>
 

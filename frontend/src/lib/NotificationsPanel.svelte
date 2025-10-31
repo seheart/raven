@@ -34,6 +34,11 @@
   let lastUpdated = null;
   let isManualRefresh = false;
 
+  // Cache for grouped notifications to prevent expensive recomputation
+  let cachedNotifications = null;
+  let cachedGroupDuplicates = null;
+  let cachedGroupedResult = [];
+
   // Pagination
   let limit = 50;
   let offset = 0;
@@ -144,8 +149,22 @@
     }
   }
 
-  // Group notifications by title+message to show duplicates with count
-  $: groupedNotifications = groupDuplicates ? groupNotificationsByContent(notifications) : notifications.map(n => ({ ...n, count: 1 }));
+  // Group notifications by title+message to show duplicates with count (optimized with caching)
+  $: groupedNotifications = (() => {
+    // Check if we can use cached result
+    if (cachedNotifications === notifications && cachedGroupDuplicates === groupDuplicates) {
+      return cachedGroupedResult;
+    }
+
+    // Recompute and cache
+    cachedNotifications = notifications;
+    cachedGroupDuplicates = groupDuplicates;
+    cachedGroupedResult = groupDuplicates
+      ? groupNotificationsByContent(notifications)
+      : notifications.map(n => ({ ...n, count: 1 }));
+
+    return cachedGroupedResult;
+  })();
 
   function groupNotificationsByContent(notifs) {
     const grouped = [];

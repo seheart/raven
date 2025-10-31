@@ -143,17 +143,23 @@
 
   // Handle notification permission
   async function handleNotifications(enable) {
-    if (enable) {
-      const granted = await desktopNotifications.requestPermission();
-      notificationsEnabled = granted;
+    try {
+      if (enable) {
+        const granted = await desktopNotifications.requestPermission();
+        notificationsEnabled = granted;
 
-      if (!granted) {
-        error = 'Notifications permission denied. You can enable them later in browser settings.';
-      } else {
-        error = null;
+        if (!granted) {
+          error = 'Notifications permission denied. You can enable them later in browser settings.';
+        } else {
+          error = null;
+        }
       }
+      nextStep();
+    } catch (err) {
+      logger.error('Failed to handle notifications:', err);
+      error = 'Failed to request notification permissions';
+      notificationsEnabled = false;
     }
-    nextStep();
   }
 
   // Complete setup
