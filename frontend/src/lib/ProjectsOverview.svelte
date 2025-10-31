@@ -10,14 +10,22 @@
 
   async function loadProjectsOverview() {
     try {
+      // Add timeout protection (10 seconds max to prevent indefinite hang)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Projects load timeout')), 10000)
+      );
+
       // Use dataService - it handles caching and deduplication
       // Fetch both file events AND agent events to detect activity
-      const [projects, fileEvents, agentEventsResponse] = await Promise.all([
+      const dataPromise = Promise.all([
         dataService.fetchProjects(),
         dataService.fetchFileEvents(500),
-        fetch(`${window.location.protocol}//${window.location.hostname}:3030/api/agent-events?limit=500`)
-          .then(r => r.json())
-          .catch(() => [])
+        dataService.fetchAgentEvents(500).catch(() => [])
+      ]);
+
+      const [projects, fileEvents, agentEventsResponse] = await Promise.race([
+        dataPromise,
+        timeoutPromise
       ]);
 
       availableProjects = projects;

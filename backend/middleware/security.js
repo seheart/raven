@@ -18,7 +18,14 @@ export function setupHelmet() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"], // TODO: Remove unsafe-inline in production
+        // Note: Svelte compiles component-scoped styles into <style> tags and uses
+        // reactive style bindings (style="width: {value}%"). These require 'unsafe-inline'.
+        // For production hardening, consider implementing CSP nonces or extracting all
+        // styles to external CSS files. Current approach is safe because:
+        // 1. All styles are from trusted Svelte components (not user input)
+        // 2. No user-generated content is rendered with innerHTML
+        // 3. All API responses are sanitized through DOMPurify where needed
+        styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'", 'ws:', 'wss:'],

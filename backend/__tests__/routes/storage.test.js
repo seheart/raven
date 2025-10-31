@@ -43,6 +43,10 @@ describe('Storage Routes', () => {
   });
 
   afterEach(() => {
+    // Reset all mocks to prevent cross-test pollution (fixes test conflicts)
+    jest.resetAllMocks();
+    jest.restoreAllMocks();
+
     // Clean up test directory
     if (existsSync(testRavenDir)) {
       try {
@@ -921,10 +925,8 @@ describe('Storage Routes', () => {
       expect(response.body.databases.length).toBeGreaterThan(0);
     });
 
-    test.skip('should trigger invalid table name warning (line 55-56)', async () => {
-      // TODO: This test conflicts with the VACUUM mocking test above
-      // The mock persists and affects subsequent database creation
-      // Need to restructure test order or use different mocking approach
+    test('should trigger invalid table name warning (line 55-56)', async () => {
+      // Fixed: Mock cleanup added to afterEach hook prevents test conflicts
 
       // Create a database with a table that has invalid name format
       const Database = (await import('better-sqlite3')).default;
@@ -945,9 +947,8 @@ describe('Storage Routes', () => {
       expect(response.body.databases).toBeDefined();
     });
 
-    test.skip('should trigger invalid table name warning during cleanup (line 324-325)', async () => {
-      // TODO: This test conflicts with the VACUUM mocking test above
-      // The mock persists and affects subsequent database creation
+    test('should trigger invalid table name warning during cleanup (line 324-325)', async () => {
+      // Fixed: Mock cleanup added to afterEach hook prevents test conflicts
 
       // Create a database with invalid table name for cleanup
       const Database = (await import('better-sqlite3')).default;
@@ -967,9 +968,8 @@ describe('Storage Routes', () => {
       expect([200, 500]).toContain(response.status);
     });
 
-    test.skip('should trigger export error when headers already sent (line 219-220)', async () => {
-      // TODO: This test conflicts with the VACUUM mocking test above
-      // The mock persists and affects subsequent database creation
+    test('should trigger export error when headers already sent (line 219-220)', async () => {
+      // Fixed: Mock cleanup added to afterEach hook prevents test conflicts
 
       // Lines 219-220 are a defensive edge case for res.download() race conditions
       // This is nearly impossible to test reliably but the code path exists for safety

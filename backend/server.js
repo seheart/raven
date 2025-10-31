@@ -109,15 +109,18 @@ const httpServer = createServer(app);
 
 // Configuration: Load from environment variables with fallback defaults
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
-const PORT = parseInt(process.env.PORT) || 3030;
+const PORT = parseInt(process.env.PORT, 10) || 3030;
 
 // File size limits and other constants
-const MAX_FILE_SIZE_BYTES = parseInt(process.env.MAX_FILE_SIZE_BYTES) || 10 * 1024 * 1024; // 10MB default
+const MAX_FILE_SIZE_BYTES = parseInt(process.env.MAX_FILE_SIZE_BYTES, 10) || 10 * 1024 * 1024; // 10MB default
 const FILE_WATCH_DEBOUNCE_MS = 50;
 const AGENT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 const SNAPSHOT_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const PERFORMANCE_MONITOR_INTERVAL_MS = 30 * 1000; // 30 seconds
-const PERFORMANCE_ALERT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const PERFORMANCE_ALERT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes - prevent alert spam
+const HEALTH_CHECK_DISCOVERY_DELAY_MS = 2 * 1000; // 2 seconds - wait for health checks to register
+const TELEMETRY_BRIDGE_RETRY_DELAY_MS = 2 * 1000; // 2 seconds - delay between bridge start attempts
+const STABILIZATION_DELAY_MS = 3 * 1000; // 3 seconds - startup stabilization period
 
 const io = new Server(httpServer, {
   cors: {
@@ -172,17 +175,6 @@ logger.info(`CORS enabled for origin: ${CORS_ORIGIN}`);
 const JSON_LIMIT = process.env.JSON_PAYLOAD_LIMIT || '10mb';
 app.use(express.json({ limit: JSON_LIMIT }));
 app.use(express.urlencoded({ limit: JSON_LIMIT, extended: true }));
-
-// ==================== Public API Endpoints (No Auth, No Rate Limiting) ====================
-// NOTE: These must be defined BEFORE rate limiting middleware to remain accessible
-// ==================== Health Endpoint (NOW MODULAR - see routes/health.js) ====================
-// Deleted - now using modular route
-
-// ==================== Session ID Endpoint (NOW MODULAR - see routes/health.js) ====================
-// Deleted - now using modular route
-
-// ==================== Status Endpoint (NOW MODULAR - see routes/health.js) ====================
-// Deleted - now using modular route
 
 // ==================== Rate Limiting Middleware ====================
 // Apply rate limiting to all /api routes EXCEPT the public endpoints defined above
@@ -523,13 +515,20 @@ const snapshotCleanupInterval = setInterval(async () => {
   }
 }, SNAPSHOT_CLEANUP_INTERVAL_MS);
 
-// Performance monitoring
+// Performance monitoring with startup grace period
 let lastPerformanceAlert = 0;
+const serverStartTime = Date.now();
+const STARTUP_GRACE_PERIOD_MS = 90 * 1000; // 90 seconds - allow server to stabilize
 
 const performanceMonitorInterval = setInterval(async () => {
   try {
     const os = await import('os');
     const now = Date.now();
+
+    // Skip performance checks during startup grace period (prevents false positives)
+    if (now - serverStartTime < STARTUP_GRACE_PERIOD_MS) {
+      return;
+    }
 
     // Skip if we recently sent an alert (avoid spam)
     if (now - lastPerformanceAlert < PERFORMANCE_ALERT_COOLDOWN_MS) {
@@ -1415,9 +1414,6 @@ app.use('/api', createConversationRoutes(routeDependencies));
 app.use('/api/developer', createDeveloperRoutes(routeDependencies));
 
 // Metrics routes - system and process metrics
-// ==================== System & Process Metrics (NOW MODULAR - see routes/metrics.js) ====================
-// Deleted - now using modular route
-
 // Control routes
 app.use('/api/control', createControlRoutes(routeDependencies));
 
@@ -1520,8 +1516,6 @@ app.use('/api-docs', createApiDocsRoutes());
 // ==================== Legacy Routes (to be extracted or kept) ====================
 // The routes below are still in server.js - can be extracted later if needed
 
-// ==================== Telemetry Endpoint (NOW MODULAR - see routes/telemetry.js) ====================
-// Deleted - now using modular route
 
 // ==================== Authentication Routes ====================
 
@@ -1533,65 +1527,33 @@ app.use('/auth', createAuthRoutes(authService));
 // NOTE: /api/health, /api/session-id, /api/status, and /api/health-checks endpoints
 // moved to routes/health.js (before authentication middleware for public access)
 
-// ==================== Dashboard Routes (NOW MODULAR - see routes/dashboard.js) ====================
-// Deleted: /api/dashboard-stats, /api/top-modified-files, /api/longest-edits, /api/agents-status
 
-// ==================== Agent Events API (NOW MODULAR - see routes/analytics.js) ====================
-// Deleted - now using modular route
 
 // ==================== System Metrics API ====================
 // NOTE: /api/system-metrics and /api/process-metrics are defined earlier (lines 1248-1286)
 // Duplicate endpoints removed to prevent conflicts
 
-// ==================== Metrics Stats & Correlations (NOW MODULAR - see routes/metrics.js) ====================
-// Deleted - now using modular route
-
-// ==================== Custom Metrics Dashboard API (NOW MODULAR - see routes/metrics.js) ====================
-// Deleted - now using modular route
-
-
-// ==================== Multi-Project Health Dashboard API (NOW MODULAR - see routes/health.js) ====================
-// Deleted - now using modular route
-
-// ==================== Anomaly Detection API (NOW MODULAR - see routes/analytics.js) ====================
-// Deleted - now using modular route
-
-// ==================== Historical Trends API (NOW MODULAR - see routes/analytics.js) ====================
-// Deleted - now using modular route
-
-// ==================== Agent Monitoring API (NOW MODULAR - see routes/analytics.js) ====================
-// Deleted - now using modular route
-
-// ==================== Pattern Matching (NOW MODULAR - see routes/analytics.js) ====================
-// Deleted - now using modular route
 
 
 
-// ==================== Session Intelligence API (NOW MODULAR - see routes/sessions.js) ====================
-// Deleted - now using modular route
+
+
+
+
+
+
+
 
 // ==================== File Events API ====================
 
-// ==================== Tracked Files (NOW MODULAR - see routes/events.js) ====================
-// Deleted - now using modular route
 
-// ==================== Events by Session (NOW MODULAR - see routes/events.js) ====================
-// Deleted - now using modular route
 
 
 
 // Get file events (from events table)
-// ==================== File Events (NOW MODULAR - see routes/events.js) ====================
-// Deleted - now using modular route
 
-// ==================== All File Events (NOW MODULAR - see routes/events.js) ====================
-// Deleted - now using modular route
 
-// ==================== Activity Log (NOW MODULAR - see routes/events.js) ====================
-// Deleted - now using modular route
 
-// ==================== Custom Triggers API (NOW MODULAR - see routes/triggers.js) ====================
-// Deleted - now using modular route
 
 
 // ==================== Health Check ====================
@@ -1865,11 +1827,7 @@ app.get('/health', async (req, res) => {
 });
 
 
-// ==================== Cache Management Endpoints (NOW MODULAR - see routes/cache.js) ====================
-// Deleted - now using modular route
 
-// ==================== Control Actions (NOW MODULAR - see routes/control.js) ====================
-// Deleted: /api/control/clear-cache, /api/control/restart-watcher, /api/control/restart-bridge, /api/control/export-health
 
 
 // ==================== Project Management API ====================
@@ -1877,21 +1835,13 @@ app.get('/health', async (req, res) => {
 
 
 
-// ==================== Git Endpoints (NOW MODULAR - see routes/git.js) ====================
-// Deleted - now using modular route
 
 // ==================== Documentation API ====================
 
 
 
-// ==================== Errors API (NOW MODULAR - see routes/errors.js) ====================
-// Deleted - now using modular route
 
-// ==================== Notifications API (NOW MODULAR - see routes/notifications.js) ====================
-// Deleted - now using modular route
 
-// ==================== Server Sync API (NOW MODULAR - see routes/sync.js) ====================
-// Deleted - now using modular route
 
 // ==================== WebSocket Connections ====================
 

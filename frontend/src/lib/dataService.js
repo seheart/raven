@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { logger } from './logger.js';
 import { API_CONFIG } from '../config.js';
+import { apiFetch } from './apiClient.js';
 
 const API_BASE = API_CONFIG.API_BASE;
 
@@ -108,46 +109,42 @@ class DataService {
       params = {}
     } = options;
 
-    // Build full URL with params
-    const url = new URL(`${API_BASE}${endpoint}`);
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
-    });
-    const fullUrl = url.toString();
+    // Build endpoint with query params (cache key)
+    const endpointWithParams = params && Object.keys(params).length > 0
+      ? `${endpoint}?${new URLSearchParams(params).toString()}`
+      : endpoint;
+
+    // Use endpoint as cache key (consistent with what apiFetch uses)
+    const cacheKey = endpointWithParams;
 
     // Check cache first (unless force refresh)
-    if (!forceRefresh && this.cache.has(fullUrl)) {
-      const cached = this.cache.get(fullUrl);
+    if (!forceRefresh && this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
       const age = Date.now() - cached.timestamp;
 
       if (age < ttl) {
         // Update access time for LRU tracking
         cached.accessTime = Date.now();
-        this.cache.set(fullUrl, cached);
+        this.cache.set(cacheKey, cached);
 
         logger.debug(`Cache HIT: ${endpoint} (age: ${age}ms)`);
         return cached.data;
       } else {
         logger.debug(`Cache EXPIRED: ${endpoint} (age: ${age}ms)`);
-        this.cache.delete(fullUrl);
+        this.cache.delete(cacheKey);
       }
     }
 
     // Check if request is already in-flight
-    if (this.inflightRequests.has(fullUrl)) {
+    if (this.inflightRequests.has(cacheKey)) {
       logger.debug(`Request DEDUPLICATED: ${endpoint}`);
-      return this.inflightRequests.get(fullUrl);
+      return this.inflightRequests.get(cacheKey);
     }
 
-    // Make new request
+    // Make new request using apiFetch (includes auth, timeouts, error handling)
     logger.debug(`Fetching: ${endpoint}`);
-    const requestPromise = fetch(fullUrl)
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status} ${response.statusText}`);
-        }
-        return response.json();
-      })
+
+    const requestPromise = apiFetch(endpointWithParams)
       .then((data) => {
         // Evict oldest entry if cache is full (LRU)
         if (this.cache.size >= this.maxCacheSize) {
@@ -155,26 +152,26 @@ class DataService {
         }
 
         // Store in cache with access time tracking
-        this.cache.set(fullUrl, {
+        this.cache.set(cacheKey, {
           data,
           timestamp: Date.now(),
           accessTime: Date.now()
         });
 
         // Remove from in-flight
-        this.inflightRequests.delete(fullUrl);
+        this.inflightRequests.delete(cacheKey);
 
         return data;
       })
       .catch((error) => {
         // Remove from in-flight on error
-        this.inflightRequests.delete(fullUrl);
+        this.inflightRequests.delete(cacheKey);
         logger.error(`Failed to fetch ${endpoint}:`, error);
         throw error;
       });
 
     // Track in-flight request
-    this.inflightRequests.set(fullUrl, requestPromise);
+    this.inflightRequests.set(cacheKey, requestPromise);
 
     return requestPromise;
   }
@@ -273,27 +270,98 @@ class DataService {
   }
 
   /**
+   * Fetch backend health status
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<Object>} Backend health status including version, uptime, database status
+   * @throws {Error} Throws if fetch fails or API returns error
+   */
+  async fetchHealth(forceRefresh = false) {
+    // Use full URL for /health endpoint (it's at root, not under /api)
+    const fullUrl = API_BASE.replace('/api', '') + '/health';
+    return this.fetch(fullUrl, { forceRefresh, ttl: 3000 });
+  }
+
+  /**
+   * Fetch git status
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<Object>} Git status with modified/created/deleted files
+   * @throws {Error} Throws if fetch fails or API returns error
+   */
+  async fetchGitStatus(forceRefresh = false) {
+    return this.fetch('/git/status', { forceRefresh, ttl: 3000 });
+  }
+
+  /**
+   * Fetch git branches
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<Object>} List of git branches
+   * @throws {Error} Throws if fetch fails or API returns error
+   */
+  async fetchGitBranches(forceRefresh = false) {
+    return this.fetch('/git/branches', { forceRefresh, ttl: 5000 });
+  }
+
+  /**
+   * Fetch git commit history
+   * @param {number} [limit=5] - Number of commits to fetch
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<Object>} Git commit history
+   * @throws {Error} Throws if fetch fails or API returns error
+   */
+  async fetchGitHistory(limit = 5, forceRefresh = false) {
+    return this.fetch('/git/history', {
+      params: { limit },
+      forceRefresh,
+      ttl: 5000
+    });
+  }
+
+  /**
+   * Fetch agent events
+   * @param {number} [limit=500] - Maximum number of events to return
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<Array>} Array of agent events
+   * @throws {Error} Throws if fetch fails or API returns error
+   */
+  async fetchAgentEvents(limit = 500, forceRefresh = false) {
+    return this.fetch('/agent-events', {
+      params: { limit },
+      forceRefresh,
+      ttl: 3000
+    });
+  }
+
+  /**
    * Preload all initial data in parallel
    * Call this once on app startup
    * @returns {Promise<boolean>} True if successful, false if any fetch fails
    */
   async preloadInitialData() {
-    logger.info('Preloading initial data...');
+    logger.info('Preloading initial data for site-wide caching...');
     const startTime = Date.now();
 
     try {
-      // Fetch everything in parallel
+      // Fetch everything in parallel - all data needed for any page
+      // This prevents red-to-green flashes and loading states on page navigation
       await Promise.all([
+        // Dashboard data
         this.fetchFileEvents(500),
         this.fetchDashboardStats(),
         this.fetchSystemMetrics(),
         this.fetchProjects(),
         this.fetchTopFiles(5),
-        this.fetchHealthChecks()
+        this.fetchAgentEvents(500),
+
+        // System > Status page data
+        this.fetchHealth(),
+        this.fetchHealthChecks(),
+        this.fetchGitStatus().catch(() => null), // Git is optional
+        this.fetchGitBranches().catch(() => null), // Git is optional
+        this.fetchGitHistory(5).catch(() => null) // Git is optional
       ]);
 
       const duration = Date.now() - startTime;
-      logger.info(`Initial data preloaded in ${duration}ms`);
+      logger.info(`Initial data preloaded in ${duration}ms - all pages ready`);
       return true;
     } catch (error) {
       logger.error('Failed to preload initial data:', error);

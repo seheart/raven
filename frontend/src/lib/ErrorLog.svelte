@@ -41,6 +41,21 @@
     await loadErrors();
     await loadStats();
     setupWebSocket();
+
+    // Check if we should highlight a specific error (from notification click)
+    const highlightMsg = sessionStorage.getItem('highlightError');
+    if (highlightMsg) {
+      // Find and select the error with matching message
+      setTimeout(() => {
+        const matchingError = errors.find(e => e.message && e.message.includes(highlightMsg));
+        if (matchingError) {
+          selectedError = matchingError;
+          logger.info('Highlighted error from notification:', highlightMsg);
+        }
+        // Clear the session storage flag
+        sessionStorage.removeItem('highlightError');
+      }, 500);
+    }
   });
 
   onDestroy(() => {

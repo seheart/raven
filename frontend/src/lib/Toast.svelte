@@ -15,8 +15,12 @@
   }
 
   function handleToastClick(notification) {
-    if (notification.type === 'error' && onErrorClick) {
+    // Allow clicking on errors and warnings to view details
+    if ((notification.type === 'error' || notification.type === 'warning') && onErrorClick) {
+      console.log('Toast clicked, navigating to Error Log:', notification.message);
       onErrorClick(notification);
+      // Dismiss the notification after click
+      notifications.remove(notification.id);
     }
   }
 </script>
@@ -25,17 +29,17 @@
   {#each $notifications as notification (notification.id)}
     <div
       class="toast toast-{notification.type}"
-      class:clickable={notification.type === 'error'}
+      class:clickable={notification.type === 'error' || notification.type === 'warning'}
       transition:fly={{ y: -30, duration: 300 }}
       role="alert"
       on:click={() => handleToastClick(notification)}
       on:keydown={(e) => e.key === 'Enter' && handleToastClick(notification)}
-      tabindex={notification.type === 'error' ? '0' : '-1'}
-      title={notification.type === 'error' ? 'Click to view error details' : ''}
+      tabindex={notification.type === 'error' || notification.type === 'warning' ? '0' : '-1'}
+      title={notification.type === 'error' || notification.type === 'warning' ? 'Click to view details in Error Log' : ''}
     >
       <span class="toast-icon" aria-hidden="true">{getIcon(notification.type)}</span>
       <span class="toast-message">{notification.message}</span>
-      {#if notification.type === 'error'}
+      {#if notification.type === 'error' || notification.type === 'warning'}
         <span class="toast-hint" aria-hidden="true">Click for details →</span>
       {/if}
       <button

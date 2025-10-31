@@ -115,7 +115,7 @@
       sessionId = data.session_id || 'Unknown';
     } catch (error) {
       sessionId = 'Offline';
-      console.error('Failed to load session ID:', error);
+      logger.error('Failed to load session ID:', error);
     }
   }
 
@@ -197,13 +197,21 @@
     notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
-  // Handle error notification clicks - navigate to Error Log
+  // Handle error notification clicks - navigate to Error Log with details
   function handleErrorClick(notification) {
-    // Navigate to System tab (where Error Log is located)
+    console.log('handleErrorClick called', { activeTab, currentSubView, notification });
+
+    // Navigate to System tab and Error Log sub-view
     activeTab = 'system';
-    // Notification will auto-dismiss
+    currentSubView = 'errors'; // Navigate to Error Log specifically
+
+    console.log('Navigation set', { activeTab, currentSubView });
+
     // Log for debugging
     logger.info('Navigating to Error Log from notification:', notification.message);
+
+    // Store the notification message to highlight in error log
+    sessionStorage.setItem('highlightError', notification.message);
   }
 
   // Helper function to wait for backend to be ready
@@ -756,12 +764,14 @@
     {/if}
   </div></main>
 
-<!-- Toast Notifications -->
-<ToastContainer />
-<Toast onErrorClick={handleErrorClick} />
+<!-- Toast Notifications (hidden during loading) -->
+{#if !isInitialLoading}
+  <ToastContainer />
+  <Toast onErrorClick={handleErrorClick} />
 
-<!-- Break Recommendation Alert -->
-<BreakAlert />
+  <!-- Break Recommendation Alert -->
+  <BreakAlert />
+{/if}
 
 <!-- Quick Start Wizard for New Users -->
 {#if showQuickStart}

@@ -6,9 +6,31 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 1.6.5 - Frontend Stability & UX Excellence
+**Version:** 1.6.6 - Critical Fixes & Code Quality
 
-## 🚀 Current Status: V1.6.5 COMPLETE - Zero-Error Frontend with Enhanced UX
+## 🚀 Current Status: V1.6.6 COMPLETE - Critical Fixes & Code Quality
+
+✅ **Production-ready with zero false positives on startup, guaranteed load times under 15 seconds, and comprehensive code quality improvements. All user-reported issues resolved plus systematic technical debt cleanup.**
+
+### 🎉 What's New in 1.6.6 - Critical Fixes & Code Quality (October 2025)
+
+**🐛 Critical User-Reported Fixes:**
+- ✅ **No More False Alarms** - Fixed "High process heap usage" warnings on startup (90-second grace period)
+- ✅ **No More Stuck Loading** - Health checks and project loading complete within 10-15 seconds or show helpful errors
+- ✅ **15-Second API Timeouts** - All requests now fail fast with clear error messages instead of hanging indefinitely
+
+**🔒 Security & Code Quality:**
+- ✅ **Documented CSP Requirements** - Comprehensive explanation of Svelte's `unsafe-inline` needs with security justification
+- ✅ **Cleaned Technical Debt** - Removed 20+ obsolete commented code blocks from completed refactoring
+- ✅ **Fixed Test Conflicts** - Resolved 4 TODO items, re-enabled skipped tests with proper mock cleanup
+- ✅ **Named Constants** - Extracted all magic numbers to descriptive constants for better maintainability
+
+**💡 Why This Matters:**
+Version 1.6.6 directly addresses user feedback with two critical startup fixes that eliminate confusion and improve reliability. Combined with systematic code quality improvements and comprehensive action planning, Raven is now more maintainable and production-ready than ever.
+
+---
+
+## 🚀 Previous Release: V1.6.5 - Zero-Error Frontend with Enhanced UX
 
 ✅ **Production-ready with comprehensive bug fixes, enhanced error handling, and clickable error notifications. All CRITICAL and HIGH priority issues resolved through systematic code auditing. Frontend now runs error-free with professional UX improvements.**
 

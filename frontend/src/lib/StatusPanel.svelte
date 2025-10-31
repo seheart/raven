@@ -7,6 +7,7 @@
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
   import { formatNumber } from './numberFormat.js';
+  import { dataService } from './dataService.js';
 
   const API_BASE = API_CONFIG.BASE_URL;
 
@@ -55,8 +56,8 @@
     }
 
     try {
-      const response = await fetch(`${API_BASE}/health`, { timeout: 5000 });
-      const data = await response.json();
+      // Use dataService for cached data (eliminates red-to-green flash)
+      const data = await dataService.fetchHealth(manual);
 
       backendStatus = {
         connected: true,
@@ -84,19 +85,12 @@
   async function checkGitStatus() {
     if (!isMounted) return;
     try {
-      // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-      const [statusRes, branchesRes, historyRes] = await Promise.all([
-        fetch(`${API_BASE}/api/git/status`, { signal: controller.signal }),
-        fetch(`${API_BASE}/api/git/branches`, { signal: controller.signal }),
-        fetch(`${API_BASE}/api/git/history?limit=5`, { signal: controller.signal })
-      ]).finally(() => clearTimeout(timeoutId));
-
-      const statusData = await statusRes.json();
-      const branchesData = await branchesRes.json();
-      const historyData = await historyRes.json();
+      // Use dataService for cached data (preloaded during initial load)
+      const [statusData, branchesData, historyData] = await Promise.all([
+        dataService.fetchGitStatus(),
+        dataService.fetchGitBranches(),
+        dataService.fetchGitHistory(5)
+      ]);
 
       gitStatus = {
         available: true,
@@ -251,12 +245,20 @@
     <article class="status-card" role="article" aria-labelledby="backend-heading">
       <div class="card-header">
         <h3 id="backend-heading"><span aria-hidden="true">⚙️</span> Backend Server</h3>
-        <div class="status-indicator" class:online={backendStatus.connected} class:offline={!backendStatus.connected} role="status" aria-live="polite">
-          <span aria-hidden="true">{backendStatus.connected ? '🟢' : '🔴'}</span> {backendStatus.connected ? 'Online' : 'Offline'}
-        </div>
+        {#if loading}
+          <div class="status-indicator loading" role="status" aria-live="polite">
+            <span aria-hidden="true">⏳</span> Loading...
+          </div>
+        {:else}
+          <div class="status-indicator" class:online={backendStatus.connected} class:offline={!backendStatus.connected} role="status" aria-live="polite">
+            <span aria-hidden="true">{backendStatus.connected ? '🟢' : '🔴'}</span> {backendStatus.connected ? 'Online' : 'Offline'}
+          </div>
+        {/if}
       </div>
       <div class="card-body">
-        {#if backendStatus.connected}
+        {#if loading}
+          <LoadingSkeleton height="200px" />
+        {:else if backendStatus.connected}
           <div class="info-row">
             <span class="label">Status:</span>
             <span class="value success">{backendStatus.status}</span>
@@ -322,12 +324,20 @@
     <article class="status-card" role="article" aria-labelledby="websocket-heading">
       <div class="card-header">
         <h3 id="websocket-heading"><span aria-hidden="true">🔌</span> WebSocket Connection</h3>
-        <div class="status-indicator" class:online={websocketStatus.connected} class:offline={!websocketStatus.connected} role="status" aria-live="polite">
-          <span aria-hidden="true">{websocketStatus.connected ? '🟢' : '🔴'}</span> {websocketStatus.connected ? 'Connected' : 'Disconnected'}
-        </div>
+        {#if loading}
+          <div class="status-indicator loading" role="status" aria-live="polite">
+            <span aria-hidden="true">⏳</span> Loading...
+          </div>
+        {:else}
+          <div class="status-indicator" class:online={websocketStatus.connected} class:offline={!websocketStatus.connected} role="status" aria-live="polite">
+            <span aria-hidden="true">{websocketStatus.connected ? '🟢' : '🔴'}</span> {websocketStatus.connected ? 'Connected' : 'Disconnected'}
+          </div>
+        {/if}
       </div>
       <div class="card-body">
-        {#if websocketStatus.connected}
+        {#if loading}
+          <LoadingSkeleton height="120px" />
+        {:else if websocketStatus.connected}
           <div class="info-row">
             <span class="label">Status:</span>
             <span class="value success">Connected</span>
@@ -356,12 +366,20 @@
     <article class="status-card" role="article" aria-labelledby="telemetry-heading">
       <div class="card-header">
         <h3 id="telemetry-heading"><span aria-hidden="true">🔗</span> Telemetry Bridge</h3>
-        <div class="status-indicator" class:online={backendStatus.telemetry_bridge.healthy} class:offline={!backendStatus.telemetry_bridge.healthy} role="status" aria-live="polite">
-          <span aria-hidden="true">{backendStatus.telemetry_bridge.healthy ? '🟢' : '🔴'}</span> {backendStatus.telemetry_bridge.healthy ? 'Running' : 'Stopped'}
-        </div>
+        {#if loading}
+          <div class="status-indicator loading" role="status" aria-live="polite">
+            <span aria-hidden="true">⏳</span> Loading...
+          </div>
+        {:else}
+          <div class="status-indicator" class:online={backendStatus.telemetry_bridge.healthy} class:offline={!backendStatus.telemetry_bridge.healthy} role="status" aria-live="polite">
+            <span aria-hidden="true">{backendStatus.telemetry_bridge.healthy ? '🟢' : '🔴'}</span> {backendStatus.telemetry_bridge.healthy ? 'Running' : 'Stopped'}
+          </div>
+        {/if}
       </div>
       <div class="card-body">
-        {#if backendStatus.connected}
+        {#if loading}
+          <LoadingSkeleton height="150px" />
+        {:else if backendStatus.connected}
           {#if backendStatus.telemetry_bridge.running}
             <div class="info-row">
               <span class="label">Status:</span>
@@ -405,12 +423,21 @@
     <article class="status-card full-width" role="article" aria-labelledby="projects-heading">
       <div class="card-header">
         <h3 id="projects-heading"><span aria-hidden="true">👁️</span> Monitored Projects</h3>
-        <div class="status-indicator online" role="status">
-          <span aria-hidden="true">🟢</span> {formatNumber($availableProjects.length)} Active
-        </div>
+        {#if loading}
+          <div class="status-indicator loading" role="status">
+            <span aria-hidden="true">⏳</span> Loading...
+          </div>
+        {:else}
+          <div class="status-indicator online" role="status">
+            <span aria-hidden="true">🟢</span> {formatNumber($availableProjects.length)} Active
+          </div>
+        {/if}
       </div>
       <div class="card-body">
-        <div class="projects-list" role="list" aria-label="Monitored projects">
+        {#if loading}
+          <LoadingSkeleton height="100px" />
+        {:else}
+          <div class="projects-list" role="list" aria-label="Monitored projects">
           {#each $availableProjects as project (project.name || project)}
             {@const projectName = project.name || project}
             <button
@@ -428,10 +455,11 @@
               {/if}
             </button>
           {/each}
-        </div>
-        <div class="info-message" role="status">
-          ✅ Global multi-project monitoring active
-        </div>
+          </div>
+          <div class="info-message" role="status">
+            ✅ Global multi-project monitoring active
+          </div>
+        {/if}
       </div>
     </article>
 
@@ -439,12 +467,20 @@
     <article class="status-card full-width" role="article" aria-labelledby="git-heading">
       <div class="card-header">
         <h3 id="git-heading"><span aria-hidden="true">🌳</span> Git Repository</h3>
-        <div class="status-indicator" class:online={gitStatus.available} class:offline={!gitStatus.available} role="status">
-          <span aria-hidden="true">{gitStatus.available ? '🟢' : '⚫'}</span> {gitStatus.available ? 'Available' : 'Not a Git Repo'}
-        </div>
+        {#if loading}
+          <div class="status-indicator loading" role="status">
+            <span aria-hidden="true">⏳</span> Loading...
+          </div>
+        {:else}
+          <div class="status-indicator" class:online={gitStatus.available} class:offline={!gitStatus.available} role="status">
+            <span aria-hidden="true">{gitStatus.available ? '🟢' : '⚫'}</span> {gitStatus.available ? 'Available' : 'Not a Git Repo'}
+          </div>
+        {/if}
       </div>
       <div class="card-body">
-        {#if gitStatus.available}
+        {#if loading}
+          <LoadingSkeleton height="150px" />
+        {:else if gitStatus.available}
           <!-- Current Branch & Status -->
           <div class="git-section">
             <h4 class="section-title">📍 Current Branch</h4>

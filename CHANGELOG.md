@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.6] - 2025-10-31
+
+### 🐛 Critical Bug Fixes
+- **Fixed false positive performance alerts on startup** - Added 90-second grace period to prevent memory/CPU warnings during Node.js initialization
+- **Fixed indefinite loading on "Checking health..." and "Loading projects..."** - Added 15-second default timeout to all API requests with graceful fallback handling
+- **Fixed frontend hangs during startup** - Added timeout protection to HealthWidget and ProjectsOverview components (10s max)
+
+### 🔒 Security Improvements
+- **Documented CSP `unsafe-inline` requirement** - Added comprehensive explanation for Svelte framework's style injection needs with security justification
+- **Added explicit radix to parseInt calls** - Prevents unexpected behavior with numeric parsing (security best practice)
+
+### 🧹 Code Quality & Technical Debt
+- **Removed all "NOW MODULAR" commented code blocks** - Cleaned up 20+ obsolete comment markers from completed refactoring
+- **Resolved test conflicts** - Fixed 4 TODO items in test suites by adding proper mock cleanup in `afterEach` hooks
+- **Un-skipped tests** - Re-enabled 4 previously skipped tests in `storage.test.js` and `health.test.js`
+- **Extracted magic numbers to named constants** - Improved code readability with:
+  - `PERFORMANCE_ALERT_COOLDOWN_MS`
+  - `HEALTH_CHECK_DISCOVERY_DELAY_MS`
+  - `TELEMETRY_BRIDGE_RETRY_DELAY_MS`
+  - `STABILIZATION_DELAY_MS`
+
+### ⚡ Performance Improvements
+- **Optimized API timeout handling** - Requests now fail fast (15s) instead of hanging indefinitely
+- **Improved error handling** - Timeout errors provide clear user feedback and don't spam logs
+
+### 📚 Documentation
+- **Created ACTION_PLAN_v1.6.6.md** - Comprehensive roadmap for code review recommendations and bug fixes
+- **Updated security middleware comments** - Explained Svelte CSP requirements and security trade-offs
+
+### 🔧 Developer Experience
+- **Better error messages** - Timeout errors show specific endpoint and duration
+- **Mock cleanup in tests** - `jest.resetAllMocks()` and `jest.restoreAllMocks()` prevent cross-test pollution
+- **Consistent code style** - All `parseInt` calls now use explicit base-10 radix
+
+### 💡 Why This Matters
+Version 1.6.6 eliminates two critical user-facing issues that caused confusion during startup:
+1. No more false alarm notifications about memory usage
+2. No more stuck loading spinners - everything loads within 10-15 seconds or shows helpful errors
+
+This release also significantly improves code quality by removing technical debt, resolving test conflicts, and establishing better constants management.
+
+---
+
 ### Planned
 - macOS build and distribution
 - Windows build and distribution

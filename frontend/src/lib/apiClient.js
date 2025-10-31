@@ -7,7 +7,7 @@ import { API_CONFIG } from '../config.js';
 const API_BASE = API_CONFIG.API_BASE;
 
 /**
- * Enhanced fetch wrapper with automatic error notifications and JWT authentication
+ * Enhanced fetch wrapper with automatic error notifications, JWT authentication, and timeouts
  *
  * @param {string} endpoint - API endpoint (relative path or full URL)
  * @param {Object} [options={}] - Fetch options
@@ -16,8 +16,9 @@ const API_BASE = API_CONFIG.API_BASE;
  * @param {string|FormData} [options.body] - Request body
  * @param {AbortSignal} [options.signal] - AbortController signal for cancellation
  * @param {RequestCache} [options.cache] - Cache mode
+ * @param {number} [options.timeout=15000] - Request timeout in milliseconds (default: 15s)
  * @returns {Promise<any>} Parsed JSON response or text if not JSON
- * @throws {Error} Throws on HTTP errors (4xx, 5xx) or network failures
+ * @throws {Error} Throws on HTTP errors (4xx, 5xx), network failures, or timeouts
  *
  * @example
  * // GET request
@@ -31,12 +32,19 @@ const API_BASE = API_CONFIG.API_BASE;
  * });
  *
  * @example
+ * // With custom timeout
+ * const data = await apiFetch('/api/slow-endpoint', { timeout: 30000 });
+ *
+ * @example
  * // Using convenience methods
  * const users = await api.get('/api/users');
  * const created = await api.post('/api/users', { name: 'John' });
  */
 export async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+
+  // Default timeout: 15 seconds (prevents indefinite hangs)
+  const timeout = options.timeout ?? 15000;
 
   // Add JWT token to headers if available
   const token = authService.getToken();
@@ -49,11 +57,21 @@ export async function apiFetch(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  // Setup timeout using AbortController
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeout);
+
   try {
     const response = await fetch(url, {
       headers,
-      ...options
+      ...options,
+      signal: options.signal || controller.signal
     });
+
+    // Clear timeout on successful response
+    clearTimeout(timeoutId);
 
     // Handle HTTP errors
     if (!response.ok) {
@@ -102,6 +120,37 @@ export async function apiFetch(endpoint, options = {}) {
       return await response.text();
     }
   } catch (error) {
+    // Clear timeout on error
+    clearTimeout(timeoutId);
+
+    // Handle timeout errors specially
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error(`Request timeout after ${timeout}ms: ${endpoint}`);
+      notifications.error(`Request timed out after ${Math.round(timeout / 1000)}s`, {
+        title: 'Request Timeout',
+        duration: 5000
+      });
+
+      // Log timeout error
+      if (!endpoint.includes('/errors')) {
+        logError(
+          timeoutError,
+          'API Client',
+          {
+            endpoint,
+            method: options.method || 'GET',
+            error_type: 'Timeout',
+            timeout_ms: timeout
+          },
+          'warning'
+        ).catch(() => {
+          // Silently fail if error logging fails (prevents infinite loops)
+        });
+      }
+
+      throw timeoutError;
+    }
+
     // Network errors or other fetch failures
     if (!error.message.includes('API error')) {
       notifications.apiError(endpoint, error.message);

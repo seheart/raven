@@ -88,7 +88,8 @@ export class ConversationSync {
    */
   async processExistingFiles() {
     try {
-      const files = require('fs').readdirSync(this.claudeProjectDir)
+      const { readdirSync } = await import('fs');
+      const files = readdirSync(this.claudeProjectDir)
         .filter(f => f.endsWith('.jsonl'))
         .map(f => ({
           path: join(this.claudeProjectDir, f),
@@ -152,7 +153,8 @@ export class ConversationSync {
           const entry = JSON.parse(line);
 
           // Skip if not a conversation entry
-          if (!entry.type || !['user_message', 'assistant_text', 'tool_call', 'tool_result'].includes(entry.type)) {
+          // Support both old format (user_message, assistant_text) and new format (user, assistant)
+          if (!entry.type || !['user_message', 'assistant_text', 'tool_call', 'tool_result', 'user', 'assistant'].includes(entry.type)) {
             continue;
           }
 

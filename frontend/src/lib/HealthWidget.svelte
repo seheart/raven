@@ -49,10 +49,18 @@
     }
   };
 
-  // Fetch startup health checks
+  // Fetch startup health checks with timeout fallback
   async function loadStartupHealthChecks() {
     try {
-      const data = await dataService.fetchHealthChecks();
+      // Set timeout of 10 seconds for health checks (prevents indefinite hang)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Health check timeout')), 10000)
+      );
+
+      const data = await Promise.race([
+        dataService.fetchHealthChecks(),
+        timeoutPromise
+      ]);
 
       startupHealthStatus = data.status;
       startupHealthResults = data;
@@ -69,8 +77,14 @@
         );
       }
     } catch (error) {
-      logger.error('Failed to load startup health checks:', error);
+      logger.warn('Health check failed or timed out:', error.message);
       startupHealthStatus = 'error';
+      startupHealthResults = {
+        status: 'error',
+        message: 'Health check timed out or failed',
+        summary: { total: 0, passed: 0, failed: 0 }
+      };
+      // Don't show error notification - health checks are non-critical
     }
   }
 
@@ -81,7 +95,7 @@
       loading = true;
       error = null;
 
-      // Fetch startup health checks first
+      // Fetch startup health checks first (with timeout protection)
       await loadStartupHealthChecks();
 
       // Fetch recent events to calculate health - uses dataService with caching
