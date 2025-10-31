@@ -209,25 +209,25 @@
           <div class="session-header">
             <div class="session-icon" aria-hidden="true">🔄</div>
             <div class="session-info">
-              <div class="session-id mono">{session.session_id.slice(0, 13)}...</div>
-              <div class="session-time"><time datetime="{session.end_time}">{timeAgo(session.end_time)}</time></div>
+              <div class="session-id mono">{session.session_id ? session.session_id.slice(0, 13) : session.id || 'Unknown'}...</div>
+              <div class="session-time"><time datetime="{session.end_time || ''}">{session.end_time ? timeAgo(session.end_time) : 'N/A'}</time></div>
             </div>
           </div>
 
           <div class="session-stats" role="group" aria-label="Session statistics">
             <div class="stat">
               <span class="stat-icon" aria-hidden="true">📄</span>
-              <span class="stat-value" role="status">{session.file_count}</span>
+              <span class="stat-value" role="status">{session.file_count || 0}</span>
               <span class="stat-label">files</span>
             </div>
             <div class="stat">
               <span class="stat-icon" aria-hidden="true">✏️</span>
-              <span class="stat-value" role="status">{session.event_count}</span>
+              <span class="stat-value" role="status">{session.event_count || 0}</span>
               <span class="stat-label">changes</span>
             </div>
             <div class="stat">
               <span class="stat-icon" aria-hidden="true">⏱️</span>
-              <span class="stat-value" role="status">{formatDuration(session.start_time, session.end_time)}</span>
+              <span class="stat-value" role="status">{session.start_time && session.end_time ? formatDuration(session.start_time, session.end_time) : 'N/A'}</span>
               <span class="stat-label">duration</span>
             </div>
           </div>
@@ -235,21 +235,21 @@
           <div class="session-details">
             <div class="detail-row">
               <span class="detail-label">Started:</span>
-              <span class="detail-value">{formatDate(session.start_time)}</span>
+              <span class="detail-value">{session.start_time ? formatDate(session.start_time) : 'N/A'}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Ended:</span>
-              <span class="detail-value">{formatDate(session.end_time)}</span>
+              <span class="detail-value">{session.end_time ? formatDate(session.end_time) : 'N/A'}</span>
             </div>
           </div>
 
           <button
             class="preview-btn"
-            on:click={() => previewRollback(session.session_id)}
+            on:click={() => previewRollback(session.session_id || session.id)}
             disabled={previewing}
-            aria-label={previewing && selectedSession === session.session_id ? 'Loading rollback preview' : 'Preview rollback for this session'}
+            aria-label={previewing && selectedSession === (session.session_id || session.id) ? 'Loading rollback preview' : 'Preview rollback for this session'}
           >
-            {previewing && selectedSession === session.session_id ? 'Loading...' : 'Preview Rollback'}
+            {previewing && selectedSession === (session.session_id || session.id) ? 'Loading...' : 'Preview Rollback'}
           </button>
         </article>
       {/each}
