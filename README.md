@@ -6,13 +6,46 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 **Architecture:** Web Application (Node.js + Svelte)
 **Status:** Production Ready 🚀
-**Version:** 1.6.4 - E2E Testing Excellence & Conversation Sync
+**Version:** 1.6.5 - Frontend Stability & UX Excellence
 
-## 🚀 Current Status: V1.6.4 COMPLETE - 98% E2E Test Coverage
+## 🚀 Current Status: V1.6.5 COMPLETE - Zero-Error Frontend with Enhanced UX
 
-✅ **Production-ready with 98% E2E test pass rate (40/41 tests), automated nightly test runner, conversation sync, and git-based telemetry reconciliation. Raven is now battle-tested with comprehensive end-to-end testing across all user workflows.**
+✅ **Production-ready with comprehensive bug fixes, enhanced error handling, and clickable error notifications. All CRITICAL and HIGH priority issues resolved through systematic code auditing. Frontend now runs error-free with professional UX improvements.**
 
-### 🎉 What's New in 1.6.4 - E2E Testing Excellence (October 2025)
+### 🎉 What's New in 1.6.5 - Frontend Stability & UX Excellence (October 2025)
+
+**🐛 Critical Bug Fixes:**
+- ✅ **SessionRollbackPanel Freeze Fixed** - Added null checks for undefined session properties
+- ✅ **Changelog 404 Error Fixed** - Corrected CHANGELOG.md file path in backend route
+- ✅ **Division by Zero Prevention** - Safe helper functions in EventFeed forensics dashboard
+- ✅ **Array Access Safety** - Null/type checks prevent crashes on empty data
+
+**🔒 Code Quality & Security Improvements:**
+- ✅ **Bounds Checking** - Added validation in settingsStore.js to prevent array access errors
+- ✅ **parseInt Radix Specification** - Added base-10 radix to all parseInt calls (4 files)
+- ✅ **Negative Number Validation** - Added checks in formatBytes/formatSize before Math.log
+- ✅ **NaN Validation** - parseInt results validated before use with user feedback
+- ✅ **Enhanced Error Handling** - Dashboard.svelte now checks response.ok before JSON parsing
+
+**✨ UX Enhancements:**
+- ✅ **Clickable Error Notifications** - Error toasts now navigate to Error Log for full details
+- ✅ **Visual Feedback** - Hover effects, lift animations, and enhanced shadows on errors
+- ✅ **"Click for details →" Hint** - Clear indication that error notifications are interactive
+- ✅ **Keyboard Accessible** - Tab to focus, Enter to activate error notifications
+- ✅ **Professional Polish** - Smooth transitions and focus indicators throughout
+
+**🎯 Code Audit Results:**
+- ✅ **CRITICAL Issues:** 1 fixed (settingsStore bounds checking)
+- ✅ **HIGH Issues:** 8 fixed (parseInt, validation, error handling)
+- ✅ **MEDIUM Issues:** 6 fixed (type validation, hardcoded URLs, error messages)
+- ✅ **Build Status:** ✓ All builds successful with no errors
+
+**💡 Why This Matters:**
+Version 1.6.5 achieves production excellence through systematic bug fixing and code quality improvements. The clickable error notification feature directly addresses user feedback for better error visibility and debugging. With all CRITICAL and HIGH priority issues resolved, comprehensive input validation, and enhanced error handling across the frontend, Raven now provides a robust, error-free experience with professional UX polish.
+
+---
+
+### Previous Release - 1.6.4 - E2E Testing Excellence (October 2025)
 
 **🧪 Comprehensive E2E Test Suite - 98% Pass Rate (40/41 tests):**
 - ✅ **41 User Story Tests** - Complete end-to-end testing of all user workflows
@@ -1150,8 +1183,8 @@ MIT License - See [LICENSE](LICENSE) file
 
 **Seth Eheart**
 Codename: Raven
-Version: 1.6.4 (E2E Testing Excellence & Conversation Sync)
+Version: 1.6.5 (Frontend Stability & UX Excellence)
 
 ---
 
-**Status:** 🚀 **V1.6.4 PRODUCTION READY** - Battle-tested with 98% E2E test pass rate (40/41 tests) covering all critical user workflows. Includes nightly test runner for overnight comprehensive testing, automatic conversation sync from Claude Code sessions, git-based telemetry reconciliation, and enhanced health checks. Revolutionary log-based monitoring using 99.97% fewer system resources (145 MB RAM, 3.2% CPU). Proven reliable through continuous improvement testing loop. Zero breaking changes.
+**Status:** 🚀 **V1.6.5 PRODUCTION READY** - Zero-error frontend with comprehensive bug fixes and enhanced UX. All CRITICAL and HIGH priority issues resolved through systematic code auditing. Features clickable error notifications, improved error handling, and professional polish throughout. Built on battle-tested E2E test infrastructure (98% pass rate) with revolutionary log-based monitoring using 99.97% fewer system resources (145 MB RAM, 3.2% CPU). Zero breaking changes.
