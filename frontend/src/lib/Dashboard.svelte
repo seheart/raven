@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
+  import { formatDurationSecondsSeconds } from './formatUtils.js';
   import AgentProfilePanel from './AgentProfilePanel.svelte';
   import SessionDashboard from './SessionDashboard.svelte';
   import { API_CONFIG } from '../config.js';
@@ -103,14 +104,6 @@
     }
   }
 
-  function formatDuration(seconds) {
-    if (seconds < 60) return `${seconds}s`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${mins}m`;
-  }
-
   function formatTimestamp(timestamp) {
     return formatDateTime(timestamp);
   }
@@ -164,10 +157,10 @@
         </div>
       </div>
 
-      <div class="stat-card" role="status" aria-label="Session duration: {formatDuration(stats.session_duration_seconds)}">
+      <div class="stat-card" role="status" aria-label="Session duration: {formatDurationSeconds(stats.session_duration_seconds)}">
         <div class="stat-icon" aria-hidden="true">⏱️</div>
         <div class="stat-content">
-          <div class="stat-value">{formatDuration(stats.session_duration_seconds)}</div>
+          <div class="stat-value">{formatDurationSeconds(stats.session_duration_seconds)}</div>
           <div class="stat-label">Session Duration</div>
         </div>
       </div>

@@ -38,7 +38,7 @@
 
     // Also log raw error object for debugging
     if (event.error) {
-      console.error('Raw error object:', event.error);
+      logger.error('Raw error object:', event.error);
     }
 
     // Log to backend error_log table
@@ -74,7 +74,7 @@
 
     // Also log raw reason object for debugging
     if (event.reason) {
-      console.error('Raw rejection reason:', event.reason);
+      logger.error('Raw rejection reason:', event.reason);
     }
 
     // Log to backend error_log table

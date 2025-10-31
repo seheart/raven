@@ -13,6 +13,10 @@
 
   const API_BASE = API_CONFIG.API_BASE;
 
+  // Configuration constants
+  const MAX_EVENTS_HISTORY = 1000;  // Maximum number of events to keep in memory
+  const MAX_CONVERSATIONS = 500;    // Maximum number of conversations to fetch
+
   let events = [];
   let searchQuery = '';
   let selectedTypes = {
@@ -181,8 +185,8 @@
     try {
       // Fetch file events and conversation events in parallel
       const [fileEvents, conversationsData] = await Promise.all([
-        api.get('/all-file-events?limit=1000'),
-        api.get('/conversations?limit=500')
+        api.get(`/all-file-events?limit=${MAX_EVENTS_HISTORY}`),
+        api.get(`/conversations?limit=${MAX_CONVERSATIONS}`)
       ]);
 
       // Map file events
@@ -249,7 +253,7 @@
       project: event.project || null,
       cpu: event.cpu || 0,
       mem: event.mem || 0
-    }, ...events].slice(0, 1000); // Keep last 1000 events
+    }, ...events].slice(0, MAX_EVENTS_HISTORY); // Keep last MAX_EVENTS_HISTORY events
   };
 
   const handleProjectSwitched = async (data) => {
@@ -342,7 +346,7 @@
 
     // Fetch full event details including diff
     try {
-      const data = await api.get('/file-events?limit=1000&diff=true');
+      const data = await api.get(`/file-events?limit=${MAX_EVENTS_HISTORY}&diff=true`);
       const eventsArray = Array.isArray(data) ? data : (data.events || []);
       // Extract numeric ID from prefixed ID (e.g., "file-123" -> 123)
       const numericId = parseInt(event.id.toString().replace(/^file-/, ''));

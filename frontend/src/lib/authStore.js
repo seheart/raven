@@ -1,8 +1,9 @@
 import { logger } from './logger.js';
 import { writable, derived } from 'svelte/store';
 import { notifications } from './notificationService.js';
+import { API_CONFIG } from '../config.js';
 
-const AUTH_API = 'http://localhost:3030/auth';
+const AUTH_API = `${API_CONFIG.BASE_URL}/auth`;
 
 // Create writable stores
 const token = writable(localStorage.getItem('raven-auth-token') || null);

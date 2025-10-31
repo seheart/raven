@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
   import { formatDateTime } from './timeFormat.js';
+  import { formatDurationMinutesMinutes } from './formatUtils.js';
   import { websocketService } from './websocket.js';
 
   export let project = 'raven';
@@ -101,15 +102,6 @@
     return '#9ece6a';
   }
 
-  function formatDuration(minutes) {
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
-  }
 
   function formatTimeAgo(timestamp) {
     const now = new Date();
@@ -164,7 +156,7 @@
 
           <div class="session-timer">
             <div class="timer-display">
-              {formatDuration(sessionDuration)}
+              {formatDurationMinutes(sessionDuration)}
             </div>
             <div class="timer-label">Session Duration</div>
           </div>

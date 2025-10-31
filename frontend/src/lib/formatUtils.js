@@ -42,6 +42,36 @@ export function formatDuration(ms) {
 }
 
 /**
+ * Format duration in seconds to human-readable string
+ * @param {number} seconds - Duration in seconds
+ * @returns {string} Formatted duration
+ */
+export function formatDurationSeconds(seconds) {
+  if (!seconds || seconds === 0) return '0s';
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${mins}m`;
+}
+
+/**
+ * Format duration in minutes to human-readable string
+ * @param {number} minutes - Duration in minutes
+ * @returns {string} Formatted duration
+ */
+export function formatDurationMinutes(minutes) {
+  if (!minutes || minutes === 0) return '0m';
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${mins}m`;
+}
+
+/**
  * Format timestamp to relative time (e.g., "5m ago", "2h ago")
  * @param {string|Date} timestamp - Timestamp to format
  * @returns {string} Relative time string
