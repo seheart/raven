@@ -18,14 +18,32 @@
 
   const API_BASE = API_CONFIG.API_BASE;
 
-  $: filteredAnomalies = anomalies.filter(a => {
-    if (filterSeverity === 'all') return true;
-    return a.severity === filterSeverity;
-  });
+  // Optimized: compute filtered anomalies and counts in a single pass
+  $: anomalyStats = (() => {
+    let criticalCount = 0;
+    let warningCount = 0;
+    let infoCount = 0;
+    const filtered = [];
 
-  $: criticalCount = anomalies.filter(a => a.severity === 'critical').length;
-  $: warningCount = anomalies.filter(a => a.severity === 'warning').length;
-  $: infoCount = anomalies.filter(a => a.severity === 'info').length;
+    for (const a of anomalies) {
+      // Count by severity
+      if (a.severity === 'critical') criticalCount++;
+      else if (a.severity === 'warning') warningCount++;
+      else if (a.severity === 'info') infoCount++;
+
+      // Filter for display
+      if (filterSeverity === 'all' || a.severity === filterSeverity) {
+        filtered.push(a);
+      }
+    }
+
+    return { filtered, criticalCount, warningCount, infoCount };
+  })();
+
+  $: filteredAnomalies = anomalyStats.filtered;
+  $: criticalCount = anomalyStats.criticalCount;
+  $: warningCount = anomalyStats.warningCount;
+  $: infoCount = anomalyStats.infoCount;
 
   // WebSocket event handlers (event-driven, no polling!)
   const handleFileChanged = async () => {

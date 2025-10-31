@@ -28,6 +28,10 @@
   let selectedAgent = 'all'; // 'all' or specific agent name
   let uniqueAgents = [];
 
+  // Cache for timeline buckets to prevent expensive recomputation
+  let cachedFilteredEvents = null;
+  let cachedTimelineBuckets = [];
+
   // Filter events based on search, event type, and agent
   $: filteredEvents = events.filter(event => {
     // Search filter
@@ -63,10 +67,19 @@
     uniqueAgents = Array.from(agents).sort();
   }
 
-  // Timeline data - group events into hourly buckets
+  // Timeline data - group events into hourly buckets (optimized with caching)
   let selectedTimeBucket = null;
   $: timelineBuckets = (() => {
-    if (filteredEvents.length === 0) return [];
+    // Check if we can use cached result
+    if (cachedFilteredEvents === filteredEvents) {
+      return cachedTimelineBuckets;
+    }
+
+    if (filteredEvents.length === 0) {
+      cachedFilteredEvents = filteredEvents;
+      cachedTimelineBuckets = [];
+      return [];
+    }
 
     // Find time range
     const timestamps = filteredEvents.map(e => new Date(e.timestamp).getTime());
@@ -93,6 +106,10 @@
         });
       }
     }
+
+    // Cache the result
+    cachedFilteredEvents = filteredEvents;
+    cachedTimelineBuckets = buckets;
 
     return buckets;
   })();

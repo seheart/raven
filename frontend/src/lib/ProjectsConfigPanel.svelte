@@ -52,7 +52,12 @@
       error = null;
     } catch (err) {
       logger.error('Failed to load projects:', err);
-      error = err.message;
+      // Provide specific error messages for network issues
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        error = 'Cannot connect to Raven backend. Is it running on http://localhost:3030?';
+      } else {
+        error = err.message;
+      }
     } finally {
       loading = false;
     }
@@ -67,7 +72,10 @@
         body: JSON.stringify({ basePath: config.basePath })
       });
 
-      if (!response.ok) throw new Error('Failed to discover projects');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error: ${response.status}`);
+      }
 
       const data = await response.json();
       discoveredProjects = data.discovered;
@@ -80,7 +88,12 @@
       }
     } catch (err) {
       logger.error('Failed to discover projects:', err);
-      showError(`Discovery failed: ${err.message}`);
+      // Provide specific error messages
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        showError('Cannot connect to backend. Check if Raven is running.');
+      } else {
+        showError(`Discovery failed: ${err.message}`);
+      }
     } finally {
       discovering = false;
     }

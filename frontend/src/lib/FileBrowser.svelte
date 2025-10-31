@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import FileHistory from './FileHistory.svelte';
   import { logger } from './logger.js';
+  import { notifications } from './notificationService.js';
 
   let files = [];
   let loading = true;
@@ -19,11 +20,17 @@
     try {
       loadingProjects = true;
       const response = await fetch('http://localhost:3030/api/projects/');
+      if (!response.ok) {
+        throw new Error(`Failed to load projects: ${response.status} ${response.statusText}`);
+      }
       const data = await response.json();
       projects = data.projects || [];
       loadingProjects = false;
     } catch (error) {
       logger.error('Failed to load projects:', error);
+      notifications.error('Failed to load projects list', {
+        title: 'File Browser Error'
+      });
       projects = [];
       loadingProjects = false;
     }
@@ -36,10 +43,17 @@
         ? `http://localhost:3030/api/tracked-files?project=${selectedProject}`
         : 'http://localhost:3030/api/tracked-files';
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to load files: ${response.status} ${response.statusText}`);
+      }
       files = await response.json();
       loading = false;
     } catch (error) {
       logger.error('Failed to load tracked files:', error);
+      notifications.error('Failed to load tracked files', {
+        title: 'File Browser Error',
+        message: 'Using fallback data. Check if the Raven backend is running.'
+      });
       // Fallback to mock data
       files = [
         'test_workspace/src/example.py',
@@ -51,10 +65,17 @@
   }
 
   async function handleProjectChange(event) {
-    selectedProject = event.target.value;
-    localStorage.setItem('raven-file-browser-project', selectedProject);
-    expandedFile = null; // Collapse any expanded files when switching projects
-    await loadFiles();
+    try {
+      selectedProject = event.target.value;
+      localStorage.setItem('raven-file-browser-project', selectedProject);
+      expandedFile = null; // Collapse any expanded files when switching projects
+      await loadFiles();
+    } catch (error) {
+      logger.error('Failed to handle project change:', error);
+      notifications.error('Failed to switch projects', {
+        title: 'File Browser Error'
+      });
+    }
   }
 
   function toggleFileHistory(filepath) {
