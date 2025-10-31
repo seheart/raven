@@ -9,6 +9,7 @@ import simpleGit, { SimpleGit, StatusResult, DiffResult } from 'simple-git';
 import { EventBus, GitStatusEvent } from './eventBus.js';
 import fs from 'fs/promises';
 import { join } from 'path';
+import { logger } from '../utils/logger.js';
 
 export interface GitMonitorConfig {
   repoPath: string;
@@ -51,16 +52,16 @@ export class GitMonitor {
   async start(): Promise<void> {
     const isRepo = await this.isGitRepo();
     if (!isRepo) {
-      console.warn('⚠️  Not a git repository:', this.config.repoPath);
+      logger.warn('Not a git repository', { repoPath: this.config.repoPath });
       return;
     }
 
     if (this.pollIntervalId) {
-      console.warn('⚠️  Git monitor already running');
+      logger.warn('Git monitor already running');
       return;
     }
 
-    console.log(`📊 Starting git monitor: ${this.config.repoPath}`);
+    logger.info('Starting git monitor', { repoPath: this.config.repoPath });
 
     // Check immediately
     await this.checkStatus();
@@ -80,7 +81,7 @@ export class GitMonitor {
     if (this.pollIntervalId) {
       clearInterval(this.pollIntervalId);
       this.pollIntervalId = null;
-      console.log('🛑 Git monitor stopped');
+      logger.info('Git monitor stopped');
     }
   }
 
@@ -109,15 +110,23 @@ export class GitMonitor {
         EventBus.emitGitStatus(event);
 
         // Log
-        console.log(`🔀 Git status: ${event.branch} (${event.modified.length} modified, ${event.created.length} created, ${event.deleted.length} deleted)`);
+        logger.info('Git status changed', {
+          branch: event.branch,
+          modified: event.modified.length,
+          created: event.created.length,
+          deleted: event.deleted.length
+        });
 
         this.lastStatus = status;
         return event;
       }
 
       return null;
-    } catch (error) {
-      console.error('❌ Git status check error:', error);
+    } catch (error: any) {
+      logger.error('Git status check error', {
+        error: error.message,
+        stack: error.stack
+      });
       return null;
     }
   }
@@ -129,8 +138,12 @@ export class GitMonitor {
     try {
       const diff = await this.git.diff(['HEAD', '--', filepath]);
       return diff;
-    } catch (error) {
-      console.error(`❌ Error getting diff for ${filepath}:`, error);
+    } catch (error: any) {
+      logger.error('Error getting file diff', {
+        filepath,
+        error: error.message,
+        stack: error.stack
+      });
       return '';
     }
   }
@@ -142,8 +155,11 @@ export class GitMonitor {
     try {
       const diff = await this.git.diff();
       return diff;
-    } catch (error) {
-      console.error('❌ Error getting uncommitted diff:', error);
+    } catch (error: any) {
+      logger.error('Error getting uncommitted diff', {
+        error: error.message,
+        stack: error.stack
+      });
       return '';
     }
   }
@@ -155,8 +171,11 @@ export class GitMonitor {
     try {
       const diff = await this.git.diff(['--cached']);
       return diff;
-    } catch (error) {
-      console.error('❌ Error getting staged diff:', error);
+    } catch (error: any) {
+      logger.error('Error getting staged diff', {
+        error: error.message,
+        stack: error.stack
+      });
       return '';
     }
   }
@@ -168,8 +187,11 @@ export class GitMonitor {
     try {
       const branch = await this.git.revparse(['--abbrev-ref', 'HEAD']);
       return branch.trim();
-    } catch (error) {
-      console.error('❌ Error getting current branch:', error);
+    } catch (error: any) {
+      logger.error('Error getting current branch', {
+        error: error.message,
+        stack: error.stack
+      });
       return 'unknown';
     }
   }
@@ -181,8 +203,11 @@ export class GitMonitor {
     try {
       const branches = await this.git.branch();
       return branches.all;
-    } catch (error) {
-      console.error('❌ Error getting branches:', error);
+    } catch (error: any) {
+      logger.error('Error getting branches', {
+        error: error.message,
+        stack: error.stack
+      });
       return [];
     }
   }
@@ -194,8 +219,12 @@ export class GitMonitor {
     try {
       const log = await this.git.log({ maxCount: limit });
       return log.all;
-    } catch (error) {
-      console.error('❌ Error getting commit history:', error);
+    } catch (error: any) {
+      logger.error('Error getting commit history', {
+        error: error.message,
+        stack: error.stack,
+        limit
+      });
       return [];
     }
   }

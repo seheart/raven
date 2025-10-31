@@ -8,6 +8,7 @@
 import os from 'os';
 import { EventBus, TelemetryEvent } from './eventBus.js';
 import * as si from 'systeminformation';
+import { logger } from '../utils/logger.js';
 
 export interface TelemetryConfig {
   intervalMs: number;
@@ -94,8 +95,11 @@ export class TelemetryCollector {
 
       // Emit to EventBus
       EventBus.emitTelemetry(event);
-    } catch (error) {
-      console.error('❌ Telemetry collection error:', error);
+    } catch (error: any) {
+      logger.error('Telemetry collection error', {
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 

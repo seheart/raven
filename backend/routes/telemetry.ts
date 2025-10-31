@@ -8,6 +8,7 @@ import { Router, Request, Response } from 'express';
 import type { RavenDB } from '../db.js';
 import type { TriggerEngine } from '../trigger-engine.js';
 import type { Server as SocketIOServer } from 'socket.io';
+import { logger } from '../utils/logger.js';
 
 export interface TelemetryDependencies {
   db: RavenDB;
@@ -80,7 +81,14 @@ export function createTelemetryRouter(deps: TelemetryDependencies): Router {
         duration_ms
       });
 
-      console.log(`📡 Telemetry: ${agent} - ${event} - ${message}`);
+      logger.info('Telemetry event received', {
+        agent,
+        event,
+        message,
+        file,
+        lines_changed,
+        duration_ms
+      });
 
       // Emit real-time event via WebSocket
       io.emit('agent-event', {
@@ -104,7 +112,10 @@ export function createTelemetryRouter(deps: TelemetryDependencies): Router {
         session_id: sessionId
       });
     } catch (error: any) {
-      console.error('❌ Telemetry error:', error);
+      logger.error('Telemetry error', {
+        error: error.message,
+        stack: error.stack
+      });
       res.status(500).json({ error: error.message });
     }
   });

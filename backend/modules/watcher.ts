@@ -10,6 +10,7 @@ import fs from 'fs/promises';
 import { createHash } from 'crypto';
 import { EventBus, FileEvent } from './eventBus.js';
 import { relative } from 'path';
+import { logger } from '../utils/logger.js';
 
 export interface WatcherConfig {
   watchPath: string;
@@ -57,11 +58,11 @@ export class FileWatcher {
    */
   start(): void {
     if (this.watcher) {
-      console.warn('⚠️  File watcher already running');
+      logger.warn('File watcher already running');
       return;
     }
 
-    console.log(`📁 Starting file watcher: ${this.config.watchPath}`);
+    logger.info('Starting file watcher', { watchPath: this.config.watchPath });
 
     this.watcher = chokidar.watch(this.config.watchPath, {
       ignored: this.config.ignored,
@@ -74,11 +75,14 @@ export class FileWatcher {
       .on('add', (path: string) => this.handleFileEvent('add', path))
       .on('change', (path: string) => this.handleFileEvent('change', path))
       .on('unlink', (path: string) => this.handleFileEvent('unlink', path))
-      .on('error', (error: unknown) => {
-        console.error('❌ Watcher error:', error);
+      .on('error', (error: any) => {
+        logger.error('Watcher error', {
+          error: error?.message || String(error),
+          stack: error?.stack
+        });
       })
       .on('ready', () => {
-        console.log('✅ File watcher ready');
+        logger.info('File watcher ready');
       });
   }
 
@@ -90,7 +94,7 @@ export class FileWatcher {
       await this.watcher.close();
       this.watcher = null;
       this.fileCache.clear();
-      console.log('🛑 File watcher stopped');
+      logger.info('File watcher stopped');
     }
   }
 
@@ -119,7 +123,7 @@ export class FileWatcher {
           this.fileCache.set(filepath, content);
         } catch (readError) {
           // File might be binary or unreadable
-          console.warn(`⚠️  Could not read file: ${relPath}`);
+          logger.warn('Could not read file', { relPath });
           return;
         }
       } else if (eventType === 'unlink') {
@@ -141,10 +145,18 @@ export class FileWatcher {
       EventBus.emitFileEvent(event);
 
       // Log
-      const emoji = eventType === 'add' ? '📄' : eventType === 'change' ? '✏️' : '🗑️';
-      console.log(`${emoji} File ${eventType}: ${relPath}${size ? ` (${size} bytes)` : ''}`);
-    } catch (error) {
-      console.error(`❌ Error handling ${eventType} event for ${filepath}:`, error);
+      logger.info('File event', {
+        eventType,
+        path: relPath,
+        size
+      });
+    } catch (error: any) {
+      logger.error('Error handling file event', {
+        eventType,
+        filepath,
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 

@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 import { mkdirSync, existsSync } from 'fs';
 import { dirname } from 'path';
 import { logger } from './utils/logger.js';
+import { LIMITS } from './config/constants.js';
+import { QueryBuilder, buildPaginatedTimeQuery } from './utils/query-builder.js';
 
 /**
  * @typedef {Object} EventRecord
@@ -76,11 +78,67 @@ export class RavenDB {
   /**
    * Get a cached prepared statement or create and cache it
    * @param {string} sql - SQL query string
-   * @returns {Statement} Prepared statement
+   * @returns {Statement} Prepared statement with performance tracking
    */
   prepareStatement(sql) {
     if (!this.stmtCache.has(sql)) {
-      this.stmtCache.set(sql, this.db.prepare(sql));
+      const stmt = this.db.prepare(sql);
+
+      // Wrap statement methods with performance tracking
+      const originalGet = stmt.get.bind(stmt);
+      const originalAll = stmt.all.bind(stmt);
+      const originalRun = stmt.run.bind(stmt);
+
+      stmt.get = (...args) => {
+        const startTime = performance.now();
+        const result = originalGet(...args);
+        const duration = performance.now() - startTime;
+
+        if (duration > 100) { // Log queries slower than 100ms
+          logger.warn('Slow query detected', {
+            duration: `${duration.toFixed(2)}ms`,
+            query: sql.substring(0, 100),
+            method: 'get'
+          });
+        }
+
+        return result;
+      };
+
+      stmt.all = (...args) => {
+        const startTime = performance.now();
+        const result = originalAll(...args);
+        const duration = performance.now() - startTime;
+
+        if (duration > 100) {
+          logger.warn('Slow query detected', {
+            duration: `${duration.toFixed(2)}ms`,
+            query: sql.substring(0, 100),
+            method: 'all',
+            rows: result.length
+          });
+        }
+
+        return result;
+      };
+
+      stmt.run = (...args) => {
+        const startTime = performance.now();
+        const result = originalRun(...args);
+        const duration = performance.now() - startTime;
+
+        if (duration > 100) {
+          logger.warn('Slow query detected', {
+            duration: `${duration.toFixed(2)}ms`,
+            query: sql.substring(0, 100),
+            method: 'run'
+          });
+        }
+
+        return result;
+      };
+
+      this.stmtCache.set(sql, stmt);
     }
     return this.stmtCache.get(sql);
   }
@@ -587,16 +645,48 @@ export class RavenDB {
     return stmt.all(session_id);
   }
 
-  getTrackedFiles(limit = 5000) {
-    const stmt = this.prepareStatement(`
+  /**
+   * Get tracked files with pagination support
+   * @param {object} [options={}] - Pagination options
+   * @param {number} [options.limit] - Maximum files to return
+   * @param {string} [options.cursor] - Last filepath from previous page (for pagination)
+   * @returns {object} Paginated result with files, hasMore, and nextCursor
+   */
+  getTrackedFiles(options = {}) {
+    const {
+      limit = LIMITS.DATABASE.DEFAULT_TRACKED_FILES_LIMIT,
+      cursor = null
+    } = options;
+
+    // Fetch one extra to determine if more exist
+    const fetchLimit = Math.min(limit + 1, LIMITS.DATABASE.MAX_QUERY_RESULTS);
+
+    let query = `
       SELECT DISTINCT filepath
       FROM events
       WHERE filepath IS NOT NULL
-      ORDER BY filepath
-      LIMIT ?
-    `);
+    `;
+    const params = [];
 
-    return stmt.all(limit).map(row => row.filepath);
+    if (cursor) {
+      query += ' AND filepath > ?';
+      params.push(cursor);
+    }
+
+    query += ' ORDER BY filepath LIMIT ?';
+    params.push(fetchLimit);
+
+    const stmt = this.prepareStatement(query);
+    const results = stmt.all(...params);
+
+    const hasMore = results.length > limit;
+    const files = hasMore ? results.slice(0, limit) : results;
+
+    return {
+      files: files.map(row => row.filepath),
+      hasMore,
+      nextCursor: hasMore ? files[files.length - 1].filepath : null
+    };
   }
 
   /**
@@ -699,7 +789,8 @@ export class RavenDB {
   }
 
   getMetricsStats(start_time, end_time) {
-    const stmt = this.prepareStatement(`
+    // Using QueryBuilder for consistent timestamp filtering
+    const { query, params } = new QueryBuilder(`
       SELECT
         AVG(cpu_percent) as avg_cpu_percent,
         MAX(cpu_percent) as max_cpu_percent,
@@ -707,11 +798,14 @@ export class RavenDB {
         MAX(memory_percent) as max_memory_percent,
         COUNT(*) as sample_count
       FROM raven_metrics
-      WHERE timestamp BETWEEN ? AND ?
-    `);
+    `)
+      .between('timestamp', start_time, end_time)
+      .build();
+
+    const stmt = this.prepareStatement(query);
 
     return (
-      stmt.get(start_time, end_time) || {
+      stmt.get(...params) || {
         avg_cpu_percent: 0,
         max_cpu_percent: 0,
         avg_memory_percent: 0,
@@ -1389,31 +1483,37 @@ export class RavenDB {
       unread_only = false
     } = options;
 
-    let query = 'SELECT * FROM notifications WHERE 1=1';
-    const params = [];
+    // Build query using QueryBuilder
+    const builder = new QueryBuilder('SELECT * FROM notifications');
 
     if (type !== 'all') {
-      query += ' AND type = ?';
-      params.push(type);
+      builder.where('type', '=', type);
     }
 
     if (severity !== 'all') {
-      query += ' AND severity = ?';
-      params.push(severity);
+      builder.where('severity', '=', severity);
     }
 
     if (unread_only) {
-      query += ' AND read = 0';
+      builder.where('read', '=', 0);
     }
 
-    // Count total
-    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count');
+    // Count total (before adding ORDER BY and LIMIT)
+    const countBuilder = new QueryBuilder('SELECT COUNT(*) as count FROM notifications');
+    if (type !== 'all') countBuilder.where('type', '=', type);
+    if (severity !== 'all') countBuilder.where('severity', '=', severity);
+    if (unread_only) countBuilder.where('read', '=', 0);
+
+    const { query: countQuery, params: countParams } = countBuilder.build();
     const countStmt = this.db.prepare(countQuery);
-    const { count: total } = countStmt.get(...params);
+    const { count: total } = countStmt.get(...countParams);
 
     // Get paginated results
-    query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    const { query, params } = builder
+      .orderBy('timestamp', 'DESC')
+      .limit(limit)
+      .offset(offset)
+      .build();
 
     const stmt = this.prepareStatement(query);
     const notifications = stmt.all(...params);
@@ -1536,32 +1636,37 @@ export class RavenDB {
       claude_session_id = null
     } = options;
 
-    let query = 'SELECT * FROM conversations WHERE 1=1';
-    const params = [];
+    // Build query using QueryBuilder
+    const builder = new QueryBuilder('SELECT * FROM conversations');
 
     if (event_type !== 'all') {
-      query += ' AND event_type = ?';
-      params.push(event_type);
+      builder.where('event_type', '=', event_type);
     }
 
     if (project !== 'all') {
-      query += ' AND project = ?';
-      params.push(project);
+      builder.where('project', '=', project);
     }
 
     if (claude_session_id) {
-      query += ' AND claude_session_id = ?';
-      params.push(claude_session_id);
+      builder.where('claude_session_id', '=', claude_session_id);
     }
 
     // Count total
-    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countBuilder = new QueryBuilder('SELECT COUNT(*) as count FROM conversations');
+    if (event_type !== 'all') countBuilder.where('event_type', '=', event_type);
+    if (project !== 'all') countBuilder.where('project', '=', project);
+    if (claude_session_id) countBuilder.where('claude_session_id', '=', claude_session_id);
+
+    const { query: countQuery, params: countParams } = countBuilder.build();
     const countStmt = this.db.prepare(countQuery);
-    const { count: total } = countStmt.get(...params);
+    const { count: total } = countStmt.get(...countParams);
 
     // Get paginated results
-    query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    const { query, params } = builder
+      .orderBy('timestamp', 'DESC')
+      .limit(limit)
+      .offset(offset)
+      .build();
 
     const stmt = this.db.prepare(query);
     const conversations = stmt.all(...params);
@@ -1946,31 +2051,32 @@ export class RavenDB {
   getSessions(options = {}) {
     const { limit = 10, offset = 0, projectName = null } = options;
 
-    let query = 'SELECT * FROM sessions WHERE 1=1';
-    const params = [];
+    // Build query using QueryBuilder
+    const builder = new QueryBuilder('SELECT * FROM sessions');
 
     if (projectName) {
-      query += ' AND project_name = ?';
-      params.push(projectName);
+      builder.where('project_name', '=', projectName);
     }
 
-    query += ' ORDER BY start_time DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    // Get count
+    const countBuilder = new QueryBuilder('SELECT COUNT(*) as count FROM sessions');
+    if (projectName) {
+      countBuilder.where('project_name', '=', projectName);
+    }
+
+    const { query: countQuery, params: countParams } = countBuilder.build();
+    const countStmt = this.prepareStatement(countQuery);
+    const { count } = countStmt.get(...countParams);
+
+    // Get paginated results
+    const { query, params } = builder
+      .orderBy('start_time', 'DESC')
+      .limit(limit)
+      .offset(offset)
+      .build();
 
     const stmt = this.prepareStatement(query);
     const sessions = stmt.all(...params);
-
-    // Get count
-    let countQuery = 'SELECT COUNT(*) as count FROM sessions WHERE 1=1';
-    const countParams = [];
-
-    if (projectName) {
-      countQuery += ' AND project_name = ?';
-      countParams.push(projectName);
-    }
-
-    const countStmt = this.prepareStatement(countQuery);
-    const { count } = countStmt.get(...countParams);
 
     return { sessions, total: count };
   }

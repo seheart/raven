@@ -12,7 +12,8 @@ import { GitMonitor } from './dist/modules/git.js';
 import { randomUUID } from 'crypto';
 import * as SyncService from './sync-service.js';
 import { createDefaultHealthChecks, registerConversationHealthChecks } from './health-checks.js';
-import { join, relative, normalize, isAbsolute } from 'path';
+import { join, relative, normalize, isAbsolute, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import chokidar from 'chokidar';
 import fs from 'fs';
 
@@ -20,7 +21,7 @@ import { readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import * as Diff from 'diff';
 import toml from 'toml';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import * as si from 'systeminformation';
 import { gzip } from 'zlib';
@@ -98,33 +99,40 @@ import { requestTracing, errorLogging } from './middleware/request-tracing.js';
 import { metricsMiddleware } from './middleware/metrics.js';
 import { env, initConfig } from './config/environment.js';
 
+// Centralized constants
+import { LIMITS } from './config/constants.js';
+
 // Initialize and validate configuration
 initConfig();
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const gzipAsync = promisify(gzip);
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
 
 // Configuration: Load from environment variables with fallback defaults
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const CORS_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map(o => o.trim());
 const PORT = parseInt(process.env.PORT, 10) || 3030;
 
-// File size limits and other constants
-const MAX_FILE_SIZE_BYTES = parseInt(process.env.MAX_FILE_SIZE_BYTES, 10) || 10 * 1024 * 1024; // 10MB default
-const FILE_WATCH_DEBOUNCE_MS = 50;
-const AGENT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-const SNAPSHOT_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const PERFORMANCE_MONITOR_INTERVAL_MS = 30 * 1000; // 30 seconds
-const PERFORMANCE_ALERT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes - prevent alert spam
-const HEALTH_CHECK_DISCOVERY_DELAY_MS = 2 * 1000; // 2 seconds - wait for health checks to register
-const TELEMETRY_BRIDGE_RETRY_DELAY_MS = 2 * 1000; // 2 seconds - delay between bridge start attempts
-const STABILIZATION_DELAY_MS = 3 * 1000; // 3 seconds - startup stabilization period
+// Security: Validate CORS configuration
+if (CORS_ORIGINS.includes('*')) {
+  logger.error('❌ CORS wildcard (*) not allowed with credentials enabled');
+  logger.error('   Set CORS_ORIGIN to specific origins (comma-separated) or disable credentials');
+  throw new Error('Cannot use CORS wildcard with credentials enabled');
+}
+
+// File size limits and other constants (from centralized config)
+const MAX_FILE_SIZE_BYTES = parseInt(process.env.MAX_FILE_SIZE_BYTES, 10) || LIMITS.FILE.MAX_SIZE_BYTES;
 
 const io = new Server(httpServer, {
   cors: {
-    origin: CORS_ORIGIN,
+    origin: CORS_ORIGINS,
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -162,14 +170,27 @@ if (env.ENABLE_METRICS) {
   app.use(metricsMiddleware);
 }
 
-// CORS - properly configured for security
+// CORS - properly configured for security with multiple origin support
 app.use(cors({
-  origin: CORS_ORIGIN,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Check if origin is in allowed list
+    if (CORS_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,  // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 }));
-logger.info(`CORS enabled for origin: ${CORS_ORIGIN}`);
+logger.info(`CORS enabled for origins: ${CORS_ORIGINS.join(', ')}`);
 
 // JSON payload parsing with size limit
 const JSON_LIMIT = process.env.JSON_PAYLOAD_LIMIT || '10mb';
@@ -378,11 +399,10 @@ class FileProcessingLock {
    */
   cleanup() {
     const now = Date.now();
-    const LOCK_TTL = 5 * 60 * 1000; // 5 minutes
 
     for (const [filepath, mutex] of this.locks.entries()) {
       // Only cleanup if mutex exists, not locked, and hasn't been used recently
-      if (mutex && !mutex.locked && mutex.lastUsed && (now - mutex.lastUsed > LOCK_TTL)) {
+      if (mutex && !mutex.locked && mutex.lastUsed && (now - mutex.lastUsed > LIMITS.CACHE.LOCK_TTL_MS)) {
         this.locks.delete(filepath);
       }
     }
@@ -458,7 +478,7 @@ function enforceAgentRegistryLimit() {
 // Cleanup inactive agents periodically (every hour, remove agents not seen in 24 hours)
 const agentCleanupInterval = setInterval(() => {
   const now = Date.now();
-  const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  const TTL_MS = LIMITS.CLEANUP.OLD_AGENTS_HOURS * 60 * 60 * 1000;
   let removed = 0;
 
   for (const [agentName, agentData] of agentRegistry.entries()) {
@@ -472,7 +492,7 @@ const agentCleanupInterval = setInterval(() => {
   if (removed > 0) {
     logger.info(`🧹 Cleaned up ${removed} inactive agents from registry`);
   }
-}, AGENT_CLEANUP_INTERVAL_MS);
+}, LIMITS.TIMEOUTS.AGENT_CLEANUP_INTERVAL_MS);
 
 // Cleanup old snapshots periodically (daily, remove snapshots older than 30 days)
 let isSnapshotCleanupRunning = false;
@@ -513,12 +533,11 @@ const snapshotCleanupInterval = setInterval(async () => {
   } finally {
     isSnapshotCleanupRunning = false;
   }
-}, SNAPSHOT_CLEANUP_INTERVAL_MS);
+}, LIMITS.TIMEOUTS.SNAPSHOT_CLEANUP_INTERVAL_MS);
 
 // Performance monitoring with startup grace period
 let lastPerformanceAlert = 0;
 const serverStartTime = Date.now();
-const STARTUP_GRACE_PERIOD_MS = 90 * 1000; // 90 seconds - allow server to stabilize
 
 const performanceMonitorInterval = setInterval(async () => {
   try {
@@ -526,12 +545,12 @@ const performanceMonitorInterval = setInterval(async () => {
     const now = Date.now();
 
     // Skip performance checks during startup grace period (prevents false positives)
-    if (now - serverStartTime < STARTUP_GRACE_PERIOD_MS) {
+    if (now - serverStartTime < LIMITS.TIMEOUTS.STARTUP_GRACE_PERIOD_MS) {
       return;
     }
 
     // Skip if we recently sent an alert (avoid spam)
-    if (now - lastPerformanceAlert < PERFORMANCE_ALERT_COOLDOWN_MS) {
+    if (now - lastPerformanceAlert < LIMITS.TIMEOUTS.PERFORMANCE_ALERT_COOLDOWN_MS) {
       return;
     }
 
@@ -579,7 +598,7 @@ const performanceMonitorInterval = setInterval(async () => {
   } catch (error) {
     logger.error('Performance monitoring error:', error);
   }
-}, PERFORMANCE_MONITOR_INTERVAL_MS);
+}, LIMITS.TIMEOUTS.PERFORMANCE_MONITOR_INTERVAL_MS);
 
 // Agent type color mapping
 const AGENT_COLORS = {
@@ -1165,7 +1184,7 @@ function initializeWatcher(projectName) {
     ignoreInitial: true,
     awaitWriteFinish: {
       stabilityThreshold: 100,
-      pollInterval: FILE_WATCH_DEBOUNCE_MS
+      pollInterval: LIMITS.FILE.WATCH_DEBOUNCE_MS
     },
     // macOS-specific optimizations
     usePolling: false,           // Use native FSEvents on macOS
@@ -1919,8 +1938,9 @@ async function runStartupDiagnostics() {
       while (retryCount < maxRetries && !started) {
         retryCount++;
         try {
-          const startScript = '../scripts/start-claude-bridge.sh';
-          await execAsync(startScript);
+          // Security: Use execFile instead of exec to prevent command injection
+          const startScript = join(__dirname, '../scripts/start-claude-bridge.sh');
+          await execFileAsync('/bin/bash', [startScript]);
 
           // Wait and verify
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -2310,3 +2330,24 @@ async function gracefulShutdown(signal) {
 // Handle both SIGINT (Ctrl+C) and SIGTERM (docker stop, systemd, etc)
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('❌ Unhandled Promise Rejection:', {
+    reason: reason instanceof Error ? reason.message : reason,
+    stack: reason instanceof Error ? reason.stack : undefined,
+    promise: promise
+  });
+  // Don't exit on unhandled rejection in production to maintain uptime
+  // but log it for investigation
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('❌ Uncaught Exception:', {
+    message: error.message,
+    stack: error.stack,
+    name: error.name
+  });
+  // For uncaught exceptions, we should exit gracefully
+  gracefulShutdown('uncaughtException');
+});
