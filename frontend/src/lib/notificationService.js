@@ -200,10 +200,21 @@ class NotificationService {
         oscillator.stop(endTime);
       });
     } catch (e) {
-      // Silently fail for AudioContext errors (e.g., before user interaction)
-      // Only log if it's not an autoplay/user interaction error
-      if (!e.message.includes('user gesture') && !e.message.includes('play()')) {
-        logger.warn('Failed to play notification sound:', e);
+      // Handle AudioContext errors (e.g., before user interaction)
+      const isAutoplayError = e.message.includes('user gesture') || e.message.includes('play()') || e.message.includes('interact with the document');
+
+      if (isAutoplayError) {
+        // Expected autoplay restriction - debug level only
+        logger.debug('Audio autoplay blocked (expected):', e.message);
+      } else {
+        // Unexpected audio error - log as warning with full context for debugging
+        logger.warn('Unexpected audio error:', {
+          message: e.message,
+          name: e.name,
+          stack: e.stack,
+          audioContext: this.audioContext?.state,
+          userInteracted: this.userHasInteracted
+        });
       }
     }
   }

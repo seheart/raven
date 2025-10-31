@@ -346,7 +346,6 @@
 <style>
   .health-widget {
     background: var(--surface);
-    border-left: 3px solid var(--status-color);
     border: 1px solid var(--border);
     border-left: 3px solid var(--status-color);
     border-radius: 8px;

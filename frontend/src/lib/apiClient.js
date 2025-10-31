@@ -8,6 +8,32 @@ const API_BASE = API_CONFIG.API_BASE;
 
 /**
  * Enhanced fetch wrapper with automatic error notifications and JWT authentication
+ *
+ * @param {string} endpoint - API endpoint (relative path or full URL)
+ * @param {Object} [options={}] - Fetch options
+ * @param {string} [options.method='GET'] - HTTP method (GET, POST, PUT, DELETE)
+ * @param {Object} [options.headers] - Additional headers (Authorization header added automatically)
+ * @param {string|FormData} [options.body] - Request body
+ * @param {AbortSignal} [options.signal] - AbortController signal for cancellation
+ * @param {RequestCache} [options.cache] - Cache mode
+ * @returns {Promise<any>} Parsed JSON response or text if not JSON
+ * @throws {Error} Throws on HTTP errors (4xx, 5xx) or network failures
+ *
+ * @example
+ * // GET request
+ * const data = await apiFetch('/api/users');
+ *
+ * @example
+ * // POST request with body
+ * const result = await apiFetch('/api/users', {
+ *   method: 'POST',
+ *   body: JSON.stringify({ name: 'John' })
+ * });
+ *
+ * @example
+ * // Using convenience methods
+ * const users = await api.get('/api/users');
+ * const created = await api.post('/api/users', { name: 'John' });
  */
 export async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
@@ -100,15 +126,51 @@ export async function apiFetch(endpoint, options = {}) {
   }
 }
 
-// Convenience methods
+/**
+ * Convenience methods for common HTTP operations
+ * Automatically handles JSON serialization and sets appropriate headers
+ */
 export const api = {
+  /**
+   * Perform GET request
+   * @param {string} endpoint - API endpoint
+   * @param {Object} [options={}] - Additional fetch options
+   * @returns {Promise<any>} Response data
+   */
   get: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'GET' }),
+
+  /**
+   * Perform POST request with JSON body
+   * @param {string} endpoint - API endpoint
+   * @param {Object} data - Request body (will be JSON stringified)
+   * @param {Object} [options={}] - Additional fetch options
+   * @returns {Promise<any>} Response data
+   */
   post: (endpoint, data, options = {}) => apiFetch(endpoint, { ...options, method: 'POST', body: JSON.stringify(data) }),
+
+  /**
+   * Perform PUT request with JSON body
+   * @param {string} endpoint - API endpoint
+   * @param {Object} data - Request body (will be JSON stringified)
+   * @param {Object} [options={}] - Additional fetch options
+   * @returns {Promise<any>} Response data
+   */
   put: (endpoint, data, options = {}) => apiFetch(endpoint, { ...options, method: 'PUT', body: JSON.stringify(data) }),
+
+  /**
+   * Perform DELETE request
+   * @param {string} endpoint - API endpoint
+   * @param {Object} [options={}] - Additional fetch options
+   * @returns {Promise<any>} Response data
+   */
   delete: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'DELETE' })
 };
 
-// Health check with notifications
+/**
+ * Check server health status and show notifications for issues
+ * @returns {Promise<Object>} Health status object with status and issues array
+ * @throws {Error} Throws if health check request fails
+ */
 export async function checkServerHealth() {
   try {
     const health = await api.get('/health');

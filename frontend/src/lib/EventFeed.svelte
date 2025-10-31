@@ -293,6 +293,15 @@
     }[type] || '';
   }
 
+  // Safe helper to get max count for progress bar calculations (prevents division by zero)
+  function getMaxFileCount() {
+    return forensicsStats.topFiles[0]?.count || 1;
+  }
+
+  function getMaxHourCount() {
+    return forensicsStats.busiestHours[0]?.count || 1;
+  }
+
   // Calculate forensics statistics
   function calculateForensicsStats() {
     if (filteredEvents.length === 0) return;
@@ -492,10 +501,10 @@
               <li class="top-file-item">
                 <div class="file-path">{file.filepath}</div>
                 <div class="file-count">{file.count} changes</div>
-                <div class="file-bar" role="progressbar" aria-valuenow="{file.count}" aria-valuemin="0" aria-valuemax="{forensicsStats.topFiles[0].count}" aria-label="{file.count} changes">
+                <div class="file-bar" role="progressbar" aria-valuenow="{file.count}" aria-valuemin="0" aria-valuemax="{getMaxFileCount()}" aria-label="{file.count} changes">
                   <div
                     class="file-bar-fill"
-                    style="width: {(file.count / forensicsStats.topFiles[0].count) * 100}%"
+                    style="width: {(file.count / getMaxFileCount()) * 100}%"
                   ></div>
                 </div>
               </li>
@@ -513,10 +522,10 @@
                   {hourData.hour.toString().padStart(2, '0')}:00
                 </div>
                 <div class="hour-count">{hourData.count} events</div>
-                <div class="hour-bar" role="progressbar" aria-valuenow="{hourData.count}" aria-valuemin="0" aria-valuemax="{forensicsStats.busiestHours[0].count}" aria-label="{hourData.count} events at {hourData.hour}:00">
+                <div class="hour-bar" role="progressbar" aria-valuenow="{hourData.count}" aria-valuemin="0" aria-valuemax="{getMaxHourCount()}" aria-label="{hourData.count} events at {hourData.hour}:00">
                   <div
                     class="hour-bar-fill"
-                    style="width: {(hourData.count / forensicsStats.busiestHours[0].count) * 100}%"
+                    style="width: {(hourData.count / getMaxHourCount()) * 100}%"
                   ></div>
                 </div>
               </li>

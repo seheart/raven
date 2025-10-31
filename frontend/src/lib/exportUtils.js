@@ -16,8 +16,8 @@ export function exportCSV(data, filename, headers = null) {
     throw new Error('No data to export');
   }
 
-  // Auto-detect headers from first object if not provided
-  const csvHeaders = headers || Object.keys(data[0]);
+  // Auto-detect headers from first object if not provided (with safety check)
+  const csvHeaders = headers || (data[0] && typeof data[0] === 'object' ? Object.keys(data[0]) : []);
 
   // Build CSV rows
   const rows = data.map(row => {
@@ -66,7 +66,7 @@ export function exportExcel(data, filename, headers = null) {
     throw new Error('No data to export');
   }
 
-  const csvHeaders = headers || Object.keys(data[0]);
+  const csvHeaders = headers || (data[0] && typeof data[0] === 'object' ? Object.keys(data[0]) : []);
 
   const rows = data.map(row => {
     return csvHeaders.map(header => {

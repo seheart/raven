@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
-  import { formatDurationSecondsSeconds } from './formatUtils.js';
+  import { formatDurationSeconds } from './formatUtils.js';
   import AgentProfilePanel from './AgentProfilePanel.svelte';
   import SessionDashboard from './SessionDashboard.svelte';
   import { API_CONFIG } from '../config.js';

@@ -106,7 +106,7 @@ export function formatNumber(num) {
 /**
  * Format percentage
  * @param {number} value - Value to format as percentage
- * @param {number} decimals - Number of decimal places (default: 1)
+ * @param {number} [decimals=1] - Number of decimal places
  * @returns {string} Formatted percentage
  */
 export function formatPercent(value, decimals = 1) {

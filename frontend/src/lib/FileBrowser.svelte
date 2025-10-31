@@ -3,6 +3,9 @@
   import FileHistory from './FileHistory.svelte';
   import { logger } from './logger.js';
   import { notifications } from './notificationService.js';
+  import { API_CONFIG } from '../config.js';
+
+  const API_BASE = API_CONFIG.API_BASE;
 
   let files = [];
   let loading = true;
@@ -19,7 +22,7 @@
   async function loadProjects() {
     try {
       loadingProjects = true;
-      const response = await fetch('http://localhost:3030/api/projects/');
+      const response = await fetch(`${API_BASE}/projects`);
       if (!response.ok) {
         throw new Error(`Failed to load projects: ${response.status} ${response.statusText}`);
       }
@@ -28,7 +31,7 @@
       loadingProjects = false;
     } catch (error) {
       logger.error('Failed to load projects:', error);
-      notifications.error('Failed to load projects list', {
+      notifications.error(`Failed to load projects: ${error.message || 'Network error'}`, {
         title: 'File Browser Error'
       });
       projects = [];
@@ -40,8 +43,8 @@
     try {
       loading = true;
       const url = selectedProject
-        ? `http://localhost:3030/api/tracked-files?project=${selectedProject}`
-        : 'http://localhost:3030/api/tracked-files';
+        ? `${API_BASE}/tracked-files?project=${selectedProject}`
+        : `${API_BASE}/tracked-files`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load files: ${response.status} ${response.statusText}`);
@@ -50,7 +53,7 @@
       loading = false;
     } catch (error) {
       logger.error('Failed to load tracked files:', error);
-      notifications.error('Failed to load tracked files', {
+      notifications.error(`Failed to load tracked files: ${error.message || 'Network error'}`, {
         title: 'File Browser Error',
         message: 'Using fallback data. Check if the Raven backend is running.'
       });
@@ -72,7 +75,7 @@
       await loadFiles();
     } catch (error) {
       logger.error('Failed to handle project change:', error);
-      notifications.error('Failed to switch projects', {
+      notifications.error(`Failed to switch projects: ${error.message || 'Network error'}`, {
         title: 'File Browser Error'
       });
     }
@@ -87,7 +90,7 @@
   }
 
   function getFileIcon(filepath) {
-    if (!filepath) return '📄';
+    if (!filepath || typeof filepath !== 'string') return '📄';
     if (filepath.endsWith('.py')) return '🐍';
     if (filepath.endsWith('.js') || filepath.endsWith('.jsx')) return '📜';
     if (filepath.endsWith('.ts') || filepath.endsWith('.tsx')) return '📘';

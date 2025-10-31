@@ -99,6 +99,7 @@ class DataService {
    * @param {string} endpoint - API endpoint path
    * @param {FetchOptions} [options] - Fetch options
    * @returns {Promise<any>} Response data
+   * @throws {Error} Throws if HTTP response is not OK or network fails
    */
   async fetch(endpoint, options = {}) {
     const {
@@ -184,6 +185,7 @@ class DataService {
    * @param {number} [limit=500] - Maximum number of events to return
    * @param {boolean} [forceRefresh=false] - Force refresh from API
    * @returns {Promise<FileEvent[]>} Array of file events
+   * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchFileEvents(limit = 500, forceRefresh = false) {
     // Always fetch the max to satisfy all components
@@ -205,6 +207,7 @@ class DataService {
    * Fetch dashboard stats
    * @param {boolean} [forceRefresh=false] - Force refresh from API
    * @returns {Promise<DashboardStats>} Dashboard statistics
+   * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchDashboardStats(forceRefresh = false) {
     const data = await this.fetch('/dashboard-stats', { forceRefresh });
@@ -217,6 +220,7 @@ class DataService {
    * @param {number} [limit=1] - Number of metric snapshots to return
    * @param {boolean} [forceRefresh=false] - Force refresh from API
    * @returns {Promise<SystemMetrics>} System metrics
+   * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchSystemMetrics(limit = 1, forceRefresh = false) {
     const data = await this.fetch('/system-metrics', {
@@ -230,6 +234,9 @@ class DataService {
 
   /**
    * Fetch projects list
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<Array>} Array of projects
+   * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchProjects(forceRefresh = false) {
     const data = await this.fetch('/projects/list', { forceRefresh });
@@ -240,6 +247,10 @@ class DataService {
 
   /**
    * Fetch top modified files
+   * @param {number} [limit=5] - Maximum number of files to return
+   * @param {boolean} [forceRefresh=false] - Force refresh from API
+   * @returns {Promise<Array>} Array of top modified files
+   * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchTopFiles(limit = 5, forceRefresh = false) {
     const data = await this.fetch('/top-modified-files', {
@@ -255,6 +266,7 @@ class DataService {
    * Fetch health checks
    * @param {boolean} [forceRefresh=false] - Force refresh from API
    * @returns {Promise<HealthCheckResult>} Health check results
+   * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchHealthChecks(forceRefresh = false) {
     return this.fetch('/health-checks', { forceRefresh });
@@ -263,6 +275,7 @@ class DataService {
   /**
    * Preload all initial data in parallel
    * Call this once on app startup
+   * @returns {Promise<boolean>} True if successful, false if any fetch fails
    */
   async preloadInitialData() {
     logger.info('Preloading initial data...');
@@ -290,6 +303,7 @@ class DataService {
 
   /**
    * Invalidate cache for specific endpoint or all
+   * @param {string|null} [endpoint=null] - Endpoint to invalidate, or null to clear all
    */
   invalidateCache(endpoint = null) {
     if (endpoint) {
@@ -308,6 +322,7 @@ class DataService {
 
   /**
    * Clean up expired cache entries (called periodically)
+   * @private
    */
   cleanupExpiredEntries() {
     const now = Date.now();
@@ -328,6 +343,7 @@ class DataService {
 
   /**
    * Evict least recently used entry (LRU eviction)
+   * @private
    */
   evictOldestEntry() {
     let oldestKey = null;
@@ -349,6 +365,7 @@ class DataService {
 
   /**
    * Destroy the service and cleanup intervals
+   * Call this when the service is no longer needed to prevent memory leaks
    */
   destroy() {
     if (this.cleanupInterval) {
@@ -362,6 +379,7 @@ class DataService {
 
   /**
    * Get cache statistics for debugging
+   * @returns {Object} Cache statistics including size, max size, inflight requests, and cached endpoints
    */
   getCacheStats() {
     return {
