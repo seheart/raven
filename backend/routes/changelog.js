@@ -17,8 +17,8 @@ export function createChangelogRoutes(deps) {
    */
   router.get('/changelog', async (req, res) => {
     try {
-      // Read CHANGELOG.md file
-      const changelogPath = join(process.cwd(), '..', 'docs', 'CHANGELOG.md');
+      // Read CHANGELOG.md file (in project root, not docs/)
+      const changelogPath = join(process.cwd(), '..', 'CHANGELOG.md');
 
       try {
         await fsPromises.access(changelogPath);

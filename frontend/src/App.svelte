@@ -197,6 +197,15 @@
     notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
+  // Handle error notification clicks - navigate to Error Log
+  function handleErrorClick(notification) {
+    // Navigate to System tab (where Error Log is located)
+    activeTab = 'system';
+    // Notification will auto-dismiss
+    // Log for debugging
+    logger.info('Navigating to Error Log from notification:', notification.message);
+  }
+
   // Helper function to wait for backend to be ready
   async function waitForBackend() {
     const maxRetries = 30; // 30 seconds max
@@ -749,7 +758,7 @@
 
 <!-- Toast Notifications -->
 <ToastContainer />
-<Toast />
+<Toast onErrorClick={handleErrorClick} />
 
 <!-- Break Recommendation Alert -->
 <BreakAlert />

@@ -2,6 +2,8 @@
   import { notifications } from './stores/notifications.js';
   import { fly } from 'svelte/transition';
 
+  export let onErrorClick = null;
+
   function getIcon(type) {
     switch(type) {
     case 'success': return '✓';
@@ -11,20 +13,34 @@
     default: return 'ℹ';
     }
   }
+
+  function handleToastClick(notification) {
+    if (notification.type === 'error' && onErrorClick) {
+      onErrorClick(notification);
+    }
+  }
 </script>
 
 <div class="toast-container" role="region" aria-live="polite" aria-atomic="true" aria-label="Notifications">
   {#each $notifications as notification (notification.id)}
     <div
       class="toast toast-{notification.type}"
+      class:clickable={notification.type === 'error'}
       transition:fly={{ y: -30, duration: 300 }}
       role="alert"
+      on:click={() => handleToastClick(notification)}
+      on:keydown={(e) => e.key === 'Enter' && handleToastClick(notification)}
+      tabindex={notification.type === 'error' ? '0' : '-1'}
+      title={notification.type === 'error' ? 'Click to view error details' : ''}
     >
       <span class="toast-icon" aria-hidden="true">{getIcon(notification.type)}</span>
       <span class="toast-message">{notification.message}</span>
+      {#if notification.type === 'error'}
+        <span class="toast-hint" aria-hidden="true">Click for details →</span>
+      {/if}
       <button
         class="toast-close"
-        on:click={() => notifications.remove(notification.id)}
+        on:click|stopPropagation={() => notifications.remove(notification.id)}
         aria-label="Close notification"
       >
         ×
@@ -57,6 +73,21 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     pointer-events: all;
     min-width: 300px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .toast.clickable {
+    cursor: pointer;
+  }
+
+  .toast.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .toast.clickable:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
   }
 
   .toast-success {
@@ -120,5 +151,12 @@
     outline: 2px solid currentColor;
     outline-offset: 2px;
     border-radius: 4px;
+  }
+
+  .toast-hint {
+    font-size: 11px;
+    opacity: 0.7;
+    font-style: italic;
+    white-space: nowrap;
   }
 </style>
