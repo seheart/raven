@@ -11,22 +11,68 @@ import { logger } from '../utils/logger.js';
  * Configure Helmet for security headers
  */
 export function setupHelmet() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   return helmet({
+    // Content Security Policy
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // TODO: Remove unsafe-inline in production
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'", 'ws:', 'wss:'],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
-        frameSrc: ["'none'"]
+        frameSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        upgradeInsecureRequests: isProduction ? [] : null
       }
     },
-    crossOriginEmbedderPolicy: false, // Disable for development
-    crossOriginResourcePolicy: { policy: 'cross-origin' }
+
+    // HSTS - Force HTTPS in production
+    strictTransportSecurity: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true
+    },
+
+    // X-Frame-Options
+    frameguard: {
+      action: 'deny'
+    },
+
+    // X-Content-Type-Options
+    noSniff: true,
+
+    // X-DNS-Prefetch-Control
+    dnsPrefetchControl: {
+      allow: false
+    },
+
+    // X-Download-Options
+    ieNoOpen: true,
+
+    // X-Permitted-Cross-Domain-Policies
+    permittedCrossDomainPolicies: {
+      permittedPolicies: 'none'
+    },
+
+    // Referrer-Policy
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin'
+    },
+
+    // Cross-Origin policies
+    crossOriginEmbedderPolicy: isProduction,
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+
+    // Remove X-Powered-By header
+    hidePoweredBy: true
   });
 }
 

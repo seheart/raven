@@ -1,0 +1,13 @@
+{
+  "backend/**/*.js": [
+    "eslint --fix --max-warnings=0",
+    "prettier --write"
+  ],
+  "frontend/src/**/*.{js,svelte}": [
+    "eslint --fix --max-warnings=0",
+    "prettier --write"
+  ],
+  "**/*.{json,md,yml,yaml}": [
+    "prettier --write"
+  ]
+}

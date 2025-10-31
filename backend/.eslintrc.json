@@ -1,0 +1,61 @@
+{
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-unused-vars": ["error", { 
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_" 
+    }],
+    "max-lines": ["warn", { 
+      "max": 300,
+      "skipBlankLines": true,
+      "skipComments": true 
+    }],
+    "max-lines-per-function": ["warn", {
+      "max": 50,
+      "skipBlankLines": true,
+      "skipComments": true
+    }],
+    "complexity": ["warn", { "max": 10 }],
+    "max-depth": ["warn", { "max": 4 }],
+    "max-nested-callbacks": ["warn", { "max": 3 }],
+    "max-params": ["warn", { "max": 4 }],
+    "no-magic-numbers": ["warn", {
+      "ignore": [0, 1, -1, 2, 10, 100, 1000],
+      "ignoreArrayIndexes": true,
+      "enforceConst": true,
+      "detectObjects": false
+    }],
+    "eqeqeq": ["error", "always"],
+    "no-var": "error",
+    "prefer-const": "error",
+    "prefer-arrow-callback": "warn",
+    "no-throw-literal": "error",
+    "require-await": "warn",
+    "no-return-await": "error",
+    "no-await-in-loop": "warn",
+    "prefer-template": "warn",
+    "no-useless-concat": "error",
+    "prefer-destructuring": ["warn", {
+      "array": false,
+      "object": true
+    }],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-param-reassign": "warn",
+    "no-shadow": "warn",
+    "no-use-before-define": ["error", {
+      "functions": false,
+      "classes": true
+    }]
+  }
+}

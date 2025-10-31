@@ -3,7 +3,58 @@ import { mkdirSync, existsSync } from 'fs';
 import { dirname } from 'path';
 import { logger } from './utils/logger.js';
 
+/**
+ * @typedef {Object} EventRecord
+ * @property {number} [id] - Auto-generated ID
+ * @property {string} timestamp - ISO timestamp
+ * @property {string} filepath - Path to changed file
+ * @property {string} change_type - Type of change (created, modified, deleted)
+ * @property {string} [diff] - Diff content
+ * @property {number} [cpu] - CPU usage at time of event
+ * @property {number} [mem] - Memory usage at time of event
+ * @property {string} [session_id] - Session identifier
+ * @property {string} [file_hash] - Hash of file content
+ * @property {number} [event_size] - Size of event data
+ */
+
+/**
+ * @typedef {Object} AgentEvent
+ * @property {number} [id] - Auto-generated ID
+ * @property {string} timestamp - ISO timestamp
+ * @property {string} agent - Agent name
+ * @property {string} event_type - Type of event
+ * @property {string} [file] - File path
+ * @property {number} [lines_changed] - Number of lines changed
+ * @property {number} [duration_ms] - Duration in milliseconds
+ * @property {string} message - Event message
+ * @property {string} [metadata] - JSON metadata
+ * @property {string} [session_id] - Session identifier
+ * @property {string} [project_name] - Project name
+ */
+
+/**
+ * @typedef {Object} MetricRecord
+ * @property {number} [id] - Auto-generated ID
+ * @property {string} timestamp - ISO timestamp
+ * @property {number} cpu_percent - CPU usage percentage
+ * @property {number} memory_percent - Memory usage percentage
+ * @property {number} memory_used_mb - Memory used in MB
+ * @property {number} memory_total_mb - Total memory in MB
+ * @property {number} [network_rx_bytes] - Network received bytes
+ * @property {number} [network_tx_bytes] - Network transmitted bytes
+ * @property {string} [session_id] - Session identifier
+ */
+
+/**
+ * RavenDB - Main database class for Raven monitoring system
+ * Manages SQLite database with WAL mode for better performance
+ * Implements prepared statement caching for query optimization
+ */
 export class RavenDB {
+  /**
+   * Create a new RavenDB instance
+   * @param {string} dbPath - Path to SQLite database file
+   */
   constructor(dbPath) {
     // Ensure directory exists
     const dbDir = dirname(dbPath);
@@ -15,6 +66,7 @@ export class RavenDB {
     this.db.pragma('journal_mode = WAL'); // Better performance
 
     // Prepared statement cache for better performance
+    /** @type {Map<string, import('better-sqlite3').Statement>} */
     this.stmtCache = new Map();
 
     this.initializeSchema();

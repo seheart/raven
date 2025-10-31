@@ -1,0 +1,8 @@
+{
+  "name": "example-plugin",
+  "version": "1.0.0",
+  "description": "Example plugin demonstrating Raven plugin system",
+  "author": "Raven Team",
+  "main": "index.js",
+  "hooks": ["onAgentEvent", "onFileChange"]
+}

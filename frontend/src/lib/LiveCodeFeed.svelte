@@ -406,7 +406,7 @@
           </div>
         {:else}
           <div class="changes-list" role="feed" aria-label="Code changes feed" aria-busy={loading}>
-            {#each codeChanges || [] as change (change.id || `${change.filepath}-${change.timestamp}`)}
+            {#each codeChanges || [] as change, index (`${change.id || change.filepath}-${index}`)}
               <div class="change-item">
                 <div class="change-header">
                   <div class="change-meta">
@@ -467,7 +467,7 @@
           </div>
         {:else}
           <div class="activity-list" role="feed" aria-label="Recent activity feed" aria-busy={loading}>
-            {#each recentActivity || [] as activity (`${activity.type}-${activity.timestamp}`)}
+            {#each recentActivity || [] as activity, index (`${activity.id || activity.type}-${activity.timestamp}-${index}`)}
               <div class="activity-item" class:file={activity.type === 'file'} class:agent={activity.type === 'agent'}>
                 <div class="activity-icon">
                   {#if activity.type === 'file'}

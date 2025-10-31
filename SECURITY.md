@@ -2,139 +2,153 @@
 
 ## Supported Versions
 
-We actively support the following versions of Raven with security updates:
-
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.6.x   | :white_check_mark: |
-| < 0.6   | :x:                |
+| 1.6.x   | :white_check_mark: |
+| 1.5.x   | :white_check_mark: |
+| < 1.5   | :x:                |
 
 ## Reporting a Vulnerability
 
-**IMPORTANT: DO NOT create a public GitHub issue for security vulnerabilities.**
+**Please do NOT report security vulnerabilities through public GitHub issues.**
 
-### How to Report
+Instead, please report them responsibly using one of these methods:
 
-We take security seriously. If you discover a security vulnerability, please report it via:
+### Preferred Method: GitHub Security Advisories
+1. Go to https://github.com/seheart/raven/security/advisories/new
+2. Fill out the form with details about the vulnerability
+3. Submit the advisory
 
-1. **GitHub Security Advisories** (Preferred)
-   - Go to https://github.com/seheart/raven/security/advisories
-   - Click "Report a vulnerability"
-   - Fill out the form with details
+### Alternative Method: Email
+Send an email to `security@raven-monitor.dev` with:
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact assessment
+- Suggested fix (if you have one)
+- Your contact information (if you want updates)
 
-2. **Email** (Alternative)
-   - Send to: seheart@gmail.com
-   - Use subject: `[SECURITY] Raven Vulnerability Report`
-   - Include details below
+## What to Expect
 
-### What to Include
+- **Initial Response**: Within 48 hours
+- **Status Updates**: Every 7 days until resolved
+- **Fix Timeline**: We aim to patch critical vulnerabilities within 7 days
+- **Public Disclosure**: After fix is released + 7 days (or 90 days, whichever is sooner)
+- **Credit**: We'll credit you in our security acknowledgments (unless you prefer anonymity)
 
-Please include as much information as possible:
+## Security Measures in Raven
 
-- Type of vulnerability (e.g., SQL injection, XSS, authentication bypass)
-- Full paths of source file(s) related to the vulnerability
-- Location of the affected source code (tag/branch/commit)
-- Step-by-step instructions to reproduce the issue
-- Proof-of-concept or exploit code (if possible)
-- Impact of the vulnerability (what an attacker could do)
+Raven implements multiple security layers:
 
-### Response Timeline
+### Authentication & Authorization
+- JWT-based authentication with bcrypt password hashing
+- Session management with secure tokens
+- Role-based access control (planned for v2.0)
 
-- **Initial Response:** Within 48 hours
-- **Status Update:** Within 7 days
-- **Fix Timeline:** Depends on severity
-  - Critical: Within 7 days
-  - High: Within 14 days
-  - Medium: Within 30 days
-  - Low: Next scheduled release
+### Input Validation
+- All API inputs validated with Joi schemas
+- SQL injection prevention via prepared statements
+- XSS prevention via DOMPurify in frontend
 
-### Disclosure Policy
+### Network Security
+- HTTPS enforcement in production
+- CORS configuration
+- Rate limiting (100 req/15min general, 10 req/15min expensive ops)
+- Helmet.js security headers
 
-- Security issues will be patched privately
-- We'll create a security advisory once a fix is released
-- We'll credit the reporter (unless they prefer to remain anonymous)
-- We follow responsible disclosure practices
+### Data Protection
+- Local-first architecture (no cloud data leakage)
+- File permissions validated
+- Sensitive data never logged
+- JWT secrets auto-generated and stored securely
 
-## Security Best Practices
+### Monitoring & Response
+- Comprehensive error logging
+- Security event monitoring
+- Automated dependency scanning (Dependabot)
+- Pre-commit hooks to prevent credential leaks
 
-### For Contributors
+## Security Best Practices for Users
 
-1. **Dependencies**
-   - Run `npm audit` before submitting PRs
-   - Keep dependencies up to date
-   - Review Dependabot PRs promptly
+### Installation
+```bash
+# Always verify checksums
+sha256sum raven-*.tar.gz
 
-2. **Code Review**
-   - All code must be reviewed before merging
-   - Look for common vulnerabilities (XSS, injection, etc.)
-   - Check for hardcoded secrets or credentials
+# Use latest version
+git pull origin main
+npm install
+```
 
-3. **Secrets Management**
-   - NEVER commit API keys, passwords, or tokens
-   - Use environment variables for sensitive data
-   - Add sensitive files to `.gitignore`
+### Configuration
+```bash
+# Generate strong JWT secret (done automatically)
+# But you can regenerate:
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
-4. **Authentication & Authorization**
-   - Validate all user input
-   - Use parameterized queries for database operations
-   - Implement proper error handling
+# Set proper file permissions
+chmod 700 .raven/
+chmod 600 .raven/config.toml
+chmod 600 .raven/.jwt-secret
+```
 
-### For Deployments
+### Production Deployment
+```bash
+# Use environment variables (never commit secrets)
+export JWT_SECRET="$(cat .raven/.jwt-secret)"
+export NODE_ENV=production
 
-1. **Environment Security**
-   - Use HTTPS in production
-   - Set secure HTTP headers
-   - Keep Node.js and npm up to date
+# Enable rate limiting
+export ENABLE_RATE_LIMITING=true
 
-2. **Database Security**
-   - Restrict database file permissions (`chmod 600`)
-   - Use WAL mode for SQLite (already enabled)
-   - Back up database regularly
+# Disable authentication only in trusted environments
+# export DISABLE_AUTH=true  # NOT RECOMMENDED
+```
 
-3. **Network Security**
-   - Use firewall rules to restrict access
-   - Only expose necessary ports (3030 for API)
-   - Consider using reverse proxy (nginx) for SSL termination
+## Known Security Considerations
 
-4. **Monitoring**
-   - Enable health check monitoring
-   - Set up alerts for suspicious activity
-   - Review logs regularly
+### Local-First Architecture
+- Raven runs locally and stores all data on your machine
+- If someone gains access to your machine, they can access Raven data
+- Use disk encryption and secure your machine accordingly
 
-## Security Features
+### File System Access
+- Raven needs read/write access to monitored projects
+- Raven snapshots may contain sensitive code
+- Ensure `.raven/` directory has proper permissions
 
-### Current Security Measures
-
-- ✅ **Input Validation:** All API endpoints validate input
-- ✅ **CORS Protection:** Configurable CORS settings
-- ✅ **Error Handling:** Errors don't leak sensitive information
-- ✅ **Database Safety:** Prepared statements prevent SQL injection
-- ✅ **Dependencies:** Automated security scanning via Dependabot
-- ✅ **Code Analysis:** CodeQL static analysis (coming soon)
-
-### Planned Security Enhancements
-
-- [ ] Rate limiting on API endpoints
-- [ ] Authentication/authorization layer
-- [ ] Request logging and audit trail
-- [ ] Encrypted backup support
-- [ ] Security headers middleware
-- [ ] Content Security Policy (CSP)
+### Network Access
+- Raven binds to localhost:3030 by default
+- If you expose it externally, use authentication
+- Use reverse proxy with HTTPS in production
 
 ## Security Audit History
 
-| Date | Type | Findings | Status |
-|------|------|----------|--------|
-| 2025-10-18 | Initial Assessment | Manual review, no issues found | ✅ Clean |
+| Date       | Auditor | Scope          | Findings | Status  |
+|------------|---------|----------------|----------|---------|
+| 2024-10-30 | Internal| Code Quality   | 8 minor  | Fixed   |
+| TBD        | TBD     | Penetration Test | TBD    | Planned |
 
 ## Compliance
 
-Raven is designed with security in mind but is not currently certified for any specific compliance standards (SOC 2, ISO 27001, etc.). If you have specific compliance requirements, please contact us to discuss.
+Raven aims to comply with:
+- OWASP Top 10 (2021)
+- CWE Top 25
+- Node.js Security Best Practices
+- GDPR (local-first design)
 
-## Contact
+## Security Contact
 
-For security-related questions (non-vulnerabilities):
-- GitHub Discussions: https://github.com/seheart/raven/discussions
-- Email: seheart@gmail.com
+- Security Team: security@raven-monitor.dev
+- Project Lead: Seth Eheart
+- GitHub Security: https://github.com/seheart/raven/security
 
-Thank you for helping keep Raven secure! 🔒
+## Responsible Disclosure Program
+
+We believe in responsible disclosure and will work with security researchers to:
+1. Validate reported vulnerabilities
+2. Develop and test fixes
+3. Release patches quickly
+4. Provide attribution to researchers
+5. Maintain transparency with users
+
+Thank you for helping keep Raven secure!

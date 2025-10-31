@@ -1,0 +1,46 @@
+Contact: mailto:security@raven-monitor.dev
+Contact: https://github.com/seheart/raven/security/advisories/new
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://raven-monitor.dev/.well-known/security.txt
+
+# Security Policy
+
+If you discover a security vulnerability in Raven, please report it responsibly:
+
+1. DO NOT open a public GitHub issue
+2. Send details to security@raven-monitor.dev
+3. Or use GitHub Security Advisories (preferred)
+4. Include:
+   - Description of the vulnerability
+   - Steps to reproduce
+   - Potential impact
+   - Suggested fix (if any)
+
+We aim to respond within 48 hours and will keep you updated on the fix progress.
+
+# Scope
+
+In scope:
+- SQL injection vulnerabilities
+- XSS and CSRF attacks
+- Authentication/authorization bypasses
+- Data exposure issues
+- Remote code execution
+- Denial of service vulnerabilities
+
+Out of scope:
+- Social engineering attacks
+- Physical attacks
+- Issues in dependencies (report to upstream)
+
+# Disclosure Policy
+
+- We request 90 days for fixes before public disclosure
+- We will credit you in our security acknowledgments (unless you prefer anonymity)
+- We do not currently offer bug bounties, but we deeply appreciate responsible disclosures
+
+# Security Acknowledgments
+
+We thank the following researchers for responsible disclosure:
+- (To be updated as disclosures are received and fixed)

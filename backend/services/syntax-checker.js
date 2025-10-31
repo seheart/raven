@@ -20,6 +20,21 @@ export class SyntaxChecker {
    * @returns {Array} Array of syntax errors found
    */
   async checkFile(filepath) {
+    // Skip node_modules - these are dependencies, not our code
+    if (filepath.includes('node_modules')) {
+      return [];
+    }
+
+    // Skip TypeScript declaration files (.d.ts) - these use TypeScript-only syntax
+    if (filepath.endsWith('.d.ts')) {
+      return [];
+    }
+
+    // Skip dist/build directories
+    if (filepath.includes('/dist/') || filepath.includes('/build/')) {
+      return [];
+    }
+
     const ext = extname(filepath).toLowerCase();
     const language = this.getLanguageFromExtension(ext);
 
@@ -175,8 +190,30 @@ export class SyntaxChecker {
    * Check TypeScript syntax
    */
   async checkTypeScript(content, errors) {
-    // For now, treat as JavaScript
-    // Full TypeScript checking would require the TypeScript compiler API
+    // Skip TypeScript-specific syntax that would fail in JavaScript parser
+    // Common TypeScript-only patterns:
+    const tsOnlyPatterns = [
+      /import\s+type\s+/,           // import type
+      /export\s+type\s+/,           // export type
+      /declare\s+(const|let|var|function|class|interface|type|namespace|module)/,  // declare
+      /^\s*interface\s+\w+/m,       // interface declaration
+      /^\s*type\s+\w+\s*=/m,        // type alias
+      /as\s+(const|any|unknown|never|string|number|boolean)/,  // type assertions
+      /<\w+>/,                      // generic syntax (basic check)
+    ];
+
+    // If content has TypeScript-only syntax, skip JavaScript parsing
+    // as it will always fail with "Unexpected token"
+    for (const pattern of tsOnlyPatterns) {
+      if (pattern.test(content)) {
+        // This is TypeScript-only code, would need proper TS compiler
+        // Skip to avoid false positives
+        logger.debug('Skipping TypeScript-specific syntax checking - would need TS compiler');
+        return;
+      }
+    }
+
+    // If no TypeScript-specific syntax detected, try parsing as JavaScript
     await this.checkJavaScript(content, errors);
   }
 
