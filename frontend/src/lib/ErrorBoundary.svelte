@@ -26,7 +26,20 @@
       type: event.type || 'error'
     };
 
-    logger.error('ErrorBoundary caught error:', errorDetails);
+    // Log with structured error details for better debugging
+    logger.error('ErrorBoundary caught error:', {
+      message: errorDetails.message,
+      stack: errorDetails.stack,
+      filename: errorDetails.filename,
+      line: errorDetails.lineno,
+      column: errorDetails.colno,
+      type: errorDetails.type
+    });
+
+    // Also log raw error object for debugging
+    if (event.error) {
+      console.error('Raw error object:', event.error);
+    }
 
     // Log to backend error_log table
     const error = event.error || new Error(errorDetails.message);
@@ -52,7 +65,17 @@
       type: 'unhandledrejection'
     };
 
-    logger.error('ErrorBoundary caught promise rejection:', errorDetails);
+    // Log with structured error details for better debugging
+    logger.error('ErrorBoundary caught promise rejection:', {
+      message: errorDetails.message,
+      stack: errorDetails.stack,
+      type: errorDetails.type
+    });
+
+    // Also log raw reason object for debugging
+    if (event.reason) {
+      console.error('Raw rejection reason:', event.reason);
+    }
 
     // Log to backend error_log table
     const error = event.reason instanceof Error ? event.reason : new Error(errorDetails.message);

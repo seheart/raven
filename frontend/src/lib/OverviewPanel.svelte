@@ -51,20 +51,26 @@
     return 'Late night session? Raven never sleeps...';
   }
 
-  // Format time ago (called only when lastUpdated changes)
-  function getTimeAgo() {
-    if (!lastUpdated) return 'Just now';
+  // Format time ago - using controlled interval to prevent infinite reactive loop
+  let timeAgo = 'Just now';
+  let timeAgoInterval;
+
+  function updateTimeAgo() {
+    if (!lastUpdated) {
+      timeAgo = 'Just now';
+      return;
+    }
     const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-    if (seconds < 10) return 'Just now';
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
+    if (seconds < 10) timeAgo = 'Just now';
+    else if (seconds < 60) timeAgo = `${seconds}s ago`;
+    else if (seconds < 3600) timeAgo = `${Math.floor(seconds / 60)}m ago`;
+    else timeAgo = `${Math.floor(seconds / 3600)}h ago`;
   }
 
-  // Compute time ago reactively when lastUpdated changes (no interval needed)
-  $: timeAgo = getTimeAgo();
+  // Update time ago when lastUpdated changes
+  $: if (lastUpdated) {
+    updateTimeAgo();
+  }
 
   // Calculate session duration in human-readable format
   function formatDuration(seconds) {
@@ -162,11 +168,20 @@
     // Listen for real-time events (no polling intervals!)
     websocketService.on('system-metrics', handleMetricsUpdate);
     websocketService.on('file-changed', handleFileChanged);
+
+    // Start time ago update interval (every 10 seconds)
+    updateTimeAgo();
+    timeAgoInterval = setInterval(updateTimeAgo, 10000);
   });
 
   onDestroy(() => {
     websocketService.off('system-metrics', handleMetricsUpdate);
     websocketService.off('file-changed', handleFileChanged);
+
+    // Clean up time ago interval
+    if (timeAgoInterval) {
+      clearInterval(timeAgoInterval);
+    }
   });
 
   $: flowState = getFlowState();

@@ -36,6 +36,7 @@
   let autoSyncInterval = null;
   let lastUpdated = null;
   let isManualRefresh = false;
+  let previousAutoSync = false; // Track previous value to prevent reactive loop
 
   async function loadConfig(manual = false) {
     try {
@@ -240,12 +241,15 @@
     }
   }
 
+  // Watch for changes to autoSync config (fix: track previous value to prevent infinite loop)
   $: {
-    // Watch for changes to autoSync config
-    if (config.autoSync) {
-      startAutoSync();
-    } else {
-      stopAutoSync();
+    if (config.autoSync !== previousAutoSync) {
+      previousAutoSync = config.autoSync;
+      if (config.autoSync) {
+        startAutoSync();
+      } else {
+        stopAutoSync();
+      }
     }
   }
 
@@ -292,19 +296,20 @@
   }
 
   // Format "time ago" for last updated timestamp
-  function getTimeAgo() {
-    if (!lastUpdated) return 'Never';
-    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-    if (seconds < 10) return 'Just now';
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
-  }
 
   // Reactive "time ago" - updates when lastUpdated changes (no polling!)
-  $: timeAgo = getTimeAgo();
+  let timeAgo = 'Just now';
+  // Update time ago when lastUpdated changes (prevents infinite loop)
+  $: if (lastUpdated) {
+    if (!lastUpdated) timeAgo = 'Just now';
+    else {
+      const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+      if (seconds < 10) timeAgo = 'Just now';
+      else if (seconds < 60) timeAgo = `${seconds}s ago`;
+      else if (seconds < 3600) timeAgo = `${Math.floor(seconds / 60)}m ago`;
+      else timeAgo = `${Math.floor(seconds / 3600)}h ago`;
+    }
+  }
 
   onMount(async () => {
     await loadConfig();
