@@ -248,13 +248,11 @@
       const fileEventsArray = Array.isArray(fileEvents) ? fileEvents : [];
       const agentEventsArray = Array.isArray(agentEvents) ? agentEvents : [];
 
-      // Combine and sort by timestamp
-      const combined = [
+      // Combine and sort by timestamp (for preloading/caching)
+      const _combined = [
         ...fileEventsArray.map(e => ({ ...e, type: 'file' })),
         ...agentEventsArray.map(e => ({ ...e, type: 'agent' }))
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      recentActivity = combined.slice(0, 30);
     } catch (error) {
       logger.error('Failed to load recent activity:', error);
     }
