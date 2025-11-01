@@ -353,13 +353,11 @@
     </div>
     <div class="projects-grid" role="list" aria-labelledby="multi-project-heading">
       {#each sortedProjects as project (project.name)}
-        <button
+        <div
           class="project-card"
           class:card-active={project.status === 'active'}
           class:card-recent={project.status === 'recent'}
           class:card-idle={project.status === 'idle' || project.status === 'inactive'}
-          on:click={() => navigateToProject(project.name)}
-          title="Click to view project details"
         >
           <div class="project-header">
             <div class="project-name-container">
@@ -405,7 +403,6 @@
             <span class="score-value" role="status">{project.health_score}</span>
             <span class="score-label">
               {getHealthLabel(project.health_score)}
-              <span class="info-icon" title="Health score calculated from recent activity, error count, and code quality metrics. Higher is better!">ℹ️</span>
             </span>
           </div>
 
@@ -423,7 +420,7 @@
           <div class="project-footer">
             <span class="last-activity"><time datetime="{project.last_activity}">Last: {formatLastActivity(project.last_activity)}</time></span>
           </div>
-        </button>
+        </div>
       {/each}
     </div>
   {/if}
@@ -623,22 +620,11 @@
     border: 2px solid var(--border);
     border-radius: var(--radius);
     transition: all 0.2s;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-    font-family: inherit;
-    color: inherit;
   }
 
   .project-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-color: var(--accent);
-  }
-
-  .project-card:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .project-card.card-active {
@@ -758,19 +744,6 @@
   .score-label {
     font-size: 13px;
     color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .info-icon {
-    cursor: help;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-  }
-
-  .info-icon:hover {
-    opacity: 1;
   }
 
   .results-info {
