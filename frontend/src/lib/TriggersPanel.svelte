@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
-  import { projectFilter, availableProjects, matchesFilter } from './projectFilterStore.js';
+  import { projectFilter, matchesFilter } from './projectFilterStore.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { getEmptyStateMessage } from './utils/projectFilter.js';
   import ProjectBadge from './ProjectBadge.svelte';
@@ -33,8 +33,10 @@
   let debouncedSearchQuery = '';
   let searchDebounceTimeout;
   let selectedActionFilter = 'all'; // 'all', 'notify', 'log', 'command'
-  let showCreateModal = false;
   let enabledTriggers = new Set(); // Track which triggers are enabled (runtime state)
+
+  // Event ID counter for unique keys (prevents duplicate key errors when events fire in same second)
+  let eventIdCounter = 0;
 
   // Debounce search query
   $: {
@@ -77,6 +79,8 @@
 
   // WebSocket event handlers
   const handleTriggerFired = (event) => {
+    // Add unique ID to prevent duplicate key errors
+    event.id = `event-${eventIdCounter++}`;
     // Add new event to the beginning of the list
     triggeredEvents = [event, ...triggeredEvents].slice(0, 100);
   };
@@ -85,7 +89,7 @@
     stats = newStats;
   };
 
-  const handleProjectSwitched = async (data) => {
+  const handleProjectSwitched = async () => {
     await loadAllData();
   };
 
@@ -138,7 +142,13 @@
       });
       enabledTriggers = enabledTriggers; // Trigger reactivity
 
-      triggeredEvents = await eventsRes.json();
+      // Load events and add unique IDs to prevent duplicate key errors
+      const events = await eventsRes.json();
+      triggeredEvents = events.map(event => ({
+        ...event,
+        id: `event-${eventIdCounter++}`
+      }));
+
       stats = await statsRes.json();
 
       lastUpdated = new Date();
@@ -213,6 +223,7 @@
 
       // Simulate trigger firing
       const testEvent = {
+        id: `event-${eventIdCounter++}`, // Unique ID to prevent duplicate key errors
         trigger_name: trigger.name,
         action: trigger.action,
         message: `[TEST] ${trigger.message}`,
@@ -449,7 +460,7 @@
         </div>
       {:else}
         <div class="events-list" role="list" aria-label="Triggered events">
-          {#each filteredEvents || [] as event (event.timestamp)}
+          {#each filteredEvents || [] as event (event.id)}
             <article class="event-row" role="listitem">
               <span class="event-icon" aria-hidden="true">{getActionIcon(event.action)}</span>
               <div class="event-details">
