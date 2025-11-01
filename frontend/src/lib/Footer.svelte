@@ -4,14 +4,28 @@
   export let onAboutClick = () => {};
   export let onChangelogClick = () => {};
   export let onDocsClick = () => {};
+  export let onSessionClick = () => {};
+  export let sessionId = 'Loading...';
 
   let version = '0.8.0';
+
+  // Show shortened session ID (last 8 chars)
+  $: shortSessionId = sessionId === 'Loading...' ? sessionId : `...${sessionId.slice(-8)}`;
 </script>
 
 <footer class="footer">
   <div class="footer-content">
     <div class="footer-left">
       <span class="footer-brand">Raven v{version}</span>
+      <span class="footer-divider" aria-hidden="true">|</span>
+      <button
+        class="footer-session-btn"
+        on:click={onSessionClick}
+        title="Session ID: {sessionId} (Click for details)"
+        aria-label="View session details"
+      >
+        Session: <span class="session-id">{shortSessionId}</span>
+      </button>
       <span class="footer-divider" aria-hidden="true">|</span>
       <div class="theme-selector" role="group" aria-label="Theme selector">
         <button
@@ -100,6 +114,35 @@
   .footer-brand {
     color: var(--accent);
     font-weight: 600;
+  }
+
+  .footer-session-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--mono);
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .footer-session-btn:hover {
+    color: var(--accent);
+  }
+
+  .footer-session-btn:hover .session-id {
+    color: var(--accent);
+  }
+
+  .session-id {
+    font-family: 'Courier New', monospace;
+    color: var(--text);
+    font-weight: 600;
+    transition: color 0.2s;
   }
 
   .footer-divider {

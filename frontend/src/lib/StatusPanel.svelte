@@ -9,6 +9,7 @@
   import { formatNumber } from './numberFormat.js';
   import { dataService } from './dataService.js';
   import { api } from './apiClient.js';
+  import { notifications } from './notificationService.js';
 
   const API_BASE = API_CONFIG.BASE_URL;
 
@@ -263,6 +264,23 @@
           <div class="info-row">
             <span class="label">Version:</span>
             <span class="value mono">v{backendStatus.version}</span>
+          </div>
+          <div class="info-row session-row">
+            <span class="label">Session ID:</span>
+            <div class="session-id-container">
+              <span class="value mono session-id-value" title="{backendStatus.session_id}">{backendStatus.session_id}</span>
+              <button
+                class="copy-btn"
+                on:click={() => {
+                  navigator.clipboard.writeText(backendStatus.session_id);
+                  notifications.success('Session ID copied to clipboard!');
+                }}
+                aria-label="Copy session ID to clipboard"
+                title="Copy to clipboard"
+              >
+                📋
+              </button>
+            </div>
           </div>
           <div class="info-row">
             <span class="label">Uptime:</span>
@@ -767,6 +785,46 @@
 
   .info-row:last-child {
     border-bottom: none;
+  }
+
+  .session-row {
+    background: var(--bg);
+    padding: 16px 12px;
+    margin: 0 -12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .session-id-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 60%;
+  }
+
+  .session-id-value {
+    word-break: break-all;
+    font-size: 11px;
+  }
+
+  .copy-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.1);
+  }
+
+  .copy-btn:active {
+    transform: scale(0.95);
   }
 
   .label {

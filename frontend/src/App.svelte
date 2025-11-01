@@ -901,7 +901,9 @@
 
 <Footer
   theme={theme}
+  sessionId={sessionId}
   onThemeChange={switchTheme}
+  onSessionClick={() => router.navigate('system')}
   onAboutClick={() => activeTab = 'about'}
   onChangelogClick={() => activeTab = 'changelog'}
   onDocsClick={() => activeTab = 'docs'}

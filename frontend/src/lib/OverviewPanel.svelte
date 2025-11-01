@@ -27,6 +27,9 @@
     unique_files_modified: 0
   };
 
+  let projects = [];
+  let projectCount = 0;
+
 
   let systemMetrics = {
     cpu_percent: 0,
@@ -42,13 +45,22 @@
   let lastUpdated = null;
   let isManualRefresh = false;
 
-  // Personalized greeting based on time of day
+  // Simplified greeting based on time of day
   function getGreeting() {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning! Raven is watching...';
-    if (hour < 17) return "Good afternoon! Let's see what you're building...";
-    if (hour < 21) return 'Good evening! Still coding strong...';
-    return 'Late night session? Raven never sleeps...';
+    if (hour < 12) return '🌅 Morning';
+    if (hour < 17) return '☀️ Afternoon';
+    if (hour < 21) return '🌆 Evening';
+    return '🌙 Night';
+  }
+
+  // Get greeting emoji
+  function getGreetingEmoji() {
+    const hour = new Date().getHours();
+    if (hour < 12) return '🌅';
+    if (hour < 17) return '☀️';
+    if (hour < 21) return '🌆';
+    return '🌙';
   }
 
   // Format time ago - using controlled interval to prevent infinite reactive loop
@@ -101,17 +113,20 @@
       isManualRefresh = manual;
 
       // Use dataService - it handles caching and deduplication
-      const [statsData, metricsData, activityData, filesData] = await Promise.all([
+      const [statsData, metricsData, activityData, filesData, projectsData] = await Promise.all([
         dataService.fetchDashboardStats(manual),
         dataService.fetchSystemMetrics(1, manual),
         dataService.fetchFileEvents(5, manual),
-        dataService.fetchTopFiles(5, manual)
+        dataService.fetchTopFiles(5, manual),
+        dataService.fetchProjects(manual)
       ]);
 
       stats = statsData;
       systemMetrics = metricsData;
       recentActivity = activityData || [];
       topFiles = filesData || [];
+      projects = projectsData || [];
+      projectCount = projects.length;
 
       loading = false;
       lastUpdated = new Date();
@@ -188,21 +203,17 @@
 </script>
 
 <div class="overview-panel" role="region" aria-label="Project overview">
-  <!-- Personalized Greeting -->
+  <!-- Simplified Greeting Header -->
   <div class="greeting-section" role="status" aria-live="polite">
     <h2 class="greeting-text">{getGreeting()}</h2>
-    <div class="session-info">
-      <div class="session-detail">
-        <span class="session-label">
-          Raven Session ID:
-        </span>
-        <span class="session-value">{sessionId}</span>
+    <div class="overview-stats">
+      <div class="overview-stat">
+        <span class="stat-icon" aria-hidden="true">📁</span>
+        <span class="stat-text">Monitoring {projectCount} project{projectCount !== 1 ? 's' : ''}</span>
       </div>
-      <div class="session-detail">
-        <span class="session-label">
-          Server Uptime:
-        </span>
-        <span class="session-value">{sessionUptime}</span>
+      <div class="overview-stat">
+        <span class="stat-icon" aria-hidden="true">📝</span>
+        <span class="stat-text">{stats.unique_files_modified} file{stats.unique_files_modified !== 1 ? 's' : ''} changed today</span>
       </div>
     </div>
   </div>
@@ -213,95 +224,7 @@
   <!-- Multi-Project Overview -->
   <ProjectsOverview />
 
-  <!-- Main Stats Grid -->
-  <div class="stats-grid" role="group" aria-label="Dashboard statistics">
-    <!-- Current Session Card -->
-    <div class="stat-card session-card" role="article" aria-labelledby="session-card-heading">
-      <div class="card-header">
-        <span class="card-icon" aria-hidden="true">⏱️</span>
-        <h3 id="session-card-heading">Current Session</h3>
-      </div>
-      {#if loading}
-        <LoadingSkeleton type="text" count={4} />
-      {:else}
-        <div class="stat-rows">
-          <div class="stat-row">
-            <span class="stat-label">Duration:</span>
-            <span class="stat-value">{formatDuration(stats.session_duration_seconds)}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Files touched:</span>
-            <span class="stat-value">{formatNumber(stats.unique_files_modified)}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Total changes:</span>
-            <span class="stat-value">{formatNumber(stats.total_events)}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Current flow:</span>
-            <span class="stat-value" style="color: {flowState.color}">
-              {flowState.icon} {flowState.state}
-            </span>
-          </div>
-        </div>
-      {/if}
-    </div>
-
-    <!-- System Metrics Card -->
-    <div class="stat-card metrics-card" role="article" aria-labelledby="metrics-card-heading">
-      <div class="card-header">
-        <span class="card-icon" aria-hidden="true">📊</span>
-        <h3 id="metrics-card-heading">System Health</h3>
-      </div>
-      {#if loading}
-        <LoadingSkeleton type="chart" height="100px" />
-      {:else}
-        <div class="metrics-display" role="group" aria-label="System resource usage">
-          <div class="metric-item">
-            <div class="metric-label" id="cpu-metric-label">CPU</div>
-            <div
-              class="metric-bar"
-              role="progressbar"
-              aria-labelledby="cpu-metric-label"
-              aria-valuenow="{systemMetrics.cpu_percent?.toFixed(1)}"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              aria-label="CPU usage: {systemMetrics.cpu_percent?.toFixed(1)}%"
-            >
-              <div
-                class="metric-fill"
-                style="width: {systemMetrics.cpu_percent}%; background: {systemMetrics.cpu_percent > 80 ? 'var(--error)' : systemMetrics.cpu_percent > 50 ? 'var(--warning)' : 'var(--success)'};"
-              ></div>
-            </div>
-            <div class="metric-value">{systemMetrics.cpu_percent?.toFixed(1)}%</div>
-          </div>
-          <div class="metric-item">
-            <div class="metric-label" id="memory-metric-label">Memory</div>
-            <div
-              class="metric-bar"
-              role="progressbar"
-              aria-labelledby="memory-metric-label"
-              aria-valuenow="{systemMetrics.memory_percent?.toFixed(1)}"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              aria-label="Memory usage: {systemMetrics.memory_percent?.toFixed(1)}% ({formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} of {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB)"
-            >
-              <div
-                class="metric-fill"
-                style="width: {systemMetrics.memory_percent}%; background: {systemMetrics.memory_percent > 85 ? 'var(--error)' : systemMetrics.memory_percent > 60 ? 'var(--warning)' : 'var(--success)'};"
-              ></div>
-            </div>
-            <div class="metric-value">
-              {formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} / {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB
-            </div>
-          </div>
-        </div>
-      {/if}
-    </div>
-
-  </div>
-
-  <!-- Live Activity Stream -->
+  <!-- Live Activity Stream - MOVED UP for better visibility -->
   <section class="activity-section" aria-labelledby="activity-heading">
     <div class="section-header">
       <h3 id="activity-heading">Live Activity Stream</h3>
@@ -331,11 +254,11 @@
         {#each recentActivity as event (event.id || event.timestamp)}
           <li class="activity-item">
             <span class="activity-icon" aria-hidden="true">
-              {#if event.change_type === 'add'}
+              {#if event.change_type === 'create' || event.change_type === 'add'}
                 ➕
-              {:else if event.change_type === 'change'}
+              {:else if event.change_type === 'edit' || event.change_type === 'change'}
                 ✏️
-              {:else if event.change_type === 'unlink'}
+              {:else if event.change_type === 'delete' || event.change_type === 'unlink'}
                 🗑️
               {:else}
                 📄
@@ -363,6 +286,38 @@
     {/if}
   </section>
 
+  <!-- Current Session Card -->
+  <div class="stat-card session-card" role="article" aria-labelledby="session-card-heading">
+    <div class="card-header">
+      <span class="card-icon" aria-hidden="true">⏱️</span>
+      <h3 id="session-card-heading">Current Session</h3>
+    </div>
+    {#if loading}
+      <LoadingSkeleton type="text" count={4} />
+    {:else}
+      <div class="stat-rows">
+        <div class="stat-row">
+          <span class="stat-label">Duration:</span>
+          <span class="stat-value">{formatDuration(stats.session_duration_seconds)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Files touched:</span>
+          <span class="stat-value">{formatNumber(stats.unique_files_modified)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Total changes:</span>
+          <span class="stat-value">{formatNumber(stats.total_events)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Current flow:</span>
+          <span class="stat-value" style="color: {flowState.color}">
+            {flowState.icon} {flowState.state}
+          </span>
+        </div>
+      </div>
+    {/if}
+  </div>
+
   <!-- Top Files Section -->
   {#if topFiles.length > 0}
     <section class="files-section" aria-labelledby="top-files-heading">
@@ -382,6 +337,58 @@
       </ul>
     </section>
   {/if}
+
+  <!-- System Health - MOVED TO BOTTOM (less critical for overview) -->
+  <div class="stat-card metrics-card" role="article" aria-labelledby="metrics-card-heading">
+    <div class="card-header">
+      <span class="card-icon" aria-hidden="true">📊</span>
+      <h3 id="metrics-card-heading">System Health</h3>
+    </div>
+    {#if loading}
+      <LoadingSkeleton type="chart" height="100px" />
+    {:else}
+      <div class="metrics-display" role="group" aria-label="System resource usage">
+        <div class="metric-item">
+          <div class="metric-label" id="cpu-metric-label">CPU</div>
+          <div
+            class="metric-bar"
+            role="progressbar"
+            aria-labelledby="cpu-metric-label"
+            aria-valuenow="{systemMetrics.cpu_percent?.toFixed(1)}"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label="CPU usage: {systemMetrics.cpu_percent?.toFixed(1)}%"
+          >
+            <div
+              class="metric-fill"
+              style="width: {systemMetrics.cpu_percent}%; background: {systemMetrics.cpu_percent > 80 ? 'var(--error)' : systemMetrics.cpu_percent > 50 ? 'var(--warning)' : 'var(--success)'};"
+            ></div>
+          </div>
+          <div class="metric-value">{systemMetrics.cpu_percent?.toFixed(1)}%</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" id="memory-metric-label">Memory</div>
+          <div
+            class="metric-bar"
+            role="progressbar"
+            aria-labelledby="memory-metric-label"
+            aria-valuenow="{systemMetrics.memory_percent?.toFixed(1)}"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label="Memory usage: {systemMetrics.memory_percent?.toFixed(1)}% ({formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} of {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB)"
+          >
+            <div
+              class="metric-fill"
+              style="width: {systemMetrics.memory_percent}%; background: {systemMetrics.memory_percent > 85 ? 'var(--error)' : systemMetrics.memory_percent > 60 ? 'var(--warning)' : 'var(--success)'};"
+            ></div>
+          </div>
+          <div class="metric-value">
+            {formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} / {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB
+          </div>
+        </div>
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -397,48 +404,40 @@
 
   .greeting-section {
     text-align: center;
+    margin-bottom: 4px;
   }
 
   .greeting-text {
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 6px 0;
+    margin: 0 0 10px 0;
   }
 
-  .session-info {
+  .overview-stats {
     display: flex;
-    gap: 32px;
+    gap: 24px;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
-  .session-detail {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .session-label {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--muted);
-    font-weight: 500;
+  .overview-stat {
     display: flex;
     align-items: center;
     gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
   }
 
-  .session-value {
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: var(--text);
-    font-weight: 600;
-    background: var(--surface);
-    padding: 4px 12px;
-    border-radius: 3px;
-    border: 1px solid var(--border);
+  .overview-stat .stat-icon {
+    font-size: 12px;
+  }
+
+  .overview-stat .stat-text {
+    font-weight: 500;
   }
 
   .stats-grid {

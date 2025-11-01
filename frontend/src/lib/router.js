@@ -33,6 +33,13 @@ function createRouter() {
   if (typeof window !== 'undefined') {
     window.addEventListener('hashchange', () => {
       set(parseHash());
+      // Scroll to top on navigation
+      const mainContent = document.getElementById('main-content');
+      if (mainContent) {
+        mainContent.scrollTop = 0;
+      }
+      // Also scroll window to top (for mobile/overflow scenarios)
+      window.scrollTo(0, 0);
     });
   }
 
@@ -43,6 +50,12 @@ function createRouter() {
     navigate: (tab, subTab = '') => {
       const hash = subTab ? `#/${tab}/${subTab}` : `#/${tab}`;
       window.location.hash = hash;
+      // Scroll to top immediately on navigation
+      const mainContent = document.getElementById('main-content');
+      if (mainContent) {
+        mainContent.scrollTop = 0;
+      }
+      window.scrollTo(0, 0);
     },
 
     // Go back (if possible)
