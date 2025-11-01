@@ -30,9 +30,19 @@
 
   // Enhanced features
   let searchQuery = '';
+  let debouncedSearchQuery = '';
+  let searchDebounceTimeout;
   let selectedActionFilter = 'all'; // 'all', 'notify', 'log', 'command'
   let showCreateModal = false;
   let enabledTriggers = new Set(); // Track which triggers are enabled (runtime state)
+
+  // Debounce search query
+  $: {
+    clearTimeout(searchDebounceTimeout);
+    searchDebounceTimeout = setTimeout(() => {
+      debouncedSearchQuery = searchQuery;
+    }, 300);
+  }
 
   // Filter triggered events based on current project filter
   $: filteredEvents = triggeredEvents.filter(event => {
@@ -46,9 +56,9 @@
 
   // Filter triggers based on search and action type
   $: filteredTriggers = triggers.filter(trigger => {
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    // Search filter (debounced)
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase();
       const matchesName = trigger.name?.toLowerCase().includes(query);
       const matchesMessage = trigger.message?.toLowerCase().includes(query);
       const matchesFile = trigger.file?.toLowerCase().includes(query);
@@ -103,6 +113,7 @@
 
     // Clean up timeouts
     successMessageTimeouts.forEach(timeout => clearTimeout(timeout));
+    clearTimeout(searchDebounceTimeout);
   });
 
   async function loadAllData(manual = false) {

@@ -24,7 +24,6 @@
   let loading = true;
   let lastUpdate = null;
   let autoRefresh = false;
-  let autoRefreshInterval = null;
 
   async function loadAllData() {
     try {
@@ -85,8 +84,8 @@
 
   $: totalDataPoints = stats.counts.agent_interactions + stats.counts.code_patterns + stats.counts.workflow_events;
 
-  onMount(() => {
-    loadAllData();
+  onMount(async () => {
+    await loadAllData();
 
     // Connect to WebSocket for real-time updates
     websocketService.connect();

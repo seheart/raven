@@ -16,6 +16,8 @@
 
   // Enhanced filtering
   let searchQuery = '';
+  let debouncedSearchQuery = '';
+  let searchDebounceTimeout;
   let selectedEventTypes = {
     edit: true,
     create: true,
@@ -28,15 +30,23 @@
   let selectedAgent = 'all'; // 'all' or specific agent name
   let uniqueAgents = [];
 
+  // Debounce search query
+  $: {
+    clearTimeout(searchDebounceTimeout);
+    searchDebounceTimeout = setTimeout(() => {
+      debouncedSearchQuery = searchQuery;
+    }, 300);
+  }
+
   // Cache for timeline buckets to prevent expensive recomputation
   let cachedFilteredEvents = null;
   let cachedTimelineBuckets = [];
 
   // Filter events based on search, event type, and agent
   $: filteredEvents = events.filter(event => {
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    // Search filter (debounced)
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase();
       const matchesFile = event.file?.toLowerCase().includes(query);
       const matchesAgent = event.agent?.toLowerCase().includes(query);
       const matchesMessage = event.message?.toLowerCase().includes(query);
@@ -140,6 +150,9 @@
   onDestroy(() => {
     // Clean up WebSocket listeners
     websocketService.off('project-switched', handleProjectSwitched);
+
+    // Clean up timeouts
+    clearTimeout(searchDebounceTimeout);
   });
 
   async function loadSessions() {
