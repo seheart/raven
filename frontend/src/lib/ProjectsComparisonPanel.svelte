@@ -83,8 +83,10 @@
     sortProjects();
   }
 
+  // Simplified to 4 status levels (was 7)
   function getActivityStatus(lastActivity) {
-    if (!lastActivity) return { label: 'Never', class: 'inactive' };
+    if (!lastActivity) return { label: 'Never', class: 'never' };
+
     const now = new Date();
     const last = new Date(lastActivity);
     const diffMs = now - last;
@@ -92,12 +94,18 @@
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 5) return { label: 'Active now', class: 'active-now' };
-    if (diffMins < 60) return { label: `${diffMins}m ago`, class: 'recent' };
-    if (diffHours < 24) return { label: `${diffHours}h ago`, class: 'today' };
-    if (diffDays === 1) return { label: 'Yesterday', class: 'yesterday' };
-    if (diffDays < 7) return { label: `${diffDays}d ago`, class: 'this-week' };
-    return { label: `${diffDays}d ago`, class: 'old' };
+    // Active: < 1 hour
+    if (diffMins < 60) {
+      return { label: diffMins < 5 ? 'Active now' : `${diffMins}m ago`, class: 'active' };
+    }
+
+    // Recent: < 24 hours
+    if (diffHours < 24) {
+      return { label: `${diffHours}h ago`, class: 'recent' };
+    }
+
+    // Idle: >= 24 hours
+    return { label: `${diffDays}d ago`, class: 'idle' };
   }
 
   function exportCSV() {
@@ -351,34 +359,25 @@
     text-transform: uppercase;
   }
 
-  .status-badge.active-now {
-    background: #00C853;
+  /* Simplified status badges: 4 levels instead of 7 */
+  .status-badge.active {
+    background: #00C853;  /* Green - Active (< 1 hour) */
     color: white;
+    font-weight: 600;
   }
 
   .status-badge.recent {
-    background: #82B1FF;
+    background: #82B1FF;  /* Blue - Recent (< 24 hours) */
     color: white;
   }
 
-  .status-badge.today {
-    background: #FFB74D;
-    color: white;
-  }
-
-  .status-badge.yesterday {
-    background: var(--border);
+  .status-badge.idle {
+    background: var(--border);  /* Gray - Idle (>= 24 hours) */
     color: var(--text);
   }
 
-  .status-badge.this-week {
-    background: var(--bg);
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-  }
-
-  .status-badge.old, .status-badge.inactive {
-    background: transparent;
+  .status-badge.never {
+    background: transparent;  /* Transparent - Never active */
     color: var(--text-muted);
     border: 1px solid var(--border);
   }

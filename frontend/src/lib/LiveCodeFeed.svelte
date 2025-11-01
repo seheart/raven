@@ -6,6 +6,7 @@
   import { api } from './apiClient.js';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
+  import { notifications } from './notificationService.js';
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -434,7 +435,10 @@
                     {/if}
                     <span class="change-time">{formatTime(change.timestamp)}</span>
                   </div>
-                  <button class="btn-copy" title="Copy">📋</button>
+                  <button class="btn-copy" title="Copy file path" on:click={() => {
+                    navigator.clipboard.writeText(change.filepath || 'Unknown file');
+                    notifications.success('File path copied!');
+                  }}>📋</button>
                 </div>
 
                 <div class="change-file">

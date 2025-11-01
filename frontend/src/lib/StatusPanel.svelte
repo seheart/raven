@@ -148,22 +148,28 @@
   async function restartBridge() {
     if (restartingBridge) return;
 
+    // Add confirmation
+    if (!confirm('Are you sure you want to restart the telemetry bridge? Claude Code tracking will be interrupted briefly.')) {
+      return;
+    }
+
     restartingBridge = true;
     try {
       // Use apiClient for proper error handling, auth, and timeouts
       const result = await api.post('/control/restart-bridge');
 
       if (result.success) {
+        notifications.success('Telemetry bridge restarted successfully');
         // Refresh health status after a moment to reflect new state
         const timeout = setTimeout(() => checkBackendHealth(), 1000);
         healthCheckTimeouts.push(timeout);
       } else {
         logger.error('Bridge restart failed:', result.error);
-        alert(`Failed to restart bridge: ${result.error}`);
+        notifications.error(`Failed to restart bridge: ${result.error}`);
       }
     } catch (error) {
       logger.error('Error restarting bridge:', error);
-      alert(`Error restarting bridge: ${error.message}`);
+      notifications.error(`Error restarting bridge: ${error.message}`);
     } finally {
       restartingBridge = false;
     }

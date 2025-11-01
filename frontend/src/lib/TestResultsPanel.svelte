@@ -298,7 +298,7 @@
 <div class="test-results-panel" role="region" aria-label="Test results panel">
   <div class="panel-header">
     <div class="header-top">
-      <h2 id="test-results-heading">Self-Diagnosis <span class="self-diagnosis-badge">Raven Internal Tests</span></h2>
+      <h2 id="test-results-heading">Raven Tests <span class="self-diagnosis-badge">Internal Health Checks</span></h2>
       <div class="header-actions" role="toolbar" aria-label="Test actions">
         {#if frameworks.length > 0}
           <button class="run-btn" on:click={() => runTests()} disabled={running} aria-label={running ? 'Running tests' : 'Run tests'}>
@@ -452,10 +452,10 @@
     </div>
   {:else if results.length === 0 && frameworks.length > 0}
     <div class="empty-state" role="status">
-      <div class="empty-icon" aria-hidden="true">🩺</div>
-      <h3>No Self-Diagnosis Yet</h3>
-      <p>Click "Run Tests" above to execute your automated tests</p>
-      <p class="hint">Tests will verify your code is working correctly and catch potential bugs</p>
+      <div class="empty-icon" aria-hidden="true">🧪</div>
+      <h3>No Tests Run Yet</h3>
+      <p>Click "Run Tests" above to test Raven's internal systems</p>
+      <p class="hint">These tests verify Raven itself is working correctly (not your projects)</p>
     </div>
   {:else if results.length > 0}
     <div class="results-history" role="region" aria-labelledby="test-history-heading">

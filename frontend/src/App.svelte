@@ -522,7 +522,7 @@
             class:active={currentSubView === 'tests'}
             on:click={() => router.navigate(activeTab, 'tests')}
           >
-            🩺 Self-Diagnosis
+            🧪 Raven Tests
           </button>
         </div>
         {#if !currentSubView}

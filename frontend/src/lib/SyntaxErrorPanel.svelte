@@ -91,11 +91,28 @@
       logger.error('Failed to open file:', error);
       notifications.error(`Failed to open file: ${error.message}`);
 
-      // Show file path as fallback
-      notifications.info(`File: ${filepath}:${lineNumber}`, {
-        duration: 7000,
-        title: 'Copy this path to open manually'
-      });
+      // Auto-copy file path to clipboard
+      try {
+        const fileLocation = `${filepath}:${lineNumber}`;
+        await navigator.clipboard.writeText(fileLocation);
+        notifications.success(`File path copied: ${fileLocation}`, {
+          duration: 7000,
+          title: 'Paste this in your editor'
+        });
+      } catch (copyError) {
+        // If clipboard fails, just show the path
+        notifications.info(`File: ${filepath}:${lineNumber}`, {
+          duration: 7000,
+          title: 'Copy this path to open manually'
+        });
+      }
+
+      // Also show help for configuring editor
+      setTimeout(() => {
+        notifications.info('Tip: Configure your default editor in Settings to use "Open File" feature', {
+          duration: 8000
+        });
+      }, 1000);
     }
   }
 

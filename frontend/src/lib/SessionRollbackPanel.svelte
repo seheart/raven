@@ -10,6 +10,8 @@
   let previewData = null;
   let previewing = false;
   let rollingback = false;
+  let showConfirmDialog = false;
+  let confirmCheckbox = false;
 
   // Fetch sessions
   async function fetchSessions() {
@@ -46,13 +48,18 @@
     }
   }
 
-  // Execute rollback
-  async function executeRollback() {
+  // Show confirmation dialog
+  function showRollbackConfirmation() {
     if (!selectedSession || !previewData?.canRollback) return;
+    showConfirmDialog = true;
+    confirmCheckbox = false;
+  }
 
-    if (!confirm(`Are you sure you want to rollback ${previewData.fileCount} file(s)? This will restore them to their state before the session started.`)) {
-      return;
-    }
+  // Execute rollback (after confirmation)
+  async function executeRollback() {
+    if (!selectedSession || !previewData?.canRollback || !confirmCheckbox) return;
+
+    showConfirmDialog = false;
 
     try {
       rollingback = true;
@@ -189,7 +196,7 @@
           <button class="cancel-btn" on:click={cancelPreview} disabled={rollingback} aria-label="Cancel rollback">
             Cancel
           </button>
-          <button class="rollback-btn" on:click={executeRollback} disabled={rollingback} aria-label={rollingback ? 'Rolling back files' : 'Confirm and execute rollback'}>
+          <button class="rollback-btn" on:click={showRollbackConfirmation} disabled={rollingback} aria-label={rollingback ? 'Rolling back files' : 'Confirm and execute rollback'}>
             {rollingback ? 'Rolling back...' : 'Confirm Rollback'}
           </button>
         </div>
@@ -256,6 +263,45 @@
     </div>
   {/if}
 </div>
+
+<!-- Confirmation Dialog -->
+{#if showConfirmDialog}
+  <div class="modal-overlay" on:click={() => { showConfirmDialog = false; confirmCheckbox = false; }} role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+    <div class="modal-content" on:click|stopPropagation role="document">
+      <h3 id="confirm-dialog-title">⚠️ Confirm Rollback</h3>
+      <div class="modal-body">
+        <p class="warning-text">
+          You are about to rollback <strong>{previewData?.fileCount || 0} file(s)</strong> to their state before this session started.
+        </p>
+        <p class="warning-subtext">
+          This action will <strong>permanently overwrite</strong> the current contents of these files. Make sure you have committed any important changes.
+        </p>
+
+        <label class="confirm-checkbox">
+          <input type="checkbox" bind:checked={confirmCheckbox} />
+          <span>I understand this will restore {previewData?.fileCount || 0} file(s) and may lose current work</span>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button
+          class="cancel-btn"
+          on:click={() => { showConfirmDialog = false; confirmCheckbox = false; }}
+          aria-label="Cancel rollback"
+        >
+          Cancel
+        </button>
+        <button
+          class="rollback-btn danger"
+          on:click={executeRollback}
+          disabled={!confirmCheckbox}
+          aria-label="Execute rollback"
+        >
+          Confirm Rollback
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .session-rollback-panel {
@@ -673,5 +719,120 @@
   .rollback-btn:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  /* Confirmation Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal-content {
+    background: var(--surface);
+    border: 2px solid var(--error);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-content h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    color: var(--error);
+    font-family: var(--mono);
+  }
+
+  .modal-body {
+    margin-bottom: 20px;
+  }
+
+  .warning-text {
+    font-size: 14px;
+    color: var(--text);
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+  }
+
+  .warning-subtext {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+  }
+
+  .confirm-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .confirm-checkbox:hover {
+    border-color: var(--accent);
+  }
+
+  .confirm-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  .confirm-checkbox span {
+    font-size: 13px;
+    color: var(--text);
+    user-select: none;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .rollback-btn.danger {
+    background: var(--error);
+    color: white;
+  }
+
+  .rollback-btn.danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--error) 90%, black);
+  }
+
+  .rollback-btn.danger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 </style>

@@ -90,6 +90,18 @@
     }
   }
 
+  function toggleExpandAll() {
+    if (expandedConversations.length === filteredConversations.length) {
+      // All are expanded, collapse all
+      expandedConversations = [];
+    } else {
+      // Expand all
+      expandedConversations = filteredConversations.map(conv => conv.id);
+    }
+  }
+
+  $: allExpanded = expandedConversations.length === filteredConversations.length && filteredConversations.length > 0;
+
   function getEventIcon(eventType) {
     switch (eventType) {
     case 'user_message': return '👤';
@@ -289,6 +301,10 @@
 
       <button class="btn-refresh" on:click={loadConversations} disabled={loading}>
         {#if loading}⏳{:else}🔄{/if} Refresh
+      </button>
+
+      <button class="btn-expand-all" on:click={toggleExpandAll} disabled={filteredConversations.length === 0} aria-label={allExpanded ? 'Collapse all conversations' : 'Expand all conversations'}>
+        {#if allExpanded}📕{:else}📖{/if} {allExpanded ? 'Collapse All' : 'Expand All'}
       </button>
 
       <button class="btn-import" on:click={() => showImportDialog = true}>
@@ -583,7 +599,7 @@
     cursor: pointer;
   }
 
-  .btn-refresh, .btn-import, .btn-export {
+  .btn-refresh, .btn-import, .btn-export, .btn-expand-all {
     padding: 8px 16px;
     background: var(--accent);
     color: white;
@@ -595,11 +611,11 @@
     transition: all 0.2s;
   }
 
-  .btn-refresh:hover, .btn-import:hover, .btn-export:hover {
+  .btn-refresh:hover, .btn-import:hover, .btn-export:hover, .btn-expand-all:hover {
     filter: brightness(1.2);
   }
 
-  .btn-refresh:disabled {
+  .btn-refresh:disabled, .btn-expand-all:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
