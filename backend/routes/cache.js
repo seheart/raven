@@ -5,6 +5,7 @@ import {
   analyticsCache,
   metricsCache,
   queryCache,
+  safetyCache,
   getAllCacheStats,
   clearAllCaches
 } from '../utils/cache.js';
@@ -63,7 +64,8 @@ export function createCacheRoutes() {
         dashboard: dashboardCache,
         analytics: analyticsCache,
         metrics: metricsCache,
-        query: queryCache
+        query: queryCache,
+        safety: safetyCache
       };
 
       if (caches[cacheName]) {

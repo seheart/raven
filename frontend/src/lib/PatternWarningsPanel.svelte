@@ -12,6 +12,10 @@
   let warningCount = 0;
   let ws = null;
   let selectedCategory = 'all';
+  let selectedProject = 'all';
+  let projects = [];
+  let limit = 30;
+  let loadingMore = false;
 
   const categories = [
     { id: 'all', label: 'All', icon: '🔍' },
@@ -22,25 +26,45 @@
   ];
 
   // Fetch warnings
-  async function fetchWarnings() {
+  async function fetchWarnings(append = false) {
     try {
-      loading = true;
+      if (append) {
+        loadingMore = true;
+      } else {
+        loading = true;
+        limit = 30; // Reset limit when fetching fresh
+      }
+
       const url = selectedCategory === 'all'
-        ? '/api/pattern-warnings?limit=100'
-        : `/api/pattern-warnings/category/${selectedCategory}`;
+        ? `/api/pattern-warnings?limit=${limit}`
+        : `/api/pattern-warnings/category/${selectedCategory}?limit=${limit}`;
 
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch warnings');
 
       const data = await response.json();
-      warnings = data.warnings;
+
+      if (append) {
+        warnings = data.warnings;
+      } else {
+        warnings = data.warnings;
+      }
       warningCount = data.count;
+
       loading = false;
+      loadingMore = false;
     } catch (error) {
       logger.error('Failed to fetch pattern warnings:', error);
       notifications.error('Failed to load pattern warnings');
       loading = false;
+      loadingMore = false;
     }
+  }
+
+  // Load more warnings
+  async function loadMore() {
+    limit += 30;
+    await fetchWarnings(true);
   }
 
   // Resolve warning
@@ -148,19 +172,45 @@
     if (ws) ws();
   });
 
-  // Watch category changes
+  // Watch category changes (project filtering is client-side only)
   $: if (selectedCategory !== undefined) {
     fetchWarnings();
   }
 
-  // Group warnings by file
-  $: warningsByFile = warnings.reduce((acc, warning) => {
+  // Extract unique projects from all warnings
+  $: {
+    const uniqueProjects = [...new Set(warnings.map(w => w.project_name).filter(Boolean))];
+    projects = uniqueProjects.sort();
+  }
+
+  // Filter warnings by selected project
+  $: filteredWarnings = selectedProject === 'all'
+    ? warnings
+    : warnings.filter(w => w.project_name === selectedProject);
+
+  // Group filtered warnings by file
+  $: warningsByFile = filteredWarnings.reduce((acc, warning) => {
     if (!acc[warning.filepath]) {
       acc[warning.filepath] = [];
     }
     acc[warning.filepath].push(warning);
     return acc;
   }, {});
+
+  // Shorten file path for display
+  function shortenPath(filepath) {
+    if (!filepath) return '';
+    // Remove home directory prefix
+    let shortened = filepath.replace(/^\/home\/[^/]+\/Projects\//, '');
+    // If still too long, show just filename with parent dir
+    if (shortened.length > 60) {
+      const parts = shortened.split('/');
+      if (parts.length > 2) {
+        return '.../' + parts.slice(-2).join('/');
+      }
+    }
+    return shortened;
+  }
 
   // Get severity color
   function getSeverityColor(severity) {
@@ -178,11 +228,14 @@
     return cat ? cat.icon : '📋';
   }
 
-  // Get severity stats
-  $: severityStats = warnings.reduce((acc, warning) => {
+  // Get severity stats from filtered warnings
+  $: severityStats = filteredWarnings.reduce((acc, warning) => {
     acc[warning.severity] = (acc[warning.severity] || 0) + 1;
     return acc;
   }, {});
+
+  // Count filtered warnings
+  $: filteredCount = filteredWarnings.length;
 </script>
 
 <div class="pattern-warnings-panel" role="region" aria-label="Pattern warnings panel">
@@ -219,29 +272,63 @@
     </p>
   </div>
 
-  <!-- Category Filter -->
-  <div class="category-filter" role="radiogroup" aria-label="Filter warnings by category" aria-labelledby="pattern-warnings-heading">
-    {#each categories as category (category)}
-      <button
-        class="category-btn"
-        class:active={selectedCategory === category.id}
-        on:click={() => selectedCategory = category.id}
-        role="radio"
-        aria-checked={selectedCategory === category.id}
-        aria-label="{category.label} warnings filter"
-      >
-        <span class="category-icon" aria-hidden="true">{category.icon}</span>
-        <span class="category-label">{category.label}</span>
-      </button>
-    {/each}
+  <!-- Filters -->
+  <div class="filters-container">
+    <!-- Category Filter -->
+    <div class="filter-group">
+      <label class="filter-label">Category:</label>
+      <div class="category-filter" role="radiogroup" aria-label="Filter warnings by category">
+        {#each categories as category (category)}
+          <button
+            class="category-btn"
+            class:active={selectedCategory === category.id}
+            on:click={() => selectedCategory = category.id}
+            role="radio"
+            aria-checked={selectedCategory === category.id}
+            aria-label="{category.label} warnings filter"
+          >
+            <span class="category-icon" aria-hidden="true">{category.icon}</span>
+            <span class="category-label">{category.label}</span>
+          </button>
+        {/each}
+      </div>
+    </div>
+
+    <!-- Project Filter -->
+    {#if projects.length > 0}
+      <div class="filter-group">
+        <label class="filter-label">Project:</label>
+        <div class="project-filter">
+          <button
+            class="project-btn"
+            class:active={selectedProject === 'all'}
+            on:click={() => selectedProject = 'all'}
+          >
+            All Projects
+          </button>
+          {#each projects as project (project)}
+            <button
+              class="project-btn"
+              class:active={selectedProject === project}
+              on:click={() => selectedProject = project}
+            >
+              {project}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
   </div>
 
   <!-- Stats Bar -->
-  {#if !loading && warningCount > 0}
+  {#if !loading && filteredCount > 0}
     <div class="stats-bar" role="region" aria-label="Warning statistics">
       <div class="stat-item">
-        <span class="stat-label">Total:</span>
-        <span class="stat-value" role="status">{formatNumber(warningCount)}</span>
+        <span class="stat-label">Showing:</span>
+        <span class="stat-value" role="status">{formatNumber(filteredCount)}</span>
+        {#if filteredCount !== warningCount}
+          <span class="stat-sublabel">of {formatNumber(warningCount)}</span>
+        {/if}
       </div>
       {#if severityStats.critical}
         <div class="stat-item critical">
@@ -272,15 +359,19 @@
       <div class="spinner" aria-hidden="true"></div>
       <p>Loading pattern warnings...</p>
     </div>
-  {:else if warningCount === 0}
+  {:else if filteredCount === 0}
     <div class="empty-state" role="status">
       <div class="empty-icon" aria-hidden="true">✅</div>
       <h3>No Pattern Warnings</h3>
       <p>
-        {#if selectedCategory === 'all'}
+        {#if warningCount === 0}
           No problematic patterns detected in your code!
-        {:else}
+        {:else if selectedProject !== 'all'}
+          No warnings found for project "{selectedProject}".
+        {:else if selectedCategory !== 'all'}
           No {selectedCategory} issues found.
+        {:else}
+          No warnings match your filters.
         {/if}
       </p>
     </div>
@@ -289,9 +380,14 @@
       {#each Object.entries(warningsByFile) as [filepath, fileWarnings] (filepath)}
         <section class="file-group" role="group" aria-label="Warnings in {filepath}">
           <div class="file-header">
-            <span class="file-icon" aria-hidden="true">📄</span>
-            <span class="file-path">{filepath}</span>
+            <div class="file-header-left">
+              <span class="file-icon" aria-hidden="true">📄</span>
+              <span class="file-path" title="{filepath}">{shortenPath(filepath)}</span>
+            </div>
             <div class="file-badges">
+              {#if fileWarnings[0]?.project_name}
+                <span class="project-badge-file">{fileWarnings[0].project_name}</span>
+              {/if}
               {#if fileWarnings.some(w => w.severity === 'critical')}
                 <span class="severity-badge critical" role="status">CRITICAL</span>
               {/if}
@@ -303,47 +399,48 @@
             {#each fileWarnings as warning (warning.id || warning.name || warning)}
               <article class="warning-item" style="--severity-color: {getSeverityColor(warning.severity)}" role="listitem">
                 <div class="warning-header">
-                  <span class="category-icon" aria-hidden="true">{getCategoryIcon(warning.category)}</span>
-                  <span class="warning-name">{warning.pattern_name}</span>
-                  <span class="severity-badge" style="background: {getSeverityColor(warning.severity)}" role="status">
-                    {warning.severity}
-                  </span>
+                  <div class="warning-title-group">
+                    <span class="warning-name">{warning.pattern_name}</span>
+                    <span class="severity-badge" style="background: {getSeverityColor(warning.severity)}" role="status">
+                      {warning.severity}
+                    </span>
+                  </div>
+                  <span class="line-number">Line {warning.line_number}</span>
                 </div>
 
-                {#if warning.project_name}
-                  <div class="warning-project">
-                    <span class="project-label">Project:</span>
-                    <span class="project-name">{warning.project_name}</span>
+                <div class="warning-message">{warning.message || ''}</div>
+
+                {#if warning.context || warning.match_text}
+                  <div class="warning-code">
+                    <code class="code-snippet">{warning.context || warning.match_text}</code>
                   </div>
                 {/if}
 
-                <div class="warning-description">{warning.message || ''}</div>
-
-                <div class="warning-location">
-                  <span class="location-label">Line {warning.line_number}:</span>
-                  <code class="warning-context">{warning.context || ''}</code>
-                </div>
-
-                {#if warning.match_text}
-                  <div class="warning-match">
-                    <span class="match-label">Matched:</span>
-                    <code class="match-text">{warning.match_text}</code>
+                {#if warning.suggestion}
+                  <div class="warning-suggestion">
+                    <span class="suggestion-icon" aria-hidden="true">💡</span>
+                    <span class="suggestion-text">{warning.suggestion}</span>
                   </div>
                 {/if}
-
-                <div class="warning-actions">
-                  <time class="warning-timestamp" datetime="{warning.timestamp}">
-                    {formatDateTime(warning.timestamp)}
-                  </time>
-                  <button class="resolve-btn" on:click={() => resolveWarning(warning.id)} aria-label="Mark {warning.pattern_name} as resolved">
-                    Mark as Resolved
-                  </button>
-                </div>
               </article>
             {/each}
           </div>
         </section>
       {/each}
+
+      <!-- Load More Button -->
+      {#if filteredCount > 0 && filteredCount < warningCount}
+        <div class="load-more-container">
+          <button class="load-more-btn" on:click={loadMore} disabled={loadingMore}>
+            {#if loadingMore}
+              <span class="spinner-small"></span> Loading...
+            {:else}
+              Load More ({formatNumber(Math.min(30, warningCount - filteredCount))} more)
+            {/if}
+          </button>
+          <span class="load-more-info">Showing {formatNumber(filteredCount)} of {formatNumber(warningCount)}</span>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -484,6 +581,27 @@
     border-bottom: 1px solid var(--border);
   }
 
+  /* Filters */
+  .filters-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
   /* Category Filter */
   .category-filter {
     display: flex;
@@ -523,11 +641,48 @@
   }
 
   .category-icon {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .category-label {
     font-size: 13px;
+  }
+
+  /* Project Filter */
+  .project-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .project-btn {
+    padding: 8px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    font-family: var(--mono);
+    text-transform: uppercase;
+  }
+
+  .project-btn:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+  }
+
+  .project-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .project-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   /* Stats Bar */
@@ -572,7 +727,13 @@
   }
 
   .stat-icon {
+    font-size: 12px;
+  }
+
+  .stat-sublabel {
     font-size: 11px;
+    color: var(--muted);
+    margin-left: 4px;
   }
 
   /* Loading & Empty States */
@@ -635,14 +796,24 @@
   .file-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
+  .file-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
   .file-icon {
-    font-size: 11px;
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
   .file-path {
@@ -651,27 +822,42 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .file-badges {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .project-badge-file {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--accent);
+    color: white;
+    font-family: var(--mono);
+    text-transform: uppercase;
   }
 
   .warning-count {
-    padding: 2px 8px;
+    padding: 3px 10px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     background: #fef2f2;
     color: #ef4444;
   }
 
   .severity-badge {
-    padding: 2px 8px;
+    padding: 3px 8px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     color: white;
@@ -688,7 +874,7 @@
   }
 
   .warning-item {
-    padding: 16px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border);
     border-left: 3px solid var(--severity-color);
   }
@@ -700,100 +886,129 @@
   .warning-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 12px;
     margin-bottom: 8px;
+  }
+
+  .warning-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
   }
 
   .warning-name {
-    flex: 1;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     color: var(--text);
   }
 
-  .warning-project {
-    margin-bottom: 8px;
+  .line-number {
     font-size: 12px;
-  }
-
-  .project-label {
     font-weight: 600;
     color: var(--muted);
-    margin-right: 6px;
-  }
-
-  .project-name {
     font-family: var(--mono);
-    font-size: 12px;
-    color: var(--accent);
-    font-weight: 600;
+    white-space: nowrap;
   }
 
-  .warning-description {
+  .warning-message {
     font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 12px;
+    color: var(--text);
+    margin-bottom: 10px;
     line-height: 1.5;
   }
 
-  .warning-location, .warning-match {
-    margin-bottom: 8px;
-    font-size: 12px;
+  .warning-code {
+    margin-bottom: 10px;
   }
 
-  .location-label, .match-label {
-    font-weight: 600;
-    color: var(--muted);
-    margin-right: 8px;
-  }
-
-  .warning-context, .match-text {
+  .code-snippet {
+    display: block;
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 13px;
     background: var(--surface);
-    padding: 4px 8px;
+    padding: 8px 12px;
     border-radius: 4px;
     color: var(--text);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 
-  .match-text {
-    color: var(--severity-color);
-    font-weight: 600;
-  }
-
-  .warning-actions {
+  .warning-suggestion {
     display: flex;
+    align-items: start;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #f0fdf4;
+    border-left: 3px solid #10b981;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #065f46;
+    line-height: 1.5;
+  }
+
+  .suggestion-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .suggestion-text {
+    flex: 1;
+  }
+
+  /* Load More */
+  .load-more-container {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
-    margin-top: 12px;
-  }
-
-  .warning-timestamp {
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .resolve-btn {
-    padding: 6px 12px;
+    padding: 24px;
+    background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 4px;
-    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  .load-more-btn {
+    padding: 12px 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
     font-weight: 600;
-    background: var(--surface);
-    color: var(--text);
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .resolve-btn:hover {
-    background: #10b981;
-    border-color: #10b981;
-    color: white;
+  .load-more-btn:hover:not(:disabled) {
+    background: var(--accent-hover, var(--accent));
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 
-  .resolve-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+  .load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .load-more-info {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
   }
 </style>

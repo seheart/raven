@@ -165,6 +165,7 @@ export const dashboardCache = new ResponseCache(100, 30000); // 30s TTL for dash
 export const analyticsCache = new ResponseCache(200, 60000); // 60s TTL for analytics
 export const metricsCache = new ResponseCache(100, 15000);   // 15s TTL for metrics
 export const queryCache = new ResponseCache(500, 10000);     // 10s TTL for general queries
+export const safetyCache = new ResponseCache(300, 30000);    // 30s TTL for safety endpoints
 
 /**
  * Generate cache key from request
@@ -224,6 +225,7 @@ export function getAllCacheStats() {
     analytics: analyticsCache.getStats(),
     metrics: metricsCache.getStats(),
     query: queryCache.getStats(),
+    safety: safetyCache.getStats(),
     file: {
       size: fileCache.size,
       maxSize: MAX_CACHE_SIZE
@@ -243,6 +245,7 @@ export function clearAllCaches() {
   analyticsCache.clear();
   metricsCache.clear();
   queryCache.clear();
+  safetyCache.clear();
   fileCache.clear();
   healthCache = { data: null, timestamp: 0 };
 }

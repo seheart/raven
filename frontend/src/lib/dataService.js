@@ -276,9 +276,7 @@ class DataService {
    * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchHealth(forceRefresh = false) {
-    // Use full URL for /health endpoint (it's at root, not under /api)
-    const fullUrl = API_BASE.replace('/api', '') + '/health';
-    return this.fetch(fullUrl, { forceRefresh, ttl: 3000 });
+    return this.fetch('/health', { forceRefresh, ttl: 3000 });
   }
 
   /**

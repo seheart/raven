@@ -7,6 +7,7 @@
   let sessions = [];
   let loading = true;
   let selectedSession = null;
+  let selectedSessionData = null;
   let previewData = null;
   let previewing = false;
   let rollingback = false;
@@ -31,12 +32,13 @@
   }
 
   // Preview rollback
-  async function previewRollback(sessionId) {
+  async function previewRollback(session) {
     try {
       previewing = true;
-      selectedSession = sessionId;
+      selectedSession = session.id;
+      selectedSessionData = session;
 
-      const response = await fetch(`/api/sessions/${sessionId}/preview`);
+      const response = await fetch(`/api/sessions/${session.id}/preview`);
       if (!response.ok) throw new Error('Failed to preview rollback');
 
       previewData = await response.json();
@@ -80,6 +82,7 @@
 
       // Reset state
       selectedSession = null;
+      selectedSessionData = null;
       previewData = null;
       rollingback = false;
 
@@ -95,6 +98,7 @@
   // Cancel preview
   function cancelPreview() {
     selectedSession = null;
+    selectedSessionData = null;
     previewData = null;
   }
 
@@ -155,9 +159,19 @@
       </div>
 
       <div class="preview-info" role="region" aria-label="Rollback information">
+        {#if selectedSessionData?.project_name}
+          <div class="info-item">
+            <span class="info-label">Project:</span>
+            <span class="info-value"><span class="project-badge-small">{selectedSessionData.project_name}</span></span>
+          </div>
+        {/if}
         <div class="info-item">
-          <span class="info-label">Session ID:</span>
-          <span class="info-value mono">{selectedSession.slice(0, 8)}...</span>
+          <span class="info-label">Session ended:</span>
+          <span class="info-value mono">{selectedSessionData?.end_time ? formatDate(selectedSessionData.end_time) : 'N/A'}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Changes made:</span>
+          <span class="info-value" role="status">{selectedSessionData?.event_count || 0}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Files to restore:</span>
@@ -216,17 +230,17 @@
           <div class="session-header">
             <div class="session-icon" aria-hidden="true">🔄</div>
             <div class="session-info">
-              <div class="session-id mono">{session.session_id ? session.session_id.slice(0, 13) : session.id || 'Unknown'}...</div>
-              <div class="session-time"><time datetime="{session.end_time || ''}">{session.end_time ? timeAgo(session.end_time) : 'N/A'}</time></div>
+              <div class="session-title">
+                {#if session.project_name}
+                  <span class="project-badge">{session.project_name}</span>
+                {/if}
+                <span class="session-time"><time datetime="{session.end_time || ''}">{session.end_time ? timeAgo(session.end_time) : 'N/A'}</time></span>
+              </div>
+              <div class="session-date">{session.end_time ? formatDate(session.end_time) : 'N/A'}</div>
             </div>
           </div>
 
           <div class="session-stats" role="group" aria-label="Session statistics">
-            <div class="stat">
-              <span class="stat-icon" aria-hidden="true">📄</span>
-              <span class="stat-value" role="status">{session.file_count || 0}</span>
-              <span class="stat-label">files</span>
-            </div>
             <div class="stat">
               <span class="stat-icon" aria-hidden="true">✏️</span>
               <span class="stat-value" role="status">{session.event_count || 0}</span>
@@ -237,26 +251,22 @@
               <span class="stat-value" role="status">{session.start_time && session.end_time ? formatDuration(session.start_time, session.end_time) : 'N/A'}</span>
               <span class="stat-label">duration</span>
             </div>
-          </div>
-
-          <div class="session-details">
-            <div class="detail-row">
-              <span class="detail-label">Started:</span>
-              <span class="detail-value">{session.start_time ? formatDate(session.start_time) : 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Ended:</span>
-              <span class="detail-value">{session.end_time ? formatDate(session.end_time) : 'N/A'}</span>
-            </div>
+            {#if session.quality_score !== undefined && session.quality_score !== null}
+              <div class="stat">
+                <span class="stat-icon" aria-hidden="true">✨</span>
+                <span class="stat-value" role="status">{session.quality_score}</span>
+                <span class="stat-label">quality</span>
+              </div>
+            {/if}
           </div>
 
           <button
             class="preview-btn"
-            on:click={() => previewRollback(session.session_id || session.id)}
+            on:click={() => previewRollback(session)}
             disabled={previewing}
-            aria-label={previewing && selectedSession === (session.session_id || session.id) ? 'Loading rollback preview' : 'Preview rollback for this session'}
+            aria-label={previewing && selectedSession === session.id ? 'Loading rollback preview' : 'Preview rollback for this session'}
           >
-            {previewing && selectedSession === (session.session_id || session.id) ? 'Loading...' : 'Preview Rollback'}
+            {previewing && selectedSession === session.id ? 'Loading...' : 'Preview Rollback'}
           </button>
         </article>
       {/each}
@@ -433,16 +443,47 @@
     flex: 1;
   }
 
-  .session-id {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
+  .session-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .project-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    background: var(--accent);
+    color: white;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--mono);
+    text-transform: uppercase;
+  }
+
+  .project-badge-small {
+    display: inline-block;
+    padding: 2px 6px;
+    background: var(--accent);
+    color: white;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--mono);
+    text-transform: uppercase;
   }
 
   .session-time {
     font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .session-date {
+    font-size: 11px;
     color: var(--muted);
-    margin-top: 2px;
+    font-family: var(--mono);
   }
 
   .session-stats {
@@ -476,31 +517,8 @@
     color: var(--muted);
   }
 
-  .session-details {
-    margin-bottom: 6px;
-    padding: 12px;
-    background: var(--surface);
-    border-radius: 3px;
-  }
-
-  .detail-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    padding: 4px 0;
-  }
-
-  .detail-label {
-    color: var(--muted);
-    font-weight: 600;
-  }
-
-  .detail-value {
-    color: var(--text);
-    font-family: var(--mono);
-  }
-
   .preview-btn {
+    margin-top: 6px;
     width: 100%;
     padding: 10px;
     background: var(--accent);

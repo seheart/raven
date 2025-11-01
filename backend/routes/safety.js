@@ -5,6 +5,7 @@ import { logger } from '../utils/logger.js';
 import { SyntaxChecker } from '../services/syntax-checker.js';
 import { PatternChecker } from '../services/pattern-checker.js';
 import { TestRunner } from '../services/test-runner.js';
+import { safetyCache, cacheMiddleware } from '../utils/cache.js';
 
 const execAsync = promisify(exec);
 
@@ -118,9 +119,9 @@ export function createSafetyRoutes(deps) {
 
   /**
    * GET /api/syntax-errors
-   * Get syntax errors
+   * Get syntax errors (with caching)
    */
-  router.get('/syntax-errors', (req, res) => {
+  router.get('/syntax-errors', cacheMiddleware(safetyCache), (req, res) => {
     try {
       const db = getDb();
 
@@ -286,9 +287,9 @@ export function createSafetyRoutes(deps) {
 
   /**
    * GET /api/pattern-warnings
-   * Get pattern warnings
+   * Get pattern warnings (with caching)
    */
-  router.get('/pattern-warnings', (req, res) => {
+  router.get('/pattern-warnings', cacheMiddleware(safetyCache), (req, res) => {
     try {
       const db = getDb();
 
@@ -317,9 +318,9 @@ export function createSafetyRoutes(deps) {
 
   /**
    * GET /api/pattern-warnings/category/:category
-   * Get pattern warnings by category
+   * Get pattern warnings by category (with caching)
    */
-  router.get('/pattern-warnings/category/:category', (req, res) => {
+  router.get('/pattern-warnings/category/:category', cacheMiddleware(safetyCache), (req, res) => {
     try {
       const db = getDb();
 
@@ -499,7 +500,7 @@ export function createSafetyRoutes(deps) {
    * GET /api/tests/frameworks
    * Get available test frameworks
    */
-  router.get('/tests/frameworks', (req, res) => {
+  router.get('/tests/frameworks', cacheMiddleware(safetyCache), (req, res) => {
     try {
       // Check if projectWatchers is available (stub for tests)
       if (!projectWatchers || projectWatchers.size === 0) {
@@ -538,7 +539,7 @@ export function createSafetyRoutes(deps) {
    * GET /api/tests/results
    * Get test results
    */
-  router.get('/tests/results', (req, res) => {
+  router.get('/tests/results', cacheMiddleware(safetyCache), (req, res) => {
     try {
       const db = getDb();
 
@@ -569,7 +570,7 @@ export function createSafetyRoutes(deps) {
    * GET /api/tests/details/:timestamp
    * Get all test details for a specific test run (failures first, then passed)
    */
-  router.get('/tests/details/:timestamp', (req, res) => {
+  router.get('/tests/details/:timestamp', cacheMiddleware(safetyCache), (req, res) => {
     try {
       const db = getDb();
       const { timestamp } = req.params;

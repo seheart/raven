@@ -18,6 +18,9 @@
   let expandedTests = false;
   let allTests = [];
   let testsLoading = false;
+  let limit = 20;
+  let loadingMore = false;
+  let total = 0;
 
   // Progress tracking
   let testProgress = {
@@ -49,14 +52,27 @@
   }
 
   // Fetch test results
-  async function fetchResults() {
+  async function fetchResults(append = false) {
     try {
-      loading = true;
-      const response = await fetch('/api/tests/results?limit=20');
+      if (append) {
+        loadingMore = true;
+      } else {
+        loading = true;
+        limit = 20; // Reset limit when fetching fresh
+      }
+
+      const response = await fetch(`/api/tests/results?limit=${limit}`);
       if (!response.ok) throw new Error('Failed to fetch results');
 
       const data = await response.json();
-      results = data.results;
+
+      if (append) {
+        results = data.results;
+      } else {
+        results = data.results;
+      }
+
+      total = data.total || 0;
 
       // Get latest result
       if (results.length > 0) {
@@ -64,11 +80,19 @@
       }
 
       loading = false;
+      loadingMore = false;
     } catch (error) {
       logger.error('Failed to fetch test results:', error);
       notifications.error('Failed to load test results');
       loading = false;
+      loadingMore = false;
     }
+  }
+
+  // Load more test results
+  async function loadMore() {
+    limit += 20;
+    await fetchResults(true);
   }
 
   // Clear all test results
@@ -485,6 +509,22 @@
           </article>
         {/each}
       </div>
+
+      <!-- Load More / Count Indicator -->
+      {#if total > 0}
+        <div class="load-more-container">
+          {#if results.length < total}
+            <button class="load-more-btn" on:click={loadMore} disabled={loadingMore}>
+              {#if loadingMore}
+                <span class="spinner-small"></span> Loading...
+              {:else}
+                Load More ({formatNumber(Math.min(20, total - results.length))} more)
+              {/if}
+            </button>
+          {/if}
+          <span class="load-more-info">Showing {formatNumber(results.length)} of {formatNumber(total)} test runs</span>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -1074,6 +1114,61 @@
     font-weight: 600;
     color: var(--text);
     margin-bottom: 8px;
+    font-family: var(--mono);
+  }
+
+  /* Load More functionality */
+  .load-more-container {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .load-more-btn {
+    padding: 8px 16px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .load-more-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  .load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .spinner-small {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .load-more-info {
+    font-size: 12px;
+    color: var(--muted);
     font-family: var(--mono);
   }
 

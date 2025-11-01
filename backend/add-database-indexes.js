@@ -6,9 +6,14 @@
  */
 
 import Database from 'better-sqlite3';
-import { logger } from 'utils/logger.js';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
+
+// Simple logger
+const logger = {
+  info: (...args) => console.log(...args),
+  error: (...args) => console.error(...args)
+};
 
 const DB_DIR = '.raven/db';
 
@@ -61,7 +66,22 @@ const INDEXES = [
   // Notifications table
   { table: 'notifications', name: 'idx_notifications_timestamp', columns: 'timestamp DESC' },
   { table: 'notifications', name: 'idx_notifications_read', columns: 'read' },
-  { table: 'notifications', name: 'idx_notifications_type', columns: 'type' }
+  { table: 'notifications', name: 'idx_notifications_type', columns: 'type' },
+
+  // Safety tables - Syntax Errors
+  { table: 'syntax_errors', name: 'idx_syntax_errors_timestamp', columns: 'timestamp DESC' },
+  { table: 'syntax_errors', name: 'idx_syntax_errors_resolved', columns: 'resolved' },
+  { table: 'syntax_errors', name: 'idx_syntax_errors_project', columns: 'project_name' },
+  { table: 'syntax_errors', name: 'idx_syntax_errors_severity', columns: 'severity' },
+  { table: 'syntax_errors', name: 'idx_syntax_errors_filepath', columns: 'filepath' },
+
+  // Safety tables - Pattern Warnings
+  { table: 'pattern_warnings', name: 'idx_pattern_warnings_timestamp', columns: 'timestamp DESC' },
+  { table: 'pattern_warnings', name: 'idx_pattern_warnings_resolved', columns: 'resolved' },
+  { table: 'pattern_warnings', name: 'idx_pattern_warnings_category', columns: 'category' },
+  { table: 'pattern_warnings', name: 'idx_pattern_warnings_project', columns: 'project_name' },
+  { table: 'pattern_warnings', name: 'idx_pattern_warnings_severity', columns: 'severity' },
+  { table: 'pattern_warnings', name: 'idx_pattern_warnings_filepath', columns: 'filepath' }
 ];
 
 function addIndexesToDatabase(dbPath, projectName) {

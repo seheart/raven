@@ -1809,13 +1809,21 @@ export class RavenDB {
 
     const errors = stmt.all(resolved ? 1 : 0, limit, offset);
 
+    // Truncate code snippets for performance (show first 150 chars in list view)
+    const processedErrors = errors.map(error => ({
+      ...error,
+      code_snippet: error.code_snippet && error.code_snippet.length > 150
+        ? error.code_snippet.substring(0, 150) + '...'
+        : error.code_snippet
+    }));
+
     // Get count
     const countStmt = this.prepareStatement(`
       SELECT COUNT(*) as count FROM syntax_errors WHERE resolved = ?
     `);
     const { count } = countStmt.get(resolved ? 1 : 0);
 
-    return { errors, count };
+    return { errors: processedErrors, count };
   }
 
   resolveSyntaxError(errorId) {
@@ -1881,6 +1889,17 @@ export class RavenDB {
     const stmt = this.prepareStatement(query);
     const warnings = stmt.all(...params);
 
+    // Truncate code snippets for performance (show first 150 chars in list view)
+    const processedWarnings = warnings.map(warning => ({
+      ...warning,
+      context: warning.context && warning.context.length > 150
+        ? warning.context.substring(0, 150) + '...'
+        : warning.context,
+      match_text: warning.match_text && warning.match_text.length > 150
+        ? warning.match_text.substring(0, 150) + '...'
+        : warning.match_text
+    }));
+
     // Get count
     let countQuery = 'SELECT COUNT(*) as count FROM pattern_warnings WHERE resolved = ?';
     const countParams = [resolved ? 1 : 0];
@@ -1893,7 +1912,7 @@ export class RavenDB {
     const countStmt = this.prepareStatement(countQuery);
     const { count } = countStmt.get(...countParams);
 
-    return { warnings, count };
+    return { warnings: processedWarnings, count };
   }
 
   resolvePatternWarning(warningId) {

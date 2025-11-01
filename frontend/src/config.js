@@ -10,7 +10,7 @@ export const API_CONFIG = {
   get ENDPOINTS() {
     return {
       // Health & Status
-      HEALTH: `${this.BASE_URL}/health`,
+      HEALTH: `${this.BASE_URL}/api/health`,
       SESSION_ID: `${this.BASE_URL}/api/session-id`,
 
       // Storage

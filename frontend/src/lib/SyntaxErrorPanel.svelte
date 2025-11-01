@@ -13,6 +13,10 @@
   let errorCount = 0;
   let ws = null;
   let settings = {};
+  let selectedProject = 'all';
+  let projects = [];
+  let limit = 30;
+  let loadingMore = false;
 
   // Subscribe to settings to get editor preference
   const unsubscribeSettings = settingsStore.subscribe(value => {
@@ -24,21 +28,36 @@
   });
 
   // Fetch syntax errors
-  async function fetchErrors() {
+  async function fetchErrors(append = false) {
     try {
-      loading = true;
-      const response = await fetch('/api/syntax-errors?limit=50');
+      if (append) {
+        loadingMore = true;
+      } else {
+        loading = true;
+        limit = 30; // Reset limit when fetching fresh
+      }
+
+      const response = await fetch(`/api/syntax-errors?limit=${limit}`);
       if (!response.ok) throw new Error('Failed to fetch syntax errors');
 
       const data = await response.json();
       errors = data.errors;
       errorCount = data.count;
+
       loading = false;
+      loadingMore = false;
     } catch (error) {
       logger.error('Failed to fetch syntax errors:', error);
       notifications.error('Failed to load syntax errors');
       loading = false;
+      loadingMore = false;
     }
+  }
+
+  // Load more errors
+  async function loadMore() {
+    limit += 30;
+    await fetchErrors(true);
   }
 
   // Resolve error
@@ -228,14 +247,40 @@ ${allErrorsText}`;
     if (ws) ws();
   });
 
-  // Group errors by file
-  $: errorsByFile = errors.reduce((acc, error) => {
+  // Extract unique projects from all errors
+  $: {
+    const uniqueProjects = [...new Set(errors.map(e => e.project_name).filter(Boolean))];
+    projects = uniqueProjects.sort();
+  }
+
+  // Filter errors by selected project
+  $: filteredErrors = selectedProject === 'all'
+    ? errors
+    : errors.filter(e => e.project_name === selectedProject);
+
+  // Group filtered errors by file
+  $: errorsByFile = filteredErrors.reduce((acc, error) => {
     if (!acc[error.filepath]) {
       acc[error.filepath] = [];
     }
     acc[error.filepath].push(error);
     return acc;
   }, {});
+
+  // Shorten file path for display
+  function shortenPath(filepath) {
+    if (!filepath) return '';
+    // Remove home directory prefix
+    let shortened = filepath.replace(/^\/home\/[^/]+\/Projects\//, '');
+    // If still too long, show just filename with parent dir
+    if (shortened.length > 60) {
+      const parts = shortened.split('/');
+      if (parts.length > 2) {
+        return '.../' + parts.slice(-2).join('/');
+      }
+    }
+    return shortened;
+  }
 
   // Get severity color
   function getSeverityColor(severity) {
@@ -257,29 +302,62 @@ ${allErrorsText}`;
     };
     return icons[language] || '📝';
   }
+
+  // Count filtered errors
+  $: filteredCount = filteredErrors.length;
 </script>
 
 <div class="syntax-error-panel" role="region" aria-label="Syntax errors panel">
   <div class="panel-header">
-    <h2 id="syntax-errors-heading">Syntax Errors</h2>
-    {#if !loading}
-      <span class="error-count" class:has-errors={errorCount > 0} role="status">
-        {formatNumber(errorCount)} {errorCount === 1 ? 'error' : 'errors'}
-      </span>
-    {/if}
-    <div class="header-actions">
-      {#if errorCount > 0}
-        <button class="action-btn copy-all-btn" on:click={copyAllErrors} aria-label="Copy all errors">
-          <span aria-hidden="true">📋</span> Copy All
-        </button>
-        <button class="action-btn clear-all-btn" on:click={clearAllErrors} aria-label="Clear all errors">
-          <span aria-hidden="true">🗑️</span> Clear All
-        </button>
+    <div class="header-top">
+      <h2 id="syntax-errors-heading">Syntax Errors</h2>
+      {#if !loading}
+        <span class="error-count" class:has-errors={filteredCount > 0} role="status">
+          {formatNumber(filteredCount)} {filteredCount === 1 ? 'error' : 'errors'}
+          {#if filteredCount !== errorCount}
+            <span class="total-count">of {formatNumber(errorCount)}</span>
+          {/if}
+        </span>
       {/if}
-      <button class="refresh-btn" on:click={fetchErrors} aria-label="Refresh syntax errors">
-        <span aria-hidden="true">↻</span>
-      </button>
+      <div class="header-actions">
+        {#if filteredCount > 0}
+          <button class="action-btn copy-all-btn" on:click={copyAllErrors} aria-label="Copy all errors">
+            <span aria-hidden="true">📋</span> Copy All
+          </button>
+          <button class="action-btn clear-all-btn" on:click={clearAllErrors} aria-label="Clear all errors">
+            <span aria-hidden="true">🗑️</span> Clear All
+          </button>
+        {/if}
+        <button class="refresh-btn" on:click={fetchErrors} aria-label="Refresh syntax errors">
+          <span aria-hidden="true">↻</span>
+        </button>
+      </div>
     </div>
+
+    <!-- Project Filter -->
+    {#if projects.length > 0}
+      <div class="filter-section">
+        <label class="filter-label">Project:</label>
+        <div class="project-filter">
+          <button
+            class="project-btn"
+            class:active={selectedProject === 'all'}
+            on:click={() => selectedProject = 'all'}
+          >
+            All Projects
+          </button>
+          {#each projects as project (project)}
+            <button
+              class="project-btn"
+              class:active={selectedProject === project}
+              on:click={() => selectedProject = project}
+            >
+              {project}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
   </div>
 
   {#if loading}
@@ -287,37 +365,49 @@ ${allErrorsText}`;
       <div class="spinner" aria-hidden="true"></div>
       <p>Loading syntax errors...</p>
     </div>
-  {:else if errorCount === 0}
+  {:else if filteredCount === 0}
     <div class="empty-state" role="status">
       <div class="empty-icon" aria-hidden="true">✅</div>
       <h3>No Syntax Errors</h3>
-      <p>All your code is syntactically correct!</p>
+      <p>
+        {#if errorCount === 0}
+          All your code is syntactically correct!
+        {:else if selectedProject !== 'all'}
+          No errors found in project "{selectedProject}".
+        {:else}
+          No errors match your filters.
+        {/if}
+      </p>
     </div>
   {:else}
     <div class="errors-list" role="region" aria-label="Syntax errors grouped by file" aria-labelledby="syntax-errors-heading">
       {#each Object.entries(errorsByFile) as [filepath, fileErrors] (filepath)}
         <section class="file-group" role="group" aria-label="Errors in {filepath}">
           <div class="file-header">
-            <span class="file-icon" aria-hidden="true">📄</span>
-            <span class="file-path">{filepath}</span>
-            <span class="file-error-count" role="status">{formatNumber(fileErrors.length)}</span>
+            <div class="file-header-left">
+              <span class="file-icon" aria-hidden="true">📄</span>
+              <span class="file-path" title="{filepath}">{shortenPath(filepath)}</span>
+            </div>
+            <div class="file-badges">
+              {#if fileErrors[0]?.project_name}
+                <span class="project-badge-file">{fileErrors[0].project_name}</span>
+              {/if}
+              <span class="file-error-count" role="status">{formatNumber(fileErrors.length)}</span>
+            </div>
           </div>
 
           <div class="errors" role="list" aria-label="Syntax errors in {filepath}">
             {#each fileErrors as error (error.id || error.name || error)}
               <article class="error-item" style="--severity-color: {getSeverityColor(error.severity)}" role="listitem">
                 <div class="error-header">
-                  <span class="language-icon" aria-hidden="true">{getLanguageIcon(error.language)}</span>
+                  <div class="error-title-group">
+                    <span class="language-icon" aria-hidden="true">{getLanguageIcon(error.language)}</span>
+                    <span class="severity-badge" role="status">{error.severity}</span>
+                  </div>
                   <span class="error-location">
                     Line {error.line_number}
-                    {#if error.column_number}
-                      , Col {error.column_number}
-                    {/if}
+                    {#if error.column_number}, Col {error.column_number}{/if}
                   </span>
-                  {#if error.project_name}
-                    <span class="project-badge" role="status">{error.project_name}</span>
-                  {/if}
-                  <span class="severity-badge" role="status">{error.severity}</span>
                 </div>
 
                 <div class="error-message">{error.message}</div>
@@ -333,18 +423,26 @@ ${allErrorsText}`;
                   <button class="copy-btn" on:click={() => copyError(error)} aria-label="Copy error details">
                     📋 Copy
                   </button>
-                  <time class="error-timestamp" datetime="{error.timestamp}">
-                    {formatDateTime(error.timestamp)}
-                  </time>
-                  <button class="resolve-btn" on:click={() => resolveError(error.id)} aria-label="Mark error on line {error.line_number} as resolved">
-                    Mark as Resolved
-                  </button>
                 </div>
               </article>
             {/each}
           </div>
         </section>
       {/each}
+
+      <!-- Load More Button -->
+      {#if filteredCount > 0 && filteredCount < errorCount}
+        <div class="load-more-container">
+          <button class="load-more-btn" on:click={loadMore} disabled={loadingMore}>
+            {#if loadingMore}
+              <span class="spinner-small"></span> Loading...
+            {:else}
+              Load More ({formatNumber(Math.min(30, errorCount - filteredCount))} more)
+            {/if}
+          </button>
+          <span class="load-more-info">Showing {formatNumber(filteredCount)} of {formatNumber(errorCount)}</span>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -360,12 +458,16 @@ ${allErrorsText}`;
   }
 
   .panel-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
     margin-bottom: 8px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
   }
 
   .panel-header h2 {
@@ -390,11 +492,68 @@ ${allErrorsText}`;
     color: #ef4444;
   }
 
+  .total-count {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
   .header-actions {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-left: auto;
+  }
+
+  /* Filter Section */
+  .filter-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .filter-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .project-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .project-btn {
+    padding: 6px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    font-family: var(--mono);
+    text-transform: uppercase;
+  }
+
+  .project-btn:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+  }
+
+  .project-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .project-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .action-btn {
@@ -536,14 +695,24 @@ ${allErrorsText}`;
   .file-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
+  .file-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
   .file-icon {
-    font-size: 11px;
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
   .file-path {
@@ -552,12 +721,33 @@ ${allErrorsText}`;
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .project-badge-file {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--accent);
+    color: white;
+    font-family: var(--mono);
+    text-transform: uppercase;
   }
 
   .file-error-count {
-    padding: 2px 8px;
+    padding: 3px 10px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     background: #fef2f2;
     color: #ef4444;
@@ -581,12 +771,19 @@ ${allErrorsText}`;
   .error-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .error-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
   .language-icon {
-    font-size: 11px;
+    font-size: 14px;
   }
 
   .error-location {
@@ -597,21 +794,12 @@ ${allErrorsText}`;
   }
 
   .severity-badge {
-    padding: 2px 8px;
+    padding: 3px 8px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     background: var(--severity-color);
-    color: white;
-  }
-
-  .project-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    background: #3b82f6;
     color: white;
   }
 
@@ -648,11 +836,11 @@ ${allErrorsText}`;
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    margin-top: 12px;
   }
 
   .open-file-btn {
-    padding: 6px 12px;
+    padding: 8px 14px;
     border: 1px solid var(--border);
     border-radius: 4px;
     font-size: 12px;
@@ -663,7 +851,7 @@ ${allErrorsText}`;
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
   }
 
   .open-file-btn:hover {
@@ -682,7 +870,7 @@ ${allErrorsText}`;
   }
 
   .copy-btn {
-    padding: 6px 12px;
+    padding: 8px 14px;
     border: 1px solid var(--border);
     border-radius: 4px;
     font-size: 12px;
@@ -693,7 +881,7 @@ ${allErrorsText}`;
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
   }
 
   .copy-btn:hover {
@@ -713,31 +901,56 @@ ${allErrorsText}`;
     outline-offset: 2px;
   }
 
-  .error-timestamp {
-    font-size: 11px;
+  /* Load More */
+  .load-more-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-top: 8px;
+  }
+
+  .load-more-btn {
+    padding: 12px 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .load-more-btn:hover:not(:disabled) {
+    background: var(--accent-hover, var(--accent));
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .load-more-info {
+    font-size: 12px;
     color: var(--muted);
   }
 
-  .resolve-btn {
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    background: var(--surface);
-    color: var(--text);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .resolve-btn:hover {
-    background: #10b981;
-    border-color: #10b981;
-    color: white;
-  }
-
-  .resolve-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+  .spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
   }
 </style>
