@@ -331,11 +331,14 @@ describe('Dashboard Routes', () => {
     });
 
     test('should handle database errors', async () => {
+      // Reset mock and set error implementation before making request
+      mockDeps.projectState.db.getAgentStats.mockClear();
       mockDeps.projectState.db.getAgentStats.mockImplementation(() => {
         throw new Error('Database error');
       });
 
-      const response = await request(app).get('/api/agent-stats');
+      // Use query param to bust cache
+      const response = await request(app).get('/api/agent-stats?_bustCache=' + Date.now());
 
       expect(response.status).toBe(500);
       expect(response.body.error).toBeDefined();

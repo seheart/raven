@@ -19,7 +19,6 @@ describe('Sessions Routes', () => {
     mockSessionTracker = {
       getActiveSession: jest.fn(),
       calculateSessionQuality: jest.fn(),
-      getBreakRecommendation: jest.fn(),
       getSessionStats: jest.fn()
     };
 
@@ -168,26 +167,6 @@ describe('Sessions Routes', () => {
     });
   });
 
-  describe('GET /api/sessions/break-recommendation', () => {
-    test('should return break recommendation', async () => {
-      const mockRecommendation = {
-        shouldTakeBreak: true,
-        reason: 'High concentration time',
-        sessionDuration: 120
-      };
-
-      mockSessionTracker.getBreakRecommendation.mockReturnValue(mockRecommendation);
-
-      const response = await request(app)
-        .get('/api/sessions/break-recommendation')
-        .expect('Content-Type', /json/)
-        .expect(200);
-
-      expect(response.body).toHaveProperty('recommendation');
-      expect(response.body.recommendation.shouldTakeBreak).toBe(true);
-    });
-  });
-
   describe('GET /api/sessions/stats', () => {
     test('should return session statistics', async () => {
       const mockStats = {
@@ -255,32 +234,6 @@ describe('Sessions Routes', () => {
         .expect(500);
 
       expect(response.body.error).toBe('Quality calculation failed');
-    });
-
-    test('should handle missing session tracker in break-recommendation endpoint', async () => {
-      const appNoTracker = express();
-      appNoTracker.use(express.json());
-      appNoTracker.use('/api/sessions', createSessionRoutes({
-        projectDatabases: mockProjectDatabases
-      }));
-
-      const response = await request(appNoTracker)
-        .get('/api/sessions/break-recommendation')
-        .expect(503);
-
-      expect(response.body.error).toBe('Session tracker not initialized');
-    });
-
-    test('should handle errors in getBreakRecommendation', async () => {
-      mockSessionTracker.getBreakRecommendation.mockImplementation(() => {
-        throw new Error('Break recommendation failed');
-      });
-
-      const response = await request(app)
-        .get('/api/sessions/break-recommendation')
-        .expect(500);
-
-      expect(response.body.error).toBe('Break recommendation failed');
     });
 
     test('should handle missing session tracker in stats endpoint', async () => {
