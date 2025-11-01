@@ -466,16 +466,14 @@
   // Watch for theme changes by observing body class changes
   let themeObserver;
 
-  onMount(() => {
-    loadConversations();
+  onMount(async () => {
+    await loadConversations();
     setupWebSocket();
 
     // Create charts after data loads and DOM is ready
-    setTimeout(() => {
-      if (showCharts && conversations.length > 0) {
-        createCharts();
-      }
-    }, 200);
+    if (showCharts && conversations.length > 0) {
+      setTimeout(createCharts, 200);
+    }
 
     // Watch for theme changes on body element
     themeObserver = new MutationObserver((mutations) => {

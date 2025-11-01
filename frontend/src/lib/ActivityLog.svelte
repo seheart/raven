@@ -716,15 +716,13 @@
     setTimeout(createCharts, 100);
   }
 
-  onMount(() => {
-    loadActivities();
+  onMount(async () => {
+    await loadActivities();
 
     // Create charts after data loads and DOM is ready
-    setTimeout(() => {
-      if (showCharts && activities.length > 0) {
-        createCharts();
-      }
-    }, 200);
+    if (showCharts && activities.length > 0) {
+      setTimeout(createCharts, 200);
+    }
 
     // Listen for real-time updates (no polling!)
     websocketService.connect();
