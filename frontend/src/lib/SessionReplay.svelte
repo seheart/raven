@@ -808,6 +808,51 @@
     border-radius: 3px;
     overflow-x: auto;
     margin-bottom: 12px;
+    position: relative;
+    /* Add scroll snap for better mobile experience */
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Add fade indicators at edges to show scrollability */
+  .timeline-buckets::before,
+  .timeline-buckets::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .timeline-buckets::before {
+    left: 0;
+    background: linear-gradient(to right, var(--bg), transparent);
+  }
+
+  .timeline-buckets::after {
+    right: 0;
+    background: linear-gradient(to left, var(--bg), transparent);
+  }
+
+  /* Improve scrollbar visibility on mobile */
+  .timeline-buckets::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .timeline-buckets::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--border) 30%, transparent);
+    border-radius: 3px;
+  }
+
+  .timeline-buckets::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+  }
+
+  .timeline-buckets::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-2, var(--accent));
   }
 
   .timeline-bucket {
