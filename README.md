@@ -1,5 +1,8 @@
 # Raven - Global AI Agent Monitor
 
+[![CI](https://github.com/seheart/raven/actions/workflows/ci.yml/badge.svg)](https://github.com/seheart/raven/actions/workflows/ci.yml)
+[![Backend Coverage](https://codecov.io/gh/seheart/raven/branch/master/graph/badge.svg)](https://codecov.io/gh/seheart/raven)
+
 > **Local-first, multi-project monitoring platform for AI coding agents**
 
 Raven monitors **all your AI agent projects simultaneously** from a single, elegant dashboard. Track file changes, system metrics, and events across 13+ projects in real time — no GitHub required. Built for Claude Code and other local AI development tools.
@@ -12,37 +15,56 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 
 ✅ **Production-ready with zero false positives on startup, guaranteed load times under 15 seconds, and comprehensive code quality improvements. All user-reported issues resolved plus systematic technical debt cleanup.**
 
-### 🎉 What's New in 1.6.6 - Critical Fixes & Code Quality (October 2025)
+### 🎉 What's New in 1.6.6 - Modularization & Performance (October 2025)
 
-**🐛 Critical User-Reported Fixes:**
+**🏗️ Major Code Refactoring - Better Organization:**
+- ✅ **Modular Backend Architecture** - Extracted 400+ lines from server.js into focused modules
+  - `backend/monitoring/performance-monitor.js` - Performance monitoring with startup grace period
+  - `backend/watchers/file-watcher.js` - File watching logic
+  - `backend/watchers/git-watcher.js` - Git monitoring
+  - `backend/watchers/initialize.js` - Watcher initialization
+  - `backend/startup/startup-helpers.js` - Project initialization
+  - `backend/utils/project-utils.js` - Utility functions
+- ✅ **Easier Testing** - Each module can be tested independently
+- ✅ **Better Maintainability** - Clear separation of concerns
+- ✅ **Zero Breaking Changes** - Fully backward compatible refactoring
+
+**⚡ Frontend Performance Optimizations:**
+- ✅ **Lazy Loading** - Heavy components loaded on-demand, reducing initial bundle size
+- ✅ **Intelligent Prefetching** - Preload panels during browser idle time for instant navigation
+- ✅ **Hover-Based Preloading** - Components prefetch when user hovers over tabs
+- ✅ **Faster Startup** - App.svelte optimized with smart import strategy
+- ✅ **Memory Leak Fixes** - Added dataService.destroy() cleanup in onDestroy
+
+**🐛 Critical Bug Fixes:**
 - ✅ **No More False Alarms** - Fixed "High process heap usage" warnings on startup (90-second grace period)
 - ✅ **No More Stuck Loading** - Health checks and project loading complete within 10-15 seconds or show helpful errors
 - ✅ **15-Second API Timeouts** - All requests now fail fast with clear error messages instead of hanging indefinitely
+- ✅ **Proper Cleanup** - Fixed WebSocket reconnect callback cleanup
+- ✅ **Removed Debug Logging** - Cleaned up console.log statements
 
-**🔒 Security & Code Quality:**
-- ✅ **Documented CSP Requirements** - Comprehensive explanation of Svelte's `unsafe-inline` needs with security justification
-- ✅ **Cleaned Technical Debt** - Removed 20+ obsolete commented code blocks from completed refactoring
-- ✅ **Fixed Test Conflicts** - Resolved 4 TODO items, re-enabled skipped tests with proper mock cleanup
-- ✅ **Named Constants** - Extracted all magic numbers to descriptive constants for better maintainability
-
-**🚀 Major Code Quality Improvements (Latest):**
-- ✅ **Centralized Configuration** - Created `config/constants.js` as single source of truth for all configuration values
-- ✅ **QueryBuilder Utility** - Eliminated 450+ lines of duplicate SQL code with fluent API pattern
-- ✅ **Structured Logging** - Replaced 20+ console.log statements with context-rich logger (error stacks, query details)
-- ✅ **Query Performance Monitoring** - Automatic slow query detection (>100ms) with detailed metrics
-- ✅ **TypeScript ESLint** - Full TypeScript linting support with strict no-console enforcement
-- ✅ **Zero Magic Numbers** - All timeouts, intervals, and limits centralized in constants
-- ✅ **Production-Grade Observability** - Enhanced debugging with structured logs and performance tracking
+**🔒 Code Quality Improvements:**
+- ✅ **Comprehensive Documentation** - Added detailed code review reports and action plans
+- ✅ **GitHub Actions CI/CD** - New workflow files for backend and frontend
+- ✅ **Test Infrastructure** - New test setup with proper shims and mocks
+- ✅ **Security Review** - 8.0/10 rating with no critical issues found
 
 **📊 Code Quality Metrics:**
-- **Grade Improvement:** B+ → A- (audit improvement)
-- **Duplicate Code Eliminated:** 450+ lines removed
-- **Magic Numbers:** 0 in production code
-- **Query Performance:** All queries monitored automatically
-- **Type Safety:** Full TypeScript ESLint enforcement
+- **Overall Rating:** 8.0/10 (GOOD)
+- **Backend Tests:** 113 test files ✅
+- **Frontend Tests:** 11 test files
+- **Security:** No critical issues, proper SQL injection prevention
+- **Code Organization:** Significantly improved with modular architecture
+
+**📝 New Documentation Files:**
+- `CODE_REVIEW_v1.6.6.md` - Detailed code quality review
+- `CODE_REVIEW_SUMMARY.txt` - Quick findings summary (8.0/10 rating)
+- `ISSUES_TO_FIX.md` - Tracked issues with priorities (0 critical, 0 high)
+- `docs/ACTION_PLAN_v1.6.6.md` - Implementation roadmap
+- `docs/RELEASE_NOTES_v1.6.6.md` - Release documentation
 
 **💡 Why This Matters:**
-Version 1.6.6 directly addresses user feedback with critical startup fixes AND implements enterprise-grade code quality improvements. The new QueryBuilder utility, centralized constants, structured logging, and automatic performance monitoring provide production-ready observability while eliminating technical debt. Code audit grade improved from B+ to A- with zero breaking changes.
+Version 1.6.6 transforms the codebase from functional to professional through systematic refactoring. The modular backend architecture makes the code easier to understand, test, and maintain. Frontend performance improvements with lazy loading and intelligent prefetching provide a snappier user experience. Critical startup issues are resolved, and comprehensive code quality documentation ensures future maintainability. All changes are backward compatible with zero breaking changes.
 
 ---
 

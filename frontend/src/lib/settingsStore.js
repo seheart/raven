@@ -37,6 +37,15 @@ const DEFAULT_SETTINGS = {
 
 // Load settings from localStorage
 function loadSettings() {
+  try {
+    // In test/SSR environments, localStorage may be unavailable
+    if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') {
+      return { ...DEFAULT_SETTINGS };
+    }
+  } catch (_) {
+    return { ...DEFAULT_SETTINGS };
+  }
+
   const saved = localStorage.getItem('raven-settings');
   if (saved) {
     try {
@@ -61,9 +70,11 @@ const settingsStore = writable(loadSettings());
 
 // Auto-save to localStorage whenever settings change
 settingsStore.subscribe(value => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('raven-settings', JSON.stringify(value));
-  }
+  try {
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+      localStorage.setItem('raven-settings', JSON.stringify(value));
+    }
+  } catch (_) {}
 });
 
 // Derived stores for specific setting sections
@@ -130,8 +141,14 @@ export const settings = {
 
     // Apply theme change immediately if theme was updated
     if (updates.theme) {
-      document.body.className = updates.theme;
-      localStorage.setItem('raven-theme', updates.theme);
+      try {
+        if (typeof document !== 'undefined') {
+          document.body.className = updates.theme;
+        }
+        if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+          localStorage.setItem('raven-theme', updates.theme);
+        }
+      } catch (_) {}
     }
   },
 
@@ -146,9 +163,11 @@ export const settings = {
   // Reset to defaults
   reset: () => {
     settingsStore.set({ ...DEFAULT_SETTINGS });
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('raven-settings');
-    }
+    try {
+      if (typeof localStorage !== 'undefined' && typeof localStorage.removeItem === 'function') {
+        localStorage.removeItem('raven-settings');
+      }
+    } catch (_) {}
   },
 
   // Get current settings value (non-reactive)

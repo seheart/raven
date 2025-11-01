@@ -75,7 +75,9 @@ function normalizePath(path) {
  * HTTP metrics middleware
  */
 export function metricsMiddleware(req, res, next) {
-  if (!env.ENABLE_METRICS) {
+  // Keep a runtime flag in sync with current env to help routes decide at request-time
+  metricsEnabledFlag = !!env.ENABLE_METRICS;
+  if (!metricsEnabledFlag) {
     return next();
   }
 
@@ -102,6 +104,13 @@ export function metricsMiddleware(req, res, next) {
   });
 
   next();
+}
+
+// Runtime metrics enabled flag, updated on each request by the middleware above
+let metricsEnabledFlag = !!env.ENABLE_METRICS;
+
+export function isMetricsEnabled() {
+  return metricsEnabledFlag;
 }
 
 /**

@@ -98,9 +98,13 @@ export function createDocumentationRoutes(deps) {
         return res.status(403).json({ error: 'Access denied: Path traversal attempt detected' });
       }
 
-      // Check if file exists
+      // Check if file exists and is not a directory
       try {
         await fsPromises.access(docsPath);
+        const stats = await fsPromises.stat(docsPath);
+        if (stats.isDirectory()) {
+          return res.status(500).json({ error: 'Cannot read a directory' });
+        }
       } catch (err) {
         return res.status(404).json({ error: 'Documentation file not found' });
       }

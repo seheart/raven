@@ -46,7 +46,8 @@ export function createEventsRoutes(deps) {
         watchPath = projectState.watchPath;
       }
 
-      let files = db.getTrackedFiles();
+      let tracked = db.getTrackedFiles() || [];
+      let files = Array.isArray(tracked) ? tracked : (tracked.files || []);
 
       // If no files tracked yet (fresh project), try to get files from Git
       if (files.length === 0 && watchPath) {
@@ -76,11 +77,14 @@ export function createEventsRoutes(deps) {
   router.get('/events-by-session/:sessionId', validate('eventsBySessionParams', 'params'), (req, res) => {
     try {
       const { sessionId } = req.params;
-      const events = projectState.db.getAgentEventsBySession(sessionId);
+      const db = projectState.db;
+      const events = typeof db.getEventsBySession === 'function'
+        ? db.getEventsBySession(sessionId)
+        : db.getAgentEventsBySession(sessionId);
       res.json(events);
     } catch (error) {
       logger.error('Events by session error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: 'Session query failed' });
     }
   });
 

@@ -361,8 +361,8 @@
 
 <!-- Add/Edit Project Modal -->
 {#if showAddModal || showEditModal}
-  <div class="modal-overlay" on:click={() => { showAddModal = false; showEditModal = false; }}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => { showAddModal = false; showEditModal = false; }} on:keydown={(e) => e.key === 'Escape' && (showAddModal = false, showEditModal = false)}>
+    <div class="modal" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()}>
       <div class="modal-header">
         <h3>{showAddModal ? 'Add New Project' : 'Edit Project'}</h3>
         <button class="modal-close" on:click={() => { showAddModal = false; showEditModal = false; }}>×</button>
@@ -462,8 +462,8 @@
 
 <!-- Discover Projects Modal -->
 {#if showDiscoverModal}
-  <div class="modal-overlay" on:click={() => showDiscoverModal = false}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => showDiscoverModal = false} on:keydown={(e) => e.key === 'Escape' && (showDiscoverModal = false)}>
+    <div class="modal" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()}>
       <div class="modal-header">
         <h3>🔍 Discovered Projects</h3>
         <button class="modal-close" on:click={() => showDiscoverModal = false}>×</button>
@@ -501,8 +501,8 @@
 
 <!-- Confirmation Modal -->
 {#if showConfirmModal}
-  <div class="modal-overlay" on:click={() => showConfirmModal = false}>
-    <div class="modal modal-confirm" on:click|stopPropagation>
+  <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => showConfirmModal = false} on:keydown={(e) => e.key === 'Escape' && (showConfirmModal = false)}>
+    <div class="modal modal-confirm" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()}>
       <div class="modal-header">
         <h3>⚠️ Confirm Action</h3>
         <button class="modal-close" on:click={() => showConfirmModal = false}>×</button>

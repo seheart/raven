@@ -288,7 +288,6 @@
           class="timeline-event {getChangeClass(event.change_type)}"
           class:selected={isSelectedForComparison(event)}
           class:selectable={comparisonMode}
-          role="article"
         >
           {#if comparisonMode}
             <div class="event-checkbox">
@@ -353,7 +352,7 @@
   role="presentation"
   tabindex="-1"
 >
-  <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="file-history-heading">
+  <div class="modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="file-history-heading">
     <div class="modal-header">
       <h2 id="file-history-heading"><span aria-hidden="true">📜</span> File History</h2>
       <div class="header-actions" role="toolbar" aria-label="File history actions">
@@ -426,7 +425,6 @@
             class="timeline-event {getChangeClass(event.change_type)}"
             class:selected={isSelectedForComparison(event)}
             class:selectable={comparisonMode}
-            role="article"
           >
             {#if comparisonMode}
               <div class="event-checkbox">

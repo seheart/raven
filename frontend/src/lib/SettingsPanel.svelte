@@ -626,14 +626,7 @@
     border-top: 1px solid var(--border);
   }
 
-  .subsection h4 {
-    margin: 0 0 12px 0;
-    color: var(--muted);
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
+  /* (removed unused .subsection h4) */
 
   .setting-row {
     display: grid;

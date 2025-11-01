@@ -795,7 +795,6 @@
     gap: 8px;
   }
 
-  .loading-state,
   .error-state,
   .empty-state {
     text-align: center;
@@ -803,19 +802,7 @@
     color: var(--muted);
   }
 
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 16px;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  /* (removed unused spinner) */
 
   .empty-icon,
   .error-icon {

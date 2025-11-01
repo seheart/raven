@@ -8,7 +8,7 @@
   let version = '0.8.0';
 </script>
 
-<footer class="footer" role="contentinfo">
+<footer class="footer">
   <div class="footer-content">
     <div class="footer-left">
       <span class="footer-brand">Raven v{version}</span>

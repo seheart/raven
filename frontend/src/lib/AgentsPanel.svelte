@@ -361,7 +361,7 @@
       {:else}
         <div class="events-list" role="feed" aria-label="Agent activity feed">
           {#each filteredAgentEvents as event (event.id || event.timestamp)}
-            <article class="event-row" role="article">
+            <article class="event-row">
               <span class="event-icon" aria-hidden="true">{getEventIcon(event.event_type)}</span>
               <div class="event-details">
                 <div class="event-header">
@@ -745,12 +745,7 @@
     min-height: 400px;
   }
 
-  .loading {
-    text-align: center;
-    padding: 16px 20px;
-    color: var(--muted);
-    font-size: 12px;
-  }
+  /* (removed unused .loading) */
 
   .empty {
     text-align: center;
@@ -1092,10 +1087,6 @@
     .agents-grid,
     .performance-grid {
       grid-template-columns: 1fr;
-    }
-
-    .bar-row {
-      grid-template-columns: 80px 1fr 60px;
     }
   }
 </style>

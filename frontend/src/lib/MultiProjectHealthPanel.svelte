@@ -186,8 +186,8 @@
   </div>
 
   <div class="controls">
-    <div class="control-group" role="radiogroup" aria-label="Sort projects by">
-      <label id="sort-label">Sort by:</label>
+    <div class="control-group" role="radiogroup" aria-labelledby="sort-label">
+      <span id="sort-label">Sort by:</span>
       <button class="sort-btn" class:active={sortBy === 'health'} on:click={() => sortBy = 'health'} role="radio" aria-checked={sortBy === 'health'}>Health Score</button>
       <button class="sort-btn" class:active={sortBy === 'name'} on:click={() => sortBy = 'name'} role="radio" aria-checked={sortBy === 'name'}>Name</button>
       <button class="sort-btn" class:active={sortBy === 'activity'} on:click={() => sortBy = 'activity'} role="radio" aria-checked={sortBy === 'activity'}>Activity</button>
@@ -354,11 +354,7 @@
     gap: 12px;
   }
 
-  .control-group label {
-    font-size: 14px;
-    color: var(--muted);
-    font-weight: 500;
-  }
+  /* (removed unused .control-group label) */
 
   .sort-btn {
     padding: 6px 14px;

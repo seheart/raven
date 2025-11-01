@@ -418,7 +418,7 @@
             <div class="empty-inline">No tests found</div>
           {:else}
             <div class="tests-list">
-              {#each allTests as test}
+              {#each allTests as test (test.test_file + ':' + test.test_name)}
                 <div class="test-item" class:failed={test.status === 'failed'} class:passed={test.status === 'passed'} class:skipped={test.status === 'skipped'}>
                   <div class="test-status-icon">
                     {#if test.status === 'passed'}✅

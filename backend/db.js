@@ -518,6 +518,19 @@ export class RavenDB {
   // ==================== File Events ====================
 
   insertEvent(timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size) {
+    // Support object-style argument for tests and callers passing a single event object
+    if (typeof timestamp === 'object' && timestamp !== null) {
+      const event = timestamp;
+      timestamp = event.timestamp || new Date().toISOString();
+      filepath = event.filepath || event.file || '';
+      change_type = event.change_type || event.event_type || '';
+      diff = event.diff ?? null;
+      cpu = event.cpu ?? null;
+      mem = event.mem ?? null;
+      session_id = event.session_id ?? null;
+      file_hash = event.file_hash ?? null;
+      event_size = event.event_size ?? event.lines_changed ?? 0;
+    }
     const stmt = this.prepareStatement(`
       INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -527,12 +540,12 @@ export class RavenDB {
       timestamp,
       filepath,
       change_type,
-      diff,
-      cpu,
-      mem,
-      session_id,
-      file_hash,
-      event_size
+      diff ?? null,
+      cpu ?? null,
+      mem ?? null,
+      session_id ?? null,
+      file_hash ?? null,
+      event_size ?? 0
     );
     return result.lastInsertRowid;
   }
@@ -582,6 +595,11 @@ export class RavenDB {
 
     // Return only the requested limit
     return allEvents.slice(0, limit);
+  }
+
+  // Backwards-compatibility for tests expecting this method name
+  getRecentEvents(limit = 100) {
+    return this.getRecentFileEvents(limit, false);
   }
 
   /**

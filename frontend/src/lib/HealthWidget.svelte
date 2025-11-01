@@ -107,6 +107,9 @@
 
       let largeDeletions = 0;
       let securityChanges = 0;
+      let totalAdded = 0;
+      let totalDeleted = 0;
+      const todayFiles = new Set();
 
       events.forEach(event => {
         const eventDate = new Date(event.timestamp);
@@ -121,6 +124,17 @@
           const securityPatterns = ['.env', '.git/config', '.pem', '.key', 'credentials'];
           if (event.filepath && securityPatterns.some(pattern => event.filepath.includes(pattern))) {
             securityChanges++;
+          }
+
+          // Aggregate lines added/deleted for today's stats
+          if (typeof event.lines_added === 'number') {
+            totalAdded += event.lines_added;
+          }
+          if (typeof event.lines_deleted === 'number') {
+            totalDeleted += event.lines_deleted;
+          }
+          if (event.filepath) {
+            todayFiles.add(event.filepath);
           }
         }
       });
@@ -154,6 +168,7 @@
       }
 
       health.lastCheck = new Date();
+      todayStats = { added: totalAdded, deleted: totalDeleted, files: todayFiles.size };
       loading = false;
     } catch (err) {
       logger.error('Failed to fetch health:', err);
@@ -203,9 +218,8 @@
   }
 
   onMount(() => {
-    // Initial load
+    // Initial load (fetchHealth already calls loadStartupHealthChecks internally)
     fetchHealth();
-    loadStartupHealthChecks();
 
     // Setup WebSocket for real-time updates (no polling needed!)
     setupWebSocket();
@@ -225,6 +239,9 @@
 
   // Get status configuration
   $: config = statusConfig[health.status];
+
+  // Today's stats (lines added/deleted)
+  let todayStats = { added: 0, deleted: 0, files: 0 };
 
   // Format timestamp
   function timeAgo(date) {
@@ -335,9 +352,17 @@
         </div>
 
         <!-- Refresh Button (far right) -->
-        <button class="refresh-btn" on:click={async () => { await loadStartupHealthChecks(); await fetchHealth(); }} aria-label="Refresh all health checks">
+        <button class="refresh-btn" on:click={async () => { await loadStartupHealthChecks(); await fetchHealth(); }} aria-label="Refresh health checks">
           <span aria-hidden="true">↻</span>
         </button>
+      </div>
+
+      <!-- Today's Stats and Last Updated -->
+      <div class="today-stats" aria-live="polite">
+        <span>{todayStats.files} files</span>
+        <span style="margin-left: 10px;">{todayStats.added} added</span>
+        <span style="margin-left: 10px;">{todayStats.deleted} deleted</span>
+        <span style="margin-left: auto; color: var(--muted);">Updated {timeAgo(health.lastCheck)}</span>
       </div>
 
     <!-- Expandable Startup Health Details -->

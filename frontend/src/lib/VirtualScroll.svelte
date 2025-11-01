@@ -63,7 +63,7 @@
   role="list"
   aria-label="Virtual scrollable list with {items.length} items"
   aria-live="polite"
-  tabindex="0"
+  tabindex="-1"
 >
   <div class="virtual-scroll-spacer" style="height: {totalHeight}px;">
     <div

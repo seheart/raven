@@ -77,7 +77,7 @@
   aria-labelledby="diff-title"
   tabindex="-1"
 >
-  <div class="diff-modal-content" on:click|stopPropagation role="document">
+  <div class="diff-modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
     <div class="diff-header">
       <h2 id="diff-title"><span aria-hidden="true">📊</span> Diff Viewer</h2>
       <button class="close-btn" on:click={onClose} aria-label="Close diff viewer">×</button>

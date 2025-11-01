@@ -222,10 +222,10 @@
         <p>{error}</p>
       </div>
     {:else if html}
-      <article class="markdown-content" on:click={handleMarkdownClick}>
+      <div class="markdown-content" on:click={handleMarkdownClick} role="button" tabindex="0" on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleMarkdownClick(e)} aria-label="Activate links in document">
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html html}
-      </article>
+      </div>
     {:else}
       <div class="empty" role="status">
         <h2>Select a document</h2>

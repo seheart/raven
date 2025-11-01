@@ -66,11 +66,13 @@ function loadOrGenerateJWTSecret() {
 // JWT Secret - Load from env or generate/load from file
 const JWT_SECRET = process.env.JWT_SECRET || loadOrGenerateJWTSecret();
 
-// Validate secret strength
+// Validate secret strength - require strong secret in production, warn in dev/test
 if (JWT_SECRET.length < 32) {
-  logger.error('❌ JWT_SECRET is too weak (< 32 chars)');
   if (IS_PRODUCTION) {
+    logger.error('❌ JWT_SECRET is too weak (< 32 chars)');
     throw new Error('JWT_SECRET must be at least 32 characters in production');
+  } else {
+    logger.warn('⚠️  JWT_SECRET is weak (< 32 chars) - recommended to use at least 32 characters');
   }
 }
 

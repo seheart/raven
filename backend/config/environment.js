@@ -56,7 +56,7 @@ function getIntEnv(name, defaultValue) {
 /**
  * Application environment configuration
  */
-export const env = {
+const baseEnv = {
   // Environment
   NODE_ENV: getEnv('NODE_ENV', 'development'),
   IS_PRODUCTION: process.env.NODE_ENV === 'production',
@@ -107,6 +107,22 @@ export const env = {
   // Projects
   ACTIVE_PROJECT: getEnv('ACTIVE_PROJECT', 'raven')
 };
+
+// Proxy to keep ENABLE_METRICS writes in sync across module instances via process.env
+export const env = new Proxy(baseEnv, {
+  get(target, prop) {
+    return target[prop];
+  },
+  set(target, prop, value) {
+    target[prop] = value;
+    if (prop === 'ENABLE_METRICS') {
+      try {
+        process.env.ENABLE_METRICS = value ? 'true' : 'false';
+      } catch (_) {}
+    }
+    return true;
+  }
+});
 
 /**
  * Validate required configuration

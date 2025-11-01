@@ -8,6 +8,7 @@
   import { logger } from './logger.js';
   import { formatNumber } from './numberFormat.js';
   import { dataService } from './dataService.js';
+  import { api } from './apiClient.js';
 
   const API_BASE = API_CONFIG.BASE_URL;
 
@@ -148,12 +149,8 @@
 
     restartingBridge = true;
     try {
-      const response = await fetch(`${API_BASE}/api/control/restart-bridge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const result = await response.json();
+      // Use apiClient for proper error handling, auth, and timeouts
+      const result = await api.post('/control/restart-bridge');
 
       if (result.success) {
         // Refresh health status after a moment to reflect new state
@@ -242,7 +239,7 @@
 
   <div class="status-grid" role="group" aria-labelledby="status-heading">
     <!-- Backend Status Card -->
-    <article class="status-card" role="article" aria-labelledby="backend-heading">
+    <article class="status-card" aria-labelledby="backend-heading">
       <div class="card-header">
         <h3 id="backend-heading"><span aria-hidden="true">⚙️</span> Backend Server</h3>
         {#if loading}
@@ -321,7 +318,7 @@
     </article>
 
     <!-- WebSocket Status Card -->
-    <article class="status-card" role="article" aria-labelledby="websocket-heading">
+    <article class="status-card" aria-labelledby="websocket-heading">
       <div class="card-header">
         <h3 id="websocket-heading"><span aria-hidden="true">🔌</span> WebSocket Connection</h3>
         {#if loading}
@@ -363,7 +360,7 @@
     </article>
 
     <!-- Telemetry Bridge Status Card -->
-    <article class="status-card" role="article" aria-labelledby="telemetry-heading">
+    <article class="status-card" aria-labelledby="telemetry-heading">
       <div class="card-header">
         <h3 id="telemetry-heading"><span aria-hidden="true">🔗</span> Telemetry Bridge</h3>
         {#if loading}
@@ -420,7 +417,7 @@
     </article>
 
     <!-- Monitored Projects Card -->
-    <article class="status-card full-width" role="article" aria-labelledby="projects-heading">
+    <article class="status-card full-width" aria-labelledby="projects-heading">
       <div class="card-header">
         <h3 id="projects-heading"><span aria-hidden="true">👁️</span> Monitored Projects</h3>
         {#if loading}
@@ -444,7 +441,6 @@
               class="project-item"
               class:selected={$projectFilter === projectName}
               on:click={() => projectFilter.set(projectName)}
-              role="listitem"
               aria-label="Switch to project {projectName}"
               aria-pressed={$projectFilter === projectName}
             >
@@ -464,7 +460,7 @@
     </article>
 
     <!-- Git Repository Status Card -->
-    <article class="status-card full-width" role="article" aria-labelledby="git-heading">
+    <article class="status-card full-width" aria-labelledby="git-heading">
       <div class="card-header">
         <h3 id="git-heading"><span aria-hidden="true">🌳</span> Git Repository</h3>
         {#if loading}

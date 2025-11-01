@@ -514,15 +514,7 @@
     color: var(--text);
   }
 
-  .path-input-group {
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
-  }
-
-  .path-input-group input {
-    flex: 1;
-  }
+  /* (removed unused .path-input-group) */
 
   .project-input input {
     padding: 12px 16px;
@@ -540,45 +532,11 @@
     border-color: var(--accent);
   }
 
-  .project-select {
-    padding: 12px 16px;
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 15px;
-    font-family: inherit;
-    cursor: pointer;
-    transition: border-color 0.2s;
-    width: 100%;
-  }
+  /* (removed unused .project-select styles) */
 
-  .project-select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
+  /* (removed unused .selected-path) */
 
-  .project-select:hover {
-    border-color: var(--accent);
-  }
-
-  .selected-path {
-    font-size: 13px;
-    color: var(--muted);
-    margin: 4px 0 0 0;
-    font-family: var(--mono);
-    padding: 8px 12px;
-    background: var(--surface-2);
-    border-radius: 6px;
-  }
-
-  .loading-text {
-    font-size: 14px;
-    color: var(--muted);
-    text-align: center;
-    padding: 20px;
-    margin: 0;
-  }
+  /* (removed unused .loading-text) */
 
   .hint {
     font-size: 13px;

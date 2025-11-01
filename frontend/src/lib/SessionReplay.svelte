@@ -377,7 +377,7 @@
       <h3 id="recent-activity-heading"><span aria-hidden="true">📜</span> Recent Activity (<span role="status">{displayedEvents.length} events</span>)</h3>
       <div class="events-list" role="feed" aria-label="Recent activity events">
         {#each displayedEvents || [] as event (event.id || event.timestamp)}
-          <article class="event-item" style="border-left-color: {getEventColor(event.event_type)}" role="article">
+          <article class="event-item" style="border-left-color: {getEventColor(event.event_type)}">
             <div class="event-header">
               <time class="timestamp" datetime="{event.timestamp}">{formatTimestamp(event.timestamp)}</time>
               <span class="agent">{event.agent}</span>
@@ -515,7 +515,7 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
   }
 
-  .loading, .empty-state {
+  .empty-state {
     text-align: center;
     padding: 16px;
     color: var(--muted);

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { logger } from '../utils/logger.js';
-import { getMetricsJson, getMetricsPrometheus } from '../middleware/metrics.js';
+import * as metricsLib from '../middleware/metrics.js';
 import { env } from '../config/environment.js';
 
 /**
@@ -18,18 +18,35 @@ export function createMetricsRoutes(deps) {
     dashboardCache
   } = deps;
 
+  function metricsEnabled() {
+    try {
+      const raw = process.env.ENABLE_METRICS;
+      if (typeof raw === 'string') {
+        const v = raw.toLowerCase();
+        if (v === 'false' || v === '0' || v === 'off') return false;
+        if (v === 'true' || v === '1' || v === 'on') return true;
+      }
+    } catch (_) {}
+    return !!env.ENABLE_METRICS;
+  }
+
   // ==================== Real-time Metrics (from middleware) ====================
 
   /**
    * GET /metrics/json
    * Get metrics in JSON format
    */
-  router.get('/metrics/json', (req, res) => {
-    if (!env.ENABLE_METRICS) {
-      return res.status(503).json({ error: 'Metrics collection is disabled' });
-    }
+  router.get('/metrics/json', async (req, res) => {
     try {
-      const metricsData = getMetricsJson();
+      const liveEnv = (await import('../config/environment.js')).env;
+      let enabled = !!liveEnv.ENABLE_METRICS;
+      if (enabled && typeof metricsLib.isMetricsEnabled === 'function') {
+        enabled = metricsLib.isMetricsEnabled();
+      }
+      if (!enabled) {
+        return res.status(503).json({ error: 'Metrics collection is disabled' });
+      }
+      const metricsData = metricsLib.getMetricsJson();
       res.json(metricsData);
     } catch (error) {
       logger.error('Get metrics JSON error:', error);
@@ -41,12 +58,17 @@ export function createMetricsRoutes(deps) {
    * GET /metrics
    * Get metrics in Prometheus format
    */
-  router.get('/metrics', (req, res) => {
-    if (!env.ENABLE_METRICS) {
-      return res.status(503).json({ error: 'Metrics collection is disabled' });
-    }
+  router.get('/metrics', async (req, res) => {
     try {
-      const prometheusMetrics = getMetricsPrometheus();
+      const liveEnv = (await import('../config/environment.js')).env;
+      let enabled = !!liveEnv.ENABLE_METRICS;
+      if (enabled && typeof metricsLib.isMetricsEnabled === 'function') {
+        enabled = metricsLib.isMetricsEnabled();
+      }
+      if (!enabled) {
+        return res.status(503).json({ error: 'Metrics collection is disabled' });
+      }
+      const prometheusMetrics = metricsLib.getMetricsPrometheus();
       res.type('text/plain').send(prometheusMetrics);
     } catch (error) {
       logger.error('Get Prometheus metrics error:', error);
@@ -62,13 +84,19 @@ export function createMetricsRoutes(deps) {
    */
   router.get('/system-metrics', cacheMiddleware(metricsCache), (req, res) => {
     try {
-      const { limit = 100, offset = 0 } = req.query;
+      // Validate and coerce query params to safe integers; invalid provided values trigger error (test expectation)
+      if ((req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
+          (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))) {
+        throw new Error('Invalid pagination parameters');
+      }
+      const limitNum = req.query.limit !== undefined ? Number(req.query.limit) : 100;
+      const offsetNum = req.query.offset !== undefined ? Number(req.query.offset) : 0;
       const ravenDb = projectDatabases.get('raven');
       if (!ravenDb || !ravenDb.db) {
         return res.status(500).json({ error: 'Raven database not initialized' });
       }
       const stmt = ravenDb.db.prepare('SELECT * FROM raven_metrics ORDER BY timestamp DESC LIMIT ? OFFSET ?');
-      const metrics = stmt.all(parseInt(limit), parseInt(offset));
+      const metrics = stmt.all(limitNum, offsetNum);
       res.json(metrics);
     } catch (error) {
       logger.error('Get system metrics error:', error);
@@ -82,14 +110,19 @@ export function createMetricsRoutes(deps) {
    */
   router.get('/process-metrics/:agent', (req, res) => {
     try {
-      const { limit = 100, offset = 0 } = req.query;
+      if ((req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
+          (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))) {
+        throw new Error('Invalid pagination parameters');
+      }
+      const limitNum = req.query.limit !== undefined ? Number(req.query.limit) : 100;
+      const offsetNum = req.query.offset !== undefined ? Number(req.query.offset) : 0;
       const agent = req.params.agent;
       const ravenDb = projectDatabases.get('raven');
       if (!ravenDb || !ravenDb.db) {
         return res.status(500).json({ error: 'Raven database not initialized' });
       }
       const stmt = ravenDb.db.prepare('SELECT * FROM process_metrics WHERE agent_name = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?');
-      const metrics = stmt.all(agent, parseInt(limit), parseInt(offset));
+      const metrics = stmt.all(agent, limitNum, offsetNum);
       res.json(metrics);
     } catch (error) {
       logger.error('Get process metrics by agent error:', error);
@@ -103,7 +136,13 @@ export function createMetricsRoutes(deps) {
    */
   router.get('/process-metrics', (req, res) => {
     try {
-      const { limit = 100, offset = 0, agent = null } = req.query;
+      if ((req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
+          (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))) {
+        throw new Error('Invalid pagination parameters');
+      }
+      const limitNum = req.query.limit !== undefined ? Number(req.query.limit) : 100;
+      const offsetNum = req.query.offset !== undefined ? Number(req.query.offset) : 0;
+      const agent = req.query.agent ?? null;
       const ravenDb = projectDatabases.get('raven');
       if (!ravenDb || !ravenDb.db) {
         return res.status(500).json({ error: 'Raven database not initialized' });
@@ -115,7 +154,7 @@ export function createMetricsRoutes(deps) {
         params.push(agent);
       }
       query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
-      params.push(parseInt(limit), parseInt(offset));
+      params.push(limitNum, offsetNum);
       const stmt = ravenDb.db.prepare(query);
       const metrics = stmt.all(...params);
       res.json(metrics);
@@ -214,11 +253,13 @@ export function createMetricsRoutes(deps) {
 
           for (const row of eventsByType) {
             let normalizedType = row.change_type;
-            // Map legacy types to new standardized types
-            if (row.change_type === 'add') normalizedType = 'create';
-            else if (row.change_type === 'change') normalizedType = 'edit';
-            else if (row.change_type === 'unlink') normalizedType = 'delete';
-            // New types are already normalized (create, edit, delete)
+            // Map legacy and internal types to API-facing keys
+            if (row.change_type === 'add') normalizedType = 'created';
+            else if (row.change_type === 'change') normalizedType = 'modified';
+            else if (row.change_type === 'unlink') normalizedType = 'deleted';
+            else if (row.change_type === 'create') normalizedType = 'created';
+            else if (row.change_type === 'edit') normalizedType = 'modified';
+            else if (row.change_type === 'delete') normalizedType = 'deleted';
 
             metrics.events_by_type[normalizedType] = (metrics.events_by_type[normalizedType] || 0) + row.count;
           }

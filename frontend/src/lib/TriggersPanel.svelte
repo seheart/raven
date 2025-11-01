@@ -628,12 +628,7 @@
     min-height: 400px;
   }
 
-  .loading {
-    text-align: center;
-    padding: 16px 20px;
-    color: var(--muted);
-    font-size: 12px;
-  }
+  /* (removed unused .loading) */
 
   .empty {
     text-align: center;
@@ -974,17 +969,7 @@
     font-size: 12px;
   }
 
-  .event-project {
-    padding: 2px 8px;
-    background: color-mix(in srgb, var(--accent) 15%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--accent);
-    text-transform: lowercase;
-    font-family: var(--mono);
-  }
+  /* (removed unused .event-project) */
 
   .event-message {
     color: var(--text);

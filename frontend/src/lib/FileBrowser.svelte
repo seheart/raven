@@ -123,7 +123,7 @@
           aria-label="Select project"
         >
           <option value="">All Projects (Default)</option>
-          {#each projects as project}
+          {#each projects as project (project.name)}
             <option value={project.name}>{project.name}</option>
           {/each}
         </select>
@@ -149,7 +149,6 @@
             class="file-item"
             class:expanded={expandedFile === filepath}
             on:click={() => toggleFileHistory(filepath)}
-            role="listitem"
             aria-label="View history for {getFileName(filepath)}"
             aria-expanded={expandedFile === filepath}
           >

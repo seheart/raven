@@ -1,3 +1,72 @@
+name: CI (Frontend & Backend)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [ frontend, backend ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+
+      - name: Install (${{ matrix.project }})
+        working-directory: ${{ matrix.project }}
+        run: npm ci
+
+      - name: Lint (frontend)
+        if: matrix.project == 'frontend'
+        working-directory: frontend
+        run: npm run lint --silent
+
+      - name: Build (frontend)
+        if: matrix.project == 'frontend'
+        working-directory: frontend
+        run: npm run build --silent
+
+      - name: Test (frontend)
+        if: matrix.project == 'frontend'
+        working-directory: frontend
+        run: npm run test:run --silent
+
+      - name: Test (backend) with coverage
+        if: matrix.project == 'backend'
+        working-directory: backend
+        env:
+          CI: true
+        run: npm test --silent -- --config jest.config.js --coverage --runInBand
+
+      - name: Upload coverage artifact (backend)
+        if: matrix.project == 'backend'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/
+
+      - name: Upload to Codecov (backend)
+        if: matrix.project == 'backend'
+        uses: codecov/codecov-action@v4
+        with:
+          directory: backend/coverage
+          flags: backend
+          fail_ci_if_error: false
+          verbose: false
+
 name: CI Pipeline
 
 on:

@@ -97,7 +97,6 @@
         class="get-started-button"
         on:click={handleGetStarted}
         aria-label="Get started with Raven"
-        autofocus
       >
         Let's Go! 🚀
       </button>

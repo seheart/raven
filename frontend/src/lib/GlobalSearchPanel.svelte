@@ -188,7 +188,7 @@
   {:else if filteredResults.length > 0}
     <div class="results-list" id="results-list" role="feed" aria-label="Search results" aria-busy="false">
       {#each filteredResults as result (result.type + result.id)}
-        <article class="result-card {getTypeClass(result.type)}" role="article">
+        <article class="result-card {getTypeClass(result.type)}">
           <div class="result-header">
             <span class="result-icon" aria-hidden="true">{result.icon}</span>
             <div class="result-meta">

@@ -440,7 +440,7 @@
           class:expanded={expandedNotification?.id === notification.id}
           on:click={() => toggleExpand(notification)}
           on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleExpand(notification))}
-          role="listitem"
+          role="button"
           aria-expanded={expandedNotification?.id === notification.id}
           aria-controls="notification-details-{notification.id}"
           aria-label="{notification.severity} {notification.type}: {notification.title}"

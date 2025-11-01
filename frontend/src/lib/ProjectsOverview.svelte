@@ -109,7 +109,11 @@
 
       loading = false;
     } catch (error) {
-      logger.error('Error loading projects overview:', error);
+      if (error && error.message === 'Projects load timeout') {
+        logger.warn('Projects load timed out (10s)');
+      } else {
+        logger.error('Error loading projects overview:', error);
+      }
       loading = false;
     }
   }
@@ -155,7 +159,7 @@
   });
 </script>
 
-<section class="projects-overview" role="region" aria-labelledby="projects-heading">
+<section class="projects-overview" aria-labelledby="projects-heading">
   <div class="header">
     <h3 id="projects-heading"><span aria-hidden="true">📁</span> Projects ({availableProjects.length})</h3>
     <button class="view-all" style="visibility: hidden;" aria-hidden="true">
@@ -172,7 +176,6 @@
       {#each projectsData as project (project.name || project)}
         <button
           class="project-card"
-          role="listitem"
           on:click={() => selectProject(project.name)}
           aria-label="{project.name}: {project.recentChanges} recent changes, last activity {formatRelativeTime(project.lastActivity)}, status: {project.status}"
         >
@@ -275,11 +278,7 @@
     transform: translateY(-2px);
   }
 
-  .project-card.selected {
-    border-color: var(--accent);
-    background: var(--surface-3);
-    box-shadow: 0 0 0 2px var(--accent-dim);
-  }
+  /* (removed unused .project-card.selected) */
 
   .project-header {
     display: flex;

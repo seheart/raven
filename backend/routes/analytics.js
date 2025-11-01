@@ -98,7 +98,7 @@ export function createAnalyticsRoutes(deps) {
           const baseline = db.db.prepare(`
             SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
             FROM events
-            WHERE timestamp < ?
+            WHERE datetime(timestamp) < datetime(?)
             GROUP BY hour
           `).all(lookbackTime);
 
@@ -119,7 +119,7 @@ export function createAnalyticsRoutes(deps) {
               SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as deletions,
               COUNT(DISTINCT filepath) as unique_files
             FROM events
-            WHERE timestamp >= ?
+            WHERE datetime(timestamp) >= datetime(?)
             GROUP BY hour
             ORDER BY hour DESC
           `).all(lookbackTime);
@@ -159,7 +159,7 @@ export function createAnalyticsRoutes(deps) {
           const hotFiles = db.db.prepare(`
             SELECT filepath, COUNT(*) as change_count
             FROM events
-            WHERE timestamp >= ?
+            WHERE datetime(timestamp) >= datetime(?)
             GROUP BY filepath
             HAVING change_count > 20
             ORDER BY change_count DESC
@@ -211,7 +211,17 @@ export function createAnalyticsRoutes(deps) {
    */
   router.get('/trends/historical', cacheMiddleware(analyticsCache), (req, res) => {
     try {
-      const period = req.query.period || 'hourly'; // hourly, daily, weekly
+      // Security: Strict validation for period parameter
+      const ALLOWED_PERIODS = ['hourly', 'daily', 'weekly'];
+      const requestedPeriod = req.query.period || 'hourly';
+
+      if (!ALLOWED_PERIODS.includes(requestedPeriod)) {
+        return res.status(400).json({
+          error: 'Invalid period parameter. Must be one of: hourly, daily, weekly'
+        });
+      }
+
+      const period = requestedPeriod;
       const days = parseInt(req.query.days) || 7; // last N days
 
       const now = Date.now();

@@ -26,10 +26,10 @@ export function createUtilityRoutes(deps) {
         return res.status(500).json({ error: 'Database not initialized' });
       }
 
-      // Calculate cutoff timestamp
+      // Calculate cutoff timestamp (ms since epoch for robust comparisons)
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
-      const cutoffTimestamp = cutoffDate.toISOString();
+      const cutoffTimestamp = cutoffDate.getTime();
 
       // Delete from all tables
       // Security: Whitelist of allowed tables to prevent SQL injection
@@ -37,16 +37,26 @@ export function createUtilityRoutes(deps) {
       const tables = ['events', 'agent_events', 'raven_metrics', 'process_metrics'];
       let totalDeleted = 0;
 
+      // Security: Predefined queries to prevent SQL injection
+      const TABLE_DELETE_QUERIES = {
+        // Convert epoch ms to ISO via SQLite datetime
+        'events': "DELETE FROM events WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        'agent_events': "DELETE FROM agent_events WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        'raven_metrics': "DELETE FROM raven_metrics WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        'process_metrics': "DELETE FROM process_metrics WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        'error_logs': "DELETE FROM error_logs WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        'notifications': "DELETE FROM notifications WHERE timestamp < datetime(?/1000, 'unixepoch')"
+      };
+
       for (const table of tables) {
-        // Security: Validate table name is in whitelist
-        if (!ALLOWED_TABLES.includes(table)) {
-          logger.error(`❌ Security: Attempted to delete from non-whitelisted table: ${table}`);
+        // Security: Use predefined query from object mapping
+        const query = TABLE_DELETE_QUERIES[table];
+        if (!query) {
+          logger.error(`❌ Security: Invalid table name: ${table}`);
           continue;
         }
 
-        const deleteStmt = projectState.db.db.prepare(`
-          DELETE FROM ${table} WHERE timestamp < ?
-        `);
+        const deleteStmt = projectState.db.db.prepare(query);
         const result = deleteStmt.run(cutoffTimestamp);
         totalDeleted += result.changes;
         logger.debug('Deleted entries from table', { table, deletedCount: result.changes });

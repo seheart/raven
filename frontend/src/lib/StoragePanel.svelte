@@ -444,8 +444,8 @@
 
   <!-- Retention Policy Modal -->
   {#if showRetentionModal}
-    <div class="modal-overlay" on:click={() => showRetentionModal = false}>
-      <div class="modal-content" on:click|stopPropagation>
+    <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => showRetentionModal = false} on:keydown={(e) => e.key === 'Escape' && (showRetentionModal = false)}>
+      <div class="modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
         <div class="modal-header">
           <h2>⚙️ Configure Retention Policy</h2>
           <button class="modal-close" on:click={() => showRetentionModal = false}>✕</button>
@@ -882,29 +882,7 @@
     outline-offset: 2px;
   }
 
-  /* Loading State */
-  .loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem;
-    color: var(--muted);
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  /* (removed unused .loading/.spinner) */
 
   /* Error State */
   .error-state {

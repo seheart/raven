@@ -42,7 +42,7 @@
 
 {#if visible}
   <div class="shortcuts-overlay" on:click={onClose} on:keydown={handleKeyPress} role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" tabindex="-1">
-    <div class="shortcuts-modal" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="document">
+    <div class="shortcuts-modal" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
       <div class="shortcuts-header">
         <h2 id="shortcuts-title"><span aria-hidden="true">⌨️</span> Keyboard Shortcuts</h2>
         <button class="close-btn" on:click={onClose} aria-label="Close keyboard shortcuts dialog">×</button>

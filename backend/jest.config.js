@@ -1,9 +1,17 @@
 export default {
   testEnvironment: 'node',
   transform: {},
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^\.\./\.\./middleware/metrics\.js$': '<rootDir>/middleware/metrics.js',
+    '^\.\./middleware/metrics\.js$': '<rootDir>/middleware/metrics.js',
+    '^middleware/metrics\.js$': '<rootDir>/middleware/metrics.js',
+    '^better-sqlite3$': '<rootDir>/test-shims/better-sqlite3-real.cjs',
+    '^\.\.\/\.\.\/sync-service\.js$': '<rootDir>/sync-service.js'
   },
+  resetModules: true,
+  clearMocks: true,
+  restoreMocks: true,
   testMatch: [
     '**/__tests__/**/*.js',
     '**/?(*.)+(spec|test).js'
@@ -17,6 +25,7 @@ export default {
     'middleware/**/*.js',
     'services/**/*.js',
     'routes/**/*.js',
+    'config/**/*.js',
     '!**/node_modules/**',
     '!**/dist/**',
     '!**/coverage/**',

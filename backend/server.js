@@ -101,6 +101,12 @@ import { env, initConfig } from './config/environment.js';
 
 // Centralized constants
 import { LIMITS } from './config/constants.js';
+import { startPerformanceMonitor } from './monitoring/performance-monitor.js';
+import { createFileWatcher } from './watchers/file-watcher.js';
+import { initializeAllWatchers as initializeAllWatchersExternal } from './watchers/initialize.js';
+import { createAndRegisterGitMonitor, emitGitStatusUpdate as emitGitStatusUpdateExternal } from './watchers/git-watcher.js';
+import { initializeProject as initializeProjectHelper, initializeAllProjects as initializeAllProjectsHelper } from './startup/startup-helpers.js';
+import { getAgentColor, detectProjectFromPath } from './utils/project-utils.js';
 
 // Initialize and validate configuration
 initConfig();
@@ -535,87 +541,10 @@ const snapshotCleanupInterval = setInterval(async () => {
   }
 }, LIMITS.TIMEOUTS.SNAPSHOT_CLEANUP_INTERVAL_MS);
 
-// Performance monitoring with startup grace period
-let lastPerformanceAlert = 0;
-const serverStartTime = Date.now();
+// Performance monitoring with startup grace period (extracted module)
+const performanceMonitor = startPerformanceMonitor({ io, logger, limits: LIMITS });
 
-const performanceMonitorInterval = setInterval(async () => {
-  try {
-    const os = await import('os');
-    const now = Date.now();
-
-    // Skip performance checks during startup grace period (prevents false positives)
-    if (now - serverStartTime < LIMITS.TIMEOUTS.STARTUP_GRACE_PERIOD_MS) {
-      return;
-    }
-
-    // Skip if we recently sent an alert (avoid spam)
-    if (now - lastPerformanceAlert < LIMITS.TIMEOUTS.PERFORMANCE_ALERT_COOLDOWN_MS) {
-      return;
-    }
-
-    // Memory usage
-    const totalMemory = os.totalmem();
-    const freeMemory = os.freemem();
-    const usedMemory = totalMemory - freeMemory;
-    const memoryPercent = (usedMemory / totalMemory) * 100;
-
-    // Process memory
-    const processMemory = process.memoryUsage();
-    const heapPercent = (processMemory.heapUsed / processMemory.heapTotal) * 100;
-
-    // Check for critical conditions
-    if (memoryPercent > 90) {
-      io.emit('performance-alert', {
-        type: 'memory',
-        severity: 'critical',
-        title: 'Critical System Memory',
-        message: `System memory usage is critically high: ${memoryPercent.toFixed(1)}%`,
-        value: memoryPercent.toFixed(1)
-      });
-      lastPerformanceAlert = now;
-      logger.warn(`⚠️ Critical system memory: ${memoryPercent.toFixed(1)}%`);
-    } else if (heapPercent > 90) {
-      io.emit('performance-alert', {
-        type: 'heap',
-        severity: 'warning',
-        title: 'High Heap Memory',
-        message: `Process heap usage is high: ${heapPercent.toFixed(1)}%`,
-        value: heapPercent.toFixed(1)
-      });
-      lastPerformanceAlert = now;
-      logger.warn(`⚠️ High heap usage: ${heapPercent.toFixed(1)}%`);
-    } else if (memoryPercent > 85) {
-      io.emit('performance-alert', {
-        type: 'memory',
-        severity: 'warning',
-        title: 'High System Memory',
-        message: `System memory usage is high: ${memoryPercent.toFixed(1)}%`,
-        value: memoryPercent.toFixed(1)
-      });
-      lastPerformanceAlert = now;
-    }
-  } catch (error) {
-    logger.error('Performance monitoring error:', error);
-  }
-}, LIMITS.TIMEOUTS.PERFORMANCE_MONITOR_INTERVAL_MS);
-
-// Agent type color mapping
-const AGENT_COLORS = {
-  claude: '#FF6B35',
-  gpt: '#10A37F',
-  gemini: '#4285F4',
-  ollama: '#F39C12',
-  default: '#6b7280'
-};
-
-function getAgentColor(agentName) {
-  const lowerName = agentName.toLowerCase();
-  for (const [key, color] of Object.entries(AGENT_COLORS)) {
-    if (lowerName.includes(key)) return color;
-  }
-  return AGENT_COLORS.default;
-}
+// Agent color mapping moved to utils/project-utils.js
 
 // ==================== File Watching Helper Functions ====================
 
@@ -678,24 +607,7 @@ function detectLanguage(filepath) {
  * @param {string} filepath - Absolute file path
  * @returns {string|null} - Project name or null if not found
  */
-function detectProjectFromPath(filepath) {
-  const normalizedPath = normalize(filepath);
-
-  // Sort projects by path length (longest first) to avoid substring matching issues
-  // e.g., "ant312" should match before "ant"
-  const sortedProjects = Array.from(projectPaths.entries()).sort((a, b) => {
-    return b[1].length - a[1].length;
-  });
-
-  for (const [projectName, projectPath] of sortedProjects) {
-    const normalizedProjectPath = normalize(projectPath);
-    if (normalizedPath.startsWith(normalizedProjectPath + '/') || normalizedPath === normalizedProjectPath) {
-      return projectName;
-    }
-  }
-
-  return null;
-}
+// detectProjectFromPath moved to utils/project-utils.js
 
 async function saveSnapshot(filepath, content, projectName) {
   try {
@@ -742,7 +654,7 @@ async function handleFileChange(eventType, filepath) {
 
   try {
     // Detect which project this file belongs to
-    const projectName = detectProjectFromPath(filepath);
+    const projectName = detectProjectFromPath(filepath, projectPaths);
     if (!projectName) {
       logger.warn(`⚠️  Could not determine project for file: ${filepath}`);
       return;
@@ -997,81 +909,32 @@ function initializeMonitoringServices() {
  * @returns {boolean} - True if successful, false otherwise
  */
 function initializeProject(projectName) {
-  try {
-    const project = availableProjects.find(p => p.name === projectName);
-    if (!project) {
-      logger.error(`❌ Project "${projectName}" not found`);
-      return false;
-    }
-
-    // Set project paths
-    // Use absolute path if provided, otherwise resolve relative to Projects dir
-    const projectPath = isAbsolute(project.path)
-      ? project.path
-      : join(process.cwd(), '..', '..', project.path);
-    const dbPath = join(RAVEN_DIR, 'db', `${projectName}.db`);
-    const snapshotsDir = join(RAVEN_DIR, 'snapshots', projectName);
-
-    // Store paths in Maps
-    projectPaths.set(projectName, projectPath);
-    projectSnapshotDirs.set(projectName, snapshotsDir);
-
-    // Initialize database
-    const db = new RavenDB(dbPath);
-    projectDatabases.set(projectName, db);
-
-    // Ensure snapshots directory exists
-    fs.mkdirSync(snapshotsDir, { recursive: true });
-
-    // Initialize GitMonitor
-    const gitMonitor = new GitMonitor({
-      repoPath: projectPath,
-      pollIntervalMs: 2000,
-      enableAutoPoll: false // Manual polling only, no auto-commits
-    });
-    projectGitMonitors.set(projectName, gitMonitor);
-
-    logger.info('Initialized project', {
-      projectName,
-      watchPath: projectPath,
-      database: dbPath,
-      snapshots: snapshotsDir
-    });
-
-    return true;
-  } catch (error) {
-    logger.error('Error initializing project', { error, projectName });
-    return false;
-  }
+  return initializeProjectHelper({
+    projectName,
+    availableProjects,
+    RAVEN_DIR,
+    RavenDB,
+    projectPaths,
+    projectSnapshotDirs,
+    projectDatabases,
+    createAndRegisterGitMonitor,
+    projectGitMonitors,
+    GitMonitor,
+    logger
+  });
 }
 
 /**
  * Initialize ALL discovered projects for global monitoring
  */
 function initializeAllProjects() {
-  logger.info('Initializing projects for global monitoring', { projectCount: availableProjects.length });
-
-  let successCount = 0;
-  let failCount = 0;
-
-  for (const project of availableProjects) {
-    const success = initializeProject(project.name);
-    if (success) {
-      successCount++;
-    } else {
-      failCount++;
-    }
-  }
-
-  logger.info('Project initialization complete', {
-    successful: successCount,
-    failed: failCount,
-    total: availableProjects.length
+  const { successCount, failCount } = initializeAllProjectsHelper({
+    availableProjects,
+    initializeProject,
+    logger
   });
-
   // Initialize monitoring services
   initializeMonitoringServices();
-
   return { successCount, failCount };
 }
 
@@ -1079,42 +942,7 @@ function initializeAllProjects() {
  * Emit real-time git status update via WebSocket for a specific project
  */
 async function emitGitStatusUpdate(projectName) {
-  const gitMonitor = projectGitMonitors.get(projectName);
-  if (!gitMonitor) {
-    return;
-  }
-
-  try {
-    const isRepo = await gitMonitor.isGitRepo();
-    if (!isRepo) return;
-
-    // Force a fresh status check by temporarily clearing lastStatus
-    const previousStatus = gitMonitor.lastStatus;
-    gitMonitor.lastStatus = null;
-
-    const status = await gitMonitor.checkStatus();
-
-    // Restore the previous status to avoid repeated emissions
-    if (!status && previousStatus) {
-      gitMonitor.lastStatus = previousStatus;
-    }
-
-    if (status) {
-      io.emit('git-status-updated', {
-        project: projectName,
-        branch: status.branch,
-        modified: status.modified,
-        created: status.created,
-        deleted: status.deleted,
-        ahead: status.ahead || 0,
-        behind: status.behind || 0,
-        timestamp: new Date().toISOString()
-      });
-      logger.debug('Git status emitted via WebSocket', { projectName });
-    }
-  } catch (error) {
-    logger.error('Error emitting git status', { error, projectName });
-  }
+  await emitGitStatusUpdateExternal({ projectName, projectGitMonitors, io, logger });
 }
 
 /**
@@ -1129,96 +957,15 @@ function initializeWatcher(projectName) {
     return null;
   }
 
-  // Default ignore patterns (can be extended via CHOKIDAR_IGNORE_PATTERNS env var)
-  const defaultIgnored = [
-    /(^|[\/\\])\../, // Ignore dotfiles
-    '**/node_modules/**',
-    '**/.git/**',
-    '**/target/**',
-    '**/.raven/**',
-    '**/*.log',
-    '**/dist/**',
-    '**/build/**',
-    '**/.cache/**',
-    '**/.next/**',
-    '**/.turbo/**',
-    '**/.svelte-kit/**',
-    '**/coverage/**',
-    '**/.DS_Store',
-    // Python virtual environments
-    '**/venv/**',
-    '**/.venv/**',
-    '**/env/**',
-    '**/virtualenv/**',
-    '**/__pycache__/**',
-    '**/*.pyc',
-    '**/*.pyo',
-    '**/site-packages/**',
-    '**/dist-packages/**'
-  ];
-
-  // Allow custom ignore patterns via environment variable (comma-separated)
-  const customIgnored = process.env.CHOKIDAR_IGNORE_PATTERNS
-    ? process.env.CHOKIDAR_IGNORE_PATTERNS.split(',').map(p => p.trim())
-    : [];
-
-  // macOS-optimized configuration for file watching
-  const isMacOS = process.platform === 'darwin';
-
-  // Special handling for raven project to avoid watching its own node_modules
-  const isRavenProject = projectName === 'raven';
-
-  // For raven project, only watch specific directories to avoid node_modules
-  const watchPaths = isRavenProject ? [
-    join(projectPath, 'docs'),
-    join(projectPath, 'test_workspace'),
-    join(projectPath, 'backend/*.js'),      // Only .js files in backend root
-    join(projectPath, 'frontend/src'),      // Only src directory
-    join(projectPath, '*.md'),              // Root markdown files
-    join(projectPath, '*.sh')              // Shell scripts
-  ] : projectPath;
-
-  const watcher = chokidar.watch(watchPaths, {
-    ignored: [...defaultIgnored, ...customIgnored],
-    persistent: true,
-    ignoreInitial: true,
-    awaitWriteFinish: {
-      stabilityThreshold: 100,
-      pollInterval: LIMITS.FILE.WATCH_DEBOUNCE_MS
-    },
-    // macOS-specific optimizations
-    usePolling: false,           // Use native FSEvents on macOS
-    useFsEvents: isMacOS,         // Enable FSEvents API on macOS for better performance
-    depth: 99,
-    ignorePermissionErrors: true  // Ignore permission errors on macOS
+  return createFileWatcher({
+    projectName,
+    projectPath,
+    LIMITS,
+    handleFileChange,
+    logger,
+    io,
+    chokidar
   });
-
-  watcher
-    .on('add', filepath => {
-      handleFileChange('create', filepath);
-    })
-    .on('change', filepath => {
-      handleFileChange('edit', filepath);
-    })
-    .on('unlink', filepath => {
-      handleFileChange('delete', filepath);
-    })
-    .on('error', error => {
-      logger.error(`❌ Watcher error [${projectName}]:`, error);
-
-      // Emit file watcher error via WebSocket
-      io.emit('file-watcher-error', {
-        project: projectName,
-        timestamp: new Date().toISOString(),
-        message: error.message || 'File watcher encountered an error',
-        error: error.toString()
-      });
-    })
-    .on('ready', () => {
-      logger.info('File watcher ready', { projectName });
-    });
-
-  return watcher;
 }
 
 /**
@@ -1233,97 +980,20 @@ function initializeWatcher(projectName) {
  * - Only stores data about files that ACTUALLY change
  */
 async function initializeAllWatchers() {
-  logger.info('🚀 Starting file watchers for all projects');
-  logger.info('   Mode: Reactive (ignoreInitial=true) - only tracking new changes');
-
-  try {
-    // Get skip list from config
-    const skipProjects = config.projects?.skip_projects || ['echo', 'archive'];
-    logger.info(`   Skip list: ${skipProjects.join(', ')}`);
-
-    let successCount = 0;
-    let failCount = 0;
-    let skippedCount = 0;
-
-    // Initialize watchers for all projects (except skipped ones)
-    for (const [projectName, projectPath] of projectPaths.entries()) {
-      // Check skip list
-      if (skipProjects.includes(projectName)) {
-        logger.warn(`⚠️  Skipping file watcher for ${projectName} (in skip list)`);
-        skippedCount++;
-        continue;
-      }
-
-      try {
-        const watcher = initializeWatcher(projectName);
-        if (watcher) {
-          projectWatchers.set(projectName, watcher);
-          successCount++;
-          logger.info(`✅ Watcher started for ${projectName}`, { path: projectPath });
-
-          // Start conversation sync for this project
-          try {
-            const db = projectDatabases.get(projectName);
-            if (db) {
-              const conversationSync = new ConversationSync(db, SESSION_ID, io, projectPath);
-              await conversationSync.start();
-              projectConversationSyncs.set(projectName, conversationSync);
-            }
-          } catch (syncError) {
-            logger.warn(`⚠️  Conversation sync failed for ${projectName}:`, syncError.message);
-            // Non-fatal - continue without conversation sync
-          }
-        } else {
-          failCount++;
-        }
-      } catch (error) {
-        logger.error(`❌ Failed to start watcher for ${projectName}:`, error);
-        failCount++;
-      }
-    }
-
-    logger.info('✅ File watchers initialized', {
-      success: successCount,
-      failed: failCount,
-      skipped: skippedCount,
-      total: projectPaths.size
-    });
-
-    // Register conversation health checks now that syncs are started
-    if (healthCheckSystem && projectConversationSyncs.size > 0) {
-      const firstDb = getMetricsDatabase();
-      if (firstDb) {
-        registerConversationHealthChecks(healthCheckSystem, firstDb, projectConversationSyncs);
-        logger.info('✅ Conversation health checks registered');
-      }
-    }
-
-    // Backfill missed changes from git status (ensures accuracy after restarts)
-    logger.info('🔄 Reconciling changes with git status...');
-    let totalBackfilled = 0;
-    for (const [projectName, projectPath] of projectPaths.entries()) {
-      const db = projectDatabases.get(projectName);
-      if (db) {
-        try {
-          const backfillService = new GitBackfillService(db, projectPath, SESSION_ID);
-          const result = await backfillService.backfillMissedChanges();
-          totalBackfilled += result.backfilled || 0;
-        } catch (error) {
-          logger.warn(`⚠️  Git backfill failed for ${projectName}:`, error.message);
-        }
-      }
-    }
-    if (totalBackfilled > 0) {
-      logger.info(`✅ Reconciled ${totalBackfilled} missed change(s) from git`);
-    } else {
-      logger.info('✅ All changes reconciled - telemetry is up to date');
-    }
-
-    return { successCount, failCount, skippedCount };
-  } catch (error) {
-    logger.error('❌ Failed to initialize file watchers:', error);
-    return { successCount: 0, failCount: 1, skippedCount: 0 };
-  }
+  return await initializeAllWatchersExternal({
+    projectPaths,
+    projectDatabases,
+    projectWatchers,
+    projectConversationSyncs,
+    SESSION_ID,
+    logger,
+    io,
+    initializeWatcher,
+    getMetricsDatabase,
+    registerConversationHealthChecks,
+    healthCheckSystem,
+    config
+  });
 }
 
 
@@ -1531,6 +1201,11 @@ app.use('/api', createUtilityRoutes({ projectState, app }));
 
 // API Documentation (Phase 5A)
 app.use('/api-docs', createApiDocsRoutes());
+
+// Test helper route for rate limit headers (only in test env)
+if (process.env.NODE_ENV === 'test') {
+  app.get('/api/test', (req, res) => res.json({ ok: true }));
+}
 
 // ==================== Legacy Routes (to be extracted or kept) ====================
 // The routes below are still in server.js - can be extracted later if needed
@@ -2217,8 +1892,8 @@ async function gracefulShutdown(signal) {
     clearInterval(snapshotCleanupInterval);
     logger.info('✅ Stopped snapshot cleanup interval');
   }
-  if (performanceMonitorInterval) {
-    clearInterval(performanceMonitorInterval);
+  if (performanceMonitor) {
+    performanceMonitor.stop();
     logger.info('✅ Stopped performance monitor interval');
   }
 

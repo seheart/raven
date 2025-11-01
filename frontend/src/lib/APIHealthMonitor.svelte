@@ -422,11 +422,7 @@
     gap: 12px;
   }
 
-  .last-check {
-    margin: 0;
-    font-size: 11px;
-    color: var(--muted);
-  }
+  /* (removed unused .last-check) */
 
   .realtime-badge {
     padding: 4px 10px;
@@ -494,12 +490,7 @@
     to { transform: rotate(360deg); }
   }
 
-  .loading {
-    text-align: center;
-    padding: 24px;
-    color: var(--muted);
-    font-size: 12px;
-  }
+  /* (removed unused .loading) */
 
   .empty-state {
     text-align: center;

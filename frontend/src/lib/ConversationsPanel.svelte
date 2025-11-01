@@ -324,7 +324,7 @@
       </div>
 
       {#each filteredConversations as conv (conv.id)}
-        <article class="conversation-item {getEventClass(conv.event_type)}" role="article" aria-labelledby="conv-type-{conv.id}">
+        <article class="conversation-item {getEventClass(conv.event_type)}" aria-labelledby="conv-type-{conv.id}">
           <button
             class="conv-header"
             on:click={() => toggleExpanded(conv.id)}
@@ -435,7 +435,7 @@
     aria-labelledby="import-dialog-title"
     tabindex="-1"
   >
-    <div class="modal-content" on:click|stopPropagation role="document">
+    <div class="modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
       <h2 id="import-dialog-title">Import Claude Conversations</h2>
       <p>Import conversation history from Claude Code .jsonl session files.</p>
 

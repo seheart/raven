@@ -782,7 +782,9 @@
     <div
       class="modal-content"
       on:click|stopPropagation
+      on:keydown={(e) => e.stopPropagation()}
       role="dialog"
+      tabindex="-1"
       aria-labelledby="diff-modal-title"
       aria-modal="true">
       <div class="modal-header">

@@ -2,50 +2,26 @@
   import { onMount, onDestroy } from 'svelte';
   // New consolidated components
   import ErrorBoundary from './lib/ErrorBoundary.svelte';
-  import OverviewPanel from './lib/OverviewPanel.svelte';
-  import ToastContainer from './lib/ToastContainer.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
   import AppLoadingScreen from './lib/AppLoadingScreen.svelte';
   import UserMenu from './lib/UserMenu.svelte';
 
-  // Existing components for consolidated views
-  import SessionReplay from './lib/SessionReplay.svelte';
-  import PerformancePanel from './lib/PerformancePanel.svelte';
-  import TriggersPanel from './lib/TriggersPanel.svelte';
-  import AgentsPanel from './lib/AgentsPanel.svelte';
-  import StatusPanel from './lib/StatusPanel.svelte';
-  import APIHealthMonitor from './lib/APIHealthMonitor.svelte';
-  import LiveCodeFeed from './lib/LiveCodeFeed.svelte';
-  import ActivityLog from './lib/ActivityLog.svelte';
-  import EventFeed from './lib/EventFeed.svelte';
+  // Existing components for consolidated views (kept lightweight/static)
   import Footer from './lib/Footer.svelte';
-  import AboutPage from './lib/AboutPage.svelte';
-  import ChangelogPage from './lib/ChangelogPage.svelte';
-  import DocsViewer from './lib/DocsViewer.svelte';
   import RavenLogo from './lib/RavenLogo.svelte';
-  import ErrorLog from './lib/ErrorLog.svelte';
-  import NotificationsPanel from './lib/NotificationsPanel.svelte';
   import Toast from './lib/Toast.svelte';
-  import StoragePanel from './lib/StoragePanel.svelte';
-  import ServerSyncPanel from './lib/ServerSyncPanel.svelte';
-  import SettingsPanel from './lib/SettingsPanel.svelte';
-  import ProjectsConfigPanel from './lib/ProjectsConfigPanel.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
-  import ConversationsPanel from './lib/ConversationsPanel.svelte';
-  import DeveloperInsightsPanel from './lib/DeveloperInsightsPanel.svelte';
   import BreakAlert from './lib/BreakAlert.svelte';
+  import OverviewPanel from './lib/OverviewPanel.svelte';
   import ProjectsComparisonPanel from './lib/ProjectsComparisonPanel.svelte';
-  import FileBrowser from './lib/FileBrowser.svelte';
-  import HistoricalTrendsPanel from './lib/HistoricalTrendsPanel.svelte';
-  import AnomalyAlertsPanel from './lib/AnomalyAlertsPanel.svelte';
   import MultiProjectHealthPanel from './lib/MultiProjectHealthPanel.svelte';
-  import GlobalSearchPanel from './lib/GlobalSearchPanel.svelte';
-  import CustomMetricsPanel from './lib/CustomMetricsPanel.svelte';
-  import QuickStartWizard from './lib/QuickStartWizard.svelte';
   import SyntaxErrorPanel from './lib/SyntaxErrorPanel.svelte';
   import SessionRollbackPanel from './lib/SessionRollbackPanel.svelte';
   import PatternWarningsPanel from './lib/PatternWarningsPanel.svelte';
   import TestResultsPanel from './lib/TestResultsPanel.svelte';
+  import QuickStartWizard from './lib/QuickStartWizard.svelte';
+
+  // Heavy panels will be lazy-loaded via dynamic import when needed
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
   import { notifications } from './lib/notificationService.js';
@@ -57,6 +33,71 @@
   import { API_CONFIG } from './config.js';
 
   const API_BASE = API_CONFIG.API_BASE;
+
+  // Prefetch likely-next panels during idle to improve perceived performance
+  function prefetchPanels() {
+    const idle = typeof requestIdleCallback === 'function'
+      ? requestIdleCallback
+      : (fn) => setTimeout(fn, 300);
+    idle(() => {
+      // Use Vite preload hint to start fetching in background
+      import(/* @vite-preload */ './lib/StatusPanel.svelte');
+      import(/* @vite-preload */ './lib/EventFeed.svelte');
+      import(/* @vite-preload */ './lib/AgentsPanel.svelte');
+      import(/* @vite-preload */ './lib/FileBrowser.svelte');
+      import(/* @vite-preload */ './lib/ConversationsPanel.svelte');
+      import(/* @vite-preload */ './lib/APIHealthMonitor.svelte');
+    });
+  }
+
+  // Preload by main tab intent (hover)
+  function preloadByTab(tabId) {
+    try {
+      switch (tabId) {
+      case 'agents':
+        import(/* @vite-preload */ './lib/AgentsPanel.svelte');
+        import(/* @vite-preload */ './lib/ConversationsPanel.svelte');
+        break;
+      case 'activity':
+        import(/* @vite-preload */ './lib/LiveCodeFeed.svelte');
+        import(/* @vite-preload */ './lib/EventFeed.svelte');
+        import(/* @vite-preload */ './lib/ActivityLog.svelte');
+        import(/* @vite-preload */ './lib/FileBrowser.svelte');
+        import(/* @vite-preload */ './lib/GlobalSearchPanel.svelte');
+        break;
+      case 'analysis':
+        import(/* @vite-preload */ './lib/PerformancePanel.svelte');
+        import(/* @vite-preload */ './lib/CustomMetricsPanel.svelte');
+        import(/* @vite-preload */ './lib/HistoricalTrendsPanel.svelte');
+        import(/* @vite-preload */ './lib/TriggersPanel.svelte');
+        import(/* @vite-preload */ './lib/SessionReplay.svelte');
+        import(/* @vite-preload */ './lib/DeveloperInsightsPanel.svelte');
+        break;
+      case 'system':
+        import(/* @vite-preload */ './lib/StatusPanel.svelte');
+        import(/* @vite-preload */ './lib/AnomalyAlertsPanel.svelte');
+        import(/* @vite-preload */ './lib/StoragePanel.svelte');
+        import(/* @vite-preload */ './lib/ProjectsConfigPanel.svelte');
+        import(/* @vite-preload */ './lib/ServerSyncPanel.svelte');
+        import(/* @vite-preload */ './lib/NotificationsPanel.svelte');
+        import(/* @vite-preload */ './lib/ErrorLog.svelte');
+        import(/* @vite-preload */ './lib/APIHealthMonitor.svelte');
+        break;
+      case 'settings':
+        import(/* @vite-preload */ './lib/SettingsPanel.svelte');
+        break;
+      case 'about':
+        import(/* @vite-preload */ './lib/AboutPage.svelte');
+        break;
+      case 'changelog':
+        import(/* @vite-preload */ './lib/ChangelogPage.svelte');
+        break;
+      case 'docs':
+        import(/* @vite-preload */ './lib/DocsViewer.svelte');
+        break;
+      }
+    } catch (_) {}
+  }
 
   // Main navigation tabs
   const tabs = [
@@ -92,6 +133,7 @@
   const startTime = Date.now();
   let uptimeInterval;
   let healthCheckInterval;
+  let reconnectCallback;
 
   function updateUptime() {
     const seconds = Math.floor((Date.now() - startTime) / 1000);
@@ -199,13 +241,9 @@
 
   // Handle error notification clicks - navigate to Error Log with details
   function handleErrorClick(notification) {
-    console.log('handleErrorClick called', { activeTab, currentSubView, notification });
-
     // Navigate to System tab and Error Log sub-view
     activeTab = 'system';
     currentSubView = 'errors'; // Navigate to Error Log specifically
-
-    console.log('Navigation set', { activeTab, currentSubView });
 
     // Log for debugging
     logger.info('Navigating to Error Log from notification:', notification.message);
@@ -320,10 +358,12 @@
     healthCheckInterval = setInterval(checkServerHealth, 60000);
 
     // Check health on WebSocket reconnect
-    websocketService.onReconnect(() => {
+    // Store callback reference for cleanup
+    reconnectCallback = () => {
       checkServerHealth();
       fetchTodayActivity();
-    });
+    };
+    websocketService.onReconnect(reconnectCallback);
 
     loadingProgress = 95;
 
@@ -352,6 +392,9 @@
     // This prevents startup warnings from showing on the loading screen
     setupNotificationListeners();
 
+    // Kick off background prefetch of common panels
+    try { prefetchPanels(); } catch (_) {}
+
     // Show Quick Start Wizard for first-time users
     if (!localStorage.getItem('raven-quick-start-completed')) {
       showQuickStart = true;
@@ -369,17 +412,13 @@
     }
   });
 
-  // Authentication removed
-  // function handleLoginSuccess() {
-  //   // Reload the page to initialize app with authentication
-  //   window.location.reload();
-  // }
-
   onDestroy(() => {
     keyboard.clear();
     if (uptimeInterval) clearInterval(uptimeInterval);
     if (healthCheckInterval) clearInterval(healthCheckInterval);
+    if (reconnectCallback) websocketService.offReconnect(reconnectCallback);
     websocketService.disconnect();
+    dataService.destroy(); // Clean up dataService interval
   });
 </script>
 
@@ -399,19 +438,20 @@
 
 <!-- Authentication removed - app is always accessible -->
 <main>
-  <header role="banner">
+  <header>
     <div class="header-content">
       <button class="header-left header-home-button" on:click={() => handleTabChange('overview')} aria-label="Go to Overview">
         <RavenLogo size={32} />
         <h1>Raven</h1>
       </button>
 
-      <nav id="main-navigation" class="header-nav" role="navigation" aria-label="Main navigation">
+      <nav id="main-navigation" class="header-nav" aria-label="Main navigation">
         {#each tabs as tab (tab.id)}
           <button
             class="nav-tab"
             class:active={activeTab === tab.id}
             on:click={() => handleTabChange(tab.id)}
+            on:mouseenter={() => preloadByTab(tab.id)}
             aria-current={activeTab === tab.id ? 'page' : undefined}
             aria-label="{tab.label} - Press {tab.shortcut} for shortcut"
           >
@@ -552,9 +592,17 @@
           </button>
         </div>
         {#if !currentSubView}
-          <AgentsPanel />
+          {#await import('./lib/AgentsPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'conversations'}
-          <ConversationsPanel />
+          {#await import('./lib/ConversationsPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {/if}
       </div>
     {:else if activeTab === 'activity'}
@@ -598,15 +646,35 @@
           </button>
         </div>
         {#if !currentSubView}
-          <LiveCodeFeed />
+          {#await import('./lib/LiveCodeFeed.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'events'}
-          <EventFeed />
+          {#await import('./lib/EventFeed.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'activity'}
-          <ActivityLog />
+          {#await import('./lib/ActivityLog.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'files'}
-          <FileBrowser />
+          {#await import('./lib/FileBrowser.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'search'}
-          <GlobalSearchPanel />
+          {#await import('./lib/GlobalSearchPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {/if}
       </div>
     {:else if activeTab === 'analysis'}
@@ -657,17 +725,41 @@
           </button>
         </div>
         {#if !currentSubView}
-          <PerformancePanel />
+          {#await import('./lib/PerformancePanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'metrics'}
-          <CustomMetricsPanel />
+          {#await import('./lib/CustomMetricsPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'trends'}
-          <HistoricalTrendsPanel />
+          {#await import('./lib/HistoricalTrendsPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'triggers'}
-          <TriggersPanel />
+          {#await import('./lib/TriggersPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'replay'}
-          <SessionReplay />
+          {#await import('./lib/SessionReplay.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'insights'}
-          <DeveloperInsightsPanel />
+          {#await import('./lib/DeveloperInsightsPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
         {/if}
       </div>
     {:else if activeTab === 'system'}
@@ -732,41 +824,88 @@
           </button>
         </div>
         {#if !currentSubView}
-          <StatusPanel />
+          {#await import('./lib/StatusPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'anomalies'}
-          <AnomalyAlertsPanel />
+          {#await import('./lib/AnomalyAlertsPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'storage'}
-          <StoragePanel />
+          {#await import('./lib/StoragePanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'projects'}
-          <ProjectsConfigPanel />
+          {#await import('./lib/ProjectsConfigPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'sync'}
-          <ServerSyncPanel />
+          {#await import('./lib/ServerSyncPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'notifications'}
-          <NotificationsPanel />
+          {#await import('./lib/NotificationsPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'errors'}
-          <ErrorLog />
+          {#await import('./lib/ErrorLog.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {:else if currentSubView === 'api'}
-          <APIHealthMonitor />
+          {#await import('./lib/APIHealthMonitor.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
         {/if}
       </div>
     {:else if activeTab === 'settings'}
       <!-- Settings Page -->
-      <SettingsPanel />
+      {#await import('./lib/SettingsPanel.svelte') then M}
+        <svelte:component this={M.default} />
+      {:catch _}
+        <div style="min-height:200px" role="status">Loading…</div>
+      {/await}
     {:else if activeTab === 'about'}
       <!-- About Page -->
-      <AboutPage on:close={() => activeTab = 'overview'} />
+      {#await import('./lib/AboutPage.svelte') then M}
+        <svelte:component this={M.default} on:close={() => activeTab = 'overview'} />
+      {:catch _}
+        <div style="min-height:200px" role="status">Loading…</div>
+      {/await}
     {:else if activeTab === 'changelog'}
       <!-- Changelog Page -->
-      <ChangelogPage on:close={() => activeTab = 'overview'} />
+      {#await import('./lib/ChangelogPage.svelte') then M}
+        <svelte:component this={M.default} on:close={() => activeTab = 'overview'} />
+      {:catch _}
+        <div style="min-height:200px" role="status">Loading…</div>
+      {/await}
     {:else if activeTab === 'docs'}
       <!-- Docs Page -->
-      <DocsViewer on:close={() => activeTab = 'overview'} />
+      {#await import('./lib/DocsViewer.svelte') then M}
+        <svelte:component this={M.default} on:close={() => activeTab = 'overview'} />
+      {:catch _}
+        <div style="min-height:200px" role="status">Loading…</div>
+      {/await}
     {/if}
   </div></main>
 
 <!-- Toast Notifications (hidden during loading) -->
 {#if !isInitialLoading}
-  <ToastContainer />
   <Toast onErrorClick={handleErrorClick} />
 
   <!-- Break Recommendation Alert -->
@@ -879,50 +1018,7 @@
     -webkit-text-fill-color: transparent;
   }
 
-  /* Theme Switcher */
-  .theme-switcher {
-    display: flex;
-    gap: var(--space-xs);
-    padding: var(--space-xs);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-  }
-
-  .theme-btn {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all var(--duration-fast) var(--ease-out-expo);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .theme-btn:hover {
-    background: var(--surface);
-    transform: scale(1.1);
-  }
-
-  .theme-btn:active {
-    transform: scale(0.95);
-  }
-
-  .theme-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .theme-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+  /* (removed unused theme switcher styles) */
 
   /* Today's Activity in Header */
   .today-activity-header {
@@ -1154,37 +1250,7 @@
     outline-offset: 2px;
   }
 
-  .auth-loading {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-    gap: 16px;
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .auth-loading p {
-    font-family: var(--mono);
-    font-size: 14px;
-    color: var(--muted);
-  }
+  /* (removed unused auth-loading/spinner styles) */
 
   @media (max-width: 768px) {
     header {
@@ -1234,80 +1300,5 @@
     }
   }
 
-  /* Settings Modal Styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    animation: fadeIn 0.2s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  .modal-content {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    max-width: 90vw;
-    max-height: 90vh;
-    overflow: auto;
-    position: relative;
-    animation: slideUp 0.3s ease-out;
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .settings-modal {
-    width: 900px;
-    max-width: 90vw;
-  }
-
-  .modal-close {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    z-index: 1;
-  }
-
-  .modal-close:hover {
-    background: var(--error);
-    border-color: var(--error);
-    color: white;
-    transform: rotate(90deg);
-  }
+  /* (removed unused settings modal styles) */
 </style>

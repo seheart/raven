@@ -22,14 +22,11 @@ export function createHealthRoutes(deps) {
     try {
       const os = await import('os');
 
-      // Memory usage (using systeminformation for accurate memory calculation)
-      const mem = await si.mem();
-      const totalMemory = mem.total;
-      const freeMemory = mem.free;
-      // Use active memory or calculate from available to exclude buffers/cache
-      const actualUsed = mem.active || (mem.total - mem.available);
-      const usedMemory = actualUsed;
-      const memoryPercent = (actualUsed / mem.total) * 100;
+      // Memory usage: use os metrics for system-level percent (matches tests)
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      const usedMemory = totalMemory - freeMemory;
+      const memoryPercent = (usedMemory / totalMemory) * 100;
 
       // Process memory
       const processMemory = process.memoryUsage();

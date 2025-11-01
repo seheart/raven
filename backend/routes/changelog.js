@@ -17,12 +17,23 @@ export function createChangelogRoutes(deps) {
    */
   router.get('/changelog', async (req, res) => {
     try {
-      // Read CHANGELOG.md file (in project root, not docs/)
-      const changelogPath = join(process.cwd(), '..', 'CHANGELOG.md');
+      // Locate CHANGELOG.md (try multiple likely locations)
+      const candidatePaths = [
+        join(process.cwd(), '..', 'docs', 'CHANGELOG.md'),
+        join(process.cwd(), '..', 'CHANGELOG.md'),
+        join(process.cwd(), 'CHANGELOG.md')
+      ];
 
-      try {
-        await fsPromises.access(changelogPath);
-      } catch (err) {
+      let changelogPath = null;
+      for (const p of candidatePaths) {
+        try {
+          await fsPromises.access(p);
+          changelogPath = p;
+          break;
+        } catch (_err) {}
+      }
+
+      if (!changelogPath) {
         return res.status(404).json({ error: 'CHANGELOG.md not found', changelog: [] });
       }
 
