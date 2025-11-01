@@ -250,17 +250,23 @@
     // Only create charts if we have data and we're on the performance tab
     if (activeTab !== 'performance' || filteredAgentStats.length === 0) return;
 
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
     // Get theme-aware colors from body element (where theme classes are applied)
-    const computedStyle = getComputedStyle(document.documentElement);
-    const textColor = computedStyle.getPropertyValue('--text').trim();
-    const mutedColor = computedStyle.getPropertyValue('--muted').trim();
+    const textColor = getColor('--text', '#c0caf5');
+    const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
 
     // Extract CSS variable colors for charts
-    const successColor = computedStyle.getPropertyValue('--success').trim();
-    const accentColor = computedStyle.getPropertyValue('--accent').trim();
-    const errorColor = computedStyle.getPropertyValue('--error').trim();
-    const warningColor = computedStyle.getPropertyValue('--warning').trim();
+    const successColor = getColor('--success', '#9ece6a');
+    const accentColor = getColor('--accent', '#7aa2f7');
+    const errorColor = getColor('--error', '#f7768e');
+    const warningColor = getColor('--warning', '#e0af68');
 
     // Create charts for each agent
     filteredAgentStats.forEach(stat => {

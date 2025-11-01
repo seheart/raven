@@ -3,9 +3,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
-  import { formatTime as formatTimeString } from './timeFormat.js';
+  import { formatTime as formatTimeString, getTimeAgo } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
+  import { TimeoutManager } from './utils/TimeoutManager.js';
 
   const API_BASE = API_CONFIG.BASE_URL;
 
@@ -26,14 +27,13 @@
   let isManualRefresh = false;
   let previousPollingInterval = 30; // Track previous value to prevent unnecessary restarts
 
-  // Track timeouts for cleanup
-  let realtimeTimeouts = [];
+  // Timeout manager for cleanup
+  const timeouts = new TimeoutManager();
 
   function handleRealtimeUpdate() {
     // Quick health check when events occur
     realtimeActive = true;
-    const timeout = setTimeout(() => { realtimeActive = false; }, 1000);
-    realtimeTimeouts.push(timeout);
+    timeouts.add(() => { realtimeActive = false; }, 1000);
 
     // Re-check critical endpoints on events
     const criticalEndpoints = (apiEndpoints || []).filter(e =>
@@ -90,8 +90,19 @@
     }
   }
 
+  // Clear history and reset success rates
+  function clearHistory() {
+    healthHistory = {};
+    healthStatus = {};
+    checkAllEndpoints(true);
+  }
+
   onMount(async () => {
     await loadEndpoints();
+
+    // Clear any stale history on mount to show current health status
+    healthHistory = {};
+
     await checkAllEndpoints();
 
     // Start polling with configurable interval
@@ -122,7 +133,7 @@
     }
 
     // Clean up timeouts
-    realtimeTimeouts.forEach(timeout => clearTimeout(timeout));
+    timeouts.cleanup();
 
     // Cleanup WebSocket listeners
     websocketService.off('file-changed', handleRealtimeUpdate);
@@ -138,9 +149,8 @@
     isManualRefresh = manual;
     const startTime = Date.now();
 
-    for (const endpoint of apiEndpoints) {
-      await checkEndpoint(endpoint);
-    }
+    // Check all endpoints in parallel for much faster results
+    await Promise.all(apiEndpoints.map(endpoint => checkEndpoint(endpoint)));
 
     lastCheck = new Date();
     lastUpdated = new Date();
@@ -160,7 +170,11 @@
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      // Use longer timeout for known-slow endpoints (comprehensive health checks, etc.)
+      const timeout = endpoint.path.includes('comprehensive') || endpoint.path.includes('snapshots')
+        ? 15000 // 15 seconds for slow endpoints
+        : 5000;  // 5 seconds for normal endpoints
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const response = await fetch(`${API_BASE}${endpoint.path}`, {
         method: endpoint.method,
@@ -258,21 +272,8 @@
     return formatTimeString(date);
   }
 
-  // Format "time ago" for last updated timestamp
-
   // Reactive "time ago" - updates when lastUpdated changes (no polling!)
-  let timeAgo = 'Just now';
-  // Update time ago when lastUpdated changes (prevents infinite loop)
-  $: if (lastUpdated) {
-    if (!lastUpdated) timeAgo = 'Just now';
-    else {
-      const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-      if (seconds < 10) timeAgo = 'Just now';
-      else if (seconds < 60) timeAgo = `${seconds}s ago`;
-      else if (seconds < 3600) timeAgo = `${Math.floor(seconds / 60)}m ago`;
-      else timeAgo = `${Math.floor(seconds / 3600)}h ago`;
-    }
-  }
+  $: timeAgo = getTimeAgo(lastUpdated);
 
   $: grouped = apiEndpoints.length > 0 ? groupedEndpoints() : {};
 </script>
@@ -303,6 +304,9 @@
         <input type="checkbox" bind:checked={alertsEnabled} aria-label="Enable health alerts" />
         <span>Alerts</span>
       </label>
+      <button on:click={clearHistory} disabled={checkingAll} class="btn-secondary" aria-label="Clear history and reset success rates" title="Clear history to reset success rates">
+        Clear History
+      </button>
       <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn-refresh" aria-label={checkingAll ? 'Checking all endpoints' : 'Check all endpoints'}>
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         {checkingAll ? 'Checking...' : 'Check All'}
@@ -482,12 +486,7 @@
   }
 
   .refresh-icon.spinning {
-    animation: spin-refresh 1s linear infinite;
-  }
-
-  @keyframes spin-refresh {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    /* Animation defined in global app.css */
   }
 
   /* (removed unused .loading) */
@@ -668,17 +667,6 @@
   .btn-test:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-  }
-
-  @media (max-width: 768px) {
-    .endpoint-row {
-      grid-template-columns: 30px 60px 1fr 80px 40px;
-      gap: 8px;
-    }
-
-    .endpoint-desc {
-      display: none;
-    }
   }
 
   /* Header Controls */

@@ -537,20 +537,29 @@
       return;
     }
 
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      // Only use if it's a valid color (hex or rgb)
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
     // Get theme-aware colors from body element
-    const computedStyle = getComputedStyle(document.documentElement);
-    const textColor = computedStyle.getPropertyValue('--text').trim();
-    const mutedColor = computedStyle.getPropertyValue('--muted').trim();
+    const textColor = getColor('--text', '#c0caf5');
+    const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
 
-    // Extract theme colors for charts
+    // Extract theme colors for charts with fallbacks
     const themeColors = {
-      accent: computedStyle.getPropertyValue('--accent').trim(),
-      success: computedStyle.getPropertyValue('--success').trim(),
-      error: computedStyle.getPropertyValue('--error').trim(),
-      warning: computedStyle.getPropertyValue('--warning').trim(),
-      info: computedStyle.getPropertyValue('--info').trim()
+      accent: getColor('--accent', '#7aa2f7'),
+      success: getColor('--success', '#9ece6a'),
+      error: getColor('--error', '#f7768e'),
+      warning: getColor('--warning', '#e0af68'),
+      info: getColor('--info', '#7aa2f7')
     };
+
+    logger.info('[LiveCodeFeed] Extracted chart colors:', themeColors);
 
     // File type distribution pie chart
     const pieCanvas = document.getElementById('chart-file-types');

@@ -5,7 +5,7 @@
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { websocketService } from './websocket.js';
   import { API_CONFIG } from '../config.js';
-  import { formatDateTime } from './timeFormat.js';
+  import { formatDateTime, getTimeAgo } from './timeFormat.js';
 
   let anomalies = [];
   let baseline = {};
@@ -104,17 +104,8 @@
     return formatDateTime(timestamp);
   }
 
-  function getTimeSinceUpdate() {
-    const seconds = Math.floor((new Date() - lastUpdate) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
-  }
-
   // Reactive "time since update" - updates when lastUpdate changes (no polling!)
-  $: timeSinceUpdate = getTimeSinceUpdate();
+  $: timeSinceUpdate = getTimeAgo(lastUpdate);
 
   function handleExportCSV() {
     const data = anomalies.map(a => ({
@@ -165,7 +156,7 @@
     </div>
     <div class="control-group">
       <label for="threshold-select">Sensitivity:</label>
-      <select id="threshold-select" bind:value={threshold} on:change={loadAnomalies}>
+      <select id="threshold-select" bind:value={threshold} on:change={loadAnomalies} aria-label="Select anomaly detection sensitivity">
         <option value="1.0">High (1σ)</option>
         <option value="2.0">Medium (2σ)</option>
         <option value="3.0">Low (3σ)</option>
@@ -496,24 +487,5 @@
   .hint {
     font-size: 13px;
     color: var(--muted);
-  }
-
-  @media (max-width: 768px) {
-    .panel-header {
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .header-right {
-      flex-wrap: wrap;
-    }
-
-    .controls {
-      flex-direction: column;
-    }
-
-    .stats-row {
-      grid-template-columns: 1fr 1fr;
-    }
   }
 </style>

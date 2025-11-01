@@ -2,12 +2,13 @@
   import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { fetchErrorLogs, fetchErrorStats, clearErrorLogs, logError } from './errorLogger.js';
-  import { formatDateTime } from './timeFormat.js';
+  import { formatDateTime, getTimeAgo } from './timeFormat.js';
   import { websocketService } from './websocket.js';
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
+  import { TimeoutManager } from './utils/TimeoutManager.js';
 
   let errors = [];
   let stats = { total: 0, by_severity: [], recent_count: 0 };
@@ -21,8 +22,8 @@
   let lastUpdated = null;
   let isManualRefresh = false;
 
-  // Track additional timeouts for cleanup
-  let reloadTimeouts = [];
+  // Timeout manager for cleanup
+  const timeouts = new TimeoutManager();
 
   // Pagination
   let currentPage = 0;
@@ -67,8 +68,8 @@
       clearTimeout(loadErrorsTimeout);
     }
 
-    // Clean up additional timeouts
-    reloadTimeouts.forEach(timeout => clearTimeout(timeout));
+    // Clean up all timeouts
+    timeouts.cleanup();
   });
 
   // Handle error-logged WebSocket event
@@ -255,11 +256,10 @@
         'warning'
       );
       // Reload after a short delay to let the backend process it
-      const timeout = setTimeout(() => {
+      timeouts.add(() => {
         loadErrors();
         loadStats();
       }, 200);
-      reloadTimeouts.push(timeout);
     } catch (err) {
       alert('Failed to log test error: ' + err.message);
     }
@@ -283,21 +283,8 @@
     }
   }
 
-  // Format "time ago" for last updated timestamp
-
   // Reactive "time ago" - updates when lastUpdated changes (no polling!)
-  let timeAgo = 'Just now';
-  // Update time ago when lastUpdated changes (prevents infinite loop)
-  $: if (lastUpdated) {
-    if (!lastUpdated) timeAgo = 'Just now';
-    else {
-      const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-      if (seconds < 10) timeAgo = 'Just now';
-      else if (seconds < 60) timeAgo = `${seconds}s ago`;
-      else if (seconds < 3600) timeAgo = `${Math.floor(seconds / 60)}m ago`;
-      else timeAgo = `${Math.floor(seconds / 3600)}h ago`;
-    }
-  }
+  $: timeAgo = getTimeAgo(lastUpdated);
 </script>
 
 <div class="error-log" role="region" aria-label="Error Log">
@@ -420,6 +407,9 @@
         getKey={err => err.id}
         let:item
       >
+        <!-- NOTE: itemHeight=100 works for collapsed errors. Expanded errors are taller
+             but VirtualScroll handles this gracefully with overscan. For better accuracy,
+             consider dynamic height calculation or disable VirtualScroll when expanded. -->
         <div class="error-item" class:expanded={selectedError?.id === item.id}>
           <button
             class="error-header"
@@ -592,12 +582,7 @@
   }
 
   .refresh-icon.spinning {
-    animation: spin-refresh 1s linear infinite;
-  }
-
-  @keyframes spin-refresh {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    /* Animation defined in global app.css */
   }
 
   .btn-export,
@@ -1033,40 +1018,5 @@
     font-size: 11px;
     color: var(--muted);
     font-family: var(--mono);
-  }
-
-  @media (max-width: 768px) {
-    .error-log {
-      padding: 6px;
-    }
-
-    .stats-bar {
-      flex-direction: column;
-    }
-
-    .error-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-    }
-
-    .error-right {
-      width: 100%;
-      justify-content: space-between;
-    }
-
-    .details-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .header-actions {
-      flex-direction: column;
-      width: 100%;
-    }
-
-    .btn-export,
-    .btn-test {
-      width: 100%;
-    }
   }
 </style>

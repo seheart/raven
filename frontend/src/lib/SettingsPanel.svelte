@@ -5,6 +5,7 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
+  import { getTimeAgo } from './timeFormat.js';
 
   // Use reactive settings store
   let settings = {};
@@ -109,8 +110,8 @@
   });
 
   async function requestNotificationPermission() {
-    if (typeof Notification === 'undefined') {
-      notifications.error('Desktop notifications are not supported in this browser', {
+    if (typeof Notification === 'undefined' || !window.isSecureContext) {
+      notifications.error('Desktop notifications require a secure context (HTTPS)', {
         title: 'Not Supported'
       });
       return;
@@ -174,21 +175,8 @@
     }
   }
 
-  // Format "time ago" for last modified timestamp
-
   // Reactive "time ago" - updates when lastModified changes (no polling!)
-  let timeAgo = 'Just now';
-  // Update time ago when lastModified changes (prevents infinite loop)
-  $: if (lastModified) {
-    if (!lastModified) timeAgo = 'Just now';
-    else {
-      const seconds = Math.floor((Date.now() - lastModified.getTime()) / 1000);
-      if (seconds < 10) timeAgo = 'Just now';
-      else if (seconds < 60) timeAgo = `${seconds}s ago`;
-      else if (seconds < 3600) timeAgo = `${Math.floor(seconds / 60)}m ago`;
-      else timeAgo = `${Math.floor(seconds / 3600)}h ago`;
-    }
-  }
+  $: timeAgo = getTimeAgo(lastModified);
 </script>
 
 <div class="settings-panel" role="region" aria-label="User settings">

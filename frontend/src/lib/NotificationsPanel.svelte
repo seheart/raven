@@ -1,11 +1,13 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
-  import { formatDateTime, formatRelativeTime } from './timeFormat.js';
+  import { formatDateTime, formatRelativeTime, getTimeAgo } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
   import { formatNumber } from './numberFormat.js';
+  import { exportJSON } from './exportUtils.js';
+  import DOMPurify from 'dompurify';
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -135,14 +137,7 @@
   // Export notifications as JSON
   async function exportNotifications() {
     try {
-      const jsonContent = JSON.stringify(notifications, null, 2);
-      const blob = new Blob([jsonContent], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `raven-notifications-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      exportJSON(notifications, 'raven-notifications');
     } catch (error) {
       logger.error('Failed to export notifications:', error);
       alert('Failed to export notifications: ' + error.message);
@@ -307,21 +302,8 @@
     await loadNotifications();
   }
 
-  // Format "time ago" for last updated timestamp
-
   // Reactive "time ago" - updates when lastUpdated changes (no polling!)
-  let timeAgo = 'Just now';
-  // Update time ago when lastUpdated changes (prevents infinite loop)
-  $: if (lastUpdated) {
-    if (!lastUpdated) timeAgo = 'Just now';
-    else {
-      const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-      if (seconds < 10) timeAgo = 'Just now';
-      else if (seconds < 60) timeAgo = `${seconds}s ago`;
-      else if (seconds < 3600) timeAgo = `${Math.floor(seconds / 60)}m ago`;
-      else timeAgo = `${Math.floor(seconds / 3600)}h ago`;
-    }
-  }
+  $: timeAgo = getTimeAgo(lastUpdated);
 
   $: filteredCount = notifications.length;
 </script>
@@ -498,7 +480,7 @@
               {#if notification.metadata}
                 <div class="detail-section">
                   <div class="detail-label">Details</div>
-                  <pre class="detail-metadata" role="code">{JSON.stringify(notification.metadata, null, 2)}</pre>
+                  <pre class="detail-metadata" role="code">{@html DOMPurify.sanitize(JSON.stringify(notification.metadata, null, 2))}</pre>
                 </div>
               {/if}
             </div>
@@ -568,12 +550,7 @@
   }
 
   .refresh-icon.spinning {
-    animation: spin-refresh 1s linear infinite;
-  }
-
-  @keyframes spin-refresh {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    /* Animation defined in global app.css */
   }
 
   .btn-primary, .btn-secondary {

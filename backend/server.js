@@ -1390,8 +1390,14 @@ app.get('/health', async (req, res) => {
       ? dbAnalytics.totalEvents / uptime
       : 0;
 
-    // Watcher details
-    const totalFilesTracked = projectState.db.getTrackedFiles().length;
+    // Watcher details - use COUNT query instead of loading all files
+    let totalFilesTracked = 0;
+    try {
+      const result = projectState.db.db.prepare('SELECT COUNT(DISTINCT filepath) as count FROM events').get();
+      totalFilesTracked = result.count;
+    } catch (_err) {
+      totalFilesTracked = 0;
+    }
 
     // Process info
     const processInfo = {

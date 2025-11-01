@@ -35,6 +35,14 @@ export default defineConfig({
         target: 'http://localhost:3030',
         changeOrigin: true,
       },
+      '/health': {
+        target: 'http://localhost:3030',
+        changeOrigin: true,
+      },
+      '/telemetry': {
+        target: 'http://localhost:3030',
+        changeOrigin: true,
+      },
       '/socket.io': {
         target: 'http://localhost:3030',
         ws: true,

@@ -4,6 +4,7 @@ import { API_CONFIG } from '../config.js';
 import { apiFetch } from './apiClient.js';
 
 const API_BASE = API_CONFIG.API_BASE;
+const BASE_URL = API_CONFIG.BASE_URL;
 
 /**
  * @typedef {Object} CacheEntry
@@ -271,12 +272,46 @@ class DataService {
 
   /**
    * Fetch backend health status
+   * Uses the public /health endpoint (not /api/health) to avoid auth requirements
    * @param {boolean} [forceRefresh=false] - Force refresh from API
    * @returns {Promise<Object>} Backend health status including version, uptime, database status
    * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchHealth(forceRefresh = false) {
-    return this.fetch('/health', { forceRefresh, ttl: 3000 });
+    const cacheKey = '/health';
+
+    // Check cache first
+    if (!forceRefresh && this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
+      const age = Date.now() - cached.timestamp;
+
+      if (age < 3000) {
+        cached.accessTime = Date.now();
+        this.cache.set(cacheKey, cached);
+        return cached.data;
+      } else {
+        this.cache.delete(cacheKey);
+      }
+    }
+
+    // Fetch from public /health endpoint (no auth required)
+    const url = `${BASE_URL}/health`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Health check failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Cache the result
+    this.cache.set(cacheKey, {
+      data,
+      timestamp: Date.now(),
+      accessTime: Date.now()
+    });
+
+    return data;
   }
 
   /**

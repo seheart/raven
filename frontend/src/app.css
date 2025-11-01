@@ -815,6 +815,15 @@ a:focus:not(:focus-visible),
   }
 }
 
+@keyframes spin-refresh {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Animation Utilities */
 .animate-fade-in-up {
   animation: fadeInUp var(--duration-base) var(--ease-out-expo);
@@ -838,6 +847,10 @@ a:focus:not(:focus-visible),
 
 .animate-pulse {
   animation: pulse 2s var(--ease-smooth) infinite;
+}
+
+.spinning {
+  animation: spin-refresh 1s linear infinite;
 }
 
 /* Stagger delays for entrance animations */

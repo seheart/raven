@@ -8,7 +8,7 @@ export const MAX_CACHE_SIZE = 1000; // Limit cache to prevent unbounded memory g
 
 // Health endpoint cache (reduces expensive queries)
 export let healthCache = { data: null, timestamp: 0 };
-export const HEALTH_CACHE_TTL = 5000; // 5 seconds
+export const HEALTH_CACHE_TTL = 30000; // 30 seconds (health data doesn't change often)
 
 /**
  * Add entry to file cache with LRU eviction

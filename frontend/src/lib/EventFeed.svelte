@@ -441,26 +441,38 @@
 
   // Get agent badge info
   function getAgentBadge(agent) {
-    const computedStyle = getComputedStyle(document.documentElement);
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
     const badges = {
-      'ant': { icon: '🐜', color: computedStyle.getPropertyValue('--accent').trim(), name: 'ANT' },
+      'ant': { icon: '🐜', color: getColor('--accent', '#7aa2f7'), name: 'ANT' },
       'claude-code': { icon: '🤖', color: '#bb9af7', name: 'Claude Code' },
-      'cursor': { icon: '↗️', color: computedStyle.getPropertyValue('--success').trim(), name: 'Cursor' },
-      'github-copilot': { icon: '🤝', color: computedStyle.getPropertyValue('--error').trim(), name: 'Copilot' },
-      'aider': { icon: '💬', color: computedStyle.getPropertyValue('--warning').trim(), name: 'Aider' },
-      'manual': { icon: '👤', color: computedStyle.getPropertyValue('--muted').trim(), name: 'Manual' },
-      'unknown': { icon: '❓', color: computedStyle.getPropertyValue('--muted').trim(), name: 'Unknown' }
+      'cursor': { icon: '↗️', color: getColor('--success', '#9ece6a'), name: 'Cursor' },
+      'github-copilot': { icon: '🤝', color: getColor('--error', '#f7768e'), name: 'Copilot' },
+      'aider': { icon: '💬', color: getColor('--warning', '#e0af68'), name: 'Aider' },
+      'manual': { icon: '👤', color: getColor('--muted', '#565f89'), name: 'Manual' },
+      'unknown': { icon: '❓', color: getColor('--muted', '#565f89'), name: 'Unknown' }
     };
     return badges[agent] || badges.unknown;
   }
 
   // Get risk badge info
   function getRiskBadge(riskLevel) {
-    const computedStyle = getComputedStyle(document.documentElement);
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
     const badges = {
-      'high': { icon: '⚠️', color: computedStyle.getPropertyValue('--error').trim(), text: 'High Risk' },
-      'medium': { icon: '⚡', color: computedStyle.getPropertyValue('--warning').trim(), text: 'Medium Risk' },
-      'low': { icon: '✓', color: computedStyle.getPropertyValue('--success').trim(), text: 'Low Risk' }
+      'high': { icon: '⚠️', color: getColor('--error', '#f7768e'), text: 'High Risk' },
+      'medium': { icon: '⚡', color: getColor('--warning', '#e0af68'), text: 'Medium Risk' },
+      'low': { icon: '✓', color: getColor('--success', '#9ece6a'), text: 'Low Risk' }
     };
     return badges[riskLevel] || null;
   }
@@ -521,9 +533,16 @@
 
     if (!showCharts || mergedEvents.length === 0) return;
 
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
     // Get theme-aware colors from body element
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
-    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const textColor = getColor('--text', '#c0caf5');
+    const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
 
     // 1. Pie Chart: Change Type Distribution

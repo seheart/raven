@@ -214,25 +214,31 @@
   }
 
   function getFileTypeColor(ext) {
-    const computedStyle = getComputedStyle(document.documentElement);
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
     const colors = {
-      '.py': computedStyle.getPropertyValue('--accent').trim(),
-      '.js': computedStyle.getPropertyValue('--warning').trim(),
-      '.jsx': computedStyle.getPropertyValue('--warning').trim(),
-      '.ts': computedStyle.getPropertyValue('--accent').trim(),
-      '.tsx': computedStyle.getPropertyValue('--accent').trim(),
+      '.py': getColor('--accent', '#7aa2f7'),
+      '.js': getColor('--warning', '#e0af68'),
+      '.jsx': getColor('--warning', '#e0af68'),
+      '.ts': getColor('--accent', '#7aa2f7'),
+      '.tsx': getColor('--accent', '#7aa2f7'),
       '.svelte': '#ff3e00',
-      '.json': computedStyle.getPropertyValue('--success').trim(),
+      '.json': getColor('--success', '#9ece6a'),
       '.css': '#8b5cf6',
       '.scss': '#8b5cf6',
-      '.html': computedStyle.getPropertyValue('--error').trim(),
-      '.md': computedStyle.getPropertyValue('--muted').trim(),
+      '.html': getColor('--error', '#f7768e'),
+      '.md': getColor('--muted', '#565f89'),
       '.rs': '#f97316',
-      '.toml': computedStyle.getPropertyValue('--muted').trim(),
-      '.yml': computedStyle.getPropertyValue('--muted').trim(),
-      '.yaml': computedStyle.getPropertyValue('--muted').trim()
+      '.toml': getColor('--muted', '#565f89'),
+      '.yml': getColor('--muted', '#565f89'),
+      '.yaml': getColor('--muted', '#565f89')
     };
-    return colors[ext] || computedStyle.getPropertyValue('--muted').trim();
+    return colors[ext] || getColor('--muted', '#565f89');
   }
 
   function getFileName(filepath) {
@@ -393,18 +399,25 @@
 
     if (!showCharts || files.length === 0) return;
 
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      // Only use if it's a valid color (hex or rgb)
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
     // Get theme-aware colors
-    const computedStyle = getComputedStyle(document.documentElement);
-    const textColor = computedStyle.getPropertyValue('--text').trim();
-    const mutedColor = computedStyle.getPropertyValue('--muted').trim();
+    const textColor = getColor('--text', '#c0caf5');
+    const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
 
     // Extract theme colors for charts
     const themeColors = {
-      accent: computedStyle.getPropertyValue('--accent').trim(),
-      success: computedStyle.getPropertyValue('--success').trim(),
-      error: computedStyle.getPropertyValue('--error').trim(),
-      warning: computedStyle.getPropertyValue('--warning').trim()
+      accent: getColor('--accent', '#7aa2f7'),
+      success: getColor('--success', '#9ece6a'),
+      error: getColor('--error', '#f7768e'),
+      warning: getColor('--warning', '#e0af68')
     };
 
     // 1. Pie Chart: File types distribution

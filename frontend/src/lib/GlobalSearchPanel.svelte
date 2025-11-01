@@ -150,15 +150,20 @@
   // Theme-aware colors
   function getThemeColors() {
     const style = getComputedStyle(document.body);
+    const getColor = (varName, fallback) => {
+      const value = style.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
     return {
-      text: style.getPropertyValue('--text').trim() || '#c0caf5',
-      muted: style.getPropertyValue('--muted').trim() || '#565f89',
-      accent: style.getPropertyValue('--accent').trim() || '#7aa2f7',
-      success: style.getPropertyValue('--success').trim() || '#10b981',
-      error: style.getPropertyValue('--error').trim() || '#f7768e',
-      warning: style.getPropertyValue('--warning').trim() || '#e0af68',
-      surface: style.getPropertyValue('--surface').trim() || '#1a1b26',
-      border: style.getPropertyValue('--border').trim() || '#24283b'
+      text: getColor('--text', '#c0caf5'),
+      muted: getColor('--muted', '#565f89'),
+      accent: getColor('--accent', '#7aa2f7'),
+      success: getColor('--success', '#10b981'),
+      error: getColor('--error', '#f7768e'),
+      warning: getColor('--warning', '#e0af68'),
+      surface: getColor('--surface', '#1a1b26'),
+      border: getColor('--border', '#24283b')
     };
   }
 

@@ -226,8 +226,8 @@ describe('Cache Utilities', () => {
       expect(MAX_CACHE_SIZE).toBe(1000);
     });
 
-    test('HEALTH_CACHE_TTL should be 5000ms (5 seconds)', () => {
-      expect(HEALTH_CACHE_TTL).toBe(5000);
+    test('HEALTH_CACHE_TTL should be 30000ms (30 seconds)', () => {
+      expect(HEALTH_CACHE_TTL).toBe(30000);
     });
   });
 

@@ -4,6 +4,44 @@ import { HealthChecker } from '../services/health-checker.js';
 import fs from 'fs';
 import { join } from 'path';
 import si from 'systeminformation';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+/**
+ * Check if telemetry bridge is running
+ * @returns {Promise<object>} Bridge status
+ */
+async function checkTelemetryBridge() {
+  try {
+    // Check for running bridge process
+    const { stdout } = await execAsync('ps aux | grep -E "claude-telemetry-bridge\\.js" | grep -v grep');
+
+    if (stdout.trim()) {
+      // Extract PID from ps output (second column)
+      const lines = stdout.trim().split('\n');
+      const firstLine = lines[0];
+      const parts = firstLine.split(/\s+/);
+      const pid = parseInt(parts[1], 10);
+
+      return {
+        running: true,
+        healthy: true,
+        pid: pid || null
+      };
+    }
+  } catch (error) {
+    // grep returns exit code 1 when no matches found
+    // This is expected when bridge is not running
+  }
+
+  return {
+    running: false,
+    healthy: false,
+    pid: null
+  };
+}
 
 /**
  * Creates health and status monitoring routes
@@ -53,9 +91,23 @@ export function createHealthRoutes(deps) {
 
       const ravenSize = getRavenDirSize(RAVEN_DIR);
 
-      // Estimate disk usage
-      const estimatedDiskTotal = 100 * 1024 * 1024 * 1024; // 100GB
-      const diskUsePercent = (ravenSize / estimatedDiskTotal) * 100;
+      // Get actual disk size using systeminformation
+      let diskUsePercent = 0;
+      let diskTotal = 0;
+      try {
+        const diskInfo = await si.fsSize();
+        // Find the disk containing RAVEN_DIR (usually root /)
+        const rootDisk = diskInfo.find(d => d.mount === '/') || diskInfo[0];
+        if (rootDisk) {
+          diskTotal = rootDisk.size;
+          diskUsePercent = (ravenSize / diskTotal) * 100;
+        }
+      } catch (err) {
+        // Fallback to estimated 100GB if systeminformation fails
+        logger.warn('Failed to get disk size, using estimate:', err);
+        diskTotal = 100 * 1024 * 1024 * 1024; // 100GB
+        diskUsePercent = (ravenSize / diskTotal) * 100;
+      }
 
       // Determine health status
       let status = 'healthy';
@@ -89,6 +141,9 @@ export function createHealthRoutes(deps) {
         });
       }
 
+      // Check telemetry bridge status
+      const telemetryBridge = await checkTelemetryBridge();
+
       res.json({
         status,
         issues,
@@ -111,6 +166,7 @@ export function createHealthRoutes(deps) {
           ravenSize,
           diskUsePercent: diskUsePercent.toFixed(1)
         },
+        telemetry_bridge: telemetryBridge,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
