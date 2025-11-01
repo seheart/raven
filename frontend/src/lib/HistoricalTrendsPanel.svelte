@@ -5,7 +5,7 @@
   import { websocketService } from './websocket.js';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
-  import { formatDateTime, formatDateOnly, formatTimeOnly } from './timeFormat.js';
+  import { formatDateOnly } from './timeFormat.js';
 
   let trends = [];
   let loading = true;
@@ -71,10 +71,6 @@
       days = parsedDays;
       loadTrends();
     }
-  }
-
-  function getBarHeight(value) {
-    return (value / maxEventCount) * 100;
   }
 
   // Get the height of a bar segment as a percentage of that period's total
@@ -395,7 +391,7 @@
   }
 
   .bar-label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
     text-align: right;
     transform: rotate(-45deg);
@@ -403,6 +399,9 @@
     white-space: nowrap;
     margin-top: 8px;
     margin-left: -20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
   }
 
   .bar-count {
