@@ -7,6 +7,9 @@
   import ProjectBadge from './ProjectBadge.svelte';
   import { api } from './apiClient.js';
   import { API_CONFIG } from '../config.js';
+  import { Chart, registerables } from 'chart.js';
+
+  Chart.register(...registerables);
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -38,6 +41,14 @@
   let collapsedSessions = new Set(); // Track which sessions are collapsed
   let sessions = []; // Grouped session data
   let selectedSession = 'all'; // Filter by specific session
+
+  // Enhanced sorting
+  let sortBy = 'time_desc'; // 'time_desc', 'time_asc', 'duration_desc', 'events_desc'
+
+  // Chart.js visualizations
+  let showCharts = true;
+  let charts = {};
+  let themeObserver;
 
   async function loadActivities(manual = false) {
     try {
@@ -107,31 +118,31 @@
 
   function getChangeTypeIcon(changeType) {
     switch (changeType) {
-      case 'add':
-      case 'create':
-      case 'created': return '➕';
-      case 'change':
-      case 'edit':
-      case 'modified': return '✏️';
-      case 'unlink':
-      case 'delete':
-      case 'deleted': return '🗑️';
-      default: return '📝';
+    case 'add':
+    case 'create':
+    case 'created': return '➕';
+    case 'change':
+    case 'edit':
+    case 'modified': return '✏️';
+    case 'unlink':
+    case 'delete':
+    case 'deleted': return '🗑️';
+    default: return '📝';
     }
   }
 
   function getChangeTypeColor(changeType) {
     switch (changeType) {
-      case 'add':
-      case 'create':
-      case 'created': return 'var(--success)';
-      case 'change':
-      case 'edit':
-      case 'modified': return 'var(--warning)';
-      case 'unlink':
-      case 'delete':
-      case 'deleted': return 'var(--error)';
-      default: return 'var(--info)';
+    case 'add':
+    case 'create':
+    case 'created': return 'var(--success)';
+    case 'change':
+    case 'edit':
+    case 'modified': return 'var(--warning)';
+    case 'unlink':
+    case 'delete':
+    case 'deleted': return 'var(--error)';
+    default: return 'var(--info)';
     }
   }
 
@@ -227,10 +238,33 @@
     });
 
     // Convert to array and calculate durations
-    sessions = Array.from(sessionMap.values()).map(session => ({
+    let sessionsArray = Array.from(sessionMap.values()).map(session => ({
       ...session,
       duration: Math.floor((new Date(session.endTime) - new Date(session.startTime)) / 1000)
-    })).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    }));
+
+    // Apply sorting
+    sessions = applySorting(sessionsArray);
+  }
+
+  function applySorting(sessionsArray) {
+    switch (sortBy) {
+    case 'time_asc':
+      return sessionsArray.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    case 'time_desc':
+      return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    case 'duration_desc':
+      return sessionsArray.sort((a, b) => b.duration - a.duration);
+    case 'events_desc':
+      return sessionsArray.sort((a, b) => b.totalEvents - a.totalEvents);
+    default:
+      return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    }
+  }
+
+  // Reactive: Re-sort when sortBy changes
+  $: if (sortBy) {
+    groupActivitiesBySession();
   }
 
   function toggleSession(sessionId) {
@@ -275,7 +309,7 @@
   }
 
   // WebSocket event handler for project switches
-  const handleProjectSwitched = async (data) => {
+  const handleProjectSwitched = async (_data) => {
     offset = 0;
     await loadActivities();
   };
@@ -346,6 +380,50 @@
     }
   }
 
+  async function exportToCSV() {
+    try {
+      const res = await fetch(`${API_BASE}/activity-log?limit=10000`);
+      const data = await res.json();
+
+      // CSV headers
+      const headers = ['Timestamp', 'Type', 'Description', 'Session ID', 'Category', 'Target'];
+
+      // CSV rows
+      const rows = data.activities.map(activity => [
+        activity.timestamp || '',
+        activity.type || '',
+        activity.description || '',
+        activity.session_id || '',
+        activity.category || '',
+        activity.target || ''
+      ]);
+
+      // Build CSV with proper escaping
+      const csv = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => {
+          // Escape quotes and wrap in quotes if contains comma, newline, or quote
+          const escaped = String(cell).replace(/"/g, '""');
+          return escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')
+            ? `"${escaped}"`
+            : escaped;
+        }).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `raven-activity-log-${Date.now()}.csv`;
+      a.click();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      logger.error('CSV export failed:', error);
+    }
+  }
+
   // WebSocket event handler
   const handleFileChanged = () => {
     // Reload if on first page
@@ -381,6 +459,263 @@
     }
   }
 
+  // Calculate enhanced statistics
+  $: enhancedStats = {
+    totalActivities: activities.length,
+    uniqueSessions: sessions.length,
+    averageSessionDuration: sessions.length > 0
+      ? Math.floor(sessions.reduce((sum, s) => sum + s.duration, 0) / sessions.length)
+      : 0,
+    activitiesPerHour: activities.length > 0 && sessions.length > 0
+      ? (activities.length / Math.max(1, sessions.reduce((sum, s) => sum + s.duration, 0) / 3600)).toFixed(2)
+      : 0
+  };
+
+  // Chart creation function
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || activities.length === 0) return;
+
+    // Get theme-aware colors from body element
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
+    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // 1. Pie Chart: Activity type breakdown (file/agent/system)
+    const pieCanvas = document.getElementById('chart-activity-types');
+    if (pieCanvas) {
+      const typeCounts = {
+        file: stats.file,
+        agent: stats.agent,
+        system: stats.system
+      };
+
+      charts.activityTypes = new Chart(pieCanvas, {
+        type: 'pie',
+        data: {
+          labels: ['File', 'Agent', 'System'],
+          datasets: [{
+            data: [typeCounts.file, typeCounts.agent, typeCounts.system],
+            backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: textColor,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            title: {
+              display: true,
+              text: 'Activity Type Breakdown',
+              color: textColor,
+              font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Bar Chart: Activities per session
+    const barCanvas = document.getElementById('chart-activities-per-session');
+    if (barCanvas) {
+      const topSessions = sessions.slice(0, 10);
+      const sessionLabels = topSessions.map(s => s.id.substring(0, 8));
+      const sessionData = topSessions.map(s => s.totalEvents);
+
+      charts.activitiesPerSession = new Chart(barCanvas, {
+        type: 'bar',
+        data: {
+          labels: sessionLabels,
+          datasets: [{
+            label: 'Events',
+            data: sessionData,
+            backgroundColor: '#3b82f6'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: 'Activities Per Session (Top 10)',
+              color: textColor,
+              font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            x: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Heatmap-style Bar Chart: Activities by hour of day (24 bars, 0-23)
+    const heatmapCanvas = document.getElementById('chart-activities-by-hour');
+    if (heatmapCanvas) {
+      const hourCounts = new Array(24).fill(0);
+      activities.forEach(activity => {
+        const hour = new Date(activity.timestamp).getHours();
+        hourCounts[hour]++;
+      });
+
+      const hourLabels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+
+      charts.activitiesByHour = new Chart(heatmapCanvas, {
+        type: 'bar',
+        data: {
+          labels: hourLabels,
+          datasets: [{
+            label: 'Activities',
+            data: hourCounts,
+            backgroundColor: hourCounts.map(count => {
+              const max = Math.max(...hourCounts);
+              const intensity = max > 0 ? count / max : 0;
+              return `rgba(59, 130, 246, ${0.3 + intensity * 0.7})`;
+            })
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: 'Activities by Hour of Day',
+              color: textColor,
+              font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            x: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 9, family: 'var(--mono)' },
+                maxRotation: 90,
+                minRotation: 45
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 4. Line Chart: Cumulative activities over time
+    const lineCanvas = document.getElementById('chart-cumulative-activities');
+    if (lineCanvas) {
+      const sortedActivities = [...activities].sort((a, b) =>
+        new Date(a.timestamp) - new Date(b.timestamp)
+      );
+
+      const cumulativeData = sortedActivities.map((_, index) => index + 1);
+      const timeLabels = sortedActivities.map((_, index) => index + 1);
+
+      charts.cumulativeActivities = new Chart(lineCanvas, {
+        type: 'line',
+        data: {
+          labels: timeLabels,
+          datasets: [{
+            label: 'Cumulative Activities',
+            data: cumulativeData,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: 'Cumulative Activities Over Time',
+              color: textColor,
+              font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            x: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' },
+                maxTicksLimit: 10
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Recreate charts when data changes
+  $: if (showCharts && activities.length > 0) {
+    setTimeout(createCharts, 100);
+  }
+
   onMount(() => {
     loadActivities();
 
@@ -391,6 +726,21 @@
 
     // Add keyboard shortcuts
     window.addEventListener('keydown', handleKeydown);
+
+    // Watch for theme changes on body element
+    themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && showCharts) {
+          logger.info('[ActivityLog] Theme changed, recreating charts');
+          setTimeout(createCharts, 100);
+        }
+      });
+    });
+
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
   });
 
   onDestroy(() => {
@@ -400,6 +750,14 @@
 
     // Remove keyboard listener
     window.removeEventListener('keydown', handleKeydown);
+
+    // Disconnect theme observer
+    if (themeObserver) {
+      themeObserver.disconnect();
+    }
+
+    // Destroy all charts
+    Object.values(charts).forEach(chart => chart?.destroy());
   });
 </script>
 
@@ -423,6 +781,9 @@
       </button>
       <button class="btn-export" on:click={exportLog} aria-label="Export activity log to JSON file">
         <span aria-hidden="true">💾</span> Export JSON
+      </button>
+      <button class="btn-export" on:click={exportToCSV} aria-label="Export activity log to CSV file">
+        <span aria-hidden="true">📊</span> Export CSV
       </button>
     </div>
   </div>
@@ -465,6 +826,19 @@
           <option value="none">📅 No Time Grouping</option>
           <option value="hour">⏰ Group by Hour</option>
           <option value="day">📆 Group by Day</option>
+        </select>
+
+        <label for="sort-by" class="visually-hidden">Sort by</label>
+        <select
+          id="sort-by"
+          class="sort-select"
+          bind:value={sortBy}
+          aria-label="Sort activities"
+        >
+          <option value="time_desc">↓ Newest First</option>
+          <option value="time_asc">↑ Oldest First</option>
+          <option value="duration_desc">⏱️ Longest Duration</option>
+          <option value="events_desc">📊 Most Events</option>
         </select>
 
         {#if groupBySession && sessions.length > 1}
@@ -530,6 +904,73 @@
       </button>
     </div>
   </div>
+
+  <!-- Statistics Dashboard -->
+  {#if !loading && activities.length > 0}
+    <div class="statistics-dashboard">
+      <div class="stats-cards">
+        <div class="stats-card">
+          <div class="stats-card-icon">📈</div>
+          <div class="stats-card-content">
+            <div class="stats-card-label">Total Activities</div>
+            <div class="stats-card-value">{enhancedStats.totalActivities}</div>
+          </div>
+        </div>
+
+        <div class="stats-card">
+          <div class="stats-card-icon">🔖</div>
+          <div class="stats-card-content">
+            <div class="stats-card-label">Unique Sessions</div>
+            <div class="stats-card-value">{enhancedStats.uniqueSessions}</div>
+          </div>
+        </div>
+
+        <div class="stats-card">
+          <div class="stats-card-icon">⏱️</div>
+          <div class="stats-card-content">
+            <div class="stats-card-label">Avg Session Duration</div>
+            <div class="stats-card-value">{formatDuration(enhancedStats.averageSessionDuration)}</div>
+          </div>
+        </div>
+
+        <div class="stats-card">
+          <div class="stats-card-icon">⚡</div>
+          <div class="stats-card-content">
+            <div class="stats-card-label">Activities Per Hour</div>
+            <div class="stats-card-value">{enhancedStats.activitiesPerHour}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    {#if showCharts}
+      <div class="charts-section">
+        <div class="charts-header">
+          <h3>📊 Analytics Visualizations</h3>
+          <button class="btn-toggle-charts" on:click={() => showCharts = false}>Hide Charts</button>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-container">
+            <canvas id="chart-activity-types"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-activities-per-session"></canvas>
+          </div>
+          <div class="chart-container chart-wide">
+            <canvas id="chart-activities-by-hour"></canvas>
+          </div>
+          <div class="chart-container chart-wide">
+            <canvas id="chart-cumulative-activities"></canvas>
+          </div>
+        </div>
+      </div>
+    {:else}
+      <div class="charts-toggle">
+        <button class="btn-toggle-charts" on:click={() => showCharts = true}>Show Charts</button>
+      </div>
+    {/if}
+  {/if}
 
   <!-- Activity Timeline -->
   <div class="timeline" role="feed" aria-label="Activity timeline" aria-busy={loading}>
@@ -1537,6 +1978,152 @@
     color: var(--muted);
   }
 
+  /* Sort select styling */
+  .sort-select {
+    padding: 6px 10px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: var(--mono);
+    cursor: pointer;
+    min-width: 160px;
+  }
+
+  .sort-select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* Statistics Dashboard */
+  .statistics-dashboard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+  }
+
+  .stats-card {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.15s ease;
+  }
+
+  .stats-card:hover {
+    border-color: var(--accent);
+    background: var(--surface-2);
+    transform: translateY(-1px);
+  }
+
+  .stats-card-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .stats-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .stats-card-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+  }
+
+  .stats-card-value {
+    font-size: 16px;
+    color: var(--text);
+    font-weight: 700;
+    font-family: var(--mono);
+  }
+
+  /* Charts Section */
+  .charts-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .charts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .charts-header h3 {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .chart-container {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    height: 250px;
+  }
+
+  .chart-container.chart-wide {
+    grid-column: 1 / -1;
+  }
+
+  .charts-toggle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .btn-toggle-charts {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-toggle-charts:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
   @media (max-width: 768px) {
     .activity-log {
       grid-template-columns: 1fr;
@@ -1562,6 +2149,18 @@
 
     .details-grid {
       grid-template-columns: 1fr;
+    }
+
+    .stats-cards {
+      grid-template-columns: 1fr;
+    }
+
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-container.chart-wide {
+      grid-column: 1;
     }
   }
 </style>

@@ -9,9 +9,9 @@
   import ProjectBadge from './ProjectBadge.svelte';
   import { api } from './apiClient.js';
   import SimilarChangesPanel from './SimilarChangesPanel.svelte';
-  import { API_CONFIG } from '../config.js';
+  import { Chart, registerables } from 'chart.js';
 
-  const API_BASE = API_CONFIG.API_BASE;
+  Chart.register(...registerables);
 
   // Configuration constants
   const MAX_EVENTS_HISTORY = 1000;  // Maximum number of events to keep in memory
@@ -45,6 +45,11 @@
   };
   let showForensics = true; // Toggle forensics dashboard
 
+  // Chart.js visualizations
+  let showCharts = true;
+  let charts = {};
+  let themeObserver;
+
   function handleTimeRangeChange(start, end) {
     timeRangeStart = start;
     timeRangeEnd = end;
@@ -61,10 +66,6 @@
 
   function clearEvents() {
     events = [];
-  }
-
-  function refreshEvents() {
-    loadRecentEvents();
   }
 
   function exportToJSON() {
@@ -273,12 +274,35 @@
 
     // Listen for project switch events
     websocketService.on('project-switched', handleProjectSwitched);
+
+    // Watch for theme changes on body element
+    themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && showCharts) {
+          logger.info('[EventFeed] Theme changed, recreating charts');
+          setTimeout(createCharts, 100);
+        }
+      });
+    });
+
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
   });
 
   onDestroy(() => {
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);
+
+    // Disconnect theme observer
+    if (themeObserver) {
+      themeObserver.disconnect();
+    }
+
+    // Destroy all charts
+    Object.values(charts).forEach(chart => chart?.destroy());
   });
 
   function formatTime(timestamp) {
@@ -430,6 +454,295 @@
     };
     return badges[riskLevel] || null;
   }
+
+  // Merge file events and conversation events for chart calculations
+  $: mergedEvents = filteredEvents;
+
+  // Chart creation function
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || mergedEvents.length === 0) return;
+
+    // Get theme-aware colors from body element
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
+    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // 1. Pie Chart: Change Type Distribution
+    const pieCanvas = document.getElementById('chart-event-types');
+    if (pieCanvas) {
+      const typeCounts = {
+        created: mergedEvents.filter(e => e.changeType === 'created').length,
+        modified: mergedEvents.filter(e => e.changeType === 'modified').length,
+        deleted: mergedEvents.filter(e => e.changeType === 'deleted').length,
+        user_message: mergedEvents.filter(e => e.changeType === 'user_message').length,
+        assistant_text: mergedEvents.filter(e => e.changeType === 'assistant_text').length,
+        tool_call: mergedEvents.filter(e => e.changeType === 'tool_call').length,
+        tool_result: mergedEvents.filter(e => e.changeType === 'tool_result').length
+      };
+
+      const labels = [];
+      const data = [];
+      const colors = [];
+
+      if (typeCounts.created > 0) { labels.push('Created'); data.push(typeCounts.created); colors.push('#22c55e'); }
+      if (typeCounts.modified > 0) { labels.push('Modified'); data.push(typeCounts.modified); colors.push('#3b82f6'); }
+      if (typeCounts.deleted > 0) { labels.push('Deleted'); data.push(typeCounts.deleted); colors.push('#ef4444'); }
+      if (typeCounts.user_message > 0) { labels.push('User Messages'); data.push(typeCounts.user_message); colors.push('#8b5cf6'); }
+      if (typeCounts.assistant_text > 0) { labels.push('Claude Responses'); data.push(typeCounts.assistant_text); colors.push('#ec4899'); }
+      if (typeCounts.tool_call > 0) { labels.push('Tool Calls'); data.push(typeCounts.tool_call); colors.push('#f59e0b'); }
+      if (typeCounts.tool_result > 0) { labels.push('Tool Results'); data.push(typeCounts.tool_result); colors.push('#06b6d4'); }
+
+      charts.eventTypes = new Chart(pieCanvas, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: colors
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: textColor,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            title: {
+              display: true,
+              text: 'Event Type Distribution',
+              color: textColor,
+              font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Bar Chart: Events Per Hour (Last 24 hours)
+    const barCanvas = document.getElementById('chart-events-per-hour');
+    if (barCanvas) {
+      const now = new Date();
+      const last24Hours = new Array(24).fill(0);
+
+      mergedEvents.forEach(event => {
+        const eventDate = new Date(event.timestamp);
+        const hoursDiff = Math.floor((now - eventDate) / (1000 * 60 * 60));
+        if (hoursDiff >= 0 && hoursDiff < 24) {
+          last24Hours[23 - hoursDiff]++;
+        }
+      });
+
+      const hourLabels = [];
+      for (let i = 23; i >= 0; i--) {
+        const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
+        hourLabels.push(hour.getHours() + ':00');
+      }
+
+      charts.eventsPerHour = new Chart(barCanvas, {
+        type: 'bar',
+        data: {
+          labels: hourLabels,
+          datasets: [{
+            label: 'Events',
+            data: last24Hours,
+            backgroundColor: '#3b82f6'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: 'Events Per Hour (Last 24h)',
+              color: textColor,
+              font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            x: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 9, family: 'var(--mono)' },
+                maxRotation: 90,
+                minRotation: 45
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Horizontal Bar Chart: Top 5 Agents by Event Count
+    const agentBarCanvas = document.getElementById('chart-top-agents');
+    if (agentBarCanvas) {
+      const agentCounts = {};
+      mergedEvents
+        .filter(e => e.agent)
+        .forEach(event => {
+          agentCounts[event.agent] = (agentCounts[event.agent] || 0) + 1;
+        });
+
+      const sortedAgents = Object.entries(agentCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      if (sortedAgents.length > 0) {
+        const agentLabels = sortedAgents.map(([agent]) => {
+          const badge = getAgentBadge(agent);
+          return badge.name;
+        });
+        const agentData = sortedAgents.map(([_, count]) => count);
+        const agentColors = sortedAgents.map(([agent]) => getAgentBadge(agent).color);
+
+        charts.topAgents = new Chart(agentBarCanvas, {
+          type: 'bar',
+          data: {
+            labels: agentLabels,
+            datasets: [{
+              label: 'Events',
+              data: agentData,
+              backgroundColor: agentColors
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              title: {
+                display: true,
+                text: 'Top 5 Agents by Event Count',
+                color: textColor,
+                font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  color: mutedColor,
+                  font: { size: 10, family: 'var(--mono)' }
+                },
+                grid: {
+                  color: gridColor
+                }
+              },
+              y: {
+                ticks: {
+                  color: mutedColor,
+                  font: { size: 10, family: 'var(--mono)' }
+                },
+                grid: {
+                  color: gridColor
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // 4. Line Chart: Risk Scores Over Time
+    const lineCanvas = document.getElementById('chart-risk-scores');
+    if (lineCanvas) {
+      const eventsWithRisk = mergedEvents
+        .filter(e => e.riskScore !== undefined && e.riskScore !== null)
+        .slice(0, 50)
+        .reverse();
+
+      if (eventsWithRisk.length > 0) {
+        const riskLabels = eventsWithRisk.map((_, i) => i + 1);
+        const riskData = eventsWithRisk.map(e => e.riskScore);
+
+        charts.riskScores = new Chart(lineCanvas, {
+          type: 'line',
+          data: {
+            labels: riskLabels,
+            datasets: [{
+              label: 'Risk Score',
+              data: riskData,
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              title: {
+                display: true,
+                text: 'Risk Scores Over Time (Last 50 Events)',
+                color: textColor,
+                font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                  color: mutedColor,
+                  font: { size: 10, family: 'var(--mono)' }
+                },
+                grid: {
+                  color: gridColor
+                }
+              },
+              x: {
+                ticks: {
+                  color: mutedColor,
+                  font: { size: 10, family: 'var(--mono)' }
+                },
+                grid: {
+                  color: gridColor
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+
+  // Recreate charts when merged events change
+  $: if (showCharts && mergedEvents.length > 0) {
+    setTimeout(createCharts, 100);
+  }
 </script>
 
 <div class="event-feed" role="region" aria-label="Event Feed">
@@ -533,6 +846,40 @@
           </ul>
         </div>
       </div>
+    </section>
+  {/if}
+
+  <!-- Charts Section -->
+  {#if filteredEvents.length > 0}
+    <section class="charts-section" aria-labelledby="charts-heading">
+      <div class="charts-header">
+        <h2 id="charts-heading">📊 Analytics Visualizations</h2>
+        <button
+          class="toggle-charts"
+          on:click={() => showCharts = !showCharts}
+          aria-label="{showCharts ? 'Hide' : 'Show'} charts"
+          aria-expanded={showCharts}
+        >
+          {showCharts ? 'Hide Charts' : 'Show Charts'}
+        </button>
+      </div>
+
+      {#if showCharts}
+        <div class="charts-grid">
+          <div class="chart-container">
+            <canvas id="chart-event-types"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-events-per-hour"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-top-agents"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-risk-scores"></canvas>
+          </div>
+        </div>
+      {/if}
     </section>
   {/if}
 
@@ -914,7 +1261,6 @@
     background: var(--bg);
     padding: 6px;
     border-radius: 4px;
-    border-left: 4px solid var(--info);
     border: 1px solid var(--border);
     border-left: 4px solid var(--info);
   }
@@ -1720,5 +2066,56 @@
 
   legend.filter-group-label {
     padding: 0;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px;
+  }
+
+  .charts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .charts-header h2 {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .toggle-charts {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .toggle-charts:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .chart-container {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    height: 250px;
   }
 </style>
