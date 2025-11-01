@@ -719,6 +719,13 @@
   onMount(() => {
     loadActivities();
 
+    // Create charts after data loads and DOM is ready
+    setTimeout(() => {
+      if (showCharts && activities.length > 0) {
+        createCharts();
+      }
+    }, 200);
+
     // Listen for real-time updates (no polling!)
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);

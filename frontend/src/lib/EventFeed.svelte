@@ -266,6 +266,11 @@
     // Load initial events from database
     await loadRecentEvents();
 
+    // Create charts after data loads and DOM is ready
+    if (showCharts && events.length > 0) {
+      setTimeout(createCharts, 200);
+    }
+
     // Connect to WebSocket for real-time updates
     websocketService.connect();
 

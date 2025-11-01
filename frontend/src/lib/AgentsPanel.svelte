@@ -83,6 +83,11 @@
     // Initial data load
     await loadAllData();
 
+    // Create charts after data loads and DOM is ready (if on performance tab)
+    if (activeTab === 'performance' && agents.length > 0) {
+      setTimeout(createCharts, 200);
+    }
+
     // Connect to WebSocket for real-time updates
     websocketService.connect();
 

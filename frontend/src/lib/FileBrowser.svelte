@@ -34,6 +34,11 @@
     await loadFiles();
     await loadFileMetadata();
 
+    // Create charts after data loads and DOM is ready
+    if (showCharts && files.length > 0) {
+      setTimeout(createCharts, 200);
+    }
+
     // Watch for theme changes
     themeObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
