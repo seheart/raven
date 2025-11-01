@@ -93,6 +93,11 @@
   onMount(async () => {
     await loadAllData();
 
+    // Create charts after data loads and DOM is ready
+    if (showCharts && codeChanges.length > 0) {
+      setTimeout(createCharts, 200);
+    }
+
     // Connect to WebSocket for real-time updates
     websocketService.connect();
 
@@ -488,11 +493,19 @@
 
   // Chart creation
   function createCharts() {
+    logger.info('[LiveCodeFeed] createCharts called', {
+      showCharts,
+      filteredChangesCount: filteredChanges.length
+    });
+
     // Destroy existing charts
     Object.values(charts).forEach(chart => chart?.destroy());
     charts = {};
 
-    if (!showCharts || filteredChanges.length === 0) return;
+    if (!showCharts || filteredChanges.length === 0) {
+      logger.warn('[LiveCodeFeed] Skipping chart creation', { showCharts, filteredChanges: filteredChanges.length });
+      return;
+    }
 
     // Get theme-aware colors from body element
     const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
@@ -501,6 +514,7 @@
 
     // File type distribution pie chart
     const pieCanvas = document.getElementById('chart-file-types');
+    logger.info('[LiveCodeFeed] pieCanvas found:', !!pieCanvas);
     if (pieCanvas) {
       const fileTypeData = Object.entries(statistics.byFileType)
         .filter(([_, count]) => count > 0)
