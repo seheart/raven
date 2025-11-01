@@ -386,12 +386,12 @@
 
 <style>
   .overview-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1400px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 8px;
     position: relative;
   }
 
@@ -401,10 +401,10 @@
 
   .greeting-text {
     font-family: var(--mono);
-    font-size: 20px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
   }
 
   .session-info {
@@ -432,26 +432,26 @@
 
   .session-value {
     font-family: 'Courier New', monospace;
-    font-size: 13px;
+    font-size: 11px;
     color: var(--text);
     font-weight: 600;
     background: var(--surface);
     padding: 4px 12px;
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--border);
   }
 
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 20px;
+    gap: 8px;
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 6px;
     transition: all 0.2s ease;
   }
 
@@ -465,25 +465,25 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .card-header h3 {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 0;
   }
 
   .card-icon {
-    font-size: 18px;
+    font-size: 11px;
   }
 
   .stat-rows {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
   }
 
   .stat-row {
@@ -500,7 +500,7 @@
 
   .stat-value {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
   }
@@ -509,13 +509,13 @@
   .metrics-display {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .metric-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
   }
 
   .metric-label {
@@ -550,20 +550,20 @@
   .activity-section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 6px;
   }
 
   .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .section-header h3 {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 0;
@@ -572,7 +572,7 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
   }
 
   .last-updated {
@@ -656,10 +656,10 @@
   .activity-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     padding: 12px;
     background: var(--bg);
-    border-radius: 6px;
+    border-radius: 3px;
     transition: all 0.2s ease;
   }
 
@@ -668,7 +668,7 @@
   }
 
   .activity-icon {
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .activity-content {
@@ -696,7 +696,7 @@
     color: white;
     border-radius: 4px;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -706,16 +706,16 @@
   .files-section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 6px;
   }
 
   .files-section h3 {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
   }
 
   .files-list {
@@ -731,7 +731,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: 4px 8px;
     background: var(--bg);
     border-radius: 4px;
     font-family: var(--mono);
@@ -755,12 +755,12 @@
   /* Empty State */
   .empty-state {
     text-align: center;
-    padding: 32px;
+    padding: 12px;
     color: var(--muted);
   }
 
   .empty-icon {
-    font-size: 32px;
+    font-size: 11px;
     display: block;
     margin-bottom: 8px;
   }

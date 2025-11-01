@@ -352,11 +352,11 @@
   .pattern-warnings-panel {
     background: var(--surface);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 8px;
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .panel-header {
@@ -373,7 +373,7 @@
 
   .panel-header h2 {
     margin: 0;
-    font-size: 20px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text);
   }
@@ -394,7 +394,7 @@
   .action-btn {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     min-width: 32px;
     height: 32px;
     display: flex;
@@ -403,7 +403,7 @@
     gap: 6px;
     padding: 0 10px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     transition: all 0.2s;
@@ -456,7 +456,7 @@
     margin-top: 4px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     min-width: 140px;
     z-index: 1000;
@@ -498,7 +498,7 @@
     padding: 8px 14px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
     font-size: 13px;
@@ -523,7 +523,7 @@
   }
 
   .category-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .category-label {
@@ -533,10 +533,10 @@
   /* Stats Bar */
   .stats-bar {
     display: flex;
-    gap: 16px;
-    padding: 12px 16px;
+    gap: 8px;
+    padding: 6px 10px;
     background: var(--surface-2);
-    border-radius: 8px;
+    border-radius: 4px;
     flex-wrap: wrap;
   }
 
@@ -553,7 +553,7 @@
   }
 
   .stat-value {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
@@ -572,7 +572,7 @@
   }
 
   .stat-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   /* Loading & Empty States */
@@ -581,8 +581,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
-    gap: 16px;
+    padding: 8px 12px;
+    gap: 8px;
     text-align: center;
   }
 
@@ -600,19 +600,19 @@
   }
 
   .empty-icon {
-    font-size: 64px;
+    font-size: 11px;
   }
 
   .empty-state h3 {
     margin: 0 0 8px 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
 
   .empty-state p {
     margin: 0;
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -622,13 +622,13 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .file-group {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
   }
 
@@ -636,13 +636,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 16px;
+    padding: 6px 10px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
   .file-icon {
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .file-path {
@@ -661,7 +661,7 @@
 
   .warning-count {
     padding: 2px 8px;
-    border-radius: 10px;
+    border-radius: 4px;
     font-size: 11px;
     font-weight: 700;
     background: #fef2f2;
@@ -671,7 +671,7 @@
   .severity-badge {
     padding: 2px 8px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     color: white;
@@ -706,7 +706,7 @@
 
   .warning-name {
     flex: 1;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
   }

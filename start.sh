@@ -135,9 +135,10 @@ for i in {1..20}; do
   fi
 done
 
-# Step 6: Start Claude telemetry bridge (after backend is ready)
-echo -e "${YELLOW}[6/7]${NC} Starting Claude telemetry bridge..."
-./scripts/start-claude-bridge.sh > /dev/null 2>&1 || echo -e "${YELLOW}⚠${NC}  Telemetry bridge failed to start (non-critical)"
+# Step 6: Claude Log Watcher (now built into backend - no separate bridge needed)
+echo -e "${YELLOW}[6/7]${NC} Claude Log Watcher enabled (built-in)..."
+# Note: ClaudeLogWatcher is now integrated directly into server.js
+# It automatically monitors ALL projects via Claude's log files
 
 # Step 7: Run comprehensive health checks
 echo -e "${YELLOW}[7/7]${NC} Running comprehensive health checks..."
@@ -195,9 +196,8 @@ echo -e "${GREEN}║${NC}  Frontend PID: $FRONTEND_PID                       ${G
 echo -e "${GREEN}╚════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${BLUE}Logs:${NC}"
-echo -e "  Backend:  ${YELLOW}tail -f /tmp/raven-backend.log${NC}"
+echo -e "  Backend:  ${YELLOW}tail -f /tmp/raven-backend.log${NC} (includes Claude Log Watcher)"
 echo -e "  Frontend: ${YELLOW}tail -f /tmp/raven-frontend.log${NC}"
-echo -e "  Bridge:   ${YELLOW}tail -f /tmp/claude-telemetry-bridge.log${NC}"
 echo ""
 echo -e "${BLUE}Stop:${NC}     ${YELLOW}./stop.sh${NC}"
 echo -e "${BLUE}Restart:${NC}  ${YELLOW}./restart.sh${NC}"

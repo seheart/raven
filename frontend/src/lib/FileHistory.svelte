@@ -510,7 +510,7 @@
   .modal-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     width: 90%;
     max-width: 900px;
     max-height: 90vh;
@@ -534,7 +534,7 @@
   h2 {
     margin: 0;
     color: var(--text);
-    font-size: 18px;
+    font-size: 12px;
   }
 
   .close-btn {
@@ -618,7 +618,7 @@
   .event-content {
     background: var(--surface-2);
     padding: 10px;
-    border-radius: 6px;
+    border-radius: 3px;
     border-left: 3px solid var(--info);
   }
 
@@ -740,7 +740,7 @@
     transform: translate(-50%, -50%);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 12px;
     max-width: 800px;
     max-height: 80vh;
@@ -760,7 +760,7 @@
   .snapshot-header h3 {
     margin: 0;
     color: var(--text);
-    font-size: 15px;
+    font-size: 12px;
   }
 
   .snapshot-header button {

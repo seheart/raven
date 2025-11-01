@@ -526,7 +526,7 @@
 
 <style>
   .projects-config-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -535,19 +535,19 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .header-left h2 {
     margin: 0 0 4px 0;
-    font-size: 24px;
+    font-size: 11px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .header-right {
@@ -558,14 +558,14 @@
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 20px;
+    gap: 8px;
   }
 
   .project-card {
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 8px;
     transition: all 0.2s;
   }
 
@@ -582,12 +582,12 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .project-info h3 {
     margin: 0 0 4px 0;
-    font-size: 18px;
+    font-size: 12px;
     color: var(--text);
   }
 
@@ -601,7 +601,7 @@
     padding: 6px 12px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     cursor: pointer;
     transition: all 0.2s;
@@ -614,7 +614,7 @@
   }
 
   .project-details {
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .detail-row {
@@ -649,7 +649,7 @@
   .btn-sm {
     padding: 6px 12px;
     font-size: 12px;
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -727,7 +727,7 @@
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -741,7 +741,7 @@
   .hint {
     font-size: 13px;
     color: var(--muted);
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   /* Modal Styles */
@@ -773,20 +773,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 8px;
     border-bottom: 1px solid var(--border);
   }
 
   .modal-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 12px;
     color: var(--text);
   }
 
   .modal-close {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 11px;
     color: var(--muted);
     cursor: pointer;
     padding: 0;
@@ -811,11 +811,11 @@
   }
 
   .modal-body {
-    padding: 20px;
+    padding: 8px;
   }
 
   .form-group {
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .form-group label {
@@ -833,7 +833,7 @@
     padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 13px;
     font-family: var(--mono);
@@ -859,7 +859,7 @@
     padding: 8px 16px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 13px;
     font-weight: 600;
@@ -890,14 +890,14 @@
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 8px;
   }
 
   .modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 20px;
+    padding: 8px;
     border-top: 1px solid var(--border);
   }
 
@@ -914,7 +914,7 @@
     padding: 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   .discovered-info {
@@ -935,7 +935,7 @@
   .empty-message {
     text-align: center;
     color: var(--muted);
-    padding: 20px;
+    padding: 8px;
   }
 
   .modal-confirm {
@@ -944,7 +944,7 @@
 
   .confirm-message {
     color: var(--text);
-    font-size: 14px;
+    font-size: 11px;
     line-height: 1.6;
     margin: 0;
   }

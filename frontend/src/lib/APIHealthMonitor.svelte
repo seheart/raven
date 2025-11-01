@@ -406,13 +406,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     padding: 0 8px;
   }
 
   h2 {
     margin: 0 0 4px 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
   }
 
@@ -429,7 +429,7 @@
     background: color-mix(in srgb, var(--success) 15%, transparent);
     border: 1px solid var(--success);
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--success);
     animation: pulse 1.5s ease-in-out infinite;
@@ -443,7 +443,7 @@
   .header-controls {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .last-updated {
@@ -456,7 +456,7 @@
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -478,7 +478,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -494,15 +494,15 @@
 
   .empty-state {
     text-align: center;
-    padding: 48px 24px;
+    padding: 12px 8px;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .categories {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .category-section {
@@ -514,8 +514,8 @@
 
   .category-title {
     margin: 0;
-    padding: 10px 16px;
-    font-size: 14px;
+    padding: 6px 10px;
+    font-size: 11px;
     font-weight: 600;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
@@ -532,7 +532,7 @@
     display: grid;
     grid-template-columns: 40px 70px 1fr 120px 50px;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--border);
     align-items: center;
     transition: all 0.2s;
@@ -555,7 +555,7 @@
   }
 
   .status-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .endpoint-method {
@@ -566,7 +566,7 @@
   .method-badge {
     padding: 3px 8px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -599,7 +599,7 @@
   }
 
   .endpoint-desc {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -685,7 +685,7 @@
   .header-controls {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .control-label {

@@ -208,7 +208,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px;
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -232,13 +232,13 @@
   }
 
   .loading-indicator {
-    font-size: 14px;
+    font-size: 11px;
     animation: spin 1s linear infinite;
   }
 
   .error-message {
     color: var(--error, #ef4444);
-    font-size: 14px;
+    font-size: 11px;
     cursor: help;
   }
 

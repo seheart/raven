@@ -228,7 +228,7 @@
 
 <style>
   .global-search-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -237,28 +237,28 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .header-left h2 {
     margin: 0 0 4px 0;
-    font-size: 24px;
+    font-size: 11px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .header-right {
     display: flex;
-    gap: 12px;
+    gap: 6px;
   }
 
   .search-bar-container {
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .search-bar {
@@ -268,7 +268,7 @@
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
-    padding: 12px 16px;
+    padding: 6px 10px;
     transition: all 0.2s;
   }
 
@@ -278,7 +278,7 @@
   }
 
   .search-icon {
-    font-size: 20px;
+    font-size: 12px;
     margin-right: 12px;
   }
 
@@ -287,7 +287,7 @@
     border: none;
     background: transparent;
     color: var(--text);
-    font-size: 16px;
+    font-size: 11px;
     font-family: var(--mono);
     outline: none;
   }
@@ -303,7 +303,7 @@
     border-radius: var(--radius);
     color: var(--muted);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px;
     transition: all 0.2s;
   }
 
@@ -314,7 +314,7 @@
 
   .search-hint {
     margin-top: 8px;
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
     font-family: var(--mono);
   }
@@ -322,7 +322,7 @@
   .filter-bar {
     display: flex;
     gap: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
   }
 
@@ -332,7 +332,7 @@
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 13px;
+    font-size: 11px;
     font-family: var(--mono);
     cursor: pointer;
     transition: all 0.2s;
@@ -351,11 +351,11 @@
   .results-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
   }
 
   .result-card {
-    padding: 16px;
+    padding: 6px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-left: 4px solid;
@@ -388,11 +388,11 @@
   .result-header {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 6px;
   }
 
   .result-icon {
-    font-size: 24px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -402,7 +402,7 @@
   }
 
   .result-title {
-    font-size: 15px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     font-family: var(--mono);
@@ -412,7 +412,7 @@
 
   .result-info {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     flex-wrap: wrap;
     font-size: 12px;
     color: var(--muted);
@@ -432,7 +432,7 @@
 
   .result-description {
     margin-top: 8px;
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
     line-height: 1.5;
     border-top: 1px solid var(--border);
@@ -441,15 +441,15 @@
 
   .empty-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
   .empty-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
+    font-size: 11px;
+    margin-bottom: 8px;
   }
 
   .empty-state p {
@@ -458,7 +458,7 @@
   }
 
   .hint {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -471,9 +471,9 @@
   }
 
   .search-tips h3 {
-    font-size: 16px;
+    font-size: 11px;
     color: var(--text);
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
 
   .search-tips ul {
@@ -484,7 +484,7 @@
   .search-tips li {
     padding: 8px 0;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .search-tips code {
@@ -501,7 +501,7 @@
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -514,7 +514,7 @@
 
   .error-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -528,7 +528,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 16px;
+      gap: 8px;
     }
 
     .filter-bar {

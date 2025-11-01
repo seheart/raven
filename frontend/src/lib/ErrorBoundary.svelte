@@ -184,7 +184,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    padding: 20px;
+    padding: 8px;
     overflow-y: auto;
   }
 
@@ -193,28 +193,28 @@
     width: 100%;
     background: var(--surface-2, #24283b);
     border: 2px solid var(--error, #f7768e);
-    border-radius: 12px;
+    border-radius: 3px;
     padding: 40px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   }
 
   .error-icon {
-    font-size: 64px;
+    font-size: 11px;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
   }
 
   h1 {
     color: var(--error, #f7768e);
-    font-size: 32px;
-    margin: 0 0 16px 0;
+    font-size: 11px;
+    margin: 0 0 8px 0;
     text-align: center;
     font-family: var(--mono, monospace);
   }
 
   .error-message {
     color: var(--text, #c0caf5);
-    font-size: 16px;
+    font-size: 11px;
     text-align: center;
     margin-bottom: 30px;
     line-height: 1.6;
@@ -223,14 +223,14 @@
   .error-details {
     background: var(--surface, #1a1b26);
     border: 1px solid var(--border, #414868);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
     margin-bottom: 30px;
   }
 
   .error-summary {
     color: var(--text, #c0caf5);
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     word-break: break-word;
   }
 
@@ -272,7 +272,7 @@
   .error-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 8px;
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid var(--border, #414868);
@@ -289,10 +289,10 @@
 
   .btn-primary,
   .btn-secondary {
-    padding: 12px 24px;
+    padding: 6px 12px;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -329,14 +329,14 @@
   .error-help {
     background: var(--surface, #1a1b26);
     border: 1px solid var(--border, #414868);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
     color: var(--muted, #565f89);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .error-help p {
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
     font-weight: 600;
     color: var(--text, #c0caf5);
   }

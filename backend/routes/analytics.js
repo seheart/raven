@@ -38,6 +38,44 @@ export function createAnalyticsRoutes(deps) {
   });
 
   /**
+   * GET /api/all-agent-events
+   * Get agent events from ALL projects (multi-project aggregation)
+   */
+  router.get('/all-agent-events', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 100;
+
+      // Parallelize event collection from all projects
+      const eventsPromises = Array.from(projectDatabases.entries()).map(
+        ([projectName, db]) => Promise.resolve({
+          projectName,
+          events: db.getRecentAgentEvents ? db.getRecentAgentEvents(limit) : []
+        })
+      );
+
+      const allProjectEvents = await Promise.all(eventsPromises);
+
+      // Collect and tag events with project names
+      const allEvents = [];
+      for (const { projectName, events } of allProjectEvents) {
+        events.forEach(event => {
+          event.project = projectName;
+        });
+        allEvents.push(...events);
+      }
+
+      // Sort by timestamp (newest first) and limit
+      allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const limitedEvents = allEvents.slice(0, limit);
+
+      res.json(limitedEvents);
+    } catch (error) {
+      logger.error('All agent events error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * GET /api/agent/:agent/top-files
    * Get top modified files for an agent
    */

@@ -142,7 +142,7 @@
   .diff-modal-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     width: 95%;
     max-width: 1400px;
     max-height: 90vh;
@@ -166,7 +166,7 @@
   h2 {
     margin: 0;
     color: var(--text);
-    font-size: 18px;
+    font-size: 12px;
   }
 
   .close-btn {

@@ -82,7 +82,7 @@
   .metrics {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
   }
 
   .metric {
@@ -99,7 +99,7 @@
   }
 
   .value {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: bold;
     color: var(--success);
   }

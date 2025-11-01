@@ -209,7 +209,7 @@
   .timeline-slider {
     padding: 10px;
     background: var(--surface-2);
-    border-radius: 6px;
+    border-radius: 3px;
     margin-bottom: 8px;
   }
 
@@ -227,7 +227,7 @@
   .timeline-label {
     font-weight: 600;
     color: var(--text);
-    font-size: 14px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }

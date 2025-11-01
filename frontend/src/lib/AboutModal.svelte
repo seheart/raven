@@ -130,7 +130,7 @@
   .modal {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 12px;
+    border-radius: 3px;
     max-width: 700px;
     width: 100%;
     max-height: 90vh;
@@ -202,7 +202,7 @@
   }
 
   .section h3 {
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
     font-size: 12px;
     color: var(--accent);
   }
@@ -247,7 +247,7 @@
   .tech-item {
     background: var(--bg);
     padding: 12px;
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--surface-2);
     display: flex;
     flex-direction: column;
@@ -269,7 +269,7 @@
   .session-info {
     background: var(--bg);
     padding: 16px;
-    border-radius: 8px;
+    border-radius: 4px;
     border: 1px solid var(--surface-2);
     margin-top: 12px;
   }

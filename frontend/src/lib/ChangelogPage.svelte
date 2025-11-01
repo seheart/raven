@@ -120,7 +120,7 @@
     width: 100%;
     min-height: 100vh;
     overflow-y: auto;
-    padding: 48px 24px;
+    padding: 12px 8px;
     color: var(--text);
     font-family: var(--mono);
   }
@@ -138,8 +138,8 @@
   }
 
   .changelog-header h1 {
-    margin: 0 0 16px 0;
-    font-size: 18px;
+    margin: 0 0 8px 0;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
@@ -160,7 +160,7 @@
   .release-section {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 12px;
+    border-radius: 3px;
     padding: 12px;
     transition: all 0.3s;
   }
@@ -187,7 +187,7 @@
 
   .release-title h2 {
     margin: 0;
-    font-size: 15px;
+    font-size: 12px;
     color: var(--accent);
     font-weight: 600;
   }
@@ -204,7 +204,7 @@
     font-family: 'Courier New', monospace;
     background: var(--bg);
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--surface-2);
   }
 
@@ -220,7 +220,7 @@
     gap: 12px;
     padding: 12px;
     background: var(--bg);
-    border-radius: 8px;
+    border-radius: 4px;
     transition: all 0.2s;
   }
 
@@ -243,7 +243,7 @@
   .changelog-footer {
     text-align: center;
     padding: 16px 20px;
-    margin-top: 20px;
+    margin-top: 8px;
   }
 
   .changelog-footer p {
@@ -260,7 +260,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     text-align: center;
   }
 
@@ -291,7 +291,7 @@
 
   @media (max-width: 768px) {
     .changelog-header h1 {
-      font-size: 18px;
+      font-size: 12px;
     }
 
     .tagline {
@@ -304,7 +304,7 @@
     }
 
     .release-title h2 {
-      font-size: 15px;
+      font-size: 12px;
     }
   }
 </style>

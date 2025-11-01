@@ -841,7 +841,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 24px;
+    padding: 8px;
     position: relative;
   }
 
@@ -849,14 +849,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
   }
 
   .count {
     color: var(--muted);
-    font-size: 13px;
+    font-size: 11px;
     font-family: var(--mono);
   }
 
@@ -902,7 +902,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
     background: var(--bg);
     padding: 8px;
   }
@@ -910,10 +910,10 @@
   /* Card Layout */
   .event-card {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     background: var(--bg);
-    padding: 16px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 4px;
     border-left: 4px solid var(--info);
     border: 1px solid var(--border);
     border-left: 4px solid var(--info);
@@ -941,7 +941,7 @@
   }
 
   .event-icon {
-    font-size: 20px;
+    font-size: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -960,7 +960,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
+    gap: 8px;
   }
 
   .event-filepath {
@@ -975,7 +975,7 @@
     font-family: 'Courier New', monospace;
     color: var(--text);
     font-weight: 500;
-    font-size: 13px;
+    font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -992,12 +992,12 @@
   .event-metadata {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .event-badge {
     padding: 4px 10px;
-    font-size: 10px;
+    font-size: 11px;
     border-radius: 4px;
     text-transform: uppercase;
     font-weight: 700;
@@ -1025,7 +1025,7 @@
   /* Metrics */
   .event-metrics {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     margin-left: auto;
   }
 
@@ -1035,12 +1035,12 @@
     gap: 6px;
     padding: 4px 10px;
     background: var(--surface-2);
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--border);
   }
 
   .metric-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .metric-value {
@@ -1051,7 +1051,7 @@
   }
 
   .metric-label {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1078,8 +1078,8 @@
   .filters {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 8px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
   }
@@ -1107,7 +1107,7 @@
 
   .type-filters {
     display: flex;
-    gap: 20px;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
@@ -1149,28 +1149,28 @@
   }
 
   .timeline-container {
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   /* Forensics Dashboard */
   .forensics-dashboard {
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 24px;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
   }
 
   .forensics-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
   }
 
   .forensics-header h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 11px;
     color: var(--text);
     font-weight: 700;
   }
@@ -1194,18 +1194,18 @@
   .stats-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
   .stat-card {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     align-items: center;
-    padding: 16px;
+    padding: 6px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     transition: all 0.2s;
   }
 
@@ -1228,7 +1228,7 @@
   }
 
   .stat-icon {
-    font-size: 24px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -1237,7 +1237,7 @@
   }
 
   .stat-label {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1245,7 +1245,7 @@
   }
 
   .stat-value {
-    font-size: 20px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
@@ -1254,19 +1254,19 @@
   .forensics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 20px;
+    gap: 8px;
   }
 
   .forensics-panel {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 6px;
   }
 
   .forensics-panel h3 {
-    margin: 0 0 16px 0;
-    font-size: 14px;
+    margin: 0 0 8px 0;
+    font-size: 11px;
     color: var(--text);
     font-weight: 600;
   }
@@ -1274,7 +1274,7 @@
   .top-files-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
     list-style: none;
     padding: 0;
     margin: 0;
@@ -1296,7 +1296,7 @@
   }
 
   .file-count {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -1337,7 +1337,7 @@
   }
 
   .hour-count {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -1374,7 +1374,7 @@
   .modal-content {
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 12px;
+    border-radius: 3px;
     width: 90%;
     max-width: 1000px;
     max-height: 90vh;
@@ -1387,23 +1387,23 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 8px;
     border-bottom: 1px solid var(--border);
   }
 
   .modal-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 11px;
     color: var(--text);
   }
 
   .close-btn {
-    padding: 8px 12px;
+    padding: 4px 8px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
-    font-size: 16px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -1415,24 +1415,24 @@
   }
 
   .modal-body {
-    padding: 20px;
+    padding: 8px;
     overflow-y: auto;
   }
 
   .diff-meta {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    gap: 6px;
+    padding: 6px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 20px;
+    border-radius: 4px;
+    margin-bottom: 8px;
   }
 
   .meta-row {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     align-items: center;
   }
 
@@ -1445,7 +1445,7 @@
   }
 
   .meta-value {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--text);
     font-family: var(--mono);
   }
@@ -1454,7 +1454,7 @@
     padding: 4px 10px;
     border-radius: 4px;
     text-transform: uppercase;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
   }
 
@@ -1479,14 +1479,14 @@
   .diff-viewer {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: auto;
     max-height: 500px;
   }
 
   .diff-content {
     margin: 0;
-    padding: 16px;
+    padding: 6px;
     font-family: 'Courier New', monospace;
     font-size: 12px;
     color: var(--text);
@@ -1497,12 +1497,12 @@
 
   .no-diff {
     text-align: center;
-    padding: 40px 20px;
+    padding: 30px 20px;
     color: var(--muted);
   }
 
   .no-diff p {
-    margin: 8px 0;
+    margin: 6px 0;
   }
 
   /* Make event cards clickable */
@@ -1542,7 +1542,7 @@
 
   .conv-text {
     color: var(--text);
-    font-size: 13px;
+    font-size: 11px;
     flex: 1;
     line-height: 1.4;
   }
@@ -1556,15 +1556,15 @@
   }
 
   .expanded-details {
-    margin-top: 12px;
-    padding: 12px;
+    margin-top: 8px;
+    padding: 8px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   .detail-section {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   .detail-section:last-child {
@@ -1572,18 +1572,18 @@
   }
 
   .detail-label {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     font-weight: 600;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
   .detail-code {
     font-family: var(--mono);
     font-size: 11px;
     background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
-    padding: 10px;
+    padding: 8px;
     border-radius: 4px;
     overflow-x: auto;
     color: var(--text);
@@ -1617,24 +1617,24 @@
 
   .event-metadata.conversation {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     justify-content: space-between;
   }
 
   .event-badge.conversation {
-    font-size: 10px;
+    font-size: 11px;
     padding: 4px 8px;
     text-transform: capitalize;
   }
 
   .filter-group {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     align-items: center;
-    padding: 8px 12px;
+    padding: 4px 8px;
     background: var(--bg-secondary);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .filter-group-label {
@@ -1654,7 +1654,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
-    font-size: 10px;
+    font-size: 11px;
     border-radius: 4px;
     font-weight: 600;
     border: 1px solid;
@@ -1662,11 +1662,11 @@
   }
 
   .agent-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .agent-name {
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -1677,7 +1677,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
-    font-size: 10px;
+    font-size: 11px;
     border-radius: 4px;
     font-weight: 700;
     border: 1px solid;
@@ -1690,12 +1690,12 @@
   }
 
   .risk-text {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   /* Similar Changes Section */
   .similar-changes-section {
-    margin-top: 24px;
+    margin-top: 8px;
   }
 
   /* Accessibility */
@@ -1714,7 +1714,7 @@
   /* Override fieldset default styles for filter groups */
   fieldset.filter-group {
     border: none;
-    padding: 8px 12px;
+    padding: 4px 8px;
     margin: 0;
   }
 

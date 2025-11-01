@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raven - Compact Layout Mockup</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+      background: #1a1b26;
+      color: #c0caf5;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    /* COMPACT HEADER - Single line with everything */
+    .compact-header {
+      background: #16161e;
+      border-bottom: 1px solid #292e42;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 38px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: #7aa2f7;
+      font-size: 14px;
+    }
+
+    .logo-icon { font-size: 16px; }
+
+    /* Main tabs - more compact */
+    .main-tabs {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .tab {
+      background: none;
+      border: none;
+      color: #565f89;
+      padding: 4px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 12px;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .tab:hover { background: #1f2335; color: #c0caf5; }
+    .tab.active { background: #7aa2f7; color: #1a1b26; font-weight: 500; }
+
+    /* Today stats - inline */
+    .today-stats {
+      display: flex;
+      gap: 8px;
+      font-size: 11px;
+      padding: 0 12px;
+      border-left: 1px solid #292e42;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      background: #1f2335;
+      border-radius: 3px;
+    }
+
+    .stat-pill.modified { color: #7aa2f7; }
+    .stat-pill.added { color: #9ece6a; }
+    .stat-pill.deleted { color: #f7768e; }
+
+    /* User menu - compact */
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: #1f2335;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .user-menu:hover { background: #24283b; }
+
+    /* SUB-NAVIGATION - Second line */
+    .sub-nav {
+      background: #16161e;
+      border-bottom: 1px solid #292e42;
+      padding: 4px 12px;
+      display: flex;
+      gap: 6px;
+      height: 32px;
+      align-items: center;
+    }
+
+    .sub-tab {
+      background: none;
+      border: none;
+      color: #565f89;
+      padding: 3px 10px;
+      cursor: pointer;
+      border-radius: 3px;
+      font-size: 11px;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .sub-tab:hover { background: #1f2335; color: #c0caf5; }
+    .sub-tab.active {
+      background: none;
+      color: #7aa2f7;
+      border-bottom: 2px solid #7aa2f7;
+      border-radius: 0;
+    }
+
+    /* STATS BAR - Third line, compact */
+    .stats-bar {
+      background: #1a1b26;
+      border-bottom: 1px solid #292e42;
+      padding: 4px 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 28px;
+      font-size: 11px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #565f89;
+    }
+
+    .stat-item .icon { font-size: 12px; }
+    .stat-item .value { color: #c0caf5; font-weight: 500; }
+
+    .stat-separator {
+      width: 1px;
+      height: 12px;
+      background: #292e42;
+    }
+
+    .pause-btn {
+      margin-left: auto;
+      background: #1f2335;
+      border: 1px solid #292e42;
+      color: #7aa2f7;
+      padding: 2px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      font-family: inherit;
+      font-weight: 500;
+    }
+
+    .pause-btn:hover { background: #24283b; }
+
+    /* CONTENT AREA */
+    .content {
+      padding: 12px;
+      height: calc(100vh - 98px); /* Total header height: 38 + 32 + 28 = 98px */
+      overflow-y: auto;
+    }
+
+    .measurement {
+      position: fixed;
+      right: 12px;
+      top: 110px;
+      background: rgba(122, 162, 247, 0.1);
+      border: 1px solid #7aa2f7;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #7aa2f7;
+    }
+
+    .content-demo {
+      background: #16161e;
+      border: 1px solid #292e42;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .content-demo h3 {
+      color: #7aa2f7;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .change-item {
+      background: #1a1b26;
+      border: 1px solid #292e42;
+      border-radius: 4px;
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .change-header {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    .change-type {
+      color: #9ece6a;
+      font-weight: 600;
+      font-size: 10px;
+    }
+
+    .project-badge {
+      background: #7aa2f7;
+      color: #1a1b26;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .filepath {
+      color: #bb9af7;
+      font-family: 'SF Mono', monospace;
+    }
+
+    /* Comparison box */
+    .comparison {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(247, 118, 142, 0.1);
+      border: 1px solid #f7768e;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      max-width: 300px;
+    }
+
+    .comparison h4 {
+      color: #f7768e;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .comparison .old { color: #f7768e; opacity: 0.7; }
+    .comparison .new { color: #9ece6a; }
+  </style>
+</head>
+<body>
+
+  <!-- OPTION A: ULTRA-COMPACT LAYOUT -->
+
+  <!-- Top Header - 38px -->
+  <div class="compact-header">
+    <div class="logo">
+      <span class="logo-icon">🐦‍⬛</span>
+      <span>Raven</span>
+    </div>
+
+    <nav class="main-tabs">
+      <button class="tab">Overview</button>
+      <button class="tab">Safety</button>
+      <button class="tab">Agents</button>
+      <button class="tab active">Activity</button>
+      <button class="tab">Analysis</button>
+      <button class="tab">System</button>
+    </nav>
+
+    <div class="today-stats">
+      <div class="stat-pill modified">37 modified</div>
+      <div class="stat-pill added">+25 added</div>
+      <div class="stat-pill deleted">-63 deleted</div>
+    </div>
+
+    <div class="user-menu">
+      <span>👤</span>
+      <span>admin</span>
+      <span>▾</span>
+    </div>
+  </div>
+
+  <!-- Sub Navigation - 32px -->
+  <div class="sub-nav">
+    <button class="sub-tab active">Live Feed</button>
+    <button class="sub-tab">Event Log</button>
+    <button class="sub-tab">Activity Log</button>
+    <button class="sub-tab">File Browser</button>
+    <button class="sub-tab">Global Search</button>
+  </div>
+
+  <!-- Stats Bar - 28px -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="icon">⏱️</span>
+      <span class="value">2m 22s</span>
+    </div>
+    <span class="stat-separator"></span>
+    <div class="stat-item">
+      <span class="icon">📁</span>
+      <span class="value">5</span>
+    </div>
+    <span class="stat-separator"></span>
+    <div class="stat-item">
+      <span class="icon">🤖</span>
+      <span class="value">1</span>
+    </div>
+    <span class="stat-separator"></span>
+    <div class="stat-item">
+      <span class="icon">📊</span>
+      <span class="value">1</span>
+    </div>
+    <span class="stat-separator"></span>
+    <div class="stat-item">
+      <span class="icon">📈</span>
+      <span>CPU</span>
+      <span class="value">2.1%</span>
+    </div>
+    <span class="stat-separator"></span>
+    <div class="stat-item">
+      <span class="icon">💾</span>
+      <span>MEM</span>
+      <span class="value">45.2%</span>
+    </div>
+    <button class="pause-btn">⏸️ PAUSE</button>
+  </div>
+
+  <!-- Content Area -->
+  <div class="content">
+    <div class="measurement">
+      <strong>Total Header: 98px</strong><br>
+      (was ~255px)<br>
+      <strong style="color: #9ece6a;">+157px saved!</strong>
+    </div>
+
+    <div class="content-demo">
+      <h3>📊 CODE CHANGES</h3>
+
+      <div class="change-item">
+        <div class="change-header">
+          <span class="change-type">➕ CREATE</span>
+          <span class="project-badge">ant</span>
+          <span style="color: #565f89; font-size: 10px;">10/31/25, 22:36</span>
+        </div>
+        <div class="filepath">frontend/dist/assets/index-8mcWYpP7.js.map</div>
+      </div>
+
+      <div class="change-item">
+        <div class="change-header">
+          <span class="change-type">➕ CREATE</span>
+          <span class="project-badge">ant</span>
+          <span style="color: #565f89; font-size: 10px;">10/31/25, 22:36</span>
+        </div>
+        <div class="filepath">frontend/dist/assets/index-8mcWYpP7.js</div>
+      </div>
+
+      <div class="change-item">
+        <div class="change-header">
+          <span class="change-type" style="color: #7aa2f7;">✏️ EDIT</span>
+          <span class="project-badge" style="background: #bb9af7;">raven</span>
+          <span style="color: #565f89; font-size: 10px;">10/31/25, 22:35</span>
+        </div>
+        <div class="filepath">backend/server.js</div>
+      </div>
+
+      <div class="change-item">
+        <div class="change-header">
+          <span class="change-type" style="color: #f7768e;">🗑️ DELETE</span>
+          <span class="project-badge">ant</span>
+          <span style="color: #565f89; font-size: 10px;">10/31/25, 22:34</span>
+        </div>
+        <div class="filepath">test-create-display.js</div>
+      </div>
+    </div>
+
+    <div class="content-demo">
+      <h3>⚡ RECENT ACTIVITY</h3>
+      <div style="color: #565f89; font-size: 11px; margin-top: 8px;">
+        More vertical space for your actual monitoring data...<br>
+        More files visible without scrolling...<br>
+        More code diffs shown at once...<br>
+        Less chrome, more content!
+      </div>
+    </div>
+  </div>
+
+  <div class="comparison">
+    <h4>📏 Space Comparison</h4>
+    <div class="old">❌ Old layout: ~255px header (34% of screen)</div>
+    <div class="new">✅ New layout: ~98px header (13% of screen)</div>
+    <div style="margin-top: 8px; color: #c0caf5;">
+      <strong>+157px</strong> more vertical space<br>
+      <strong>+20%</strong> more content visible
+    </div>
+  </div>
+
+</body>
+</html>

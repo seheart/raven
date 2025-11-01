@@ -298,11 +298,11 @@
     }
 
     .alert-icon {
-      font-size: 24px;
+      font-size: 11px;
     }
 
     .alert-title {
-      font-size: 14px;
+      font-size: 11px;
     }
 
     .alert-message {

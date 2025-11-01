@@ -92,7 +92,7 @@
   .shortcuts-modal {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     width: 90%;
     max-width: 700px;
     max-height: 85vh;
@@ -166,7 +166,7 @@
     align-items: center;
     padding: 8px;
     background: var(--surface-2);
-    border-radius: 6px;
+    border-radius: 3px;
     transition: background 0.2s;
   }
 

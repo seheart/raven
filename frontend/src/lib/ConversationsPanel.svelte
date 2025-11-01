@@ -484,7 +484,7 @@
 
 <style>
   .conversations-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -492,22 +492,22 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .stat-icon {
-    font-size: 32px;
+    font-size: 11px;
   }
 
   .stat-content {
@@ -523,7 +523,7 @@
   }
 
   .stat-value {
-    font-size: 24px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--accent);
     font-family: var(--mono);
@@ -532,9 +532,9 @@
   .controls {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .controls-row {
@@ -550,20 +550,20 @@
     padding: 8px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .filter-select {
     padding: 8px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
   }
 
@@ -574,9 +574,9 @@
     padding: 8px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .auto-refresh input {
@@ -588,9 +588,9 @@
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -613,11 +613,11 @@
   .conversations-timeline {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .results-count {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--text-muted);
     padding: 8px 0;
   }
@@ -625,7 +625,7 @@
   .conversation-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
   }
 
@@ -648,7 +648,7 @@
   .conv-header {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
     padding: 16px;
     cursor: pointer;
     transition: background 0.2s;
@@ -670,7 +670,7 @@
   }
 
   .conv-icon {
-    font-size: 24px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -697,13 +697,13 @@
   .tool-badge, .project-badge {
     font-size: 11px;
     padding: 2px 8px;
-    border-radius: 12px;
+    border-radius: 3px;
     background: var(--bg);
     color: var(--text-muted);
   }
 
   .conv-preview {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--text);
     line-height: 1.5;
     white-space: nowrap;
@@ -733,7 +733,7 @@
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 11px;
     padding: 4px;
     flex-shrink: 0;
   }
@@ -745,7 +745,7 @@
   }
 
   .detail-section {
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .detail-label {
@@ -760,7 +760,7 @@
   .detail-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     padding: 12px;
     font-family: var(--mono);
     font-size: 13px;
@@ -782,7 +782,7 @@
     padding: 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   .meta-item {
@@ -806,14 +806,14 @@
   .load-more {
     display: flex;
     justify-content: center;
-    padding: 24px;
+    padding: 8px;
   }
 
   .btn-load-more {
-    padding: 12px 24px;
+    padding: 6px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
     cursor: pointer;
@@ -837,8 +837,8 @@
   }
 
   .empty p {
-    margin-bottom: 24px;
-    font-size: 16px;
+    margin-bottom: 8px;
+    font-size: 11px;
   }
 
   /* Modal Styles */
@@ -858,8 +858,8 @@
   .modal-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 32px;
+    border-radius: 3px;
+    padding: 12px;
     max-width: 600px;
     width: 90%;
     max-height: 90vh;
@@ -867,17 +867,17 @@
   }
 
   .modal-content h2 {
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
     color: var(--accent);
   }
 
   .modal-content p {
-    margin: 0 0 24px 0;
+    margin: 0 0 6px 0;
     color: var(--text-muted);
   }
 
   .form-group {
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .form-group label {
@@ -892,10 +892,10 @@
     padding: 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .form-hint {
@@ -913,11 +913,11 @@
   }
 
   .btn-cancel, .btn-primary {
-    padding: 12px 24px;
+    padding: 6px 12px;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s;
   }

@@ -203,7 +203,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .preset-buttons {
@@ -217,7 +217,7 @@
     padding: 8px 16px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 13px;
     font-weight: 500;
@@ -249,7 +249,7 @@
     padding: 16px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     margin-bottom: 12px;
   }
 
@@ -277,7 +277,7 @@
     padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 13px;
     font-family: var(--mono);
@@ -290,7 +290,7 @@
 
   .arrow {
     color: var(--muted);
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .custom-actions {
@@ -301,7 +301,7 @@
   .btn-apply, .btn-reset {
     padding: 8px 16px;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;

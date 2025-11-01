@@ -178,11 +178,11 @@
 
   // Reactive "time ago" - updates when lastModified changes (no polling!)
   let timeAgo = 'Just now';
-  // Update time ago when lastUpdated changes (prevents infinite loop)
-  $: if (lastUpdated) {
-    if (!lastUpdated) timeAgo = 'Just now';
+  // Update time ago when lastModified changes (prevents infinite loop)
+  $: if (lastModified) {
+    if (!lastModified) timeAgo = 'Just now';
     else {
-      const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+      const seconds = Math.floor((Date.now() - lastModified.getTime()) / 1000);
       if (seconds < 10) timeAgo = 'Just now';
       else if (seconds < 60) timeAgo = `${seconds}s ago`;
       else if (seconds < 3600) timeAgo = `${Math.floor(seconds / 60)}m ago`;
@@ -507,7 +507,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 24px;
+    padding: 8px;
     position: relative;
     overflow: hidden;
   }
@@ -516,7 +516,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     padding-bottom: 16px;
     border-bottom: 2px solid var(--border);
   }
@@ -530,7 +530,7 @@
   .settings-header h2 {
     margin: 0;
     color: var(--text);
-    font-size: 24px;
+    font-size: 11px;
     font-family: var(--mono);
   }
 
@@ -554,7 +554,7 @@
 
   .unsaved-indicator {
     color: var(--warning);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     margin-right: 8px;
   }
@@ -563,8 +563,8 @@
   .btn-secondary {
     padding: 8px 16px;
     border: none;
-    border-radius: 6px;
-    font-size: 13px;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -607,21 +607,21 @@
   .settings-section {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
   }
 
   .settings-section h3 {
     margin: 0 0 20px 0;
     color: var(--text);
-    font-size: 18px;
+    font-size: 11px;
     font-family: var(--mono);
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
   }
 
   .subsection {
-    margin-top: 20px;
+    margin-top: 8px;
     padding-top: 20px;
     border-top: 1px solid var(--border);
   }
@@ -631,9 +631,9 @@
   .setting-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 6px;
     align-items: center;
-    padding: 12px 0;
+    padding: 6px 0;
     border-bottom: 1px solid var(--border-subtle);
   }
 
@@ -650,7 +650,7 @@
     align-items: center;
     gap: 8px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
   }
@@ -669,12 +669,12 @@
 
   input[type="number"],
   select {
-    padding: 8px 12px;
+    padding: 4px 8px;
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 11px;
     font-family: var(--mono);
   }
 
@@ -717,7 +717,7 @@
     grid-column: 2;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     margin-top: 8px;
   }
 
@@ -771,7 +771,7 @@
 
   .auto-save-note {
     color: var(--success);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     margin: 0;
   }
@@ -797,23 +797,23 @@
   :global(body.compact-mode .activity-feed),
   :global(body.compact-mode .analysis-panel),
   :global(body.compact-mode .performance-panel) {
-    padding: 16px !important;
+    padding: 6px !important;
   }
 
   :global(body.compact-mode h1) {
-    font-size: 20px !important;
+    font-size: 12px !important;
   }
 
   :global(body.compact-mode h2) {
-    font-size: 18px !important;
+    font-size: 11px !important;
   }
 
   :global(body.compact-mode h3) {
-    font-size: 15px !important;
+    font-size: 11px !important;
   }
 
   :global(body.compact-mode h4) {
-    font-size: 13px !important;
+    font-size: 11px !important;
   }
 
   :global(body.compact-mode p),
@@ -836,8 +836,8 @@
   :global(body.compact-mode .settings-section),
   :global(body.compact-mode .status-section),
   :global(body.compact-mode .card) {
-    padding: 14px !important;
-    margin-bottom: 12px !important;
+    padding: 8px !important;
+    margin-bottom: 6px !important;
   }
 
   :global(body.compact-mode button) {
@@ -870,6 +870,6 @@
   :global(body.compact-mode .badge),
   :global(body.compact-mode .tag) {
     padding: 2px 6px !important;
-    font-size: 10px !important;
+    font-size: 11px !important;
   }
 </style>

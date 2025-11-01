@@ -121,7 +121,7 @@
 
   .app-name {
     font-family: var(--sans);
-    font-size: 48px;
+    font-size: 11px;
     font-weight: var(--weight-bold);
     margin: 0;
     background: linear-gradient(
@@ -229,7 +229,7 @@
   }
 
   .stat-icon {
-    font-size: 24px;
+    font-size: 11px;
     animation: float 2s ease-in-out infinite;
   }
 
@@ -263,7 +263,7 @@
     }
 
     .app-name {
-      font-size: 36px;
+      font-size: 12px;
     }
 
     .loading-stats {

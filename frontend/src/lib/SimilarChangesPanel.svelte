@@ -220,7 +220,7 @@
   .similar-changes-panel {
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
   }
 
@@ -235,7 +235,7 @@
 
   .panel-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
   }
@@ -244,13 +244,13 @@
     padding: 4px 12px;
     background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--accent);
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 11px;
     font-weight: 600;
   }
 
   .loading {
-    padding: 60px 20px;
+    padding: 8px 12px;
     text-align: center;
     color: var(--muted);
   }
@@ -270,18 +270,18 @@
   }
 
   .empty-state, .error-state {
-    padding: 60px 20px;
+    padding: 8px 12px;
     text-align: center;
     color: var(--muted);
   }
 
   .empty-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
   .empty-title {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 0 0 8px 0;
@@ -302,10 +302,10 @@
   /* Prediction Box */
   .prediction-box {
     margin: 20px;
-    padding: 20px;
+    padding: 8px;
     background: var(--bg);
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .prediction-box.high-risk {
@@ -317,15 +317,15 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .prediction-icon {
-    font-size: 24px;
+    font-size: 11px;
   }
 
   .prediction-title {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
   }
@@ -333,8 +333,8 @@
   .prediction-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 8px;
+    margin-bottom: 6px;
   }
 
   .stat-item {
@@ -342,7 +342,7 @@
   }
 
   .stat-label {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -351,7 +351,7 @@
   }
 
   .stat-value {
-    font-size: 20px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
@@ -376,7 +376,7 @@
   .outcome-bar {
     display: flex;
     height: 32px;
-    border-radius: 6px;
+    border-radius: 3px;
     overflow: hidden;
     margin-bottom: 12px;
     background: var(--surface-2);
@@ -406,7 +406,7 @@
 
   .outcome-legend {
     display: flex;
-    gap: 20px;
+    gap: 8px;
     justify-content: center;
     font-size: 12px;
   }
@@ -449,17 +449,17 @@
 
   /* Changes List */
   .changes-list {
-    padding: 20px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .change-card {
     background: var(--bg);
     border: 1px solid var(--border);
     border-left: 4px solid var(--success);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
     transition: all 0.2s;
   }
@@ -487,18 +487,18 @@
     align-items: center;
     padding: 8px 12px;
     border: 1px solid;
-    border-radius: 6px;
+    border-radius: 3px;
     min-width: 70px;
   }
 
   .similarity-percent {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 700;
     font-family: var(--mono);
   }
 
   .similarity-label {
-    font-size: 9px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -510,7 +510,7 @@
     gap: 6px;
     padding: 8px 12px;
     border: 1px solid;
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     font-weight: 600;
   }
@@ -552,7 +552,7 @@
 
   .reason-label {
     display: block;
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     margin-bottom: 4px;

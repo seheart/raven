@@ -507,7 +507,7 @@
 
 <style>
   .storage-panel {
-    padding: 24px;
+    padding: 8px;
     position: relative;
     max-width: 1400px;
     margin: 0 auto;
@@ -531,7 +531,7 @@
   }
 
   .header-left h1 {
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
     margin: 0 0 0.5rem 0;
@@ -546,7 +546,7 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .last-updated {
@@ -559,7 +559,7 @@
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -582,7 +582,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -596,14 +596,14 @@
 
   h2 {
     margin: 0 0 1rem 0;
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
 
   h4 {
     margin: 0 0 1rem 0;
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
   }
 

@@ -177,7 +177,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 24px;
+    padding: 8px;
     position: relative;
   }
 
@@ -185,16 +185,16 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
-    gap: 12px;
+    gap: 6px;
   }
 
   h3 {
     margin: 0;
     color: var(--text);
-    font-size: 16px;
+    font-size: 11px;
     font-family: var(--mono);
     font-weight: 600;
   }
@@ -250,15 +250,15 @@
 
   .loading {
     text-align: center;
-    padding: 24px;
+    padding: 8px;
     color: var(--muted);
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .empty {
     text-align: center;
-    padding: 32px 16px;
+    padding: 12px 8px;
     color: var(--muted);
   }
 
@@ -280,7 +280,7 @@
 
   .file-container {
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     overflow: hidden;
     background: var(--surface-2);
   }
@@ -288,8 +288,8 @@
   .file-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: 6px;
+    padding: 6px 14px;
     background: transparent;
     cursor: pointer;
     transition: all 0.2s;
@@ -317,7 +317,7 @@
   }
 
   .expand-arrow {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     width: 12px;
     flex-shrink: 0;
@@ -325,13 +325,13 @@
   }
 
   .history-expansion {
-    padding: 16px;
+    padding: 6px;
     background: var(--bg);
     border-top: 1px solid var(--border);
   }
 
   .file-icon {
-    font-size: 20px;
+    font-size: 12px;
   }
 
   .file-info {
@@ -346,7 +346,7 @@
     color: var(--text);
     font-weight: 500;
     font-family: 'Courier New', monospace;
-    font-size: 13px;
+    font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

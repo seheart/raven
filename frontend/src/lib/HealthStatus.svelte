@@ -157,7 +157,7 @@
   .health-status {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
   }
 
@@ -165,7 +165,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 6px 10px;
     cursor: pointer;
     transition: background 0.2s;
     width: 100%;
@@ -190,7 +190,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 3px;
     color: white;
     font-family: var(--mono);
     font-size: 12px;
@@ -198,7 +198,7 @@
   }
 
   .status-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .status-stats {
@@ -217,7 +217,7 @@
     background: none;
     border: none;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 11px;
     cursor: pointer;
     padding: 4px;
     transition: color 0.2s;
@@ -233,7 +233,7 @@
   }
 
   .category-section {
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .category-section:last-child {
@@ -250,7 +250,7 @@
   }
 
   .category-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .category-name {

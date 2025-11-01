@@ -244,7 +244,7 @@
 
 <style>
   .anomaly-alerts-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -253,19 +253,19 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .header-left h2 {
     margin: 0 0 4px 0;
-    font-size: 24px;
+    font-size: 11px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .header-right {
@@ -281,8 +281,8 @@
 
   .controls {
     display: flex;
-    gap: 24px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
     padding: 16px;
     background: var(--surface);
     border-radius: var(--radius);
@@ -296,7 +296,7 @@
   }
 
   .control-group label {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
     font-weight: 500;
   }
@@ -315,8 +315,8 @@
   .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
   .stat-badge {
@@ -343,7 +343,7 @@
   }
 
   .badge-icon {
-    font-size: 24px;
+    font-size: 11px;
   }
 
   .badge-count {
@@ -399,7 +399,7 @@
   }
 
   .anomaly-icon {
-    font-size: 20px;
+    font-size: 13px;
   }
 
   .anomaly-timestamp {
@@ -419,7 +419,7 @@
   }
 
   .anomaly-message {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--text);
     margin-bottom: 8px;
     line-height: 1.5;
@@ -482,7 +482,7 @@
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -501,7 +501,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 16px;
+      gap: 8px;
     }
 
     .header-right {

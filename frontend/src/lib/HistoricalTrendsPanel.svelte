@@ -248,7 +248,7 @@
 
 <style>
   .historical-trends-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -257,19 +257,19 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .header-left h2 {
     margin: 0 0 4px 0;
-    font-size: 24px;
+    font-size: 11px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .header-right {
@@ -285,8 +285,8 @@
 
   .controls {
     display: flex;
-    gap: 24px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
     padding: 16px;
     background: var(--surface);
     border-radius: var(--radius);
@@ -300,7 +300,7 @@
   }
 
   .control-group label {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
     font-weight: 500;
   }
@@ -329,8 +329,8 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 32px 24px 24px;
-    margin-bottom: 24px;
+    padding: 12px 24px 24px;
+    margin-bottom: 8px;
     min-height: 400px;
   }
 
@@ -395,7 +395,7 @@
   }
 
   .bar-label {
-    font-size: 9px;
+    font-size: 11px;
     color: var(--muted);
     text-align: right;
     transform: rotate(-45deg);
@@ -406,7 +406,7 @@
   }
 
   .bar-count {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     font-family: var(--mono);
@@ -416,20 +416,20 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 8px;
     text-align: center;
   }
 
   .stat-value {
-    font-size: 32px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--accent);
     font-family: var(--mono);
@@ -446,7 +446,7 @@
   .legend {
     display: flex;
     justify-content: center;
-    gap: 24px;
+    gap: 8px;
     padding: 16px;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -506,7 +506,7 @@
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -525,7 +525,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 16px;
+      gap: 8px;
     }
 
     .header-right {
@@ -546,7 +546,7 @@
     }
 
     .bar-label {
-      font-size: 8px;
+      font-size: 10px;
       max-height: 50px;
     }
   }

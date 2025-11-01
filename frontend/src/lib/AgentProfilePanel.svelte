@@ -233,20 +233,20 @@
   .agent-profile-panel {
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
   }
 
   .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
   }
 
   .panel-header h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 12px;
     color: var(--text);
     font-weight: 700;
   }
@@ -278,7 +278,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -316,14 +316,14 @@
   .agents-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 20px;
+    gap: 8px;
   }
 
   .agent-card {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
     transition: all 0.2s;
   }
 
@@ -335,9 +335,9 @@
 
   .agent-header {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
   }
@@ -345,7 +345,7 @@
   .agent-avatar {
     width: 50px;
     height: 50px;
-    border-radius: 12px;
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -362,7 +362,7 @@
   }
 
   .agent-name {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
     margin-bottom: 4px;
@@ -384,7 +384,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .characteristic {
@@ -395,7 +395,7 @@
   }
 
   .char-icon {
-    font-size: 18px;
+    font-size: 12px;
   }
 
   .char-label {
@@ -413,19 +413,19 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .metric-box {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     padding: 12px;
     text-align: center;
   }
 
   .metric-label {
-    font-size: 9px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -433,7 +433,7 @@
   }
 
   .metric-value {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
@@ -456,7 +456,7 @@
   .breakdown-bars {
     display: flex;
     height: 24px;
-    border-radius: 6px;
+    border-radius: 3px;
     overflow: hidden;
     margin-bottom: 10px;
     background: var(--surface-2);
@@ -482,7 +482,7 @@
   }
 
   .bar-label {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     color: white;
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
@@ -490,7 +490,7 @@
 
   .breakdown-legend {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     justify-content: center;
     font-size: 11px;
   }

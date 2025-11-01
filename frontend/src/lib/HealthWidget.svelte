@@ -387,8 +387,8 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-left: 3px solid var(--status-color);
-    border-radius: 8px;
-    padding: 12px 16px;
+    border-radius: 4px;
+    padding: 6px 10px;
   }
 
   .health-compact {
@@ -400,7 +400,7 @@
   .health-row {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 8px;
     flex-wrap: nowrap;
   }
 
@@ -411,13 +411,13 @@
   }
 
   .health-icon {
-    font-size: 24px;
+    font-size: 11px;
     line-height: 1;
   }
 
   .status-section h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     font-family: var(--mono);
@@ -436,14 +436,14 @@
   .refresh-btn {
     background: var(--accent);
     border: 2px solid var(--accent);
-    border-radius: 6px;
+    border-radius: 3px;
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 12px;
     color: white;
     transition: all 0.2s;
     margin-left: auto;
@@ -482,7 +482,7 @@
 
   .health-checks {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     align-items: center;
     flex: 1;
   }
@@ -510,7 +510,7 @@
   }
 
   .check-icon {
-    font-size: 14px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -542,7 +542,7 @@
   }
 
   .expand-arrow {
-    font-size: 10px;
+    font-size: 11px;
     margin-left: 4px;
     opacity: 0.6;
   }
@@ -553,7 +553,7 @@
     gap: 8px;
     padding: 12px;
     background: var(--bg);
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--border);
   }
 
@@ -600,7 +600,7 @@
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
   }

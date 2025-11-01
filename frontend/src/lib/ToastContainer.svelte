@@ -59,10 +59,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 6px 10px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     font-family: var(--mono);
     font-size: 13px;
     color: var(--text);
@@ -104,7 +104,7 @@
   }
 
   .toast-icon {
-    font-size: 18px;
+    font-size: 12px;
     flex-shrink: 0;
   }
 
@@ -117,7 +117,7 @@
     background: none;
     border: none;
     color: var(--muted);
-    font-size: 24px;
+    font-size: 11px;
     line-height: 1;
     cursor: pointer;
     padding: 0;

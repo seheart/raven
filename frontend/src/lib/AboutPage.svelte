@@ -193,7 +193,7 @@
     width: 100%;
     min-height: 100vh;
     overflow-y: auto;
-    padding: 48px 24px;
+    padding: 12px 8px;
     color: var(--text);
     font-family: var(--mono);
   }
@@ -211,8 +211,8 @@
   }
 
   .about-header h1 {
-    margin: 0 0 16px 0;
-    font-size: 18px;
+    margin: 0 0 8px 0;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
@@ -246,8 +246,8 @@
   }
 
   .about-section h2 {
-    margin: 0 0 24px 0;
-    font-size: 15px;
+    margin: 0 0 6px 0;
+    font-size: 12px;
     color: var(--accent);
     font-weight: 600;
   }
@@ -268,14 +268,14 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 12px;
-    margin-top: 24px;
+    margin-top: 8px;
   }
 
   .feature-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 12px;
-    padding: 12px 24px;
+    border-radius: 3px;
+    padding: 6px 12px;
     transition: all 0.3s;
   }
 
@@ -290,7 +290,7 @@
   }
 
   .feature-card h3 {
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
     font-size: 12px;
     color: var(--text);
     font-weight: 600;
@@ -307,11 +307,11 @@
     display: flex;
     flex-direction: column;
     gap: 32px;
-    margin-top: 24px;
+    margin-top: 8px;
   }
 
   .tech-category h3 {
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
     font-size: 12px;
     color: var(--muted);
     font-weight: 600;
@@ -326,10 +326,10 @@
   }
 
   .tech-badge {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 8px;
+    border-radius: 4px;
     font-size: 12px;
     color: var(--text);
     font-weight: 500;
@@ -345,9 +345,9 @@
   .session-info {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 12px;
+    border-radius: 3px;
     padding: 12px;
-    margin-top: 24px;
+    margin-top: 8px;
   }
 
   .info-grid {
@@ -437,10 +437,10 @@
 
   .github-link a {
     display: inline-block;
-    padding: 12px 32px;
+    padding: 6px 12px;
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 8px;
+    border-radius: 4px;
     color: var(--accent);
     text-decoration: none;
     font-weight: 600;
@@ -455,7 +455,7 @@
 
   @media (max-width: 768px) {
     .about-header h1 {
-      font-size: 18px;
+      font-size: 12px;
     }
 
     .tagline {

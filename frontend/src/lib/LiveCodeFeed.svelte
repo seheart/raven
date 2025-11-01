@@ -30,6 +30,23 @@
   };
 
 
+  // Filter out build artifacts - only show real source code changes
+  function isSourceCodeFile(filepath) {
+    if (!filepath) return false;
+
+    // Exclude build/dist directories
+    if (filepath.match(/\/(dist|build|\.vite|\.next|\.nuxt|out|public\/build)\//)) return false;
+
+    // Exclude build artifacts
+    if (filepath.match(/\.(map|min\.js|min\.css|chunk\.js)$/)) return false;
+
+    // Exclude dependencies
+    if (filepath.match(/\/(node_modules|\.git|\.svelte-kit)\//)) return false;
+
+    // Include everything else (source code)
+    return true;
+  }
+
   // Debounce utility function (moved outside reactive scope)
   let debouncedTimeoutId;
   const debounce = (fn, delay) => {
@@ -171,14 +188,13 @@
 
   async function loadCodeChanges() {
     try {
-      const data = await api.get('/file-events?limit=50&diff=true');
-      // Handle both array and object responses
-      let events = Array.isArray(data) ? data : (data.events || []);
-      // Add project field to each event if it's not already there
-      if (!Array.isArray(data) && data.project) {
-        events = events.map(e => ({ ...e, project: e.project || data.project }));
-      }
-      codeChanges = events;
+      // Use all-file-events to get events from ALL projects
+      const data = await api.get('/all-file-events?limit=50&diff=true');
+      // all-file-events returns an array directly with project tags
+      const allChanges = Array.isArray(data) ? data : [];
+
+      // Filter to only show real source code (exclude build artifacts)
+      codeChanges = allChanges.filter(change => isSourceCodeFile(change.filepath));
     } catch (error) {
       logger.error('Failed to load code changes:', error);
     }
@@ -186,24 +202,20 @@
 
   async function loadRecentActivity() {
     try {
-      // Get both file events and agent events
-      const [fileEventsResponse, agentEventsResponse] = await Promise.all([
-        api.get('/file-events?limit=20'),
-        api.get('/agent-events?limit=20')
+      // Get both file events and agent events from ALL projects
+      const [fileEvents, agentEvents] = await Promise.all([
+        api.get('/all-file-events?limit=20'),
+        api.get('/all-agent-events?limit=20')
       ]);
 
-      // Extract events array from response (handle both array and object formats)
-      let fileEvents = Array.isArray(fileEventsResponse) ? fileEventsResponse : (fileEventsResponse.events || []);
-      let agentEvents = Array.isArray(agentEventsResponse) ? agentEventsResponse : (agentEventsResponse.events || []);
-
-      // Add project field from response to each event
-      const fileProject = !Array.isArray(fileEventsResponse) ? fileEventsResponse.project : null;
-      const agentProject = !Array.isArray(agentEventsResponse) ? agentEventsResponse.project : null;
+      // all-file-events and all-agent-events return arrays directly with project tags
+      const fileEventsArray = Array.isArray(fileEvents) ? fileEvents : [];
+      const agentEventsArray = Array.isArray(agentEvents) ? agentEvents : [];
 
       // Combine and sort by timestamp
       const combined = [
-        ...(fileEvents || []).map(e => ({ ...e, type: 'file', project: e.project || fileProject })),
-        ...(agentEvents || []).map(e => ({ ...e, type: 'agent', project: e.project || agentProject }))
+        ...fileEventsArray.map(e => ({ ...e, type: 'file' })),
+        ...agentEventsArray.map(e => ({ ...e, type: 'agent' }))
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       recentActivity = combined.slice(0, 30);
@@ -304,6 +316,12 @@
 <div class="live-code-feed" role="region" aria-label="Live code feed">
   <!-- Live Session Stats Widget -->
   <div class="stats-widget" role="region" aria-label="Live session statistics">
+    <div class="stats-header">
+      <div class="stats-title">
+        <h2>💻 Code Changes</h2>
+        <p class="stats-subtitle">Source code only • Excludes build artifacts and dependencies</p>
+      </div>
+    </div>
     <div class="stats-bar" role="list" aria-label="Session metrics">
       <div class="stat-item">
         <span class="stat-icon">⏱️</span>
@@ -390,13 +408,8 @@
   </div>
 
   <div class="feed-layout">
-    <!-- Code Changes Column -->
-    <section class="code-changes-column" aria-labelledby="code-changes-heading">
-      <div class="column-header">
-        <h3 id="code-changes-heading"><span aria-hidden="true">📊</span> Code Changes</h3>
-        <span class="change-count" role="status">{codeChanges.length} events</span>
-      </div>
-      <div class="code-changes-content">
+    <!-- Code Changes List -->
+    <section class="code-changes-content" aria-labelledby="code-changes-heading">
         {#if loading}
           <div class="loading" role="status" aria-live="polite">Loading changes...</div>
         {:else if codeChanges.length === 0}
@@ -449,62 +462,6 @@
             {/each}
           </div>
         {/if}
-      </div>
-    </section>
-
-    <!-- Right Column: Recent Activity -->
-    <section class="activity-column" aria-labelledby="recent-activity-heading">
-      <div class="column-header">
-        <h3 id="recent-activity-heading"><span aria-hidden="true">⚡</span> Recent Activity</h3>
-      </div>
-      <div class="activity-content">
-        {#if loading}
-          <div class="loading" role="status" aria-live="polite">Loading activity...</div>
-        {:else if recentActivity.length === 0}
-          <div class="empty-state" role="status">
-            <p>No recent activity</p>
-            <p class="empty-hint">File and agent activity will appear here</p>
-          </div>
-        {:else}
-          <div class="activity-list" role="feed" aria-label="Recent activity feed" aria-busy={loading}>
-            {#each recentActivity || [] as activity, index (`${activity.id || activity.type}-${activity.timestamp}-${index}`)}
-              <div class="activity-item" class:file={activity.type === 'file'} class:agent={activity.type === 'agent'}>
-                <div class="activity-icon">
-                  {#if activity.type === 'file'}
-                    <span style="color: {getChangeTypeColor(activity.change_type)}">
-                      {getChangeTypeIcon(activity.change_type)}
-                    </span>
-                  {:else}
-                    <span>🤖</span>
-                  {/if}
-                </div>
-
-                <div class="activity-details">
-                  {#if activity.type === 'file'}
-                    <div class="activity-file">{truncatePath(activity.filepath)}</div>
-                    <div class="activity-meta">
-                      <span class="activity-type">{activity.change_type}</span>
-                      {#if activity.project}
-                        <ProjectBadge project={activity.project} size="small" />
-                      {/if}
-                      <span class="activity-time">{formatTimestamp(activity.timestamp)}</span>
-                    </div>
-                  {:else}
-                    <div class="activity-file">{activity.agent || 'Agent'}</div>
-                    <div class="activity-meta">
-                      <span class="activity-type">{activity.event_type}</span>
-                      {#if activity.project}
-                        <ProjectBadge project={activity.project} size="small" />
-                      {/if}
-                      <span class="activity-time">{formatTimestamp(activity.timestamp)}</span>
-                    </div>
-                  {/if}
-                </div>
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </div>
     </section>
   </div>
 </div>
@@ -525,26 +482,45 @@
   .stats-widget {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
+    padding: 0;
     flex-shrink: 0;
+  }
+
+  .stats-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stats-title h2 {
+    margin: 0 0 4px 0;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .stats-subtitle {
+    margin: 0;
+    font-size: 11px;
+    color: var(--muted);
   }
 
   .stats-bar {
     display: flex;
-    gap: 24px;
+    gap: 8px;
     align-items: center;
     justify-content: space-between;
+    padding: 4px 10px;
   }
 
   .stat-item {
     display: flex;
-    gap: 10px;
+    gap: 6px;
     align-items: center;
-    padding: 8px 12px;
+    padding: 3px 8px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    transition: all 0.2s ease;
+    border-radius: 3px;
+    transition: all 0.15s ease;
   }
 
   .stat-item:hover {
@@ -553,25 +529,25 @@
   }
 
   .stat-icon {
-    font-size: 20px;
+    font-size: 12px;
   }
 
   .stat-content {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
   }
 
   .stat-label {
-    font-size: 9px;
+    font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     font-weight: 600;
   }
 
   .stat-value {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--text);
     font-weight: 700;
     font-family: var(--mono);
@@ -584,23 +560,22 @@
   .btn-pause {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: 4px;
+    padding: 3px 8px;
     background: var(--accent);
     border: 1px solid var(--accent);
-    border-radius: 6px;
+    border-radius: 3px;
     color: white;
-    font-family: var(--mono);
-    font-size: 12px;
+    font-family: var(--sans);
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .btn-pause:hover {
     background: var(--accent-2, var(--accent));
-    transform: scale(1.05);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
+    border-color: var(--accent-2, var(--accent));
   }
 
   .btn-pause:focus {
@@ -610,15 +585,15 @@
 
   .pause-text {
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
   }
 
   .paused-banner {
     margin-top: 12px;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: color-mix(in srgb, var(--warning) 15%, transparent);
     border: 1px solid var(--warning);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--warning);
     font-size: 12px;
     font-weight: 600;
@@ -635,12 +610,12 @@
   .sparkline-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 8px 12px;
+    gap: 2px;
+    padding: 3px 8px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    transition: all 0.2s ease;
+    border-radius: 3px;
+    transition: all 0.15s ease;
   }
 
   .sparkline-item:hover {
@@ -652,14 +627,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
   }
 
   .sparkline-label {
-    font-size: 9px;
+    font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     font-weight: 600;
   }
 
@@ -680,71 +655,33 @@
   }
 
   .feed-layout {
-    display: grid;
-    grid-template-columns: 1fr 550px;
-    gap: 0;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     overflow: hidden;
   }
 
-  .code-changes-column,
-  .activity-column {
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    overflow: hidden;
-  }
-
-  .activity-column {
-    border-right: none;
-  }
-
-  .column-header {
-    padding: 10px 12px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .column-header h3 {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .change-count {
-    font-size: 10px;
-    color: var(--muted);
-    padding: 2px 8px;
-    background: var(--surface);
-    border-radius: 4px;
-  }
-
-  .code-changes-content,
-  .activity-content {
+  .code-changes-content {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    padding: 12px;
   }
 
   /* Code Changes Styles */
   .changes-list {
-    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    padding-bottom: 20px;
   }
 
   .change-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px;
-    transition: all 0.2s;
+    border-radius: 4px;
+    padding: 6px 8px;
+    transition: all 0.15s;
   }
 
   .change-item:hover {
@@ -756,49 +693,49 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .change-meta {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
   }
 
   .change-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .change-type {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
   }
 
   .project-badge {
     padding: 2px 6px;
     background: var(--accent);
     color: white;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
     border-radius: 3px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
   }
 
   .change-time {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
   }
 
   .btn-copy {
-    padding: 4px 8px;
+    padding: 2px 6px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 11px;
-    transition: all 0.2s;
+    transition: all 0.15s;
   }
 
   .btn-copy:hover {
@@ -812,25 +749,25 @@
   }
 
   .change-file {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
   }
 
   .change-file code {
     font-size: 11px;
     color: var(--accent);
     background: var(--bg);
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 2px 6px;
+    border-radius: 3px;
     display: inline-block;
   }
 
   .change-diff {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-bottom: 8px;
+    border-radius: 3px;
+    margin-bottom: 4px;
     overflow-x: auto;
-    max-height: 400px;
+    max-height: 300px;
     overflow-y: auto;
     font-family: 'Courier New', 'Consolas', monospace;
   }
@@ -839,8 +776,8 @@
     display: flex;
     align-items: stretch;
     font-size: 11px;
-    line-height: 1.6;
-    min-height: 20px;
+    line-height: 1.5;
+    min-height: 18px;
     transition: background 0.1s ease;
   }
 
@@ -872,12 +809,12 @@
 
   .line-number {
     display: inline-block;
-    width: 40px;
-    padding: 2px 8px;
+    width: 32px;
+    padding: 1px 6px;
     color: var(--muted);
     text-align: right;
     user-select: none;
-    font-size: 10px;
+    font-size: 11px;
     flex-shrink: 0;
     background: color-mix(in srgb, var(--bg) 50%, var(--surface));
   }
@@ -892,7 +829,7 @@
 
   .line-content {
     flex: 1;
-    padding: 2px 12px;
+    padding: 1px 8px;
     white-space: pre;
     overflow-x: auto;
     color: var(--text);
@@ -919,34 +856,34 @@
 
   .change-footer {
     display: flex;
-    gap: 12px;
-    font-size: 10px;
+    gap: 6px;
+    font-size: 11px;
     color: var(--muted);
   }
 
   .change-size,
   .change-hash {
-    padding: 2px 6px;
+    padding: 2px 4px;
     background: var(--bg);
-    border-radius: 4px;
+    border-radius: 3px;
   }
 
   /* Activity Styles */
   .activity-list {
-    padding: 8px;
+    padding: 6px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
   }
 
   .activity-item {
     display: flex;
-    gap: 8px;
-    padding: 8px;
+    gap: 6px;
+    padding: 6px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    transition: all 0.2s;
+    border-radius: 3px;
+    transition: all 0.15s;
     cursor: pointer;
   }
 
@@ -956,7 +893,7 @@
   }
 
   .activity-icon {
-    font-size: 14px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -977,8 +914,8 @@
 
   .activity-meta {
     display: flex;
-    gap: 8px;
-    font-size: 10px;
+    gap: 6px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -989,14 +926,14 @@
 
   .loading {
     text-align: center;
-    padding: 24px;
+    padding: 8px;
     color: var(--muted);
     font-size: 11px;
   }
 
   .empty-state {
     text-align: center;
-    padding: 32px 16px;
+    padding: 12px 8px;
     color: var(--muted);
   }
 
@@ -1006,7 +943,7 @@
   }
 
   .empty-hint {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   /* Scrollbar */
@@ -1022,19 +959,9 @@
   }
 
   /* Responsive */
-  @media (max-width: 1200px) {
-    .feed-layout {
-      grid-template-columns: 1fr 475px;
-    }
-  }
-
   @media (max-width: 768px) {
-    .feed-layout {
-      grid-template-columns: 1fr;
-    }
-
-    .activity-column {
-      display: none;
+    .code-changes-content {
+      padding: 8px;
     }
   }
 </style>

@@ -120,16 +120,16 @@
     justify-content: center;
     z-index: 20000;
     overflow-y: auto;
-    padding: 24px;
+    padding: 8px;
   }
 
   .welcome-container {
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 16px;
+    border-radius: 4px;
     max-width: 800px;
     width: 100%;
-    padding: 48px;
+    padding: 20px;
     box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
     animation: gentleFloat 4s ease-in-out infinite;
   }
@@ -146,7 +146,7 @@
 
   #welcome-title {
     font-family: var(--mono);
-    font-size: 32px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
     margin: 16px 0 8px 0;
@@ -158,7 +158,7 @@
 
   .tagline {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
     margin: 0;
   }
@@ -166,8 +166,8 @@
   .vision-section {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
     margin-bottom: 32px;
   }
 
@@ -186,15 +186,15 @@
   .features-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    gap: 8px;
     margin-bottom: 32px;
   }
 
   .feature-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
     text-align: center;
     transition: all 0.3s ease;
   }
@@ -206,14 +206,14 @@
   }
 
   .feature-icon {
-    font-size: 32px;
+    font-size: 11px;
     display: block;
     margin-bottom: 12px;
   }
 
   .feature-title {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 0 0 8px 0;
@@ -230,17 +230,17 @@
   .quick-start {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
     margin-bottom: 32px;
   }
 
   .quick-start h2 {
     font-family: var(--mono);
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
   }
 
   .tips-list {
@@ -283,9 +283,9 @@
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 4px;
     font-family: var(--mono);
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -317,11 +317,11 @@
   /* Responsive */
   @media (max-width: 640px) {
     .welcome-container {
-      padding: 32px 24px;
+      padding: 12px 24px;
     }
 
     #welcome-title {
-      font-size: 24px;
+      font-size: 11px;
     }
 
     .features-grid {

@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import { router, currentTab, currentSubTab } from './lib/router.js';
   // New consolidated components
   import ErrorBoundary from './lib/ErrorBoundary.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
@@ -111,8 +112,9 @@
 
   let sessionId = 'Loading...';
   let sessionUptime = '0s';
-  let activeTab = 'overview'; // New consolidated tabs: overview, agents, activity, analysis, system, about, changelog, docs
-  let currentSubView = ''; // For sub-views within tabs
+  // Use router for navigation state (synced with URL hash)
+  $: activeTab = $currentTab;
+  $: currentSubView = $currentSubTab;
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
   let showHelp = false;
   let showWelcome = false;
@@ -222,14 +224,12 @@
   }
 
   function handleTabChange(newTab) {
-    activeTab = newTab;
-    currentSubView = '';
+    router.navigate(newTab);
     localStorage.setItem('raven-active-tab', newTab);
   }
 
   function handleOpenSettings() {
-    activeTab = 'settings';
-    currentSubView = '';
+    router.navigate('settings');
   }
 
   function switchTheme(newTheme) {
@@ -242,8 +242,7 @@
   // Handle error notification clicks - navigate to Error Log with details
   function handleErrorClick(notification) {
     // Navigate to System tab and Error Log sub-view
-    activeTab = 'system';
-    currentSubView = 'errors'; // Navigate to Error Log specifically
+    router.navigate('system', 'errors');
 
     // Log for debugging
     logger.info('Navigating to Error Log from notification:', notification.message);
@@ -252,17 +251,18 @@
     sessionStorage.setItem('highlightError', notification.message);
   }
 
-  // Helper function to wait for backend to be ready
+  // Helper function to wait for backend to be ready (quick check)
   async function waitForBackend() {
-    const maxRetries = 30; // 30 seconds max
-    const retryDelay = 1000; // 1 second between retries
+    const maxRetries = 3; // Only 3 quick attempts
+    const retryDelay = 200; // 200ms between retries
 
     for (let i = 0; i < maxRetries; i++) {
       try {
-        loadingMessage = `Connecting to backend server... (${i + 1}/${maxRetries})`;
+        loadingMessage = `Connecting to backend server...`;
         const response = await fetch(API_CONFIG.ENDPOINTS.HEALTH, {
           method: 'GET',
-          headers: { 'Accept': 'application/json' }
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(500) // 500ms timeout per request
         });
 
         if (response.ok) {
@@ -278,138 +278,107 @@
       }
 
       // Wait before next retry
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
 
-    // Backend didn't come up in time
-    loadingMessage = 'Backend server unavailable - please check if it\'s running';
-    return false;
+    // Backend didn't respond quickly, but continue anyway
+    logger.warn('Backend health check timed out - continuing anyway');
+    return true; // Don't block the UI
   }
 
   onMount(async () => {
-    // Start loading sequence with progress updates
-    loadingMessage = 'Loading configuration...';
-    loadingProgress = 10;
-
-    // Load saved theme from localStorage
+    // Load saved theme from localStorage (instant)
     theme = localStorage.getItem('raven-theme') || 'theme--night';
     document.body.className = theme;
 
     // Always start at Overview tab on fresh load
     activeTab = 'overview';
 
-    loadingMessage = 'Connecting to server...';
-    loadingProgress = 20;
-
-    // Wait for backend to be ready before proceeding
-    const backendReady = await waitForBackend();
-    if (!backendReady) {
-      // Backend not available - stay on loading screen with error
-      loadingProgress = 0;
-      isInitialLoading = true; // Keep loading screen visible
-      return;
-    }
-
-    loadingProgress = 30;
-
-    // Load session ID
-    loadSessionId();
-
-    // Start uptime tracking
-    updateUptime();
-    uptimeInterval = setInterval(updateUptime, 1000);
-
-    loadingMessage = 'Initializing services...';
-    loadingProgress = 40;
-
-    // Setup global error handler
+    // Setup global error handler (instant)
     setupGlobalErrorHandler();
 
-    loadingMessage = 'Establishing WebSocket connection...';
-    loadingProgress = 50;
-
-    // Initialize WebSocket connection (but don't set up notification listeners yet)
-    websocketService.connect();
-
-    loadingMessage = 'Preloading dashboard data...';
-    loadingProgress = 60;
-
-    // Preload all initial data - this prevents duplicate API calls
-    const dataLoaded = await dataService.preloadInitialData();
-
-    if (dataLoaded) {
-      loadingProgress = 85;
-      loadingMessage = 'Finalizing...';
-    } else {
-      loadingProgress = 75;
-      loadingMessage = 'Loading completed with some errors...';
-    }
-
-    // Fetch today's activity stats
-    await fetchTodayActivity();
-
-    // Listen for file changes to update today's activity
-    websocketService.on('file-changed', () => {
-      fetchTodayActivity();
-    });
-
-    // Start periodic health checks (every 60 seconds)
-    checkServerHealth(); // Initial check
-    healthCheckInterval = setInterval(checkServerHealth, 60000);
-
-    // Check health on WebSocket reconnect
-    // Store callback reference for cleanup
-    reconnectCallback = () => {
-      checkServerHealth();
-      fetchTodayActivity();
-    };
-    websocketService.onReconnect(reconnectCallback);
-
-    loadingProgress = 95;
-
-    // Register keyboard shortcuts
+    // Register keyboard shortcuts (instant)
     keyboard.register('?', () => showHelp = !showHelp);
     keyboard.register('Escape', () => {
       showHelp = false;
       showWelcome = false;
     });
 
-    // Register tab shortcuts (1-5)
+    // Register tab shortcuts (instant)
     tabs.forEach(tab => {
       keyboard.register(tab.shortcut, () => handleTabChange(tab.id));
     });
 
-    loadingProgress = 100;
-    loadingMessage = 'Ready!';
-
-    // Small delay to show 100% completion
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    // Hide loading screen
+    // Hide loading screen immediately - UI is now interactive!
     isInitialLoading = false;
 
-    // NOW set up notification listeners (after loading screen is gone)
-    // This prevents startup warnings from showing on the loading screen
-    setupNotificationListeners();
+    // Everything else happens in background, non-blocking
+    Promise.all([
+      waitForBackend(),
+      new Promise(resolve => {
+        loadSessionId();
+        resolve();
+      })
+    ]).then(() => {
+      // Start uptime tracking
+      updateUptime();
+      uptimeInterval = setInterval(updateUptime, 1000);
 
-    // Kick off background prefetch of common panels
-    try { prefetchPanels(); } catch (_) {}
+      // Initialize WebSocket connection
+      websocketService.connect();
 
-    // Show Quick Start Wizard for first-time users
-    if (!localStorage.getItem('raven-quick-start-completed')) {
-      showQuickStart = true;
-    } else if (!localStorage.getItem('raven-welcome-seen')) {
-      showWelcome = true;
-    } else if (!localStorage.getItem('raven-visited')) {
-      // Show notification for returning users who haven't seen the new UI
-      setTimeout(() => {
-        notifications.info('Welcome back! Press ? for keyboard shortcuts', {
-          title: 'Welcome',
-          duration: 5000
-        });
-        localStorage.setItem('raven-visited', 'true');
-      }, 500);
-    }
+      // Load data in background (non-blocking)
+      Promise.all([
+        dataService.preloadInitialData(),
+        fetchTodayActivity()
+      ]).catch(err => {
+        logger.error('Background data loading error:', err);
+      });
+
+      // Listen for file changes to update today's activity
+      websocketService.on('file-changed', () => {
+        fetchTodayActivity();
+      });
+
+      // Start periodic health checks (every 60 seconds)
+      checkServerHealth(); // Initial check
+      healthCheckInterval = setInterval(checkServerHealth, 60000);
+
+      // Check health on WebSocket reconnect
+      // Store callback reference for cleanup
+      reconnectCallback = () => {
+        checkServerHealth();
+        fetchTodayActivity();
+      };
+      websocketService.onReconnect(reconnectCallback);
+
+      // NOW set up notification listeners (after loading screen is gone)
+      // This prevents startup warnings from showing on the loading screen
+      setupNotificationListeners();
+
+      // Kick off background prefetch of common panels
+      try { prefetchPanels(); } catch (_) {}
+
+      // Show Quick Start Wizard for first-time users
+      if (!localStorage.getItem('raven-quick-start-completed')) {
+        showQuickStart = true;
+      } else if (!localStorage.getItem('raven-welcome-seen')) {
+        showWelcome = true;
+      } else if (!localStorage.getItem('raven-visited')) {
+        // Show notification for returning users who haven't seen the new UI
+        setTimeout(() => {
+          notifications.info('Welcome back! Press ? for keyboard shortcuts', {
+            title: 'Welcome',
+            duration: 5000
+          });
+          localStorage.setItem('raven-visited', 'true');
+        }, 500);
+      }
+    }).catch(err => {
+      logger.error('Initialization error:', err);
+    });
   });
 
   onDestroy(() => {
@@ -438,59 +407,53 @@
 
 <!-- Authentication removed - app is always accessible -->
 <main>
-  <header>
-    <div class="header-content">
-      <button class="header-left header-home-button" on:click={() => handleTabChange('overview')} aria-label="Go to Overview">
-        <RavenLogo size={32} />
-        <h1>Raven</h1>
-      </button>
+  <!-- COMPACT HEADER LAYOUT -->
+  <header class="compact-header">
+    <!-- Logo -->
+    <button class="logo" on:click={() => handleTabChange('overview')} aria-label="Go to Overview">
+      <RavenLogo size={16} />
+      <span>Raven</span>
+    </button>
 
-      <nav id="main-navigation" class="header-nav" aria-label="Main navigation">
-        {#each tabs as tab (tab.id)}
-          <button
-            class="nav-tab"
-            class:active={activeTab === tab.id}
-            on:click={() => handleTabChange(tab.id)}
-            on:mouseenter={() => preloadByTab(tab.id)}
-            aria-current={activeTab === tab.id ? 'page' : undefined}
-            aria-label="{tab.label} - Press {tab.shortcut} for shortcut"
-          >
-            <span class="tab-icon" aria-hidden="true">{tab.icon}</span>
-            <span class="tab-label">{tab.label}</span>
-            <span class="tab-shortcut" aria-label="Shortcut key {tab.shortcut}">{tab.shortcut}</span>
-          </button>
-        {/each}
-      </nav>
-
-      <div id="theme-switcher" class="header-right">
-        <!-- Today's Activity -->
-        <div class="today-activity-header" role="region" aria-label="Today's coding activity">
-          <span class="activity-title">TODAY:</span>
-          <div class="activity-stat" role="status" aria-label="{todayStats.modified} files modified today">
-            <span class="stat-value">{todayStats.modified}</span>
-            <span class="stat-label">modified</span>
-          </div>
-          <div class="activity-divider" aria-hidden="true">|</div>
-          <div class="activity-stat" role="status" aria-label="{todayStats.added} files added today">
-            <span class="stat-value">+{todayStats.added}</span>
-            <span class="stat-label">added</span>
-          </div>
-          <div class="activity-divider" aria-hidden="true">|</div>
-          <div class="activity-stat" role="status" aria-label="{todayStats.deleted} files deleted today">
-            <span class="stat-value">-{todayStats.deleted}</span>
-            <span class="stat-label">deleted</span>
-          </div>
-        </div>
-        <UserMenu on:openSettings={handleOpenSettings} />
+    <!-- Main Navigation Tabs -->
+    <nav class="main-tabs" aria-label="Main navigation">
+      {#each tabs as tab (tab.id)}
         <button
-          class="help-button"
-          on:click={() => showHelp = !showHelp}
-          aria-label="Show keyboard shortcuts"
+          class="tab"
+          class:active={activeTab === tab.id}
+          on:click={() => handleTabChange(tab.id)}
+          on:mouseenter={() => preloadByTab(tab.id)}
+          aria-current={activeTab === tab.id ? 'page' : undefined}
+          title="{tab.label} (Shortcut: {tab.shortcut})"
         >
-          ?
+          {tab.label}
         </button>
+      {/each}
+    </nav>
+
+    <!-- Today's Activity Stats - Compact Pills -->
+    <div class="today-stats" role="region" aria-label="Today's coding activity">
+      <div class="stat-pill modified" role="status" aria-label="{todayStats.modified} files modified">
+        {todayStats.modified} modified
+      </div>
+      <div class="stat-pill added" role="status" aria-label="{todayStats.added} files added">
+        +{todayStats.added} added
+      </div>
+      <div class="stat-pill deleted" role="status" aria-label="{todayStats.deleted} files deleted">
+        -{todayStats.deleted} deleted
       </div>
     </div>
+
+    <!-- User Menu & Help -->
+    <UserMenu on:openSettings={handleOpenSettings} />
+    <button
+      class="help-button"
+      on:click={() => showHelp = !showHelp}
+      aria-label="Show keyboard shortcuts"
+      title="Keyboard Shortcuts"
+    >
+      ?
+    </button>
   </header>
 
   <!-- Consolidated View Container -->
@@ -502,21 +465,21 @@
           <button
             class="sub-tab"
             class:active={!currentSubView}
-            on:click={() => currentSubView = ''}
+            on:click={() => router.navigate(activeTab)}
           >
             Dashboard
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'projects'}
-            on:click={() => currentSubView = 'projects'}
+            on:click={() => router.navigate(activeTab, 'projects')}
           >
             Projects Comparison
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'health'}
-            on:click={() => currentSubView = 'health'}
+            on:click={() => router.navigate(activeTab, 'health')}
           >
             Project Health
           </button>
@@ -536,28 +499,28 @@
           <button
             class="sub-tab"
             class:active={!currentSubView}
-            on:click={() => currentSubView = ''}
+            on:click={() => router.navigate(activeTab)}
           >
             🔍 Syntax Errors
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'rollback'}
-            on:click={() => currentSubView = 'rollback'}
+            on:click={() => router.navigate(activeTab, 'rollback')}
           >
             ⏪ Session Rollback
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'patterns'}
-            on:click={() => currentSubView = 'patterns'}
+            on:click={() => router.navigate(activeTab, 'patterns')}
           >
             ⚠️ Pattern Warnings
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'tests'}
-            on:click={() => currentSubView = 'tests'}
+            on:click={() => router.navigate(activeTab, 'tests')}
           >
             🩺 Self-Diagnosis
           </button>
@@ -579,14 +542,14 @@
           <button
             class="sub-tab"
             class:active={!currentSubView}
-            on:click={() => currentSubView = ''}
+            on:click={() => router.navigate(activeTab)}
           >
             Agent Stats
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'conversations'}
-            on:click={() => currentSubView = 'conversations'}
+            on:click={() => router.navigate(activeTab, 'conversations')}
           >
             Conversations
           </button>
@@ -612,35 +575,35 @@
           <button
             class="sub-tab"
             class:active={!currentSubView}
-            on:click={() => currentSubView = ''}
+            on:click={() => router.navigate(activeTab)}
           >
-            Live Feed
+            Code Changes
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'events'}
-            on:click={() => currentSubView = 'events'}
+            on:click={() => router.navigate(activeTab, 'events')}
           >
             Event Log
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'activity'}
-            on:click={() => currentSubView = 'activity'}
+            on:click={() => router.navigate(activeTab, 'activity')}
           >
             Activity Log
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'files'}
-            on:click={() => currentSubView = 'files'}
+            on:click={() => router.navigate(activeTab, 'files')}
           >
             File Browser
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'search'}
-            on:click={() => currentSubView = 'search'}
+            on:click={() => router.navigate(activeTab, 'search')}
           >
             Global Search
           </button>
@@ -684,42 +647,42 @@
           <button
             class="sub-tab"
             class:active={!currentSubView}
-            on:click={() => currentSubView = ''}
+            on:click={() => router.navigate(activeTab)}
           >
             Performance
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'metrics'}
-            on:click={() => currentSubView = 'metrics'}
+            on:click={() => router.navigate(activeTab, 'metrics')}
           >
             Custom Metrics
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'trends'}
-            on:click={() => currentSubView = 'trends'}
+            on:click={() => router.navigate(activeTab, 'trends')}
           >
             Historical Trends
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'triggers'}
-            on:click={() => currentSubView = 'triggers'}
+            on:click={() => router.navigate(activeTab, 'triggers')}
           >
             Triggers
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'replay'}
-            on:click={() => currentSubView = 'replay'}
+            on:click={() => router.navigate(activeTab, 'replay')}
           >
             Session Replay
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'insights'}
-            on:click={() => currentSubView = 'insights'}
+            on:click={() => router.navigate(activeTab, 'insights')}
           >
             Developer Insights
           </button>
@@ -769,56 +732,56 @@
           <button
             class="sub-tab"
             class:active={!currentSubView}
-            on:click={() => currentSubView = ''}
+            on:click={() => router.navigate(activeTab)}
           >
             Status
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'anomalies'}
-            on:click={() => currentSubView = 'anomalies'}
+            on:click={() => router.navigate(activeTab, 'anomalies')}
           >
             Anomaly Alerts
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'storage'}
-            on:click={() => currentSubView = 'storage'}
+            on:click={() => router.navigate(activeTab, 'storage')}
           >
             Storage
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'projects'}
-            on:click={() => currentSubView = 'projects'}
+            on:click={() => router.navigate(activeTab, 'projects')}
           >
             Projects
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'sync'}
-            on:click={() => currentSubView = 'sync'}
+            on:click={() => router.navigate(activeTab, 'sync')}
           >
             Server Sync
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'notifications'}
-            on:click={() => currentSubView = 'notifications'}
+            on:click={() => router.navigate(activeTab, 'notifications')}
           >
             Notifications
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'errors'}
-            on:click={() => currentSubView = 'errors'}
+            on:click={() => router.navigate(activeTab, 'errors')}
           >
             Errors
           </button>
           <button
             class="sub-tab"
             class:active={currentSubView === 'api'}
-            on:click={() => currentSubView = 'api'}
+            on:click={() => router.navigate(activeTab, 'api')}
           >
             API Health
           </button>
@@ -960,129 +923,117 @@
     overflow-x: hidden;
   }
 
-  header {
-    padding: var(--space-lg) var(--space-2xl);
-    border-bottom: 1px solid var(--border);
+  /* ========== COMPACT HEADER - Ultra-Dense Layout ========== */
+  header.compact-header {
     background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 38px;
     position: sticky;
     top: 0;
     z-index: 1000;
-    box-shadow: var(--shadow-sm);
   }
 
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    gap: var(--space-lg);
-  }
-
-  .header-left {
+  /* Logo - compact */
+  .logo {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-  }
-
-  .header-home-button {
+    gap: 6px;
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 14px;
+    font-family: var(--sans);
     background: none;
     border: none;
-    padding: 0;
     cursor: pointer;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    padding: 0;
+    transition: opacity 0.15s;
   }
 
-  .header-home-button:hover {
+  .logo:hover {
     opacity: 0.8;
-    transform: scale(1.02);
   }
 
-  .header-home-button:active {
-    transform: scale(0.98);
-  }
-
-  .header-right {
+  /* Main tabs - more compact */
+  .main-tabs {
     display: flex;
-    align-items: center;
-    gap: var(--space-md);
+    gap: 4px;
+    flex: 1;
   }
 
-  h1 {
+  .main-tabs .tab {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 4px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
     font-family: var(--sans);
-    font-size: var(--text-xl);
-    font-weight: var(--weight-bold);
-    margin: 0;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2, var(--accent)) 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-weight: 500;
+    transition: all 0.15s;
   }
 
-  /* (removed unused theme switcher styles) */
-
-  /* Today's Activity in Header */
-  .today-activity-header {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    padding: 6px 16px;
+  .main-tabs .tab:hover {
     background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    color: var(--text);
+  }
+
+  .main-tabs .tab.active {
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+
+  /* Today stats - inline pills */
+  .today-stats {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    padding: 0 12px;
+    border-left: 1px solid var(--border);
     font-family: var(--mono);
   }
 
-  .activity-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    line-height: 1;
-  }
-
-  .activity-stat {
+  .stat-pill {
     display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-
-  .activity-stat .stat-value {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .activity-stat .stat-label {
-    font-size: 11px;
-    color: var(--muted);
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    background: var(--surface-2);
+    border-radius: 3px;
     font-weight: 500;
   }
 
-  .activity-divider {
-    color: var(--muted);
-    font-size: 12px;
-  }
+  .stat-pill.modified { color: var(--info); }
+  .stat-pill.added { color: var(--success); }
+  .stat-pill.deleted { color: var(--error); }
 
+  /* Help button - compact */
   .help-button {
-    width: 40px;
-    height: 40px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    color: var(--text);
+    color: var(--muted);
     font-family: var(--sans);
-    font-size: var(--text-base);
-    font-weight: var(--weight-semibold);
+    font-size: 11px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all var(--duration-fast) var(--ease-out-expo);
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .help-button:hover {
     background: var(--accent);
     color: white;
-    transform: scale(1.1);
-    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
   }
 
   .help-button:active {
@@ -1092,62 +1043,6 @@
   .help-button:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-  }
-
-  /* Inline Navigation Tabs */
-  .header-nav {
-    display: flex;
-    gap: var(--space-xs);
-    align-items: center;
-    flex: 1;
-    justify-content: center;
-    max-width: 700px;
-  }
-
-  .nav-tab {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: var(--radius);
-    color: var(--muted);
-    font-family: var(--sans);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
-    cursor: pointer;
-    transition: all var(--duration-fast) var(--ease-out-expo);
-    position: relative;
-    white-space: nowrap;
-  }
-
-  .nav-tab:hover {
-    background: var(--surface-2);
-    color: var(--text);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .nav-tab:active {
-    transform: translateY(0);
-  }
-
-  .nav-tab:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--accent);
-  }
-
-  .nav-tab.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-    box-shadow: var(--shadow-md);
-  }
-
-  .nav-tab.active:hover {
-    background: var(--accent-2, var(--accent));
-    transform: translateY(-1px);
   }
 
   .tab-icon {
@@ -1164,7 +1059,7 @@
     position: absolute;
     top: 2px;
     right: 2px;
-    font-size: 9px;
+    font-size: 11px;
     padding: 1px 3px;
     background: var(--bg);
     border-radius: 2px;
@@ -1194,49 +1089,51 @@
     animation: fadeIn var(--duration-base) var(--ease-smooth);
   }
 
+  /* Sub-navigation - compact */
   .sub-navigation {
     display: flex;
-    gap: var(--space-sm);
-    padding: var(--space-lg) var(--space-2xl);
+    gap: 6px;
+    padding: 4px 12px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    height: 32px;
+    align-items: center;
   }
 
   .sub-tab {
-    padding: var(--space-sm) var(--space-md);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    padding: 3px 10px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
     color: var(--muted);
     font-family: var(--sans);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
+    font-size: 11px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all var(--duration-fast) var(--ease-out-expo);
+    transition: all 0.15s;
+    white-space: nowrap;
   }
 
   .sub-tab:hover {
     background: var(--surface-2);
     color: var(--text);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .sub-tab:active {
-    transform: translateY(0);
+    border-radius: 3px;
   }
 
   .sub-tab.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-    box-shadow: var(--shadow-sm);
+    background: none;
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
   }
 
   .sub-tab:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+    border-radius: 3px;
   }
 
   /* Focus indicators for accessibility */
@@ -1253,50 +1150,43 @@
   /* (removed unused auth-loading/spinner styles) */
 
   @media (max-width: 768px) {
-    header {
-      padding: 8px 12px;
+    header.compact-header {
+      padding: 4px 8px;
+      gap: 8px;
     }
 
-    h1 {
-      font-size: 14px;
-    }
-
-    .header-nav {
-      gap: 2px;
-      overflow-x: auto;
-      max-width: none;
-    }
-
-    .nav-tab {
-      padding: 6px 10px;
-      gap: 4px;
-    }
-
-    .tab-label {
+    .logo span {
       display: none;
     }
 
-    .tab-icon {
-      font-size: 16px;
+    .main-tabs {
+      overflow-x: auto;
+      gap: 2px;
     }
 
-    .tab-shortcut {
+    .main-tabs .tab {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .today-stats {
       display: none;
     }
 
     .help-button {
-      width: 28px;
-      height: 28px;
-      font-size: 12px;
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
     }
 
     .sub-navigation {
-      padding: 12px 16px;
+      padding: 4px 8px;
       overflow-x: auto;
     }
 
     .sub-tab {
-      white-space: nowrap;
+      font-size: 11px;
+      padding: 3px 8px;
     }
   }
 

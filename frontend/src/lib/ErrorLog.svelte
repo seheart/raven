@@ -523,7 +523,7 @@
 
 <style>
   .error-log {
-    padding: 24px;
+    padding: 8px;
     position: relative;
     max-width: 1600px;
     margin: 0 auto;
@@ -533,14 +533,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     padding-bottom: 16px;
     border-bottom: 2px solid var(--border);
   }
 
   .header-title h1 {
     margin: 0 0 4px 0;
-    font-size: 18px;
+    font-size: 11px;
     color: var(--text);
   }
 
@@ -552,7 +552,7 @@
 
   .header-actions {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     align-items: center;
   }
 
@@ -563,13 +563,13 @@
   }
 
   .btn-refresh {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -588,7 +588,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -602,13 +602,13 @@
 
   .btn-export,
   .btn-test {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
     transition: all 0.2s;
   }
 
@@ -630,16 +630,16 @@
 
   .stats-bar {
     display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: 6px;
+    margin-bottom: 8px;
   }
 
   .stat-item {
     flex: 1;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px;
+    border-radius: 3px;
+    padding: 6px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -665,7 +665,7 @@
   }
 
   .stat-value {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--text);
     font-family: var(--mono);
     font-weight: 700;
@@ -674,25 +674,25 @@
   .controls {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
     background: var(--surface);
-    padding: 20px;
-    border-radius: 8px;
+    padding: 8px;
+    border-radius: 4px;
     border: 1px solid var(--border);
   }
 
   .search-bar {
     display: flex;
-    gap: 12px;
+    gap: 6px;
   }
 
   .search-bar input {
     flex: 1;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -704,13 +704,13 @@
   }
 
   .search-bar button {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     transition: all 0.2s;
   }
@@ -730,7 +730,7 @@
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
@@ -763,7 +763,7 @@
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
     transition: all 0.2s;
@@ -798,7 +798,7 @@
   .error-state,
   .empty-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     color: var(--muted);
   }
 
@@ -806,13 +806,13 @@
 
   .empty-icon,
   .error-icon {
-    font-size: 13px;
-    margin-bottom: 16px;
+    font-size: 11px;
+    margin-bottom: 8px;
   }
 
   .empty-state h2,
   .error-state h2 {
-    font-size: 18px;
+    font-size: 11px;
     margin: 0 0 8px 0;
     color: var(--text);
   }
@@ -820,7 +820,7 @@
   .error-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
     transition: all 0.2s;
   }
@@ -838,7 +838,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 6px 20px;
     cursor: pointer;
     width: 100%;
     background: none;
@@ -857,20 +857,20 @@
   .error-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     flex: 1;
     min-width: 0;
   }
 
   .expand-arrow {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     width: 12px;
     flex-shrink: 0;
   }
 
   .error-icon {
-    font-size: 13px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -880,7 +880,7 @@
   }
 
   .error-message {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--text);
     font-weight: 500;
     margin-bottom: 4px;
@@ -908,7 +908,7 @@
   .error-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     flex-shrink: 0;
   }
 
@@ -923,7 +923,7 @@
     background: var(--bg);
     border: 1px solid;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
   }
@@ -936,8 +936,8 @@
   .details-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 12px;
-    padding: 16px 0;
+    gap: 6px;
+    padding: 6px 0;
   }
 
   .detail-item {
@@ -971,7 +971,7 @@
   .stack-section h4,
   .metadata-section h4 {
     margin: 0 0 8px 0;
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
   }
@@ -981,7 +981,7 @@
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 12px;
+    padding: 6px;
     font-size: 11px;
     font-family: var(--mono);
     color: var(--text);
@@ -995,21 +995,21 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px;
-    padding: 20px;
+    gap: 8px;
+    padding: 8px;
     background: var(--surface);
-    border-radius: 8px;
+    border-radius: 4px;
     border: 1px solid var(--border);
   }
 
   .pagination button {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     transition: all 0.2s;
   }
@@ -1030,14 +1030,14 @@
   }
 
   .page-info {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
     font-family: var(--mono);
   }
 
   @media (max-width: 768px) {
     .error-log {
-      padding: 16px;
+      padding: 6px;
     }
 
     .stats-bar {
@@ -1047,7 +1047,7 @@
     .error-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
+      gap: 6px;
     }
 
     .error-right {

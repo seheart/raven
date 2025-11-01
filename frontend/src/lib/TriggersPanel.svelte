@@ -492,7 +492,7 @@
 
 <style>
   .triggers-panel {
-    padding: 24px;
+    padding: 8px;
     width: 100%;
     margin: 0;
     position: relative;
@@ -511,7 +511,7 @@
 
   h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
   }
 
@@ -532,7 +532,7 @@
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -559,7 +559,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -573,7 +573,7 @@
 
   .message {
     padding: 12px;
-    border-radius: 6px;
+    border-radius: 3px;
     margin-bottom: 10px;
     font-size: 12px;
   }
@@ -598,7 +598,7 @@
   }
 
   .tab {
-    padding: 12px 20px;
+    padding: 6px 10px;
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
@@ -672,19 +672,19 @@
     display: flex;
     gap: 12px;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     padding: 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .search-input {
     flex: 1;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -696,10 +696,10 @@
   }
 
   .filter-select {
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -713,10 +713,10 @@
   }
 
   .filter-stats {
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--muted);
     font-size: 12px;
     font-weight: 600;
@@ -733,7 +733,7 @@
   .trigger-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
     transition: all 0.2s;
   }
@@ -778,7 +778,7 @@
   .trigger-action {
     background: var(--surface-2);
     padding: 4px 12px;
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 12px;
     color: var(--warning);
     text-transform: capitalize;
@@ -895,7 +895,7 @@
     padding: 8px 16px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 12px;
     font-weight: 600;
@@ -921,7 +921,7 @@
     font-weight: 600;
     padding: 4px 10px;
     background: var(--surface-2);
-    border-radius: 12px;
+    border-radius: 3px;
   }
 
   /* Triggered Events Tab */
@@ -937,8 +937,8 @@
     gap: 12px;
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 6px;
-    padding: 12px 16px;
+    border-radius: 3px;
+    padding: 6px 10px;
     transition: all 0.2s;
   }
 
@@ -986,7 +986,7 @@
   .event-action {
     background: var(--surface-2);
     padding: 2px 8px;
-    border-radius: 8px;
+    border-radius: 4px;
     font-size: 11px;
     color: var(--muted);
     text-transform: capitalize;
@@ -1007,7 +1007,7 @@
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 12px;
     text-align: center;
   }
@@ -1033,7 +1033,7 @@
 
   .stat-card h3 {
     color: var(--text);
-    font-size: 15px;
+    font-size: 12px;
     margin-bottom: 10px;
   }
 
@@ -1049,7 +1049,7 @@
     align-items: center;
     padding: 12px;
     background: var(--bg);
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   .count-name {
@@ -1061,7 +1061,7 @@
   .count-value {
     background: var(--surface-2);
     padding: 4px 12px;
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 12px;
     font-weight: 700;
     color: var(--warning);

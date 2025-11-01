@@ -519,7 +519,7 @@
 
 <style>
   .notifications-panel {
-    padding: 24px;
+    padding: 8px;
     position: relative;
     max-width: 1400px;
     margin: 0 auto;
@@ -538,7 +538,7 @@
   }
 
   .header-left h1 {
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
     margin: 0 0 0.5rem 0;
@@ -564,7 +564,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -577,8 +577,8 @@
   }
 
   .btn-primary, .btn-secondary {
-    padding: 10px 20px;
-    border-radius: 6px;
+    padding: 6px 10px;
+    border-radius: 3px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -623,7 +623,7 @@
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 1rem;
     border-left: 3px solid var(--border);
   }
@@ -654,7 +654,7 @@
     padding: 1rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     margin-bottom: 2rem;
     flex-wrap: wrap;
   }
@@ -675,7 +675,7 @@
     padding: 6px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 13px;
     font-family: var(--mono);
@@ -713,7 +713,7 @@
   .notification-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 1rem;
     cursor: pointer;
     transition: all 0.2s;
@@ -794,7 +794,7 @@
     background: var(--accent);
     color: white;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
   }
 
@@ -809,7 +809,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px;
     color: var(--success);
     transition: all 0.2s;
   }
@@ -849,7 +849,7 @@
   .detail-metadata {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     padding: 12px;
     font-size: 12px;
     color: var(--text);
@@ -866,7 +866,7 @@
   .empty-state {
     background: var(--surface);
     border: 1px dashed var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .empty-icon {
@@ -899,7 +899,7 @@
     font-size: 11px;
     font-weight: 700;
     padding: 2px 8px;
-    border-radius: 12px;
+    border-radius: 3px;
     margin-left: 8px;
     vertical-align: middle;
   }
@@ -912,10 +912,10 @@
     font-size: 13px;
     color: var(--text);
     cursor: pointer;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     transition: all 0.2s;
   }
 

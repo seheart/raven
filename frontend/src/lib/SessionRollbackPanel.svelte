@@ -261,14 +261,14 @@
   .session-rollback-panel {
     background: var(--surface);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 8px;
     height: 100%;
     display: flex;
     flex-direction: column;
   }
 
   .panel-header {
-    margin-bottom: 20px;
+    margin-bottom: 8px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
     position: relative;
@@ -276,7 +276,7 @@
 
   .panel-header h2 {
     margin: 0 0 8px 0;
-    font-size: 20px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text);
   }
@@ -293,14 +293,14 @@
     right: 0;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 12px;
     transition: all 0.2s;
   }
 
@@ -315,8 +315,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
-    gap: 16px;
+    padding: 8px 12px;
+    gap: 8px;
     text-align: center;
   }
 
@@ -334,20 +334,20 @@
   }
 
   .empty-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
   .empty-state h3 {
     margin: 0 0 8px 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
 
   .empty-state p {
     margin: 0;
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -356,13 +356,13 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .session-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
     transition: all 0.2s;
   }
@@ -376,11 +376,11 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .session-icon {
-    font-size: 24px;
+    font-size: 11px;
   }
 
   .session-info {
@@ -401,11 +401,11 @@
 
   .session-stats {
     display: flex;
-    gap: 24px;
-    margin-bottom: 16px;
+    gap: 8px;
+    margin-bottom: 6px;
     padding: 12px;
     background: var(--surface);
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   .stat {
@@ -415,11 +415,11 @@
   }
 
   .stat-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .stat-value {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
@@ -431,10 +431,10 @@
   }
 
   .session-details {
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     padding: 12px;
     background: var(--surface);
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   .detail-row {
@@ -460,8 +460,8 @@
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -488,12 +488,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
   }
 
   .preview-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
@@ -501,14 +501,14 @@
   .close-btn {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 11px;
     color: var(--muted);
     transition: all 0.2s;
   }
@@ -523,16 +523,16 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
     padding: 16px;
     background: var(--surface-2);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .info-item {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .info-label {
@@ -562,14 +562,14 @@
     padding: 16px;
     background: #fef2f2;
     border: 1px solid #fecaca;
-    border-radius: 8px;
+    border-radius: 4px;
     display: flex;
     align-items: start;
     gap: 12px;
   }
 
   .warning-icon {
-    font-size: 20px;
+    font-size: 13px;
   }
 
   .warning-box p {
@@ -582,12 +582,12 @@
   .changes-list {
     flex: 1;
     overflow-y: auto;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
   }
 
   .changes-list h4 {
-    margin: 0 0 12px 0;
-    font-size: 14px;
+    margin: 0 0 6px 0;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
   }
@@ -607,7 +607,7 @@
   }
 
   .change-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .change-path {
@@ -634,8 +634,8 @@
   .cancel-btn, .rollback-btn {
     flex: 1;
     padding: 12px;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;

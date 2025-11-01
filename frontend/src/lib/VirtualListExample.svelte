@@ -179,7 +179,7 @@
     padding: 2px 6px;
     border-radius: var(--radius-sm);
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     color: white;
     text-align: center;
@@ -211,7 +211,7 @@
     top: 50%;
     transform: translateY(-50%);
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     opacity: 0.5;
   }

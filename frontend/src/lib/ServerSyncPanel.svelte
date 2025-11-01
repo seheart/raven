@@ -669,7 +669,7 @@
 
 <style>
   .server-sync-panel {
-    padding: 24px;
+    padding: 8px;
     position: relative;
     max-width: 1200px;
     margin: 0 auto;
@@ -689,7 +689,7 @@
 
   .panel-header h2 {
     font-family: var(--mono);
-    font-size: 24px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 0 0 8px 0;
@@ -697,14 +697,14 @@
 
   .subtitle {
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
     margin: 0;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .last-updated {
@@ -717,7 +717,7 @@
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -740,7 +740,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -754,7 +754,7 @@
 
   .loading {
     text-align: center;
-    padding: 48px;
+    padding: 20px;
     color: var(--muted);
     font-family: var(--mono);
   }
@@ -762,14 +762,14 @@
   section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 24px;
-    margin-bottom: 24px;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
   }
 
   section h3 {
     font-family: var(--mono);
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 0 0 20px 0;
@@ -779,8 +779,8 @@
   .form-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
   .form-group {
@@ -804,7 +804,7 @@
     padding: 10px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
     font-size: 13px;
@@ -831,13 +831,13 @@
   .action-buttons {
     display: flex;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .btn {
-    padding: 10px 20px;
+    padding: 6px 10px;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     font-family: var(--mono);
     font-size: 13px;
     font-weight: 600;
@@ -876,7 +876,7 @@
     padding: 14px;
     background: var(--success);
     color: white;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .btn-sync:hover:not(:disabled) {
@@ -897,8 +897,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 16px;
-    border-radius: 6px;
+    padding: 6px 10px;
+    border-radius: 3px;
     font-family: var(--mono);
     font-size: 13px;
   }
@@ -922,14 +922,14 @@
   }
 
   .status-icon {
-    font-size: 16px;
+    font-size: 11px;
   }
 
   /* Checkboxes */
   .checkbox-group {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .checkbox-label {
@@ -938,7 +938,7 @@
     gap: 12px;
     cursor: pointer;
     padding: 12px;
-    border-radius: 6px;
+    border-radius: 3px;
     transition: background 0.2s;
   }
 
@@ -971,11 +971,11 @@
   .last-sync {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    gap: 8px;
     padding: 16px;
     background: var(--bg);
-    border-radius: 6px;
-    margin-bottom: 20px;
+    border-radius: 3px;
+    margin-bottom: 8px;
   }
 
   .sync-info {
@@ -1001,12 +1001,12 @@
 
   .no-sync {
     text-align: center;
-    padding: 32px;
+    padding: 12px;
     color: var(--muted);
   }
 
   .no-sync .icon {
-    font-size: 48px;
+    font-size: 11px;
     display: block;
     margin-bottom: 12px;
   }
@@ -1035,10 +1035,10 @@
   .history-item {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
     padding: 10px 12px;
     background: var(--bg);
-    border-radius: 6px;
+    border-radius: 3px;
     font-family: var(--mono);
     font-size: 12px;
   }
@@ -1049,7 +1049,7 @@
   }
 
   .history-status {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .history-size {
@@ -1067,10 +1067,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     text-decoration: none;
     color: var(--text);
     transition: all 0.2s;
@@ -1083,7 +1083,7 @@
   }
 
   .link-icon {
-    font-size: 20px;
+    font-size: 13px;
   }
 
   .link-text {
@@ -1096,16 +1096,16 @@
   .stats-section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 24px;
-    margin-bottom: 24px;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
   }
 
   .section-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
   }
 
   .btn-sm {
@@ -1115,7 +1115,7 @@
 
   .loading-stats {
     text-align: center;
-    padding: 32px;
+    padding: 12px;
     color: var(--muted);
     font-family: var(--mono);
     font-size: 13px;
@@ -1124,14 +1124,14 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
   .stat-card {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     padding: 16px;
     text-align: center;
   }
@@ -1146,7 +1146,7 @@
   }
 
   .stat-value {
-    font-size: 24px;
+    font-size: 11px;
     color: var(--accent);
     font-family: var(--mono);
     font-weight: 700;
@@ -1161,16 +1161,16 @@
 
   .projects-list h4 {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
   }
 
   .project-item {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     padding: 14px 16px;
     margin-bottom: 12px;
     transition: all 0.2s;
@@ -1183,7 +1183,7 @@
 
   .project-name {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin-bottom: 8px;
@@ -1191,7 +1191,7 @@
 
   .project-details {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     flex-wrap: wrap;
     font-family: var(--mono);
     font-size: 11px;
@@ -1205,12 +1205,12 @@
 
   .no-projects {
     text-align: center;
-    padding: 32px;
+    padding: 12px;
     color: var(--muted);
   }
 
   .no-projects .icon {
-    font-size: 48px;
+    font-size: 11px;
     display: block;
     margin-bottom: 12px;
   }
@@ -1225,7 +1225,7 @@
     padding: 16px;
     background: var(--error)22;
     border: 1px solid var(--error)44;
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--error);
     font-family: var(--mono);
     font-size: 13px;
@@ -1264,7 +1264,7 @@
     margin-top: 16px;
     padding: 12px;
     background: var(--surface-2);
-    border-radius: 8px;
+    border-radius: 4px;
     border: 1px solid var(--border);
   }
 
@@ -1293,7 +1293,7 @@
   .scheduler-controls {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .interval-selector {
@@ -1312,7 +1312,7 @@
   .interval-selector select {
     padding: 10px;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     background: var(--surface);
     color: var(--text);
     font-family: var(--mono);
@@ -1335,7 +1335,7 @@
     margin-top: 16px;
     padding: 12px;
     background: var(--surface-2);
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--accent);
     display: flex;
     align-items: center;

@@ -217,7 +217,7 @@
 
 <style>
   .comparison-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1600px;
     margin: 0 auto;
   }
@@ -225,9 +225,9 @@
   .controls {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     display: flex;
     gap: 12px;
     align-items: center;
@@ -238,9 +238,9 @@
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -269,14 +269,14 @@
   .comparison-table {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
   }
 
   .table-header, .table-row {
     display: grid;
     grid-template-columns: 150px 1fr 100px 100px 200px 120px;
-    gap: 16px;
+    gap: 8px;
     padding: 16px;
     align-items: center;
   }
@@ -345,7 +345,7 @@
   .status-badge {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -385,22 +385,22 @@
 
   .summary {
     display: flex;
-    gap: 24px;
-    padding: 20px;
+    gap: 8px;
+    padding: 8px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     margin-top: 16px;
   }
 
   .summary-stat {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--text-muted);
   }
 
   .summary-stat strong {
     color: var(--accent);
-    font-size: 20px;
+    font-size: 13px;
     font-family: var(--mono);
   }
 
@@ -410,6 +410,6 @@
     color: var(--text-muted);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 </style>

@@ -111,16 +111,16 @@
   .user-button {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 6px;
+    padding: 4px 8px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
+    font-family: var(--sans);
+    font-size: 11px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .user-button:hover {
@@ -134,8 +134,8 @@
   }
 
   .user-avatar {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: var(--accent);
     color: white;
@@ -148,11 +148,12 @@
 
   .user-name {
     font-weight: 500;
+    font-size: 11px;
   }
 
   .dropdown-arrow {
     font-size: 10px;
-    opacity: 0.6;
+    opacity: 0.5;
   }
 
   .user-menu {
@@ -162,7 +163,7 @@
     min-width: 240px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     z-index: 10000;
     animation: slideDown 0.2s ease-out;
@@ -196,7 +197,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .user-details {
@@ -205,7 +206,7 @@
 
   .username {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin-bottom: 4px;
@@ -249,7 +250,7 @@
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 12px 16px;
+    padding: 6px 10px;
     background: transparent;
     border: none;
     color: var(--text);
@@ -270,7 +271,7 @@
   }
 
   .menu-icon {
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .menu-label {

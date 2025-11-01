@@ -425,7 +425,7 @@
 
   h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
   }
 
@@ -439,7 +439,7 @@
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -462,7 +462,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -495,7 +495,7 @@
   .session-select {
     padding: 8px 16px;
     border: 1px solid var(--surface-2);
-    border-radius: 6px;
+    border-radius: 3px;
     background: var(--surface);
     color: var(--text);
     font-size: 12px;
@@ -523,12 +523,12 @@
   }
 
   .timeline {
-    margin-top: 20px;
+    margin-top: 8px;
     padding: 0 20px;
   }
 
   h3 {
-    font-size: 15px;
+    font-size: 12px;
     margin-bottom: 10px;
     color: var(--text);
   }
@@ -544,7 +544,7 @@
     background: var(--surface);
     border: 1px solid var(--surface-2);
     border-left: 4px solid var(--accent);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 12px;
     transition: all 0.2s;
   }
@@ -573,7 +573,7 @@
     padding: 4px 12px;
     background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--accent);
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 12px;
     font-weight: 600;
   }
@@ -582,7 +582,7 @@
     padding: 4px 12px;
     background: color-mix(in srgb, var(--accent-2) 20%, transparent);
     color: var(--accent-2);
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 12px;
     font-weight: 600;
   }
@@ -613,12 +613,12 @@
   .filters-section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
     margin: 16px 20px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
   }
 
   .search-bar {
@@ -627,10 +627,10 @@
 
   .search-input {
     width: 100%;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
     font-size: 13px;
@@ -687,7 +687,7 @@
 
   .filter-badge {
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     font-weight: 500;
     transition: all 0.2s;
@@ -733,7 +733,7 @@
     padding: 8px 16px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
     font-size: 12px;
@@ -757,7 +757,7 @@
     padding: 6px 12px;
     background: color-mix(in srgb, var(--accent) 10%, transparent);
     color: var(--accent);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     font-weight: 600;
   }
@@ -766,19 +766,19 @@
   .timeline-viz {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
     margin: 16px 20px;
   }
 
   .timeline-viz h3 {
     margin: 0 0 8px 0;
-    font-size: 15px;
+    font-size: 12px;
     color: var(--text);
   }
 
   .timeline-hint {
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
     font-size: 12px;
     color: var(--muted);
     font-style: italic;
@@ -792,7 +792,7 @@
     padding: 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     overflow-x: auto;
     margin-bottom: 12px;
   }
@@ -844,7 +844,7 @@
   }
 
   .timeline-label {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     font-family: var(--mono);
     white-space: nowrap;
@@ -866,7 +866,7 @@
     padding: 8px 16px;
     background: color-mix(in srgb, var(--error) 20%, transparent);
     border: 1px solid var(--error);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--error);
     font-family: var(--mono);
     font-size: 12px;

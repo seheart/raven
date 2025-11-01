@@ -77,7 +77,7 @@
     right: 0;
     background: var(--surface);
     border-top: 1px solid var(--border);
-    padding: 12px 24px;
+    padding: 6px 12px;
     z-index: 100;
     font-family: var(--mono);
   }

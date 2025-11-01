@@ -12,6 +12,7 @@ import { GitMonitor } from './dist/modules/git.js';
 import { randomUUID } from 'crypto';
 import * as SyncService from './sync-service.js';
 import { createDefaultHealthChecks, registerConversationHealthChecks } from './health-checks.js';
+import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
 import { join, relative, normalize, isAbsolute, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import chokidar from 'chokidar';
@@ -356,6 +357,9 @@ const projectGitMonitors = new Map();   // projectName -> GitMonitor instance
 const projectConversationSyncs = new Map();  // projectName -> ConversationSync instance
 const projectPaths = new Map();         // projectName -> absolute path
 const projectSnapshotDirs = new Map();  // projectName -> snapshots directory
+
+// Claude Code log watcher (monitors ALL projects via Claude's logs)
+let claudeLogWatcher = null;
 
 // Available projects list
 const availableProjects = discoveredProjects.length > 0
@@ -709,6 +713,13 @@ async function handleFileChange(eventType, filepath) {
           const oldContent = fileCache.get(filepath);
           diff = generateDiff(oldContent, content);
         }
+        // For 'create' events, generate a synthetic diff showing all content as additions
+        else if (eventType === 'create' && content) {
+          // Create unified diff format with all lines as additions
+          const lines = content.split('\n');
+          diff = `@@ -0,0 +1,${lines.length} @@\n` +
+                 lines.map(line => `+${line}`).join('\n');
+        }
 
         // Save snapshot (project-specific)
         await saveSnapshot(filepath, content, projectName);
@@ -722,6 +733,17 @@ async function handleFileChange(eventType, filepath) {
         return;
       }
     } else if (eventType === 'delete') {
+      // Capture deleted content from cache before removing it
+      if (fileCache.has(filepath)) {
+        const deletedContent = fileCache.get(filepath);
+        eventSize = deletedContent.length;
+
+        // Generate a synthetic diff showing all content as deletions
+        const lines = deletedContent.split('\n');
+        diff = `@@ -1,${lines.length} +0,0 @@\n` +
+               lines.map(line => `-${line}`).join('\n');
+      }
+
       // File deleted - remove from cache
       fileCache.delete(filepath);
 
@@ -1851,6 +1873,29 @@ httpServer.listen(PORT, async () => {
       // Add triggerEngine to shared deps after successful startup
       triggersDeps.triggerEngine = triggerEngine;
 
+      // Initialize Claude Log Watcher to monitor ALL projects
+      try {
+        claudeLogWatcher = new ClaudeLogWatcher(async (event) => {
+          // Translate ClaudeLogWatcher events to handleFileChange format
+          // ClaudeLogWatcher emits: { type: 'add'|'change', path, projectName, ... }
+          // handleFileChange expects: (eventType, filepath)
+          const eventTypeMap = {
+            'add': 'create',
+            'change': 'edit',
+            'unlink': 'delete'
+          };
+
+          const eventType = eventTypeMap[event.type] || event.type;
+          await handleFileChange(eventType, event.path);
+        }, logger);
+
+        await claudeLogWatcher.start();
+        logger.info('✅ Claude Log Watcher initialized (monitoring ALL projects)');
+      } catch (error) {
+        logger.warn('⚠️  Claude Log Watcher failed to start (non-critical):', error.message);
+        // Don't fail startup if log watcher can't start
+      }
+
       logger.info('🎉 Raven is ready!', {
         elapsed: result.elapsed,
         warnings: result.warnings.length
@@ -1895,6 +1940,16 @@ async function gracefulShutdown(signal) {
   if (performanceMonitor) {
     performanceMonitor.stop();
     logger.info('✅ Stopped performance monitor interval');
+  }
+
+  // Stop Claude Log Watcher
+  if (claudeLogWatcher) {
+    try {
+      await claudeLogWatcher.stop();
+      logger.info('✅ Stopped Claude Log Watcher');
+    } catch (error) {
+      logger.error('Error stopping Claude Log Watcher:', error);
+    }
   }
 
   // Close all file watchers

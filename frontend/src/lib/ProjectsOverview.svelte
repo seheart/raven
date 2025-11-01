@@ -212,20 +212,20 @@
   .projects-overview {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 6px;
   }
 
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   h3 {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 0;
@@ -251,21 +251,21 @@
 
   .loading, .empty {
     text-align: center;
-    padding: 32px;
+    padding: 12px;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
+    gap: 6px;
   }
 
   .project-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     padding: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -289,7 +289,7 @@
 
   .project-name {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
   }
@@ -324,7 +324,7 @@
 
   .project-stats {
     display: flex;
-    gap: 16px;
+    gap: 8px;
   }
 
   .stat {
@@ -334,7 +334,7 @@
   }
 
   .stat-label {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;

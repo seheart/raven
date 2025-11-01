@@ -336,7 +336,7 @@ ${allErrorsText}`;
   .syntax-error-panel {
     background: var(--surface);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 8px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -346,14 +346,14 @@ ${allErrorsText}`;
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
   }
 
   .panel-header h2 {
     margin: 0;
-    font-size: 20px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text);
     flex: 1;
@@ -361,7 +361,7 @@ ${allErrorsText}`;
 
   .error-count {
     padding: 4px 12px;
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 13px;
     font-weight: 600;
     background: var(--surface-2);
@@ -383,7 +383,7 @@ ${allErrorsText}`;
   .action-btn {
     padding: 6px 12px;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -430,14 +430,14 @@ ${allErrorsText}`;
   .refresh-btn {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 12px;
     transition: all 0.2s;
   }
 
@@ -457,8 +457,8 @@ ${allErrorsText}`;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
-    gap: 16px;
+    padding: 8px 12px;
+    gap: 8px;
   }
 
   .spinner {
@@ -479,25 +479,25 @@ ${allErrorsText}`;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     text-align: center;
   }
 
   .empty-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
   .empty-state h3 {
     margin: 0 0 8px 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
 
   .empty-state p {
     margin: 0;
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -506,13 +506,13 @@ ${allErrorsText}`;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 8px;
   }
 
   .file-group {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
   }
 
@@ -520,13 +520,13 @@ ${allErrorsText}`;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 16px;
+    padding: 6px 10px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
   .file-icon {
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .file-path {
@@ -539,7 +539,7 @@ ${allErrorsText}`;
 
   .file-error-count {
     padding: 2px 8px;
-    border-radius: 10px;
+    border-radius: 4px;
     font-size: 11px;
     font-weight: 700;
     background: #fef2f2;
@@ -569,7 +569,7 @@ ${allErrorsText}`;
   }
 
   .language-icon {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .error-location {

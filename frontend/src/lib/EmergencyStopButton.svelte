@@ -173,10 +173,10 @@
   }
 
   .emergency-stop.active {
-    padding: 16px 24px;
+    padding: 8px 12px;
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     border: 2px solid #b91c1c;
-    border-radius: 12px;
+    border-radius: 3px;
     color: white;
     font-family: var(--mono);
     font-weight: 700;
@@ -196,10 +196,10 @@
   }
 
   .emergency-stop.paused {
-    padding: 16px 24px;
+    padding: 8px 12px;
     background: var(--surface-2);
     border: 2px solid #f59e0b;
-    border-radius: 12px;
+    border-radius: 3px;
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
@@ -218,10 +218,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 20px;
+    padding: 6px 10px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border: 2px solid #047857;
-    border-radius: 8px;
+    border-radius: 4px;
     color: white;
     font-family: var(--mono);
     font-weight: 700;
@@ -237,7 +237,7 @@
   }
 
   .icon {
-    font-size: 24px;
+    font-size: 11px;
     line-height: 1;
   }
 
@@ -249,7 +249,7 @@
   }
 
   .button-label {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.5px;
   }
@@ -266,13 +266,13 @@
     align-items: center;
     padding: 8px 12px;
     background: var(--surface);
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--border);
   }
 
   .pause-duration {
     font-family: var(--mono);
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 700;
     color: #f59e0b;
   }
@@ -286,11 +286,11 @@
   @media (max-width: 768px) {
     .emergency-stop.active,
     .emergency-stop.paused {
-      padding: 12px 16px;
+      padding: 6px 10px;
     }
 
     .icon {
-      font-size: 20px;
+      font-size: 13px;
     }
 
     .button-label {
@@ -298,7 +298,7 @@
     }
 
     .button-sublabel {
-      font-size: 10px;
+      font-size: 11px;
     }
   }
 </style>

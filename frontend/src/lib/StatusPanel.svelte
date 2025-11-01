@@ -588,7 +588,7 @@
 
 <style>
   .status-panel {
-    padding: 24px;
+    padding: 8px;
     position: relative;
     width: 100%;
     margin: 0;
@@ -608,14 +608,14 @@
 
   h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .last-updated {
@@ -628,7 +628,7 @@
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -651,7 +651,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -665,11 +665,11 @@
 
   .btn-restart {
     width: 100%;
-    padding: 10px 16px;
+    padding: 6px 10px;
     margin-top: 12px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 13px;
@@ -712,7 +712,7 @@
   .status-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 12px;
+    border-radius: 3px;
     overflow: hidden;
   }
 
@@ -731,14 +731,14 @@
 
   h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
 
   .status-indicator {
     padding: 6px 14px;
-    border-radius: 20px;
+    border-radius: 3px;
     font-size: 13px;
     font-weight: 600;
   }
@@ -798,7 +798,7 @@
     padding: 12px;
     background: color-mix(in srgb, var(--error) 10%, transparent);
     border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
-    border-radius: 8px;
+    border-radius: 4px;
     color: var(--error);
     text-align: center;
   }
@@ -807,7 +807,7 @@
     padding: 12px;
     background: color-mix(in srgb, var(--success) 10%, transparent);
     border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
-    border-radius: 8px;
+    border-radius: 4px;
     color: var(--success);
     text-align: center;
     margin-top: 12px;
@@ -831,7 +831,7 @@
     gap: 12px;
     padding: 12px;
     background: var(--bg);
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--border);
     transition: all 0.2s;
   }
@@ -893,10 +893,10 @@
   }
 
   .section-title {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
@@ -912,7 +912,7 @@
     padding: 6px 12px;
     background: var(--bg);
     border: 1px solid var(--surface-2);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     font-family: 'Courier New', monospace;
     color: var(--muted);
@@ -936,7 +936,7 @@
     padding: 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     border-left: 3px solid var(--info);
     transition: all 0.2s;
   }
@@ -993,7 +993,7 @@
     padding: 10px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: var(--mono);
@@ -1036,8 +1036,8 @@
   .project-badge {
     padding: 2px 8px;
     background: var(--accent);
-    border-radius: 10px;
-    font-size: 10px;
+    border-radius: 4px;
+    font-size: 11px;
     font-weight: 700;
     color: white;
     text-transform: uppercase;
@@ -1088,7 +1088,7 @@
 
   /* Database Health */
   .db-error-hint {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--error);
     margin-left: 4px;
   }

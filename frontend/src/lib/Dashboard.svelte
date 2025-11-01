@@ -303,7 +303,7 @@
 
 <style>
   .dashboard {
-    padding: 12px;
+    padding: 8px;
     width: 100%;
     margin: 0;
     font-family: var(--mono);
@@ -317,25 +317,27 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding: 0 8px;
+    margin-bottom: 8px;
+    padding: 0 6px;
   }
 
   h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
+    font-family: var(--sans);
   }
 
   .btn-refresh {
-    padding: 8px 16px;
+    padding: 4px 8px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
+    font-size: 11px;
+    font-family: var(--sans);
+    transition: all 0.15s;
   }
 
   .btn-refresh:hover {
@@ -345,29 +347,29 @@
 
   .loading {
     text-align: center;
-    padding: 16px;
-    font-size: 12px;
+    padding: 12px;
+    font-size: 11px;
     color: var(--muted);
   }
 
   /* Stats Grid */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
-    margin-bottom: 10px;
-    padding: 0 20px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 0 8px;
   }
 
   .stat-card {
-    background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px;
+    border-radius: 4px;
+    padding: 6px 8px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    transition: all 0.2s;
+    gap: 8px;
+    transition: all 0.15s;
   }
 
   .stat-card:hover {
@@ -376,56 +378,58 @@
   }
 
   .stat-icon {
-    font-size: 13px;
-    width: 56px;
-    height: 56px;
+    font-size: 11px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: color-mix(in srgb, var(--accent) 10%, transparent);
-    border-radius: var(--radius);
+    border-radius: 3px;
+    flex-shrink: 0;
   }
 
   .stat-content {
     flex: 1;
+    min-width: 0;
   }
 
   .stat-value {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--accent);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
 
   .stat-label {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
   }
 
   /* Content Grid */
   .content-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
+    gap: 6px;
     width: 100%;
-    padding: 0 20px 20px 20px;
+    padding: 0 8px 8px 8px;
   }
 
   .panel {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 4px;
     overflow: hidden;
   }
 
   .full-width-panel {
-    margin-top: 24px;
+    margin-top: 8px;
   }
 
   .panel-header {
-    padding: 12px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -435,17 +439,18 @@
 
   .panel-header h2 {
     margin: 0;
-    font-size: 15px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
+    font-family: var(--sans);
   }
 
   .panel-count {
-    padding: 4px 12px;
+    padding: 2px 6px;
     background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--accent);
-    border-radius: var(--radius);
-    font-size: 13px;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
   }
 
@@ -454,10 +459,10 @@
   }
 
   .empty-state {
-    padding: 16px 24px;
+    padding: 10px 12px;
     text-align: center;
     color: var(--muted);
-    font-size: 12px;
+    font-size: 11px;
   }
 
   /* Table */
@@ -469,24 +474,25 @@
   .table-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1.5fr;
-    gap: 12px;
-    padding: 16px 24px;
+    gap: 8px;
+    padding: 6px 10px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    font-family: var(--sans);
   }
 
   .table-row {
     display: grid;
     grid-template-columns: 2fr 1fr 1.5fr;
-    gap: 12px;
-    padding: 16px 24px;
+    gap: 8px;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--border);
-    transition: all 0.2s;
+    transition: all 0.15s;
   }
 
   .table-row:hover {
@@ -500,12 +506,12 @@
   .col-file {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     overflow: hidden;
   }
 
   .file-icon {
-    font-size: 12px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -513,7 +519,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text);
   }
 
@@ -526,16 +532,16 @@
   .col-time, .col-agent {
     display: flex;
     align-items: center;
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
   }
 
   .badge {
-    padding: 4px 12px;
+    padding: 2px 6px;
     background: color-mix(in srgb, var(--info) 20%, transparent);
     color: var(--info);
-    border-radius: var(--radius);
-    font-size: 13px;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
   }
 
@@ -545,9 +551,9 @@
   }
 
   .agent-badge {
-    padding: 4px 12px;
-    border-radius: var(--radius);
-    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: capitalize;
     color: white;
@@ -559,20 +565,20 @@
 
   /* Agents Panel */
   .agents-list {
-    padding: 12px;
+    padding: 6px;
   }
 
   .agent-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px;
+    gap: 8px;
+    padding: 6px 8px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-left-width: 4px;
-    border-radius: var(--radius);
-    margin-bottom: 12px;
-    transition: all 0.2s;
+    border-left-width: 3px;
+    border-radius: 3px;
+    margin-bottom: 4px;
+    transition: all 0.15s;
   }
 
   .agent-item:last-child {
@@ -581,27 +587,28 @@
 
   .agent-item:hover {
     background: var(--surface);
-    transform: translateX(4px);
+    transform: translateX(2px);
   }
 
   .agent-status {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .agent-info {
     flex: 1;
+    min-width: 0;
   }
 
   .agent-name {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     text-transform: capitalize;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
 
   .agent-meta {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
   }
 

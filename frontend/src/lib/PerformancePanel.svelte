@@ -585,7 +585,7 @@
 
 <style>
   .performance-panel {
-    padding: 24px;
+    padding: 8px;
     background: var(--bg);
     color: var(--text);
     min-height: 400px;
@@ -604,12 +604,12 @@
 
   h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 11px;
     font-weight: 600;
   }
 
   .lightning-icon {
-    font-size: 20px;
+    font-size: 12px;
     line-height: 1;
     display: inline-block;
     vertical-align: middle;
@@ -625,7 +625,7 @@
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -653,7 +653,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -668,20 +668,20 @@
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-    gap: 12px;
+    gap: 6px;
     margin-bottom: 10px;
   }
 
   .metric-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 4px;
+    padding: 6px;
   }
 
   .metric-card h3 {
     margin: 0 0 15px 0;
-    font-size: 15px;
+    font-size: 11px;
     color: var(--warning);
     border-bottom: 1px solid var(--border);
     padding-bottom: 10px;
@@ -746,7 +746,7 @@
 
   .loading, .error, .empty-state {
     text-align: center;
-    padding: 16px;
+    padding: 6px;
     color: var(--muted);
   }
 
@@ -771,7 +771,7 @@
     background: transparent;
     color: var(--muted);
     border: none;
-    padding: 12px 24px;
+    padding: 6px 24px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -806,7 +806,7 @@
 
   .section-header h3 {
     margin: 0 0 8px 0;
-    font-size: 15px;
+    font-size: 11px;
     color: var(--warning);
   }
 
@@ -819,14 +819,14 @@
   .correlations-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 12px;
+    gap: 6px;
   }
 
   .correlation-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 6px;
     border-left: 4px solid var(--warning);
     transition: all 0.2s;
   }
@@ -840,12 +840,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
     gap: 10px;
   }
 
   .file-name {
-    font-size: 13px;
+    font-size: 11px;
     font-family: 'Courier New', monospace;
     color: var(--text);
     overflow: hidden;
@@ -879,8 +879,8 @@
 
   .metrics-row {
     display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 6px;
+    margin-bottom: 6px;
   }
 
   .metric-item {
@@ -925,7 +925,7 @@
     padding: 8px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -948,9 +948,9 @@
   .alerts-banner {
     background: color-mix(in srgb, var(--warning) 10%, var(--surface));
     border: 1px solid var(--warning);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 12px;
+    border-radius: 4px;
+    padding: 6px;
+    margin-bottom: 6px;
   }
 
   .banner-header {
@@ -959,7 +959,7 @@
     align-items: center;
     margin-bottom: 10px;
     color: var(--warning);
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .btn-dismiss {
@@ -967,7 +967,7 @@
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px;
     padding: 4px;
     transition: color 0.2s;
   }
@@ -991,9 +991,9 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 12px;
+    padding: 4px 8px;
     background: var(--surface);
-    border-radius: 6px;
+    border-radius: 3px;
     border-left: 4px solid;
     font-size: 12px;
   }
@@ -1019,18 +1019,18 @@
 
   /* Charts Section */
   .charts-section {
-    padding: 16px;
+    padding: 6px;
   }
 
   .chart-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 12px;
+    margin-bottom: 8px;
+    padding: 6px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   .time-range-select {
@@ -1051,7 +1051,7 @@
 
   .chart-legend {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     font-size: 12px;
   }
 
@@ -1086,20 +1086,20 @@
   .chart-container {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 20px;
+    border-radius: 4px;
+    padding: 6px;
+    margin-bottom: 8px;
   }
 
   .chart-container h3 {
-    margin: 0 0 16px 0;
-    font-size: 14px;
+    margin: 0 0 8px 0;
+    font-size: 11px;
     color: var(--text);
   }
 
   .chart {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     height: 200px;
   }
 
@@ -1107,7 +1107,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     padding-right: 8px;
     width: 40px;
@@ -1142,7 +1142,7 @@
     position: absolute;
     right: 4px;
     top: -10px;
-    font-size: 9px;
+    font-size: 11px;
     color: var(--muted);
     background: var(--bg);
     padding: 0 4px;
@@ -1193,21 +1193,21 @@
   .threshold-config {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    margin-top: 20px;
+    border-radius: 4px;
+    padding: 6px;
+    margin-top: 8px;
   }
 
   .threshold-config h3 {
-    margin: 0 0 16px 0;
-    font-size: 14px;
+    margin: 0 0 8px 0;
+    font-size: 11px;
     color: var(--text);
   }
 
   .threshold-controls {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    gap: 8px;
   }
 
   .threshold-group {
@@ -1223,7 +1223,7 @@
   }
 
   .threshold-input {
-    padding: 8px 12px;
+    padding: 4px 8px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 4px;

@@ -72,20 +72,25 @@ export function createFileWatcher({ projectName, projectPath, LIMITS, handleFile
       pollInterval: LIMITS.FILE.WATCH_DEBOUNCE_MS
     },
     // macOS-specific optimizations
-    usePolling: false,           // Use native FSEvents on macOS
+    usePolling: !isMacOS,         // Use polling on Linux for reliability
     useFsEvents: isMacOS,         // Enable FSEvents API on macOS for better performance
+    interval: 1000,               // Poll every 1s on Linux (only if usePolling=true)
+    binaryInterval: 3000,         // Binary file polling interval
     depth: 99,
-    ignorePermissionErrors: true  // Ignore permission errors on macOS
+    ignorePermissionErrors: true
   });
 
   watcher
     .on('add', filepath => {
+      logger.info(`🔔 File watcher 'add' event: [${projectName}] ${filepath}`);
       handleFileChange('create', filepath);
     })
     .on('change', filepath => {
+      logger.info(`🔔 File watcher 'change' event: [${projectName}] ${filepath}`);
       handleFileChange('edit', filepath);
     })
     .on('unlink', filepath => {
+      logger.info(`🔔 File watcher 'unlink' event: [${projectName}] ${filepath}`);
       handleFileChange('delete', filepath);
     })
     .on('error', error => {
@@ -100,7 +105,8 @@ export function createFileWatcher({ projectName, projectPath, LIMITS, handleFile
       });
     })
     .on('ready', () => {
-      logger.info('File watcher ready', { projectName });
+      console.log(`DEBUG WATCHER READY: project=${projectName}, usePolling=${!isMacOS}, platform=${process.platform}`);
+      logger.info('File watcher ready', { projectName, usePolling: !isMacOS, watchPaths: Array.isArray(watchPaths) ? watchPaths.length + ' paths' : 'single path' });
     });
 
   return watcher;

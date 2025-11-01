@@ -108,7 +108,7 @@
   .dialog-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 3px;
     max-width: 400px;
     width: 100%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -119,25 +119,25 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 20px 24px;
+    padding: 8px 24px;
     border-bottom: 1px solid var(--border);
     background: var(--surface-2);
   }
 
   .dialog-icon {
-    font-size: 24px;
+    font-size: 11px;
   }
 
   .dialog-title {
     font-family: var(--mono);
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 0;
   }
 
   .dialog-body {
-    padding: 24px;
+    padding: 8px;
     font-family: var(--mono);
     font-size: 13px;
     color: var(--text);
@@ -147,18 +147,18 @@
   .dialog-footer {
     display: flex;
     gap: 12px;
-    padding: 16px 24px;
+    padding: 8px 12px;
     border-top: 1px solid var(--border);
     background: var(--bg);
     justify-content: flex-end;
   }
 
   .btn {
-    padding: 10px 20px;
+    padding: 6px 10px;
     font-family: var(--mono);
     font-size: 13px;
     font-weight: 600;
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: none;

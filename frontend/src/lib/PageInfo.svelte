@@ -103,7 +103,7 @@
     border-radius: 50%;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -134,13 +134,13 @@
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    padding: 20px;
+    padding: 8px;
   }
 
   .modal-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 3px;
     max-width: 600px;
     width: 100%;
     max-height: 80vh;
@@ -152,13 +152,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: 8px 24px;
     border-bottom: 1px solid var(--border);
   }
 
   .modal-header h2 {
     font-family: var(--mono);
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
     margin: 0;
@@ -188,11 +188,11 @@
   }
 
   .modal-body {
-    padding: 24px;
+    padding: 8px;
   }
 
   .info-section {
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .info-section:last-child {
@@ -201,17 +201,17 @@
 
   .info-section h3 {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--accent);
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   .info-section p {
     font-family: var(--sans);
-    font-size: 14px;
+    font-size: 11px;
     line-height: 1.6;
     color: var(--text);
     margin: 0;
@@ -224,7 +224,7 @@
 
   .info-section li {
     font-family: var(--sans);
-    font-size: 14px;
+    font-size: 11px;
     line-height: 1.8;
     color: var(--text);
     margin-bottom: 8px;
@@ -251,7 +251,7 @@
   .info-section.warning {
     background: var(--error-dim, rgba(255, 100, 100, 0.1));
     border: 1px solid var(--error);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
   }
 

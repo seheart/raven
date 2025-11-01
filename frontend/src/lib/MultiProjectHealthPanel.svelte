@@ -263,7 +263,7 @@
 
 <style>
   .multi-project-health-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -272,19 +272,19 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .header-left h2 {
     margin: 0 0 4px 0;
-    font-size: 24px;
+    font-size: 11px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .header-right {
@@ -301,12 +301,12 @@
   .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
   .stat-card {
-    padding: 20px;
+    padding: 8px;
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
@@ -326,7 +326,7 @@
   }
 
   .stat-value {
-    font-size: 36px;
+    font-size: 12px;
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
@@ -341,7 +341,7 @@
   }
 
   .controls {
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     padding: 16px;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -385,11 +385,11 @@
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    gap: 8px;
   }
 
   .project-card {
-    padding: 20px;
+    padding: 8px;
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
@@ -417,11 +417,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .project-name {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     font-family: var(--mono);
     color: var(--text);
@@ -481,11 +481,11 @@
     display: flex;
     align-items: baseline;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .score-value {
-    font-size: 32px;
+    font-size: 11px;
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
@@ -500,7 +500,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     padding-top: 16px;
     border-top: 1px solid var(--border);
   }
@@ -510,7 +510,7 @@
   }
 
   .metric-value {
-    font-size: 24px;
+    font-size: 11px;
     font-weight: 600;
     font-family: var(--mono);
     color: var(--text);
@@ -571,7 +571,7 @@
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -590,7 +590,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 16px;
+      gap: 8px;
     }
 
     .header-right {

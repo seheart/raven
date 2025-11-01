@@ -490,7 +490,7 @@
 
 <style>
   .agents-panel {
-    padding: 24px;
+    padding: 8px;
     width: 100%;
     margin: 0;
     font-family: var(--mono);
@@ -509,14 +509,14 @@
 
   h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 11px;
     font-weight: 600;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
   }
 
   .last-updated {
@@ -529,10 +529,10 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
+    padding: 6px 10px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -571,10 +571,10 @@
   }
 
   .btn-export {
-    padding: 8px 16px;
+    padding: 6px 10px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
@@ -598,7 +598,7 @@
     margin-top: 4px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     z-index: 100;
     min-width: 150px;
@@ -612,7 +612,7 @@
   .export-menu button {
     display: block;
     width: 100%;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: transparent;
     border: none;
     color: var(--text);
@@ -628,7 +628,7 @@
   }
 
   .export-menu button:first-child {
-    border-radius: 6px 6px 0 0;
+    border-radius: 3px 6px 0 0;
   }
 
   .export-menu button:last-child {
@@ -636,8 +636,8 @@
   }
 
   .message {
-    padding: 12px;
-    border-radius: 6px;
+    padding: 6px;
+    border-radius: 3px;
     margin-bottom: 10px;
     font-size: 12px;
   }
@@ -650,18 +650,18 @@
 
   /* Search Section */
   .search-section {
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
 
   .search-input {
     width: 100%;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 11px;
     transition: all 0.2s;
   }
 
@@ -679,20 +679,20 @@
   .summary-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
+    gap: 6px;
     margin-bottom: 10px;
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 4px;
+    padding: 6px;
     text-align: center;
   }
 
   .stat-value {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--warning);
     margin-bottom: 8px;
@@ -715,7 +715,7 @@
   }
 
   .tab {
-    padding: 12px 20px;
+    padding: 6px 12px;
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
@@ -749,19 +749,19 @@
 
   .empty {
     text-align: center;
-    padding: 16px 20px;
+    padding: 40px 20px;
     color: var(--muted);
   }
 
   .empty .icon {
-    font-size: 13px;
+    font-size: 11px;
     margin-bottom: 10px;
   }
 
   .empty h3 {
     color: var(--text);
-    font-size: 15px;
-    margin-bottom: 12px;
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
   .empty p {
@@ -780,21 +780,21 @@
   .agents-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
+    gap: 6px;
   }
 
   .agent-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
     border-left-width: 4px;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 6px;
   }
 
   .agent-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     margin-bottom: 10px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--surface-2);
@@ -808,7 +808,7 @@
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     flex-shrink: 0;
   }
@@ -819,7 +819,7 @@
 
   .agent-info h3 {
     margin: 0 0 4px 0;
-    font-size: 15px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
   }
@@ -841,7 +841,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .stat-row .label {
@@ -863,11 +863,11 @@
   .event-row {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 6px;
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 6px;
-    padding: 12px;
+    border-radius: 3px;
+    padding: 6px;
     transition: all 0.2s;
   }
 
@@ -889,7 +889,7 @@
 
   .event-header {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     align-items: center;
     margin-bottom: 4px;
   }
@@ -902,7 +902,7 @@
   .event-type {
     background: var(--surface-2);
     padding: 2px 8px;
-    border-radius: 8px;
+    border-radius: 4px;
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
@@ -910,7 +910,7 @@
 
   .event-message {
     color: var(--text);
-    font-size: 13px;
+    font-size: 11px;
     margin-bottom: 4px;
   }
 
@@ -938,45 +938,45 @@
   .event-lines {
     background: var(--surface-2);
     padding: 2px 6px;
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   /* Performance Tab */
   .agent-performance-section {
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .agent-section-title {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
     padding-left: 4px;
   }
 
   .performance-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 12px;
+    gap: 6px;
   }
 
   .performance-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 6px;
   }
 
   .performance-card h4 {
     color: var(--text);
-    font-size: 14px;
-    margin: 0 0 12px 0;
+    font-size: 11px;
+    margin: 0 0 6px 0;
     font-weight: 600;
   }
 
   .metric-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 6px;
   }
 
   .metric-item {
@@ -993,7 +993,7 @@
   }
 
   .metric-value {
-    font-size: 15px;
+    font-size: 11px;
     color: var(--text);
     font-weight: 700;
     font-family: var(--mono);
@@ -1014,26 +1014,26 @@
   .breakdown-grid {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
   }
 
   .breakdown-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px;
+    gap: 6px;
+    padding: 6px;
     background: var(--surface-2);
-    border-radius: 6px;
+    border-radius: 3px;
   }
 
   .breakdown-icon {
-    font-size: 18px;
+    font-size: 11px;
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    border-radius: 3px;
     flex-shrink: 0;
   }
 
@@ -1056,7 +1056,7 @@
   }
 
   .breakdown-value {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
@@ -1071,13 +1071,13 @@
 
   /* Footer */
   .footer {
-    margin-top: 30px;
-    padding-top: 20px;
+    margin-top: 20px;
+    padding-top: 12px;
     border-top: 1px solid var(--surface-2);
   }
 
   .footer .hint {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
     text-align: center;
     line-height: 1.4;

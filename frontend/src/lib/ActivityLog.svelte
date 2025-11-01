@@ -4,6 +4,8 @@
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import ProjectBadge from './ProjectBadge.svelte';
+  import { api } from './apiClient.js';
   import { API_CONFIG } from '../config.js';
 
   const API_BASE = API_CONFIG.API_BASE;
@@ -16,6 +18,7 @@
   let expandedActivity = null;
   let lastUpdated = null;
   let isManualRefresh = false;
+  let recentActivity = []; // Recent activity for sidebar
 
   // Pagination
   let limit = 100;
@@ -66,6 +69,9 @@
       // Group by session if enabled
       groupActivitiesBySession();
 
+      // Load recent activity for sidebar
+      await loadRecentActivity();
+
       lastUpdated = new Date();
       loading = false;
       isManualRefresh = false;
@@ -74,6 +80,81 @@
       loading = false;
       isManualRefresh = false;
     }
+  }
+
+  async function loadRecentActivity() {
+    try {
+      // Get both file events and agent events from ALL projects
+      const [fileEvents, agentEvents] = await Promise.all([
+        api.get('/all-file-events?limit=20'),
+        api.get('/all-agent-events?limit=20')
+      ]);
+
+      const fileEventsArray = Array.isArray(fileEvents) ? fileEvents : [];
+      const agentEventsArray = Array.isArray(agentEvents) ? agentEvents : [];
+
+      // Combine and sort by timestamp
+      const combined = [
+        ...fileEventsArray.map(e => ({ ...e, type: 'file' })),
+        ...agentEventsArray.map(e => ({ ...e, type: 'agent' }))
+      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      recentActivity = combined.slice(0, 30);
+    } catch (error) {
+      logger.error('Failed to load recent activity:', error);
+    }
+  }
+
+  function getChangeTypeIcon(changeType) {
+    switch (changeType) {
+      case 'add':
+      case 'create':
+      case 'created': return '➕';
+      case 'change':
+      case 'edit':
+      case 'modified': return '✏️';
+      case 'unlink':
+      case 'delete':
+      case 'deleted': return '🗑️';
+      default: return '📝';
+    }
+  }
+
+  function getChangeTypeColor(changeType) {
+    switch (changeType) {
+      case 'add':
+      case 'create':
+      case 'created': return 'var(--success)';
+      case 'change':
+      case 'edit':
+      case 'modified': return 'var(--warning)';
+      case 'unlink':
+      case 'delete':
+      case 'deleted': return 'var(--error)';
+      default: return 'var(--info)';
+    }
+  }
+
+  function truncatePath(path) {
+    if (!path) return '';
+    const parts = path.split('/');
+    if (parts.length <= 2) return path;
+    return '.../' + parts.slice(-2).join('/');
+  }
+
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (seconds < 60) return `${seconds}s ago`;
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return formatDateTime(timestamp);
   }
 
   function calculateStats() {
@@ -191,10 +272,6 @@
     } else {
       expandedActivity = activity;
     }
-  }
-
-  function formatTimestamp(timestamp) {
-    return formatDateTime(timestamp);
   }
 
   // WebSocket event handler for project switches
@@ -327,10 +404,11 @@
 </script>
 
 <div class="activity-log" role="region" aria-label="Activity Log">
+  <div class="main-content">
   <div class="log-header">
     <div class="header-title">
       <h1 id="activity-log-title"><span aria-hidden="true">📜</span> Activity Log</h1>
-      <p class="subtitle">Complete audit trail of all Raven activity</p>
+      <p class="subtitle">Complete audit trail • All files • Build artifacts • System events</p>
     </div>
     <div class="header-actions" role="toolbar" aria-label="Activity log actions">
       <span class="last-updated" role="status" aria-live="polite" aria-label="Last updated {timeAgo}">Updated: {timeAgo}</span>
@@ -684,28 +762,94 @@
       {/if}
     {/if}
   </div>
+  </div> <!-- End main-content -->
+
+  <!-- Recent Activity Sidebar -->
+  <aside class="recent-activity-sidebar" aria-labelledby="recent-activity-heading">
+    <div class="sidebar-header">
+      <h3 id="recent-activity-heading"><span aria-hidden="true">⚡</span> Recent Activity</h3>
+    </div>
+    <div class="sidebar-content">
+      {#if loading}
+        <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
+      {:else if recentActivity.length === 0}
+        <div class="sidebar-empty" role="status">
+          <p>No recent activity</p>
+        </div>
+      {:else}
+        <div class="sidebar-list" role="feed" aria-label="Recent activity feed">
+          {#each recentActivity || [] as activity, index (`${activity.id || activity.type}-${activity.timestamp}-${index}`)}
+            <div class="sidebar-item" class:file={activity.type === 'file'} class:agent={activity.type === 'agent'}>
+              <div class="sidebar-icon">
+                {#if activity.type === 'file'}
+                  <span style="color: {getChangeTypeColor(activity.change_type)}">
+                    {getChangeTypeIcon(activity.change_type)}
+                  </span>
+                {:else}
+                  <span>🤖</span>
+                {/if}
+              </div>
+
+              <div class="sidebar-details">
+                {#if activity.type === 'file'}
+                  <div class="sidebar-file">{truncatePath(activity.filepath)}</div>
+                  <div class="sidebar-meta">
+                    <span class="sidebar-type">{activity.change_type}</span>
+                    {#if activity.project_name}
+                      <ProjectBadge project={activity.project_name} size="small" />
+                    {/if}
+                    <span class="sidebar-time">{formatTimestamp(activity.timestamp)}</span>
+                  </div>
+                {:else}
+                  <div class="sidebar-file">{activity.agent || 'Agent'}</div>
+                  <div class="sidebar-meta">
+                    <span class="sidebar-type">{activity.event_type}</span>
+                    {#if activity.project_name}
+                      <ProjectBadge project={activity.project_name} size="small" />
+                    {/if}
+                    <span class="sidebar-time">{formatTimestamp(activity.timestamp)}</span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </aside>
 </div>
 
 <style>
   .activity-log {
-    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 8px;
+    padding: 8px;
     max-width: 1600px;
     margin: 0 auto;
     position: relative;
+    height: calc(100vh - 180px);
+    overflow: hidden;
+  }
+
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .log-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
-    padding: 0 8px 24px 8px;
+    margin-bottom: 8px;
+    padding: 0 8px 12px 8px;
     border-bottom: 2px solid var(--border);
   }
 
   .header-title h1 {
     margin: 0 0 4px 0;
-    font-size: 18px;
+    font-size: 12px;
     color: var(--text);
   }
 
@@ -718,7 +862,7 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .last-updated {
@@ -728,11 +872,11 @@
   }
 
   .refresh-btn {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
@@ -754,7 +898,7 @@
 
   .refresh-icon {
     display: inline-block;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .refresh-icon.spinning {
@@ -767,11 +911,11 @@
   }
 
   .btn-export {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 13px;
     transition: all 0.2s;
@@ -785,11 +929,11 @@
   .controls {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 8px;
+    margin-bottom: 8px;
     background: var(--surface);
-    padding: 20px;
-    border-radius: 8px;
+    padding: 8px;
+    border-radius: 4px;
     border: 1px solid var(--border);
   }
 
@@ -812,11 +956,11 @@
   }
 
   .view-toggle {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
@@ -836,11 +980,11 @@
   }
 
   .time-grouping {
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     font-family: var(--mono);
     cursor: pointer;
@@ -853,11 +997,11 @@
   }
 
   .session-filter {
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     font-family: var(--mono);
     cursor: pointer;
@@ -871,10 +1015,10 @@
 
   .search-bar input {
     flex: 1;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -886,11 +1030,11 @@
   }
 
   .search-bar button {
-    padding: 10px 20px;
+    padding: 6px 10px;
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
@@ -911,7 +1055,7 @@
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
@@ -931,9 +1075,9 @@
 
   /* Session Grouping Styles */
   .session-group {
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
     background: var(--bg);
   }
@@ -942,7 +1086,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 8px 12px;
     background: var(--surface);
     border-bottom: 2px solid var(--border);
     cursor: pointer;
@@ -977,11 +1121,11 @@
   }
 
   .session-icon {
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .session-id {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
@@ -1032,33 +1176,33 @@
 
   .empty-state {
     text-align: center;
-    padding: 80px 20px;
+    padding: 40px 20px;
     color: var(--muted);
   }
 
   .empty-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
   .empty-state h2 {
-    font-size: 18px;
-    margin: 0 0 12px 0;
+    font-size: 12px;
+    margin: 0 0 6px 0;
     color: var(--text);
   }
 
   .empty-state p {
-    margin: 0 0 24px 0;
-    font-size: 14px;
+    margin: 0 0 6px 0;
+    font-size: 11px;
     color: var(--muted);
   }
 
   .clear-filters-btn {
-    padding: 10px 24px;
+    padding: 6px 12px;
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
@@ -1072,7 +1216,7 @@
   .activity-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
     transition: all 0.2s;
   }
@@ -1090,7 +1234,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 8px 12px;
     cursor: pointer;
     user-select: none;
     width: 100%;
@@ -1115,7 +1259,7 @@
   }
 
   .expand-arrow {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     width: 12px;
     flex-shrink: 0;
@@ -1180,14 +1324,14 @@
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     color: var(--muted);
   }
 
   .activity-details {
-    padding: 0 20px 20px 20px;
+    padding: 0 12px 12px 12px;
     border-top: 1px solid var(--border);
   }
 
@@ -1195,7 +1339,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 12px;
-    padding: 16px 0;
+    padding: 8px 0;
   }
 
   .detail-item {
@@ -1218,13 +1362,13 @@
 
   .metadata-section,
   .diff-section {
-    margin-top: 16px;
+    margin-top: 8px;
   }
 
   .metadata-section h4,
   .diff-section h4 {
-    margin: 0 0 8px 0;
-    font-size: 14px;
+    margin: 0 0 6px 0;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
   }
@@ -1234,7 +1378,7 @@
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 12px;
+    padding: 8px;
     font-size: 11px;
     font-family: var(--mono);
     color: var(--text);
@@ -1246,15 +1390,15 @@
 
   .load-more {
     text-align: center;
-    padding: 20px;
+    padding: 8px;
   }
 
   .load-more button {
-    padding: 12px 32px;
+    padding: 6px 12px;
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
@@ -1291,15 +1435,124 @@
     font-family: inherit;
   }
 
+  /* Recent Activity Sidebar */
+  .recent-activity-sidebar {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  .sidebar-header {
+    padding: 8px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header h3 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sidebar-loading,
+  .sidebar-empty {
+    padding: 20px 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .sidebar-list {
+    padding: 4px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 4px;
+    transition: all 0.2s;
+  }
+
+  .sidebar-item:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .sidebar-icon {
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .sidebar-details {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-file {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+
+  .sidebar-meta {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-size: 10px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .sidebar-type {
+    background: var(--surface);
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-time {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
   @media (max-width: 768px) {
     .activity-log {
-      padding: 16px;
+      grid-template-columns: 1fr;
+      padding: 8px;
+      height: auto;
+    }
+
+    .recent-activity-sidebar {
+      order: -1; /* Show sidebar first on mobile */
+      max-height: 300px;
     }
 
     .activity-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
+      gap: 8px;
     }
 
     .activity-right {

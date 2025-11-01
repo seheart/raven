@@ -58,9 +58,9 @@
 <style>
   .toast-container {
     position: fixed;
-    top: 20px;
+    top: 50px;
     right: 20px;
-    z-index: 9999;
+    z-index: 10000;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -72,10 +72,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 6px 10px;
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     pointer-events: all;
     min-width: 300px;
@@ -97,45 +97,62 @@
   }
 
   .toast-success {
-    border-color: #10b981;
-    background: #d1fae5;
-    color: #065f46;
+    border-left: 3px solid var(--success);
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
+    color: var(--text);
   }
 
   .toast-error {
-    border-color: #ef4444;
-    background: #fee2e2;
-    color: #991b1b;
+    border-left: 3px solid var(--error);
+    background: color-mix(in srgb, var(--error) 10%, var(--surface));
+    color: var(--text);
   }
 
   .toast-warning {
-    border-color: #f59e0b;
-    background: #fef3c7;
-    color: #92400e;
+    border-left: 3px solid var(--warning);
+    background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+    color: var(--text);
   }
 
   .toast-info {
-    border-color: #3b82f6;
-    background: #dbeafe;
-    color: #1e40af;
+    border-left: 3px solid var(--info);
+    background: color-mix(in srgb, var(--info) 10%, var(--surface));
+    color: var(--text);
   }
 
   .toast-icon {
-    font-size: 18px;
+    font-size: 12px;
     font-weight: bold;
     flex-shrink: 0;
   }
 
   .toast-message {
     flex: 1;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 500;
+  }
+
+  .toast-action {
+    padding: 4px 8px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .toast-action:hover {
+    background: var(--accent-2);
+    transform: scale(1.05);
   }
 
   .toast-close {
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 13px;
     color: currentColor;
     cursor: pointer;
     opacity: 0.6;

@@ -70,10 +70,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 16px;
+    padding: 6px 10px;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: 4px;
     color: var(--muted);
     font-family: var(--mono);
     font-size: 13px;
@@ -108,7 +108,7 @@
   }
 
   .tab-icon {
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .tab-label {
@@ -119,7 +119,7 @@
     position: absolute;
     top: 4px;
     right: 4px;
-    font-size: 10px;
+    font-size: 11px;
     padding: 2px 4px;
     background: var(--bg);
     border-radius: 3px;

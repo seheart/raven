@@ -351,7 +351,7 @@
 
 <style>
   .insights-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -359,9 +359,9 @@
   .controls {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     display: flex;
     gap: 12px;
     align-items: center;
@@ -375,9 +375,9 @@
     padding: 8px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .btn-refresh, .btn-export {
@@ -385,9 +385,9 @@
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -418,17 +418,17 @@
     padding: 64px 24px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 3px;
   }
 
   .empty-icon {
-    font-size: 64px;
-    margin-bottom: 24px;
+    font-size: 11px;
+    margin-bottom: 8px;
   }
 
   .empty-state h2 {
     color: var(--accent);
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .empty-state p {
@@ -441,15 +441,15 @@
     max-width: 800px;
     margin: 0 auto;
     text-align: left;
-    padding: 24px;
+    padding: 8px;
     background: var(--bg);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .empty-info h3 {
     color: var(--accent);
     margin: 24px 0 12px 0;
-    font-size: 16px;
+    font-size: 11px;
   }
 
   .empty-info h3:first-child {
@@ -477,22 +477,22 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 16px;
+    gap: 8px;
     margin-bottom: 32px;
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 4px;
+    padding: 8px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .stat-icon {
-    font-size: 32px;
+    font-size: 11px;
   }
 
   .stat-content {
@@ -523,28 +523,28 @@
   .section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
+    border-radius: 3px;
+    padding: 8px;
+    margin-bottom: 8px;
   }
 
   .section-title {
     margin: 0 0 20px 0;
-    font-size: 18px;
+    font-size: 12px;
     color: var(--accent);
   }
 
   .languages-grid, .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
+    gap: 8px;
   }
 
   .language-card, .project-card {
     padding: 16px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .language-name, .project-name {
@@ -588,7 +588,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -599,12 +599,12 @@
   }
 
   .hour-label {
-    font-size: 9px;
+    font-size: 11px;
     color: var(--text-muted);
   }
 
   .hour-count {
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 600;
     color: white;
   }
@@ -626,7 +626,7 @@
     padding: 16px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .interaction-header, .pattern-header {
@@ -645,7 +645,7 @@
     font-size: 12px;
     padding: 2px 8px;
     background: var(--surface);
-    border-radius: 12px;
+    border-radius: 3px;
     color: var(--text-muted);
   }
 
@@ -657,7 +657,7 @@
 
   .interaction-prompt {
     color: var(--text);
-    font-size: 14px;
+    font-size: 11px;
     line-height: 1.6;
     margin-bottom: 8px;
   }
@@ -672,16 +672,16 @@
     font-size: 11px;
     padding: 2px 8px;
     background: var(--surface);
-    border-radius: 12px;
+    border-radius: 3px;
     color: var(--text-muted);
   }
 
   .pattern-badge {
-    font-size: 10px;
+    font-size: 11px;
     padding: 2px 6px;
     background: var(--accent);
     color: white;
-    border-radius: 10px;
+    border-radius: 4px;
     font-weight: 600;
   }
 </style>

@@ -263,8 +263,8 @@
   }
 
   .sidebar-header h2 {
-    margin: 0 0 12px 0;
-    font-size: 15px;
+    margin: 0 0 6px 0;
+    font-size: 12px;
     font-weight: 600;
     color: var(--accent);
   }
@@ -274,7 +274,7 @@
     padding: 8px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -297,7 +297,7 @@
   }
 
   .docs-category {
-    margin-bottom: 24px;
+    margin-bottom: 8px;
   }
 
   .category-title {
@@ -318,7 +318,7 @@
     padding: 8px 12px;
     background: transparent;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -344,7 +344,7 @@
   }
 
   .doc-icon {
-    font-size: 14px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -356,7 +356,7 @@
   }
 
   .no-results {
-    padding: 24px 12px;
+    padding: 8px 12px;
     text-align: center;
     color: var(--muted);
     font-size: 12px;
@@ -365,7 +365,7 @@
   /* Content Area */
   .docs-content {
     overflow-y: auto;
-    padding: 32px 48px;
+    padding: 12px 48px;
     background: var(--bg);
   }
 
@@ -400,8 +400,8 @@
   }
 
   .error h2 {
-    margin: 0 0 12px 0;
-    font-size: 16px;
+    margin: 0 0 6px 0;
+    font-size: 11px;
     color: var(--error);
   }
 
@@ -412,8 +412,8 @@
   }
 
   .empty h2 {
-    margin: 0 0 12px 0;
-    font-size: 16px;
+    margin: 0 0 6px 0;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -430,7 +430,7 @@
   }
 
   .markdown-content :global(h1) {
-    font-size: 24px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text);
     margin: 32px 0 16px 0;
@@ -439,7 +439,7 @@
   }
 
   .markdown-content :global(h2) {
-    font-size: 20px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text);
     margin: 28px 0 14px 0;
@@ -448,14 +448,14 @@
   }
 
   .markdown-content :global(h3) {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin: 24px 0 12px 0;
   }
 
   .markdown-content :global(h4) {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--accent);
     margin: 20px 0 10px 0;
@@ -465,7 +465,7 @@
     font-size: 13px;
     line-height: 1.7;
     color: var(--text);
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
   }
 
   .markdown-content :global(a) {
@@ -491,7 +491,7 @@
   .markdown-content :global(pre) {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
     overflow-x: auto;
     margin: 16px 0;
@@ -507,7 +507,7 @@
 
   .markdown-content :global(ul),
   .markdown-content :global(ol) {
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
     padding-left: 24px;
   }
 
@@ -560,7 +560,7 @@
 
   .markdown-content :global(img) {
     max-width: 100%;
-    border-radius: 8px;
+    border-radius: 4px;
     margin: 16px 0;
   }
 

@@ -198,7 +198,7 @@
 
 <style>
   .custom-metrics-panel {
-    padding: 24px;
+    padding: 8px;
     max-width: 1600px;
     margin: 0 auto;
   }
@@ -212,14 +212,14 @@
 
   .header-left h2 {
     margin: 0 0 4px 0;
-    font-size: 24px;
+    font-size: 11px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .header-right {
@@ -236,11 +236,11 @@
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
+    gap: 8px;
   }
 
   .metric-card {
-    padding: 24px;
+    padding: 8px;
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
@@ -282,12 +282,12 @@
   }
 
   .metric-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
   .metric-value {
-    font-size: 48px;
+    font-size: 11px;
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
@@ -296,7 +296,7 @@
   }
 
   .metric-label {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin-bottom: 4px;
@@ -317,17 +317,17 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
   }
 
   .breakdown-icon {
-    font-size: 24px;
+    font-size: 11px;
   }
 
   .breakdown-title {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
   }
@@ -354,7 +354,7 @@
   }
 
   .breakdown-count {
-    font-size: 24px;
+    font-size: 11px;
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
@@ -368,17 +368,17 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
   }
 
   .highlight-icon {
-    font-size: 24px;
+    font-size: 11px;
   }
 
   .highlight-title {
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
   }
@@ -393,7 +393,7 @@
   }
 
   .highlight-file {
-    font-size: 14px;
+    font-size: 11px;
     font-family: var(--mono);
     color: var(--text);
     font-weight: 600;
@@ -401,7 +401,7 @@
   }
 
   .highlight-changes {
-    font-size: 24px;
+    font-size: 11px;
     font-weight: 700;
     font-family: var(--mono);
     color: var(--accent);
@@ -432,7 +432,7 @@
 
   .error-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 8px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -471,7 +471,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 16px;
+      gap: 8px;
     }
 
     .metrics-grid {

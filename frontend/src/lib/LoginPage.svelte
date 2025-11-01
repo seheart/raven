@@ -147,7 +147,7 @@
     max-width: 420px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 3px;
     padding: 40px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease-out;
@@ -171,7 +171,7 @@
 
   .login-header h1 {
     font-family: var(--mono);
-    font-size: 24px;
+    font-size: 11px;
     font-weight: 600;
     margin: 16px 0 8px;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2, var(--accent)) 100%);
@@ -182,21 +182,21 @@
 
   .login-header p {
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
     margin: 0;
   }
 
   .login-form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 8px;
   }
 
   .error-message {
     padding: 12px;
     background: rgba(255, 100, 100, 0.1);
     border: 1px solid rgba(255, 100, 100, 0.3);
-    border-radius: 6px;
+    border-radius: 3px;
     color: #ff6464;
     font-size: 13px;
     font-family: var(--mono);
@@ -219,10 +219,10 @@
     padding: 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     transition: all 0.2s ease;
   }
 
@@ -254,7 +254,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 11px;
     padding: 4px 8px;
     opacity: 0.6;
     transition: opacity 0.2s ease;
@@ -279,9 +279,9 @@
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -312,10 +312,10 @@
     padding: 16px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 12px;
     color: var(--muted);
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
     line-height: 1.6;
   }
 
@@ -336,11 +336,11 @@
   @media (max-width: 768px) {
     .login-card {
       max-width: 90%;
-      padding: 24px;
+      padding: 8px;
     }
 
     .login-header h1 {
-      font-size: 20px;
+      font-size: 13px;
     }
   }
 </style>

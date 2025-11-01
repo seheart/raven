@@ -75,8 +75,8 @@
     padding: 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 16px;
+    border-radius: 4px;
+    margin-bottom: 6px;
   }
 
   .skeleton-header {
@@ -130,7 +130,7 @@
     padding: 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .skeleton-icon {
@@ -159,7 +159,7 @@
     padding: 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     display: flex;
     align-items: flex-end;
   }

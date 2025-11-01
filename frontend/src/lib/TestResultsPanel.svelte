@@ -493,11 +493,11 @@
   .test-results-panel {
     background: var(--surface);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 8px;
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 8px;
   }
 
   .panel-header {
@@ -514,7 +514,7 @@
 
   .panel-header h2 {
     margin: 0;
-    font-size: 20px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text);
     display: flex;
@@ -544,7 +544,7 @@
     padding: 8px 16px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border: 1px solid #047857;
-    border-radius: 6px;
+    border-radius: 3px;
     color: white;
     font-family: var(--mono);
     font-size: 13px;
@@ -567,7 +567,7 @@
     padding: 8px 16px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 13px;
     font-weight: 600;
@@ -588,14 +588,14 @@
   .refresh-btn {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 12px;
     transition: all 0.2s;
   }
 
@@ -614,17 +614,17 @@
 
   .frameworks-section h3,
   .results-history h3 {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
   }
 
   .test-info {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 12px 16px;
+    border-radius: 3px;
+    padding: 6px 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -661,7 +661,7 @@
   }
 
   .note-icon {
-    font-size: 16px;
+    font-size: 11px;
     line-height: 1;
   }
 
@@ -681,7 +681,7 @@
     padding: 6px 12px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 3px;
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
@@ -694,7 +694,7 @@
   }
 
   .no-frameworks .icon {
-    font-size: 48px;
+    font-size: 11px;
     display: block;
     margin-bottom: 12px;
   }
@@ -707,26 +707,26 @@
   }
 
   .latest-result {
-    padding: 20px;
+    padding: 8px;
     background: var(--surface-2);
     border: 2px solid var(--status-color);
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .result-header {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
     margin-bottom: 12px;
   }
 
   .result-status {
-    font-size: 32px;
+    font-size: 11px;
   }
 
   .result-info h3 {
     margin: 0 0 4px 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
@@ -777,8 +777,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
-    gap: 16px;
+    padding: 8px 12px;
+    gap: 8px;
     text-align: center;
   }
 
@@ -796,19 +796,19 @@
   }
 
   .empty-icon {
-    font-size: 64px;
+    font-size: 11px;
   }
 
   .empty-state h3 {
     margin: 0 0 8px 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
   }
 
   .empty-state p {
     margin: 0;
-    font-size: 14px;
+    font-size: 11px;
     color: var(--muted);
   }
 
@@ -829,7 +829,7 @@
   }
 
   .result-status-icon {
-    font-size: 20px;
+    font-size: 13px;
   }
 
   .result-details {
@@ -902,7 +902,7 @@
 
   .loading-inline,
   .empty-inline {
-    padding: 20px;
+    padding: 8px;
     text-align: center;
     color: var(--muted);
     font-size: 13px;
@@ -941,7 +941,7 @@
   }
 
   .test-status-icon {
-    font-size: 18px;
+    font-size: 12px;
     line-height: 1;
   }
 
@@ -969,7 +969,7 @@
   }
 
   .test-status-badge {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     padding: 2px 6px;
@@ -1015,9 +1015,9 @@
   .test-runner-container {
     background: var(--surface-2);
     border: 2px solid #3b82f6;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
     animation: pulse-border 2s ease-in-out infinite;
   }
 
@@ -1034,7 +1034,7 @@
     font-size: 13px;
     line-height: 1.4;
     padding: 16px;
-    border-radius: 6px;
+    border-radius: 3px;
     max-height: 250px;
     overflow-y: auto;
     margin-top: 12px;
@@ -1070,7 +1070,7 @@
   }
 
   .progress-text {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text);
     margin-bottom: 8px;
