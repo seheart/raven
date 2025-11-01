@@ -60,6 +60,7 @@
         break;
       case 'activity':
         import(/* @vite-preload */ './lib/LiveCodeFeed.svelte');
+        import(/* @vite-preload */ './lib/LiveFeed.svelte');
         import(/* @vite-preload */ './lib/EventFeed.svelte');
         import(/* @vite-preload */ './lib/ActivityLog.svelte');
         import(/* @vite-preload */ './lib/FileBrowser.svelte');
@@ -96,7 +97,9 @@
         import(/* @vite-preload */ './lib/DocsViewer.svelte');
         break;
       }
-    } catch (_) {}
+    } catch {
+      // Ignore preload errors - components will load on demand
+    }
   }
 
   // Main navigation tabs
@@ -372,7 +375,9 @@
       setupNotificationListeners();
 
       // Kick off background prefetch of common panels
-      try { prefetchPanels(); } catch (_) {}
+      try { prefetchPanels(); } catch {
+        // Ignore prefetch errors - panels will load on demand
+      }
 
       // Show Quick Start Wizard for first-time users
       if (!localStorage.getItem('raven-quick-start-completed')) {
@@ -594,6 +599,13 @@
           </button>
           <button
             class="sub-tab"
+            class:active={currentSubView === 'live'}
+            on:click={() => router.navigate(activeTab, 'live')}
+          >
+            Live Feed
+          </button>
+          <button
+            class="sub-tab"
             class:active={currentSubView === 'events'}
             on:click={() => router.navigate(activeTab, 'events')}
           >
@@ -623,6 +635,12 @@
         </div>
         {#if !currentSubView}
           {#await import('./lib/LiveCodeFeed.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:240px" role="status">Loading…</div>
+          {/await}
+        {:else if currentSubView === 'live'}
+          {#await import('./lib/LiveFeed.svelte') then M}
             <svelte:component this={M.default} />
           {:catch _}
             <div style="min-height:240px" role="status">Loading…</div>
