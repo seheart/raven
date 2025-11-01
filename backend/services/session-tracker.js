@@ -370,60 +370,6 @@ export class SessionTracker {
   }
 
   /**
-   * Get recommendation for taking a break
-   */
-  getBreakRecommendation(projectName) {
-    const session = this.activeSessions.get(projectName);
-    if (!session) {
-      return {
-        shouldTakeBreak: false,
-        message: 'No active session'
-      };
-    }
-
-    const durationMinutes = (Date.now() - session.startTime) / (1000 * 60);
-    const quality = this.calculateSessionQuality(projectName);
-
-    // Critical: Quality very low OR >4 hours
-    if (quality.score < 50 || durationMinutes > 240) {
-      return {
-        shouldTakeBreak: true,
-        urgency: 'critical',
-        message: `Take a break NOW! You've been coding for ${(durationMinutes / 60).toFixed(1)} hours and quality is ${quality.score}/100.`,
-        breakDuration: 15,
-        reasons: quality.factors.map(f => f.message)
-      };
-    }
-
-    // Warning: Quality low OR >2 hours
-    if (quality.score < 70 || durationMinutes > 120) {
-      return {
-        shouldTakeBreak: true,
-        urgency: 'warning',
-        message: `Consider a short break. Session: ${(durationMinutes / 60).toFixed(1)} hours, quality: ${quality.score}/100.`,
-        breakDuration: 10,
-        reasons: quality.factors.map(f => f.message)
-      };
-    }
-
-    // Info: >90 minutes (recommended)
-    if (durationMinutes > 90) {
-      return {
-        shouldTakeBreak: true,
-        urgency: 'info',
-        message: `Good time for a break. You've been in flow for ${(durationMinutes / 60).toFixed(1)} hours.`,
-        breakDuration: 5,
-        reasons: ['Research shows productivity peaks at 90-minute intervals']
-      };
-    }
-
-    return {
-      shouldTakeBreak: false,
-      message: `You're in good shape. Keep going! Quality: ${quality.score}/100`
-    };
-  }
-
-  /**
    * End all active sessions (called on server shutdown)
    */
   endAllSessions() {

@@ -1056,29 +1056,29 @@
           <h4>3. Example Payload</h4>
           <p>Send a JSON payload with the following structure:</p>
           <pre class="payload-example"><code>{JSON.stringify({
-  agent: "your-agent-name",
-  event_type: "edit",
-  message: "Modified user authentication logic",
-  file: "src/auth.js",
-  lines_changed: 25,
-  duration_ms: 1500,
-  metadata: {
-    model: "claude-3-5-sonnet",
-    prompt_type: "code-edit"
-  }
-}, null, 2)}</code></pre>
+            agent: 'your-agent-name',
+            event_type: 'edit',
+            message: 'Modified user authentication logic',
+            file: 'src/auth.js',
+            lines_changed: 25,
+            duration_ms: 1500,
+            metadata: {
+              model: 'claude-3-5-sonnet',
+              prompt_type: 'code-edit'
+            }
+          }, null, 2)}</code></pre>
           <button class="btn-copy-payload" on:click={() => navigator.clipboard.writeText(JSON.stringify({
-  agent: "your-agent-name",
-  event_type: "edit",
-  message: "Modified user authentication logic",
-  file: "src/auth.js",
-  lines_changed: 25,
-  duration_ms: 1500,
-  metadata: {
-    model: "claude-3-5-sonnet",
-    prompt_type: "code-edit"
-  }
-}, null, 2))}>
+            agent: 'your-agent-name',
+            event_type: 'edit',
+            message: 'Modified user authentication logic',
+            file: 'src/auth.js',
+            lines_changed: 25,
+            duration_ms: 1500,
+            metadata: {
+              model: 'claude-3-5-sonnet',
+              prompt_type: 'code-edit'
+            }
+          }, null, 2))}>
             📋 Copy Example
           </button>
         </div>

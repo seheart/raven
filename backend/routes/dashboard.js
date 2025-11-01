@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { logger } from '../utils/logger.js';
+import { dashboardCache, cacheMiddleware } from '../utils/cache.js';
 
 /**
  * Creates dashboard routes (stats and analytics)
@@ -156,8 +157,8 @@ export function createDashboardRoutes(deps) {
     }
   });
 
-  // GET /api/agents-status - Get all agent statuses
-  router.get('/agents-status', (req, res) => {
+  // GET /api/agents-status - Get all agent statuses (with caching)
+  router.get('/agents-status', cacheMiddleware(dashboardCache), (req, res) => {
     try {
       if (!projectState.db) {
         return res.status(500).json({ error: 'No active project database' });
@@ -206,8 +207,8 @@ export function createDashboardRoutes(deps) {
     }
   });
 
-  // GET /api/agent-stats - Get agent statistics
-  router.get('/agent-stats', (req, res) => {
+  // GET /api/agent-stats - Get agent statistics (with caching)
+  router.get('/agent-stats', cacheMiddleware(dashboardCache), (req, res) => {
     try {
       if (!projectState.db) {
         return res.status(500).json({ error: 'No active project database' });

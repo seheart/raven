@@ -1085,7 +1085,7 @@
   .terminal-output pre {
     margin: 0;
     white-space: pre-wrap;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
     font-family: inherit;
     background: transparent;
     color: inherit;

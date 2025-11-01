@@ -379,28 +379,6 @@ export function createSessionRoutes(deps) {
   });
 
   /**
-   * GET /api/sessions/break-recommendation
-   * Get break recommendation based on session activity
-   */
-  router.get('/break-recommendation', (req, res) => {
-    try {
-      const { project } = req.query;
-
-      if (!deps.sessionTracker) {
-        return res.status(503).json({ error: 'Session tracker not initialized' });
-      }
-
-      const projectName = project || Array.from(deps.projectDatabases.keys())[0];
-      const recommendation = deps.sessionTracker.getBreakRecommendation(projectName);
-
-      res.json({ recommendation });
-    } catch (error) {
-      logger.error('Error getting break recommendation:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  /**
    * GET /api/sessions/stats
    * Get session statistics
    */

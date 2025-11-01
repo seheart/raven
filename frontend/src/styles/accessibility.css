@@ -490,7 +490,7 @@ textarea:invalid {
   font-size: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   max-width: 300px;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 [role="tooltip"]::before {

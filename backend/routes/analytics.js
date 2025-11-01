@@ -21,9 +21,9 @@ export function createAnalyticsRoutes(deps) {
 
   /**
    * GET /api/agent-events
-   * Get recent agent events
+   * Get recent agent events (with caching)
    */
-  router.get('/agent-events', (req, res) => {
+  router.get('/agent-events', cacheMiddleware(analyticsCache), (req, res) => {
     try {
       if (!projectState.db) {
         return res.status(500).json({ error: 'Database not initialized' });

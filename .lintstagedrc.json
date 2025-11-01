@@ -3,7 +3,13 @@
     "eslint --fix --max-warnings=0",
     "prettier --write"
   ],
-  "frontend/src/**/*.{js,svelte}": [
+  "frontend/src/**/*.svelte": [
+    "bash -c 'cd frontend && npm run check'",
+    "bash -c 'cd frontend && stylelint --fix \"$@\"' _",
+    "bash -c 'cd frontend && eslint --fix --max-warnings=0 \"$@\"' _",
+    "bash -c 'cd frontend && prettier --write --parser svelte \"$@\"' _"
+  ],
+  "frontend/src/**/*.js": [
     "eslint --fix --max-warnings=0",
     "prettier --write"
   ],

@@ -12,7 +12,6 @@
   import RavenLogo from './lib/RavenLogo.svelte';
   import Toast from './lib/Toast.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
-  import BreakAlert from './lib/BreakAlert.svelte';
   import OverviewPanel from './lib/OverviewPanel.svelte';
   import ProjectsComparisonPanel from './lib/ProjectsComparisonPanel.svelte';
   import MultiProjectHealthPanel from './lib/MultiProjectHealthPanel.svelte';
@@ -274,7 +273,7 @@
 
     for (let i = 0; i < maxRetries; i++) {
       try {
-        loadingMessage = `Connecting to backend server...`;
+        loadingMessage = 'Connecting to backend server...';
         const response = await fetch(API_CONFIG.ENDPOINTS.HEALTH, {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
@@ -860,22 +859,22 @@
     {:else if activeTab === 'about'}
       <!-- About Page -->
       {#await import('./lib/AboutPage.svelte') then M}
-        <svelte:component this={M.default} on:close={() => activeTab = 'overview'} />
-      {:catch _}
+        <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
+      {:catch}
         <div style="min-height:200px" role="status">Loading…</div>
       {/await}
     {:else if activeTab === 'changelog'}
       <!-- Changelog Page -->
       {#await import('./lib/ChangelogPage.svelte') then M}
-        <svelte:component this={M.default} on:close={() => activeTab = 'overview'} />
-      {:catch _}
+        <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
+      {:catch}
         <div style="min-height:200px" role="status">Loading…</div>
       {/await}
     {:else if activeTab === 'docs'}
       <!-- Docs Page -->
       {#await import('./lib/DocsViewer.svelte') then M}
-        <svelte:component this={M.default} on:close={() => activeTab = 'overview'} />
-      {:catch _}
+        <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
+      {:catch}
         <div style="min-height:200px" role="status">Loading…</div>
       {/await}
     {:else}
@@ -901,9 +900,6 @@
 <!-- Toast Notifications (hidden during loading) -->
 {#if !isInitialLoading}
   <Toast onErrorClick={handleErrorClick} />
-
-  <!-- Break Recommendation Alert -->
-  <BreakAlert />
 {/if}
 
 <!-- Quick Start Wizard for New Users -->
@@ -935,9 +931,9 @@
   sessionId={sessionId}
   onThemeChange={switchTheme}
   onSessionClick={() => router.navigate('system')}
-  onAboutClick={() => activeTab = 'about'}
-  onChangelogClick={() => activeTab = 'changelog'}
-  onDocsClick={() => activeTab = 'docs'}
+  onAboutClick={() => router.navigate('about')}
+  onChangelogClick={() => router.navigate('changelog')}
+  onDocsClick={() => router.navigate('docs')}
 />
 
 {/if}
