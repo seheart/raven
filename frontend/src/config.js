@@ -5,8 +5,8 @@
 
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:3030',
-  API_BASE: 'http://localhost:3030/api',  // Centralized API base path
+  BASE_URL: import.meta.env.DEV ? '' : 'http://localhost:3030',
+  API_BASE: import.meta.env.DEV ? '/api' : 'http://localhost:3030/api',  // Use Vite proxy in dev
   get ENDPOINTS() {
     return {
       // Health & Status
@@ -46,7 +46,7 @@ export const API_CONFIG = {
 };
 
 // WebSocket Configuration
-export const WEBSOCKET_URL = 'http://localhost:3030';
+export const WEBSOCKET_URL = import.meta.env.DEV ? '' : 'http://localhost:3030';
 
 // UI Configuration
 export const UI_CONFIG = {

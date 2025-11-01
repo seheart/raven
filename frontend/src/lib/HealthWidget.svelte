@@ -357,13 +357,6 @@
         </button>
       </div>
 
-      <!-- Today's Stats and Last Updated -->
-      <div class="today-stats" aria-live="polite">
-        <span>{todayStats.files} files</span>
-        <span style="margin-left: 10px;">{todayStats.added} added</span>
-        <span style="margin-left: 10px;">{todayStats.deleted} deleted</span>
-        <span style="margin-left: auto; color: var(--muted);">Updated {timeAgo(health.lastCheck)}</span>
-      </div>
 
     <!-- Expandable Startup Health Details -->
     {#if startupHealthExpanded && startupHealthResults && startupHealthResults.checks}
