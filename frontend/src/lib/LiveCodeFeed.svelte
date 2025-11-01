@@ -813,13 +813,13 @@
         </div>
         <div class="charts-grid">
           <div class="chart-container">
-            <canvas id="chart-file-types"></canvas>
+            <canvas id="chart-file-types" width="400" height="250"></canvas>
           </div>
           <div class="chart-container">
-            <canvas id="chart-change-types"></canvas>
+            <canvas id="chart-change-types" width="400" height="250"></canvas>
           </div>
           <div class="chart-container chart-wide">
-            <canvas id="chart-timeline"></canvas>
+            <canvas id="chart-timeline" width="800" height="250"></canvas>
           </div>
         </div>
       </div>
