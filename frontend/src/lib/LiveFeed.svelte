@@ -48,7 +48,7 @@
   // WebSocket event handlers
   const handleFileChanged = (data) => {
     if (isPaused) return;
-    logger.info('🔴 LIVE: File change detected:', data);
+    logger.info('🟢 LIVE: File change detected:', data);
     debouncedLoadChanges();
   };
 
@@ -192,7 +192,7 @@
   <!-- Header -->
   <div class="live-feed-header">
     <div class="header-left">
-      <h2>🔴 Live Feed</h2>
+      <h2>🟢 Live Feed</h2>
       <p class="subtitle">Real-time code changes as they happen</p>
     </div>
     <div class="header-controls">
