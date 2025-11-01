@@ -14,20 +14,32 @@ import { writable, derived } from 'svelte/store';
 function createRouter() {
   // Parse hash into route parts
   function parseHash() {
-    const hash = window.location.hash.slice(1); // Remove #
-    if (!hash || hash === '/') {
+    try {
+      const hash = window.location.hash.slice(1); // Remove #
+      console.log('[Router] Parsing hash:', hash);
+
+      if (!hash || hash === '/') {
+        console.log('[Router] No hash, defaulting to overview');
+        return { tab: 'overview', subTab: '' };
+      }
+
+      const parts = hash.split('/').filter(Boolean);
+      const route = {
+        tab: parts[0] || 'overview',
+        subTab: parts[1] || ''
+      };
+      console.log('[Router] Parsed route:', route);
+      return route;
+    } catch (error) {
+      console.error('[Router] Error parsing hash:', error);
       return { tab: 'overview', subTab: '' };
     }
-
-    const parts = hash.split('/').filter(Boolean);
-    return {
-      tab: parts[0] || 'overview',
-      subTab: parts[1] || ''
-    };
   }
 
-  // Create the store
-  const { subscribe, set, update } = writable(parseHash());
+  // Create the store with initial hash - this runs immediately when module loads
+  const initialRoute = parseHash();
+  console.log('[Router] Initial route:', initialRoute);
+  const { subscribe, set, update } = writable(initialRoute);
 
   // Listen to hash changes
   if (typeof window !== 'undefined') {
@@ -41,6 +53,17 @@ function createRouter() {
       // Also scroll window to top (for mobile/overflow scenarios)
       window.scrollTo(0, 0);
     });
+
+    // Force re-parse on DOMContentLoaded in case hash changed during parsing
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        const currentRoute = parseHash();
+        // Only update if route actually changed
+        if (JSON.stringify(currentRoute) !== JSON.stringify(initialRoute)) {
+          set(currentRoute);
+        }
+      });
+    }
   }
 
   return {

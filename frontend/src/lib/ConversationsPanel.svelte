@@ -5,6 +5,10 @@
   import { websocketService } from './websocket.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { formatTime } from './timeFormat.js';
+  import { Chart, registerables } from 'chart.js';
+  import { settings } from './settingsStore.js';
+
+  Chart.register(...registerables);
 
   let conversations = [];
   let stats = {
@@ -23,6 +27,17 @@
   let hasMore = true;
   let lastUpdate = null;
   let autoRefresh = true;
+
+  // New features
+  let dateRange = 'all'; // 'all', 'today', '7d', '30d'
+  let sortBy = 'timestamp'; // 'timestamp', 'type', 'project'
+  let sortOrder = 'desc'; // 'asc', 'desc'
+  let viewMode = 'detailed'; // 'compact', 'detailed'
+  let groupBy = 'none'; // 'none', 'session', 'project', 'date'
+  let showCharts = true;
+
+  // Charts
+  let charts = {};
 
   // Import dialog state
   let showImportDialog = false;
@@ -205,28 +220,277 @@
     });
   }
 
-  $: filteredConversations = conversations.filter(conv => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesContent = conv.content?.toLowerCase().includes(query);
-      const matchesTool = conv.tool_name?.toLowerCase().includes(query);
-      const matchesProject = conv.project?.toLowerCase().includes(query);
-      if (!matchesContent && !matchesTool && !matchesProject) {
-        return false;
+  // Sorting & Filtering Functions
+  function toggleSort(field) {
+    if (sortBy === field) {
+      sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortBy = field;
+      sortOrder = 'desc';
+    }
+  }
+
+  async function copyToClipboard(text, label = 'Content') {
+    try {
+      await navigator.clipboard.writeText(text);
+      notifications.success(`${label} copied to clipboard`);
+    } catch (error) {
+      notifications.error(`Failed to copy: ${error.message}`);
+    }
+  }
+
+  // Chart Functions
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || filteredConversations.length === 0) return;
+
+    // Get theme-aware colors from body element (where theme classes are applied)
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
+    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // Type Breakdown Pie Chart
+    const pieCanvas = document.getElementById('chart-type-breakdown');
+    if (pieCanvas && stats.by_type) {
+      const typeData = Object.entries(stats.by_type);
+      if (typeData.length > 0) {
+        charts.typeBreakdown = new Chart(pieCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: typeData.map(([type]) => type.replace('_', ' ')),
+            datasets: [{
+              data: typeData.map(([, count]) => count),
+              backgroundColor: [
+                'rgba(59, 130, 246, 0.8)',
+                'rgba(16, 185, 129, 0.8)',
+                'rgba(255, 165, 0, 0.8)',
+                'rgba(0, 200, 83, 0.8)'
+              ],
+              borderColor: [
+                'rgba(59, 130, 246, 1)',
+                'rgba(16, 185, 129, 1)',
+                'rgba(255, 165, 0, 1)',
+                'rgba(0, 200, 83, 1)'
+              ],
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: textColor,
+                  font: {
+                    size: 12,
+                    family: 'monospace'
+                  },
+                  padding: 12
+                }
+              }
+            }
+          }
+        });
       }
     }
-    return true;
-  });
+
+    // Project Distribution Bar Chart
+    const barCanvas = document.getElementById('chart-project-distribution');
+    if (barCanvas && stats.by_project) {
+      const projectData = Object.entries(stats.by_project).slice(0, 10);
+      if (projectData.length > 0) {
+        charts.projectDistribution = new Chart(barCanvas, {
+          type: 'bar',
+          data: {
+            labels: projectData.map(([project]) => project),
+            datasets: [{
+              label: 'Conversations',
+              data: projectData.map(([, count]) => count),
+              backgroundColor: 'rgba(59, 130, 246, 0.8)',
+              borderColor: 'rgba(59, 130, 246, 1)',
+              borderWidth: 2,
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  color: mutedColor,
+                  font: {
+                    size: 11,
+                    family: 'monospace'
+                  }
+                },
+                grid: {
+                  color: gridColor
+                }
+              },
+              y: {
+                ticks: {
+                  color: textColor,
+                  font: {
+                    size: 11,
+                    family: 'monospace'
+                  }
+                },
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+
+  function updateCharts() {
+    setTimeout(createCharts, 100);
+  }
+
+  // Watch for data changes to update charts
+  $: if (showCharts && stats.by_type) {
+    setTimeout(createCharts, 100);
+  }
+
+  $: filteredConversations = (() => {
+    let filtered = conversations.filter(conv => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesContent = conv.content?.toLowerCase().includes(query);
+        const matchesTool = conv.tool_name?.toLowerCase().includes(query);
+        const matchesProject = conv.project?.toLowerCase().includes(query);
+        if (!matchesContent && !matchesTool && !matchesProject) {
+          return false;
+        }
+      }
+
+      // Date range filter
+      if (dateRange !== 'all' && conv.timestamp) {
+        const now = new Date();
+        const convDate = new Date(conv.timestamp);
+        const cutoff = new Date();
+
+        if (dateRange === 'today') {
+          cutoff.setHours(0, 0, 0, 0);
+        } else if (dateRange === '7d') {
+          cutoff.setDate(now.getDate() - 7);
+        } else if (dateRange === '30d') {
+          cutoff.setDate(now.getDate() - 30);
+        }
+
+        if (convDate < cutoff) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Sort
+    filtered = [...filtered].sort((a, b) => {
+      let aVal, bVal;
+
+      if (sortBy === 'timestamp') {
+        aVal = new Date(a.timestamp).getTime();
+        bVal = new Date(b.timestamp).getTime();
+      } else if (sortBy === 'type') {
+        aVal = a.event_type || '';
+        bVal = b.event_type || '';
+      } else if (sortBy === 'project') {
+        aVal = a.project || '';
+        bVal = b.project || '';
+      }
+
+      if (typeof aVal === 'string') {
+        return sortOrder === 'asc'
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      } else {
+        return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+    });
+
+    return filtered;
+  })();
+
+  // Group conversations
+  $: groupedConversations = (() => {
+    if (groupBy === 'none') {
+      return { 'All Conversations': filteredConversations };
+    }
+
+    const groups = {};
+
+    filteredConversations.forEach(conv => {
+      let key;
+
+      if (groupBy === 'session') {
+        key = conv.claude_session_id || 'Unknown Session';
+      } else if (groupBy === 'project') {
+        key = conv.project || 'Unknown Project';
+      } else if (groupBy === 'date') {
+        const date = new Date(conv.timestamp);
+        key = date.toLocaleDateString();
+      }
+
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(conv);
+    });
+
+    return groups;
+  })();
+
+  // Watch for theme changes by observing body class changes
+  let themeObserver;
 
   onMount(() => {
     loadConversations();
     setupWebSocket();
+
+    // Watch for theme changes on body element
+    themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && showCharts) {
+          console.log('[ConversationsPanel] Theme changed, recreating charts');
+          setTimeout(createCharts, 100);
+        }
+      });
+    });
+
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
   });
 
   onDestroy(() => {
     // Clean up WebSocket listeners
     websocketService.off('conversation', loadConversations);
     websocketService.off('file-changed', loadConversations);
+
+    // Disconnect theme observer
+    if (themeObserver) {
+      themeObserver.disconnect();
+    }
   });
 </script>
 
@@ -265,6 +529,38 @@
       </div>
     </div>
   </div>
+
+  <!-- Charts Section -->
+  {#if showCharts && !loading && stats.total > 0}
+    <div class="charts-section">
+      <div class="charts-header">
+        <h3>📊 Analytics</h3>
+        <button class="btn-toggle-charts" on:click={() => showCharts = false} aria-label="Hide charts">
+          Hide Charts
+        </button>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h4>Event Type Distribution</h4>
+          <div class="chart-container">
+            <canvas id="chart-type-breakdown"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h4>Top 10 Projects</h4>
+          <div class="chart-container horizontal">
+            <canvas id="chart-project-distribution"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  {:else if !showCharts && !loading}
+    <div class="charts-toggle">
+      <button class="btn-show-charts" on:click={() => showCharts = true} aria-label="Show charts">
+        📊 Show Analytics Charts
+      </button>
+    </div>
+  {/if}
 
   <!-- Controls -->
   <div class="controls" role="search" aria-label="Search and filter conversations">
@@ -316,6 +612,116 @@
       </button>
     </div>
 
+    <!-- Secondary Controls Row -->
+    <div class="controls-row secondary">
+      <div class="control-group">
+        <span class="control-label">Date Range:</span>
+        <button
+          class="filter-btn"
+          class:active={dateRange === 'all'}
+          on:click={() => dateRange = 'all'}
+        >
+          All Time
+        </button>
+        <button
+          class="filter-btn"
+          class:active={dateRange === 'today'}
+          on:click={() => dateRange = 'today'}
+        >
+          Today
+        </button>
+        <button
+          class="filter-btn"
+          class:active={dateRange === '7d'}
+          on:click={() => dateRange = '7d'}
+        >
+          7 Days
+        </button>
+        <button
+          class="filter-btn"
+          class:active={dateRange === '30d'}
+          on:click={() => dateRange = '30d'}
+        >
+          30 Days
+        </button>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">Sort By:</span>
+        <button
+          class="sort-btn"
+          class:active={sortBy === 'timestamp'}
+          on:click={() => toggleSort('timestamp')}
+        >
+          Time {sortBy === 'timestamp' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+        </button>
+        <button
+          class="sort-btn"
+          class:active={sortBy === 'type'}
+          on:click={() => toggleSort('type')}
+        >
+          Type {sortBy === 'type' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+        </button>
+        <button
+          class="sort-btn"
+          class:active={sortBy === 'project'}
+          on:click={() => toggleSort('project')}
+        >
+          Project {sortBy === 'project' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+        </button>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">View:</span>
+        <button
+          class="view-btn"
+          class:active={viewMode === 'compact'}
+          on:click={() => viewMode = 'compact'}
+        >
+          Compact
+        </button>
+        <button
+          class="view-btn"
+          class:active={viewMode === 'detailed'}
+          on:click={() => viewMode = 'detailed'}
+        >
+          Detailed
+        </button>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">Group:</span>
+        <button
+          class="group-btn"
+          class:active={groupBy === 'none'}
+          on:click={() => groupBy = 'none'}
+        >
+          None
+        </button>
+        <button
+          class="group-btn"
+          class:active={groupBy === 'session'}
+          on:click={() => groupBy = 'session'}
+        >
+          Session
+        </button>
+        <button
+          class="group-btn"
+          class:active={groupBy === 'project'}
+          on:click={() => groupBy = 'project'}
+        >
+          Project
+        </button>
+        <button
+          class="group-btn"
+          class:active={groupBy === 'date'}
+          on:click={() => groupBy = 'date'}
+        >
+          Date
+        </button>
+      </div>
+    </div>
+
     {#if lastUpdate}
       <div class="last-update" role="status" aria-live="polite">
         Updated: {formatTime(lastUpdate.toISOString())}
@@ -339,7 +745,15 @@
         Showing {filteredConversations.length} of {stats.total} conversations
       </div>
 
-      {#each filteredConversations as conv (conv.id)}
+      {#each Object.entries(groupedConversations) as [groupName, groupConvs]}
+        {#if groupBy !== 'none'}
+          <div class="group-header">
+            <h3>{groupName}</h3>
+            <span class="group-count">({groupConvs.length} conversations)</span>
+          </div>
+        {/if}
+
+        {#each groupConvs as conv (conv.id)}
         <article class="conversation-item {getEventClass(conv.event_type)}" aria-labelledby="conv-type-{conv.id}">
           <button
             class="conv-header"
@@ -360,15 +774,17 @@
                   <span class="project-badge">{conv.project}</span>
                 {/if}
               </div>
-              <div class="conv-preview">
-                {#if conv.content}
-                  {truncateContent(conv.content)}
-                {:else if conv.tool_name}
-                  Tool: {conv.tool_name}
-                {:else if conv.tool_output}
-                  {truncateContent(conv.tool_output)}
-                {/if}
-              </div>
+              {#if viewMode === 'detailed'}
+                <div class="conv-preview">
+                  {#if conv.content}
+                    {truncateContent(conv.content)}
+                  {:else if conv.tool_name}
+                    Tool: {conv.tool_name}
+                  {:else if conv.tool_output}
+                    {truncateContent(conv.tool_output)}
+                  {/if}
+                </div>
+              {/if}
             </div>
             <div class="conv-meta">
               <time class="conv-time" datetime="{conv.timestamp}">{formatTime(conv.timestamp)}</time>
@@ -383,21 +799,48 @@
             <div class="conv-details" id="conv-details-{conv.id}" role="region" aria-label="Conversation details">
               {#if conv.content}
                 <div class="detail-section">
-                  <div class="detail-label">Content:</div>
+                  <div class="detail-header">
+                    <div class="detail-label">Content:</div>
+                    <button
+                      class="btn-copy-content"
+                      on:click={() => copyToClipboard(conv.content, 'Content')}
+                      aria-label="Copy content to clipboard"
+                    >
+                      📋 Copy
+                    </button>
+                  </div>
                   <pre class="detail-content">{conv.content}</pre>
                 </div>
               {/if}
 
               {#if conv.tool_input}
                 <div class="detail-section">
-                  <div class="detail-label">Tool Input:</div>
+                  <div class="detail-header">
+                    <div class="detail-label">Tool Input:</div>
+                    <button
+                      class="btn-copy-content"
+                      on:click={() => copyToClipboard(formatToolInput(conv.tool_input), 'Tool Input')}
+                      aria-label="Copy tool input to clipboard"
+                    >
+                      📋 Copy
+                    </button>
+                  </div>
                   <pre class="detail-content">{formatToolInput(conv.tool_input)}</pre>
                 </div>
               {/if}
 
               {#if conv.tool_output}
                 <div class="detail-section">
-                  <div class="detail-label">Tool Output:</div>
+                  <div class="detail-header">
+                    <div class="detail-label">Tool Output:</div>
+                    <button
+                      class="btn-copy-content"
+                      on:click={() => copyToClipboard(conv.tool_output, 'Tool Output')}
+                      aria-label="Copy tool output to clipboard"
+                    >
+                      📋 Copy
+                    </button>
+                  </div>
                   <pre class="detail-content tool-output">{conv.tool_output}</pre>
                 </div>
               {/if}
@@ -423,6 +866,7 @@
             </div>
           {/if}
         </article>
+        {/each}
       {/each}
 
       {#if hasMore}
@@ -783,7 +1227,7 @@
     line-height: 1.6;
     overflow-x: auto;
     white-space: pre-wrap;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
   .detail-content.tool-output {
@@ -960,6 +1404,218 @@
   .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .charts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .charts-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--accent);
+  }
+
+  .btn-toggle-charts,
+  .btn-show-charts {
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-toggle-charts:hover,
+  .btn-show-charts:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  .charts-toggle {
+    text-align: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 16px;
+  }
+
+  .chart-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+  }
+
+  .chart-card h4 {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .chart-container {
+    height: 250px;
+    position: relative;
+  }
+
+  .chart-container.horizontal {
+    height: 300px;
+  }
+
+  /* Secondary Controls */
+  .controls-row.secondary {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .control-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .filter-btn,
+  .sort-btn,
+  .view-btn,
+  .group-btn {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn:hover,
+  .sort-btn:hover,
+  .view-btn:hover,
+  .group-btn:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+  }
+
+  .filter-btn.active,
+  .sort-btn.active,
+  .view-btn.active,
+  .group-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Group Headers */
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    margin-top: 16px;
+  }
+
+  .group-header h3 {
+    margin: 0;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .group-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  /* Detail Section Enhancements */
+  .detail-section {
+    margin-bottom: 16px;
+  }
+
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .btn-copy-content {
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-copy-content:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* Compact View Adjustments */
+  .conversation-item {
+    transition: all 0.2s;
+  }
+
+  .conversation-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 1024px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .control-group {
+      width: 100%;
+    }
+
+    .controls-row.secondary {
+      flex-direction: column;
+      align-items: flex-start;
+    }
   }
 
   /* Accessibility */

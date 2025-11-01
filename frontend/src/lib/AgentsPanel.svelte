@@ -5,10 +5,14 @@
   import { formatNumber } from './numberFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
+  import { Chart, registerables } from 'chart.js';
+  import { settings } from './settingsStore.js';
+
+  Chart.register(...registerables);
 
   const API_BASE = API_CONFIG.API_BASE;
 
-  let activeTab = 'overview'; // 'overview', 'activity', 'performance'
+  let activeTab = 'overview'; // 'overview', 'activity', 'performance', 'setup'
   let agents = [];
   let agentStats = [];
   let agentEvents = [];
@@ -17,6 +21,21 @@
   let lastUpdated = null;
   let isRefreshing = false;
   let searchQuery = '';
+  let eventsLimit = 30;
+  let loadingMoreEvents = false;
+  let totalEvents = 0;
+  let showSetupGuide = true;
+
+  // Filtering & Sorting
+  let selectedEventTypes = []; // Empty = all types
+  let sortBy = 'events'; // 'events', 'lines', 'duration'
+  let sortOrder = 'desc'; // 'asc', 'desc'
+  let selectedAgent = null; // For cross-tab filtering
+  let dateRange = 'all'; // 'all', 'today', '7d', '30d'
+  let showNewEventAnimation = false;
+
+  // Charts
+  let charts = {};
 
   // Agent color mapping
   const AGENT_COLORS = {
@@ -30,13 +49,22 @@
   // WebSocket event handlers (event-driven, no polling)
   const handleAgentEvent = (event) => {
     // Add to events list
-    agentEvents = [event, ...agentEvents].slice(0, 20);
+    agentEvents = [event, ...agentEvents].slice(0, eventsLimit);
     lastUpdated = new Date();
+
+    // Show animation
+    showNewEventAnimation = true;
+    setTimeout(() => showNewEventAnimation = false, 2000);
   };
 
   const handleAgentStats = (stats) => {
     agentStats = stats;
     lastUpdated = new Date();
+
+    // Update charts if on performance tab
+    if (activeTab === 'performance') {
+      updateCharts();
+    }
   };
 
   const handleProjectSwitched = async (data) => {
@@ -47,6 +75,9 @@
     // Reload agent data when files change (agents might have done work)
     await loadAllData();
   };
+
+  // Watch for theme changes by observing body class changes
+  let themeObserver;
 
   onMount(async () => {
     // Initial data load
@@ -60,6 +91,21 @@
     websocketService.on('agent-stats', handleAgentStats);
     websocketService.on('project-switched', handleProjectSwitched);
     websocketService.on('file-changed', handleFileChanged);
+
+    // Watch for theme changes on body element
+    themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && activeTab === 'performance') {
+          console.log('[AgentsPanel] Theme changed, recreating charts');
+          setTimeout(createCharts, 100);
+        }
+      });
+    });
+
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
   });
 
   onDestroy(() => {
@@ -68,6 +114,11 @@
     websocketService.off('agent-stats', handleAgentStats);
     websocketService.off('project-switched', handleProjectSwitched);
     websocketService.off('file-changed', handleFileChanged);
+
+    // Disconnect theme observer
+    if (themeObserver) {
+      themeObserver.disconnect();
+    }
   });
 
   async function loadAllData(manual = false) {
@@ -75,16 +126,28 @@
     isRefreshing = manual;
     error = null;
 
+    if (manual) {
+      eventsLimit = 30; // Reset limit on manual refresh
+    }
+
     try {
       const [agentsRes, statsRes, eventsRes] = await Promise.all([
         fetch(`${API_BASE}/agents-status`),
         fetch(`${API_BASE}/agent-stats`),
-        fetch(`${API_BASE}/agent-events?limit=20`)
+        fetch(`${API_BASE}/agent-events?limit=${eventsLimit}`)
       ]);
 
       agents = await agentsRes.json();
       agentStats = await statsRes.json();
       agentEvents = await eventsRes.json();
+
+      // Track total events from agent stats
+      totalEvents = agentStats.reduce((sum, stat) => sum + (stat?.event_count || 0), 0);
+
+      // Auto-hide setup guide if we have agents
+      if (agentStats.length > 0) {
+        showSetupGuide = false;
+      }
 
       error = null;
       lastUpdated = new Date();
@@ -94,6 +157,219 @@
       loading = false;
       isRefreshing = false;
     }
+  }
+
+  async function loadMoreEvents() {
+    loadingMoreEvents = true;
+    eventsLimit += 30;
+
+    try {
+      const eventsRes = await fetch(`${API_BASE}/agent-events?limit=${eventsLimit}`);
+      agentEvents = await eventsRes.json();
+    } catch (e) {
+      error = `Failed to load more events: ${e}`;
+    } finally {
+      loadingMoreEvents = false;
+    }
+  }
+
+  // Test telemetry - send a sample event
+  let testingTelemetry = false;
+  async function testTelemetry() {
+    testingTelemetry = true;
+    try {
+      const response = await fetch('http://localhost:3030/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent: 'test-agent',
+          event_type: 'test',
+          message: 'Test telemetry event from Raven UI',
+          file: 'test.js',
+          lines_changed: 10,
+          duration_ms: 150,
+          metadata: { source: 'raven-ui-test' }
+        })
+      });
+
+      if (response.ok) {
+        error = null;
+        // Reload data to show the test event
+        await loadAllData();
+      } else {
+        const data = await response.json();
+        error = `Test failed: ${data.error || 'Unknown error'}`;
+      }
+    } catch (e) {
+      error = `Test failed: ${e.message}`;
+    } finally {
+      testingTelemetry = false;
+    }
+  }
+
+  // Sorting & Filtering Functions
+  function toggleSort(field) {
+    if (sortBy === field) {
+      sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortBy = field;
+      sortOrder = 'desc';
+    }
+  }
+
+  function toggleEventType(type) {
+    if (selectedEventTypes.includes(type)) {
+      selectedEventTypes = selectedEventTypes.filter(t => t !== type);
+    } else {
+      selectedEventTypes = [...selectedEventTypes, type];
+    }
+  }
+
+  function selectAgent(agentName) {
+    selectedAgent = selectedAgent === agentName ? null : agentName;
+  }
+
+  function clearFilters() {
+    selectedAgent = null;
+    selectedEventTypes = [];
+    searchQuery = '';
+    dateRange = 'all';
+  }
+
+  // Chart Functions
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    // Only create charts if we have data and we're on the performance tab
+    if (activeTab !== 'performance' || filteredAgentStats.length === 0) return;
+
+    // Get theme-aware colors from body element (where theme classes are applied)
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
+    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // Create charts for each agent
+    filteredAgentStats.forEach(stat => {
+      const agentId = stat.agent.replace(/[^a-zA-Z0-9]/g, '-');
+
+      // Activity Breakdown Pie Chart
+      const pieCanvas = document.getElementById(`pie-${agentId}`);
+      if (pieCanvas) {
+        charts[`pie-${agentId}`] = new Chart(pieCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: ['Creates', 'Edits', 'Deletes'],
+            datasets: [{
+              data: [
+                stat.create_count || 0,
+                stat.edit_count || 0,
+                stat.delete_count || 0
+              ],
+              backgroundColor: [
+                'rgba(16, 185, 129, 0.8)',
+                'rgba(59, 130, 246, 0.8)',
+                'rgba(239, 68, 68, 0.8)'
+              ],
+              borderColor: [
+                'rgba(16, 185, 129, 1)',
+                'rgba(59, 130, 246, 1)',
+                'rgba(239, 68, 68, 1)'
+              ],
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        });
+      }
+
+      // Response Time Bar Chart
+      const barCanvas = document.getElementById(`bar-${agentId}`);
+      if (barCanvas) {
+        charts[`bar-${agentId}`] = new Chart(barCanvas, {
+          type: 'bar',
+          data: {
+            labels: ['Fastest', 'Average', 'Slowest'],
+            datasets: [{
+              label: 'Response Time (ms)',
+              data: [
+                stat.min_duration_ms || 0,
+                stat.avg_duration_ms || 0,
+                stat.max_duration_ms || 0
+              ],
+              backgroundColor: [
+                'rgba(16, 185, 129, 0.8)',
+                'rgba(59, 130, 246, 0.8)',
+                'rgba(234, 179, 8, 0.8)'
+              ],
+              borderColor: [
+                'rgba(16, 185, 129, 1)',
+                'rgba(59, 130, 246, 1)',
+                'rgba(234, 179, 8, 1)'
+              ],
+              borderWidth: 2,
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  color: mutedColor,
+                  font: {
+                    size: 12,
+                    family: 'monospace'
+                  },
+                  maxTicksLimit: 6
+                },
+                grid: {
+                  color: gridColor
+                }
+              },
+              x: {
+                ticks: {
+                  color: textColor,
+                  font: {
+                    size: 12,
+                    family: 'monospace'
+                  }
+                },
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+  }
+
+  function updateCharts() {
+    // Recreate charts when data changes
+    setTimeout(createCharts, 100);
+  }
+
+  // Watch for tab changes to create charts
+  $: if (activeTab === 'performance' && filteredAgentStats.length > 0) {
+    setTimeout(createCharts, 100);
   }
 
   // Format time ago (reactive, no interval)
@@ -160,14 +436,98 @@
     return Math.round(total / length);
   })();
 
-  // Filter agents by search query
-  $: filteredAgentStats = searchQuery
-    ? agentStats.filter(stat => stat.agent.toLowerCase().includes(searchQuery.toLowerCase()))
-    : agentStats;
+  // Filter and sort agents
+  $: filteredAgentStats = (() => {
+    let filtered = agentStats;
 
-  $: filteredAgentEvents = searchQuery
-    ? agentEvents.filter(event => event.agent.toLowerCase().includes(searchQuery.toLowerCase()))
-    : agentEvents;
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(stat =>
+        stat.agent.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by selected agent (cross-tab filtering)
+    if (selectedAgent) {
+      filtered = filtered.filter(stat => stat.agent === selectedAgent);
+    }
+
+    // Sort
+    filtered = [...filtered].sort((a, b) => {
+      let aVal, bVal;
+      if (sortBy === 'events') {
+        aVal = a.event_count || 0;
+        bVal = b.event_count || 0;
+      } else if (sortBy === 'lines') {
+        aVal = a.total_lines_changed || 0;
+        bVal = b.total_lines_changed || 0;
+      } else if (sortBy === 'duration') {
+        aVal = a.avg_duration_ms || 0;
+        bVal = b.avg_duration_ms || 0;
+      }
+
+      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    return filtered;
+  })();
+
+  // Filter events by search, agent, type, and date range
+  $: filteredAgentEvents = (() => {
+    let filtered = agentEvents;
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(event =>
+        event.agent.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.message?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by selected agent (cross-tab filtering)
+    if (selectedAgent) {
+      filtered = filtered.filter(event => event.agent === selectedAgent);
+    }
+
+    // Filter by event types
+    if (selectedEventTypes.length > 0) {
+      filtered = filtered.filter(event =>
+        selectedEventTypes.includes(event.event_type.toLowerCase())
+      );
+    }
+
+    // Filter by date range
+    if (dateRange !== 'all') {
+      const now = new Date();
+      const cutoff = new Date();
+
+      if (dateRange === 'today') {
+        cutoff.setHours(0, 0, 0, 0);
+      } else if (dateRange === '7d') {
+        cutoff.setDate(now.getDate() - 7);
+      } else if (dateRange === '30d') {
+        cutoff.setDate(now.getDate() - 30);
+      }
+
+      filtered = filtered.filter(event => {
+        const eventDate = new Date(event.timestamp);
+        return eventDate >= cutoff;
+      });
+    }
+
+    return filtered;
+  })();
+
+  // Get available event types for filtering
+  $: availableEventTypes = (() => {
+    const types = new Set();
+    agentEvents.forEach(event => {
+      if (event.event_type) {
+        types.add(event.event_type.toLowerCase());
+      }
+    });
+    return Array.from(types).sort();
+  })();
 
   // Export functions
   function exportAgentStatsCSV() {
@@ -215,7 +575,13 @@
   <div class="header">
     <h2 id="agents-heading">🤖 AI Agents</h2>
     <div class="header-actions" role="toolbar" aria-label="Agent panel actions">
-      <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
+      <span class="last-updated" role="status" aria-live="polite" class:pulse-animation={showNewEventAnimation}>
+        {#if showNewEventAnimation}
+          ✨ New Event!
+        {:else}
+          Updated: {timeAgo}
+        {/if}
+      </span>
       <div class="export-dropdown">
         <button class="btn-export" aria-label="Export agent data" aria-haspopup="menu">📊 Export</button>
         <div class="export-menu" role="menu" aria-label="Export options">
@@ -265,6 +631,41 @@
     />
   </div>
 
+  <!-- Active Filters Bar -->
+  {#if selectedAgent || selectedEventTypes.length > 0 || dateRange !== 'all'}
+    <div class="active-filters">
+      <span class="filter-label">Active Filters:</span>
+      {#if selectedAgent}
+        <button
+          class="filter-chip"
+          on:click={() => selectedAgent = null}
+          aria-label="Remove agent filter"
+        >
+          Agent: {selectedAgent} ✕
+        </button>
+      {/if}
+      {#each selectedEventTypes as type}
+        <button
+          class="filter-chip"
+          on:click={() => toggleEventType(type)}
+          aria-label="Remove {type} filter"
+        >
+          Type: {type} ✕
+        </button>
+      {/each}
+      {#if dateRange !== 'all'}
+        <button
+          class="filter-chip"
+          on:click={() => dateRange = 'all'}
+          aria-label="Remove date range filter"
+        >
+          Range: {dateRange} ✕
+        </button>
+      {/if}
+      <button class="btn-clear-filters" on:click={clearFilters}>Clear All</button>
+    </div>
+  {/if}
+
   <!-- Tabs -->
   <div class="tabs" role="tablist" aria-label="Agent information tabs">
     <button
@@ -300,6 +701,17 @@
     >
       <span aria-hidden="true">⚡</span> Performance
     </button>
+    <button
+      class="tab"
+      class:active={activeTab === 'setup'}
+      on:click={() => activeTab = 'setup'}
+      role="tab"
+      aria-selected={activeTab === 'setup'}
+      aria-controls="agents-tabpanel"
+      id="setup-tab"
+    >
+      <span aria-hidden="true">⚙️</span> Setup Guide
+    </button>
   </div>
 
   <!-- Tab Content -->
@@ -308,6 +720,34 @@
       <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton type="grid" count={4} /></div>
     {:else if activeTab === 'overview'}
       <!-- Overview Tab -->
+      <!-- Sort Controls -->
+      {#if agentStats.length > 0}
+        <div class="sort-controls">
+          <span class="sort-label">Sort by:</span>
+          <button
+            class="sort-btn"
+            class:active={sortBy === 'events'}
+            on:click={() => toggleSort('events')}
+          >
+            Events {sortBy === 'events' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+          </button>
+          <button
+            class="sort-btn"
+            class:active={sortBy === 'lines'}
+            on:click={() => toggleSort('lines')}
+          >
+            Lines Changed {sortBy === 'lines' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+          </button>
+          <button
+            class="sort-btn"
+            class:active={sortBy === 'duration'}
+            on:click={() => toggleSort('duration')}
+          >
+            Response Time {sortBy === 'duration' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+          </button>
+        </div>
+      {/if}
+
       {#if filteredAgentStats.length === 0}
         <div class="empty" role="status">
           <div class="icon">{searchQuery ? '🔍' : '🤖'}</div>
@@ -320,7 +760,18 @@
       {:else}
         <div class="agents-grid" role="list" aria-label="Agent list">
           {#each filteredAgentStats as stat (stat.agent)}
-            <article class="agent-card" style="border-left-color: {getAgentColor(stat.agent)}" role="listitem">
+            <div
+              class="agent-card"
+              class:clickable={!selectedAgent || selectedAgent === stat.agent}
+              class:selected={selectedAgent === stat.agent}
+              class:slow-performance={(stat.avg_duration_ms || 0) > 5000}
+              style="border-left-color: {getAgentColor(stat.agent)}"
+              role="button"
+              on:click={() => selectAgent(stat.agent)}
+              tabindex="0"
+              on:keydown={(e) => e.key === 'Enter' && selectAgent(stat.agent)}
+              aria-label="Filter by {stat.agent}"
+            >
               <div class="agent-header">
                 <div class="agent-icon" style="background-color: {getAgentColor(stat.agent)}" aria-hidden="true">
                   {stat.agent.charAt(0).toUpperCase()}
@@ -329,6 +780,10 @@
                   <h3>{stat.agent}</h3>
                   <span class="agent-type">AI Agent</span>
                 </div>
+                <!-- Performance Alert -->
+                {#if (stat.avg_duration_ms || 0) > 5000}
+                  <span class="performance-alert" title="Slow response time detected">⚠️</span>
+                {/if}
               </div>
 
               <div class="agent-stats" role="group" aria-label="{stat.agent} statistics">
@@ -342,21 +797,80 @@
                 </div>
                 <div class="stat-row">
                   <span class="label">Avg Duration:</span>
-                  <span class="value">{formatDuration(stat.avg_duration_ms)}</span>
+                  <span class="value" class:warning={(stat.avg_duration_ms || 0) > 5000}>
+                    {formatDuration(stat.avg_duration_ms)}
+                  </span>
                 </div>
               </div>
-            </article>
+
+              {#if selectedAgent === stat.agent}
+                <div class="filter-badge">Filtering by this agent - Click to clear</div>
+              {:else if !selectedAgent}
+                <div class="click-hint">Click to filter</div>
+              {/if}
+            </div>
           {/each}
         </div>
       {/if}
 
     {:else if activeTab === 'activity'}
       <!-- Activity Tab -->
+      <!-- Event Type Filters -->
+      {#if agentEvents.length > 0}
+        <div class="filter-controls">
+          <div class="filter-group">
+            <span class="filter-label">Event Type:</span>
+            {#each availableEventTypes as type}
+              <button
+                class="filter-btn"
+                class:active={selectedEventTypes.includes(type)}
+                on:click={() => toggleEventType(type)}
+              >
+                {getEventIcon(type)} {type}
+                {#if selectedEventTypes.includes(type)}✓{/if}
+              </button>
+            {/each}
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Date Range:</span>
+            <button
+              class="filter-btn"
+              class:active={dateRange === 'all'}
+              on:click={() => dateRange = 'all'}
+            >
+              All Time {#if dateRange === 'all'}✓{/if}
+            </button>
+            <button
+              class="filter-btn"
+              class:active={dateRange === 'today'}
+              on:click={() => dateRange = 'today'}
+            >
+              Today {#if dateRange === 'today'}✓{/if}
+            </button>
+            <button
+              class="filter-btn"
+              class:active={dateRange === '7d'}
+              on:click={() => dateRange = '7d'}
+            >
+              Last 7 Days {#if dateRange === '7d'}✓{/if}
+            </button>
+            <button
+              class="filter-btn"
+              class:active={dateRange === '30d'}
+              on:click={() => dateRange = '30d'}
+            >
+              Last 30 Days {#if dateRange === '30d'}✓{/if}
+            </button>
+          </div>
+        </div>
+      {/if}
+
       {#if filteredAgentEvents.length === 0}
         <div class="empty" role="status">
-          <div class="icon" aria-hidden="true">{searchQuery ? '🔍' : '📝'}</div>
-          <h3>{searchQuery ? 'No events match your search' : 'No Recent Activity'}</h3>
-          <p>{searchQuery ? 'Try a different search term' : 'Agent events will appear here as they occur.'}</p>
+          <div class="icon" aria-hidden="true">{searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all' ? '🔍' : '📝'}</div>
+          <h3>{searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all' ? 'No events match your filters' : 'No Recent Activity'}</h3>
+          <p>{searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all' ? 'Try adjusting your filters' : 'Agent events will appear here as they occur.'}</p>
         </div>
       {:else}
         <div class="events-list" role="feed" aria-label="Agent activity feed">
@@ -392,6 +906,20 @@
             </article>
           {/each}
         </div>
+
+        <!-- Load More Button -->
+        {#if filteredAgentEvents.length > 0 && filteredAgentEvents.length < totalEvents}
+          <div class="load-more-container">
+            <button class="load-more-btn" on:click={loadMoreEvents} disabled={loadingMoreEvents}>
+              {#if loadingMoreEvents}
+                <span class="spinner-small"></span> Loading...
+              {:else}
+                Load More ({formatNumber(Math.min(30, totalEvents - filteredAgentEvents.length))} more)
+              {/if}
+            </button>
+            <span class="load-more-info">Showing {formatNumber(filteredAgentEvents.length)} of {formatNumber(totalEvents)} events</span>
+          </div>
+        {/if}
       {/if}
 
     {:else if activeTab === 'performance'}
@@ -404,14 +932,23 @@
         </div>
       {:else}
         {#each filteredAgentStats as stat (stat.agent)}
+          {@const agentId = stat.agent.replace(/[^a-zA-Z0-9]/g, '-')}
           <div class="agent-performance-section">
-            <h3 class="agent-section-title" style="color: {getAgentColor(stat.agent)}">{stat.agent}</h3>
+            <h3 class="agent-section-title" style="color: {getAgentColor(stat.agent)}">
+              {stat.agent}
+              {#if (stat.avg_duration_ms || 0) > 5000}
+                <span class="performance-alert-inline" title="Slow response time detected">⚠️ Slow Performance</span>
+              {/if}
+            </h3>
 
             <div class="performance-grid">
-              <!-- Response Time Card -->
-              <div class="performance-card detail-card">
+              <!-- Response Time Chart -->
+              <div class="performance-card chart-card">
                 <h4>⚡ Response Time</h4>
-                <div class="metric-grid">
+                <div class="chart-container">
+                  <canvas id="bar-{agentId}"></canvas>
+                </div>
+                <div class="metric-grid compact">
                   <div class="metric-item">
                     <span class="metric-label">Average</span>
                     <span class="metric-value primary">{stat.avg_duration_ms ? formatDuration(stat.avg_duration_ms) : 'N/A'}</span>
@@ -427,25 +964,28 @@
                 </div>
               </div>
 
-              <!-- Activity Breakdown Card -->
-              <div class="performance-card detail-card">
+              <!-- Activity Breakdown Chart -->
+              <div class="performance-card chart-card">
                 <h4>📊 Activity Breakdown</h4>
-                <div class="breakdown-grid">
-                  <div class="breakdown-item">
+                <div class="chart-container pie">
+                  <canvas id="pie-{agentId}"></canvas>
+                </div>
+                <div class="breakdown-summary">
+                  <div class="breakdown-item compact">
                     <span class="breakdown-icon create">➕</span>
                     <div class="breakdown-info">
                       <span class="breakdown-value">{formatNumber(stat.create_count || 0)}</span>
                       <span class="breakdown-label">Creates</span>
                     </div>
                   </div>
-                  <div class="breakdown-item">
+                  <div class="breakdown-item compact">
                     <span class="breakdown-icon edit">✏️</span>
                     <div class="breakdown-info">
                       <span class="breakdown-value">{formatNumber(stat.edit_count || 0)}</span>
                       <span class="breakdown-label">Edits</span>
                     </div>
                   </div>
-                  <div class="breakdown-item">
+                  <div class="breakdown-item compact">
                     <span class="breakdown-icon delete">🗑️</span>
                     <div class="breakdown-info">
                       <span class="breakdown-value">{formatNumber(stat.delete_count || 0)}</span>
@@ -477,6 +1017,176 @@
           </div>
         {/each}
       {/if}
+
+    {:else if activeTab === 'setup'}
+      <!-- Setup Guide Tab -->
+      <div class="setup-guide">
+        <div class="setup-header">
+          <h3>📡 Configure Your AI Agents</h3>
+          <p>Send telemetry data from your AI agents to Raven for real-time monitoring and analytics.</p>
+        </div>
+
+        <!-- Test Telemetry Button -->
+        <div class="test-section">
+          <h4>1. Test the Connection</h4>
+          <p>Send a test event to verify Raven is receiving telemetry:</p>
+          <button class="btn-test" on:click={testTelemetry} disabled={testingTelemetry}>
+            {#if testingTelemetry}
+              <span class="spinner-small"></span> Sending...
+            {:else}
+              🧪 Send Test Event
+            {/if}
+          </button>
+        </div>
+
+        <!-- Endpoint Information -->
+        <div class="endpoint-section">
+          <h4>2. Telemetry Endpoint</h4>
+          <p>Configure your agents to POST telemetry data to:</p>
+          <div class="endpoint-box">
+            <code class="endpoint-url">POST http://localhost:3030/telemetry</code>
+            <button class="btn-copy" on:click={() => navigator.clipboard.writeText('http://localhost:3030/telemetry')}>
+              📋 Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Example Payload -->
+        <div class="payload-section">
+          <h4>3. Example Payload</h4>
+          <p>Send a JSON payload with the following structure:</p>
+          <pre class="payload-example"><code>{JSON.stringify({
+  agent: "your-agent-name",
+  event_type: "edit",
+  message: "Modified user authentication logic",
+  file: "src/auth.js",
+  lines_changed: 25,
+  duration_ms: 1500,
+  metadata: {
+    model: "claude-3-5-sonnet",
+    prompt_type: "code-edit"
+  }
+}, null, 2)}</code></pre>
+          <button class="btn-copy-payload" on:click={() => navigator.clipboard.writeText(JSON.stringify({
+  agent: "your-agent-name",
+  event_type: "edit",
+  message: "Modified user authentication logic",
+  file: "src/auth.js",
+  lines_changed: 25,
+  duration_ms: 1500,
+  metadata: {
+    model: "claude-3-5-sonnet",
+    prompt_type: "code-edit"
+  }
+}, null, 2))}>
+            📋 Copy Example
+          </button>
+        </div>
+
+        <!-- Field Descriptions -->
+        <div class="fields-section">
+          <h4>4. Required Fields</h4>
+          <table class="fields-table">
+            <tbody>
+              <tr>
+                <td class="field-name"><code>agent</code></td>
+                <td class="field-type">string</td>
+                <td class="field-desc">Agent identifier (e.g., "claude-code", "cursor", "chatgpt")</td>
+              </tr>
+              <tr>
+                <td class="field-name"><code>event_type</code></td>
+                <td class="field-type">string</td>
+                <td class="field-desc">Event type: "edit", "create", "delete", "read", "execute"</td>
+              </tr>
+              <tr>
+                <td class="field-name"><code>message</code></td>
+                <td class="field-type">string</td>
+                <td class="field-desc">Human-readable description of the event</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4 style="margin-top: 16px;">Optional Fields</h4>
+          <table class="fields-table">
+            <tbody>
+              <tr>
+                <td class="field-name"><code>file</code></td>
+                <td class="field-type">string</td>
+                <td class="field-desc">File path relative to project root</td>
+              </tr>
+              <tr>
+                <td class="field-name"><code>lines_changed</code></td>
+                <td class="field-type">number</td>
+                <td class="field-desc">Number of lines modified</td>
+              </tr>
+              <tr>
+                <td class="field-name"><code>duration_ms</code></td>
+                <td class="field-type">number</td>
+                <td class="field-desc">Operation duration in milliseconds</td>
+              </tr>
+              <tr>
+                <td class="field-name"><code>metadata</code></td>
+                <td class="field-type">object</td>
+                <td class="field-desc">Additional context (model, prompt type, etc.)</td>
+              </tr>
+              <tr>
+                <td class="field-name"><code>project</code></td>
+                <td class="field-type">string</td>
+                <td class="field-desc">Project identifier (optional, auto-detected)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Integration Examples -->
+        <div class="integration-section">
+          <h4>5. Integration Examples</h4>
+          <div class="integration-tabs">
+            <details>
+              <summary>JavaScript/Node.js</summary>
+              <pre><code>{`async function sendTelemetry(agent, eventType, message, file, linesChanged) {
+  await fetch('http://localhost:3030/telemetry', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      agent,
+      event_type: eventType,
+      message,
+      file,
+      lines_changed: linesChanged,
+      duration_ms: Date.now() - startTime
+    })
+  });
+}`}</code></pre>
+            </details>
+            <details>
+              <summary>Python</summary>
+              <pre><code>{`import requests
+
+def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
+    requests.post('http://localhost:3030/telemetry', json={
+        'agent': agent,
+        'event_type': event_type,
+        'message': message,
+        'file': file,
+        'lines_changed': lines_changed
+    })`}</code></pre>
+            </details>
+            <details>
+              <summary>cURL</summary>
+              <pre><code>{`curl -X POST http://localhost:3030/telemetry \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "agent": "my-agent",
+    "event_type": "edit",
+    "message": "Updated function",
+    "file": "src/main.js",
+    "lines_changed": 10
+  }'`}</code></pre>
+            </details>
+          </div>
+        </div>
+      </div>
     {/if}
   </div>
 
@@ -943,57 +1653,65 @@
 
   /* Performance Tab */
   .agent-performance-section {
-    margin-bottom: 8px;
+    margin-bottom: 16px;
   }
 
   .agent-section-title {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    margin-bottom: 6px;
-    padding-left: 4px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
   }
 
   .performance-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 10px;
   }
 
   .performance-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
     border-radius: 4px;
-    padding: 6px;
+    padding: 10px 12px;
   }
 
   .performance-card h4 {
     color: var(--text);
-    font-size: 11px;
-    margin: 0 0 6px 0;
+    font-size: 12px;
+    margin: 0 0 8px 0;
     font-weight: 600;
   }
 
   .metric-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    gap: 10px;
   }
 
   .metric-item {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    padding: 6px;
+    background: var(--surface-2);
+    border-radius: 3px;
   }
 
   .metric-label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
     font-weight: 600;
+    letter-spacing: 0.5px;
   }
 
   .metric-value {
-    font-size: 11px;
+    font-size: 14px;
     color: var(--text);
     font-weight: 700;
     font-family: var(--mono);
@@ -1011,29 +1729,23 @@
     color: var(--warning);
   }
 
-  .breakdown-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
   .breakdown-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px;
+    gap: 8px;
+    padding: 8px 10px;
     background: var(--surface-2);
     border-radius: 3px;
   }
 
   .breakdown-icon {
-    font-size: 11px;
-    width: 32px;
-    height: 32px;
+    font-size: 16px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 3px;
+    border-radius: 4px;
     flex-shrink: 0;
   }
 
@@ -1053,20 +1765,279 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex: 1;
   }
 
   .breakdown-value {
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
   }
 
   .breakdown-label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
     font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* Load More Button */
+  .load-more-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    margin-top: 16px;
+  }
+
+  .load-more-btn {
+    padding: 10px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+  }
+
+  .load-more-btn:hover:not(:disabled) {
+    background: var(--accent-hover, var(--accent));
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .load-more-info {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  /* Setup Guide Tab */
+  .setup-guide {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .setup-header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding: 20px;
+    background: var(--surface-2);
+    border-radius: 6px;
+  }
+
+  .setup-header h3 {
+    font-size: 18px;
+    margin: 0 0 12px 0;
+    color: var(--text);
+  }
+
+  .setup-header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .test-section,
+  .endpoint-section,
+  .payload-section,
+  .fields-section,
+  .integration-section {
+    margin-bottom: 32px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .setup-guide h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 12px 0;
+  }
+
+  .setup-guide p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 16px 0;
+    line-height: 1.6;
+  }
+
+  .btn-test {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: 1px solid #047857;
+    border-radius: 4px;
+    color: white;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-test:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-test:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .endpoint-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .endpoint-url {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .btn-copy,
+  .btn-copy-payload {
+    padding: 6px 12px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-copy:hover,
+  .btn-copy-payload:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .btn-copy-payload {
+    margin-top: 12px;
+  }
+
+  .payload-example {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 0;
+  }
+
+  .payload-example code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .fields-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .fields-table tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .fields-table td {
+    padding: 12px 8px;
+    vertical-align: top;
+  }
+
+  .field-name {
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--accent);
+    width: 150px;
+  }
+
+  .field-type {
+    color: var(--warning);
+    font-family: var(--mono);
+    width: 80px;
+  }
+
+  .field-desc {
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .integration-tabs details {
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-2);
+  }
+
+  .integration-tabs summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    user-select: none;
+  }
+
+  .integration-tabs summary:hover {
+    background: var(--surface-3);
+  }
+
+  .integration-tabs pre {
+    margin: 0;
+    padding: 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .integration-tabs code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
   }
 
   /* Footer */
@@ -1083,10 +2054,299 @@
     line-height: 1.4;
   }
 
+  /* Pulse Animation */
+  .pulse-animation {
+    animation: pulse 1s ease-in-out infinite;
+    color: var(--warning) !important;
+    font-weight: 600;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Active Filters Bar */
+  .active-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-chip:hover {
+    background: var(--accent-hover, var(--accent));
+    transform: scale(1.05);
+  }
+
+  .btn-clear-filters {
+    padding: 4px 12px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: auto;
+  }
+
+  .btn-clear-filters:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+  }
+
+  /* Sort Controls */
+  .sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+
+  .sort-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .sort-btn {
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--mono);
+  }
+
+  .sort-btn:hover {
+    background: var(--surface-3);
+    border-color: var(--accent);
+  }
+
+  .sort-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Filter Controls */
+  .filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--mono);
+  }
+
+  .filter-btn:hover {
+    background: var(--surface-3);
+    border-color: var(--accent);
+  }
+
+  .filter-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Agent Card Enhancements */
+  .agent-card.clickable {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .agent-card.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-left-width: 6px;
+  }
+
+  .agent-card.selected {
+    border-left-width: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: var(--surface-2);
+  }
+
+  .agent-card.slow-performance {
+    border-right: 3px solid var(--warning);
+  }
+
+  .performance-alert {
+    font-size: 16px;
+    margin-left: auto;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .performance-alert-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(234, 179, 8, 0.2);
+    color: var(--warning);
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 12px;
+  }
+
+  .click-hint {
+    text-align: center;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 8px;
+    padding: 4px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .agent-card:hover .click-hint {
+    opacity: 1;
+  }
+
+  .filter-badge {
+    text-align: center;
+    font-size: 10px;
+    color: white;
+    background: var(--accent);
+    margin-top: 8px;
+    padding: 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+
+  .stat-row .value.warning {
+    color: var(--warning);
+  }
+
+  /* Chart Styles */
+  .chart-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-container {
+    flex: 1;
+    height: 180px;
+    max-height: 180px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .chart-container.pie {
+    height: 200px;
+    max-height: 200px;
+    padding: 16px;
+  }
+
+  .metric-grid.compact {
+    margin-top: 8px;
+    gap: 8px;
+  }
+
+  .breakdown-summary {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .breakdown-item.compact {
+    padding: 4px 6px;
+    flex: 1;
+  }
+
   @media (max-width: 768px) {
     .agents-grid,
     .performance-grid {
       grid-template-columns: 1fr;
+    }
+
+    .filter-controls,
+    .sort-controls {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .filter-group {
+      width: 100%;
+    }
+
+    .breakdown-summary {
+      flex-direction: column;
+    }
+
+    .breakdown-item.compact {
+      flex: none;
     }
   }
 </style>

@@ -113,8 +113,14 @@
   let sessionId = 'Loading...';
   let sessionUptime = '0s';
   // Use router for navigation state (synced with URL hash)
-  $: activeTab = $currentTab;
+  // Always ensure activeTab has a valid value, default to 'overview' if undefined
+  $: activeTab = $currentTab || 'overview';
   $: currentSubView = $currentSubTab;
+
+  // Debug logging
+  $: {
+    console.log('[App] activeTab:', activeTab, 'currentTab:', $currentTab, 'isInitialLoading:', isInitialLoading);
+  }
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
   let showHelp = false;
   let showWelcome = false;
@@ -131,6 +137,16 @@
   let isInitialLoading = true;
   let loadingProgress = 0;
   let loadingMessage = 'Initializing Raven...';
+
+  // Failsafe: clear loading screen after max 3 seconds, even if onMount fails
+  if (typeof window !== 'undefined') {
+    setTimeout(() => {
+      if (isInitialLoading) {
+        console.warn('[App] Failsafe: Force clearing loading screen after timeout');
+        isInitialLoading = false;
+      }
+    }, 3000);
+  }
 
   const startTime = Date.now();
   let uptimeInterval;
@@ -293,9 +309,6 @@
     theme = localStorage.getItem('raven-theme') || 'theme--night';
     document.body.className = theme;
 
-    // Always start at Overview tab on fresh load
-    activeTab = 'overview';
-
     // Setup global error handler (instant)
     setupGlobalErrorHandler();
 
@@ -313,6 +326,7 @@
 
     // Hide loading screen immediately - UI is now interactive!
     isInitialLoading = false;
+    console.log('[App] Loading screen cleared, activeTab:', activeTab);
 
     // Everything else happens in background, non-blocking
     Promise.all([
@@ -864,6 +878,23 @@
       {:catch _}
         <div style="min-height:200px" role="status">Loading…</div>
       {/await}
+    {:else}
+      <!-- Fallback: Unknown tab or initialization issue -->
+      <div class="empty-state" style="padding: 40px; text-align: center; color: var(--muted);">
+        <div style="font-size: 48px; margin-bottom: 16px;">🤔</div>
+        <h3 style="color: var(--text); margin-bottom: 12px;">Page Not Found</h3>
+        <p style="margin-bottom: 24px;">The requested page doesn't exist or failed to load.</p>
+        <button
+          class="btn-primary"
+          on:click={() => router.navigate('overview')}
+          style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer;"
+        >
+          Go to Overview
+        </button>
+        <p style="margin-top: 16px; font-size: 11px;">
+          Current tab: <code style="background: var(--surface); padding: 2px 6px; border-radius: 3px;">{activeTab}</code>
+        </p>
+      </div>
     {/if}
   </div></main>
 
