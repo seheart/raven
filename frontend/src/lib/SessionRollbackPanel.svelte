@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { notifications } from './notificationService.js';
   import { formatDateTime } from './timeFormat.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
 
   let sessions = [];
   let loading = true;
@@ -13,6 +14,9 @@
   let rollingback = false;
   let showConfirmDialog = false;
   let confirmCheckbox = false;
+  let triggerButton = null;
+  let modalElement = null;
+  let error = null;
 
   // Fetch sessions
   async function fetchSessions() {
@@ -24,9 +28,11 @@
       const data = await response.json();
       sessions = data.sessions;
       loading = false;
-    } catch (error) {
-      logger.error('Failed to fetch sessions:', error);
+      error = null;
+    } catch (err) {
+      logger.error('Failed to fetch sessions:', err);
       notifications.error('Failed to load sessions');
+      error = err.message || 'Failed to load sessions';
       loading = false;
     }
   }
@@ -51,17 +57,56 @@
   }
 
   // Show confirmation dialog
-  function showRollbackConfirmation() {
+  function showRollbackConfirmation(event) {
     if (!selectedSession || !previewData?.canRollback) return;
+    triggerButton = event?.target;
     showConfirmDialog = true;
     confirmCheckbox = false;
+  }
+
+  // Close confirmation dialog
+  function closeConfirmDialog() {
+    showConfirmDialog = false;
+    confirmCheckbox = false;
+    // Return focus to trigger button
+    if (triggerButton) {
+      triggerButton.focus();
+      triggerButton = null;
+    }
+  }
+
+  // Focus trap for modal
+  function handleModalKeydown(event) {
+    if (event.key === 'Escape') {
+      closeConfirmDialog();
+      return;
+    }
+
+    // Focus trap
+    if (event.key === 'Tab' && modalElement) {
+      const focusableElements = modalElement.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
   }
 
   // Execute rollback (after confirmation)
   async function executeRollback() {
     if (!selectedSession || !previewData?.canRollback || !confirmCheckbox) return;
 
+    const returnFocusElement = triggerButton;
     showConfirmDialog = false;
+    triggerButton = null;
 
     try {
       rollingback = true;
@@ -88,10 +133,20 @@
 
       // Refresh sessions
       await fetchSessions();
+
+      // Return focus after operation completes
+      if (returnFocusElement) {
+        returnFocusElement.focus();
+      }
     } catch (error) {
       logger.error('Failed to execute rollback:', error);
       notifications.error('Failed to execute rollback');
       rollingback = false;
+
+      // Return focus even on error
+      if (returnFocusElement) {
+        returnFocusElement.focus();
+      }
     }
   }
 
@@ -143,14 +198,28 @@
     </button>
   </div>
 
-  {#if loading}
-    <div class="loading" role="status" aria-live="polite">
-      <div class="spinner" aria-hidden="true"></div>
-      <p>Loading sessions...</p>
+  {#if error}
+    <div class="error-state" role="alert">
+      <p>Error: {error}</p>
+      <button class="btn-retry" on:click={fetchSessions} aria-label="Retry loading sessions">
+        Retry
+      </button>
     </div>
+  {:else if loading}
+    <LoadingSkeleton type="list" count={5} height="80px" />
   {:else if selectedSession && previewData}
     <!-- Rollback Preview -->
-    <div class="preview-container" role="dialog" aria-modal="true" aria-labelledby="preview-heading">
+    <div
+      class="preview-container"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="preview-heading"
+      on:keydown={(e) => {
+        if (e.key === 'Escape') {
+          cancelPreview();
+        }
+      }}
+    >
       <div class="preview-header">
         <h3 id="preview-heading">Rollback Preview</h3>
         <button class="close-btn" on:click={cancelPreview} aria-label="Close preview">
@@ -276,8 +345,23 @@
 
 <!-- Confirmation Dialog -->
 {#if showConfirmDialog}
-  <div class="modal-overlay" on:click={() => { showConfirmDialog = false; confirmCheckbox = false; }} role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
-    <div class="modal-content" on:click|stopPropagation role="document">
+  <div
+    class="modal-overlay"
+    on:click={closeConfirmDialog}
+    on:keydown={handleModalKeydown}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirm-dialog-title"
+    tabindex="-1"
+  >
+    <div
+      class="modal-content"
+      on:click|stopPropagation
+      on:keydown={handleModalKeydown}
+      bind:this={modalElement}
+      role="document"
+      tabindex="-1"
+    >
       <h3 id="confirm-dialog-title">⚠️ Confirm Rollback</h3>
       <div class="modal-body">
         <p class="warning-text">
@@ -295,7 +379,7 @@
       <div class="modal-actions">
         <button
           class="cancel-btn"
-          on:click={() => { showConfirmDialog = false; confirmCheckbox = false; }}
+          on:click={closeConfirmDialog}
           aria-label="Cancel rollback"
         >
           Cancel
@@ -578,8 +662,8 @@
   }
 
   .close-btn:hover {
-    background: #ef4444;
-    border-color: #ef4444;
+    background: var(--error);
+    border-color: var(--error);
     color: white;
   }
 
@@ -716,13 +800,13 @@
   }
 
   .rollback-btn {
-    background: #ef4444;
+    background: var(--error);
     border: none;
     color: white;
   }
 
   .rollback-btn:hover:not(:disabled) {
-    background: #dc2626;
+    background: color-mix(in srgb, var(--error) 90%, black);
     transform: translateY(-1px);
   }
 
@@ -746,7 +830,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: color-mix(in srgb, var(--bg) 30%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -852,5 +936,48 @@
   .rollback-btn.danger:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .error-state p {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-retry {
+    padding: 8px 16px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-retry:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-retry:focus {
+    outline: 2px solid var(--error);
+    outline-offset: 2px;
   }
 </style>

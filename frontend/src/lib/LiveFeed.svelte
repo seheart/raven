@@ -6,6 +6,7 @@
   import { api } from './apiClient.js';
   import { logger } from './logger.js';
   import { notifications } from './notificationService.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
 
   let changes = [];
   let loading = true;
@@ -241,7 +242,7 @@
   <!-- Feed Content -->
   <div class="live-feed-content" role="feed" aria-label="Live code changes" aria-busy={loading}>
     {#if loading}
-      <div class="loading" role="status" aria-live="polite">Loading live feed...</div>
+      <LoadingSkeleton type="list" count={5} height="80px" />
     {:else if filteredChanges.length === 0}
       <div class="empty-state" role="status">
         {#if searchQuery}
@@ -607,13 +608,13 @@
   }
 
   .diff-line.add {
-    background: color-mix(in srgb, #22c55e 15%, transparent);
-    border-left: 3px solid #22c55e;
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+    border-left: 3px solid var(--success);
   }
 
   .diff-line.remove {
-    background: color-mix(in srgb, #ef4444 15%, transparent);
-    border-left: 3px solid #ef4444;
+    background: color-mix(in srgb, var(--error) 15%, transparent);
+    border-left: 3px solid var(--error);
   }
 
   .diff-line.context {
@@ -641,12 +642,12 @@
   }
 
   .diff-line.add .line-number {
-    color: #22c55e;
+    color: var(--success);
     font-weight: 600;
   }
 
   .diff-line.remove .line-number {
-    color: #ef4444;
+    color: var(--error);
     font-weight: 600;
   }
 
@@ -660,11 +661,11 @@
   }
 
   .diff-line.add .line-content {
-    color: #22c55e;
+    color: var(--success);
   }
 
   .diff-line.remove .line-content {
-    color: #ef4444;
+    color: var(--error);
   }
 
   .change-diff::-webkit-scrollbar {

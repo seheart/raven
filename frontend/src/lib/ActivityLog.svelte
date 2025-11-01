@@ -471,6 +471,29 @@
       : 0
   };
 
+  // Reactive aria-labels for chart accessibility
+  $: activityTypesAriaLabel = `Activity type breakdown chart showing ${stats.file} file activities, ${stats.agent} agent activities, and ${stats.system} system activities`;
+
+  $: activitiesPerSessionAriaLabel = (() => {
+    const topSessions = sessions.slice(0, 10);
+    if (topSessions.length === 0) return 'Activities per session chart: No session data available';
+    return `Activities per session chart showing ${topSessions.length} sessions with a total of ${activities.length} activities`;
+  })();
+
+  $: activitiesByHourAriaLabel = (() => {
+    const hourCounts = new Array(24).fill(0);
+    activities.forEach(activity => {
+      const hour = new Date(activity.timestamp).getHours();
+      hourCounts[hour]++;
+    });
+    const peakHour = hourCounts.indexOf(Math.max(...hourCounts));
+    const peakCount = hourCounts[peakHour];
+    if (peakCount === 0) return 'Activities by hour chart: No activity data available';
+    return `Activities by hour chart showing ${activities.length} total activities. Peak hour: ${peakHour}:00 with ${peakCount} activities`;
+  })();
+
+  $: cumulativeActivitiesAriaLabel = `Cumulative activities chart showing growth from 0 to ${activities.length} activities over time`;
+
   // Chart creation function
   function createCharts() {
     // Destroy existing charts
@@ -480,9 +503,18 @@
     if (!showCharts || activities.length === 0) return;
 
     // Get theme-aware colors from body element
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
-    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const computedStyle = getComputedStyle(document.documentElement);
+    const textColor = computedStyle.getPropertyValue('--text').trim();
+    const mutedColor = computedStyle.getPropertyValue('--muted').trim();
     const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // Extract theme colors for charts
+    const themeColors = {
+      accent: computedStyle.getPropertyValue('--accent').trim(),
+      success: computedStyle.getPropertyValue('--success').trim(),
+      error: computedStyle.getPropertyValue('--error').trim(),
+      warning: computedStyle.getPropertyValue('--warning').trim()
+    };
 
     // 1. Pie Chart: Activity type breakdown (file/agent/system)
     const pieCanvas = document.getElementById('chart-activity-types');
@@ -499,7 +531,7 @@
           labels: ['File', 'Agent', 'System'],
           datasets: [{
             data: [typeCounts.file, typeCounts.agent, typeCounts.system],
-            backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b']
+            backgroundColor: [themeColors.accent, '#8b5cf6', themeColors.warning]
           }]
         },
         options: {
@@ -539,7 +571,7 @@
           datasets: [{
             label: 'Events',
             data: sessionData,
-            backgroundColor: '#3b82f6'
+            backgroundColor: themeColors.accent
           }]
         },
         options: {
@@ -602,7 +634,13 @@
             backgroundColor: hourCounts.map(count => {
               const max = Math.max(...hourCounts);
               const intensity = max > 0 ? count / max : 0;
-              return `rgba(59, 130, 246, ${0.3 + intensity * 0.7})`;
+              // Convert hex to rgba with dynamic opacity
+              const accentColor = themeColors.accent;
+              // Parse hex color and convert to rgba
+              const r = parseInt(accentColor.slice(1, 3), 16);
+              const g = parseInt(accentColor.slice(3, 5), 16);
+              const b = parseInt(accentColor.slice(5, 7), 16);
+              return `rgba(${r}, ${g}, ${b}, ${0.3 + intensity * 0.7})`;
             })
           }]
         },
@@ -664,8 +702,8 @@
           datasets: [{
             label: 'Cumulative Activities',
             data: cumulativeData,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderColor: themeColors.success,
+            backgroundColor: `${themeColors.success}1a`,
             fill: true,
             tension: 0.4
           }]
@@ -957,16 +995,24 @@
         </div>
         <div class="charts-grid">
           <div class="chart-container">
-            <canvas id="chart-activity-types"></canvas>
+            <div role="img" aria-label={activityTypesAriaLabel}>
+              <canvas id="chart-activity-types"></canvas>
+            </div>
           </div>
           <div class="chart-container">
-            <canvas id="chart-activities-per-session"></canvas>
+            <div role="img" aria-label={activitiesPerSessionAriaLabel}>
+              <canvas id="chart-activities-per-session"></canvas>
+            </div>
           </div>
           <div class="chart-container chart-wide">
-            <canvas id="chart-activities-by-hour"></canvas>
+            <div role="img" aria-label={activitiesByHourAriaLabel}>
+              <canvas id="chart-activities-by-hour"></canvas>
+            </div>
           </div>
           <div class="chart-container chart-wide">
-            <canvas id="chart-cumulative-activities"></canvas>
+            <div role="img" aria-label={cumulativeActivitiesAriaLabel}>
+              <canvas id="chart-cumulative-activities"></canvas>
+            </div>
           </div>
         </div>
       </div>

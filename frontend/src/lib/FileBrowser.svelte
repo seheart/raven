@@ -5,6 +5,7 @@
   import { notifications } from './notificationService.js';
   import { API_CONFIG } from '../config.js';
   import { Chart, registerables } from 'chart.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
 
   Chart.register(...registerables);
 
@@ -13,6 +14,7 @@
   let files = [];
   let fileMetadata = new Map(); // filepath -> { lastModified, changeCount, events }
   let loading = true;
+  let error = null;
   let expandedFile = null;
   let projects = [];
   let selectedProject = localStorage.getItem('raven-file-browser-project') || '';
@@ -96,12 +98,14 @@
       }
       files = await response.json();
       loading = false;
-    } catch (error) {
-      logger.error('Failed to load tracked files:', error);
-      notifications.error(`Failed to load tracked files: ${error.message || 'Network error'}`, {
+      error = null;
+    } catch (err) {
+      logger.error('Failed to load tracked files:', err);
+      notifications.error(`Failed to load tracked files: ${err.message || 'Network error'}`, {
         title: 'File Browser Error',
         message: 'Using fallback data. Check if the Raven backend is running.'
       });
+      error = err.message || 'Failed to load tracked files';
       // Fallback to mock data
       files = [
         'test_workspace/src/example.py',
@@ -210,24 +214,25 @@
   }
 
   function getFileTypeColor(ext) {
+    const computedStyle = getComputedStyle(document.documentElement);
     const colors = {
-      '.py': '#3b82f6',
-      '.js': '#f59e0b',
-      '.jsx': '#f59e0b',
-      '.ts': '#3b82f6',
-      '.tsx': '#3b82f6',
+      '.py': computedStyle.getPropertyValue('--accent').trim(),
+      '.js': computedStyle.getPropertyValue('--warning').trim(),
+      '.jsx': computedStyle.getPropertyValue('--warning').trim(),
+      '.ts': computedStyle.getPropertyValue('--accent').trim(),
+      '.tsx': computedStyle.getPropertyValue('--accent').trim(),
       '.svelte': '#ff3e00',
-      '.json': '#10b981',
+      '.json': computedStyle.getPropertyValue('--success').trim(),
       '.css': '#8b5cf6',
       '.scss': '#8b5cf6',
-      '.html': '#ef4444',
-      '.md': '#6b7280',
+      '.html': computedStyle.getPropertyValue('--error').trim(),
+      '.md': computedStyle.getPropertyValue('--muted').trim(),
       '.rs': '#f97316',
-      '.toml': '#6b7280',
-      '.yml': '#6b7280',
-      '.yaml': '#6b7280'
+      '.toml': computedStyle.getPropertyValue('--muted').trim(),
+      '.yml': computedStyle.getPropertyValue('--muted').trim(),
+      '.yaml': computedStyle.getPropertyValue('--muted').trim()
     };
-    return colors[ext] || '#6b7280';
+    return colors[ext] || computedStyle.getPropertyValue('--muted').trim();
   }
 
   function getFileName(filepath) {
@@ -350,6 +355,37 @@
     sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
   }
 
+  // Reactive aria-labels for chart accessibility
+  $: fileTypesAriaLabel = (() => {
+    const topTypes = availableFileTypes.map(ext => ({
+      ext,
+      count: files.filter(f => getFileExtension(f) === ext).length
+    })).sort((a, b) => b.count - a.count).slice(0, 3);
+    if (topTypes.length === 0) return 'File types distribution chart: No files available';
+    const summary = topTypes.map(({ ext, count }) => `${ext}: ${count} files`).join(', ');
+    return `File types distribution chart showing ${files.length} total files. Top types: ${summary}`;
+  })();
+
+  $: mostChangedAriaLabel = (() => {
+    const topFiles = files.map(f => ({
+      file: getFileName(f),
+      count: fileMetadata.get(f)?.changeCount || 0
+    })).sort((a, b) => b.count - a.count).slice(0, 3);
+    if (topFiles.length === 0 || topFiles[0].count === 0) return 'Most changed files chart: No change data available';
+    const summary = topFiles.map(({ file, count }) => `${file}: ${count} changes`).join(', ');
+    return `Most changed files chart. Top files: ${summary}`;
+  })();
+
+  $: changesByTypeAriaLabel = (() => {
+    const typeChanges = availableFileTypes.map(ext => ({
+      ext,
+      changes: files.filter(f => getFileExtension(f) === ext).reduce((sum, f) => sum + (fileMetadata.get(f)?.changeCount || 0), 0)
+    })).sort((a, b) => b.changes - a.changes).slice(0, 3);
+    if (typeChanges.length === 0 || typeChanges[0].changes === 0) return 'Changes by file type chart: No change data available';
+    const summary = typeChanges.map(({ ext, changes }) => `${ext}: ${changes} changes`).join(', ');
+    return `Changes by file type chart. Top types: ${summary}`;
+  })();
+
   function createCharts() {
     // Destroy existing charts
     Object.values(charts).forEach(chart => chart?.destroy());
@@ -358,9 +394,18 @@
     if (!showCharts || files.length === 0) return;
 
     // Get theme-aware colors
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
-    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const computedStyle = getComputedStyle(document.documentElement);
+    const textColor = computedStyle.getPropertyValue('--text').trim();
+    const mutedColor = computedStyle.getPropertyValue('--muted').trim();
     const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // Extract theme colors for charts
+    const themeColors = {
+      accent: computedStyle.getPropertyValue('--accent').trim(),
+      success: computedStyle.getPropertyValue('--success').trim(),
+      error: computedStyle.getPropertyValue('--error').trim(),
+      warning: computedStyle.getPropertyValue('--warning').trim()
+    };
 
     // 1. Pie Chart: File types distribution
     const pieCanvas = document.getElementById('chart-file-types');
@@ -420,7 +465,7 @@
           datasets: [{
             label: 'Changes',
             data: topFiles.map(f => f.count),
-            backgroundColor: '#3b82f6'
+            backgroundColor: themeColors.accent
           }]
         },
         options: {
@@ -526,8 +571,15 @@
     </div>
   </div>
 
-  {#if loading}
-    <div class="loading" role="status" aria-live="polite" aria-busy="true">Loading files...</div>
+  {#if error}
+    <div class="error-state" role="alert">
+      <p>Error: {error}</p>
+      <button class="btn-retry" on:click={loadFiles} aria-label="Retry loading files">
+        Retry
+      </button>
+    </div>
+  {:else if loading}
+    <LoadingSkeleton type="list" count={5} height="60px" />
   {:else if files.length === 0}
     <div class="empty" role="status">
       <p>No files tracked yet</p>
@@ -573,15 +625,21 @@
       <div class="charts-section">
         <div class="chart-row">
           <div class="chart-container">
-            <canvas id="chart-file-types" width="300" height="200"></canvas>
+            <div role="img" aria-label={fileTypesAriaLabel}>
+              <canvas id="chart-file-types" width="300" height="200"></canvas>
+            </div>
           </div>
           <div class="chart-container">
-            <canvas id="chart-most-changed" width="300" height="200"></canvas>
+            <div role="img" aria-label={mostChangedAriaLabel}>
+              <canvas id="chart-most-changed" width="300" height="200"></canvas>
+            </div>
           </div>
         </div>
         <div class="chart-row">
           <div class="chart-container full-width">
-            <canvas id="chart-changes-by-type" width="600" height="180"></canvas>
+            <div role="img" aria-label={changesByTypeAriaLabel}>
+              <canvas id="chart-changes-by-type" width="600" height="180"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -651,6 +709,7 @@
               on:click={() => toggleFileHistory(filepath)}
               aria-label="View history for {getFileName(filepath)}"
               aria-expanded={expandedFile === filepath}
+              aria-controls="file-history-{filepath}"
             >
               <div class="expand-arrow" aria-hidden="true">{expandedFile === filepath ? '▼' : '▶'}</div>
               <div class="file-icon" aria-hidden="true">{getFileIcon(filepath)}</div>
@@ -679,7 +738,7 @@
             </button>
 
             {#if expandedFile === filepath}
-              <div class="history-expansion">
+              <div class="history-expansion" id="file-history-{filepath}">
                 <FileHistory filepath={filepath} inline={true} />
               </div>
             {/if}
@@ -1209,5 +1268,49 @@
     .chart-row {
       grid-template-columns: 1fr;
     }
+  }
+
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    text-align: center;
+    margin: 16px 0;
+  }
+
+  .error-state p {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-retry {
+    padding: 8px 16px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-retry:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-retry:focus {
+    outline: 2px solid var(--error);
+    outline-offset: 2px;
   }
 </style>

@@ -7,6 +7,7 @@
   import { settings as settingsStore } from './settingsStore.js';
   import { formatNumber } from './numberFormat.js';
   import { formatDateTime } from './timeFormat.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
 
   let errors = [];
   let loading = true;
@@ -27,6 +28,8 @@
     if (unsubscribeSettings) unsubscribeSettings();
   });
 
+  let error = null;
+
   // Fetch syntax errors
   async function fetchErrors(append = false) {
     try {
@@ -46,9 +49,11 @@
 
       loading = false;
       loadingMore = false;
-    } catch (error) {
-      logger.error('Failed to fetch syntax errors:', error);
+      error = null;
+    } catch (err) {
+      logger.error('Failed to fetch syntax errors:', err);
       notifications.error('Failed to load syntax errors');
+      error = err.message || 'Failed to load syntax errors';
       loading = false;
       loadingMore = false;
     }
@@ -285,9 +290,9 @@ ${allErrorsText}`;
   // Get severity color
   function getSeverityColor(severity) {
     switch (severity) {
-    case 'error': return '#ef4444';
-    case 'warning': return '#f59e0b';
-    default: return '#6b7280';
+    case 'error': return 'var(--error)';
+    case 'warning': return 'var(--warning)';
+    default: return 'var(--muted)';
     }
   }
 
@@ -360,11 +365,15 @@ ${allErrorsText}`;
     {/if}
   </div>
 
-  {#if loading}
-    <div class="loading" role="status" aria-live="polite">
-      <div class="spinner" aria-hidden="true"></div>
-      <p>Loading syntax errors...</p>
+  {#if error}
+    <div class="error-state" role="alert">
+      <p>Error: {error}</p>
+      <button class="btn-retry" on:click={fetchErrors} aria-label="Retry loading syntax errors">
+        Retry
+      </button>
     </div>
+  {:else if loading}
+    <LoadingSkeleton type="list" count={5} height="80px" />
   {:else if filteredCount === 0}
     <div class="empty-state" role="status">
       <div class="empty-icon" aria-hidden="true">✅</div>
@@ -587,8 +596,8 @@ ${allErrorsText}`;
   }
 
   .clear-all-btn:hover {
-    background: #ef4444;
-    border-color: #ef4444;
+    background: var(--error);
+    border-color: var(--error);
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -885,8 +894,8 @@ ${allErrorsText}`;
   }
 
   .copy-btn:hover {
-    background: #6366f1;
-    border-color: #6366f1;
+    background: var(--info);
+    border-color: var(--info);
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -952,5 +961,51 @@ ${allErrorsText}`;
     border-top-color: white;
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
+  }
+
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .error-state p {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-retry {
+    padding: 8px 16px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-retry:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-retry:focus {
+    outline: 2px solid var(--error);
+    outline-offset: 2px;
   }
 </style>

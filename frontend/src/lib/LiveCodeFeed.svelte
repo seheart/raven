@@ -7,11 +7,13 @@
   import { logger } from './logger.js';
   import { notifications } from './notificationService.js';
   import { Chart, registerables } from 'chart.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
 
   Chart.register(...registerables);
 
   let codeChanges = [];
   let loading = true;
+  let error = null;
 
   // New: Filtering & Sorting
   let searchQuery = '';
@@ -149,12 +151,19 @@
   });
 
   async function loadAllData() {
-    await Promise.all([
-      loadCodeChanges(),
-      loadRecentActivity(),
-      loadSessionStats()
-    ]);
-    loading = false;
+    try {
+      await Promise.all([
+        loadCodeChanges(),
+        loadRecentActivity(),
+        loadSessionStats()
+      ]);
+      loading = false;
+      error = null;
+    } catch (err) {
+      logger.error('Failed to load data:', err);
+      error = err.message || 'Failed to load data';
+      loading = false;
+    }
   }
 
   async function loadSessionStats() {
@@ -236,8 +245,9 @@
 
       // Filter to only show real source code (exclude build artifacts)
       codeChanges = allChanges.filter(change => isSourceCodeFile(change.filepath));
-    } catch (error) {
-      logger.error('Failed to load code changes:', error);
+    } catch (err) {
+      logger.error('Failed to load code changes:', err);
+      throw err;
     }
   }
 
@@ -258,8 +268,9 @@
         ...fileEventsArray.map(e => ({ ...e, type: 'file' })),
         ...agentEventsArray.map(e => ({ ...e, type: 'agent' }))
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    } catch (error) {
-      logger.error('Failed to load recent activity:', error);
+    } catch (err) {
+      logger.error('Failed to load recent activity:', err);
+      throw err;
     }
   }
 
@@ -434,6 +445,25 @@
     })()
   };
 
+  // Reactive aria-labels for chart accessibility
+  $: fileTypesAriaLabel = (() => {
+    const topTypes = Object.entries(statistics.byFileType)
+      .filter(([_, count]) => count > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+    if (topTypes.length === 0) return 'File type distribution chart: No data available';
+    const summary = topTypes.map(([ext, count]) => `${ext}: ${count}`).join(', ');
+    return `File type distribution chart showing ${statistics.totalChanges} total changes. Top types: ${summary}`;
+  })();
+
+  $: changeTypesAriaLabel = `Change type breakdown chart showing ${statistics.created} files created, ${statistics.modified} files modified, and ${statistics.deleted} files deleted`;
+
+  $: timelineAriaLabel = (() => {
+    const last20 = [...filteredChanges].slice(0, 20);
+    if (last20.length === 0) return 'Timeline chart: No changes to display';
+    return `Timeline chart showing the last ${last20.length} changes over time`;
+  })();
+
   // Export functions
   function exportToJSON() {
     const data = JSON.stringify(sortedChanges, null, 2);
@@ -508,9 +538,19 @@
     }
 
     // Get theme-aware colors from body element
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
-    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const computedStyle = getComputedStyle(document.documentElement);
+    const textColor = computedStyle.getPropertyValue('--text').trim();
+    const mutedColor = computedStyle.getPropertyValue('--muted').trim();
     const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // Extract theme colors for charts
+    const themeColors = {
+      accent: computedStyle.getPropertyValue('--accent').trim(),
+      success: computedStyle.getPropertyValue('--success').trim(),
+      error: computedStyle.getPropertyValue('--error').trim(),
+      warning: computedStyle.getPropertyValue('--warning').trim(),
+      info: computedStyle.getPropertyValue('--info').trim()
+    };
 
     // File type distribution pie chart
     const pieCanvas = document.getElementById('chart-file-types');
@@ -528,8 +568,8 @@
           datasets: [{
             data: fileTypeData.map(([_, count]) => count),
             backgroundColor: [
-              '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-              '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'
+              themeColors.accent, themeColors.success, themeColors.warning, themeColors.error, '#8b5cf6',
+              '#ec4899', themeColors.info, '#84cc16', '#f97316', '#6366f1'
             ]
           }]
         },
@@ -566,7 +606,7 @@
           datasets: [{
             label: 'Changes',
             data: [statistics.created, statistics.modified, statistics.deleted],
-            backgroundColor: ['#22c55e', '#3b82f6', '#ef4444']
+            backgroundColor: [themeColors.success, themeColors.accent, themeColors.error]
           }]
         },
         options: {
@@ -622,8 +662,8 @@
           datasets: [{
             label: 'Change Size (bytes)',
             data: sizes,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: themeColors.accent,
+            backgroundColor: `${themeColors.accent}1a`,
             fill: true,
             tension: 0.4
           }]
@@ -827,13 +867,19 @@
         </div>
         <div class="charts-grid">
           <div class="chart-container">
-            <canvas id="chart-file-types" width="400" height="250"></canvas>
+            <div role="img" aria-label={fileTypesAriaLabel}>
+              <canvas id="chart-file-types" width="400" height="250"></canvas>
+            </div>
           </div>
           <div class="chart-container">
-            <canvas id="chart-change-types" width="400" height="250"></canvas>
+            <div role="img" aria-label={changeTypesAriaLabel}>
+              <canvas id="chart-change-types" width="400" height="250"></canvas>
+            </div>
           </div>
           <div class="chart-container chart-wide">
-            <canvas id="chart-timeline" width="800" height="250"></canvas>
+            <div role="img" aria-label={timelineAriaLabel}>
+              <canvas id="chart-timeline" width="800" height="250"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -957,8 +1003,15 @@
   <div class="feed-layout">
     <!-- Code Changes List -->
     <section class="code-changes-content" aria-labelledby="code-changes-heading">
-        {#if loading}
-          <div class="loading" role="status" aria-live="polite">Loading changes...</div>
+        {#if error}
+          <div class="error-state" role="alert">
+            <p>Error: {error}</p>
+            <button class="btn-retry" on:click={loadAllData} aria-label="Retry loading code changes">
+              Retry
+            </button>
+          </div>
+        {:else if loading}
+          <LoadingSkeleton type="list" count={5} height="80px" />
         {:else if codeChanges.length === 0}
           <div class="empty-state" role="status">
             <p>No recent code changes</p>
@@ -1341,13 +1394,13 @@
   }
 
   .diff-line.add {
-    background: color-mix(in srgb, #22c55e 15%, transparent);
-    border-left: 3px solid #22c55e;
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+    border-left: 3px solid var(--success);
   }
 
   .diff-line.remove {
-    background: color-mix(in srgb, #ef4444 15%, transparent);
-    border-left: 3px solid #ef4444;
+    background: color-mix(in srgb, var(--error) 15%, transparent);
+    border-left: 3px solid var(--error);
   }
 
   .diff-line.context {
@@ -1375,11 +1428,11 @@
   }
 
   .diff-line.add .line-number {
-    color: #22c55e;
+    color: var(--success);
   }
 
   .diff-line.remove .line-number {
-    color: #ef4444;
+    color: var(--error);
   }
 
   .line-content {
@@ -1392,11 +1445,11 @@
   }
 
   .diff-line.add .line-content {
-    color: #22c55e;
+    color: var(--success);
   }
 
   .diff-line.remove .line-content {
-    color: #ef4444;
+    color: var(--error);
   }
 
   .change-diff::-webkit-scrollbar {
@@ -1544,19 +1597,19 @@
   }
 
   .stats-card.created {
-    border-left: 3px solid #22c55e;
+    border-left: 3px solid var(--success);
   }
 
   .stats-card.modified {
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid var(--accent);
   }
 
   .stats-card.deleted {
-    border-left: 3px solid #ef4444;
+    border-left: 3px solid var(--error);
   }
 
   .stats-card.active {
-    border-left: 3px solid #f59e0b;
+    border-left: 3px solid var(--warning);
   }
 
   .stats-card-icon {
@@ -1837,5 +1890,48 @@
       width: 100%;
       min-width: auto;
     }
+  }
+
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .error-state p {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-retry {
+    padding: 8px 16px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-retry:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-retry:focus {
+    outline: 2px solid var(--error);
+    outline-offset: 2px;
   }
 </style>

@@ -6,6 +6,7 @@
   import { logger } from './logger.js';
   import { formatNumber } from './numberFormat.js';
   import { formatDateTime } from './timeFormat.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
 
   let results = [];
   let latestResult = null;
@@ -21,6 +22,7 @@
   let limit = 20;
   let loadingMore = false;
   let total = 0;
+  let error = null;
 
   // Progress tracking
   let testProgress = {
@@ -81,9 +83,11 @@
 
       loading = false;
       loadingMore = false;
-    } catch (error) {
-      logger.error('Failed to fetch test results:', error);
+      error = null;
+    } catch (err) {
+      logger.error('Failed to fetch test results:', err);
       notifications.error('Failed to load test results');
+      error = err.message || 'Failed to load test results';
       loading = false;
       loadingMore = false;
     }
@@ -420,7 +424,7 @@
         <time class="timestamp" datetime="{latestResult.timestamp}">{formatDateTime(latestResult.timestamp)}</time>
       </div>
       <div class="result-actions">
-        <button class="action-btn view-details" on:click={() => toggleTestDetails(latestResult.timestamp)}>
+        <button class="action-btn view-details" on:click={() => toggleTestDetails(latestResult.timestamp)} aria-expanded={expandedTests} aria-controls="test-details-{latestResult.timestamp}">
           <span aria-hidden="true">{expandedTests ? '▼' : '▶'}</span> {expandedTests ? 'Hide' : 'View'} All {formatNumber(latestResult.total_tests)} Test{latestResult.total_tests === 1 ? '' : 's'}
         </button>
         {#if !latestResult.passed}
@@ -435,7 +439,7 @@
 
       <!-- Expanded Test Details -->
       {#if expandedTests}
-        <div class="test-details-expanded">
+        <div class="test-details-expanded" id="test-details-{latestResult.timestamp}">
           {#if testsLoading}
             <div class="loading-inline">Loading test details...</div>
           {:else if allTests.length === 0}
@@ -469,11 +473,15 @@
   {/if}
 
   <!-- Results History -->
-  {#if loading}
-    <div class="loading" role="status" aria-live="polite">
-      <div class="spinner" aria-hidden="true"></div>
-      <p>Loading test results...</p>
+  {#if error}
+    <div class="error-state" role="alert">
+      <p>Error: {error}</p>
+      <button class="btn-retry" on:click={fetchResults} aria-label="Retry loading test results">
+        Retry
+      </button>
     </div>
+  {:else if loading}
+    <LoadingSkeleton type="list" count={5} height="80px" />
   {:else if results.length === 0 && frameworks.length > 0}
     <div class="empty-state" role="status">
       <div class="empty-icon" aria-hidden="true">🧪</div>
@@ -1067,9 +1075,9 @@
   }
 
   .terminal-output {
-    background: #000000 !important;
-    background-color: #000000 !important;
-    color: #00ff00;
+    background: var(--bg) !important;
+    background-color: var(--bg) !important;
+    color: var(--success);
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.4;
@@ -1078,8 +1086,8 @@
     max-height: 250px;
     overflow-y: auto;
     margin-top: 12px;
-    border: 2px solid #00ff00;
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+    border: 2px solid var(--success);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--success) 20%, transparent);
   }
 
   .terminal-output pre {
@@ -1170,6 +1178,49 @@
     font-size: 12px;
     color: var(--muted);
     font-family: var(--mono);
+  }
+
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .error-state p {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-retry {
+    padding: 8px 16px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-retry:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-retry:focus {
+    outline: 2px solid var(--error);
+    outline-offset: 2px;
   }
 
 </style>

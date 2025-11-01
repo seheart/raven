@@ -251,9 +251,16 @@
     if (activeTab !== 'performance' || filteredAgentStats.length === 0) return;
 
     // Get theme-aware colors from body element (where theme classes are applied)
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
-    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const computedStyle = getComputedStyle(document.documentElement);
+    const textColor = computedStyle.getPropertyValue('--text').trim();
+    const mutedColor = computedStyle.getPropertyValue('--muted').trim();
     const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // Extract CSS variable colors for charts
+    const successColor = computedStyle.getPropertyValue('--success').trim();
+    const accentColor = computedStyle.getPropertyValue('--accent').trim();
+    const errorColor = computedStyle.getPropertyValue('--error').trim();
+    const warningColor = computedStyle.getPropertyValue('--warning').trim();
 
     // Create charts for each agent
     filteredAgentStats.forEach(stat => {
@@ -273,14 +280,14 @@
                 stat.delete_count || 0
               ],
               backgroundColor: [
-                'rgba(16, 185, 129, 0.8)',
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(239, 68, 68, 0.8)'
+                successColor,
+                accentColor,
+                errorColor
               ],
               borderColor: [
-                'rgba(16, 185, 129, 1)',
-                'rgba(59, 130, 246, 1)',
-                'rgba(239, 68, 68, 1)'
+                successColor,
+                accentColor,
+                errorColor
               ],
               borderWidth: 2
             }]
@@ -312,14 +319,14 @@
                 stat.max_duration_ms || 0
               ],
               backgroundColor: [
-                'rgba(16, 185, 129, 0.8)',
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(234, 179, 8, 0.8)'
+                successColor,
+                accentColor,
+                warningColor
               ],
               borderColor: [
-                'rgba(16, 185, 129, 1)',
-                'rgba(59, 130, 246, 1)',
-                'rgba(234, 179, 8, 1)'
+                successColor,
+                accentColor,
+                warningColor
               ],
               borderWidth: 2,
               borderRadius: 4
@@ -370,6 +377,21 @@
   function updateCharts() {
     // Recreate charts when data changes
     setTimeout(createCharts, 100);
+  }
+
+  // Helper function to generate aria-labels for agent charts
+  function getActivityBreakdownAriaLabel(stat) {
+    const creates = stat.create_count || 0;
+    const edits = stat.edit_count || 0;
+    const deletes = stat.delete_count || 0;
+    return `Activity breakdown chart for ${stat.agent}: ${creates} creates, ${edits} edits, ${deletes} deletes`;
+  }
+
+  function getResponseTimeAriaLabel(stat) {
+    const min = stat.min_duration_ms || 0;
+    const avg = stat.avg_duration_ms || 0;
+    const max = stat.max_duration_ms || 0;
+    return `Response time chart for ${stat.agent}: fastest ${min}ms, average ${avg}ms, slowest ${max}ms`;
   }
 
   // Watch for tab changes to create charts
@@ -602,7 +624,12 @@
   </div>
 
   {#if error}
-    <div class="message error" role="alert">{error}</div>
+    <div class="error-state" role="alert">
+      <p>{error}</p>
+      <button class="btn-retry" on:click={() => loadAllData(true)} aria-label="Retry loading agent data">
+        Retry
+      </button>
+    </div>
   {/if}
 
   <!-- Summary Stats -->
@@ -951,7 +978,9 @@
               <div class="performance-card chart-card">
                 <h4>⚡ Response Time</h4>
                 <div class="chart-container">
-                  <canvas id="bar-{agentId}"></canvas>
+                  <div role="img" aria-label={getResponseTimeAriaLabel(stat)}>
+                    <canvas id="bar-{agentId}"></canvas>
+                  </div>
                 </div>
                 <div class="metric-grid compact">
                   <div class="metric-item">
@@ -973,7 +1002,9 @@
               <div class="performance-card chart-card">
                 <h4>📊 Activity Breakdown</h4>
                 <div class="chart-container pie">
-                  <canvas id="pie-{agentId}"></canvas>
+                  <div role="img" aria-label={getActivityBreakdownAriaLabel(stat)}>
+                    <canvas id="pie-{agentId}"></canvas>
+                  </div>
                 </div>
                 <div class="breakdown-summary">
                   <div class="breakdown-item compact">
@@ -1363,6 +1394,50 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     color: var(--error);
   }
 
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    margin-bottom: 10px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .error-state p {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-retry {
+    padding: 8px 16px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-retry:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-retry:focus {
+    outline: 2px solid var(--error);
+    outline-offset: 2px;
+  }
+
   /* Search Section */
   .search-section {
     margin-bottom: 6px;
@@ -1636,7 +1711,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .file-project {
-    color: #3b82f6;
+    color: var(--info);
     font-weight: 600;
   }
 

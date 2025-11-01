@@ -162,6 +162,37 @@
     };
   }
 
+  // Reactive aria-labels for chart accessibility
+  $: typeBreakdownAriaLabel = (() => {
+    const typeData = {
+      event: stats.byType.event || 0,
+      conversation: stats.byType.conversation || 0,
+      error: stats.byType.error || 0,
+      notification: stats.byType.notification || 0
+    };
+    const topTypes = Object.entries(typeData).filter(([_, count]) => count > 0).slice(0, 3);
+    if (topTypes.length === 0) return 'Results by type chart: No results available';
+    const summary = topTypes.map(([type, count]) => `${type}: ${count}`).join(', ');
+    return `Results by type chart showing ${stats.total} total results. ${summary}`;
+  })();
+
+  $: projectDistributionAriaLabel = (() => {
+    const projectEntries = Object.entries(stats.byProject).slice(0, 3);
+    if (projectEntries.length === 0) return 'Results by project chart: No project data available';
+    const summary = projectEntries.map(([name, count]) => `${name}: ${count} results`).join(', ');
+    return `Results by project chart. Top projects: ${summary}`;
+  })();
+
+  $: timelineAriaLabel = (() => {
+    const recentResults = processedResults.filter(r => {
+      const date = new Date(r.timestamp);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      return date >= cutoff;
+    });
+    return `Results timeline chart showing ${recentResults.length} results over the last 30 days`;
+  })();
+
   function updateCharts() {
     if (!processedResults.length) return;
 
@@ -677,15 +708,21 @@
     <!-- Charts -->
     <div class="charts-grid">
       <div class="chart-container">
-        <canvas bind:this={typeChartCanvas}></canvas>
+        <div role="img" aria-label={typeBreakdownAriaLabel}>
+          <canvas bind:this={typeChartCanvas}></canvas>
+        </div>
       </div>
       {#if Object.keys(stats.byProject).length > 0}
         <div class="chart-container">
-          <canvas bind:this={projectChartCanvas}></canvas>
+          <div role="img" aria-label={projectDistributionAriaLabel}>
+            <canvas bind:this={projectChartCanvas}></canvas>
+          </div>
         </div>
       {/if}
       <div class="chart-container chart-wide">
-        <canvas bind:this={timelineChartCanvas}></canvas>
+        <div role="img" aria-label={timelineAriaLabel}>
+          <canvas bind:this={timelineChartCanvas}></canvas>
+        </div>
       </div>
     </div>
 
@@ -1105,19 +1142,19 @@
   }
 
   .result-card.type-event {
-    border-left-color: var(--accent, #7aa2f7);
+    border-left-color: var(--accent);
   }
 
   .result-card.type-conversation {
-    border-left-color: var(--success, #10b981);
+    border-left-color: var(--success);
   }
 
   .result-card.type-error {
-    border-left-color: var(--error, #f7768e);
+    border-left-color: var(--error);
   }
 
   .result-card.type-notification {
-    border-left-color: var(--warning, #e0af68);
+    border-left-color: var(--warning);
   }
 
   .result-actions {
@@ -1181,7 +1218,7 @@
 
   .result-title :global(mark) {
     background: var(--warning);
-    color: var(--bg);
+    color: var(--surface);
     padding: 1px 3px;
     border-radius: 2px;
   }
@@ -1219,7 +1256,7 @@
 
   .result-preview :global(mark) {
     background: var(--warning);
-    color: var(--bg);
+    color: var(--surface);
     padding: 1px 3px;
     border-radius: 2px;
   }
@@ -1331,7 +1368,7 @@
 
   .error-state p {
     margin: 8px 0;
-    color: var(--error, #f7768e);
+    color: var(--error);
     font-size: 11px;
   }
 

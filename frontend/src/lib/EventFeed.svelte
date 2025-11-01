@@ -18,6 +18,7 @@
   const MAX_CONVERSATIONS = 500;    // Maximum number of conversations to fetch
 
   let events = [];
+  let error = null;
   let searchQuery = '';
   let selectedTypes = {
     created: true,
@@ -223,8 +224,10 @@
       // Merge and sort by timestamp (newest first)
       events = [...mappedFileEvents, ...mappedConversations]
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    } catch (error) {
-      logger.error('Failed to load events:', error);
+      error = null;
+    } catch (err) {
+      logger.error('Failed to load events:', err);
+      error = err.message || 'Failed to load events';
     }
   }
 
@@ -438,30 +441,77 @@
 
   // Get agent badge info
   function getAgentBadge(agent) {
+    const computedStyle = getComputedStyle(document.documentElement);
     const badges = {
-      'ant': { icon: '🐜', color: '#7aa2f7', name: 'ANT' },
+      'ant': { icon: '🐜', color: computedStyle.getPropertyValue('--accent').trim(), name: 'ANT' },
       'claude-code': { icon: '🤖', color: '#bb9af7', name: 'Claude Code' },
-      'cursor': { icon: '↗️', color: '#9ece6a', name: 'Cursor' },
-      'github-copilot': { icon: '🤝', color: '#f7768e', name: 'Copilot' },
-      'aider': { icon: '💬', color: '#e0af68', name: 'Aider' },
-      'manual': { icon: '👤', color: '#a9b1d6', name: 'Manual' },
-      'unknown': { icon: '❓', color: '#565f89', name: 'Unknown' }
+      'cursor': { icon: '↗️', color: computedStyle.getPropertyValue('--success').trim(), name: 'Cursor' },
+      'github-copilot': { icon: '🤝', color: computedStyle.getPropertyValue('--error').trim(), name: 'Copilot' },
+      'aider': { icon: '💬', color: computedStyle.getPropertyValue('--warning').trim(), name: 'Aider' },
+      'manual': { icon: '👤', color: computedStyle.getPropertyValue('--muted').trim(), name: 'Manual' },
+      'unknown': { icon: '❓', color: computedStyle.getPropertyValue('--muted').trim(), name: 'Unknown' }
     };
     return badges[agent] || badges.unknown;
   }
 
   // Get risk badge info
   function getRiskBadge(riskLevel) {
+    const computedStyle = getComputedStyle(document.documentElement);
     const badges = {
-      'high': { icon: '⚠️', color: '#f7768e', text: 'High Risk' },
-      'medium': { icon: '⚡', color: '#e0af68', text: 'Medium Risk' },
-      'low': { icon: '✓', color: '#9ece6a', text: 'Low Risk' }
+      'high': { icon: '⚠️', color: computedStyle.getPropertyValue('--error').trim(), text: 'High Risk' },
+      'medium': { icon: '⚡', color: computedStyle.getPropertyValue('--warning').trim(), text: 'Medium Risk' },
+      'low': { icon: '✓', color: computedStyle.getPropertyValue('--success').trim(), text: 'Low Risk' }
     };
     return badges[riskLevel] || null;
   }
 
   // Merge file events and conversation events for chart calculations
   $: mergedEvents = filteredEvents;
+
+  // Reactive aria-labels for chart accessibility
+  $: eventTypesAriaLabel = (() => {
+    const typeCounts = {
+      created: mergedEvents.filter(e => e.changeType === 'created').length,
+      modified: mergedEvents.filter(e => e.changeType === 'modified').length,
+      deleted: mergedEvents.filter(e => e.changeType === 'deleted').length,
+      user_message: mergedEvents.filter(e => e.changeType === 'user_message').length,
+      assistant_text: mergedEvents.filter(e => e.changeType === 'assistant_text').length,
+      tool_call: mergedEvents.filter(e => e.changeType === 'tool_call').length,
+      tool_result: mergedEvents.filter(e => e.changeType === 'tool_result').length
+    };
+    const topTypes = Object.entries(typeCounts).filter(([_, count]) => count > 0).slice(0, 3);
+    if (topTypes.length === 0) return 'Event type distribution chart: No events available';
+    const summary = topTypes.map(([type, count]) => `${type}: ${count}`).join(', ');
+    return `Event type distribution chart showing ${mergedEvents.length} total events. Top types: ${summary}`;
+  })();
+
+  $: eventsPerHourAriaLabel = (() => {
+    const now = new Date();
+    const recentEvents = mergedEvents.filter(e => {
+      const eventDate = new Date(e.timestamp);
+      const hoursDiff = (now - eventDate) / (1000 * 60 * 60);
+      return hoursDiff < 24;
+    });
+    return `Events per hour chart showing ${recentEvents.length} events in the last 24 hours`;
+  })();
+
+  $: topAgentsAriaLabel = (() => {
+    const agentCounts = {};
+    mergedEvents.filter(e => e.agent).forEach(event => {
+      agentCounts[event.agent] = (agentCounts[event.agent] || 0) + 1;
+    });
+    const topAgents = Object.entries(agentCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    if (topAgents.length === 0) return 'Top agents chart: No agent data available';
+    const summary = topAgents.map(([agent, count]) => `${agent}: ${count} events`).join(', ');
+    return `Top agents by event count: ${summary}`;
+  })();
+
+  $: riskScoresAriaLabel = (() => {
+    const eventsWithRisk = mergedEvents.filter(e => e.riskScore !== undefined && e.riskScore !== null);
+    if (eventsWithRisk.length === 0) return 'Risk scores chart: No risk data available';
+    const avgRisk = (eventsWithRisk.reduce((sum, e) => sum + e.riskScore, 0) / eventsWithRisk.length).toFixed(1);
+    return `Risk scores over time chart showing ${eventsWithRisk.length} events with an average risk score of ${avgRisk}`;
+  })();
 
   // Chart creation function
   function createCharts() {
@@ -872,16 +922,24 @@
       {#if showCharts}
         <div class="charts-grid">
           <div class="chart-container">
-            <canvas id="chart-event-types"></canvas>
+            <div role="img" aria-label={eventTypesAriaLabel}>
+              <canvas id="chart-event-types"></canvas>
+            </div>
           </div>
           <div class="chart-container">
-            <canvas id="chart-events-per-hour"></canvas>
+            <div role="img" aria-label={eventsPerHourAriaLabel}>
+              <canvas id="chart-events-per-hour"></canvas>
+            </div>
           </div>
           <div class="chart-container">
-            <canvas id="chart-top-agents"></canvas>
+            <div role="img" aria-label={topAgentsAriaLabel}>
+              <canvas id="chart-top-agents"></canvas>
+            </div>
           </div>
           <div class="chart-container">
-            <canvas id="chart-risk-scores"></canvas>
+            <div role="img" aria-label={riskScoresAriaLabel}>
+              <canvas id="chart-risk-scores"></canvas>
+            </div>
           </div>
         </div>
       {/if}
@@ -956,7 +1014,14 @@
     <TimelineSlider events={events} onTimeRangeChange={handleTimeRangeChange} />
   </div>
 
-  {#if filteredEvents.length > 0}
+  {#if error}
+    <div class="error-state" role="alert">
+      <p>Error: {error}</p>
+      <button class="btn-retry" on:click={loadRecentEvents} aria-label="Retry loading events">
+        Retry
+      </button>
+    </div>
+  {:else if filteredEvents.length > 0}
     <div class="events">
       <VirtualScroll
         bind:this={virtualScroll}
@@ -2122,5 +2187,49 @@
     border-radius: 4px;
     padding: 12px;
     height: 250px;
+  }
+
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    margin: 16px 0;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .error-state p {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-retry {
+    padding: 8px 16px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-retry:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-retry:focus {
+    outline: 2px solid var(--error);
+    outline-offset: 2px;
   }
 </style>

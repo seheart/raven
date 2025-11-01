@@ -6,6 +6,7 @@
   import { desktopNotifications } from './services/desktopNotifications.js';
   import { formatNumber } from './numberFormat.js';
   import { formatDateTime } from './timeFormat.js';
+  import LoadingSkeleton from './LoadingSkeleton.svelte';
 
   let warnings = [];
   let loading = true;
@@ -16,6 +17,7 @@
   let projects = [];
   let limit = 30;
   let loadingMore = false;
+  let showExportDropdown = false;
 
   const categories = [
     { id: 'all', label: 'All', icon: '🔍' },
@@ -134,10 +136,17 @@
       window.URL.revokeObjectURL(downloadUrl);
 
       notifications.success(`Exported ${warningCount} warning(s) as ${format.toUpperCase()}`);
+      showExportDropdown = false;
     } catch (error) {
       logger.error('Failed to export warnings:', error);
       notifications.error('Failed to export warnings');
+      showExportDropdown = false;
     }
+  }
+
+  // Toggle export dropdown
+  function toggleExportDropdown() {
+    showExportDropdown = !showExportDropdown;
   }
 
   // Subscribe to WebSocket for real-time updates
@@ -215,10 +224,10 @@
   // Get severity color
   function getSeverityColor(severity) {
     switch (severity) {
-    case 'critical': return '#ef4444';
-    case 'warning': return '#f59e0b';
-    case 'info': return '#3b82f6';
-    default: return '#6b7280';
+    case 'critical': return 'var(--error)';
+    case 'warning': return 'var(--warning)';
+    case 'info': return 'var(--info)';
+    default: return 'var(--muted)';
     }
   }
 
@@ -248,17 +257,53 @@
         </button>
         {#if warningCount > 0}
           <div class="export-dropdown">
-            <button class="action-btn export-btn" aria-label="Export warnings" title="Export">
+            <button
+              class="action-btn export-btn"
+              on:click={toggleExportDropdown}
+              on:keydown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleExportDropdown();
+                }
+                if (e.key === 'Escape' && showExportDropdown) {
+                  showExportDropdown = false;
+                }
+              }}
+              aria-label="Export warnings"
+              aria-haspopup="menu"
+              aria-expanded={showExportDropdown}
+              title="Export"
+            >
               <span aria-hidden="true">⬇</span>
             </button>
-            <div class="dropdown-menu">
-              <button on:click={() => exportWarnings('csv')} aria-label="Export as CSV">
-                Export as CSV
-              </button>
-              <button on:click={() => exportWarnings('json')} aria-label="Export as JSON">
-                Export as JSON
-              </button>
-            </div>
+            {#if showExportDropdown}
+              <div class="dropdown-menu" role="menu">
+                <button
+                  on:click={() => exportWarnings('csv')}
+                  on:keydown={(e) => {
+                    if (e.key === 'Escape') {
+                      showExportDropdown = false;
+                    }
+                  }}
+                  role="menuitem"
+                  aria-label="Export as CSV"
+                >
+                  Export as CSV
+                </button>
+                <button
+                  on:click={() => exportWarnings('json')}
+                  on:keydown={(e) => {
+                    if (e.key === 'Escape') {
+                      showExportDropdown = false;
+                    }
+                  }}
+                  role="menuitem"
+                  aria-label="Export as JSON"
+                >
+                  Export as JSON
+                </button>
+              </div>
+            {/if}
           </div>
           <button class="action-btn resolve-all-btn" on:click={resolveAllWarnings} aria-label="Resolve all warnings" title="Resolve All">
             <span aria-hidden="true">✓</span>
@@ -355,10 +400,7 @@
   {/if}
 
   {#if loading}
-    <div class="loading" role="status" aria-live="polite">
-      <div class="spinner" aria-hidden="true"></div>
-      <p>Loading pattern warnings...</p>
-    </div>
+    <LoadingSkeleton type="list" count={5} height="80px" />
   {:else if filteredCount === 0}
     <div class="empty-state" role="status">
       <div class="empty-icon" aria-hidden="true">✅</div>
@@ -541,12 +583,7 @@
     position: relative;
   }
 
-  .export-dropdown:hover .dropdown-menu {
-    display: block;
-  }
-
   .dropdown-menu {
-    display: none;
     position: absolute;
     top: 100%;
     right: 0;
@@ -715,15 +752,15 @@
   }
 
   .stat-item.critical .stat-value {
-    color: #ef4444;
+    color: var(--error);
   }
 
   .stat-item.warning .stat-value {
-    color: #f59e0b;
+    color: var(--warning);
   }
 
   .stat-item.info .stat-value {
-    color: #3b82f6;
+    color: var(--info);
   }
 
   .stat-icon {
@@ -850,8 +887,8 @@
     border-radius: 4px;
     font-size: 12px;
     font-weight: 700;
-    background: #fef2f2;
-    color: #ef4444;
+    background: color-mix(in srgb, var(--error) 10%, var(--surface));
+    color: var(--error);
   }
 
   .severity-badge {
@@ -864,7 +901,7 @@
   }
 
   .severity-badge.critical {
-    background: #ef4444;
+    background: var(--error);
   }
 
   /* Warning Items */
@@ -941,11 +978,11 @@
     align-items: start;
     gap: 8px;
     padding: 10px 12px;
-    background: #f0fdf4;
-    border-left: 3px solid #10b981;
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
+    border-left: 3px solid var(--success);
     border-radius: 4px;
     font-size: 12px;
-    color: #065f46;
+    color: var(--success);
     line-height: 1.5;
   }
 

@@ -27,6 +27,7 @@
   let hasMore = true;
   let lastUpdate = null;
   let autoRefresh = true;
+  let error = null;
 
   // New features
   let dateRange = 'all'; // 'all', 'today', '7d', '30d'
@@ -44,6 +45,7 @@
   let importSessionFile = '';
   let importProject = '';
   let importing = false;
+  let importModalElement = null;
 
   async function loadConversations() {
     try {
@@ -65,8 +67,10 @@
       offset = conversations.length;
       hasMore = conversations.length >= limit;
       lastUpdate = new Date();
-    } catch (error) {
-      notifications.error(`Failed to load conversations: ${error.message}`);
+      error = null;
+    } catch (err) {
+      notifications.error(`Failed to load conversations: ${err.message}`);
+      error = err.message || 'Failed to load conversations';
     } finally {
       loading = false;
     }
@@ -204,6 +208,36 @@
     }
   }
 
+  // Close import dialog
+  function closeImportDialog() {
+    showImportDialog = false;
+  }
+
+  // Focus trap for import modal
+  function handleImportModalKeydown(event) {
+    if (event.key === 'Escape') {
+      closeImportDialog();
+      return;
+    }
+
+    // Focus trap
+    if (event.key === 'Tab' && importModalElement) {
+      const focusableElements = importModalElement.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }
+
   function setupWebSocket() {
     // Listen for new conversation events (WebSocket-driven, no polling!)
     websocketService.on('conversation', () => {
@@ -239,6 +273,23 @@
     }
   }
 
+  // Reactive aria-labels for chart accessibility
+  $: typeBreakdownAriaLabel = (() => {
+    const typeData = Object.entries(stats.by_type || {});
+    if (typeData.length === 0) return 'Event type breakdown chart: No data available';
+    const topTypes = typeData.slice(0, 3);
+    const summary = topTypes.map(([type, count]) => `${type.replace('_', ' ')}: ${count}`).join(', ');
+    return `Event type breakdown chart showing ${stats.total} total events. ${summary}`;
+  })();
+
+  $: projectDistributionAriaLabel = (() => {
+    const projectData = Object.entries(stats.by_project || {}).slice(0, 10);
+    if (projectData.length === 0) return 'Project distribution chart: No project data available';
+    const topProjects = projectData.slice(0, 3);
+    const summary = topProjects.map(([name, count]) => `${name}: ${count} conversations`).join(', ');
+    return `Top 10 projects distribution chart. ${summary}`;
+  })();
+
   // Chart Functions
   function createCharts() {
     // Destroy existing charts
@@ -248,9 +299,17 @@
     if (!showCharts || filteredConversations.length === 0) return;
 
     // Get theme-aware colors from body element (where theme classes are applied)
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
-    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+    const computedStyle = getComputedStyle(document.documentElement);
+    const textColor = computedStyle.getPropertyValue('--text').trim();
+    const mutedColor = computedStyle.getPropertyValue('--muted').trim();
     const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // Extract CSS variable colors for charts
+    const accentColor = computedStyle.getPropertyValue('--accent').trim();
+    const successColor = computedStyle.getPropertyValue('--success').trim();
+    const warningColor = computedStyle.getPropertyValue('--warning').trim();
+    const errorColor = computedStyle.getPropertyValue('--error').trim();
+    const infoColor = computedStyle.getPropertyValue('--info').trim();
 
     // Type Breakdown Pie Chart
     const pieCanvas = document.getElementById('chart-type-breakdown');
@@ -264,20 +323,20 @@
             datasets: [{
               data: typeData.map(([, count]) => count),
               backgroundColor: [
-                'rgba(59, 130, 246, 0.8)',    // Blue
-                'rgba(16, 185, 129, 0.8)',    // Green
-                'rgba(255, 165, 0, 0.8)',     // Orange
-                'rgba(168, 85, 247, 0.8)',    // Purple
-                'rgba(239, 68, 68, 0.8)',     // Red
-                'rgba(236, 72, 153, 0.8)'     // Pink
+                accentColor,
+                successColor,
+                warningColor,
+                infoColor,
+                errorColor,
+                mutedColor
               ],
               borderColor: [
-                'rgba(59, 130, 246, 1)',      // Blue
-                'rgba(16, 185, 129, 1)',      // Green
-                'rgba(255, 165, 0, 1)',       // Orange
-                'rgba(168, 85, 247, 1)',      // Purple
-                'rgba(239, 68, 68, 1)',       // Red
-                'rgba(236, 72, 153, 1)'       // Pink
+                accentColor,
+                successColor,
+                warningColor,
+                infoColor,
+                errorColor,
+                mutedColor
               ],
               borderWidth: 2
             }]
@@ -315,8 +374,8 @@
             datasets: [{
               label: 'Conversations',
               data: projectData.map(([, count]) => count),
-              backgroundColor: 'rgba(59, 130, 246, 0.8)',
-              borderColor: 'rgba(59, 130, 246, 1)',
+              backgroundColor: accentColor,
+              borderColor: accentColor,
               borderWidth: 2,
               borderRadius: 4
             }]
@@ -552,13 +611,17 @@
         <div class="chart-card">
           <h4>Event Type Distribution</h4>
           <div class="chart-container">
-            <canvas id="chart-type-breakdown"></canvas>
+            <div role="img" aria-label={typeBreakdownAriaLabel}>
+              <canvas id="chart-type-breakdown"></canvas>
+            </div>
           </div>
         </div>
         <div class="chart-card">
           <h4>Top 10 Projects</h4>
           <div class="chart-container horizontal">
-            <canvas id="chart-project-distribution"></canvas>
+            <div role="img" aria-label={projectDistributionAriaLabel}>
+              <canvas id="chart-project-distribution"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -739,7 +802,14 @@
   </div>
 
   <!-- Conversations Timeline -->
-  {#if loading}
+  {#if error}
+    <div class="error-state" role="alert">
+      <p>Error: {error}</p>
+      <button class="btn-retry" on:click={loadConversations} aria-label="Retry loading conversations">
+        Retry
+      </button>
+    </div>
+  {:else if loading}
     <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton count={5} height="120px" /></div>
   {:else if filteredConversations.length === 0}
     <div class="empty" role="status">
@@ -897,14 +967,21 @@
 {#if showImportDialog}
   <div
     class="modal-overlay"
-    on:click={() => showImportDialog = false}
-    on:keydown={(e) => e.key === 'Escape' && (showImportDialog = false)}
+    on:click={closeImportDialog}
+    on:keydown={handleImportModalKeydown}
     role="dialog"
     aria-modal="true"
     aria-labelledby="import-dialog-title"
     tabindex="-1"
   >
-    <div class="modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
+    <div
+      class="modal-content"
+      on:click|stopPropagation
+      on:keydown={handleImportModalKeydown}
+      bind:this={importModalElement}
+      role="document"
+      tabindex="-1"
+    >
       <h2 id="import-dialog-title">Import Claude Conversations</h2>
       <p>Import conversation history from Claude Code .jsonl session files.</p>
 
@@ -936,7 +1013,7 @@
       </div>
 
       <div class="modal-actions" role="group" aria-label="Dialog actions">
-        <button class="btn-cancel" on:click={() => showImportDialog = false} aria-label="Cancel import">
+        <button class="btn-cancel" on:click={closeImportDialog} aria-label="Cancel import">
           Cancel
         </button>
         <button class="btn-primary" on:click={importConversations} disabled={importing} aria-label="Import conversations">
@@ -1638,5 +1715,49 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+  }
+
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .error-state p {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-retry {
+    padding: 8px 16px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-retry:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-retry:focus {
+    outline: 2px solid var(--error);
+    outline-offset: 2px;
   }
 </style>
