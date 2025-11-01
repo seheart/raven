@@ -48,7 +48,7 @@ function createCharts() {
 }
 
 onMount(async () => {
-  // 1. Load your data first
+  // 1. Load your data first - MUST await if async!
   await loadMyData();
 
   // 2. Initialize charts after data loads (automatic timing!)
@@ -193,17 +193,32 @@ function createCharts() {
 
 ### Charts Not Rendering
 
-1. **Check canvas has dimensions:**
+1. **⚠️ MOST COMMON: Forgot to await async data loading:**
+   ```javascript
+   // ❌ WRONG - charts will be empty!
+   onMount(() => {
+     loadData();  // Not awaited!
+     initializeCharts(createCharts, { data: myData });
+   });
+
+   // ✅ CORRECT - wait for data first
+   onMount(async () => {
+     await loadData();  // Await the data!
+     initializeCharts(createCharts, { data: myData });
+   });
+   ```
+
+2. **Check canvas has dimensions:**
    ```html
    <canvas id="my-chart" width="400" height="250"></canvas>
    ```
 
-2. **Verify data is loaded:**
+3. **Verify data is loaded:**
    ```javascript
    console.log('Data length:', myData.length);
    ```
 
-3. **Check createCharts is called:**
+4. **Check createCharts is called:**
    ```javascript
    function createCharts() {
      console.log('createCharts called', { showCharts, dataLength: myData.length });
@@ -211,7 +226,7 @@ function createCharts() {
    }
    ```
 
-4. **Ensure Chart.js is registered:**
+5. **Ensure Chart.js is registered:**
    ```javascript
    Chart.register(...registerables);
    ```
