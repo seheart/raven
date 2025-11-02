@@ -6,6 +6,7 @@
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
   import { formatDateOnly } from './timeFormat.js';
+  import Chart from 'chart.js/auto';
 
   let trends = [];
   let loading = true;
@@ -17,6 +18,11 @@
   const API_BASE = API_CONFIG.API_BASE;
 
   $: maxEventCount = Math.max(...trends.map(t => t.event_count || 0), 1);
+
+  // Chart.js visualizations
+  let showCharts = true;
+  let charts = {};
+  let themeObserver;
 
   // WebSocket event handlers (event-driven, no polling!)
   const handleFileChanged = async () => {
@@ -30,16 +36,44 @@
   onMount(async () => {
     await loadTrends();
 
+    // Create charts after data loads and DOM is ready
+    if (showCharts && trends.length > 0) {
+      setTimeout(createCharts, 200);
+    }
+
     // Connect to WebSocket for real-time updates
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);
     websocketService.on('project-switched', handleProjectSwitched);
+
+    // Watch for theme changes on body element
+    themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && showCharts) {
+          logger.info('[HistoricalTrends] Theme changed, recreating charts');
+          setTimeout(createCharts, 100);
+        }
+      });
+    });
+
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
   });
 
   onDestroy(() => {
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);
+
+    // Disconnect theme observer
+    if (themeObserver) {
+      themeObserver.disconnect();
+    }
+
+    // Destroy all charts
+    Object.values(charts).forEach(chart => chart?.destroy());
   });
 
   async function loadTrends() {
@@ -106,6 +140,204 @@
 
   // Reactive "time since update" - updates when lastUpdate changes (no polling!)
   $: timeSinceUpdate = getTimeSinceUpdate();
+
+  // Reactive aria-labels for chart accessibility
+  $: trendsOverTimeAriaLabel = (() => {
+    if (trends.length === 0) return 'Trends over time chart: No data available';
+    const totalEvents = trends.reduce((sum, t) => sum + t.event_count, 0);
+    return `Trends over time chart showing ${totalEvents} total events across ${trends.length} ${period} periods`;
+  })();
+
+  $: periodComparisonAriaLabel = (() => {
+    if (trends.length === 0) return 'Period comparison chart: No data available';
+    return `Period comparison chart showing event breakdown (created, modified, deleted) for ${trends.length} periods`;
+  })();
+
+  // Chart creation function
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || trends.length === 0) return;
+
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
+    // Get theme-aware colors from body element
+    const textColor = getColor('--text', '#c0caf5');
+    const mutedColor = getColor('--muted', '#565f89');
+    const gridColor = 'rgba(128, 128, 128, 0.15)';
+
+    // 1. Line Chart: Trends over time (total events)
+    const lineCanvas = document.getElementById('chart-trends-over-time');
+    if (lineCanvas) {
+      const labels = trends.map(t => formatPeriod(t.period));
+      const eventCounts = trends.map(t => t.event_count);
+
+      charts.trendsOverTime = new Chart(lineCanvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Events',
+            data: eventCounts,
+            borderColor: '#7aa2f7',
+            backgroundColor: 'rgba(122, 162, 247, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: 'Trends Over Time',
+              color: textColor,
+              font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: textColor,
+              bodyColor: textColor,
+              borderColor: gridColor,
+              borderWidth: 1
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            x: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 9, family: 'var(--mono)' },
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Stacked Bar Chart: Period-over-period comparison (created/modified/deleted)
+    const barCanvas = document.getElementById('chart-period-comparison');
+    if (barCanvas) {
+      const labels = trends.map(t => formatPeriod(t.period));
+      const createdData = trends.map(t => t.creations || 0);
+      const modifiedData = trends.map(t => t.modifications || 0);
+      const deletedData = trends.map(t => t.deletions || 0);
+
+      charts.periodComparison = new Chart(barCanvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Created',
+              data: createdData,
+              backgroundColor: '#10b981',
+              borderColor: '#10b981',
+              borderWidth: 1
+            },
+            {
+              label: 'Modified',
+              data: modifiedData,
+              backgroundColor: '#7aa2f7',
+              borderColor: '#7aa2f7',
+              borderWidth: 1
+            },
+            {
+              label: 'Deleted',
+              data: deletedData,
+              backgroundColor: '#f7768e',
+              borderColor: '#f7768e',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: textColor,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            title: {
+              display: true,
+              text: 'Period-over-Period Comparison',
+              color: textColor,
+              font: { size: 12, weight: 'bold', family: 'var(--mono)' }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: textColor,
+              bodyColor: textColor,
+              borderColor: gridColor,
+              borderWidth: 1
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 9, family: 'var(--mono)' },
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Recreate charts when trends data changes
+  $: if (showCharts && trends.length > 0) {
+    setTimeout(createCharts, 100);
+  }
 
   function handleExportCSV() {
     const data = trends.map(t => ({
@@ -178,32 +410,34 @@
       <p class="hint">Try selecting a longer time range</p>
     </div>
   {:else}
-    <div class="chart-container">
-      <div class="chart" role="img" aria-label="Historical trends chart showing activity over {period} periods">
-        {#each trends as trend (trend.period)}
-          <div class="bar-group" aria-hidden="true">
-            <div class="bar-count">{trend.event_count}</div>
-            <div class="bar-stack" style="height: {getPeriodBarHeight(trend.event_count)}px">
-              <div
-                class="bar bar-deleted"
-                style="height: {getSegmentHeight(trend.deletions, trend.event_count)}%"
-                title="{trend.deletions} deleted"
-              ></div>
-              <div
-                class="bar bar-modified"
-                style="height: {getSegmentHeight(trend.modifications, trend.event_count)}%"
-                title="{trend.modifications} modified"
-              ></div>
-              <div
-                class="bar bar-created"
-                style="height: {getSegmentHeight(trend.creations, trend.event_count)}%"
-                title="{trend.creations} created"
-              ></div>
-            </div>
-            <div class="bar-label">{formatPeriod(trend.period)}</div>
-          </div>
-        {/each}
+    <!-- Charts Section -->
+    <div class="charts-section">
+      <div class="charts-header">
+        <h3>Analytics Visualizations</h3>
+        <button
+          class="toggle-charts"
+          on:click={() => showCharts = !showCharts}
+          aria-label="{showCharts ? 'Hide' : 'Show'} charts"
+          aria-expanded={showCharts}
+        >
+          {showCharts ? 'Hide Charts' : 'Show Charts'}
+        </button>
       </div>
+
+      {#if showCharts}
+        <div class="charts-grid">
+          <div class="chart-wrapper">
+            <div role="img" aria-label={trendsOverTimeAriaLabel} style="height: 250px;">
+              <canvas id="chart-trends-over-time"></canvas>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <div role="img" aria-label={periodComparisonAriaLabel} style="height: 250px;">
+              <canvas id="chart-period-comparison"></canvas>
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
 
     <div class="stats-grid" role="list" aria-label="Trends summary statistics">
@@ -321,95 +555,61 @@
     outline-offset: 2px;
   }
 
-  .chart-container {
+  /* Charts Section */
+  .charts-section {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 12px 24px 24px;
+    padding: 12px;
     margin-bottom: 8px;
-    min-height: 400px;
   }
 
-  .chart {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    align-items: end;
-    gap: 6px;
-    height: 300px;
-    padding: 0 8px;
-  }
-
-  .bar-group {
-    flex: 0 0 auto;
-    width: 100%;
+  .charts-header {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    min-width: 0;
+    margin-bottom: 12px;
   }
 
-  .bar-stack {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    min-height: 10px;
-    position: relative;
-  }
-
-  .bar {
-    width: 100%;
-    min-height: 2px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  .bar:first-child {
-    border-radius: 0 0 2px 2px;
-  }
-
-  .bar:last-child {
-    border-radius: 2px 2px 0 0;
-  }
-
-  .bar:hover {
-    opacity: 0.8;
-    transform: scaleY(1.05);
-  }
-
-  .bar-created {
-    background: #10b981; /* Green */
-  }
-
-  .bar-modified {
-    background: #7aa2f7; /* Blue */
-  }
-
-  .bar-deleted {
-    background: #f7768e; /* Red */
-  }
-
-  .bar-label {
-    font-size: 10px;
-    color: var(--muted);
-    text-align: right;
-    transform: rotate(-45deg);
-    transform-origin: right bottom;
-    white-space: nowrap;
-    margin-top: 8px;
-    margin-left: -20px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 80px;
-  }
-
-  .bar-count {
+  .charts-header h3 {
+    margin: 0;
     font-size: 11px;
-    font-weight: 600;
     color: var(--text);
-    font-family: var(--mono);
-    margin-bottom: 4px;
+    font-weight: 700;
+  }
+
+  .toggle-charts {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .toggle-charts:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+  }
+
+  .toggle-charts:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .chart-wrapper {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
   }
 
   .stats-grid {
@@ -535,18 +735,16 @@
       flex-direction: column;
     }
 
-    .chart {
-      gap: 3px;
-      height: 250px;
+    .charts-grid {
+      grid-template-columns: 1fr;
     }
 
-    .chart-container {
-      min-height: 350px;
+    .chart-wrapper {
+      padding: 8px;
     }
 
-    .bar-label {
-      font-size: 10px;
-      max-height: 50px;
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 </style>

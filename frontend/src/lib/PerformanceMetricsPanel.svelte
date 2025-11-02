@@ -1,10 +1,11 @@
 <script>
   import { logger } from './logger.js';
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { websocketService } from './websocket.js';
   import { API_CONFIG } from '../config.js';
+  import Chart from 'chart.js/auto';
 
   let metrics = [];
   let loading = true;
@@ -12,6 +13,12 @@
   let timeRange = '1h'; // 1h, 6h, 24h, 7d
 
   const API_BASE = API_CONFIG.API_BASE;
+
+  // Chart.js instances and canvas references
+  let cpuChartCanvas;
+  let memoryChartCanvas;
+  let cpuChart = null;
+  let memoryChart = null;
 
   // WebSocket event handlers (event-driven, no polling!)
   const handleSystemMetrics = async () => {
@@ -35,6 +42,16 @@
     // Clean up WebSocket listeners
     websocketService.off('system-metrics', handleSystemMetrics);
     websocketService.off('project-switched', handleProjectSwitched);
+
+    // Destroy charts
+    if (cpuChart) {
+      cpuChart.destroy();
+      cpuChart = null;
+    }
+    if (memoryChart) {
+      memoryChart.destroy();
+      memoryChart = null;
+    }
   });
 
   async function loadMetrics() {
@@ -46,6 +63,10 @@
       const data = await response.json();
       metrics = data.metrics || [];
       error = null;
+
+      // Wait for DOM to update, then update charts
+      await tick();
+      updateCharts();
     } catch (err) {
       logger.error('Failed to load performance metrics:', err);
       error = err.message;
@@ -54,17 +75,99 @@
     }
   }
 
-  function getMaxCpu() {
-    return Math.max(...metrics.map(m => m.cpu_percent || 0), 100);
+  function updateCharts() {
+    if (metrics.length === 0) return;
+
+    updateCpuChart();
+    updateMemoryChart();
   }
 
-  function getMaxMem() {
-    return Math.max(...metrics.map(m => m.memory_percent || 0), 100);
+  function updateCpuChart() {
+    if (!cpuChartCanvas || metrics.length === 0) return;
+
+    const labels = metrics.map(m => {
+      const date = new Date(m.timestamp);
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    });
+
+    const cpuData = metrics.map(m => m.cpu_percent || 0);
+
+    if (cpuChart) {
+      cpuChart.data.labels = labels;
+      cpuChart.data.datasets[0].data = cpuData;
+      cpuChart.update();
+    } else {
+      cpuChart = new Chart(cpuChartCanvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'CPU %',
+              data: cpuData,
+              borderColor: '#7aa2f7',
+              backgroundColor: 'rgba(122, 162, 247, 0.1)',
+              fill: true,
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top' }
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          }
+        }
+      });
+    }
   }
 
-  function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  function updateMemoryChart() {
+    if (!memoryChartCanvas || metrics.length === 0) return;
+
+    const labels = metrics.map(m => {
+      const date = new Date(m.timestamp);
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    });
+
+    const memoryData = metrics.map(m => m.memory_percent || 0);
+
+    if (memoryChart) {
+      memoryChart.data.labels = labels;
+      memoryChart.data.datasets[0].data = memoryData;
+      memoryChart.update();
+    } else {
+      memoryChart = new Chart(memoryChartCanvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Memory %',
+              data: memoryData,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              fill: true,
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top' }
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          }
+        }
+      });
+    }
   }
 
   function handleExportCSV() {
@@ -171,88 +274,18 @@
     </div>
   {:else}
     <!-- CPU Chart -->
-    <div class="chart-container" role="region" aria-labelledby="cpu-chart-heading">
+    <div class="chart-card" role="region" aria-labelledby="cpu-chart-heading">
       <h3 id="cpu-chart-heading">CPU Usage</h3>
-      <svg class="chart" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <defs>
-          <linearGradient id="cpu-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#7aa2f7;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#7aa2f7;stop-opacity:0.1" />
-          </linearGradient>
-        </defs>
-
-        <!-- Grid lines -->
-        <line x1="0" y1="50" x2="800" y2="50" stroke="var(--border)" stroke-width="1" opacity="0.3" />
-        <line x1="0" y1="100" x2="800" y2="100" stroke="var(--border)" stroke-width="1" opacity="0.3" />
-        <line x1="0" y1="150" x2="800" y2="150" stroke="var(--border)" stroke-width="1" opacity="0.3" />
-
-        <!-- CPU line -->
-        {#if metrics.length > 1}
-          {@const maxValue = getMaxCpu()}
-          {@const points = metrics.map((m, i) => {
-            const x = (i / (metrics.length - 1)) * 800;
-            const y = 200 - ((m.cpu_percent / maxValue) * 180);
-            return `${x},${y}`;
-          }).join(' ')}
-          <polyline
-            points={points}
-            fill="none"
-            stroke="#7aa2f7"
-            stroke-width="2"
-            stroke-linejoin="round"
-          />
-          <polygon
-            points={`0,200 ${points} 800,200`}
-            fill="url(#cpu-gradient)"
-          />
-        {/if}
-      </svg>
-      <div class="chart-labels">
-        <span>{formatTime(metrics[0]?.timestamp)}</span>
-        <span>{formatTime(metrics[metrics.length - 1]?.timestamp)}</span>
+      <div class="chart-canvas-container">
+        <canvas bind:this={cpuChartCanvas}></canvas>
       </div>
     </div>
 
     <!-- Memory Chart -->
-    <div class="chart-container" role="region" aria-labelledby="memory-chart-heading">
+    <div class="chart-card" role="region" aria-labelledby="memory-chart-heading">
       <h3 id="memory-chart-heading">Memory Usage</h3>
-      <svg class="chart" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <defs>
-          <linearGradient id="mem-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#10b981;stop-opacity:0.1" />
-          </linearGradient>
-        </defs>
-
-        <!-- Grid lines -->
-        <line x1="0" y1="50" x2="800" y2="50" stroke="var(--border)" stroke-width="1" opacity="0.3" />
-        <line x1="0" y1="100" x2="800" y2="100" stroke="var(--border)" stroke-width="1" opacity="0.3" />
-        <line x1="0" y1="150" x2="800" y2="150" stroke="var(--border)" stroke-width="1" opacity="0.3" />
-
-        <!-- Memory line -->
-        {#if metrics.length > 1}
-          {@const maxValue = getMaxMem()}
-          {@const points = metrics.map((m, i) => {
-            const x = (i / (metrics.length - 1)) * 800;
-            const y = 200 - ((m.memory_percent / maxValue) * 180);
-            return `${x},${y}`;
-          }).join(' ')}
-          <polyline
-            points={points}
-            fill="none"
-            stroke="#10b981"
-            stroke-width="2"
-            stroke-linejoin="round"
-          />
-          <polygon
-            points={`0,200 ${points} 800,200`}
-            fill="url(#mem-gradient)"
-          />
-        {/if}
-      </svg>
-      <div class="chart-labels">
-        <span>{formatTime(metrics[0]?.timestamp)}</span>
-        <span>{formatTime(metrics[metrics.length - 1]?.timestamp)}</span>
+      <div class="chart-canvas-container">
+        <canvas bind:this={memoryChartCanvas}></canvas>
       </div>
     </div>
   {/if}
@@ -335,7 +368,7 @@
     letter-spacing: 0.5px;
   }
 
-  .chart-container {
+  .chart-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -343,24 +376,14 @@
     margin-bottom: 8px;
   }
 
-  .chart-container h3 {
+  .chart-card h3 {
     margin: 0 0 8px 0;
     font-size: 11px;
     color: var(--text);
   }
 
-  .chart {
-    width: 100%;
-    height: auto;
-  }
-
-  .chart-labels {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--muted);
-    font-family: var(--mono);
+  .chart-canvas-container {
+    height: 250px;
   }
 
   .btn-primary, .btn-secondary {

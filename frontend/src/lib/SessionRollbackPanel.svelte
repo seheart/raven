@@ -1,9 +1,13 @@
 <script>
   import { logger } from './logger.js';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { notifications } from './notificationService.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { Chart, registerables } from 'chart.js';
+  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+
+  Chart.register(...registerables);
 
   let sessions = [];
   let loading = true;
@@ -17,6 +21,11 @@
   let triggerButton = null;
   let modalElement = null;
   let error = null;
+  let showCharts = false;
+
+  // Charts
+  let charts = {};
+  let themeObserver;
 
   // Fetch sessions
   async function fetchSessions() {
@@ -157,8 +166,27 @@
     previewData = null;
   }
 
-  onMount(() => {
-    fetchSessions();
+  onMount(async () => {
+    await fetchSessions();
+
+    // Initialize charts after data loads
+    initializeCharts(createCharts, {
+      data: sessions,
+      enabled: showCharts
+    });
+
+    // Setup theme observer for charts
+    themeObserver = setupChartThemeObserver(createCharts, {
+      enabled: showCharts
+    });
+  });
+
+  onDestroy(() => {
+    // Destroy charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+
+    // Disconnect theme observer
+    themeObserver?.disconnect();
   });
 
   // Format date
@@ -187,16 +215,200 @@
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     return `${Math.floor(seconds / 86400)}d ago`;
   }
+
+  // Chart Functions
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || sessions.length === 0) return;
+
+    const colors = getChartThemeColors();
+
+    // Get top 10 sessions by duration
+    const sessionsWithDuration = sessions
+      .filter(s => s.start_time && s.end_time)
+      .map(s => {
+        const start = new Date(s.start_time);
+        const end = new Date(s.end_time);
+        const durationSeconds = (end - start) / 1000;
+        return { ...s, durationSeconds };
+      })
+      .sort((a, b) => b.durationSeconds - a.durationSeconds)
+      .slice(0, 10);
+
+    // Chart 1: Bar Chart - Session Duration Comparison (Top 10)
+    const durationCanvas = document.getElementById('chart-session-duration');
+    if (durationCanvas && sessionsWithDuration.length > 0) {
+      const labels = sessionsWithDuration.map((s, i) =>
+        s.project_name ? `${s.project_name} #${i + 1}` : `Session #${i + 1}`
+      );
+      const durations = sessionsWithDuration.map(s => s.durationSeconds / 60); // Convert to minutes
+
+      charts.durationChart = new Chart(durationCanvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Duration (minutes)',
+            data: durations,
+            backgroundColor: colors.accent,
+            borderColor: colors.accent,
+            borderWidth: 2,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: colors.grid
+              }
+            },
+            x: {
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' },
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: {
+                color: colors.grid
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 2: Bar Chart - Events Per Session (Top 10)
+    const eventsCanvas = document.getElementById('chart-events-per-session');
+    if (eventsCanvas) {
+      const top10ByEvents = [...sessions]
+        .filter(s => s.event_count > 0)
+        .sort((a, b) => b.event_count - a.event_count)
+        .slice(0, 10);
+
+      if (top10ByEvents.length > 0) {
+        const labels = top10ByEvents.map((s, i) =>
+          s.project_name ? `${s.project_name} #${i + 1}` : `Session #${i + 1}`
+        );
+        const eventCounts = top10ByEvents.map(s => s.event_count);
+
+        charts.eventsChart = new Chart(eventsCanvas, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Events',
+              data: eventCounts,
+              backgroundColor: colors.info,
+              borderColor: colors.info,
+              borderWidth: 2,
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  color: colors.muted,
+                  font: { size: 10, family: 'var(--mono)' }
+                },
+                grid: {
+                  color: colors.grid
+                }
+              },
+              x: {
+                ticks: {
+                  color: colors.muted,
+                  font: { size: 10, family: 'var(--mono)' },
+                  maxRotation: 45,
+                  minRotation: 45
+                },
+                grid: {
+                  color: colors.grid
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+
+  function updateCharts() {
+    if (showCharts) {
+      setTimeout(createCharts, 100);
+    }
+  }
+
+  // Update charts when sessions change
+  $: if (showCharts && sessions) {
+    updateCharts();
+  }
 </script>
 
 <div class="session-rollback-panel" role="region" aria-label="Session rollback panel">
   <div class="panel-header">
     <h2 id="session-rollback-heading">Session Rollback</h2>
     <p class="panel-description">Undo entire AI coding sessions by rolling back all file changes</p>
-    <button class="refresh-btn" on:click={fetchSessions} aria-label="Refresh sessions">
-      <span aria-hidden="true">↻</span>
-    </button>
+    <div class="header-actions">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={showCharts} on:change={updateCharts} aria-label="Show charts" />
+        Show Charts
+      </label>
+      <button class="refresh-btn" on:click={fetchSessions} aria-label="Refresh sessions">
+        <span aria-hidden="true">↻</span>
+      </button>
+    </div>
   </div>
+
+  <!-- Charts Section -->
+  {#if showCharts && sessions.length > 0 && !selectedSession}
+    <div class="charts-section" role="region" aria-label="Session charts">
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Session Duration (Top 10)</h3>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-session-duration"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Events Per Session (Top 10)</h3>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-events-per-session"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   {#if error}
     <div class="error-state" role="alert">
@@ -422,15 +634,34 @@
   }
 
   .panel-description {
-    margin: 0;
+    margin: 0 0 12px 0;
     font-size: 13px;
     color: var(--muted);
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
   .refresh-btn {
-    position: absolute;
-    top: 0;
-    right: 0;
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 3px;
@@ -979,5 +1210,49 @@
   .btn-retry:focus {
     outline: 2px solid var(--error);
     outline-offset: 2px;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    margin-bottom: 16px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .chart-container {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .chart-header {
+    margin-bottom: 8px;
+  }
+
+  .chart-header h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .chart-canvas-wrapper {
+    position: relative;
+    height: 250px;
+  }
+
+  /* Responsive Charts */
+  @media (max-width: 768px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

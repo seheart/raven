@@ -123,6 +123,16 @@ body.theme--day {
   /* Highlights */
   --highlight: rgba(152, 151, 26, 0.2);
   --selection: rgba(152, 151, 26, 0.3);
+
+  /* Semantic aliases for overview components */
+  --text-primary: var(--text-heading);
+  --text-secondary: var(--text);
+  --text-tertiary: var(--muted);
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--surface);
+  --bg-tertiary: var(--surface-2);
+  --border-color: var(--border);
+  --primary: var(--accent);
 }
 
 /* DUSK — Ristretto */
@@ -187,6 +197,16 @@ body.theme--dusk {
   /* Highlights */
   --highlight: rgba(247, 154, 62, 0.2);
   --selection: rgba(247, 154, 62, 0.3);
+
+  /* Semantic aliases for overview components */
+  --text-primary: var(--text-heading);
+  --text-secondary: var(--text);
+  --text-tertiary: var(--muted);
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--surface);
+  --bg-tertiary: var(--surface-2);
+  --border-color: var(--border);
+  --primary: var(--accent);
 }
 
 /* NIGHT — Tokyo Night */
@@ -251,6 +271,16 @@ body.theme--night {
   /* Highlights */
   --highlight: rgba(122, 162, 247, 0.2);
   --selection: rgba(122, 162, 247, 0.3);
+
+  /* Semantic aliases for overview components */
+  --text-primary: var(--text-heading);
+  --text-secondary: var(--text);
+  --text-tertiary: var(--muted);
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--surface);
+  --bg-tertiary: var(--surface-2);
+  --border-color: var(--border);
+  --primary: var(--accent);
 }
 
 /* Base Styles */

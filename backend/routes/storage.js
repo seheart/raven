@@ -127,7 +127,7 @@ export function createStorageRoutes(deps) {
             const sizeQuery = sizeStmt && typeof sizeStmt.get === 'function' ? sizeStmt.get(table.name) : { size: 0 };
             tableStats.push({
               name: table.name,
-              records: count.count,
+              records: countRow.count || 0,
               size: sizeQuery?.size || 0
             });
           }
@@ -490,11 +490,17 @@ export function createStorageRoutes(deps) {
         const hasTimestamp = tableInfo.some(col => col.name === 'timestamp' || col.name === 'created_at');
 
         if (hasTimestamp) {
-          const timestampCol = tableInfo.find(col => col.name === 'timestamp' || col.name === 'created_at').name;
+          const timestampColObj = tableInfo.find(col => col.name === 'timestamp' || col.name === 'created_at');
+          if (!timestampColObj) {
+            logger.warn(`Timestamp column not found for table ${table.name}`);
+            continue;
+          }
+          const timestampCol = timestampColObj.name;
 
           // Count records before deletion
           const countBeforeStmt = db.prepare(countQuery);
-          const countBefore = (countBeforeStmt && typeof countBeforeStmt.get === 'function' ? countBeforeStmt.get() : { count: 0 }).count;
+          const countBeforeResult = (countBeforeStmt && typeof countBeforeStmt.get === 'function' ? countBeforeStmt.get() : null);
+          const countBefore = countBeforeResult ? countBeforeResult.count : 0;
 
           // Delete old records using predefined query
           const deleteQuery = deleteQueries[timestampCol];

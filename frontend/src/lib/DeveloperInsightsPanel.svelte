@@ -5,6 +5,9 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { formatTime } from './timeFormat.js';
   import { websocketService } from './websocket.js';
+  import { Chart, registerables } from 'chart.js';
+
+  Chart.register(...registerables);
 
   let stats = {
     counts: {
@@ -25,6 +28,10 @@
   let lastUpdate = null;
   let autoRefresh = false;
 
+  // Charts
+  let charts = {};
+  let themeObserver;
+
   async function loadAllData() {
     try {
       loading = true;
@@ -38,6 +45,11 @@
       interactions = interactionsData.interactions || [];
       patterns = patternsData.patterns || [];
       lastUpdate = new Date();
+
+      // Update charts after data loads
+      if (!loading && stats.hourly_activity && stats.hourly_activity.length > 0) {
+        setTimeout(updateCharts, 200);
+      }
     } catch (error) {
       notifications.error(`Failed to load developer insights: ${error.message}`);
     } finally {
@@ -84,19 +96,253 @@
 
   $: totalDataPoints = stats.counts.agent_interactions + stats.counts.code_patterns + stats.counts.workflow_events;
 
+  // Chart Functions
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    // Only create charts if we have data
+    if (!stats.hourly_activity || stats.hourly_activity.length === 0) return;
+
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
+    // Get theme-aware colors from body element
+    const textColor = getColor('--text', '#c0caf5');
+    const mutedColor = getColor('--muted', '#565f89');
+    const gridColor = 'rgba(128, 128, 128, 0.15)';
+    const successColor = getColor('--success', '#9ece6a');
+    const accentColor = getColor('--accent', '#7aa2f7');
+    const errorColor = getColor('--error', '#f7768e');
+    const warningColor = getColor('--warning', '#e0af68');
+    const infoColor = getColor('--info', '#7dcfff');
+
+    // 1. Bar chart: Activity by hour of day
+    const barCanvas = document.getElementById('hourly-bar-chart');
+    if (barCanvas) {
+      const hourlyData = Array(24).fill(0);
+      stats.hourly_activity.forEach(entry => {
+        hourlyData[entry.hour_of_day] = entry.count;
+      });
+
+      charts.hourlyBar = new Chart(barCanvas, {
+        type: 'bar',
+        data: {
+          labels: Array(24).fill(0).map((_, i) => `${i}:00`),
+          datasets: [{
+            label: 'Activity',
+            data: hourlyData,
+            backgroundColor: accentColor,
+            borderColor: accentColor,
+            borderWidth: 2,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            x: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' },
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Pie chart: Breakdown by activity type
+    const pieCanvas = document.getElementById('activity-type-pie-chart');
+    if (pieCanvas) {
+      charts.activityPie = new Chart(pieCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: ['Agent Interactions', 'Code Patterns', 'Workflow Events', 'Error Recoveries', 'Context Switches'],
+          datasets: [{
+            data: [
+              stats.counts.agent_interactions || 0,
+              stats.counts.code_patterns || 0,
+              stats.counts.workflow_events || 0,
+              stats.counts.error_recovery || 0,
+              stats.counts.context_switches || 0
+            ],
+            backgroundColor: [
+              accentColor,
+              successColor,
+              infoColor,
+              errorColor,
+              warningColor
+            ],
+            borderColor: [
+              accentColor,
+              successColor,
+              infoColor,
+              errorColor,
+              warningColor
+            ],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: textColor,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Line chart: Cumulative productivity over time
+    const lineCanvas = document.getElementById('cumulative-line-chart');
+    if (lineCanvas) {
+      // Calculate cumulative totals by hour
+      const cumulativeData = Array(24).fill(0);
+      const hourlyData = Array(24).fill(0);
+      stats.hourly_activity.forEach(entry => {
+        hourlyData[entry.hour_of_day] = entry.count;
+      });
+
+      let cumulative = 0;
+      for (let i = 0; i < 24; i++) {
+        cumulative += hourlyData[i];
+        cumulativeData[i] = cumulative;
+      }
+
+      charts.cumulativeLine = new Chart(lineCanvas, {
+        type: 'line',
+        data: {
+          labels: Array(24).fill(0).map((_, i) => `${i}:00`),
+          datasets: [{
+            label: 'Cumulative Activity',
+            data: cumulativeData,
+            borderColor: successColor,
+            backgroundColor: successColor + '33',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: successColor,
+            pointBorderColor: successColor,
+            pointHoverRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            x: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' },
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  function updateCharts() {
+    if (stats.hourly_activity && stats.hourly_activity.length > 0) {
+      createCharts();
+    }
+  }
+
   onMount(async () => {
     await loadAllData();
+
+    // Create charts after data loads and DOM is ready
+    if (stats.hourly_activity && stats.hourly_activity.length > 0) {
+      setTimeout(createCharts, 200);
+    }
 
     // Connect to WebSocket for real-time updates
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);
     websocketService.on('project-switched', handleProjectSwitched);
+
+    // Watch for theme changes on body element
+    themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          setTimeout(createCharts, 100);
+        }
+      });
+    });
+
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
   });
 
   onDestroy(() => {
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);
+
+    // Disconnect theme observer
+    if (themeObserver) {
+      themeObserver.disconnect();
+    }
+
+    // Destroy charts
+    Object.values(charts).forEach(chart => chart?.destroy());
   });
 </script>
 
@@ -252,34 +498,29 @@
       </section>
     {/if}
 
-    <!-- Hourly Activity Heatmap -->
+    <!-- Activity Charts -->
     {#if stats.hourly_activity.length > 0}
-      <section class="section" aria-labelledby="heatmap-heading">
-        <h2 class="section-title" id="heatmap-heading"><span aria-hidden="true">🕐</span> Coding Hours Heatmap</h2>
-        <div class="heatmap" role="img" aria-label="24-hour coding activity heatmap showing most active hours">
-          {#each Array(24).fill(0).map((_, i) => i) as hour (hour)}
-            {@const activity = stats.hourly_activity.find(a => a.hour_of_day === hour)}
-            {@const count = activity ? activity.count : 0}
-            {@const maxCount = Math.max(...stats.hourly_activity.map(a => a.count))}
-            {@const intensity = maxCount > 0 ? (count / maxCount) : 0}
-            <div
-              class="heatmap-cell"
-              class:active={count > 0}
-              style="background: color-mix(in srgb, var(--accent) {intensity * 100}%, transparent)"
-              title="{hour}:00 - {count} events"
-              aria-hidden="true"
-            >
-              <div class="hour-label">{hour}</div>
-              {#if count > 0}
-                <div class="hour-count">{count}</div>
-              {/if}
-            </div>
-          {/each}
+      <!-- Bar chart: Activity by hour of day -->
+      <section class="section" aria-labelledby="hourly-bar-heading">
+        <h2 class="section-title" id="hourly-bar-heading"><span aria-hidden="true">📊</span> Activity by Hour of Day</h2>
+        <div class="chart-container" style="height: 280px;">
+          <canvas id="hourly-bar-chart" aria-label="Bar chart showing coding activity by hour of day"></canvas>
         </div>
-        <div class="heatmap-legend" aria-hidden="true">
-          <span>Midnight</span>
-          <span>Noon</span>
-          <span>Midnight</span>
+      </section>
+
+      <!-- Pie chart: Breakdown by activity type -->
+      <section class="section" aria-labelledby="activity-pie-heading">
+        <h2 class="section-title" id="activity-pie-heading"><span aria-hidden="true">📈</span> Activity Type Breakdown</h2>
+        <div class="chart-container" style="height: 280px;">
+          <canvas id="activity-type-pie-chart" aria-label="Pie chart showing breakdown of activity types"></canvas>
+        </div>
+      </section>
+
+      <!-- Line chart: Cumulative productivity over time -->
+      <section class="section" aria-labelledby="cumulative-line-heading">
+        <h2 class="section-title" id="cumulative-line-heading"><span aria-hidden="true">📉</span> Cumulative Productivity Over Time</h2>
+        <div class="chart-container" style="height: 280px;">
+          <canvas id="cumulative-line-chart" aria-label="Line chart showing cumulative productivity throughout the day"></canvas>
         </div>
       </section>
     {/if}
@@ -571,48 +812,16 @@
     transition: width 0.3s;
   }
 
-  .heatmap {
-    display: grid;
-    grid-template-columns: repeat(24, 1fr);
-    gap: 4px;
-    margin-bottom: 12px;
+  .chart-container {
+    position: relative;
+    width: 100%;
+    padding: 8px;
   }
 
-  .heatmap-cell {
-    aspect-ratio: 1;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .heatmap-cell:hover {
-    transform: scale(1.1);
-    z-index: 10;
-  }
-
-  .hour-label {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .hour-count {
-    font-size: 10px;
-    font-weight: 600;
-    color: white;
-  }
-
-  .heatmap-legend {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--text-muted);
+  .chart-container canvas {
+    display: block;
+    max-width: 100%;
+    height: 100%;
   }
 
   .interactions-list, .patterns-list {

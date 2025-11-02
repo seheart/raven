@@ -984,7 +984,7 @@
               <div class="performance-card chart-card">
                 <h4>⚡ Response Time</h4>
                 <div class="chart-container">
-                  <div role="img" aria-label={getResponseTimeAriaLabel(stat)}>
+                  <div role="img" aria-label={getResponseTimeAriaLabel(stat)} style="height: 160px; width: 100%;">
                     <canvas id="bar-{agentId}"></canvas>
                   </div>
                 </div>
@@ -1008,7 +1008,7 @@
               <div class="performance-card chart-card">
                 <h4>📊 Activity Breakdown</h4>
                 <div class="chart-container pie">
-                  <div role="img" aria-label={getActivityBreakdownAriaLabel(stat)}>
+                  <div role="img" aria-label={getActivityBreakdownAriaLabel(stat)} style="height: 180px; width: 100%;">
                     <canvas id="pie-{agentId}"></canvas>
                   </div>
                 </div>

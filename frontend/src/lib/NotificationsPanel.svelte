@@ -8,6 +8,10 @@
   import { formatNumber } from './numberFormat.js';
   import { exportJSON } from './exportUtils.js';
   import DOMPurify from 'dompurify';
+  import { Chart, registerables } from 'chart.js';
+  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+
+  Chart.register(...registerables);
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -35,6 +39,11 @@
   let groupDuplicates = true; // Group identical notifications
   let lastUpdated = null;
   let isManualRefresh = false;
+  let showCharts = false; // Toggle for showing/hiding charts
+
+  // Charts
+  let charts = {};
+  let themeObserver;
 
   // Cache for grouped notifications to prevent expensive recomputation
   let cachedNotifications = null;
@@ -50,6 +59,17 @@
     await loadNotifications();
     await loadStats();
 
+    // Initialize charts after data loads
+    initializeCharts(createCharts, {
+      data: notifications,
+      enabled: showCharts
+    });
+
+    // Setup theme observer for charts
+    themeObserver = setupChartThemeObserver(createCharts, {
+      enabled: showCharts
+    });
+
     // Connect to WebSocket for real-time notifications (event-driven, no polling!)
     websocketService.connect();
     websocketService.on('notification', handleNewNotification);
@@ -59,6 +79,12 @@
   });
 
   onDestroy(() => {
+    // Destroy charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+
+    // Disconnect theme observer
+    themeObserver?.disconnect();
+
     // Clean up WebSocket listeners
     websocketService.off('notification', handleNewNotification);
     websocketService.off('error-logged', handleErrorLogged);
@@ -302,10 +328,194 @@
     await loadNotifications();
   }
 
+  // Chart Functions
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || notifications.length === 0) return;
+
+    const colors = getChartThemeColors();
+
+    // Chart 1: Pie Chart - Notifications by Type
+    const typeCanvas = document.getElementById('chart-notifications-by-type');
+    if (typeCanvas) {
+      const typeData = {};
+      notifications.forEach(n => {
+        typeData[n.type] = (typeData[n.type] || 0) + 1;
+      });
+
+      const typeColors = {
+        error: colors.error,
+        trigger: colors.warning,
+        performance: colors.info,
+        git: colors.success,
+        agent: colors.accent,
+        file: '#bb9af7',
+        system: '#ff9e64',
+        default: colors.muted
+      };
+
+      charts.typeChart = new Chart(typeCanvas, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(typeData),
+          datasets: [{
+            data: Object.values(typeData),
+            backgroundColor: Object.keys(typeData).map(type => typeColors[type] || typeColors.default),
+            borderColor: Object.keys(typeData).map(type => typeColors[type] || typeColors.default),
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 2: Donut Chart - Severity Distribution
+    const severityCanvas = document.getElementById('chart-severity-distribution');
+    if (severityCanvas) {
+      const severityData = {};
+      notifications.forEach(n => {
+        severityData[n.severity] = (severityData[n.severity] || 0) + 1;
+      });
+
+      const severityColors = {
+        critical: colors.error,
+        warning: colors.warning,
+        info: colors.info
+      };
+
+      charts.severityChart = new Chart(severityCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(severityData),
+          datasets: [{
+            data: Object.values(severityData),
+            backgroundColor: Object.keys(severityData).map(sev => severityColors[sev] || colors.muted),
+            borderColor: Object.keys(severityData).map(sev => severityColors[sev] || colors.muted),
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 3: Bar Chart - Notifications Over Time
+    const timeCanvas = document.getElementById('chart-notifications-over-time');
+    if (timeCanvas) {
+      // Group notifications by hour or day depending on data range
+      const timeData = {};
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      notifications.forEach(n => {
+        const timestamp = new Date(n.timestamp);
+        let timeKey;
+
+        if (timestamp >= oneDayAgo) {
+          // Group by hour for last 24 hours
+          timeKey = `${timestamp.getHours()}:00`;
+        } else {
+          // Group by day for older notifications
+          timeKey = timestamp.toLocaleDateString();
+        }
+
+        timeData[timeKey] = (timeData[timeKey] || 0) + 1;
+      });
+
+      // Sort keys chronologically
+      const sortedKeys = Object.keys(timeData).sort();
+
+      charts.timeChart = new Chart(timeCanvas, {
+        type: 'bar',
+        data: {
+          labels: sortedKeys,
+          datasets: [{
+            label: 'Notifications',
+            data: sortedKeys.map(key => timeData[key]),
+            backgroundColor: colors.accent,
+            borderColor: colors.accent,
+            borderWidth: 2,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' },
+                stepSize: 1
+              },
+              grid: {
+                color: colors.grid
+              }
+            },
+            x: {
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' },
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: {
+                color: colors.grid
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  function updateCharts() {
+    if (showCharts) {
+      setTimeout(createCharts, 100);
+    }
+  }
+
   // Reactive "time ago" - updates when lastUpdated changes (no polling!)
   $: timeAgo = getTimeAgo(lastUpdated);
 
   $: filteredCount = notifications.length;
+
+  // Update charts when notifications or stats change
+  $: if (showCharts && (notifications || stats)) {
+    updateCharts();
+  }
 </script>
 
 <div class="notifications-panel" role="region" aria-label="Notifications panel">
@@ -319,6 +529,10 @@
       <label class="toggle-label">
         <input type="checkbox" bind:checked={groupDuplicates} aria-label="Group duplicate notifications" />
         Group Duplicates
+      </label>
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={showCharts} on:change={updateCharts} aria-label="Show charts" />
+        Show Charts
       </label>
       <button class="btn-secondary" on:click={exportNotifications} disabled={notifications.length === 0} aria-label="Export notifications to JSON">
         <span aria-hidden="true">📤</span> Export
@@ -359,6 +573,40 @@
       <div class="stat-value">{formatNumber(stats.by_type?.performance || 0)}</div>
     </div>
   </div>
+
+  <!-- Charts Section -->
+  {#if showCharts && notifications.length > 0}
+    <div class="charts-section" role="region" aria-label="Notification charts">
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Notifications by Type</h3>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-notifications-by-type"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Severity Distribution</h3>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-severity-distribution"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container chart-wide">
+          <div class="chart-header">
+            <h3>Notifications Over Time</h3>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-notifications-over-time"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Filters -->
   <div class="filters" role="region" aria-label="Notification filters">
@@ -905,5 +1153,61 @@
     cursor: pointer;
     width: 16px;
     height: 16px;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    margin-bottom: 2rem;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    border-left: 3px solid var(--accent);
+  }
+
+  .chart-container.chart-wide {
+    grid-column: 1 / -1;
+  }
+
+  .chart-header {
+    margin-bottom: 1rem;
+  }
+
+  .chart-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .chart-canvas-wrapper {
+    position: relative;
+    height: 250px;
+  }
+
+  .chart-wide .chart-canvas-wrapper {
+    height: 300px;
+  }
+
+  /* Responsive Charts */
+  @media (max-width: 768px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-container.chart-wide {
+      grid-column: 1;
+    }
   }
 </style>

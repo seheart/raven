@@ -108,7 +108,8 @@ export function createDashboardRoutes(deps) {
   // GET /api/top-modified-files - Top files by modification count (PARALLELIZED)
   router.get('/top-modified-files', async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit) || 10;
+      const limitNum = parseInt(req.query.limit);
+      const limit = (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) ? 10 : limitNum;
 
       // Parallelize queries across all projects
       const filesPromises = Array.from(projectDatabases.entries()).map(
@@ -323,7 +324,10 @@ export function createDashboardRoutes(deps) {
           for (const entry of projectTimeline) {
             const key = entry.hour;
             if (timelineMap.has(key)) {
-              timelineMap.get(key).count += entry.count;
+              const existing = timelineMap.get(key);
+              if (existing) {
+                existing.count += entry.count;
+              }
             } else {
               timelineMap.set(key, {
                 timestamp: entry.hour,

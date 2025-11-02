@@ -5,6 +5,10 @@
   import { API_CONFIG } from '../config.js';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
+  import { Chart, registerables } from 'chart.js';
+  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+
+  Chart.register(...registerables);
 
   const API_BASE = API_CONFIG.API_BASE;
 
@@ -14,6 +18,11 @@
   let expandedDatabase = null;
   let lastUpdated = null;
   let isManualRefresh = false;
+  let showCharts = false; // Toggle for showing/hiding charts
+
+  // Charts
+  let charts = {};
+  let themeObserver;
 
   // WebSocket event handlers (event-driven, no polling!)
   const handleFileChanged = async () => {
@@ -24,8 +33,19 @@
     await loadStorageData();
   };
 
-  onMount(() => {
-    loadStorageData();
+  onMount(async () => {
+    await loadStorageData();
+
+    // Initialize charts after data loads
+    initializeCharts(createCharts, {
+      data: storageData?.databases,
+      enabled: showCharts
+    });
+
+    // Setup theme observer for charts
+    themeObserver = setupChartThemeObserver(createCharts, {
+      enabled: showCharts
+    });
 
     // Connect to WebSocket for real-time updates
     websocketService.connect();
@@ -34,6 +54,12 @@
   });
 
   onDestroy(() => {
+    // Destroy charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+
+    // Disconnect theme observer
+    themeObserver?.disconnect();
+
     // Clean up WebSocket listeners
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);
@@ -235,6 +261,214 @@
 
   $: totalDatabaseSize = storageData?.databases?.reduce((sum, db) => sum + (db?.size || 0), 0) || 0;
   $: totalSnapshotsSize = storageData?.snapshots?.reduce((sum, snap) => sum + (snap?.size || 0), 0) || 0;
+
+  // Chart Functions
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || !storageData?.databases || storageData.databases.length === 0) return;
+
+    const colors = getChartThemeColors();
+
+    // Chart 1: Pie Chart - Storage Distribution by Database
+    const dbDistCanvas = document.getElementById('chart-db-distribution');
+    if (dbDistCanvas) {
+      const dbData = storageData.databases.map(db => ({
+        name: db.filename,
+        size: db.size
+      }));
+
+      const colorPalette = [
+        colors.accent,
+        colors.info,
+        colors.warning,
+        colors.success,
+        '#bb9af7',
+        '#ff9e64',
+        '#7dcfff',
+        '#9ece6a'
+      ];
+
+      charts.dbDistChart = new Chart(dbDistCanvas, {
+        type: 'pie',
+        data: {
+          labels: dbData.map(db => db.name),
+          datasets: [{
+            data: dbData.map(db => db.size),
+            backgroundColor: dbData.map((_, i) => colorPalette[i % colorPalette.length]),
+            borderColor: dbData.map((_, i) => colorPalette[i % colorPalette.length]),
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  return `${label}: ${formatBytes(value)}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 2: Horizontal Bar Chart - Largest Tables by Row Count
+    const largestTablesCanvas = document.getElementById('chart-largest-tables');
+    if (largestTablesCanvas) {
+      // Collect all tables from all databases
+      const allTables = [];
+      storageData.databases.forEach(db => {
+        if (db.tableStats && db.tableStats.length > 0) {
+          db.tableStats.forEach(table => {
+            allTables.push({
+              name: `${db.filename}.${table.name}`,
+              records: table.records
+            });
+          });
+        }
+      });
+
+      // Sort by record count and take top 10
+      const topTables = allTables
+        .sort((a, b) => b.records - a.records)
+        .slice(0, 10);
+
+      if (topTables.length > 0) {
+        charts.largestTablesChart = new Chart(largestTablesCanvas, {
+          type: 'bar',
+          data: {
+            labels: topTables.map(t => t.name),
+            datasets: [{
+              label: 'Row Count',
+              data: topTables.map(t => t.records),
+              backgroundColor: colors.info,
+              borderColor: colors.info,
+              borderWidth: 2,
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `Rows: ${formatNumber(context.parsed.x)}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  color: colors.muted,
+                  font: { size: 10, family: 'var(--mono)' },
+                  callback: function(value) {
+                    return formatNumber(value);
+                  }
+                },
+                grid: {
+                  color: colors.grid
+                }
+              },
+              y: {
+                ticks: {
+                  color: colors.muted,
+                  font: { size: 10, family: 'var(--mono)' }
+                },
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Chart 3: Donut Chart - Database Size Breakdown
+    const dbSizeCanvas = document.getElementById('chart-db-size-breakdown');
+    if (dbSizeCanvas) {
+      const dbSizes = storageData.databases.map(db => ({
+        name: db.filename,
+        size: db.size
+      }));
+
+      const colorPalette = [
+        colors.success,
+        colors.warning,
+        colors.error,
+        colors.accent,
+        '#bb9af7',
+        '#7dcfff',
+        '#ff9e64',
+        '#9ece6a'
+      ];
+
+      charts.dbSizeChart = new Chart(dbSizeCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: dbSizes.map(db => db.name),
+          datasets: [{
+            data: dbSizes.map(db => db.size),
+            backgroundColor: dbSizes.map((_, i) => colorPalette[i % colorPalette.length]),
+            borderColor: dbSizes.map((_, i) => colorPalette[i % colorPalette.length]),
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: ${formatBytes(value)} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Reactive statement to recreate charts when showCharts or storageData changes
+  $: if (showCharts && storageData?.databases) {
+    setTimeout(createCharts, 100);
+  }
 </script>
 
 <div class="storage-panel">
@@ -286,6 +520,49 @@
         <strong>Storage Location:</strong> <code>{storageData.ravenDir}</code>
       </div>
     </section>
+
+    <!-- Charts Section -->
+    {#if storageData?.databases?.length > 0}
+      <div class="charts-section">
+        <div class="charts-header">
+          <h2>Storage Analytics</h2>
+          <button class="btn-toggle-charts" on:click={() => showCharts = !showCharts}>
+            {showCharts ? 'Hide Charts' : 'Show Charts'}
+          </button>
+        </div>
+
+        {#if showCharts}
+          <div class="charts-grid">
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3>Storage Distribution by Database</h3>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chart-db-distribution"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3>Database Size Breakdown</h3>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chart-db-size-breakdown"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container chart-wide">
+              <div class="chart-header">
+                <h3>Largest Tables by Row Count</h3>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chart-largest-tables"></canvas>
+              </div>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <!-- Databases Section -->
     <section class="databases">
@@ -1114,5 +1391,92 @@
 
   .actions .help-text {
     margin-bottom: 1rem;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    margin-bottom: 3rem;
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+
+  .charts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .charts-header h2 {
+    margin: 0;
+  }
+
+  .btn-toggle-charts {
+    padding: 0.5rem 1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-toggle-charts:hover {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    border-left: 3px solid var(--accent);
+  }
+
+  .chart-container.chart-wide {
+    grid-column: 1 / -1;
+  }
+
+  .chart-header {
+    margin-bottom: 1rem;
+  }
+
+  .chart-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .chart-canvas-wrapper {
+    height: 250px;
+    position: relative;
+  }
+
+  .chart-wide .chart-canvas-wrapper {
+    height: 300px;
+  }
+
+  /* Responsive Charts */
+  @media (max-width: 768px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-container.chart-wide {
+      grid-column: 1;
+    }
   }
 </style>

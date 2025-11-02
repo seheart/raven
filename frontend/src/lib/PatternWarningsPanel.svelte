@@ -7,6 +7,8 @@
   import { formatNumber } from './numberFormat.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import Chart from 'chart.js/auto';
+  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
 
   let warnings = [];
   let loading = true;
@@ -18,6 +20,14 @@
   let limit = 30;
   let loadingMore = false;
   let showExportDropdown = false;
+  let showCharts = true;
+
+  // Chart instances
+  let categoryChart = null;
+  let severityChart = null;
+  let filesChart = null;
+  let projectsChart = null;
+  let themeObserver = null;
 
   const categories = [
     { id: 'all', label: 'All', icon: '🔍' },
@@ -175,10 +185,13 @@
   onMount(() => {
     fetchWarnings();
     setupWebSocket();
+    themeObserver = setupChartThemeObserver(createCharts, { enabled: showCharts });
   });
 
   onDestroy(() => {
     if (ws) ws();
+    destroyCharts();
+    themeObserver?.disconnect();
   });
 
   // Watch category changes (project filtering is client-side only)
@@ -245,6 +258,266 @@
 
   // Count filtered warnings
   $: filteredCount = filteredWarnings.length;
+
+  // Destroy chart instances
+  function destroyCharts() {
+    categoryChart?.destroy();
+    severityChart?.destroy();
+    filesChart?.destroy();
+    projectsChart?.destroy();
+    categoryChart = null;
+    severityChart = null;
+    filesChart = null;
+    projectsChart = null;
+  }
+
+  // Create all charts
+  function createCharts() {
+    destroyCharts();
+
+    if (!showCharts || filteredWarnings.length === 0) return;
+
+    const colors = getChartThemeColors();
+
+    // 1. Pie Chart: Warnings by category
+    const categoryData = filteredWarnings.reduce((acc, w) => {
+      acc[w.category] = (acc[w.category] || 0) + 1;
+      return acc;
+    }, {});
+
+    const categoryCanvas = document.getElementById('categoryChart');
+    if (categoryCanvas) {
+      categoryChart = new Chart(categoryCanvas, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(categoryData).map(c => categories.find(cat => cat.id === c)?.label || c),
+          datasets: [{
+            data: Object.values(categoryData),
+            backgroundColor: [
+              colors.error,
+              colors.warning,
+              colors.info,
+              colors.success,
+              colors.accent
+            ],
+            borderWidth: 2,
+            borderColor: colors.grid
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Donut Chart: Severity distribution
+    const severityData = filteredWarnings.reduce((acc, w) => {
+      acc[w.severity] = (acc[w.severity] || 0) + 1;
+      return acc;
+    }, {});
+
+    const severityCanvas = document.getElementById('severityChart');
+    if (severityCanvas) {
+      severityChart = new Chart(severityCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(severityData).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+          datasets: [{
+            data: Object.values(severityData),
+            backgroundColor: [
+              colors.error,
+              colors.warning,
+              colors.info
+            ],
+            borderWidth: 2,
+            borderColor: colors.grid
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Horizontal Bar Chart: Top files with most warnings
+    const fileData = filteredWarnings.reduce((acc, w) => {
+      const shortPath = shortenPath(w.filepath);
+      acc[shortPath] = (acc[shortPath] || 0) + 1;
+      return acc;
+    }, {});
+
+    const topFiles = Object.entries(fileData)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    const filesCanvas = document.getElementById('filesChart');
+    if (filesCanvas && topFiles.length > 0) {
+      filesChart = new Chart(filesCanvas, {
+        type: 'bar',
+        data: {
+          labels: topFiles.map(f => f[0]),
+          datasets: [{
+            label: 'Warnings',
+            data: topFiles.map(f => f[1]),
+            backgroundColor: colors.warning,
+            borderColor: colors.warning,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Warnings: ${context.parsed.x}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' },
+                stepSize: 1
+              },
+              grid: {
+                color: colors.grid
+              }
+            },
+            y: {
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 4. Bar Chart: Warnings by project
+    const projectData = filteredWarnings.reduce((acc, w) => {
+      if (w.project_name) {
+        acc[w.project_name] = (acc[w.project_name] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    const projectsCanvas = document.getElementById('projectsChart');
+    if (projectsCanvas && Object.keys(projectData).length > 0) {
+      projectsChart = new Chart(projectsCanvas, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(projectData),
+          datasets: [{
+            label: 'Warnings',
+            data: Object.values(projectData),
+            backgroundColor: colors.accent,
+            borderColor: colors.accent,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Warnings: ${context.parsed.y}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' },
+                stepSize: 1
+              },
+              grid: {
+                color: colors.grid
+              }
+            },
+            x: {
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Watch for data changes and recreate charts
+  $: if (filteredWarnings && showCharts) {
+    initializeCharts(createCharts, { data: filteredWarnings, enabled: showCharts });
+  }
 </script>
 
 <div class="pattern-warnings-panel" role="region" aria-label="Pattern warnings panel">
@@ -397,6 +670,47 @@
         </div>
       {/if}
     </div>
+
+    <!-- Charts Section -->
+    {#if showCharts}
+      <div class="charts-section" role="region" aria-label="Warning visualizations">
+        <div class="charts-grid">
+          <!-- Pie Chart: Warnings by category -->
+          <div class="chart-container">
+            <h3 class="chart-title">Warnings by Category</h3>
+            <div class="chart-wrapper">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Donut Chart: Severity distribution -->
+          <div class="chart-container">
+            <h3 class="chart-title">Severity Distribution</h3>
+            <div class="chart-wrapper">
+              <canvas id="severityChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Horizontal Bar Chart: Top files with most warnings -->
+          <div class="chart-container chart-container-wide">
+            <h3 class="chart-title">Top Files with Most Warnings</h3>
+            <div class="chart-wrapper">
+              <canvas id="filesChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Bar Chart: Warnings by project -->
+          {#if projects.length > 0}
+            <div class="chart-container chart-container-wide">
+              <h3 class="chart-title">Warnings by Project</h3>
+              <div class="chart-wrapper">
+                <canvas id="projectsChart"></canvas>
+              </div>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
   {/if}
 
   {#if loading}
@@ -771,6 +1085,53 @@
     font-size: 11px;
     color: var(--muted);
     margin-left: 4px;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .chart-container-wide {
+    grid-column: 1 / -1;
+  }
+
+  .chart-title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .chart-wrapper {
+    position: relative;
+    height: 250px;
+    width: 100%;
+  }
+
+  .chart-container-wide .chart-wrapper {
+    height: 300px;
   }
 
   /* Loading & Empty States */

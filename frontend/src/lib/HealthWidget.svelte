@@ -226,15 +226,11 @@
 
     // Listen for failed health checks
     websocketService.on('health-check-failed', handleHealthCheckFailed);
-
-    return () => {
-      if (ws) ws();
-      websocketService.off('health-check-failed', handleHealthCheckFailed);
-    };
   });
 
   onDestroy(() => {
     if (ws) ws();
+    websocketService.off('health-check-failed', handleHealthCheckFailed);
   });
 
   // Get status configuration

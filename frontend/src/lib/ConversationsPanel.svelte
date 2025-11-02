@@ -663,8 +663,8 @@
       <label for="filter-project" class="visually-hidden">Filter by project</label>
       <select id="filter-project" class="filter-select" bind:value={filterProject} on:change={loadConversations} aria-label="Filter by project">
         <option value="all">All Projects</option>
-        {#each Object.keys(stats.by_project || {}) as project (project)}
-          <option value={project}>{project} ({stats.by_project[project]})</option>
+        {#each Object.keys(stats?.by_project || {}) as project (project)}
+          <option value={project}>{project} ({stats?.by_project?.[project] || 0})</option>
         {/each}
       </select>
 

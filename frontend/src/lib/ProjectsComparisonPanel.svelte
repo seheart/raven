@@ -7,6 +7,10 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { formatDateTime } from './timeFormat.js';
   import { router } from './router.js';
+  import { Chart, registerables } from 'chart.js';
+  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+
+  Chart.register(...registerables);
 
   let projects = [];
   let loading = true;
@@ -15,6 +19,11 @@
   let searchQuery = '';
   let filterStatus = 'all'; // all, active, recent, idle, never
   let autoRefresh = true;
+  let showCharts = false; // Toggle for showing/hiding charts
+
+  // Charts
+  let charts = {};
+  let themeObserver;
 
   async function loadProjects() {
     try {
@@ -232,12 +241,249 @@
     });
   }
 
+  // Chart Functions
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || projects.length === 0) return;
+
+    const colors = getChartThemeColors();
+
+    // Chart 1: Horizontal Bar Chart - Projects by Activity Level (Total Events)
+    const activityCanvas = document.getElementById('chart-projects-activity');
+    if (activityCanvas) {
+      // Sort projects by total events and take top 10
+      const sortedProjects = [...projects]
+        .sort((a, b) => b.total_events - a.total_events)
+        .slice(0, 10);
+
+      charts.activityChart = new Chart(activityCanvas, {
+        type: 'bar',
+        data: {
+          labels: sortedProjects.map(p => p.name),
+          datasets: [{
+            label: 'Total Events',
+            data: sortedProjects.map(p => p.total_events),
+            backgroundColor: colors.accent,
+            borderColor: colors.accent,
+            borderWidth: 2,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => `Events: ${context.parsed.x.toLocaleString()}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: colors.grid
+              }
+            },
+            y: {
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 2: Scatter Plot - Events vs. Errors Correlation
+    const correlationCanvas = document.getElementById('chart-events-errors-correlation');
+    if (correlationCanvas) {
+      const scatterData = projects.map(p => ({
+        x: p.total_events,
+        y: p.total_errors,
+        label: p.name
+      }));
+
+      charts.correlationChart = new Chart(correlationCanvas, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Projects',
+            data: scatterData,
+            backgroundColor: colors.accent,
+            borderColor: colors.accent,
+            borderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                title: (items) => items[0]?.raw?.label || '',
+                label: (context) => {
+                  const data = context.raw;
+                  return [
+                    `Events: ${data.x.toLocaleString()}`,
+                    `Errors: ${data.y.toLocaleString()}`
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Total Events',
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' }
+              },
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: colors.grid
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Total Errors',
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' }
+              },
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: colors.grid
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 3: Pie Chart - Active vs. Idle Projects Status Distribution
+    const statusCanvas = document.getElementById('chart-status-distribution');
+    if (statusCanvas) {
+      const statusData = {
+        active: 0,
+        recent: 0,
+        idle: 0,
+        never: 0
+      };
+
+      projects.forEach(p => {
+        const status = getActivityStatus(p.last_activity);
+        statusData[status.class] = (statusData[status.class] || 0) + 1;
+      });
+
+      const statusColors = {
+        active: '#00C853',
+        recent: '#82B1FF',
+        idle: colors.muted,
+        never: colors.grid
+      };
+
+      const labels = Object.keys(statusData).filter(key => statusData[key] > 0);
+      const data = labels.map(key => statusData[key]);
+      const backgroundColors = labels.map(key => statusColors[key]);
+
+      charts.statusChart = new Chart(statusCanvas, {
+        type: 'pie',
+        data: {
+          labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+          datasets: [{
+            data: data,
+            backgroundColor: backgroundColors,
+            borderColor: backgroundColors,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Reactive: Recreate charts when showCharts or projects change
+  $: if (showCharts && projects.length > 0) {
+    setTimeout(createCharts, 200);
+  }
+
   onMount(() => {
     loadProjects();
     setupWebSocket();
+
+    // Initialize charts after data loads
+    initializeCharts(createCharts, {
+      data: projects,
+      enabled: showCharts
+    });
+
+    // Setup theme observer for charts
+    themeObserver = setupChartThemeObserver(createCharts, {
+      enabled: showCharts
+    });
   });
 
   onDestroy(() => {
+    // Destroy charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+
+    // Disconnect theme observer
+    themeObserver?.disconnect();
+
     websocketService.off('file-changed', loadProjects);
   });
 </script>
@@ -277,10 +523,51 @@
       <span aria-hidden="true">📦</span> JSON
     </button>
 
+    <button class="btn-toggle-charts" on:click={() => showCharts = !showCharts} aria-label="{showCharts ? 'Hide' : 'Show'} charts">
+      <span aria-hidden="true">{showCharts ? '📊' : '📈'}</span> {showCharts ? 'Hide' : 'Show'} Charts
+    </button>
+
     <div class="sort-info" role="status" aria-live="polite">
       Sorted by: <strong>{getSortDisplayName(sortBy)}</strong> ({sortDesc ? 'desc' : 'asc'})
     </div>
   </div>
+
+  <!-- Charts Section -->
+  {#if showCharts && projects.length > 0}
+    <div class="charts-section" role="region" aria-label="Project comparison charts">
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Projects by Activity Level</h3>
+            <p class="chart-description">Top 10 projects by total events</p>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-projects-activity"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Events vs. Errors</h3>
+            <p class="chart-description">Correlation analysis</p>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-events-errors-correlation"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Status Distribution</h3>
+            <p class="chart-description">Active vs. idle projects</p>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-status-distribution"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   {#if loading}
     <LoadingSkeleton count={5} height="80px" />
@@ -437,7 +724,7 @@
     cursor: pointer;
   }
 
-  .btn-refresh, .btn-export {
+  .btn-refresh, .btn-export, .btn-toggle-charts {
     padding: 8px 16px;
     background: var(--accent);
     color: white;
@@ -449,7 +736,7 @@
     transition: all 0.2s;
   }
 
-  .btn-refresh:hover, .btn-export:hover {
+  .btn-refresh:hover, .btn-export:hover, .btn-toggle-charts:hover {
     filter: brightness(1.2);
   }
 
@@ -459,7 +746,8 @@
   }
 
   .btn-refresh:focus,
-  .btn-export:focus {
+  .btn-export:focus,
+  .btn-toggle-charts:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
@@ -674,5 +962,66 @@
     color: var(--text-muted);
     opacity: 0.8;
     margin-bottom: 8px;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    margin-bottom: 8px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .chart-header {
+    margin-bottom: 12px;
+  }
+
+  .chart-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 4px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .chart-description {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0;
+    font-family: var(--mono);
+  }
+
+  .chart-canvas-wrapper {
+    position: relative;
+    height: 280px;
+  }
+
+  /* Responsive Charts */
+  @media (max-width: 1200px) {
+    .charts-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-canvas-wrapper {
+      height: 250px;
+    }
   }
 </style>

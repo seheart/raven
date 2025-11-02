@@ -8,6 +8,9 @@
   import { formatNumber } from './numberFormat.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
+  import { Chart, registerables } from 'chart.js';
+
+  Chart.register(...registerables);
 
   let errors = [];
   let loading = true;
@@ -19,6 +22,14 @@
   let limit = 30;
   let loadingMore = false;
 
+  // Charts
+  let charts = {};
+  let severityChartCanvas;
+  let filesChartCanvas;
+  let projectsChartCanvas;
+  let themeObserver;
+  let showCharts = true;
+
   // Subscribe to settings to get editor preference
   const unsubscribeSettings = settingsStore.subscribe(value => {
     settings = value;
@@ -26,6 +37,12 @@
 
   onDestroy(() => {
     if (unsubscribeSettings) unsubscribeSettings();
+    // Disconnect theme observer
+    if (themeObserver) {
+      themeObserver.disconnect();
+    }
+    // Destroy charts
+    Object.values(charts).forEach(chart => chart?.destroy());
   });
 
   let error = null;
@@ -50,6 +67,11 @@
       loading = false;
       loadingMore = false;
       error = null;
+
+      // Recreate charts with new data
+      if (showCharts && errors.length > 0) {
+        setTimeout(createCharts, 100);
+      }
     } catch (err) {
       logger.error('Failed to fetch syntax errors:', err);
       notifications.error('Failed to load syntax errors');
@@ -224,6 +246,200 @@ ${allErrorsText}`;
     }
   }
 
+  // Create Chart.js visualizations
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    // Only create charts if we have data
+    if (!showCharts || errors.length === 0) return;
+
+    // Helper function to safely extract color with fallback
+    const getColor = (varName, fallback) => {
+      const computedStyle = getComputedStyle(document.body);
+      const value = computedStyle.getPropertyValue(varName).trim();
+      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+    };
+
+    // Get theme-aware colors
+    const textColor = getColor('--text', '#c0caf5');
+    const mutedColor = getColor('--muted', '#565f89');
+    const gridColor = 'rgba(128, 128, 128, 0.15)';
+    const successColor = getColor('--success', '#9ece6a');
+    const accentColor = getColor('--accent', '#7aa2f7');
+    const errorColor = getColor('--error', '#f7768e');
+    const warningColor = getColor('--warning', '#e0af68');
+    const infoColor = getColor('--info', '#7dcfff');
+
+    // 1. Pie Chart: Errors by Severity
+    if (severityChartCanvas) {
+      const severityCounts = errors.reduce((acc, err) => {
+        acc[err.severity] = (acc[err.severity] || 0) + 1;
+        return acc;
+      }, {});
+
+      charts.severity = new Chart(severityChartCanvas, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(severityCounts).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+          datasets: [{
+            data: Object.values(severityCounts),
+            backgroundColor: [
+              errorColor,
+              warningColor,
+              infoColor
+            ],
+            borderColor: [
+              errorColor,
+              warningColor,
+              infoColor
+            ],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: textColor,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((context.parsed / total) * 100).toFixed(1);
+                  return `${context.label}: ${context.parsed} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Horizontal Bar Chart: Top Files with Most Errors
+    if (filesChartCanvas) {
+      const fileErrorCounts = errors.reduce((acc, err) => {
+        const shortPath = shortenPath(err.filepath);
+        acc[shortPath] = (acc[shortPath] || 0) + 1;
+        return acc;
+      }, {});
+
+      const topFiles = Object.entries(fileErrorCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      charts.files = new Chart(filesChartCanvas, {
+        type: 'bar',
+        data: {
+          labels: topFiles.map(([file]) => file),
+          datasets: [{
+            label: 'Errors',
+            data: topFiles.map(([, count]) => count),
+            backgroundColor: errorColor,
+            borderColor: errorColor,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' },
+                stepSize: 1
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            y: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Bar Chart: Errors by Project
+    if (projectsChartCanvas) {
+      const projectErrorCounts = errors.reduce((acc, err) => {
+        const project = err.project_name || 'Unknown';
+        acc[project] = (acc[project] || 0) + 1;
+        return acc;
+      }, {});
+
+      const projectData = Object.entries(projectErrorCounts)
+        .sort((a, b) => b[1] - a[1]);
+
+      charts.projects = new Chart(projectsChartCanvas, {
+        type: 'bar',
+        data: {
+          labels: projectData.map(([project]) => project),
+          datasets: [{
+            label: 'Errors',
+            data: projectData.map(([, count]) => count),
+            backgroundColor: accentColor,
+            borderColor: accentColor,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' },
+                stepSize: 1
+              },
+              grid: {
+                color: gridColor
+              }
+            },
+            x: {
+              ticks: {
+                color: mutedColor,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
     ws = websocketService.subscribe('syntax-error', (data) => {
@@ -243,9 +459,28 @@ ${allErrorsText}`;
     });
   }
 
-  onMount(() => {
-    fetchErrors();
+  onMount(async () => {
+    await fetchErrors();
     setupWebSocket();
+
+    // Create charts after data loads and DOM is ready
+    if (showCharts && errors.length > 0) {
+      setTimeout(createCharts, 200);
+    }
+
+    // Watch for theme changes on body element
+    themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && showCharts) {
+          setTimeout(createCharts, 100);
+        }
+      });
+    });
+
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
   });
 
   onDestroy(() => {
@@ -364,6 +599,23 @@ ${allErrorsText}`;
       </div>
     {/if}
   </div>
+
+  <!-- Charts -->
+  {#if !loading && errors.length > 0 && showCharts}
+    <div class="charts-section" role="region" aria-label="Syntax error visualizations">
+      <div class="charts-grid">
+        <div class="chart-container" role="img" aria-label="Errors by severity distribution">
+          <canvas bind:this={severityChartCanvas}></canvas>
+        </div>
+        <div class="chart-container" role="img" aria-label="Top files with most errors">
+          <canvas bind:this={filesChartCanvas}></canvas>
+        </div>
+        <div class="chart-container chart-wide" role="img" aria-label="Errors by project">
+          <canvas bind:this={projectsChartCanvas}></canvas>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   {#if error}
     <div class="error-state" role="alert">
@@ -1007,5 +1259,29 @@ ${allErrorsText}`;
   .btn-retry:focus {
     outline: 2px solid var(--error);
     outline-offset: 2px;
+  }
+
+  /* Charts Section */
+  .charts-section {
+    margin-bottom: 16px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 12px;
+  }
+
+  .chart-container {
+    height: 250px;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .chart-container.chart-wide {
+    grid-column: 1 / -1;
+    height: 250px;
   }
 </style>

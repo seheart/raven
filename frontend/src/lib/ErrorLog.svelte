@@ -9,6 +9,10 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
   import { TimeoutManager } from './utils/TimeoutManager.js';
+  import { Chart, registerables } from 'chart.js';
+  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+
+  Chart.register(...registerables);
 
   let errors = [];
   let stats = { total: 0, by_severity: [], recent_count: 0 };
@@ -21,9 +25,14 @@
   let virtualScroll; // Reference to virtual scroll component
   let lastUpdated = null;
   let isManualRefresh = false;
+  let showCharts = false; // Toggle for showing/hiding charts
 
   // Timeout manager for cleanup
   const timeouts = new TimeoutManager();
+
+  // Charts
+  let charts = {};
+  let themeObserver;
 
   // Pagination
   let currentPage = 0;
@@ -43,6 +52,17 @@
     await loadStats();
     setupWebSocket();
 
+    // Initialize charts after data loads
+    initializeCharts(createCharts, {
+      data: errors,
+      enabled: showCharts
+    });
+
+    // Setup theme observer for charts
+    themeObserver = setupChartThemeObserver(createCharts, {
+      enabled: showCharts
+    });
+
     // Check if we should highlight a specific error (from notification click)
     const highlightMsg = sessionStorage.getItem('highlightError');
     if (highlightMsg) {
@@ -60,6 +80,12 @@
   });
 
   onDestroy(() => {
+    // Destroy charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+
+    // Disconnect theme observer
+    themeObserver?.disconnect();
+
     // Remove WebSocket event listeners
     websocketService.off('error-logged', handleErrorLogged);
 
@@ -283,6 +309,189 @@
     }
   }
 
+  function createCharts() {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart?.destroy());
+    charts = {};
+
+    if (!showCharts || errors.length === 0) return;
+
+    const colors = getChartThemeColors();
+
+    // Chart 1: Line Chart - Error Rate Over Time (Last 24 Hours)
+    const timeCanvas = document.getElementById('chart-error-rate-time');
+    if (timeCanvas) {
+      // Group errors by hour for the last 24 hours
+      const now = new Date();
+      const last24Hours = Array.from({ length: 24 }, (_, i) => {
+        const hour = new Date(now.getTime() - (23 - i) * 60 * 60 * 1000);
+        hour.setMinutes(0, 0, 0);
+        return hour;
+      });
+
+      const hourlyData = last24Hours.map(hour => {
+        const hourEnd = new Date(hour.getTime() + 60 * 60 * 1000);
+        return errors.filter(e => {
+          const errorTime = new Date(e.timestamp);
+          return errorTime >= hour && errorTime < hourEnd;
+        }).length;
+      });
+
+      charts.timeChart = new Chart(timeCanvas, {
+        type: 'line',
+        data: {
+          labels: last24Hours.map(h => h.getHours() + ':00'),
+          datasets: [{
+            label: 'Errors',
+            data: hourlyData,
+            borderColor: colors.error,
+            backgroundColor: `${colors.error}33`,
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: colors.grid
+              }
+            },
+            x: {
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: colors.grid
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 2: Pie Chart - Errors by Severity
+    const severityCanvas = document.getElementById('chart-errors-by-severity');
+    if (severityCanvas) {
+      const severityData = [
+        severityStats.error || 0,
+        severityStats.warning || 0,
+        severityStats.info || 0
+      ];
+
+      charts.severityChart = new Chart(severityCanvas, {
+        type: 'pie',
+        data: {
+          labels: ['Errors', 'Warnings', 'Info'],
+          datasets: [{
+            data: severityData,
+            backgroundColor: [colors.error, colors.warning, colors.info],
+            borderColor: [colors.error, colors.warning, colors.info],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: colors.text,
+                font: { size: 11, family: 'var(--mono)' },
+                padding: 8
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 3: Bar Chart - Most Common Error Types
+    const typeCanvas = document.getElementById('chart-error-types');
+    if (typeCanvas) {
+      // Count error types
+      const typeCount = {};
+      errors.forEach(e => {
+        const type = e.error_type || 'Unknown';
+        typeCount[type] = (typeCount[type] || 0) + 1;
+      });
+
+      // Sort by count and take top 10
+      const sortedTypes = Object.entries(typeCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      charts.typeChart = new Chart(typeCanvas, {
+        type: 'bar',
+        data: {
+          labels: sortedTypes.map(([type]) => type),
+          datasets: [{
+            label: 'Count',
+            data: sortedTypes.map(([, count]) => count),
+            backgroundColor: colors.accent,
+            borderColor: colors.accent,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' }
+              },
+              grid: {
+                color: colors.grid
+              }
+            },
+            x: {
+              ticks: {
+                color: colors.muted,
+                font: { size: 10, family: 'var(--mono)' },
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: {
+                color: colors.grid
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Reactive: Recreate charts when showCharts or data changes
+  $: if (showCharts && errors.length > 0) {
+    setTimeout(createCharts, 100);
+  }
+
   // Reactive "time ago" - updates when lastUpdated changes (no polling!)
   $: timeAgo = getTimeAgo(lastUpdated);
 </script>
@@ -295,6 +504,9 @@
     </div>
     <div class="header-actions" role="toolbar" aria-label="Error log actions">
       <span class="last-updated" role="status" aria-live="polite" aria-label="Last updated {timeAgo}">Updated: {timeAgo}</span>
+      <button class="btn-charts" on:click={() => showCharts = !showCharts} aria-label="Toggle charts visibility">
+        <span aria-hidden="true">📊</span> {showCharts ? 'Hide' : 'Show'} Charts
+      </button>
       <button class="btn-test" on:click={triggerTestError} aria-label="Trigger test error">
         <span aria-hidden="true">🧪</span> Test Error
       </button>
@@ -380,6 +592,40 @@
       <button class="btn-danger" on:click={handleClearAll}>🗑️ Clear All</button>
     </div>
   </div>
+
+  <!-- Charts Section -->
+  {#if showCharts && errors.length > 0}
+    <div class="charts-section" role="region" aria-label="Error charts">
+      <div class="charts-grid">
+        <div class="chart-container chart-wide">
+          <div class="chart-header">
+            <h3>Error Rate Over Time (Last 24 Hours)</h3>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-error-rate-time"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Errors by Severity</h3>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-errors-by-severity"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Most Common Error Types</h3>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-error-types"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Error Timeline -->
   <div class="timeline">
@@ -586,7 +832,8 @@
   }
 
   .btn-export,
-  .btn-test {
+  .btn-test,
+  .btn-charts {
     padding: 6px 10px;
     background: var(--surface);
     color: var(--text);
@@ -603,14 +850,25 @@
     color: white;
   }
 
+  .btn-charts {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
   .btn-export:hover,
-  .btn-test:hover {
+  .btn-test:hover,
+  .btn-charts:hover {
     background: var(--surface-2);
     border-color: var(--accent);
   }
 
   .btn-test:hover {
     background: color-mix(in srgb, var(--warning) 80%, black);
+  }
+
+  .btn-charts:hover {
+    background: color-mix(in srgb, var(--accent) 80%, black);
   }
 
   .stats-bar {
@@ -1018,5 +1276,54 @@
     font-size: 11px;
     color: var(--muted);
     font-family: var(--mono);
+  }
+
+  /* Charts Section */
+  .charts-section {
+    margin-bottom: 8px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    border-left: 3px solid var(--accent);
+  }
+
+  .chart-container.chart-wide {
+    grid-column: 1 / -1;
+  }
+
+  .chart-header {
+    margin-bottom: 1rem;
+  }
+
+  .chart-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .chart-canvas-wrapper {
+    position: relative;
+    height: 250px;
+  }
+
+  @media (max-width: 768px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-container.chart-wide {
+      grid-column: 1;
+    }
   }
 </style>

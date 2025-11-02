@@ -21,6 +21,13 @@
   import TestResultsPanel from './lib/TestResultsPanel.svelte';
   import QuickStartWizard from './lib/QuickStartWizard.svelte';
 
+  // Section overview landing pages
+  import SafetyOverview from './lib/SafetyOverview.svelte';
+  import AgentsOverview from './lib/AgentsOverview.svelte';
+  import ActivityOverview from './lib/ActivityOverview.svelte';
+  import AnalysisOverview from './lib/AnalysisOverview.svelte';
+  import SystemOverview from './lib/SystemOverview.svelte';
+
   // Heavy panels will be lazy-loaded via dynamic import when needed
   import { keyboard } from './lib/keyboardService.js';
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
@@ -511,13 +518,20 @@
         {/if}
       </div>
     {:else if activeTab === 'safety'}
-      <!-- Safety: Syntax Errors + Session Rollback + Pattern Warnings + Test Results -->
+      <!-- Safety: Overview + Syntax Errors + Session Rollback + Pattern Warnings + Test Results -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
             class="sub-tab"
             class:active={!currentSubView}
             on:click={() => router.navigate(activeTab)}
+          >
+            Overview
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'syntax'}
+            on:click={() => router.navigate(activeTab, 'syntax')}
           >
             🔍 Syntax Errors
           </button>
@@ -544,6 +558,8 @@
           </button>
         </div>
         {#if !currentSubView}
+          <SafetyOverview />
+        {:else if currentSubView === 'syntax'}
           <SyntaxErrorPanel />
         {:else if currentSubView === 'rollback'}
           <SessionRollbackPanel />
@@ -554,13 +570,20 @@
         {/if}
       </div>
     {:else if activeTab === 'agents'}
-      <!-- Agents: AI agent monitoring + Conversations -->
+      <!-- Agents: Overview + Agent Stats + Conversations -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
             class="sub-tab"
             class:active={!currentSubView}
             on:click={() => router.navigate(activeTab)}
+          >
+            Overview
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'stats'}
+            on:click={() => router.navigate(activeTab, 'stats')}
           >
             Agent Stats
           </button>
@@ -573,6 +596,8 @@
           </button>
         </div>
         {#if !currentSubView}
+          <AgentsOverview />
+        {:else if currentSubView === 'stats'}
           {#await import('./lib/AgentsPanel.svelte') then M}
             <svelte:component this={M.default} />
           {:catch _}
@@ -587,13 +612,20 @@
         {/if}
       </div>
     {:else if activeTab === 'activity'}
-      <!-- Activity: Events + Files + Live Code + Global Search -->
+      <!-- Activity: Overview + Code Changes + Live Feed + Events + Files + Global Search -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
             class="sub-tab"
             class:active={!currentSubView}
             on:click={() => router.navigate(activeTab)}
+          >
+            Overview
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'code'}
+            on:click={() => router.navigate(activeTab, 'code')}
           >
             Code Changes
           </button>
@@ -634,6 +666,8 @@
           </button>
         </div>
         {#if !currentSubView}
+          <ActivityOverview />
+        {:else if currentSubView === 'code'}
           {#await import('./lib/LiveCodeFeed.svelte') then M}
             <svelte:component this={M.default} />
           {:catch _}
@@ -672,13 +706,20 @@
         {/if}
       </div>
     {:else if activeTab === 'analysis'}
-      <!-- Analysis: Performance + Triggers + Session Replay + Developer Insights + Historical Trends + Custom Metrics -->
+      <!-- Analysis: Overview + Performance + Custom Metrics + Historical Trends + Triggers + Session Replay + Developer Insights -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
             class="sub-tab"
             class:active={!currentSubView}
             on:click={() => router.navigate(activeTab)}
+          >
+            Overview
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'performance'}
+            on:click={() => router.navigate(activeTab, 'performance')}
           >
             Performance
           </button>
@@ -719,6 +760,8 @@
           </button>
         </div>
         {#if !currentSubView}
+          <AnalysisOverview />
+        {:else if currentSubView === 'performance'}
           {#await import('./lib/PerformancePanel.svelte') then M}
             <svelte:component this={M.default} />
           {:catch _}
@@ -757,13 +800,20 @@
         {/if}
       </div>
     {:else if activeTab === 'system'}
-      <!-- System: Status + Storage + Notifications + Errors + API Health + Anomalies -->
+      <!-- System: Overview + Status + Anomaly Alerts + Storage + Projects + Server Sync + Notifications + Errors + API Health -->
       <div class="tab-content">
         <div class="sub-navigation">
           <button
             class="sub-tab"
             class:active={!currentSubView}
             on:click={() => router.navigate(activeTab)}
+          >
+            Overview
+          </button>
+          <button
+            class="sub-tab"
+            class:active={currentSubView === 'status'}
+            on:click={() => router.navigate(activeTab, 'status')}
           >
             Status
           </button>
@@ -818,6 +868,8 @@
           </button>
         </div>
         {#if !currentSubView}
+          <SystemOverview />
+        {:else if currentSubView === 'status'}
           {#await import('./lib/StatusPanel.svelte') then M}
             <svelte:component this={M.default} />
           {:catch _}
