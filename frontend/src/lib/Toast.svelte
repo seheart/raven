@@ -1,5 +1,5 @@
 <script>
-  import { notifications } from './stores/notifications.js';
+  import { toasts } from './toastStore.js';
   import { fly } from 'svelte/transition';
 
   export let onErrorClick = null;
@@ -14,31 +14,31 @@
     }
   }
 
-  function handleToastClick(notification) {
+  function handleToastClick(toast) {
     // Allow clicking on errors and warnings to view details
-    if ((notification.type === 'error' || notification.type === 'warning') && onErrorClick) {
-      onErrorClick(notification);
-      // Dismiss the notification after click
-      notifications.remove(notification.id);
+    if ((toast.type === 'error' || toast.type === 'warning') && onErrorClick) {
+      onErrorClick(toast);
+      // Dismiss the toast after click
+      toasts.dismiss(toast.id);
     }
   }
 </script>
 
 <div class="toast-container" role="region" aria-live="polite" aria-atomic="true" aria-label="Notifications">
-  {#each $notifications as notification (notification.id)}
+  {#each $toasts as toast (toast.id)}
     <div
-      class="toast toast-{notification.type}"
-      class:clickable={notification.type === 'error' || notification.type === 'warning'}
+      class="toast toast-{toast.type}"
+      class:clickable={toast.type === 'error' || toast.type === 'warning'}
       transition:fly={{ y: -30, duration: 300 }}
       role="alert"
-      title={notification.type === 'error' || notification.type === 'warning' ? 'Click to view details in Error Log' : ''}
+      title={toast.type === 'error' || toast.type === 'warning' ? 'Click to view details in Error Log' : ''}
     >
-      <span class="toast-icon" aria-hidden="true">{getIcon(notification.type)}</span>
-      <span class="toast-message">{notification.message}</span>
-      {#if notification.type === 'error' || notification.type === 'warning'}
+      <span class="toast-icon" aria-hidden="true">{getIcon(toast.type)}</span>
+      <span class="toast-message">{toast.message}</span>
+      {#if toast.type === 'error' || toast.type === 'warning'}
         <button
           class="toast-action"
-          on:click={(e) => (e.stopPropagation(), handleToastClick(notification))}
+          on:click={(e) => (e.stopPropagation(), handleToastClick(toast))}
           aria-label="View error details"
         >
           View details
@@ -46,7 +46,7 @@
       {/if}
       <button
         class="toast-close"
-        on:click|stopPropagation={() => notifications.remove(notification.id)}
+        on:click|stopPropagation={() => toasts.dismiss(toast.id)}
         aria-label="Close notification"
       >
         ×
@@ -60,7 +60,7 @@
     position: fixed;
     top: 50px;
     right: 20px;
-    z-index: 10000;
+    z-index: 99999;
     display: flex;
     flex-direction: column;
     gap: 12px;
