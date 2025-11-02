@@ -253,21 +253,11 @@
 
   async function loadRecentActivity() {
     try {
-      // Get both file events and agent events from ALL projects
-      const [fileEvents, agentEvents] = await Promise.all([
+      // Load recent activity for preloading/caching
+      await Promise.all([
         api.get('/all-file-events?limit=20'),
         api.get('/all-agent-events?limit=20')
       ]);
-
-      // all-file-events and all-agent-events return arrays directly with project tags
-      const fileEventsArray = Array.isArray(fileEvents) ? fileEvents : [];
-      const agentEventsArray = Array.isArray(agentEvents) ? agentEvents : [];
-
-      // Combine and sort by timestamp (for preloading/caching)
-      const _combined = [
-        ...fileEventsArray.map(e => ({ ...e, type: 'file' })),
-        ...agentEventsArray.map(e => ({ ...e, type: 'agent' }))
-      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     } catch (err) {
       logger.error('Failed to load recent activity:', err);
       throw err;
@@ -876,18 +866,18 @@
         </div>
         <div class="charts-grid">
           <div class="chart-container">
-            <div role="img" aria-label={fileTypesAriaLabel}>
-              <canvas id="chart-file-types" width="400" height="250"></canvas>
+            <div role="img" aria-label={fileTypesAriaLabel} style="height: 250px;">
+              <canvas id="chart-file-types"></canvas>
             </div>
           </div>
           <div class="chart-container">
-            <div role="img" aria-label={changeTypesAriaLabel}>
-              <canvas id="chart-change-types" width="400" height="250"></canvas>
+            <div role="img" aria-label={changeTypesAriaLabel} style="height: 250px;">
+              <canvas id="chart-change-types"></canvas>
             </div>
           </div>
           <div class="chart-container chart-wide">
-            <div role="img" aria-label={timelineAriaLabel}>
-              <canvas id="chart-timeline" width="800" height="250"></canvas>
+            <div role="img" aria-label={timelineAriaLabel} style="height: 250px;">
+              <canvas id="chart-timeline"></canvas>
             </div>
           </div>
         </div>
@@ -1683,7 +1673,6 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 12px;
-    height: 250px;
   }
 
   .chart-container.chart-wide {

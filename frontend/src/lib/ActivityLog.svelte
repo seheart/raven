@@ -1001,22 +1001,22 @@
         </div>
         <div class="charts-grid">
           <div class="chart-container">
-            <div role="img" aria-label={activityTypesAriaLabel}>
+            <div role="img" aria-label={activityTypesAriaLabel} style="height: 250px;">
               <canvas id="chart-activity-types"></canvas>
             </div>
           </div>
           <div class="chart-container">
-            <div role="img" aria-label={activitiesPerSessionAriaLabel}>
+            <div role="img" aria-label={activitiesPerSessionAriaLabel} style="height: 250px;">
               <canvas id="chart-activities-per-session"></canvas>
             </div>
           </div>
           <div class="chart-container chart-wide">
-            <div role="img" aria-label={activitiesByHourAriaLabel}>
+            <div role="img" aria-label={activitiesByHourAriaLabel} style="height: 320px;">
               <canvas id="chart-activities-by-hour"></canvas>
             </div>
           </div>
           <div class="chart-container chart-wide">
-            <div role="img" aria-label={cumulativeActivitiesAriaLabel}>
+            <div role="img" aria-label={cumulativeActivitiesAriaLabel} style="height: 280px;">
               <canvas id="chart-cumulative-activities"></canvas>
             </div>
           </div>
@@ -1320,20 +1320,18 @@
 <style>
   .activity-log {
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr;
     gap: 8px;
     padding: 8px;
     max-width: 1600px;
     margin: 0 auto;
     position: relative;
-    height: calc(100vh - 180px);
-    overflow: hidden;
+    overflow-y: auto;
   }
 
   .main-content {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
   }
 
   .log-header {
@@ -1935,7 +1933,7 @@
 
   /* Recent Activity Sidebar */
   .recent-activity-sidebar {
-    display: flex;
+    display: none;
     flex-direction: column;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -2146,7 +2144,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 12px;
-    height: 250px;
+    overflow: visible;
   }
 
   .chart-container.chart-wide {

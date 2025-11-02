@@ -941,22 +941,22 @@
       {#if showCharts}
         <div class="charts-grid">
           <div class="chart-container">
-            <div role="img" aria-label={eventTypesAriaLabel}>
+            <div role="img" aria-label={eventTypesAriaLabel} style="height: 250px;">
               <canvas id="chart-event-types"></canvas>
             </div>
           </div>
           <div class="chart-container">
-            <div role="img" aria-label={eventsPerHourAriaLabel}>
+            <div role="img" aria-label={eventsPerHourAriaLabel} style="height: 250px;">
               <canvas id="chart-events-per-hour"></canvas>
             </div>
           </div>
           <div class="chart-container">
-            <div role="img" aria-label={topAgentsAriaLabel}>
+            <div role="img" aria-label={topAgentsAriaLabel} style="height: 180px;">
               <canvas id="chart-top-agents"></canvas>
             </div>
           </div>
           <div class="chart-container">
-            <div role="img" aria-label={riskScoresAriaLabel}>
+            <div role="img" aria-label={riskScoresAriaLabel} style="height: 250px;">
               <canvas id="chart-risk-scores"></canvas>
             </div>
           </div>
@@ -2205,7 +2205,6 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 12px;
-    height: 250px;
   }
 
   .error-state {
