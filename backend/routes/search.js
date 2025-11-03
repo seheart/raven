@@ -17,7 +17,7 @@ export function createSearchRoutes(deps) {
   router.get('/search/global', (req, res) => {
     try {
       const query = req.query.q || '';
-      const limit = parseInt(req.query.limit) || 50;
+      const limit = parseInt(req.query.limit, 10) || 50;
 
       if (!query || query.trim().length < 2) {
         return res.json({ results: [], total: 0, query: '' });
@@ -36,11 +36,13 @@ export function createSearchRoutes(deps) {
         LIMIT ?
       `;
       const events = projectState.db.db.prepare(eventsSql).all(searchPattern, searchPattern, limit);
-      results.push(...events.map(e => ({
-        ...e,
-        icon: '📄',
-        description: `${e.subtitle}`
-      })));
+      results.push(
+        ...events.map(e => ({
+          ...e,
+          icon: '📄',
+          description: `${e.subtitle}`
+        }))
+      );
 
       // Search conversations
       const convsSql = `
@@ -51,12 +53,16 @@ export function createSearchRoutes(deps) {
         ORDER BY timestamp DESC
         LIMIT ?
       `;
-      const convs = projectState.db.db.prepare(convsSql).all(searchPattern, searchPattern, searchPattern, limit);
-      results.push(...convs.map(c => ({
-        ...c,
-        icon: '💬',
-        description: c.subtitle ? c.subtitle.substring(0, 100) : ''
-      })));
+      const convs = projectState.db.db
+        .prepare(convsSql)
+        .all(searchPattern, searchPattern, searchPattern, limit);
+      results.push(
+        ...convs.map(c => ({
+          ...c,
+          icon: '💬',
+          description: c.subtitle ? c.subtitle.substring(0, 100) : ''
+        }))
+      );
 
       // Search errors
       const errorsSql = `
@@ -68,11 +74,13 @@ export function createSearchRoutes(deps) {
         LIMIT ?
       `;
       const errors = projectState.db.db.prepare(errorsSql).all(searchPattern, searchPattern, limit);
-      results.push(...errors.map(e => ({
-        ...e,
-        icon: '❌',
-        description: `${e.subtitle} severity`
-      })));
+      results.push(
+        ...errors.map(e => ({
+          ...e,
+          icon: '❌',
+          description: `${e.subtitle} severity`
+        }))
+      );
 
       // Search notifications
       const notifsSql = `
@@ -84,11 +92,13 @@ export function createSearchRoutes(deps) {
         LIMIT ?
       `;
       const notifs = projectState.db.db.prepare(notifsSql).all(searchPattern, searchPattern, limit);
-      results.push(...notifs.map(n => ({
-        ...n,
-        icon: '🔔',
-        description: n.subtitle || ''
-      })));
+      results.push(
+        ...notifs.map(n => ({
+          ...n,
+          icon: '🔔',
+          description: n.subtitle || ''
+        }))
+      );
 
       // Sort all results by timestamp desc and limit
       const sortedResults = results

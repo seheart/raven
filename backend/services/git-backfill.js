@@ -31,7 +31,8 @@ export class GitBackfillService {
         deleted: status.deleted || []
       };
 
-      const totalChanges = gitChanges.modified.length + gitChanges.created.length + gitChanges.deleted.length;
+      const totalChanges =
+        gitChanges.modified.length + gitChanges.created.length + gitChanges.deleted.length;
 
       if (totalChanges === 0) {
         logger.info('No git changes to backfill');
@@ -132,7 +133,7 @@ export class GitBackfillService {
         null, // No CPU data
         null, // No memory data
         null, // No file hash
-        null  // No event size
+        null // No event size
       );
 
       // Also insert into agent_events for full tracking
@@ -140,11 +141,12 @@ export class GitBackfillService {
         INSERT INTO agent_events (
           timestamp,
           agent,
-          action,
-          file_path,
-          details,
+          event_type,
+          file,
+          message,
+          metadata,
           session_id
-        ) VALUES (?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
 
       agentStmt.run(
@@ -152,6 +154,7 @@ export class GitBackfillService {
         'raven-backfill',
         changeType,
         filepath,
+        'Git backfill synthetic event',
         JSON.stringify({ synthetic: true, source: 'git-backfill' }),
         this.sessionId
       );

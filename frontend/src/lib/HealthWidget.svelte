@@ -53,14 +53,18 @@
   async function loadStartupHealthChecks() {
     try {
       // Set timeout of 10 seconds for health checks (prevents indefinite hang)
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Health check timeout')), 10000)
-      );
+      let timeoutId;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Health check timeout')), 10000);
+      });
 
       const data = await Promise.race([
         dataService.fetchHealthChecks(),
         timeoutPromise
       ]);
+
+      // Clear timeout if fetch completed successfully
+      clearTimeout(timeoutId);
 
       startupHealthStatus = data.status;
       startupHealthResults = data;

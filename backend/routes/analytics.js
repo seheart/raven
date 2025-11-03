@@ -10,12 +10,7 @@ export function createAnalyticsRoutes(deps) {
   const router = Router();
   // Note: Don't destructure behaviorProfiler/patternMatcher - access from deps dynamically
   // so it works even if they're added to deps after route mounting
-  const {
-    projectState,
-    projectDatabases,
-    cacheMiddleware,
-    analyticsCache
-  } = deps;
+  const { projectState, projectDatabases, cacheMiddleware, analyticsCache } = deps;
 
   // ==================== Agent Events ====================
 
@@ -28,7 +23,7 @@ export function createAnalyticsRoutes(deps) {
       if (!projectState.db) {
         return res.status(500).json({ error: 'Database not initialized' });
       }
-      const limit = parseInt(req.query.limit) || 100;
+      const limit = parseInt(req.query.limit, 10) || 100;
       const events = projectState.db.getRecentAgentEvents(limit);
       res.json(events);
     } catch (error) {
@@ -43,11 +38,11 @@ export function createAnalyticsRoutes(deps) {
    */
   router.get('/all-agent-events', async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit) || 100;
+      const limit = parseInt(req.query.limit, 10) || 100;
 
       // Parallelize event collection from all projects
-      const eventsPromises = Array.from(projectDatabases.entries()).map(
-        ([projectName, db]) => Promise.resolve({
+      const eventsPromises = Array.from(projectDatabases.entries()).map(([projectName, db]) =>
+        Promise.resolve({
           projectName,
           events: db.getRecentAgentEvents ? db.getRecentAgentEvents(limit) : []
         })
@@ -85,7 +80,7 @@ export function createAnalyticsRoutes(deps) {
         return res.status(500).json({ error: 'Database not initialized' });
       }
       const { agent } = req.params;
-      const limit = parseInt(req.query.limit) || 5;
+      const limit = parseInt(req.query.limit, 10) || 5;
       const topFiles = projectState.db.getTopFilesByAgent(agent, limit);
       res.json(topFiles);
     } catch (error) {
@@ -104,7 +99,7 @@ export function createAnalyticsRoutes(deps) {
         return res.status(500).json({ error: 'Database not initialized' });
       }
       const { agent } = req.params;
-      const limit = parseInt(req.query.limit) || 100;
+      const limit = parseInt(req.query.limit, 10) || 100;
       const events = projectState.db.getEventsByAgent(agent, limit);
       res.json(events);
     } catch (error) {
@@ -121,7 +116,7 @@ export function createAnalyticsRoutes(deps) {
    */
   router.get('/anomalies/detect', cacheMiddleware(analyticsCache), (req, res) => {
     try {
-      const lookbackHours = parseInt(req.query.hours) || 24;
+      const lookbackHours = parseInt(req.query.hours, 10) || 24;
       const threshold = parseFloat(req.query.threshold) || 2.0; // Standard deviations
       const lookbackTime = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
 
@@ -133,16 +128,22 @@ export function createAnalyticsRoutes(deps) {
       for (const [projectName, db] of projectDatabases.entries()) {
         try {
           // Get baseline (historical hourly average)
-          const baseline = db.db.prepare(`
+          const baseline = db.db
+            .prepare(
+              `
             SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
             FROM events
             WHERE datetime(timestamp) < datetime(?)
             GROUP BY hour
-          `).all(lookbackTime);
+          `
+            )
+            .all(lookbackTime);
 
-          const avgPerHour = baseline.reduce((sum, h) => sum + h.count, 0) / Math.max(baseline.length, 1);
+          const avgPerHour =
+            baseline.reduce((sum, h) => sum + h.count, 0) / Math.max(baseline.length, 1);
           const stdDev = Math.sqrt(
-            baseline.reduce((sum, h) => sum + Math.pow(h.count - avgPerHour, 2), 0) / Math.max(baseline.length, 1)
+            baseline.reduce((sum, h) => sum + Math.pow(h.count - avgPerHour, 2), 0) /
+              Math.max(baseline.length, 1)
           );
 
           // Accumulate for global baseline
@@ -150,7 +151,9 @@ export function createAnalyticsRoutes(deps) {
           projectCount++;
 
           // Check recent activity
-          const recent = db.db.prepare(`
+          const recent = db.db
+            .prepare(
+              `
             SELECT
               strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
               COUNT(*) as event_count,
@@ -160,12 +163,14 @@ export function createAnalyticsRoutes(deps) {
             WHERE datetime(timestamp) >= datetime(?)
             GROUP BY hour
             ORDER BY hour DESC
-          `).all(lookbackTime);
+          `
+            )
+            .all(lookbackTime);
 
           // Detect anomalies for this project
           for (const hour of recent) {
             // Activity spike detection
-            if (hour.event_count > avgPerHour + (threshold * stdDev)) {
+            if (hour.event_count > avgPerHour + threshold * stdDev) {
               allAnomalies.push({
                 project: projectName,
                 type: 'activity_spike',
@@ -194,7 +199,9 @@ export function createAnalyticsRoutes(deps) {
           }
 
           // Detect hot files (frequently modified)
-          const hotFiles = db.db.prepare(`
+          const hotFiles = db.db
+            .prepare(
+              `
             SELECT filepath, COUNT(*) as change_count
             FROM events
             WHERE datetime(timestamp) >= datetime(?)
@@ -202,7 +209,9 @@ export function createAnalyticsRoutes(deps) {
             HAVING change_count > 20
             ORDER BY change_count DESC
             LIMIT 5
-          `).all(lookbackTime);
+          `
+            )
+            .all(lookbackTime);
 
           for (const file of hotFiles) {
             allAnomalies.push({
@@ -260,10 +269,10 @@ export function createAnalyticsRoutes(deps) {
       }
 
       const period = requestedPeriod;
-      const days = parseInt(req.query.days) || 7; // last N days
+      const days = parseInt(req.query.days, 10) || 7; // last N days
 
       const now = Date.now();
-      const startTime = new Date(now - (days * 24 * 60 * 60 * 1000)).toISOString();
+      const startTime = new Date(now - days * 24 * 60 * 60 * 1000).toISOString();
 
       if (projectDatabases.size === 0) {
         return res.json({
@@ -357,10 +366,15 @@ export function createAnalyticsRoutes(deps) {
         return res.status(503).json({ error: 'Behavior profiler not initialized' });
       }
 
+      const projectKeys = Array.from(projectDatabases.keys());
+      if (!project && projectKeys.length === 0) {
+        return res.status(400).json({ error: 'No projects available' });
+      }
+
       const profile = deps.behaviorProfiler.getAgentProfile(
-        project || Array.from(projectDatabases.keys())[0],
+        project || projectKeys[0],
         agent,
-        parseInt(days) || 30
+        parseInt(days, 10) || 30
       );
 
       if (!profile) {
@@ -387,10 +401,15 @@ export function createAnalyticsRoutes(deps) {
         return res.status(503).json({ error: 'Behavior profiler not initialized' });
       }
 
+      const projectKeys = Array.from(projectDatabases.keys());
+      if (!project && projectKeys.length === 0) {
+        return res.status(400).json({ error: 'No projects available' });
+      }
+
       const change = deps.behaviorProfiler.detectBehaviorChange(
-        project || Array.from(projectDatabases.keys())[0],
+        project || projectKeys[0],
         agent,
-        parseInt(hours) || 24
+        parseInt(hours, 10) || 24
       );
 
       res.json({ change });
@@ -412,9 +431,12 @@ export function createAnalyticsRoutes(deps) {
         return res.status(503).json({ error: 'Behavior profiler not initialized' });
       }
 
-      const comparison = deps.behaviorProfiler.compareAgents(
-        project || Array.from(projectDatabases.keys())[0]
-      );
+      const projectKeys = Array.from(projectDatabases.keys());
+      if (!project && projectKeys.length === 0) {
+        return res.status(400).json({ error: 'No projects available' });
+      }
+
+      const comparison = deps.behaviorProfiler.compareAgents(project || projectKeys[0]);
 
       res.json({ agents: comparison });
     } catch (error) {
@@ -438,7 +460,12 @@ export function createAnalyticsRoutes(deps) {
         return res.status(503).json({ error: 'Pattern matcher not initialized' });
       }
 
-      const projectName = project || Array.from(projectDatabases.keys())[0];
+      const projectKeys = Array.from(projectDatabases.keys());
+      if (!project && projectKeys.length === 0) {
+        return res.status(400).json({ error: 'No projects available' });
+      }
+
+      const projectName = project || projectKeys[0];
       const db = projectDatabases.get(projectName);
 
       if (!db) {

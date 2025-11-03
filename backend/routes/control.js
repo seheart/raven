@@ -93,10 +93,10 @@ function verifyScriptIntegrity(scriptPath, scriptName) {
   // Check file permissions (should not be world-writable)
   try {
     const stats = fs.statSync(scriptPath);
-    const mode = (stats.mode & parseInt('777', 8)).toString(8);
+    const mode = (stats.mode & parseInt('777', 8)).toString(8).padStart(3, '0');
 
     // Warn if world-writable (last digit should not be 2, 3, 6, or 7)
-    const worldWritable = ['2', '3', '6', '7'].includes(mode[2]);
+    const worldWritable = mode.length >= 3 && ['2', '3', '6', '7'].includes(mode[2]);
     if (worldWritable) {
       logger.error('Script is WORLD-WRITABLE - security risk!', {
         script: scriptName,
@@ -111,7 +111,10 @@ function verifyScriptIntegrity(scriptPath, scriptName) {
       permissions: mode
     });
   } catch (error) {
-    logger.error('Failed to check script permissions', { script: scriptName, error: error.message });
+    logger.error('Failed to check script permissions', {
+      script: scriptName,
+      error: error.message
+    });
     return { valid: false, reason: 'permission_check_failed' };
   }
 
@@ -166,7 +169,8 @@ export function createControlRoutes(deps) {
       // Return deprecation notice
       return res.status(501).json({
         success: false,
-        message: 'This endpoint is deprecated. File watchers are now managed per-project automatically.',
+        message:
+          'This endpoint is deprecated. File watchers are now managed per-project automatically.',
         deprecated: true,
         suggestion: 'Use the project-specific watcher management endpoints instead'
       });
@@ -280,7 +284,10 @@ export function createControlRoutes(deps) {
       };
 
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="raven-health-${Date.now()}.json"`);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="raven-health-${Date.now()}.json"`
+      );
       res.json(exportData);
     } catch (error) {
       logger.error('Error exporting health report', { error });

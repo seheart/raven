@@ -9,13 +9,7 @@ import { dashboardCache, cacheMiddleware } from '../utils/cache.js';
  */
 export function createDashboardRoutes(deps) {
   const router = Router();
-  const {
-    projectDatabases,
-    projectState,
-    SESSION_ID,
-    agentRegistry,
-    getAgentColor
-  } = deps;
+  const { projectDatabases, projectState, SESSION_ID, agentRegistry, getAgentColor } = deps;
 
   // GET /api/dashboard-stats - Aggregate stats from all projects (PARALLELIZED)
   router.get('/dashboard-stats', async (req, res) => {
@@ -43,8 +37,8 @@ export function createDashboardRoutes(deps) {
       const uniqueFiles = new Set();
 
       // Parallelize database queries for better performance
-      const statsPromises = Array.from(projectDatabases.entries()).map(
-        ([projectName, db]) => Promise.resolve({
+      const statsPromises = Array.from(projectDatabases.entries()).map(([projectName, db]) =>
+        Promise.resolve({
           projectName,
           stats: db.getDashboardStats(sessionFilter)
         })
@@ -56,7 +50,7 @@ export function createDashboardRoutes(deps) {
       let sessionStartTime = null;
       for (const { projectName, stats: projectStats } of allStats) {
         aggregatedStats.total_events += projectStats.total_events || 0;
-        aggregatedStats.total_files += projectStats.total_files || 0;  // Sum files from each project
+        aggregatedStats.total_files += projectStats.total_files || 0; // Sum files from each project
         aggregatedStats.active_files_today += projectStats.active_files_today || 0;
         aggregatedStats.total_changes += projectStats.total_changes || 0;
         aggregatedStats.creates += projectStats.creates || 0;
@@ -89,8 +83,11 @@ export function createDashboardRoutes(deps) {
         }
 
         // Use the earliest session start time
-        if (projectStats.session_duration_seconds > 0 &&
-            (sessionStartTime === null || projectStats.session_duration_seconds > aggregatedStats.session_duration_seconds)) {
+        if (
+          projectStats.session_duration_seconds > 0 &&
+          (sessionStartTime === null ||
+            projectStats.session_duration_seconds > aggregatedStats.session_duration_seconds)
+        ) {
           aggregatedStats.session_duration_seconds = projectStats.session_duration_seconds;
         }
       }
@@ -108,12 +105,12 @@ export function createDashboardRoutes(deps) {
   // GET /api/top-modified-files - Top files by modification count (PARALLELIZED)
   router.get('/top-modified-files', async (req, res) => {
     try {
-      const limitNum = parseInt(req.query.limit);
-      const limit = (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) ? 10 : limitNum;
+      const limitNum = parseInt(req.query.limit, 10);
+      const limit = isNaN(limitNum) || limitNum < 1 || limitNum > 1000 ? 10 : limitNum;
 
       // Parallelize queries across all projects
-      const filesPromises = Array.from(projectDatabases.entries()).map(
-        ([projectName, db]) => Promise.resolve({
+      const filesPromises = Array.from(projectDatabases.entries()).map(([projectName, db]) =>
+        Promise.resolve({
           projectName,
           files: db.getTopModifiedFiles(SESSION_ID, limit)
         })
@@ -149,7 +146,7 @@ export function createDashboardRoutes(deps) {
       if (!projectState.db) {
         return res.status(500).json({ error: 'No active project database' });
       }
-      const limit = parseInt(req.query.limit) || 10;
+      const limit = parseInt(req.query.limit, 10) || 10;
       const edits = projectState.db.getLongestEdits(limit);
       res.json(edits);
     } catch (error) {
@@ -225,24 +222,22 @@ export function createDashboardRoutes(deps) {
   // GET /api/top-files - Top files by activity (integration test alias)
   router.get('/top-files', async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit) || 10;
+      const limit = parseInt(req.query.limit, 10) || 10;
 
       // Aggregate files from all projects
-      const filesPromises = Array.from(projectDatabases.entries()).map(
-        ([projectName, db]) => {
-          try {
-            const files = db.getTopModifiedFiles(null, limit);
-            return files.map(file => ({
-              ...file,
-              change_count: file.edit_count,
-              project: projectName
-            }));
-          } catch (err) {
-            logger.error(`Error getting top files for ${projectName}:`, err);
-            return [];
-          }
+      const filesPromises = Array.from(projectDatabases.entries()).map(([projectName, db]) => {
+        try {
+          const files = db.getTopModifiedFiles(null, limit);
+          return files.map(file => ({
+            ...file,
+            change_count: file.edit_count,
+            project: projectName
+          }));
+        } catch (err) {
+          logger.error(`Error getting top files for ${projectName}:`, err);
+          return [];
         }
-      );
+      });
 
       const allFiles = (await Promise.all(filesPromises)).flat();
 

@@ -94,7 +94,8 @@ export class RavenDB {
         const result = originalGet(...args);
         const duration = performance.now() - startTime;
 
-        if (duration > 100) { // Log queries slower than 100ms
+        if (duration > 100) {
+          // Log queries slower than 100ms
           logger.warn('Slow query detected', {
             duration: `${duration.toFixed(2)}ms`,
             query: sql.substring(0, 100),
@@ -609,15 +610,23 @@ export class RavenDB {
   getTotalEventCount() {
     try {
       // Count events from file system watcher
-      const fileEventsCount = this.db.prepare(`
+      const fileEventsCount = this.db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM events
-      `).get();
+      `
+        )
+        .get();
 
       // Count events from AI agents
-      const agentEventsCount = this.db.prepare(`
+      const agentEventsCount = this.db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM agent_events
         WHERE event_type IN ('create', 'edit', 'delete')
-      `).get();
+      `
+        )
+        .get();
 
       return (fileEventsCount.count || 0) + (agentEventsCount.count || 0);
     } catch (error) {
@@ -671,10 +680,7 @@ export class RavenDB {
    * @returns {object} Paginated result with files, hasMore, and nextCursor
    */
   getTrackedFiles(options = {}) {
-    const {
-      limit = LIMITS.DATABASE.DEFAULT_TRACKED_FILES_LIMIT,
-      cursor = null
-    } = options;
+    const { limit = LIMITS.DATABASE.DEFAULT_TRACKED_FILES_LIMIT, cursor = null } = options;
 
     // Fetch one extra to determine if more exist
     const fetchLimit = Math.min(limit + 1, LIMITS.DATABASE.MAX_QUERY_RESULTS);
@@ -758,8 +764,9 @@ export class RavenDB {
     const agentEvents = agentEventsStmt.all(filepath);
 
     // Merge and sort by timestamp (newest first)
-    const allEvents = [...fileEvents, ...agentEvents]
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const allEvents = [...fileEvents, ...agentEvents].sort(
+      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+    );
 
     return allEvents;
   }
@@ -1020,8 +1027,8 @@ export class RavenDB {
 
     // Get breakdown from agent_events (map event types to match events table)
     const agentBreakdownWhere = session_id
-      ? 'WHERE session_id = ? AND event_type IN (\'create\', \'edit\', \'delete\')'
-      : 'WHERE event_type IN (\'create\', \'edit\', \'delete\')';
+      ? "WHERE session_id = ? AND event_type IN ('create', 'edit', 'delete')"
+      : "WHERE event_type IN ('create', 'edit', 'delete')";
     const agentBreakdownStmt = this.db.prepare(`
       SELECT
         event_type,
@@ -1030,7 +1037,9 @@ export class RavenDB {
       ${agentBreakdownWhere}
       GROUP BY event_type
     `);
-    const agentBreakdown = session_id ? agentBreakdownStmt.all(session_id) : agentBreakdownStmt.all();
+    const agentBreakdown = session_id
+      ? agentBreakdownStmt.all(session_id)
+      : agentBreakdownStmt.all();
 
     // Build breakdown object, combining both sources
     let creates = breakdown.find(b => b.change_type === 'add')?.count || 0;
@@ -1048,7 +1057,9 @@ export class RavenDB {
     const uniqueFilesSet = new Set();
 
     // Add unique files from events table
-    const eventsFilesWhere = session_id ? 'WHERE session_id = ? AND filepath IS NOT NULL' : 'WHERE filepath IS NOT NULL';
+    const eventsFilesWhere = session_id
+      ? 'WHERE session_id = ? AND filepath IS NOT NULL'
+      : 'WHERE filepath IS NOT NULL';
     const eventsFilesStmt = this.db.prepare(`
       SELECT DISTINCT filepath
       FROM events
@@ -1060,7 +1071,9 @@ export class RavenDB {
     }
 
     // Add unique files from agent_events table
-    const agentFilesWhere = session_id ? 'WHERE session_id = ? AND file IS NOT NULL' : 'WHERE file IS NOT NULL';
+    const agentFilesWhere = session_id
+      ? 'WHERE session_id = ? AND file IS NOT NULL'
+      : 'WHERE file IS NOT NULL';
     const agentFilesStmt = this.db.prepare(`
       SELECT DISTINCT file as filepath
       FROM agent_events
@@ -1079,7 +1092,9 @@ export class RavenDB {
       FROM agent_events
       ${whereClause}
     `);
-    const linesChangedResult = session_id ? linesChangedStmt.get(session_id) : linesChangedStmt.get();
+    const linesChangedResult = session_id
+      ? linesChangedStmt.get(session_id)
+      : linesChangedStmt.get();
     const total_lines_changed = linesChangedResult?.total_lines_changed || 0;
 
     return {
@@ -1220,11 +1235,16 @@ export class RavenDB {
     return {
       total,
       by_severity: stats,
-      recent_count: this.db.prepare(`
+      recent_count:
+        this.db
+          .prepare(
+            `
         SELECT COUNT(*) as count
         FROM error_logs
         WHERE timestamp >= datetime('now', '-1 hour')
-      `).get()?.count || 0
+      `
+          )
+          .get()?.count || 0
     };
   }
 
@@ -1233,13 +1253,46 @@ export class RavenDB {
     const params = [];
 
     if (olderThanDays) {
-      query += ' WHERE timestamp < datetime(\'now\', \'-\' || ? || \' days\')';
+      query += " WHERE timestamp < datetime('now', '-' || ? || ' days')";
       params.push(olderThanDays);
     }
 
     const stmt = this.prepareStatement(query);
     const result = stmt.run(...params);
     return result.changes;
+  }
+
+  logError(errorLog) {
+    const stmt = this.prepareStatement(`
+      INSERT INTO error_logs (
+        timestamp,
+        error_type,
+        message,
+        stack,
+        component,
+        user_agent,
+        url,
+        metadata,
+        severity
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      errorLog.timestamp || new Date().toISOString(),
+      errorLog.error_type || 'Error',
+      errorLog.message,
+      errorLog.stack || null,
+      errorLog.component || 'Unknown',
+      errorLog.user_agent || null,
+      errorLog.url || null,
+      typeof errorLog.metadata === 'object' ? JSON.stringify(errorLog.metadata) : errorLog.metadata,
+      errorLog.severity || 'error'
+    );
+
+    return {
+      id: result.lastInsertRowid,
+      ...errorLog
+    };
   }
 
   // ==================== Unified Activity Log ====================
@@ -1372,7 +1425,7 @@ export class RavenDB {
         FROM raven_metrics
         WHERE 1=1
       `;
-      if (search) systemQuery += ' AND (\'System\' LIKE ? OR \'metrics\' LIKE ?)';
+      if (search) systemQuery += " AND ('System' LIKE ? OR 'metrics' LIKE ?)";
       if (startDate) systemQuery += ' AND timestamp >= ?';
       if (endDate) systemQuery += ' AND timestamp <= ?';
       queries.push(systemQuery);
@@ -1493,13 +1546,7 @@ export class RavenDB {
   }
 
   getNotifications(options = {}) {
-    const {
-      limit = 50,
-      offset = 0,
-      type = 'all',
-      severity = 'all',
-      unread_only = false
-    } = options;
+    const { limit = 50, offset = 0, type = 'all', severity = 'all', unread_only = false } = options;
 
     // Build query using QueryBuilder
     const builder = new QueryBuilder('SELECT * FROM notifications');
@@ -1551,7 +1598,9 @@ export class RavenDB {
 
   getNotificationStats() {
     const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM notifications');
-    const unreadStmt = this.db.prepare('SELECT COUNT(*) as count FROM notifications WHERE read = 0');
+    const unreadStmt = this.db.prepare(
+      'SELECT COUNT(*) as count FROM notifications WHERE read = 0'
+    );
 
     const byTypeStmt = this.db.prepare(`
       SELECT type, COUNT(*) as count
@@ -1621,7 +1670,20 @@ export class RavenDB {
 
   // ==================== Conversations ====================
 
-  insertConversation(timestamp, claude_session_id, event_type, content, tool_name, tool_input, tool_output, is_error, parent_uuid, metadata, project, session_id) {
+  insertConversation(
+    timestamp,
+    claude_session_id,
+    event_type,
+    content,
+    tool_name,
+    tool_input,
+    tool_output,
+    is_error,
+    parent_uuid,
+    metadata,
+    project,
+    session_id
+  ) {
     const stmt = this.prepareStatement(`
       INSERT INTO conversations (timestamp, claude_session_id, event_type, content, tool_name, tool_input, tool_output, is_error, parent_uuid, metadata, project, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1775,7 +1837,18 @@ export class RavenDB {
 
   // ==================== Syntax Errors ====================
 
-  insertSyntaxError(timestamp, filepath, language, severity, message, lineNumber, columnNumber, codeSnippet, projectName, session_id) {
+  insertSyntaxError(
+    timestamp,
+    filepath,
+    language,
+    severity,
+    message,
+    lineNumber,
+    columnNumber,
+    codeSnippet,
+    projectName,
+    session_id
+  ) {
     const stmt = this.prepareStatement(`
       INSERT INTO syntax_errors (timestamp, filepath, language, severity, message, line_number, column_number, code_snippet, project_name, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1812,9 +1885,10 @@ export class RavenDB {
     // Truncate code snippets for performance (show first 150 chars in list view)
     const processedErrors = errors.map(error => ({
       ...error,
-      code_snippet: error.code_snippet && error.code_snippet.length > 150
-        ? error.code_snippet.substring(0, 150) + '...'
-        : error.code_snippet
+      code_snippet:
+        error.code_snippet && error.code_snippet.length > 150
+          ? error.code_snippet.substring(0, 150) + '...'
+          : error.code_snippet
     }));
 
     // Get count
@@ -1848,7 +1922,20 @@ export class RavenDB {
 
   // ==================== Pattern Warnings ====================
 
-  insertPatternWarning(timestamp, filepath, projectName, category, severity, patternName, message, lineNumber, matchText, context, suggestion, session_id) {
+  insertPatternWarning(
+    timestamp,
+    filepath,
+    projectName,
+    category,
+    severity,
+    patternName,
+    message,
+    lineNumber,
+    matchText,
+    context,
+    suggestion,
+    session_id
+  ) {
     const stmt = this.prepareStatement(`
       INSERT INTO pattern_warnings (timestamp, filepath, project_name, category, severity, pattern_name, message, line_number, match_text, context, suggestion, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1892,12 +1979,14 @@ export class RavenDB {
     // Truncate code snippets for performance (show first 150 chars in list view)
     const processedWarnings = warnings.map(warning => ({
       ...warning,
-      context: warning.context && warning.context.length > 150
-        ? warning.context.substring(0, 150) + '...'
-        : warning.context,
-      match_text: warning.match_text && warning.match_text.length > 150
-        ? warning.match_text.substring(0, 150) + '...'
-        : warning.match_text
+      context:
+        warning.context && warning.context.length > 150
+          ? warning.context.substring(0, 150) + '...'
+          : warning.context,
+      match_text:
+        warning.match_text && warning.match_text.length > 150
+          ? warning.match_text.substring(0, 150) + '...'
+          : warning.match_text
     }));
 
     // Get count
@@ -1959,7 +2048,17 @@ export class RavenDB {
 
   // ==================== Test Results ====================
 
-  insertTestResult(timestamp, framework, testFile, testName, status, durationMs, errorMessage, errorStack, session_id) {
+  insertTestResult(
+    timestamp,
+    framework,
+    testFile,
+    testName,
+    status,
+    durationMs,
+    errorMessage,
+    errorStack,
+    session_id
+  ) {
     const stmt = this.prepareStatement(`
       INSERT INTO test_results (timestamp, framework, test_file, test_name, status, duration_ms, error_message, error_stack, session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)

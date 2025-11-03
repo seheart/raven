@@ -63,11 +63,7 @@ export async function withRetry(fn, options = {}) {
  * @returns {Promise<boolean>} True if condition met, false if timeout
  */
 export async function waitFor(condition, options = {}) {
-  const {
-    timeout = 30000,
-    interval = 500,
-    timeoutMessage = 'Condition timeout'
-  } = options;
+  const { timeout = 30000, interval = 500, timeoutMessage = 'Condition timeout' } = options;
 
   const startTime = Date.now();
 
@@ -120,10 +116,10 @@ export async function checkDiskSpace(path) {
     const parts = stdout.trim().split(/\s+/);
 
     return {
-      total: parseInt(parts[1]) * 1024, // KB to bytes
-      used: parseInt(parts[2]) * 1024,
-      available: parseInt(parts[3]) * 1024,
-      percentUsed: parseInt(parts[4])
+      total: parseInt(parts[1], 10) * 1024, // KB to bytes
+      used: parseInt(parts[2], 10) * 1024,
+      available: parseInt(parts[3], 10) * 1024,
+      percentUsed: parseInt(parts[4], 10)
     };
   } catch (error) {
     logger.error('Failed to check disk space', { error: error.message });
@@ -191,7 +187,7 @@ export function formatBytes(bytes) {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
 /**
@@ -230,10 +226,13 @@ export class ProgressReporter {
 
   error(message, error) {
     const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(1);
-    logger.error(`❌ Startup failed at step ${this.currentStep}/${this.totalSteps} after ${elapsed}s`, {
-      message,
-      error: error.message,
-      stack: error.stack
-    });
+    logger.error(
+      `❌ Startup failed at step ${this.currentStep}/${this.totalSteps} after ${elapsed}s`,
+      {
+        message,
+        error: error.message,
+        stack: error.stack
+      }
+    );
   }
 }

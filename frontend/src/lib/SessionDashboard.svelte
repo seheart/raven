@@ -288,7 +288,7 @@
                     <div class="peak-hour-bar">
                       <div
                         class="peak-hour-fill"
-                        style="width: {(peak.avgChanges / stats.peakHours[0].avgChanges) * 100}%"
+                        style="width: {stats.peakHours && stats.peakHours.length > 0 && stats.peakHours[0].avgChanges ? (peak.avgChanges / stats.peakHours[0].avgChanges) * 100 : 100}%"
                       ></div>
                     </div>
                     <div class="peak-hour-stats">

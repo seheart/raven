@@ -17,8 +17,8 @@ export function createNotificationsRoutes(deps) {
   router.get('/notifications', (req, res) => {
     try {
       const options = {
-        limit: parseInt(req.query.limit) || 50,
-        offset: parseInt(req.query.offset) || 0,
+        limit: parseInt(req.query.limit, 10) || 50,
+        offset: parseInt(req.query.offset, 10) || 0,
         type: req.query.type || 'all',
         severity: req.query.severity || 'all',
         unread_only: req.query.unread_only === 'true'
@@ -52,7 +52,7 @@ export function createNotificationsRoutes(deps) {
    */
   router.post('/notifications/:id/read', (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id, 10);
       projectState.db.markNotificationAsRead(id);
       res.json({ success: true });
     } catch (error) {
@@ -81,7 +81,7 @@ export function createNotificationsRoutes(deps) {
    */
   router.delete('/notifications/:id', (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id, 10);
       projectState.db.deleteNotification(id);
       res.json({ success: true });
     } catch (error) {
@@ -96,7 +96,7 @@ export function createNotificationsRoutes(deps) {
    */
   router.delete('/notifications', (req, res) => {
     try {
-      const olderThanDays = req.query.olderThanDays ? parseInt(req.query.olderThanDays) : null;
+      const olderThanDays = req.query.olderThanDays ? parseInt(req.query.olderThanDays, 10) : null;
       const result = projectState.db.clearNotifications(olderThanDays);
       res.json(result);
     } catch (error) {

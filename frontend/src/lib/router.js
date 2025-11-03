@@ -1,4 +1,5 @@
 import { writable, derived } from 'svelte/store';
+import { logger } from './logger.js';
 
 /**
  * Simple hash-based router for Raven
@@ -28,10 +29,10 @@ function createRouter() {
         tab: parts[0] || 'overview',
         subTab: parts[1] || ''
       };
-      console.log('[Router] Parsed route:', route);
+      logger.debug('[Router] Parsed route:', route);
       return route;
     } catch (error) {
-      console.error('[Router] Error parsing hash:', error);
+      logger.error('[Router] Error parsing hash:', error);
       return { tab: 'overview', subTab: '' };
     }
   }

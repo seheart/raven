@@ -34,16 +34,8 @@ export function createSafetyRoutes(deps) {
   router.post('/errors', (req, res) => {
     try {
       const db = getDb();
-      const {
-        error_type,
-        message,
-        stack,
-        component,
-        user_agent,
-        url,
-        metadata,
-        severity
-      } = req.body;
+      const { error_type, message, stack, component, user_agent, url, metadata, severity } =
+        req.body;
 
       // Validate required fields
       if (!error_type || !message) {
@@ -134,8 +126,8 @@ export function createSafetyRoutes(deps) {
         });
       }
 
-      const limit = parseInt(req.query.limit) || 50;
-      const offset = parseInt(req.query.offset) || 0;
+      const limit = parseInt(req.query.limit, 10) || 50;
+      const offset = parseInt(req.query.offset, 10) || 0;
       const resolved = req.query.resolved === 'true';
 
       const result = db.getSyntaxErrors({ limit, offset, resolved });
@@ -183,7 +175,7 @@ export function createSafetyRoutes(deps) {
         });
       }
 
-      const errorId = parseInt(req.params.errorId);
+      const errorId = parseInt(req.params.errorId, 10);
       db.resolveSyntaxError(errorId);
 
       res.json({ success: true, message: 'Syntax error resolved' });
@@ -235,14 +227,14 @@ export function createSafetyRoutes(deps) {
 
       // Editor command templates
       const editorCommands = {
-        'vscode': `code --goto "${filepath}:${line}"`,
-        'cursor': `cursor --goto "${filepath}:${line}"`,
-        'sublime': `subl "${filepath}:${line}"`,
-        'intellij': `idea --line ${line} "${filepath}"`,
-        'vim': `gnome-terminal -- vim "+${line}" "${filepath}"`,
-        'nvim': `gnome-terminal -- nvim "+${line}" "${filepath}"`,
-        'nano': `gnome-terminal -- nano "+${line}" "${filepath}"`,
-        'auto': process.platform === 'darwin' ? `open "${filepath}"` : `xdg-open "${filepath}"`
+        vscode: `code --goto "${filepath}:${line}"`,
+        cursor: `cursor --goto "${filepath}:${line}"`,
+        sublime: `subl "${filepath}:${line}"`,
+        intellij: `idea --line ${line} "${filepath}"`,
+        vim: `gnome-terminal -- vim "+${line}" "${filepath}"`,
+        nvim: `gnome-terminal -- nvim "+${line}" "${filepath}"`,
+        nano: `gnome-terminal -- nano "+${line}" "${filepath}"`,
+        auto: process.platform === 'darwin' ? `open "${filepath}"` : `xdg-open "${filepath}"`
       };
 
       const command = editorCommands[editorType] || editorCommands['auto'];
@@ -302,8 +294,8 @@ export function createSafetyRoutes(deps) {
         });
       }
 
-      const limit = parseInt(req.query.limit) || 100;
-      const offset = parseInt(req.query.offset) || 0;
+      const limit = parseInt(req.query.limit, 10) || 100;
+      const offset = parseInt(req.query.offset, 10) || 0;
       const category = req.query.category || 'all';
       const resolved = req.query.resolved === 'true';
 
@@ -335,7 +327,7 @@ export function createSafetyRoutes(deps) {
       }
 
       const category = req.params.category;
-      const limit = parseInt(req.query.limit) || 100;
+      const limit = parseInt(req.query.limit, 10) || 100;
 
       const result = db.getPatternWarnings({ limit, category });
 
@@ -361,7 +353,7 @@ export function createSafetyRoutes(deps) {
         });
       }
 
-      const warningId = parseInt(req.params.warningId);
+      const warningId = parseInt(req.params.warningId, 10);
       db.resolvePatternWarning(warningId);
 
       res.json({ success: true, message: 'Pattern warning resolved' });
@@ -451,18 +443,34 @@ export function createSafetyRoutes(deps) {
 
       if (format === 'json') {
         res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Disposition', `attachment; filename="pattern-warnings-${Date.now()}.json"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="pattern-warnings-${Date.now()}.json"`
+        );
         res.json({ warnings, count: warnings.length, exported_at: new Date().toISOString() });
       } else {
         // CSV format
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="pattern-warnings-${Date.now()}.csv"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="pattern-warnings-${Date.now()}.csv"`
+        );
 
         // CSV header
         const csvHeaders = [
-          'ID', 'Timestamp', 'Filepath', 'Project', 'Category', 'Severity',
-          'Pattern Name', 'Message', 'Line Number', 'Match Text', 'Context',
-          'Suggestion', 'Resolved'
+          'ID',
+          'Timestamp',
+          'Filepath',
+          'Project',
+          'Category',
+          'Severity',
+          'Pattern Name',
+          'Message',
+          'Line Number',
+          'Match Text',
+          'Context',
+          'Suggestion',
+          'Resolved'
         ];
         let csv = csvHeaders.join(',') + '\n';
 
@@ -552,8 +560,8 @@ export function createSafetyRoutes(deps) {
         });
       }
 
-      const limit = parseInt(req.query.limit) || 20;
-      const offset = parseInt(req.query.offset) || 0;
+      const limit = parseInt(req.query.limit, 10) || 20;
+      const offset = parseInt(req.query.offset, 10) || 0;
       const framework = req.query.framework || 'all';
       const status = req.query.status || 'all';
 
@@ -722,8 +730,8 @@ export function createSafetyRoutes(deps) {
   router.get('/sessions', (req, res) => {
     try {
       const db = getDb();
-      const limit = parseInt(req.query.limit) || 10;
-      const offset = parseInt(req.query.offset) || 0;
+      const limit = parseInt(req.query.limit, 10) || 10;
+      const offset = parseInt(req.query.offset, 10) || 0;
       const projectName = req.query.project || null;
 
       const result = db.getSessions({ limit, offset, projectName });
@@ -741,7 +749,7 @@ export function createSafetyRoutes(deps) {
    */
   router.get('/sessions/:sessionId/preview', (req, res) => {
     try {
-      const sessionId = parseInt(req.params.sessionId);
+      const sessionId = parseInt(req.params.sessionId, 10);
 
       // This would need integration with the events system to show what would be rolled back
       // For now, return a stub response
@@ -763,7 +771,7 @@ export function createSafetyRoutes(deps) {
    */
   router.post('/sessions/:sessionId/rollback', (req, res) => {
     try {
-      const sessionId = parseInt(req.params.sessionId);
+      const sessionId = parseInt(req.params.sessionId, 10);
 
       // Session rollback would need deep integration with version control
       // For now, return not implemented

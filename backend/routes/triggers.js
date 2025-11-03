@@ -37,7 +37,7 @@ export function createTriggersRoutes(deps) {
       if (!deps.triggerEngine) {
         return res.status(503).json({ error: 'Trigger engine not initialized' });
       }
-      const limit = parseInt(req.query.limit) || 100;
+      const limit = parseInt(req.query.limit, 10) || 100;
       const events = deps.triggerEngine.getTriggeredEvents(limit);
       res.json(events);
     } catch (error) {

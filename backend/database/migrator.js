@@ -22,7 +22,9 @@ export class DatabaseMigrator {
    * Initialize migrations table
    */
   initMigrationsTable() {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       CREATE TABLE IF NOT EXISTS migrations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         version INTEGER NOT NULL UNIQUE,
@@ -30,7 +32,9 @@ export class DatabaseMigrator {
         applied_at INTEGER NOT NULL,
         checksum TEXT NOT NULL
       )
-    `).run();
+    `
+      )
+      .run();
     logger.info(`Migrations table initialized for ${this.dbName}`);
   }
 
@@ -39,9 +43,13 @@ export class DatabaseMigrator {
    */
   getCurrentVersion() {
     try {
-      const result = this.db.prepare(`
+      const result = this.db
+        .prepare(
+          `
         SELECT MAX(version) as version FROM migrations
-      `).get();
+      `
+        )
+        .get();
       return result?.version || 0;
     } catch (_err) {
       return 0;
@@ -57,21 +65,24 @@ export class DatabaseMigrator {
       return [];
     }
 
-    const files = fs.readdirSync(this.migrationsDir)
+    const files = fs
+      .readdirSync(this.migrationsDir)
       .filter(f => f.endsWith('.js'))
       .sort();
 
-    return files.map(file => {
-      const match = file.match(/^(\d+)_(.+)\.js$/);
-      if (!match) return null;
+    return files
+      .map(file => {
+        const match = file.match(/^(\d+)_(.+)\.js$/);
+        if (!match) return null;
 
-      return {
-        version: parseInt(match[1]),
-        name: match[2],
-        filename: file,
-        path: join(this.migrationsDir, file)
-      };
-    }).filter(Boolean);
+        return {
+          version: parseInt(match[1]),
+          name: match[2],
+          filename: file,
+          path: join(this.migrationsDir, file)
+        };
+      })
+      .filter(Boolean);
   }
 
   /**
@@ -109,15 +120,14 @@ export class DatabaseMigrator {
           await up(this.db);
 
           // Record migration
-          this.db.prepare(`
+          this.db
+            .prepare(
+              `
             INSERT INTO migrations (version, name, applied_at, checksum)
             VALUES (?, ?, ?, ?)
-          `).run(
-            migration.version,
-            migration.name,
-            Date.now(),
-            checksum || 'no-checksum'
-          );
+          `
+            )
+            .run(migration.version, migration.name, Date.now(), checksum || 'no-checksum');
 
           // Commit transaction
           this.db.prepare('COMMIT').run();
@@ -126,11 +136,11 @@ export class DatabaseMigrator {
         } catch (_err) {
           // Rollback on error
           this.db.prepare('ROLLBACK').run();
-          throw err;
+          throw _err;
         }
       } catch (_err) {
-        logger.error(`✗ Failed to apply migration ${migration.filename}:`, err);
-        throw err;
+        logger.error(`✗ Failed to apply migration ${migration.filename}:`, _err);
+        throw _err;
       }
     }
 
@@ -181,9 +191,13 @@ export class DatabaseMigrator {
         try {
           await down(this.db);
 
-          this.db.prepare(`
+          this.db
+            .prepare(
+              `
             DELETE FROM migrations WHERE version = ?
-          `).run(migration.version);
+          `
+            )
+            .run(migration.version);
 
           this.db.prepare('COMMIT').run();
 
@@ -217,9 +231,8 @@ export class DatabaseMigrator {
     }
 
     const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.js'));
-    const lastVersion = files.length > 0
-      ? Math.max(...files.map(f => parseInt(f.split('_')[0])))
-      : 0;
+    const versions = files.map(f => parseInt(f.split('_')[0], 10)).filter(v => !isNaN(v));
+    const lastVersion = versions.length > 0 ? Math.max(...versions) : 0;
 
     const version = lastVersion + 1;
     const filename = `${version.toString().padStart(3, '0')}_${name}.js`;

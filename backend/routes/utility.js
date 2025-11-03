@@ -16,7 +16,7 @@ export function createUtilityRoutes(deps) {
    */
   router.post('/database/clear-old/:days', (req, res) => {
     try {
-      const days = parseInt(req.params.days);
+      const days = parseInt(req.params.days, 10);
 
       if (isNaN(days) || days < 1) {
         return res.status(400).json({ error: 'Invalid days parameter' });
@@ -33,19 +33,27 @@ export function createUtilityRoutes(deps) {
 
       // Delete from all tables
       // Security: Whitelist of allowed tables to prevent SQL injection
-      const ALLOWED_TABLES = ['events', 'agent_events', 'raven_metrics', 'process_metrics', 'error_logs', 'notifications'];
+      const ALLOWED_TABLES = [
+        'events',
+        'agent_events',
+        'raven_metrics',
+        'process_metrics',
+        'error_logs',
+        'notifications'
+      ];
       const tables = ['events', 'agent_events', 'raven_metrics', 'process_metrics'];
       let totalDeleted = 0;
 
       // Security: Predefined queries to prevent SQL injection
       const TABLE_DELETE_QUERIES = {
         // Convert epoch ms to ISO via SQLite datetime
-        'events': "DELETE FROM events WHERE timestamp < datetime(?/1000, 'unixepoch')",
-        'agent_events': "DELETE FROM agent_events WHERE timestamp < datetime(?/1000, 'unixepoch')",
-        'raven_metrics': "DELETE FROM raven_metrics WHERE timestamp < datetime(?/1000, 'unixepoch')",
-        'process_metrics': "DELETE FROM process_metrics WHERE timestamp < datetime(?/1000, 'unixepoch')",
-        'error_logs': "DELETE FROM error_logs WHERE timestamp < datetime(?/1000, 'unixepoch')",
-        'notifications': "DELETE FROM notifications WHERE timestamp < datetime(?/1000, 'unixepoch')"
+        events: "DELETE FROM events WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        agent_events: "DELETE FROM agent_events WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        raven_metrics: "DELETE FROM raven_metrics WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        process_metrics:
+          "DELETE FROM process_metrics WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        error_logs: "DELETE FROM error_logs WHERE timestamp < datetime(?/1000, 'unixepoch')",
+        notifications: "DELETE FROM notifications WHERE timestamp < datetime(?/1000, 'unixepoch')"
       };
 
       for (const table of tables) {
@@ -114,20 +122,33 @@ export function createUtilityRoutes(deps) {
       extractRoutes(app._router.stack);
 
       // Categorize endpoints
-      const categorizeEndpoint = (path) => {
+      const categorizeEndpoint = path => {
         // Authentication
         if (path.startsWith('/auth')) return 'Authentication';
 
         // Core System
-        if (path.includes('health') || path.includes('session-id') || path.startsWith('/api/status') || path.startsWith('/api/endpoints')) return 'Core';
+        if (
+          path.includes('health') ||
+          path.includes('session-id') ||
+          path.startsWith('/api/status') ||
+          path.startsWith('/api/endpoints')
+        )
+          return 'Core';
 
         // Analytics & Intelligence
-        if (path.startsWith('/api/anomalies') || path.startsWith('/api/trends') ||
-            path.startsWith('/api/developer') || path.startsWith('/api/pattern-warnings') ||
-            path.startsWith('/api/rollbacks/patterns') || path.startsWith('/api/activity-log')) return 'Analytics';
+        if (
+          path.startsWith('/api/anomalies') ||
+          path.startsWith('/api/trends') ||
+          path.startsWith('/api/developer') ||
+          path.startsWith('/api/pattern-warnings') ||
+          path.startsWith('/api/rollbacks/patterns') ||
+          path.startsWith('/api/activity-log')
+        )
+          return 'Analytics';
 
         // Sessions & Conversations
-        if (path.startsWith('/api/sessions') || path.startsWith('/api/conversations')) return 'Sessions';
+        if (path.startsWith('/api/sessions') || path.startsWith('/api/conversations'))
+          return 'Sessions';
 
         // Testing
         if (path.startsWith('/api/tests')) return 'Testing';
@@ -139,23 +160,39 @@ export function createUtilityRoutes(deps) {
         if (path.startsWith('/api/cache')) return 'System';
 
         // Telemetry & Metrics
-        if (path.startsWith('/telemetry') || path.startsWith('/api/metrics') ||
-            path.startsWith('/api/system-metrics') || path.startsWith('/api/process-metrics') ||
-            path.startsWith('/api/performance')) return 'Metrics';
+        if (
+          path.startsWith('/telemetry') ||
+          path.startsWith('/api/metrics') ||
+          path.startsWith('/api/system-metrics') ||
+          path.startsWith('/api/process-metrics') ||
+          path.startsWith('/api/performance')
+        )
+          return 'Metrics';
 
         // Snapshots & Changes
-        if (path.startsWith('/api/snapshot') || path.startsWith('/api/changes') ||
-            path.startsWith('/api/restore') || path.startsWith('/api/rollback')) return 'Snapshots';
+        if (
+          path.startsWith('/api/snapshot') ||
+          path.startsWith('/api/changes') ||
+          path.startsWith('/api/restore') ||
+          path.startsWith('/api/rollback')
+        )
+          return 'Snapshots';
 
         // Search & Discovery
         if (path.startsWith('/api/search')) return 'Search';
 
         // Preferences & Settings
-        if (path.startsWith('/api/preferences') || path.startsWith('/api/alerts/templates')) return 'Settings';
+        if (path.startsWith('/api/preferences') || path.startsWith('/api/alerts/templates'))
+          return 'Settings';
 
         // Control & Automation
-        if (path.startsWith('/api/control') || path.startsWith('/api/pause') ||
-            path.startsWith('/api/resume') || path.startsWith('/api/open-file')) return 'Control';
+        if (
+          path.startsWith('/api/control') ||
+          path.startsWith('/api/pause') ||
+          path.startsWith('/api/resume') ||
+          path.startsWith('/api/open-file')
+        )
+          return 'Control';
 
         // Existing categories
         if (path.startsWith('/api/sync')) return 'Sync';
@@ -165,12 +202,26 @@ export function createUtilityRoutes(deps) {
         if (path.startsWith('/api/notifications')) return 'Notifications';
         if (path.startsWith('/api/errors')) return 'Errors';
         if (path.startsWith('/api/agents') || path.startsWith('/api/agent')) return 'Agents';
-        if (path.startsWith('/api/triggers') || path.startsWith('/api/triggered') || path.startsWith('/api/trigger-stats')) return 'Triggers';
-        if (path.startsWith('/api/file') || path.startsWith('/api/tracked-files') ||
-            path.startsWith('/api/events-by') || path.startsWith('/api/all-file-events') ||
-            path.startsWith('/api/timeline')) return 'Files';
-        if (path.startsWith('/api/dashboard') || path.startsWith('/api/top-') ||
-            path.startsWith('/api/longest-')) return 'Dashboard';
+        if (
+          path.startsWith('/api/triggers') ||
+          path.startsWith('/api/triggered') ||
+          path.startsWith('/api/trigger-stats')
+        )
+          return 'Triggers';
+        if (
+          path.startsWith('/api/file') ||
+          path.startsWith('/api/tracked-files') ||
+          path.startsWith('/api/events-by') ||
+          path.startsWith('/api/all-file-events') ||
+          path.startsWith('/api/timeline')
+        )
+          return 'Files';
+        if (
+          path.startsWith('/api/dashboard') ||
+          path.startsWith('/api/top-') ||
+          path.startsWith('/api/longest-')
+        )
+          return 'Dashboard';
         if (path.startsWith('/api-docs') || path.startsWith('/api/docs')) return 'Documentation';
         if (path.startsWith('/api/changelog')) return 'Changelog';
 

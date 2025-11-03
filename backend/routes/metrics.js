@@ -10,13 +10,7 @@ import { env } from '../config/environment.js';
  */
 export function createMetricsRoutes(deps) {
   const router = Router();
-  const {
-    projectDatabases,
-    cacheMiddleware,
-    metricsCache,
-    analyticsCache,
-    dashboardCache
-  } = deps;
+  const { projectDatabases, cacheMiddleware, metricsCache, analyticsCache, dashboardCache } = deps;
 
   function metricsEnabled() {
     try {
@@ -85,8 +79,10 @@ export function createMetricsRoutes(deps) {
   router.get('/system-metrics', cacheMiddleware(metricsCache), (req, res) => {
     try {
       // Validate and coerce query params to safe integers; invalid provided values trigger error (test expectation)
-      if ((req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
-          (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))) {
+      if (
+        (req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
+        (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))
+      ) {
         throw new Error('Invalid pagination parameters');
       }
       const limitNum = req.query.limit !== undefined ? Number(req.query.limit) : 100;
@@ -95,7 +91,9 @@ export function createMetricsRoutes(deps) {
       if (!ravenDb || !ravenDb.db) {
         return res.status(500).json({ error: 'Raven database not initialized' });
       }
-      const stmt = ravenDb.db.prepare('SELECT * FROM raven_metrics ORDER BY timestamp DESC LIMIT ? OFFSET ?');
+      const stmt = ravenDb.db.prepare(
+        'SELECT * FROM raven_metrics ORDER BY timestamp DESC LIMIT ? OFFSET ?'
+      );
       const metrics = stmt.all(limitNum, offsetNum);
       res.json(metrics);
     } catch (error) {
@@ -110,8 +108,10 @@ export function createMetricsRoutes(deps) {
    */
   router.get('/process-metrics/:agent', (req, res) => {
     try {
-      if ((req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
-          (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))) {
+      if (
+        (req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
+        (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))
+      ) {
         throw new Error('Invalid pagination parameters');
       }
       const limitNum = req.query.limit !== undefined ? Number(req.query.limit) : 100;
@@ -121,7 +121,9 @@ export function createMetricsRoutes(deps) {
       if (!ravenDb || !ravenDb.db) {
         return res.status(500).json({ error: 'Raven database not initialized' });
       }
-      const stmt = ravenDb.db.prepare('SELECT * FROM process_metrics WHERE agent_name = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?');
+      const stmt = ravenDb.db.prepare(
+        'SELECT * FROM process_metrics WHERE agent_name = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?'
+      );
       const metrics = stmt.all(agent, limitNum, offsetNum);
       res.json(metrics);
     } catch (error) {
@@ -136,8 +138,10 @@ export function createMetricsRoutes(deps) {
    */
   router.get('/process-metrics', (req, res) => {
     try {
-      if ((req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
-          (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))) {
+      if (
+        (req.query.limit !== undefined && !Number.isFinite(Number(req.query.limit))) ||
+        (req.query.offset !== undefined && !Number.isFinite(Number(req.query.offset)))
+      ) {
         throw new Error('Invalid pagination parameters');
       }
       const limitNum = req.query.limit !== undefined ? Number(req.query.limit) : 100;
@@ -201,7 +205,7 @@ export function createMetricsRoutes(deps) {
       if (!ravenDb || !ravenDb.db) {
         return res.status(500).json({ error: 'Raven database not initialized' });
       }
-      const time_window_seconds = parseInt(req.query.time_window_seconds) || 5;
+      const time_window_seconds = parseInt(req.query.time_window_seconds, 10) || 5;
       const correlations = ravenDb.correlateEventsWithMetrics(time_window_seconds);
       res.json(correlations);
     } catch (error) {
@@ -245,11 +249,15 @@ export function createMetricsRoutes(deps) {
           metrics.total_events += totalEvents.count;
 
           // Events by type (normalize names: add->created, change->modified, unlink->deleted)
-          const eventsByType = db.db.prepare(`
+          const eventsByType = db.db
+            .prepare(
+              `
             SELECT change_type, COUNT(*) as count
             FROM events
             GROUP BY change_type
-          `).all();
+          `
+            )
+            .all();
 
           for (const row of eventsByType) {
             let normalizedType = row.change_type;
@@ -261,38 +269,55 @@ export function createMetricsRoutes(deps) {
             else if (row.change_type === 'edit') normalizedType = 'modified';
             else if (row.change_type === 'delete') normalizedType = 'deleted';
 
-            metrics.events_by_type[normalizedType] = (metrics.events_by_type[normalizedType] || 0) + row.count;
+            metrics.events_by_type[normalizedType] =
+              (metrics.events_by_type[normalizedType] || 0) + row.count;
           }
 
           // Events last 24h
-          const events24h = db.db.prepare(`
+          const events24h = db.db
+            .prepare(
+              `
             SELECT COUNT(*) as count FROM events
             WHERE timestamp >= datetime('now', '-24 hours')
-          `).get();
+          `
+            )
+            .get();
           metrics.events_24h += events24h.count;
 
           // Check if project was active in last 7 days
-          const projectActivity = db.db.prepare(`
+          const projectActivity = db.db
+            .prepare(
+              `
             SELECT COUNT(*) as count FROM events
             WHERE timestamp >= datetime('now', '-7 days')
-          `).get();
+          `
+            )
+            .get();
           if (projectActivity.count > 0) metrics.active_projects++;
 
           // Track unique files (limit to prevent performance issues)
-          const files = db.db.prepare(`
+          const files = db.db
+            .prepare(
+              `
             SELECT DISTINCT filepath FROM events
             LIMIT 10000
-          `).all();
+          `
+            )
+            .all();
           metrics.total_files += files.length;
 
           // File activity for most active file (limit to top 1000 files)
-          const fileStats = db.db.prepare(`
+          const fileStats = db.db
+            .prepare(
+              `
             SELECT filepath, COUNT(*) as count FROM events
             WHERE timestamp >= datetime('now', '-7 days')
             GROUP BY filepath
             ORDER BY count DESC
             LIMIT 1000
-          `).all();
+          `
+            )
+            .all();
           for (const stat of fileStats) {
             const key = `${projectName}/${stat.filepath}`;
             fileActivity.set(key, (fileActivity.get(key) || 0) + stat.count);
@@ -307,20 +332,28 @@ export function createMetricsRoutes(deps) {
           metrics.conversation_count += convos.count;
 
           // Daily events for average
-          const daily = db.db.prepare(`
+          const daily = db.db
+            .prepare(
+              `
             SELECT DATE(timestamp) as day, COUNT(*) as count
             FROM events
             WHERE timestamp >= datetime('now', '-7 days')
             GROUP BY day
-          `).all();
+          `
+            )
+            .all();
           dailyEvents.push(...daily.map(d => d.count));
 
           // Hourly activity
-          const hourly = db.db.prepare(`
+          const hourly = db.db
+            .prepare(
+              `
             SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
             FROM events
             GROUP BY hour
-          `).all();
+          `
+            )
+            .all();
           for (const h of hourly) {
             hourlyActivity.set(h.hour, (hourlyActivity.get(h.hour) || 0) + h.count);
           }
@@ -338,12 +371,15 @@ export function createMetricsRoutes(deps) {
           mostActiveFile = file;
         }
       }
-      metrics.most_active_file = mostActiveFile ? { file: mostActiveFile, changes: maxCount } : null;
+      metrics.most_active_file = mostActiveFile
+        ? { file: mostActiveFile, changes: maxCount }
+        : null;
 
       // Calculate average events per day
-      metrics.avg_events_per_day = dailyEvents.length > 0
-        ? Math.round(dailyEvents.reduce((a, b) => a + b, 0) / dailyEvents.length)
-        : 0;
+      metrics.avg_events_per_day =
+        dailyEvents.length > 0
+          ? Math.round(dailyEvents.reduce((a, b) => a + b, 0) / dailyEvents.length)
+          : 0;
 
       // Find busiest hour
       let busiestHour = null;

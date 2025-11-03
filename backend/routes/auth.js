@@ -36,7 +36,8 @@ export function createAuthRoutes(authService) {
    * POST /auth/register
    * Register a new user (admin only)
    */
-  router.post('/register',
+  router.post(
+    '/register',
     authenticate,
     authorize('admin'),
     validate('register'),
@@ -63,26 +64,22 @@ export function createAuthRoutes(authService) {
    * POST /auth/change-password
    * Change current user's password
    */
-  router.post('/change-password',
-    authenticate,
-    validate('changePassword'),
-    async (req, res) => {
-      try {
-        const { oldPassword, newPassword } = req.body;
-        await authService.changePassword(req.user.id, oldPassword, newPassword);
+  router.post('/change-password', authenticate, validate('changePassword'), async (req, res) => {
+    try {
+      const { oldPassword, newPassword } = req.body;
+      await authService.changePassword(req.user.id, oldPassword, newPassword);
 
-        res.json({
-          success: true,
-          message: 'Password changed successfully'
-        });
-      } catch (error) {
-        res.status(400).json({
-          success: false,
-          error: error.message
-        });
-      }
+      res.json({
+        success: true,
+        message: 'Password changed successfully'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error.message
+      });
     }
-  );
+  });
 
   /**
    * GET /auth/me
@@ -126,127 +123,111 @@ export function createAuthRoutes(authService) {
    * GET /auth/users
    * Get all users (admin only)
    */
-  router.get('/users',
-    authenticate,
-    authorize('admin'),
-    (req, res) => {
-      const users = authService.getAllUsers();
+  router.get('/users', authenticate, authorize('admin'), (req, res) => {
+    const users = authService.getAllUsers();
 
-      res.json({
-        success: true,
-        users: users.map(u => ({
-          id: u.id,
-          username: u.username,
-          role: u.role,
-          active: Boolean(u.active),
-          createdAt: u.created_at,
-          lastLogin: u.last_login
-        }))
-      });
-    }
-  );
+    res.json({
+      success: true,
+      users: users.map(u => ({
+        id: u.id,
+        username: u.username,
+        role: u.role,
+        active: Boolean(u.active),
+        createdAt: u.created_at,
+        lastLogin: u.last_login
+      }))
+    });
+  });
 
   /**
    * PATCH /auth/users/:id/role
    * Update user role (admin only)
    */
-  router.patch('/users/:id/role',
-    authenticate,
-    authorize('admin'),
-    async (req, res) => {
-      try {
-        const userId = parseInt(req.params.id);
-        const { role } = req.body;
+  router.patch('/users/:id/role', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      const { role } = req.body;
 
-        if (!role) {
-          return res.status(400).json({
-            success: false,
-            error: 'Role is required'
-          });
-        }
-
-        authService.updateUserRole(userId, role);
-
-        res.json({
-          success: true,
-          message: 'User role updated'
-        });
-      } catch (error) {
-        res.status(400).json({
+      if (!role) {
+        return res.status(400).json({
           success: false,
-          error: error.message
+          error: 'Role is required'
         });
       }
+
+      authService.updateUserRole(userId, role);
+
+      res.json({
+        success: true,
+        message: 'User role updated'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error.message
+      });
     }
-  );
+  });
 
   /**
    * PATCH /auth/users/:id/active
    * Enable/disable user (admin only)
    */
-  router.patch('/users/:id/active',
-    authenticate,
-    authorize('admin'),
-    async (req, res) => {
-      try {
-        const userId = parseInt(req.params.id);
-        const { active } = req.body;
+  router.patch('/users/:id/active', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      const { active } = req.body;
 
-        if (typeof active !== 'boolean') {
-          return res.status(400).json({
-            success: false,
-            error: 'Active must be a boolean'
-          });
-        }
-
-        authService.setUserActive(userId, active);
-
-        res.json({
-          success: true,
-          message: `User ${active ? 'enabled' : 'disabled'}`
-        });
-      } catch (error) {
-        res.status(400).json({
+      if (typeof active !== 'boolean') {
+        return res.status(400).json({
           success: false,
-          error: error.message
+          error: 'Active must be a boolean'
         });
       }
+
+      authService.setUserActive(userId, active);
+
+      res.json({
+        success: true,
+        message: `User ${active ? 'enabled' : 'disabled'}`
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error.message
+      });
     }
-  );
+  });
 
   /**
    * DELETE /auth/users/:id
    * Delete user (admin only)
    */
-  router.delete('/users/:id',
-    authenticate,
-    authorize('admin'),
-    async (req, res) => {
-      try {
-        const userId = parseInt(req.params.id);
+  router.delete('/users/:id', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id, 10);
 
-        // Prevent deleting yourself
-        if (userId === req.user.id) {
-          return res.status(400).json({
-            success: false,
-            error: 'Cannot delete your own account'
-          });
-        }
-
-        authService.deleteUser(userId);
-
-        res.json({
-          success: true,
-          message: 'User deleted'
-        });
-      } catch (error) {
-        res.status(400).json({
+      // Prevent deleting yourself
+      if (userId === req.user.id) {
+        return res.status(400).json({
           success: false,
-          error: error.message
+          error: 'Cannot delete your own account'
         });
       }
+
+      authService.deleteUser(userId);
+
+      res.json({
+        success: true,
+        message: 'User deleted'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error.message
+      });
     }
-  );
+  });
 
   return router;
 }

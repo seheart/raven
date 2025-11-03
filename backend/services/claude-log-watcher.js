@@ -48,34 +48,34 @@ export class ClaudeLogWatcher {
 
     this.logWatcher = chokidar.watch(this.claudeProjectsDir, {
       persistent: true,
-      ignoreInitial: false,  // DO watch existing files (we handle history in handleLogFileAdded)
-      usePolling: true,      // Use polling for log files (more reliable for appends)
-      interval: 100,         // Poll every 100ms for near-real-time detection
-      binaryInterval: 100,   // Poll binary files every 100ms
+      ignoreInitial: false, // DO watch existing files (we handle history in handleLogFileAdded)
+      usePolling: true, // Use polling for log files (more reliable for appends)
+      interval: 100, // Poll every 100ms for near-real-time detection
+      binaryInterval: 100, // Poll binary files every 100ms
       awaitWriteFinish: false,
       ignorePermissionErrors: true,
-      alwaysStat: true,      // Always get file stats
-      depth: 2,              // projects/project-name/session.jsonl = depth 2
+      alwaysStat: true, // Always get file stats
+      depth: 2, // projects/project-name/session.jsonl = depth 2
       ignored: (path, stats) => {
         // Only watch .jsonl files
         if (stats?.isFile()) {
           return !path.endsWith('.jsonl');
         }
-        return false;  // Don't ignore directories
+        return false; // Don't ignore directories
       }
     });
 
-    this.logWatcher.on('add', (filepath) => {
+    this.logWatcher.on('add', filepath => {
       this.logger.info(`🆕 New log file: ${path.basename(filepath)}`);
       this.handleLogFileAdded(filepath);
     });
 
-    this.logWatcher.on('change', (filepath) => {
+    this.logWatcher.on('change', filepath => {
       this.logger.info(`🔄 Log file change detected: ${path.basename(filepath)}`);
       this.handleLogFileChanged(filepath);
     });
 
-    this.logWatcher.on('error', (error) => {
+    this.logWatcher.on('error', error => {
       this.logger.error(`❌ Watcher error: ${error.message}`);
     });
 
@@ -101,7 +101,12 @@ export class ClaudeLogWatcher {
         }
 
         if (watchedFiles.length > 0) {
-          this.logger.info(`   Sample: ${watchedFiles.slice(0, 3).map(f => path.basename(f)).join(', ')}`);
+          this.logger.info(
+            `   Sample: ${watchedFiles
+              .slice(0, 3)
+              .map(f => path.basename(f))
+              .join(', ')}`
+          );
         } else {
           this.logger.warn('⚠️  No .jsonl files discovered yet!');
         }
@@ -132,8 +137,13 @@ export class ClaudeLogWatcher {
     this.logger.info(`📄 New Claude session log: ${path.basename(filepath)}`);
 
     // Initialize file position to end (don't process history on startup)
-    const stats = fs.statSync(filepath);
-    this.filePositions.set(filepath, stats.size);
+    try {
+      const stats = await fs.promises.stat(filepath);
+      this.filePositions.set(filepath, stats.size);
+    } catch (error) {
+      this.logger.error(`Error getting file stats for ${filepath}:`, error);
+      return;
+    }
 
     // Extract project info from path
     // Format: ~/.claude/projects/-home-seth-Projects-raven/session-id.jsonl
@@ -150,7 +160,7 @@ export class ClaudeLogWatcher {
   async handleLogFileChanged(filepath) {
     try {
       this.logger.info(`📄 Log file changed: ${path.basename(filepath)}`);
-      const stats = fs.statSync(filepath);
+      const stats = await fs.promises.stat(filepath);
       const lastPosition = this.filePositions.get(filepath) || 0;
 
       // If file shrunk, it was probably recreated - start from beginning
@@ -216,31 +226,31 @@ export class ClaudeLogWatcher {
       let filePath = null;
 
       switch (name) {
-      case 'Write':
-        eventType = 'add'; // New file created
-        filePath = input.file_path;
-        break;
+        case 'Write':
+          eventType = 'add'; // New file created
+          filePath = input.file_path;
+          break;
 
-      case 'Edit':
-        eventType = 'change'; // Existing file modified
-        filePath = input.file_path;
-        break;
+        case 'Edit':
+          eventType = 'change'; // Existing file modified
+          filePath = input.file_path;
+          break;
 
-      case 'Read':
-        // We could track reads, but probably not necessary for file monitoring
-        // Uncomment if you want to track file reads:
-        // eventType = 'read';
-        // filePath = input.file_path;
-        break;
+        case 'Read':
+          // We could track reads, but probably not necessary for file monitoring
+          // Uncomment if you want to track file reads:
+          // eventType = 'read';
+          // filePath = input.file_path;
+          break;
 
-      case 'Bash':
-        // Could parse bash commands for file operations (rm, mv, etc.)
-        // but probably not necessary - Write/Edit cover most cases
-        break;
+        case 'Bash':
+          // Could parse bash commands for file operations (rm, mv, etc.)
+          // but probably not necessary - Write/Edit cover most cases
+          break;
 
-      default:
-        // Ignore other tools (Glob, Grep, etc.)
-        break;
+        default:
+          // Ignore other tools (Glob, Grep, etc.)
+          break;
       }
 
       if (eventType && filePath) {
@@ -275,9 +285,7 @@ export class ClaudeLogWatcher {
     const sessionId = path.basename(parts[1], '.jsonl');
 
     // Convert "-home-seth-Projects-raven" back to "/home/seth/Projects/raven"
-    const projectPath = projectDirName
-      .replace(/^-/, '/')
-      .replace(/-/g, '/');
+    const projectPath = projectDirName.replace(/^-/, '/').replace(/-/g, '/');
 
     const projectName = path.basename(projectPath);
 
@@ -295,7 +303,7 @@ export class ClaudeLogWatcher {
     const files = [];
 
     try {
-      const walk = (dir) => {
+      const walk = dir => {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);

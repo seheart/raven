@@ -105,8 +105,14 @@ import { LIMITS } from './config/constants.js';
 import { startPerformanceMonitor } from './monitoring/performance-monitor.js';
 import { createFileWatcher } from './watchers/file-watcher.js';
 import { initializeAllWatchers as initializeAllWatchersExternal } from './watchers/initialize.js';
-import { createAndRegisterGitMonitor, emitGitStatusUpdate as emitGitStatusUpdateExternal } from './watchers/git-watcher.js';
-import { initializeProject as initializeProjectHelper, initializeAllProjects as initializeAllProjectsHelper } from './startup/startup-helpers.js';
+import {
+  createAndRegisterGitMonitor,
+  emitGitStatusUpdate as emitGitStatusUpdateExternal
+} from './watchers/git-watcher.js';
+import {
+  initializeProject as initializeProjectHelper,
+  initializeAllProjects as initializeAllProjectsHelper
+} from './startup/startup-helpers.js';
 import { getAgentColor, detectProjectFromPath } from './utils/project-utils.js';
 
 // Initialize and validate configuration
@@ -124,7 +130,9 @@ const app = express();
 const httpServer = createServer(app);
 
 // Configuration: Load from environment variables with fallback defaults
-const CORS_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map(o => o.trim());
+const CORS_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim());
 const PORT = parseInt(process.env.PORT, 10) || 3030;
 
 // Security: Validate CORS configuration
@@ -135,7 +143,8 @@ if (CORS_ORIGINS.includes('*')) {
 }
 
 // File size limits and other constants (from centralized config)
-const MAX_FILE_SIZE_BYTES = parseInt(process.env.MAX_FILE_SIZE_BYTES, 10) || LIMITS.FILE.MAX_SIZE_BYTES;
+const MAX_FILE_SIZE_BYTES =
+  parseInt(process.env.MAX_FILE_SIZE_BYTES, 10) || LIMITS.FILE.MAX_SIZE_BYTES;
 
 const io = new Server(httpServer, {
   cors: {
@@ -153,18 +162,20 @@ const io = new Server(httpServer, {
 app.use(setupHelmet());
 
 // HTTP Compression (gzip/deflate) - 60-80% bandwidth savings
-app.use(compression({
-  threshold: 1024, // Only compress responses > 1KB
-  level: 6, // Compression level (0-9, 6 is default balance)
-  filter: (req, res) => {
-    // Don't compress if client explicitly opts out
-    if (req.headers['x-no-compression']) {
-      return false;
+app.use(
+  compression({
+    threshold: 1024, // Only compress responses > 1KB
+    level: 6, // Compression level (0-9, 6 is default balance)
+    filter: (req, res) => {
+      // Don't compress if client explicitly opts out
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      // Use default compression filter
+      return compression.filter(req, res);
     }
-    // Use default compression filter
-    return compression.filter(req, res);
-  }
-}));
+  })
+);
 
 // Request logging
 app.use(requestLogger);
@@ -178,25 +189,27 @@ if (env.ENABLE_METRICS) {
 }
 
 // CORS - properly configured for security with multiple origin support
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
-    if (!origin) {
-      return callback(null, true);
-    }
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, Postman, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
 
-    // Check if origin is in allowed list
-    if (CORS_ORIGINS.includes(origin)) {
-      callback(null, true);
-    } else {
-      logger.warn(`CORS blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,  // Allow cookies
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
-}));
+      // Check if origin is in allowed list
+      if (CORS_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true, // Allow cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+  })
+);
 logger.info(`CORS enabled for origins: ${CORS_ORIGINS.join(', ')}`);
 
 // JSON payload parsing with size limit
@@ -351,20 +364,19 @@ const authService = new AuthService(authDB);
 logger.info('Authentication service initialized', { path: AUTH_DB_PATH });
 
 // Multi-project state: Maps for managing all projects simultaneously
-const projectWatchers = new Map();      // projectName -> chokidar watcher (reactive, ignoreInitial=true)
-const projectDatabases = new Map();     // projectName -> RavenDB instance
-const projectGitMonitors = new Map();   // projectName -> GitMonitor instance
-const projectConversationSyncs = new Map();  // projectName -> ConversationSync instance
-const projectPaths = new Map();         // projectName -> absolute path
-const projectSnapshotDirs = new Map();  // projectName -> snapshots directory
+const projectWatchers = new Map(); // projectName -> chokidar watcher (reactive, ignoreInitial=true)
+const projectDatabases = new Map(); // projectName -> RavenDB instance
+const projectGitMonitors = new Map(); // projectName -> GitMonitor instance
+const projectConversationSyncs = new Map(); // projectName -> ConversationSync instance
+const projectPaths = new Map(); // projectName -> absolute path
+const projectSnapshotDirs = new Map(); // projectName -> snapshots directory
 
 // Claude Code log watcher (monitors ALL projects via Claude's logs)
 let claudeLogWatcher = null;
 
 // Available projects list
-const availableProjects = discoveredProjects.length > 0
-  ? discoveredProjects
-  : (config.projects?.available || []);
+const availableProjects =
+  discoveredProjects.length > 0 ? discoveredProjects : config.projects?.available || [];
 
 // Session ID (generated once per server start)
 const SESSION_ID = randomUUID();
@@ -412,7 +424,12 @@ class FileProcessingLock {
 
     for (const [filepath, mutex] of this.locks.entries()) {
       // Only cleanup if mutex exists, not locked, and hasn't been used recently
-      if (mutex && !mutex.locked && mutex.lastUsed && (now - mutex.lastUsed > LIMITS.CACHE.LOCK_TTL_MS)) {
+      if (
+        mutex &&
+        !mutex.locked &&
+        mutex.lastUsed &&
+        now - mutex.lastUsed > LIMITS.CACHE.LOCK_TTL_MS
+      ) {
         this.locks.delete(filepath);
       }
     }
@@ -468,12 +485,11 @@ const MAX_AGENTS = 10000; // Prevent unbounded memory growth
 function enforceAgentRegistryLimit() {
   if (agentRegistry.size > MAX_AGENTS) {
     // Sort by last_seen timestamp (oldest first)
-    const sortedEntries = Array.from(agentRegistry.entries())
-      .sort((a, b) => {
-        const timeA = new Date(a[1].last_seen).getTime();
-        const timeB = new Date(b[1].last_seen).getTime();
-        return timeA - timeB;
-      });
+    const sortedEntries = Array.from(agentRegistry.entries()).sort((a, b) => {
+      const timeA = new Date(a[1].last_seen).getTime();
+      const timeB = new Date(b[1].last_seen).getTime();
+      return timeA - timeB;
+    });
 
     // Remove oldest 20% to avoid thrashing
     const toRemove = Math.floor(MAX_AGENTS * 0.2);
@@ -481,7 +497,9 @@ function enforceAgentRegistryLimit() {
 
     removedAgents.forEach(([name]) => agentRegistry.delete(name));
 
-    logger.warn(`🚨 Agent registry limit exceeded (${agentRegistry.size}), evicted ${toRemove} oldest agents`);
+    logger.warn(
+      `🚨 Agent registry limit exceeded (${agentRegistry.size}), evicted ${toRemove} oldest agents`
+    );
   }
 }
 
@@ -514,7 +532,8 @@ const snapshotCleanupInterval = setInterval(async () => {
 
   isSnapshotCleanupRunning = true;
   try {
-    const SNAPSHOT_TTL_MS = parseInt(process.env.SNAPSHOT_TTL_DAYS || '30') * 24 * 60 * 60 * 1000;
+    const SNAPSHOT_TTL_MS =
+      parseInt(process.env.SNAPSHOT_TTL_DAYS || '30', 10) * 24 * 60 * 60 * 1000;
     const now = Date.now();
     let removed = 0;
 
@@ -536,7 +555,9 @@ const snapshotCleanupInterval = setInterval(async () => {
     }
 
     if (removed > 0) {
-      logger.info(`🧹 Cleaned up ${removed} old snapshots (>${process.env.SNAPSHOT_TTL_DAYS || '30'} days)`);
+      logger.info(
+        `🧹 Cleaned up ${removed} old snapshots (>${process.env.SNAPSHOT_TTL_DAYS || '30'} days)`
+      );
     }
   } catch (error) {
     logger.error('Error cleaning snapshots:', error);
@@ -563,7 +584,8 @@ function generateDiff(oldContent, newContent) {
 }
 
 function detectLanguage(filepath) {
-  const ext = filepath.split('.').pop().toLowerCase();
+  const parts = filepath.split('.');
+  const ext = parts.length > 1 ? parts.pop().toLowerCase() : '';
   const languageMap = {
     js: 'javascript',
     jsx: 'javascript',
@@ -643,7 +665,9 @@ async function saveSnapshot(filepath, content, projectName) {
     const compressedSize = compressed.length;
     const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
 
-    logger.info(`💾 Snapshot saved [${projectName}]: ${snapshotName} (${originalSize} → ${compressedSize} bytes, ${ratio}% reduction)`);
+    logger.info(
+      `💾 Snapshot saved [${projectName}]: ${snapshotName} (${originalSize} → ${compressedSize} bytes, ${ratio}% reduction)`
+    );
     return snapshotPath;
   } catch (error) {
     logger.error(`❌ Snapshot save error [${projectName}]:`, error);
@@ -690,7 +714,9 @@ async function handleFileChange(eventType, filepath) {
         const fileSizeBytes = stats.size;
 
         if (fileSizeBytes > MAX_FILE_SIZE_BYTES) {
-          logger.warn(`File too large to track: [${projectName}] ${relPath} (${(fileSizeBytes / 1024 / 1024).toFixed(2)} MB, limit: ${(MAX_FILE_SIZE_BYTES / 1024 / 1024).toFixed(2)} MB)`);
+          logger.warn(
+            `File too large to track: [${projectName}] ${relPath} (${(fileSizeBytes / 1024 / 1024).toFixed(2)} MB, limit: ${(MAX_FILE_SIZE_BYTES / 1024 / 1024).toFixed(2)} MB)`
+          );
 
           // Emit a special event for large files
           io.emit('file-too-large', {
@@ -717,15 +743,15 @@ async function handleFileChange(eventType, filepath) {
         else if (eventType === 'create' && content) {
           // Create unified diff format with all lines as additions
           const lines = content.split('\n');
-          diff = `@@ -0,0 +1,${lines.length} @@\n` +
-                 lines.map(line => `+${line}`).join('\n');
+          diff = `@@ -0,0 +1,${lines.length} @@\n` + lines.map(line => `+${line}`).join('\n');
         }
 
         // Save snapshot (project-specific)
         await saveSnapshot(filepath, content, projectName);
 
         // Update cache with LRU eviction (only if file is not too large)
-        if (fileSizeBytes < MAX_FILE_SIZE_BYTES / 2) { // Only cache files up to 5MB
+        if (fileSizeBytes < MAX_FILE_SIZE_BYTES / 2) {
+          // Only cache files up to 5MB
           addToFileCache(filepath, content);
         }
       } catch (readError) {
@@ -740,8 +766,7 @@ async function handleFileChange(eventType, filepath) {
 
         // Generate a synthetic diff showing all content as deletions
         const lines = deletedContent.split('\n');
-        diff = `@@ -1,${lines.length} +0,0 @@\n` +
-               lines.map(line => `-${line}`).join('\n');
+        diff = `@@ -1,${lines.length} +0,0 @@\n` + lines.map(line => `-${line}`).join('\n');
       }
 
       // File deleted - remove from cache
@@ -765,12 +790,12 @@ async function handleFileChange(eventType, filepath) {
 
           // Run checks in parallel
           await Promise.all([
-            syntaxChecker.checkFile(filepath).catch(err =>
-              logger.error(`Syntax check failed for ${filepath}:`, err)
-            ),
-            patternChecker.checkFile(filepath).catch(err =>
-              logger.error(`Pattern check failed for ${filepath}:`, err)
-            )
+            syntaxChecker
+              .checkFile(filepath)
+              .catch(err => logger.error(`Syntax check failed for ${filepath}:`, err)),
+            patternChecker
+              .checkFile(filepath)
+              .catch(err => logger.error(`Pattern check failed for ${filepath}:`, err))
           ]);
         } catch (error) {
           logger.error('Error running safety checks:', error);
@@ -823,7 +848,8 @@ async function handleFileChange(eventType, filepath) {
           project: projectName,
           language,
           file_type: filepath.split('.').pop(),
-          edit_type: eventType === 'create' ? 'create' : eventType === 'delete' ? 'delete' : 'modify',
+          edit_type:
+            eventType === 'create' ? 'create' : eventType === 'delete' ? 'delete' : 'modify',
           lines_added: linesAdded,
           lines_removed: linesRemoved,
           timestamp
@@ -918,7 +944,13 @@ function initializeMonitoringServices() {
     analyticsDeps.patternMatcher = patternMatcher;
 
     logger.info('Monitoring services initialized', {
-      services: ['AgentDetector', 'RiskAnalyzer', 'BehaviorProfiler', 'PatternMatcher', 'SessionTracker']
+      services: [
+        'AgentDetector',
+        'RiskAnalyzer',
+        'BehaviorProfiler',
+        'PatternMatcher',
+        'SessionTracker'
+      ]
     });
   } catch (error) {
     logger.error('Failed to initialize monitoring services', { error });
@@ -1017,7 +1049,6 @@ async function initializeAllWatchers() {
     config
   });
 }
-
 
 // NOTE: switchProject() function removed - now watching all projects simultaneously
 // The old single-project switching model is deprecated
@@ -1147,13 +1178,16 @@ sessionsDeps.projectState = projectState;
 app.use('/api/sessions', createSessionRoutes(sessionsDeps));
 
 // Project management routes
-app.use('/api/projects', createProjectRoutes({
-  projectDatabases,
-  config,
-  projectPaths,
-  projectState,
-  CONFIG_PATH
-}));
+app.use(
+  '/api/projects',
+  createProjectRoutes({
+    projectDatabases,
+    config,
+    projectPaths,
+    projectState,
+    CONFIG_PATH
+  })
+);
 
 // Safety routes (errors, syntax checking, tests, pause/resume, pattern warnings)
 app.use('/api', createSafetyRoutes({ projectDatabases, io, SESSION_ID, projectWatchers }));
@@ -1174,20 +1208,26 @@ analyticsDeps.analyticsCache = analyticsCache;
 app.use('/api', createAnalyticsRoutes(analyticsDeps));
 
 // Metrics routes (system/process metrics, stats, correlations, dashboard)
-app.use('/api', createMetricsRoutes({
-  projectDatabases,
-  cacheMiddleware,
-  metricsCache,
-  analyticsCache,
-  dashboardCache
-}));
+app.use(
+  '/api',
+  createMetricsRoutes({
+    projectDatabases,
+    cacheMiddleware,
+    metricsCache,
+    analyticsCache,
+    dashboardCache
+  })
+);
 
 // Events routes (tracked files, events by session, file events, activity log)
-app.use('/api', createEventsRoutes({
-  projectState,
-  projectDatabases,
-  projectPaths
-}));
+app.use(
+  '/api',
+  createEventsRoutes({
+    projectState,
+    projectDatabases,
+    projectPaths
+  })
+);
 
 // Triggers routes (triggerEngine added to triggersDeps after initialization)
 app.use('/api', createTriggersRoutes(triggersDeps));
@@ -1232,7 +1272,6 @@ if (process.env.NODE_ENV === 'test') {
 // ==================== Legacy Routes (to be extracted or kept) ====================
 // The routes below are still in server.js - can be extracted later if needed
 
-
 // ==================== Authentication Routes ====================
 
 // Mount authentication routes (no auth required for login)
@@ -1243,34 +1282,13 @@ app.use('/auth', createAuthRoutes(authService));
 // NOTE: /api/health, /api/session-id, /api/status, and /api/health-checks endpoints
 // moved to routes/health.js (before authentication middleware for public access)
 
-
-
 // ==================== System Metrics API ====================
 // NOTE: /api/system-metrics and /api/process-metrics are defined earlier (lines 1248-1286)
 // Duplicate endpoints removed to prevent conflicts
 
-
-
-
-
-
-
-
-
-
-
-
 // ==================== File Events API ====================
 
-
-
-
-
 // Get file events (from events table)
-
-
-
-
 
 // ==================== Health Check ====================
 
@@ -1340,9 +1358,9 @@ app.get('/health', async (req, res) => {
       dbAnalytics.recentEvents = Math.min(1000, totalCount.count);
 
       // Get date range efficiently
-      const dateRange = projectState.db.db.prepare(
-        'SELECT MIN(timestamp) as oldest, MAX(timestamp) as newest FROM events'
-      ).get();
+      const dateRange = projectState.db.db
+        .prepare('SELECT MIN(timestamp) as oldest, MAX(timestamp) as newest FROM events')
+        .get();
 
       if (dateRange.oldest) {
         dbAnalytics.oldestEventDate = dateRange.oldest;
@@ -1350,9 +1368,9 @@ app.get('/health', async (req, res) => {
       }
 
       // Count event types efficiently
-      const eventTypes = projectState.db.db.prepare(
-        'SELECT change_type, COUNT(*) as count FROM events GROUP BY change_type'
-      ).all();
+      const eventTypes = projectState.db.db
+        .prepare('SELECT change_type, COUNT(*) as count FROM events GROUP BY change_type')
+        .all();
 
       eventTypes.forEach(row => {
         if (row.change_type === 'create') dbAnalytics.eventBreakdown.create = row.count;
@@ -1377,23 +1395,26 @@ app.get('/health', async (req, res) => {
     }
 
     // Performance metrics
-    const avgResponseTime = performanceStats.totalRequests > 0
-      ? performanceStats.totalResponseTime / performanceStats.totalRequests
-      : 0;
+    const avgResponseTime =
+      performanceStats.totalRequests > 0
+        ? performanceStats.totalResponseTime / performanceStats.totalRequests
+        : 0;
 
-    const errorRate = performanceStats.totalRequests > 0
-      ? (performanceStats.failedRequests / performanceStats.totalRequests) * 100
-      : 0;
+    const errorRate =
+      performanceStats.totalRequests > 0
+        ? (performanceStats.failedRequests / performanceStats.totalRequests) * 100
+        : 0;
 
     const uptime = process.uptime();
-    const eventsPerSecond = dbAnalytics.totalEvents > 0 && uptime > 0
-      ? dbAnalytics.totalEvents / uptime
-      : 0;
+    const eventsPerSecond =
+      dbAnalytics.totalEvents > 0 && uptime > 0 ? dbAnalytics.totalEvents / uptime : 0;
 
     // Watcher details - use COUNT query instead of loading all files
     let totalFilesTracked = 0;
     try {
-      const result = projectState.db.db.prepare('SELECT COUNT(DISTINCT filepath) as count FROM events').get();
+      const result = projectState.db.db
+        .prepare('SELECT COUNT(DISTINCT filepath) as count FROM events')
+        .get();
       totalFilesTracked = result.count;
     } catch (_err) {
       totalFilesTracked = 0;
@@ -1418,7 +1439,7 @@ app.get('/health', async (req, res) => {
     try {
       const bridgePidFile = '/tmp/claude-telemetry-bridge.pid';
       if (fs.existsSync(bridgePidFile)) {
-        const bridgePid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim());
+        const bridgePid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim(), 10);
 
         // Check if process is actually running
         try {
@@ -1489,7 +1510,7 @@ app.get('/health', async (req, res) => {
         totalMemory: memInfo.total,
         usedMemory: memInfo.used,
         freeMemory: memInfo.free,
-        memoryPercent: ((memInfo.used / memInfo.total) * 100) || 0,
+        memoryPercent: (memInfo.used / memInfo.total) * 100 || 0,
         platform: osInfo.platform,
         distro: osInfo.distro,
         release: osInfo.release
@@ -1548,22 +1569,9 @@ app.get('/health', async (req, res) => {
   }
 });
 
-
-
-
-
 // ==================== Project Management API ====================
 
-
-
-
-
 // ==================== Documentation API ====================
-
-
-
-
-
 
 // ==================== WebSocket Connections ====================
 
@@ -1617,7 +1625,7 @@ async function runStartupDiagnostics() {
     let bridgeRunning = false;
 
     if (fs.existsSync(bridgePidFile)) {
-      const bridgePid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim());
+      const bridgePid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim(), 10);
       try {
         process.kill(bridgePid, 0);
         bridgeRunning = true;
@@ -1649,7 +1657,7 @@ async function runStartupDiagnostics() {
           await new Promise(resolve => setTimeout(resolve, 1000));
 
           if (fs.existsSync(bridgePidFile)) {
-            const newPid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim());
+            const newPid = parseInt(fs.readFileSync(bridgePidFile, 'utf-8').trim(), 10);
             try {
               process.kill(newPid, 0);
               started = true;
@@ -1657,13 +1665,23 @@ async function runStartupDiagnostics() {
               diagnostics.bridge.fixed = true;
               logger.info('Telemetry Bridge: Auto-started successfully', { pid: newPid });
             } catch (_err) {
-              logger.warn('Telemetry Bridge auto-start attempt failed - process not running', { attempt: retryCount, maxRetries });
+              logger.warn('Telemetry Bridge auto-start attempt failed - process not running', {
+                attempt: retryCount,
+                maxRetries
+              });
             }
           } else {
-            logger.warn('Telemetry Bridge auto-start attempt failed - no PID file', { attempt: retryCount, maxRetries });
+            logger.warn('Telemetry Bridge auto-start attempt failed - no PID file', {
+              attempt: retryCount,
+              maxRetries
+            });
           }
         } catch (error) {
-          logger.warn('Telemetry Bridge auto-start attempt failed', { attempt: retryCount, maxRetries, error: error.message });
+          logger.warn('Telemetry Bridge auto-start attempt failed', {
+            attempt: retryCount,
+            maxRetries,
+            error: error.message
+          });
           if (retryCount < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
@@ -1672,7 +1690,9 @@ async function runStartupDiagnostics() {
 
       if (!started) {
         diagnostics.bridge.status = 'failed';
-        logger.error('Telemetry Bridge: Auto-start failed after 3 attempts. Manual start: ./scripts/start-claude-bridge.sh');
+        logger.error(
+          'Telemetry Bridge: Auto-start failed after 3 attempts. Manual start: ./scripts/start-claude-bridge.sh'
+        );
       }
     }
   } catch (error) {
@@ -1881,14 +1901,14 @@ httpServer.listen(PORT, async () => {
 
       // Initialize Claude Log Watcher to monitor ALL projects
       try {
-        claudeLogWatcher = new ClaudeLogWatcher(async (event) => {
+        claudeLogWatcher = new ClaudeLogWatcher(async event => {
           // Translate ClaudeLogWatcher events to handleFileChange format
           // ClaudeLogWatcher emits: { type: 'add'|'change', path, projectName, ... }
           // handleFileChange expects: (eventType, filepath)
           const eventTypeMap = {
-            'add': 'create',
-            'change': 'edit',
-            'unlink': 'delete'
+            add: 'create',
+            change: 'edit',
+            unlink: 'delete'
           };
 
           const eventType = eventTypeMap[event.type] || event.type;
@@ -1964,11 +1984,14 @@ async function gracefulShutdown(signal) {
       const closePromises = [];
       for (const [projectName, watcher] of projectWatchers.entries()) {
         closePromises.push(
-          watcher.close().then(() => {
-            logger.info(`✅ Closed watcher for ${projectName}`);
-          }).catch(error => {
-            logger.error(`Error closing watcher for ${projectName}:`, error);
-          })
+          watcher
+            .close()
+            .then(() => {
+              logger.info(`✅ Closed watcher for ${projectName}`);
+            })
+            .catch(error => {
+              logger.error(`Error closing watcher for ${projectName}:`, error);
+            })
         );
       }
       await Promise.all(closePromises);
@@ -2078,7 +2101,7 @@ process.on('unhandledRejection', (reason, promise) => {
   // but log it for investigation
 });
 
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   logger.error('❌ Uncaught Exception:', {
     message: error.message,
     stack: error.stack,

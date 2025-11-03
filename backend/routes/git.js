@@ -123,7 +123,7 @@ export function createGitRoutes(deps) {
         return res.json({ commits: [] });
       }
 
-      const limit = parseInt(req.query.limit) || 10;
+      const limit = parseInt(req.query.limit, 10) || 10;
       const commits = await projectState.gitMonitor.getCommitHistory(limit);
 
       // Format commits for frontend

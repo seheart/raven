@@ -65,7 +65,7 @@ export function createConversationRoutes(deps) {
   router.get('/conversations/session/:sessionId', (req, res) => {
     try {
       const { sessionId } = req.params;
-      const limit = parseInt(req.query.limit) || 500;
+      const limit = parseInt(req.query.limit, 10) || 500;
 
       const conversations = getRavenDb().getConversationsBySession(sessionId, limit);
       res.json({ conversations, total: conversations.length });
@@ -133,7 +133,7 @@ async function importSessionFile(sessionPath, project, db) {
 
     let sessionId = null;
 
-    rl.on('line', (line) => {
+    rl.on('line', line => {
       try {
         const entry = JSON.parse(line);
 
@@ -158,9 +158,10 @@ async function importSessionFile(sessionPath, project, db) {
           // Check if it's a tool result
           if (Array.isArray(content) && content[0]?.type === 'tool_result') {
             const result = content[0];
-            const output = typeof result.content === 'string'
-              ? result.content.substring(0, 5000) // Truncate long outputs
-              : JSON.stringify(result.content).substring(0, 5000);
+            const output =
+              typeof result.content === 'string'
+                ? result.content.substring(0, 5000) // Truncate long outputs
+                : JSON.stringify(result.content).substring(0, 5000);
 
             db.insertConversation(
               timestamp,
@@ -255,7 +256,7 @@ async function importSessionFile(sessionPath, project, db) {
       resolve(stats);
     });
 
-    rl.on('error', (err) => {
+    rl.on('error', err => {
       reject(err);
     });
   });

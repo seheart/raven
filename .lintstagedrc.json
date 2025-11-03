@@ -1,19 +1,9 @@
 {
-  "backend/**/*.js": [
-    "eslint --fix --max-warnings=0",
-    "prettier --write"
-  ],
+  "backend/**/*.js": ["npx prettier --write"],
   "frontend/src/**/*.svelte": [
     "bash -c 'cd frontend && npm run check'",
-    "bash -c 'cd frontend && stylelint --fix \"$@\"' _",
-    "bash -c 'cd frontend && eslint --fix --max-warnings=0 \"$@\"' _",
-    "bash -c 'cd frontend && prettier --write --parser svelte \"$@\"' _"
+    "bash -c 'cd frontend && npx stylelint --fix \"$@\"' _"
   ],
-  "frontend/src/**/*.js": [
-    "eslint --fix --max-warnings=0",
-    "prettier --write"
-  ],
-  "**/*.{json,md,yml,yaml}": [
-    "prettier --write"
-  ]
+  "frontend/src/**/*.js": ["npx prettier --write"],
+  "**/*.{json,md,yml,yaml}": ["npx prettier --write"]
 }

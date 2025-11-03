@@ -17,8 +17,8 @@ export function createErrorsRoutes(deps) {
   router.get('/errors', (req, res) => {
     try {
       const options = {
-        limit: parseInt(req.query.limit) || 100,
-        offset: parseInt(req.query.offset) || 0,
+        limit: parseInt(req.query.limit, 10) || 100,
+        offset: parseInt(req.query.offset, 10) || 0,
         search: req.query.search || '',
         severity: req.query.severity || 'all',
         startDate: req.query.startDate || null,
@@ -73,12 +73,62 @@ export function createErrorsRoutes(deps) {
   });
 
   /**
+   * POST /api/errors
+   * Log a new error from the frontend
+   */
+  router.post('/errors', (req, res) => {
+    try {
+      const errorData = req.body;
+
+      // Validate required fields
+      if (!errorData.message) {
+        return res.status(400).json({ error: 'Error message is required' });
+      }
+
+      // Store the error in the database
+      const errorLog = {
+        error_type: errorData.error_type || 'Error',
+        message: errorData.message,
+        stack: errorData.stack || null,
+        component: errorData.component || 'Unknown',
+        severity: errorData.severity || 'error',
+        user_agent: errorData.user_agent || null,
+        url: errorData.url || null,
+        metadata: errorData.metadata || {},
+        timestamp: new Date().toISOString()
+      };
+
+      const result = projectState.db.logError(errorLog);
+
+      // Emit via WebSocket so UI updates immediately
+      if (deps.io) {
+        deps.io.emit('error-logged', result);
+      }
+
+      logger.info('✅ Error logged from frontend', {
+        error_type: errorLog.error_type,
+        component: errorLog.component,
+        severity: errorLog.severity
+      });
+
+      res.json({
+        success: true,
+        error_id: result.id,
+        message: 'Error logged successfully'
+      });
+    } catch (error) {
+      logger.error('❌ Post error endpoint error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/errors
    * Clear error logs
    */
   router.delete('/errors', (req, res) => {
     try {
-      const olderThanDays = req.query.olderThanDays ? parseInt(req.query.olderThanDays) : null;
+      const olderThanDays = req.query.olderThanDays ? parseInt(req.query.olderThanDays, 10) : null;
       const deletedCount = projectState.db.clearErrorLogs(olderThanDays);
 
       logger.info('Cleared error logs', { deletedCount, olderThanDays });

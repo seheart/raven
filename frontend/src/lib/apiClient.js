@@ -90,8 +90,12 @@ export async function apiFetch(endpoint, options = {}) {
             response_body: errorText
           },
           response.status >= 500 ? 'error' : 'warning'
-        ).catch(() => {
-          // Silently fail if error logging fails (prevents infinite loops)
+        ).catch(logError => {
+          // Fail silently to prevent infinite loops, but log to console for debugging
+          console.error(
+            '[API Client] Failed to log error to backend:',
+            logError.message || logError
+          );
         });
       }
 
@@ -143,8 +147,12 @@ export async function apiFetch(endpoint, options = {}) {
             timeout_ms: timeout
           },
           'warning'
-        ).catch(() => {
-          // Silently fail if error logging fails (prevents infinite loops)
+        ).catch(logError => {
+          // Fail silently to prevent infinite loops, but log to console for debugging
+          console.error(
+            '[API Client] Failed to log error to backend:',
+            logError.message || logError
+          );
         });
       }
 
@@ -166,8 +174,12 @@ export async function apiFetch(endpoint, options = {}) {
             error_type: 'Network Error'
           },
           'error'
-        ).catch(() => {
-          // Silently fail if error logging fails (prevents infinite loops)
+        ).catch(logError => {
+          // Fail silently to prevent infinite loops, but log to console for debugging
+          console.error(
+            '[API Client] Failed to log error to backend:',
+            logError.message || logError
+          );
         });
       }
     }
@@ -195,7 +207,8 @@ export const api = {
    * @param {Object} [options={}] - Additional fetch options
    * @returns {Promise<any>} Response data
    */
-  post: (endpoint, data, options = {}) => apiFetch(endpoint, { ...options, method: 'POST', body: JSON.stringify(data) }),
+  post: (endpoint, data, options = {}) =>
+    apiFetch(endpoint, { ...options, method: 'POST', body: JSON.stringify(data) }),
 
   /**
    * Perform PUT request with JSON body
@@ -204,7 +217,8 @@ export const api = {
    * @param {Object} [options={}] - Additional fetch options
    * @returns {Promise<any>} Response data
    */
-  put: (endpoint, data, options = {}) => apiFetch(endpoint, { ...options, method: 'PUT', body: JSON.stringify(data) }),
+  put: (endpoint, data, options = {}) =>
+    apiFetch(endpoint, { ...options, method: 'PUT', body: JSON.stringify(data) }),
 
   /**
    * Perform DELETE request
@@ -241,7 +255,8 @@ export async function checkServerHealth() {
     }
 
     // Check memory usage
-    const memUsagePercent = (health.memory.process.heapUsed / health.memory.process.heapTotal) * 100;
+    const memUsagePercent =
+      (health.memory.process.heapUsed / health.memory.process.heapTotal) * 100;
     if (memUsagePercent > 90) {
       notifications.warning(`Server memory usage high: ${memUsagePercent.toFixed(1)}%`, {
         title: 'High Memory Usage',

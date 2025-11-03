@@ -13,10 +13,10 @@ import * as Diff from 'diff';
  */
 export function getAgentColor(agentName) {
   const colors = {
-    'cline': '#e74c3c',
-    'cursor': '#3498db',
+    cline: '#e74c3c',
+    cursor: '#3498db',
     'claude-code': '#9b59b6',
-    'default': '#95a5a6'
+    default: '#95a5a6'
   };
   return colors[agentName?.toLowerCase()] || colors.default;
 }
@@ -145,11 +145,11 @@ export function parseDuration(durationStr) {
   const unit = match[2];
 
   const multipliers = {
-    'ms': 1,
-    's': 1000,
-    'm': 60 * 1000,
-    'h': 60 * 60 * 1000,
-    'd': 24 * 60 * 60 * 1000
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000
   };
 
   return value * (multipliers[unit] || 0);
@@ -209,10 +209,29 @@ export function isValidJSON(str) {
 }
 
 /**
- * Deep clone an object
+ * Deep clone an object (safe for circular references)
  */
 export function deepClone(obj) {
-  return JSON.parse(JSON.stringify(obj));
+  // Try structuredClone first (Node 17+)
+  if (typeof structuredClone === 'function') {
+    try {
+      return structuredClone(obj);
+    } catch (err) {
+      // Fall through to JSON method
+    }
+  }
+
+  // Fallback to JSON with error handling
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch (err) {
+    // If JSON fails (circular reference), do manual shallow clone
+    if (err.message && err.message.includes('circular')) {
+      logger.warn('deepClone: Circular reference detected, performing shallow clone');
+      return { ...obj };
+    }
+    throw err;
+  }
 }
 
 /**
@@ -241,7 +260,7 @@ export function getWeekNumber(date) {
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
 }
 
 /**

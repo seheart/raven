@@ -47,7 +47,7 @@ export function createEventsRoutes(deps) {
       }
 
       let tracked = db.getTrackedFiles() || [];
-      let files = Array.isArray(tracked) ? tracked : (tracked.files || []);
+      let files = Array.isArray(tracked) ? tracked : tracked.files || [];
 
       // If no files tracked yet (fresh project), try to get files from Git
       if (files.length === 0 && watchPath) {
@@ -57,7 +57,10 @@ export function createEventsRoutes(deps) {
             maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large repos
           });
           files = stdout.split('\n').filter(f => f.trim() !== '');
-          logger.debug('Populated file list from Git', { fileCount: files.length, project: projectName || 'default' });
+          logger.debug('Populated file list from Git', {
+            fileCount: files.length,
+            project: projectName || 'default'
+          });
         } catch (gitError) {
           logger.debug('No Git repository or git ls-files failed, showing empty list');
         }
@@ -74,19 +77,24 @@ export function createEventsRoutes(deps) {
    * GET /api/events-by-session/:sessionId
    * Get events for a specific session
    */
-  router.get('/events-by-session/:sessionId', validate('eventsBySessionParams', 'params'), (req, res) => {
-    try {
-      const { sessionId } = req.params;
-      const db = projectState.db;
-      const events = typeof db.getEventsBySession === 'function'
-        ? db.getEventsBySession(sessionId)
-        : db.getAgentEventsBySession(sessionId);
-      res.json(events);
-    } catch (error) {
-      logger.error('Events by session error:', error);
-      res.status(500).json({ error: 'Session query failed' });
+  router.get(
+    '/events-by-session/:sessionId',
+    validate('eventsBySessionParams', 'params'),
+    (req, res) => {
+      try {
+        const { sessionId } = req.params;
+        const db = projectState.db;
+        const events =
+          typeof db.getEventsBySession === 'function'
+            ? db.getEventsBySession(sessionId)
+            : db.getAgentEventsBySession(sessionId);
+        res.json(events);
+      } catch (error) {
+        logger.error('Events by session error:', error);
+        res.status(500).json({ error: 'Session query failed' });
+      }
     }
-  });
+  );
 
   /**
    * GET /api/file-events
@@ -94,7 +102,7 @@ export function createEventsRoutes(deps) {
    */
   router.get('/file-events', validate('fileEventsQuery', 'query'), (req, res) => {
     try {
-      const limit = parseInt(req.query.limit) || 100;
+      const limit = parseInt(req.query.limit, 10) || 100;
       const includeDiff = req.query.diff === 'true';
       const projectName = req.query.project;
 
@@ -135,12 +143,12 @@ export function createEventsRoutes(deps) {
    */
   router.get('/all-file-events', validate('allFileEventsQuery', 'query'), async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit) || 100;
+      const limit = parseInt(req.query.limit, 10) || 100;
       const includeDiff = req.query.diff === 'true';
 
       // Parallelize event collection from all projects
-      const eventsPromises = Array.from(projectDatabases.entries()).map(
-        ([projectName, db]) => Promise.resolve({
+      const eventsPromises = Array.from(projectDatabases.entries()).map(([projectName, db]) =>
+        Promise.resolve({
           projectName,
           events: db.getRecentFileEvents(limit, includeDiff)
         })
@@ -175,8 +183,8 @@ export function createEventsRoutes(deps) {
   router.get('/activity-log', validate('activityLogQuery', 'query'), (req, res) => {
     try {
       const options = {
-        limit: parseInt(req.query.limit) || 500,
-        offset: parseInt(req.query.offset) || 0,
+        limit: parseInt(req.query.limit, 10) || 500,
+        offset: parseInt(req.query.offset, 10) || 0,
         search: req.query.search || '',
         eventType: req.query.type || 'all',
         startDate: req.query.startDate || null,
@@ -235,7 +243,10 @@ export function createEventsRoutes(deps) {
       // Check if snapshot exists
       if (!fs.existsSync(snapshotPath)) {
         // Try without .gz extension (backwards compatibility)
-        const snapshotPathTxt = path.join(projectState.snapshotsDir, `${event.filepath.replace(/\//g, '_')}_${timestamp}.txt`);
+        const snapshotPathTxt = path.join(
+          projectState.snapshotsDir,
+          `${event.filepath.replace(/\//g, '_')}_${timestamp}.txt`
+        );
         if (fs.existsSync(snapshotPathTxt)) {
           const content = await fs.promises.readFile(snapshotPathTxt, 'utf8');
           return res.type('text/plain').send(content);
@@ -271,13 +282,13 @@ export function createEventsRoutes(deps) {
    */
   function mapChangeType(type) {
     const mapping = {
-      'create': 'created',
-      'edit': 'modified',
-      'delete': 'deleted',
+      create: 'created',
+      edit: 'modified',
+      delete: 'deleted',
       // Keep these for backwards compatibility
-      'add': 'created',
-      'change': 'modified',
-      'unlink': 'deleted'
+      add: 'created',
+      change: 'modified',
+      unlink: 'deleted'
     };
     return mapping[type] || type;
   }

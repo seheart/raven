@@ -300,11 +300,12 @@ export class RavenDB {
     duration_ms: number | null | undefined,
     message: string,
     metadata: Record<string, any> | null | undefined,
-    session_id: string | null | undefined
+    session_id: string | null | undefined,
+    project_name: string | null | undefined
   ): number {
     const stmt = this.db.prepare(`
-      INSERT INTO agent_events (timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO agent_events (timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -316,7 +317,8 @@ export class RavenDB {
       duration_ms || null,
       message,
       metadata ? JSON.stringify(metadata) : null,
-      session_id || null
+      session_id || null,
+      project_name || null
     );
 
     return Number(result.lastInsertRowid);
