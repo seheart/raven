@@ -1,9 +1,21 @@
 {
-  "backend/**/*.js": ["npx prettier --write"],
+  "backend/**/*.js": [
+    "bash -c 'cd backend && npx eslint --fix \"$@\"' _",
+    "bash -c 'cd backend && npx prettier --write \"$@\"' _"
+  ],
+  "backend/**/*.ts": [
+    "bash -c 'cd backend && npx eslint --fix \"$@\"' _",
+    "bash -c 'cd backend && npx prettier --write \"$@\"' _"
+  ],
   "frontend/src/**/*.svelte": [
     "bash -c 'cd frontend && npm run check'",
-    "bash -c 'cd frontend && npx stylelint --fix \"$@\"' _"
+    "bash -c 'cd frontend && npx stylelint --fix \"$@\"' _",
+    "bash -c 'cd frontend && npx eslint --fix \"$@\"' _",
+    "bash -c 'cd frontend && npx prettier --write --plugin=prettier-plugin-svelte \"$@\"' _"
   ],
-  "frontend/src/**/*.js": ["npx prettier --write"],
+  "frontend/src/**/*.js": [
+    "bash -c 'cd frontend && npx eslint --fix \"$@\"' _",
+    "bash -c 'cd frontend && npx prettier --write \"$@\"' _"
+  ],
   "**/*.{json,md,yml,yaml}": ["npx prettier --write"]
 }
