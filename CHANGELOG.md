@@ -7,18 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.8] - 2025-11-03
+
+### 📊 Chart Visualizations & Analytics
+
+- **Comprehensive Chart.js integration** across 18+ pages
+  - Added interactive data visualizations to all activity pages
+  - Theme-aware chart colors matching UI themes
+  - Accessible chart rendering with proper ARIA labels
+  - Responsive chart layouts for all screen sizes
+
+- **Enhanced Analytics Features**
+  - File activity time-series charts
+  - Git commit frequency visualizations
+  - Session timeline charts with filtering
+  - Pattern warning trend analysis
+  - Performance metrics over time
+
+### 🎨 UI/UX Improvements
+
+- **Fixed chart rendering and layout issues** - Corrected sizing and positioning across activity pages
+- **Toast notifications now visible** - Fixed store connection for notification system
+- **Improved chart accessibility** - Added proper labels and screen reader support
+- **Theme consistency** - All charts now respect user's selected theme
+
+### 💡 Why This Matters
+
+Version 1.6.8 transforms Raven from a data monitoring tool into a powerful analytics platform with rich visualizations that make patterns and trends immediately visible.
+
+---
+
+## [1.6.7] - 2025-11-02
+
+### ⚡ System Performance & UX Excellence
+
+- **Comprehensive UX/UI improvements** - Enhanced accessibility, theming, and error handling across all components
+- **Performance optimizations** - Faster page loads and smoother interactions
+- **Design system consolidation** - Unified spacing, typography, and component patterns
+- **Enhanced error handling** - Better user feedback for error states
+- **Accessibility improvements** - WCAG 2.1 AA compliance enhancements
+- **Theme refinements** - Improved color contrast and visual hierarchy
+
+### 🎨 Design System
+
+- **Icon sizing system** - Standardized icon sizes (16px, 20px, 24px, 32px, 40px)
+- **Spacing system refinements** - Consistent 2px-based spacing scale
+- **Motion & transitions** - Smooth animations with cubic-bezier easing
+- **Typography improvements** - Dual font system (monospace + sans-serif)
+
+### 💡 Why This Matters
+
+Version 1.6.7 elevates Raven's user experience to production-quality standards with enterprise-level polish, accessibility, and performance.
+
+---
+
 ## [1.6.6] - 2025-10-31
 
 ### 🐛 Critical Bug Fixes
+
 - **Fixed false positive performance alerts on startup** - Added 90-second grace period to prevent memory/CPU warnings during Node.js initialization
 - **Fixed indefinite loading on "Checking health..." and "Loading projects..."** - Added 15-second default timeout to all API requests with graceful fallback handling
 - **Fixed frontend hangs during startup** - Added timeout protection to HealthWidget and ProjectsOverview components (10s max)
 
 ### 🔒 Security Improvements
+
 - **Documented CSP `unsafe-inline` requirement** - Added comprehensive explanation for Svelte framework's style injection needs with security justification
 - **Added explicit radix to parseInt calls** - Prevents unexpected behavior with numeric parsing (security best practice)
 
 ### 🧹 Code Quality & Technical Debt
+
 - **Removed all "NOW MODULAR" commented code blocks** - Cleaned up 20+ obsolete comment markers from completed refactoring
 - **Resolved test conflicts** - Fixed 4 TODO items in test suites by adding proper mock cleanup in `afterEach` hooks
 - **Un-skipped tests** - Re-enabled 4 previously skipped tests in `storage.test.js` and `health.test.js`
@@ -29,20 +86,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `STABILIZATION_DELAY_MS`
 
 ### ⚡ Performance Improvements
+
 - **Optimized API timeout handling** - Requests now fail fast (15s) instead of hanging indefinitely
 - **Improved error handling** - Timeout errors provide clear user feedback and don't spam logs
 
 ### 📚 Documentation
+
 - **Created ACTION_PLAN_v1.6.6.md** - Comprehensive roadmap for code review recommendations and bug fixes
 - **Updated security middleware comments** - Explained Svelte CSP requirements and security trade-offs
 
 ### 🔧 Developer Experience
+
 - **Better error messages** - Timeout errors show specific endpoint and duration
 - **Mock cleanup in tests** - `jest.resetAllMocks()` and `jest.restoreAllMocks()` prevent cross-test pollution
 - **Consistent code style** - All `parseInt` calls now use explicit base-10 radix
 
 ### 💡 Why This Matters
+
 Version 1.6.6 eliminates two critical user-facing issues that caused confusion during startup:
+
 1. No more false alarm notifications about memory usage
 2. No more stuck loading spinners - everything loads within 10-15 seconds or shows helpful errors
 
@@ -51,6 +113,7 @@ This release also significantly improves code quality by removing technical debt
 ---
 
 ### Planned
+
 - macOS build and distribution
 - Windows build and distribution
 - E2E testing with Playwright
@@ -61,6 +124,7 @@ This release also significantly improves code quality by removing technical debt
 ## [0.4.0] - 2025-10-17
 
 ### Added
+
 - **Testing Infrastructure**
   - 25 Rust integration tests covering all core modules
   - 10 Frontend unit tests (keyboard service)
@@ -86,10 +150,12 @@ This release also significantly improves code quality by removing technical debt
   - Build scripts for Linux
 
 ### Changed
+
 - Updated README.md to reflect Phase 4 completion
 - Enhanced documentation with testing procedures
 
 ### Performance
+
 - Database inserts: 1,000 operations in < 1 second
 - Database queries: 1,000 reads in < 100ms
 - Large diffs: 10,000 lines processed in < 1 second
@@ -98,6 +164,7 @@ This release also significantly improves code quality by removing technical debt
 ## [0.3.0] - 2025-10-17
 
 ### Added
+
 - **UI Enhancements**
   - Side-by-side diff viewer with syntax highlighting
   - Event search and filtering (text + type filters)
@@ -119,6 +186,7 @@ This release also significantly improves code quality by removing technical debt
   - `keyboardService.js` - Centralized keyboard handling
 
 ### Changed
+
 - Updated EventFeed with search, filters, and export buttons
 - Enhanced FileHistory with diff viewer integration
 - Redesigned header with shortcuts button
@@ -127,6 +195,7 @@ This release also significantly improves code quality by removing technical debt
 ## [0.2.0] - 2025-10-17
 
 ### Added
+
 - **Time-Travel Features**
   - File history timeline viewer
   - Snapshot viewing and browsing
@@ -146,6 +215,7 @@ This release also significantly improves code quality by removing technical debt
   - Tracked files listing
 
 ### Changed
+
 - Updated UI to 3-column layout
 - Enhanced EventFeed with real-time data
 - Updated documentation to Phase 2
@@ -153,6 +223,7 @@ This release also significantly improves code quality by removing technical debt
 ## [0.1.0] - 2025-10-16
 
 ### Added
+
 - **Core Functionality**
   - Async file watcher with 50ms debounce
   - Event logging to SQLite database
@@ -187,6 +258,7 @@ This release also significantly improves code quality by removing technical debt
   - Phase completion documents
 
 ### Technical Details
+
 - Rust 1.70+ backend
 - Node.js 18+ frontend
 - Tokio async runtime
@@ -196,6 +268,7 @@ This release also significantly improves code quality by removing technical debt
 ## [0.0.1] - 2025-10-15
 
 ### Added
+
 - Initial project setup
 - Basic Web server configuration
 - Frontend scaffolding
@@ -208,29 +281,37 @@ This release also significantly improves code quality by removing technical debt
 ### [Version] - YYYY-MM-DD
 
 #### Added
+
 - New features
 
 #### Changed
+
 - Changes to existing functionality
 
 #### Deprecated
+
 - Features to be removed
 
 #### Removed
+
 - Removed features
 
 #### Fixed
+
 - Bug fixes
 
 #### Security
+
 - Security improvements
 
 #### Performance
+
 - Performance optimizations
 
 ---
 
 **Legend:**
+
 - 🎉 Major release
 - ✨ New feature
 - 🐛 Bug fix

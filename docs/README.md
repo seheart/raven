@@ -1,20 +1,20 @@
 # 📚 Raven Documentation
 
-**Version:** 0.6.1
-**Last Updated:** 2025-10-19
+**Version:** 1.6.8
+**Last Updated:** 2025-11-03
 **Status:** ✅ Production Ready
 
 ---
 
 ## 🚀 Quick Links
 
-| For... | Start Here |
-|--------|------------|
-| **New Users** | [Quick Start Guide](QUICK_START.md) ⚡ |
-| **Installation** | [Setup Guide](SETUP.md) 🔧 |
-| **API Integration** | [REST API Reference](api/REST_API.md) 📡 |
-| **Real-time Events** | [WebSocket API](api/WEBSOCKET_API.md) 🔌 |
-| **Contributing** | [Contributing Guide](../CONTRIBUTING.md) 🤝 |
+| For...               | Start Here                                  |
+| -------------------- | ------------------------------------------- |
+| **New Users**        | [Quick Start Guide](QUICK_START.md) ⚡      |
+| **Installation**     | [Setup Guide](SETUP.md) 🔧                  |
+| **API Integration**  | [REST API Reference](api/REST_API.md) 📡    |
+| **Real-time Events** | [WebSocket API](api/WEBSOCKET_API.md) 🔌    |
+| **Contributing**     | [Contributing Guide](../CONTRIBUTING.md) 🤝 |
 
 ---
 
@@ -22,67 +22,67 @@
 
 ### 🎯 Getting Started
 
-| Document | Description | For Who |
-|----------|-------------|---------|
-| [Quick Start](QUICK_START.md) | **5-minute guide** to get Raven running | Everyone (start here!) |
-| [Setup Guide](SETUP.md) | Complete installation and configuration | New users, DevOps |
-| [Architecture](ARCHITECTURE.md) | System design and tech stack | Developers, architects |
-| [Features](FEATURES.md) | Complete feature list with status | Product managers, users |
+| Document                        | Description                             | For Who                 |
+| ------------------------------- | --------------------------------------- | ----------------------- |
+| [Quick Start](QUICK_START.md)   | **5-minute guide** to get Raven running | Everyone (start here!)  |
+| [Setup Guide](SETUP.md)         | Complete installation and configuration | New users, DevOps       |
+| [Architecture](ARCHITECTURE.md) | System design and tech stack            | Developers, architects  |
+| [Features](FEATURES.md)         | Complete feature list with status       | Product managers, users |
 
 ### 🔌 API Reference
 
-| Document | Description | For Who |
-|----------|-------------|---------|
-| [REST API](api/REST_API.md) | **37 REST endpoints** with examples | Developers, integrators |
-| [WebSocket API](api/WEBSOCKET_API.md) | **8 real-time events** with examples | Frontend developers |
-| [Database Schema](api/DATABASE_SCHEMA.md) | **4 SQLite tables** with queries | DBAs, data analysts |
-| [Telemetry API](api/TELEMETRY_API.md) | Agent integration guide | AI agent developers |
+| Document                                  | Description                          | For Who                 |
+| ----------------------------------------- | ------------------------------------ | ----------------------- |
+| [REST API](api/REST_API.md)               | **37 REST endpoints** with examples  | Developers, integrators |
+| [WebSocket API](api/WEBSOCKET_API.md)     | **8 real-time events** with examples | Frontend developers     |
+| [Database Schema](api/DATABASE_SCHEMA.md) | **4 SQLite tables** with queries     | DBAs, data analysts     |
+| [Telemetry API](api/TELEMETRY_API.md)     | Agent integration guide              | AI agent developers     |
 
 ### 🎨 Feature Guides
 
-| Document | Description | For Who |
-|----------|-------------|---------|
-| [Agent Monitoring](api/AGENT_MONITORING.md) | Monitor Claude, Ollama, LM Studio | AI developers |
-| [Custom Triggers](api/CUSTOM_TRIGGERS.md) | Alert system configuration | DevOps, power users |
-| [Session Replay](api/SESSION_REPLAY.md) | Time-travel debugging | Developers, QA |
-| [Performance Profiling](api/PERFORMANCE_PROFILING.md) | System performance analysis | DevOps, optimizers |
-| [User Experience](api/USER_EXPERIENCE.md) | Dashboard, CLI, UI features | All users |
+| Document                                              | Description                       | For Who             |
+| ----------------------------------------------------- | --------------------------------- | ------------------- |
+| [Agent Monitoring](api/AGENT_MONITORING.md)           | Monitor Claude, Ollama, LM Studio | AI developers       |
+| [Custom Triggers](api/CUSTOM_TRIGGERS.md)             | Alert system configuration        | DevOps, power users |
+| [Session Replay](api/SESSION_REPLAY.md)               | Time-travel debugging             | Developers, QA      |
+| [Performance Profiling](api/PERFORMANCE_PROFILING.md) | System performance analysis       | DevOps, optimizers  |
+| [User Experience](api/USER_EXPERIENCE.md)             | Dashboard, CLI, UI features       | All users           |
 
 ### 🛠️ Operations
 
-| Document | Description | For Who |
-|----------|-------------|---------|
+| Document                    | Description                 | For Who           |
+| --------------------------- | --------------------------- | ----------------- |
 | [Deployment](DEPLOYMENT.md) | Production deployment guide | DevOps, sysadmins |
-| [Testing](TESTING.md) | Testing infrastructure | QA, developers |
-| [Security](SECURITY.md) | Security policy | Security teams |
+| [Testing](TESTING.md)       | Testing infrastructure      | QA, developers    |
+| [Security](SECURITY.md)     | Security policy             | Security teams    |
 
 ### 📊 Project Management
 
-| Document | Description | For Who |
-|----------|-------------|---------|
-| [Project Plan](PROJECT_PLAN.md) | Roadmap and phases | Product managers |
-| [History](HISTORY.md) | Development timeline | Curious users |
-| [Changelog](CHANGELOG.md) | Version history | All users |
-| [Governance](GOVERNANCE_PLAN.md) | Project governance | Contributors |
+| Document                         | Description          | For Who          |
+| -------------------------------- | -------------------- | ---------------- |
+| [Project Plan](PROJECT_PLAN.md)  | Roadmap and phases   | Product managers |
+| [History](HISTORY.md)            | Development timeline | Curious users    |
+| [Changelog](CHANGELOG.md)        | Version history      | All users        |
+| [Governance](GOVERNANCE_PLAN.md) | Project governance   | Contributors     |
 
 ### 📝 Reports & Audits
 
-| Document | Description | Status |
-|----------|-------------|--------|
-| [Documentation Audit](DOCUMENTATION_AUDIT.md) | **Complete verification** of docs vs implementation | ✅ Latest |
-| [Final Test Summary](FINAL_TEST_SUMMARY.md) | v0.6.1 test results | ✅ Complete |
-| [Test Report](../TEST_REPORT.md) | Detailed test documentation | ✅ Complete |
-| [Phase 1 Complete](PHASE_1_COMPLETE.md) | Phase 1 completion report | ✅ Archived |
-| [Phase 2 Complete](PHASE_2_COMPLETE.md) | Phase 2 completion report | ✅ Archived |
+| Document                                      | Description                                         | Status      |
+| --------------------------------------------- | --------------------------------------------------- | ----------- |
+| [Documentation Audit](DOCUMENTATION_AUDIT.md) | **Complete verification** of docs vs implementation | ✅ Latest   |
+| [Final Test Summary](FINAL_TEST_SUMMARY.md)   | v0.6.1 test results                                 | ✅ Complete |
+| [Test Report](../TEST_REPORT.md)              | Detailed test documentation                         | ✅ Complete |
+| [Phase 1 Complete](PHASE_1_COMPLETE.md)       | Phase 1 completion report                           | ✅ Archived |
+| [Phase 2 Complete](PHASE_2_COMPLETE.md)       | Phase 2 completion report                           | ✅ Archived |
 
 ### 🤝 Contributing
 
-| Document | Description | For Who |
-|----------|-------------|---------|
-| [Contributing Guide](../CONTRIBUTING.md) | How to contribute | Contributors |
-| [Pull Request Template](../.github/PULL_REQUEST_TEMPLATE.md) | PR checklist | Contributors |
-| [Bug Report Template](../.github/ISSUE_TEMPLATE/bug_report.md) | Report bugs | Users |
-| [Feature Request Template](../.github/ISSUE_TEMPLATE/feature_request.md) | Request features | Users |
+| Document                                                                 | Description       | For Who      |
+| ------------------------------------------------------------------------ | ----------------- | ------------ |
+| [Contributing Guide](../CONTRIBUTING.md)                                 | How to contribute | Contributors |
+| [Pull Request Template](../.github/PULL_REQUEST_TEMPLATE.md)             | PR checklist      | Contributors |
+| [Bug Report Template](../.github/ISSUE_TEMPLATE/bug_report.md)           | Report bugs       | Users        |
+| [Feature Request Template](../.github/ISSUE_TEMPLATE/feature_request.md) | Request features  | Users        |
 
 ---
 
@@ -123,15 +123,15 @@ Raven is a **local-first AI agent monitoring tool** that tracks file changes, ag
 
 ### Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| **Backend** | Node.js 18+, Express 4.21.2 |
-| **Frontend** | Svelte, Vite |
-| **Database** | SQLite 3 (better-sqlite3) |
-| **Real-time** | Socket.IO 4.8.1 |
-| **File Watching** | chokidar 4.0.3 |
-| **Metrics** | systeminformation |
-| **Git** | Custom GitMonitor module |
+| Component         | Technology                  |
+| ----------------- | --------------------------- |
+| **Backend**       | Node.js 18+, Express 4.21.2 |
+| **Frontend**      | Svelte, Vite                |
+| **Database**      | SQLite 3 (better-sqlite3)   |
+| **Real-time**     | Socket.IO 4.8.1             |
+| **File Watching** | chokidar 4.0.3              |
+| **Metrics**       | systeminformation           |
+| **Git**           | Custom GitMonitor module    |
 
 ---
 
@@ -254,14 +254,14 @@ GET  /api/git/diff/:filepath        // File diff
 import { io } from 'socket.io-client';
 const socket = io('http://localhost:3030');
 
-socket.on('file-changed', data => {});        // File change
-socket.on('git-status-updated', data => {});  // Git update
-socket.on('project-switched', data => {});    // Project change
-socket.on('agent-event', data => {});         // Agent event
-socket.on('agent-stats', data => {});         // Agent stats
-socket.on('system-metrics', data => {});      // System metrics
-socket.on('trigger-fired', data => {});       // Trigger alert
-socket.on('trigger-stats', data => {});       // Trigger stats
+socket.on('file-changed', data => {}); // File change
+socket.on('git-status-updated', data => {}); // Git update
+socket.on('project-switched', data => {}); // Project change
+socket.on('agent-event', data => {}); // Agent event
+socket.on('agent-stats', data => {}); // Agent stats
+socket.on('system-metrics', data => {}); // System metrics
+socket.on('trigger-fired', data => {}); // Trigger alert
+socket.on('trigger-stats', data => {}); // Trigger stats
 ```
 
 ---
@@ -273,6 +273,7 @@ socket.on('trigger-stats', data => {});       // Trigger stats
 **Goal:** Track all file changes made by Claude during coding
 
 **Setup:**
+
 1. Start Raven: `./start.sh`
 2. Open Dashboard in browser
 3. Let Claude make changes
@@ -287,6 +288,7 @@ socket.on('trigger-stats', data => {});       // Trigger stats
 **Goal:** Compare performance of Claude, Ollama, and LM Studio
 
 **Setup:**
+
 1. Configure each agent to send telemetry to `POST /telemetry`
 2. Open Agents panel
 3. Monitor agent statistics
@@ -300,6 +302,7 @@ socket.on('trigger-stats', data => {});       // Trigger stats
 **Goal:** Find what causes CPU spikes during development
 
 **Setup:**
+
 1. Open Performance panel
 2. Enable "High CPU" trigger in Triggers panel
 3. Monitor CPU chart in real-time
@@ -314,6 +317,7 @@ socket.on('trigger-stats', data => {});       // Trigger stats
 **Goal:** See what happened during yesterday's coding session
 
 **Setup:**
+
 1. Open Session Replay panel
 2. Select date/time range
 3. Use timeline slider to navigate
@@ -328,6 +332,7 @@ socket.on('trigger-stats', data => {});       // Trigger stats
 **Goal:** Share session data with team
 
 **Setup:**
+
 1. Open Event Feed
 2. Filter events as needed
 3. Click "📥 JSON" or "📥 CSV"
@@ -371,12 +376,12 @@ cooldown_seconds = 60
 
 ### Quick Fixes
 
-| Problem | Solution |
-|---------|----------|
-| Backend won't start | `cd backend && npm install` |
-| Frontend won't start | `cd frontend && npm install` |
-| Port 3030 in use | `lsof -ti:3030 \| xargs kill -9` |
-| Database locked | `rm .raven/db/*.db-wal` then restart |
+| Problem                  | Solution                                                      |
+| ------------------------ | ------------------------------------------------------------- |
+| Backend won't start      | `cd backend && npm install`                                   |
+| Frontend won't start     | `cd frontend && npm install`                                  |
+| Port 3030 in use         | `lsof -ti:3030 \| xargs kill -9`                              |
+| Database locked          | `rm .raven/db/*.db-wal` then restart                          |
 | WebSocket not connecting | Check backend is running: `curl http://localhost:3030/health` |
 
 **See [Setup Guide](SETUP.md) for detailed troubleshooting.**
@@ -387,13 +392,13 @@ cooldown_seconds = 60
 
 ### Typical Metrics
 
-| Metric | Value |
-|--------|-------|
-| **API Response Time** | <100ms |
-| **WebSocket Latency** | <50ms |
-| **Database Query Time** | <10ms |
-| **Memory Usage** | ~500MB total |
-| **CPU Usage** | 3-15% idle |
+| Metric                  | Value        |
+| ----------------------- | ------------ |
+| **API Response Time**   | <100ms       |
+| **WebSocket Latency**   | <50ms        |
+| **Database Query Time** | <10ms        |
+| **Memory Usage**        | ~500MB total |
+| **CPU Usage**           | 3-15% idle   |
 
 ### Scaling
 
@@ -422,6 +427,7 @@ cooldown_seconds = 60
 ### Contributing
 
 See [Contributing Guide](../CONTRIBUTING.md) for:
+
 - Development setup
 - Code style guidelines
 - Pull request process
@@ -431,13 +437,13 @@ See [Contributing Guide](../CONTRIBUTING.md) for:
 
 ## 📊 Documentation Health
 
-| Category | Score | Status |
-|----------|-------|--------|
-| **Accuracy** | 95% | ✅ Excellent |
-| **Completeness** | 90% | ✅ Very Good |
-| **Organization** | 95% | ✅ Excellent |
-| **Up-to-date** | 100% | ✅ Perfect |
-| **OVERALL** | **95%** | **✅ Excellent** |
+| Category         | Score   | Status           |
+| ---------------- | ------- | ---------------- |
+| **Accuracy**     | 95%     | ✅ Excellent     |
+| **Completeness** | 90%     | ✅ Very Good     |
+| **Organization** | 95%     | ✅ Excellent     |
+| **Up-to-date**   | 100%    | ✅ Perfect       |
+| **OVERALL**      | **95%** | **✅ Excellent** |
 
 **Last Audit:** 2025-10-19
 **See:** [Documentation Audit](DOCUMENTATION_AUDIT.md)
