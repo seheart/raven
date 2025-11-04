@@ -7,7 +7,7 @@
   export let onSessionClick = () => {};
   export let sessionId = 'Loading...';
 
-  let version = '0.8.0';
+  let version = '1.0.0';
 </script>
 
 <footer class="footer">
@@ -68,11 +68,22 @@
         Docs
       </button>
       <span class="footer-divider" aria-hidden="true">|</span>
-      <a class="footer-link" href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" aria-label="Open GitHub repository in new tab">
+      <a
+        class="footer-link"
+        href="https://github.com/seheart/raven"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Open GitHub repository in new tab"
+      >
         GitHub
       </a>
       <span class="footer-divider" aria-hidden="true">|</span>
-      <span class="footer-status" role="status" aria-live="polite" aria-label="Real-time monitoring active">
+      <span
+        class="footer-status"
+        role="status"
+        aria-live="polite"
+        aria-label="Real-time monitoring active"
+      >
         <span class="status-dot" aria-hidden="true"></span>
         Real-time Monitoring Active
       </span>
@@ -217,7 +228,8 @@
   }
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
