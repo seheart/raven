@@ -161,18 +161,18 @@ describe('Cache Utilities', () => {
       expect(cached).toEqual(healthData);
     });
 
-    test('should return null after TTL expires', (done) => {
+    test('should return null after TTL expires', done => {
       const healthData = { status: 'healthy', uptime: 100 };
 
       updateHealthCache(healthData);
 
-      // Wait for TTL to expire (5000ms + buffer)
+      // Wait for TTL to expire (30000ms + buffer)
       setTimeout(() => {
         const cached = getHealthCache();
         expect(cached).toBeNull();
         done();
       }, HEALTH_CACHE_TTL + 100);
-    }, 10000);
+    }, 35000); // Increased timeout to 35s (30s TTL + 5s buffer)
 
     test('should update cache timestamp on each update', () => {
       const data1 = { status: 'healthy', uptime: 100 };
@@ -201,7 +201,7 @@ describe('Cache Utilities', () => {
       expect(cached.iteration).toBe(99); // Last update
     });
 
-    test('should expire cache correctly at TTL boundary', (done) => {
+    test('should expire cache correctly at TTL boundary', done => {
       const healthData = { status: 'healthy', uptime: 200 };
       updateHealthCache(healthData);
 
@@ -218,7 +218,7 @@ describe('Cache Utilities', () => {
         expect(cached2).toBeNull();
         done();
       }, HEALTH_CACHE_TTL + 500);
-    }, 15000);
+    }, 35000); // Increased timeout to 35s (30s TTL + 5s buffer)
   });
 
   describe('Cache Constants', () => {
@@ -302,7 +302,7 @@ describe('Cache Utilities', () => {
         expect(long).toBe('data');
       });
 
-      test('should return null for expired entries', (done) => {
+      test('should return null for expired entries', done => {
         cache.set('expires', 'data', 50); // 50ms TTL
 
         setTimeout(() => {
@@ -312,7 +312,7 @@ describe('Cache Utilities', () => {
         }, 100);
       });
 
-      test('should remove expired entries from cache', (done) => {
+      test('should remove expired entries from cache', done => {
         cache.set('expires', 'data', 50);
 
         setTimeout(() => {
@@ -363,7 +363,7 @@ describe('Cache Utilities', () => {
         expect(cache.misses).toBe(2);
       });
 
-      test('should count expired entries as misses', (done) => {
+      test('should count expired entries as misses', done => {
         cache.set('expires', 'data', 50);
 
         setTimeout(() => {
@@ -589,7 +589,7 @@ describe('Cache Utilities', () => {
     });
 
     test('should use custom key generator', async () => {
-      const keyGen = (req) => `custom:${req.path}`;
+      const keyGen = req => `custom:${req.path}`;
 
       app.get('/test', cacheMiddleware(queryCache, keyGen), (req, res) => {
         res.json({ data: 'test' });

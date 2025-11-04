@@ -19,6 +19,19 @@ let healthCache = {
 const HEALTH_CACHE_TTL = 30000; // 30 seconds
 
 /**
+ * Clear health cache (for testing purposes)
+ * @export
+ */
+export function clearHealthCache() {
+  healthCache = {
+    ravenSize: 0,
+    diskInfo: null,
+    telemetryBridge: null,
+    lastUpdate: 0
+  };
+}
+
+/**
  * Check if telemetry bridge is running
  * @returns {Promise<object>} Bridge status
  */

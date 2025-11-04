@@ -7,6 +7,7 @@ import express from 'express';
 import request from 'supertest';
 import { createDashboardRoutes } from '../../routes/dashboard.js';
 import { RavenDB } from '../../db.js';
+import { dashboardCache } from '../../utils/cache.js';
 import fs from 'fs';
 import { join } from 'path';
 
@@ -124,8 +125,8 @@ describe('Dashboard Integration Tests', () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       total_events: 6, // 3 from each project
-      total_files: 4,  // 2 unique files per project
-      total_agents: 2  // 2 unique agents
+      total_files: 4, // 2 unique files per project
+      total_agents: 2 // 2 unique agents
     });
     expect(response.body.total_lines_changed).toBeGreaterThan(0);
   });
@@ -139,9 +140,7 @@ describe('Dashboard Integration Tests', () => {
 
     // Should be sorted by change_count descending
     if (response.body.length > 1) {
-      expect(response.body[0].change_count).toBeGreaterThanOrEqual(
-        response.body[1].change_count
-      );
+      expect(response.body[0].change_count).toBeGreaterThanOrEqual(response.body[1].change_count);
     }
   });
 
@@ -172,26 +171,38 @@ describe('Dashboard Integration Tests', () => {
   });
 
   test('should filter by session', async () => {
-    const response = await request(app)
-      .get('/api/dashboard-stats')
-      .query({ session: 'session-1' });
+    const response = await request(app).get('/api/dashboard-stats').query({ session: 'session-1' });
 
     expect(response.status).toBe(200);
     expect(response.body.total_events).toBe(3); // Only session-1 events
   });
 
   test('should handle empty database gracefully', async () => {
-    // Create empty database
-    const emptyDbPath = join(TEST_DB_DIR, 'empty.db');
+    // Clear dashboard cache to avoid contamination from previous tests
+    dashboardCache.clear();
+
+    // Create empty database with unique timestamp to avoid contamination
+    const emptyDbPath = join(TEST_DB_DIR, `empty-${Date.now()}-${Math.random()}.db`);
+
+    // Delete file if it exists from previous failed test
+    if (fs.existsSync(emptyDbPath)) {
+      fs.unlinkSync(emptyDbPath);
+    }
+
     const emptyDb = new RavenDB(emptyDbPath, 'empty-project');
 
+    // Create completely isolated express app with ONLY the empty database
     const emptyApp = express();
     emptyApp.use(express.json());
-    emptyApp.use('/api', createDashboardRoutes({
-      projectDatabases: new Map([['empty', emptyDb]]),
-      activeProject: 'empty',
+
+    // IMPORTANT: Only pass the empty database, not any others
+    const isolatedDeps = {
+      projectDatabases: new Map([['empty-test', emptyDb]]),
+      activeProject: 'empty-test',
       currentSession: 'none'
-    }));
+    };
+
+    emptyApp.use('/api', createDashboardRoutes(isolatedDeps));
 
     const response = await request(emptyApp).get('/api/dashboard-stats');
 
@@ -203,7 +214,9 @@ describe('Dashboard Integration Tests', () => {
     });
 
     emptyDb.db.close();
-    fs.unlinkSync(emptyDbPath);
+    if (fs.existsSync(emptyDbPath)) {
+      fs.unlinkSync(emptyDbPath);
+    }
   });
 
   test('should handle database query errors gracefully', async () => {
