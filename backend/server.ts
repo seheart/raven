@@ -37,14 +37,18 @@ import {
   getDiffStats
 } from './modules/index.js';
 import type { FileEvent, GitStatusEvent, TelemetryEvent, AgentEvent } from './modules/index.js';
+import { logger } from './utils/logger.js';
 
 // ==================== Configuration ====================
 
 const app = express();
+const PORT = parseInt(process.env.PORT || '3030', 10);
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: CORS_ORIGIN,
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -52,12 +56,22 @@ const io = new SocketIOServer(httpServer, {
   transports: ['websocket', 'polling']
 });
 
-const PORT = 3030;
-
 // Paths
 const RAVEN_DIR = join(process.cwd(), '..', '.raven');
 const WATCH_PATH = join(process.cwd(), '..', 'test_workspace');
 const SNAPSHOTS_DIR = join(RAVEN_DIR, 'snapshots');
+
+// ==================== Security Utilities ====================
+
+/**
+ * Validates a SQL table name to prevent SQL injection
+ * Allows only alphanumeric characters and underscores
+ */
+function isValidTableName(tableName: string): boolean {
+  // SQLite table names must match this pattern
+  const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+  return validPattern.test(tableName) && tableName.length <= 64;
+}
 const DB_PATH = join(RAVEN_DIR, 'db', 'raven.db');
 
 // Extract project name from watch path
@@ -187,7 +201,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       await saveSnapshot(event.path, event.content);
     }
 
-    console.log(`📁 File ${event.type}: ${event.path} (ID: ${eventId})`);
+    logger.info(`📁 File ${event.type}: ${event.path} (ID: ${eventId})`);
 
     // Emit to WebSocket
     io.emit('file-changed', {
@@ -229,7 +243,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
             SESSION_ID
           );
 
-          console.log(`⚠️  Syntax error in ${event.path}:${error.line}: ${error.message}`);
+          logger.warn(`⚠️  Syntax error in ${event.path}:${error.line}: ${error.message}`);
         }
 
         // Emit to WebSocket for real-time updates
@@ -268,7 +282,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
           );
 
           if (match.pattern.severity === 'critical') {
-            console.log(`🚨 Critical pattern in ${event.path}:${match.line}: ${match.pattern.name}`);
+            logger.warn(`🚨 Critical pattern in ${event.path}:${match.line}: ${match.pattern.name}`);
           }
         }
 
@@ -293,7 +307,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       await gitMonitor.checkStatus();
     }
   } catch (error) {
-    console.error('❌ Error handling file event:', error);
+    logger.error('❌ Error handling file event:', error);
   }
 });
 
@@ -301,7 +315,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
  * Handle git status events
  */
 EventBus.onGitStatus((status: GitStatusEvent) => {
-  console.log(
+  logger.info(
     `🔀 Git: ${status.branch} (${status.modified.length} modified, ${status.created.length} created, ${status.deleted.length} deleted)`
   );
 
@@ -317,7 +331,7 @@ EventBus.onGitStatus((status: GitStatusEvent) => {
  * Handle trigger fired events
  */
 EventBus.onTriggerFired((trigger) => {
-  console.log(`🔔 Trigger fired: ${trigger.ruleName} - ${trigger.message}`);
+  logger.info(`🔔 Trigger fired: ${trigger.ruleName} - ${trigger.message}`);
 });
 
 // ==================== Helper Functions ====================
@@ -334,9 +348,9 @@ async function saveSnapshot(filepath: string, content: string): Promise<void> {
     await fs.mkdir(SNAPSHOTS_DIR, { recursive: true });
     await fs.writeFile(snapshotPath, content, 'utf8');
 
-    console.log(`💾 Snapshot saved: ${snapshotName}`);
+    logger.info(`💾 Snapshot saved: ${snapshotName}`);
   } catch (error) {
-    console.error('❌ Snapshot save error:', error);
+    logger.error('❌ Snapshot save error:', error);
   }
 }
 
@@ -747,7 +761,7 @@ app.post('/telemetry', (req: Request, res: Response) => {
 
     res.json({ success: true, event_id: eventId, session_id: SESSION_ID });
   } catch (error: any) {
-    console.error('❌ Telemetry error:', error);
+    logger.error('❌ Telemetry error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -827,7 +841,7 @@ app.get('/api/health/projects', (req: Request, res: Response) => {
       recent_projects: projects.filter((p: any) => p.status === 'recent').length
     });
   } catch (error: any) {
-    console.error('❌ Multi-project health error:', error);
+    logger.error('❌ Multi-project health error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -948,7 +962,7 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
       threshold
     });
   } catch (error: any) {
-    console.error('❌ Anomaly detection error:', error);
+    logger.error('❌ Anomaly detection error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -985,7 +999,7 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
       if (activeProjects.count === 0) activeProjects.count = 1; // Default to 1 if no projects found
     } catch (err) {
       // Column doesn't exist in old databases, default to 1
-      console.log('⚠️  project_name column not found, using default value');
+      logger.warn('⚠️  project_name column not found, using default value');
       activeProjects = { count: 1 };
     }
 
@@ -1059,7 +1073,7 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
       busiest_hour: busiestHour ? `${busiestHour.hour}:00` : 'N/A'
     });
   } catch (error: any) {
-    console.error('❌ Custom metrics error:', error);
+    logger.error('❌ Custom metrics error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1097,7 +1111,7 @@ function isPathAllowed(userPath: string, basePath: string): boolean {
     const base = resolve(basePath);
     return resolved.startsWith(base);
   } catch (e) {
-    console.error('[isPathAllowed] Error:', e);
+    logger.error('[isPathAllowed] Error:', e);
     return false;
   }
 }
@@ -1271,7 +1285,7 @@ app.post('/api/projects', async (req: Request, res: Response) => {
 
     res.json({ success: true, project: newProject });
   } catch (error: any) {
-    console.error('[POST /api/projects] Error:', error);
+    logger.error('[POST /api/projects] Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1338,7 +1352,7 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
 
     res.json({ success: true, project: config.projects[projectIndex] });
   } catch (error: any) {
-    console.error('[PUT /api/projects/:id] Error:', error);
+    logger.error('[PUT /api/projects/:id] Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1374,7 +1388,7 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
       // Security: Verify path is within database directory
       const dbDir = join(RAVEN_DIR, 'db');
       if (!dbPath.startsWith(dbDir)) {
-        console.error('[DELETE /api/projects/:id] Path traversal attempt:', dbPath);
+        logger.warn('[Security] [DELETE /api/projects/:id] Path traversal attempt:', dbPath);
         return res.status(403).json({ error: 'Forbidden' });
       }
 
@@ -1384,13 +1398,13 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
         await fs.unlink(`${dbPath}-wal`).catch(() => {});
       } catch (err) {
         // Database file doesn't exist, that's fine
-        console.log('[DELETE /api/projects/:id] Database file not found:', dbPath);
+        logger.info('[DELETE /api/projects/:id] Database file not found:', dbPath);
       }
     }
 
     res.json({ success: true });
   } catch (error: any) {
-    console.error('[DELETE /api/projects/:id] Error:', error);
+    logger.error('[DELETE /api/projects/:id] Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1458,7 +1472,7 @@ app.post('/api/projects/discover', strictLimiter, async (req: Request, res: Resp
 
     res.json({ discovered, basePath });
   } catch (error: any) {
-    console.error('[POST /api/projects/discover] Error:', error);
+    logger.error('[POST /api/projects/discover] Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1603,7 +1617,7 @@ app.get('/api/search/global', (req: Request, res: Response) => {
       categories
     });
   } catch (error: any) {
-    console.error('❌ Global search error:', error);
+    logger.error('❌ Global search error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1653,7 +1667,7 @@ app.get('/api/trends/historical', (req: Request, res: Response) => {
       start_time: startTime
     });
   } catch (error: any) {
-    console.error('❌ Historical trends error:', error);
+    logger.error('❌ Historical trends error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1691,7 +1705,7 @@ app.get('/api/metrics/performance', async (req: Request, res: Response) => {
       start_time: startTime
     });
   } catch (error: any) {
-    console.error('❌ Performance metrics error:', error);
+    logger.error('❌ Performance metrics error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1724,7 +1738,7 @@ async function loadAlertTemplates(): Promise<AlertTemplates> {
     const data = await fs.readFile(ALERT_TEMPLATES_PATH, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
-    console.error('Failed to load alert templates:', error);
+    logger.error('Failed to load alert templates:', error);
     throw new Error('Alert templates file not found');
   }
 }
@@ -1735,7 +1749,7 @@ app.get('/api/alerts/templates', async (req: Request, res: Response) => {
     const templates = await loadAlertTemplates();
     res.json(templates);
   } catch (error: any) {
-    console.error('[GET /api/alerts/templates] Error:', error);
+    logger.error('[GET /api/alerts/templates] Error:', error);
     res.status(500).json({ error: 'Failed to load alert templates' });
   }
 });
@@ -1761,7 +1775,7 @@ app.post('/api/alerts/templates/:templateId/apply', async (req: Request, res: Re
       triggersApplied: template.triggers.length
     });
   } catch (error: any) {
-    console.error('[POST /api/alerts/templates/:templateId/apply] Error:', error);
+    logger.error('[POST /api/alerts/templates/:templateId/apply] Error:', error);
     res.status(500).json({ error: 'Failed to apply template' });
   }
 });
@@ -1780,7 +1794,7 @@ app.get('/api/alerts/status', async (req: Request, res: Response) => {
       recentAlerts: []
     });
   } catch (error: any) {
-    console.error('[GET /api/alerts/status] Error:', error);
+    logger.error('[GET /api/alerts/status] Error:', error);
     res.status(500).json({ error: 'Failed to get alert status' });
   }
 });
@@ -1794,7 +1808,7 @@ app.get('/api/syntax-errors', async (req: Request, res: Response) => {
     const errors = db.getSyntaxErrors(limit);
     res.json({ errors, count: errors.length });
   } catch (error: any) {
-    console.error('[GET /api/syntax-errors] Error:', error);
+    logger.error('[GET /api/syntax-errors] Error:', error);
     res.status(500).json({ error: 'Failed to get syntax errors' });
   }
 });
@@ -1805,7 +1819,7 @@ app.get('/api/syntax-errors/count', async (req: Request, res: Response) => {
     const count = db.getUnresolvedSyntaxErrorCount();
     res.json({ count });
   } catch (error: any) {
-    console.error('[GET /api/syntax-errors/count] Error:', error);
+    logger.error('[GET /api/syntax-errors/count] Error:', error);
     res.status(500).json({ error: 'Failed to get syntax error count' });
   }
 });
@@ -1823,7 +1837,7 @@ app.post('/api/syntax-errors/:id/resolve', async (req: Request, res: Response) =
     db.resolveSyntaxError(errorId);
     res.json({ success: true, message: 'Syntax error marked as resolved' });
   } catch (error: any) {
-    console.error('[POST /api/syntax-errors/:id/resolve] Error:', error);
+    logger.error('[POST /api/syntax-errors/:id/resolve] Error:', error);
     res.status(500).json({ error: 'Failed to resolve syntax error' });
   }
 });
@@ -1850,7 +1864,7 @@ app.get('/api/sessions', async (req: Request, res: Response) => {
 
     res.json({ sessions, count: sessions.length });
   } catch (error: any) {
-    console.error('[GET /api/sessions] Error:', error);
+    logger.error('[GET /api/sessions] Error:', error);
     res.status(500).json({ error: 'Failed to get sessions' });
   }
 });
@@ -1911,7 +1925,7 @@ app.get('/api/sessions/:sessionId/preview', async (req: Request, res: Response) 
       canRollback: changes.some(c => c.hasBackup)
     });
   } catch (error: any) {
-    console.error('[GET /api/sessions/:sessionId/preview] Error:', error);
+    logger.error('[GET /api/sessions/:sessionId/preview] Error:', error);
     res.status(500).json({ error: 'Failed to preview rollback' });
   }
 });
@@ -1948,9 +1962,9 @@ app.post('/api/sessions/:sessionId/rollback', async (req: Request, res: Response
         await fs.writeFile(targetPath, content, 'utf-8');
 
         restoredFiles.push(change.filepath);
-        console.log(`✅ Rolled back: ${change.filepath}`);
+        logger.info(`✅ Rolled back: ${change.filepath}`);
       } catch (error) {
-        console.error(`❌ Failed to rollback ${change.filepath}:`, error);
+        logger.error(`❌ Failed to rollback ${change.filepath}:`, error);
         failedFiles.push(change.filepath);
       }
     }
@@ -1963,7 +1977,7 @@ app.post('/api/sessions/:sessionId/rollback', async (req: Request, res: Response
       sessionId
     });
   } catch (error: any) {
-    console.error('[POST /api/sessions/:sessionId/rollback] Error:', error);
+    logger.error('[POST /api/sessions/:sessionId/rollback] Error:', error);
     res.status(500).json({ error: 'Failed to execute rollback' });
   }
 });
@@ -1977,7 +1991,7 @@ app.get('/api/pattern-warnings', async (req: Request, res: Response) => {
     const warnings = db.getPatternWarnings(limit);
     res.json({ warnings, count: warnings.length });
   } catch (error: any) {
-    console.error('[GET /api/pattern-warnings] Error:', error);
+    logger.error('[GET /api/pattern-warnings] Error:', error);
     res.status(500).json({ error: 'Failed to get pattern warnings' });
   }
 });
@@ -1988,7 +2002,7 @@ app.get('/api/pattern-warnings/count', async (req: Request, res: Response) => {
     const count = db.getUnresolvedPatternWarningCount();
     res.json({ count });
   } catch (error: any) {
-    console.error('[GET /api/pattern-warnings/count] Error:', error);
+    logger.error('[GET /api/pattern-warnings/count] Error:', error);
     res.status(500).json({ error: 'Failed to get pattern warning count' });
   }
 });
@@ -2000,7 +2014,7 @@ app.get('/api/pattern-warnings/category/:category', async (req: Request, res: Re
     const warnings = db.getPatternWarningsByCategory(category);
     res.json({ warnings, count: warnings.length });
   } catch (error: any) {
-    console.error('[GET /api/pattern-warnings/category/:category] Error:', error);
+    logger.error('[GET /api/pattern-warnings/category/:category] Error:', error);
     res.status(500).json({ error: 'Failed to get pattern warnings by category' });
   }
 });
@@ -2018,7 +2032,7 @@ app.post('/api/pattern-warnings/:id/resolve', async (req: Request, res: Response
     db.resolvePatternWarning(warningId);
     res.json({ success: true, message: 'Pattern warning marked as resolved' });
   } catch (error: any) {
-    console.error('[POST /api/pattern-warnings/:id/resolve] Error:', error);
+    logger.error('[POST /api/pattern-warnings/:id/resolve] Error:', error);
     res.status(500).json({ error: 'Failed to resolve pattern warning' });
   }
 });
@@ -2029,7 +2043,7 @@ app.get('/api/pattern-warnings/patterns', async (req: Request, res: Response) =>
     const patterns = patternDetector.getAllPatterns();
     res.json({ patterns, count: patterns.length });
   } catch (error: any) {
-    console.error('[GET /api/pattern-warnings/patterns] Error:', error);
+    logger.error('[GET /api/pattern-warnings/patterns] Error:', error);
     res.status(500).json({ error: 'Failed to get patterns' });
   }
 });
@@ -2042,7 +2056,7 @@ app.get('/api/pause/status', async (req: Request, res: Response) => {
     const status = pauseManager.getStatus();
     res.json(status);
   } catch (error: any) {
-    console.error('[GET /api/pause/status] Error:', error);
+    logger.error('[GET /api/pause/status] Error:', error);
     res.status(500).json({ error: 'Failed to get pause status' });
   }
 });
@@ -2064,7 +2078,7 @@ app.post('/api/pause', async (req: Request, res: Response) => {
       status
     });
   } catch (error: any) {
-    console.error('[POST /api/pause] Error:', error);
+    logger.error('[POST /api/pause] Error:', error);
     res.status(500).json({ error: 'Failed to pause monitoring' });
   }
 });
@@ -2085,7 +2099,7 @@ app.post('/api/resume', async (req: Request, res: Response) => {
       status
     });
   } catch (error: any) {
-    console.error('[POST /api/resume] Error:', error);
+    logger.error('[POST /api/resume] Error:', error);
     res.status(500).json({ error: 'Failed to resume monitoring' });
   }
 });
@@ -2099,7 +2113,7 @@ app.get('/api/tests/frameworks', async (req: Request, res: Response) => {
     const frameworks = await testRunner.detectFrameworks();
     res.json({ frameworks, count: frameworks.length });
   } catch (error: any) {
-    console.error('[GET /api/tests/frameworks] Error:', error);
+    logger.error('[GET /api/tests/frameworks] Error:', error);
     res.status(500).json({ error: 'Failed to detect test frameworks' });
   }
 });
@@ -2113,7 +2127,7 @@ app.post('/api/tests/run', async (req: Request, res: Response) => {
     // Detect frameworks first
     await testRunner.detectFrameworks();
 
-    console.log(`🧪 Running tests${framework ? ` (${framework})` : ''}...`);
+    logger.info(`🧪 Running tests${framework ? ` (${framework})` : ''}...`);
     const result = await testRunner.runTests(framework);
 
     // Save to database
@@ -2134,7 +2148,7 @@ app.post('/api/tests/run', async (req: Request, res: Response) => {
     // Emit WebSocket event
     io.emit('test-result', result);
 
-    console.log(
+    logger.info(
       result.passed
         ? `✅ Tests passed: ${result.passedTests}/${result.totalTests}`
         : `❌ Tests failed: ${result.failedTests}/${result.totalTests}`
@@ -2142,7 +2156,7 @@ app.post('/api/tests/run', async (req: Request, res: Response) => {
 
     res.json(result);
   } catch (error: any) {
-    console.error('[POST /api/tests/run] Error:', error);
+    logger.error('[POST /api/tests/run] Error:', error);
     res.status(500).json({ error: 'Failed to run tests' });
   }
 });
@@ -2162,7 +2176,7 @@ app.get('/api/tests/results', async (req: Request, res: Response) => {
 
     res.json({ results: parsedResults, count: parsedResults.length });
   } catch (error: any) {
-    console.error('[GET /api/tests/results] Error:', error);
+    logger.error('[GET /api/tests/results] Error:', error);
     res.status(500).json({ error: 'Failed to get test results' });
   }
 });
@@ -2185,7 +2199,7 @@ app.get('/api/tests/latest', async (req: Request, res: Response) => {
 
     res.json({ result: parsed });
   } catch (error: any) {
-    console.error('[GET /api/tests/latest] Error:', error);
+    logger.error('[GET /api/tests/latest] Error:', error);
     res.status(500).json({ error: 'Failed to get latest test result' });
   }
 });
@@ -2219,6 +2233,12 @@ app.get('/api/storage', async (req: Request, res: Response) => {
         let totalRecords = 0;
 
         for (const table of tables) {
+          // Validate table name to prevent SQL injection
+          if (!isValidTableName(table.name)) {
+            logger.warn(`[Security] Skipping invalid table name: ${table.name}`);
+            continue;
+          }
+
           const count = dbConn.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get() as { count: number };
           recordCounts[table.name] = count.count;
           totalRecords += count.count;
@@ -2352,7 +2372,7 @@ app.get('/api/storage', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
-    console.error('❌ Error getting storage stats:', error);
+    logger.error('❌ Error getting storage stats:', error);
     res.status(500).json({ error: 'Failed to get storage statistics' });
   }
 });
@@ -2377,14 +2397,14 @@ app.get('/api/storage/export/:dbname', async (req: Request, res: Response) => {
     // Send the file for download
     res.download(dbPath, `${dbname}_${Date.now()}.db`, (err) => {
       if (err) {
-        console.error('❌ Error sending database file:', err);
+        logger.error('❌ Error sending database file:', err);
         if (!res.headersSent) {
           res.status(500).json({ error: 'Failed to export database' });
         }
       }
     });
   } catch (error: any) {
-    console.error('❌ Error exporting database:', error);
+    logger.error('❌ Error exporting database:', error);
     res.status(500).json({ error: 'Failed to export database' });
   }
 });
@@ -2431,7 +2451,7 @@ app.post('/api/storage/vacuum/:dbname', async (req: Request, res: Response) => {
       percentSaved: sizeBefore > 0 ? ((spaceSaved / sizeBefore) * 100).toFixed(2) : 0
     });
   } catch (error: any) {
-    console.error('❌ Error running VACUUM:', error);
+    logger.error('❌ Error running VACUUM:', error);
     res.status(500).json({ error: 'Failed to optimize database: ' + error.message });
   }
 });
@@ -2476,11 +2496,23 @@ app.post('/api/storage/clean/:dbname', async (req: Request, res: Response) => {
 
     // Delete old records from each table that has a timestamp column
     for (const table of tables) {
+      // Validate table name to prevent SQL injection
+      if (!isValidTableName(table.name)) {
+        logger.warn(`[Security] Skipping invalid table name: ${table.name}`);
+        continue;
+      }
+
       const tableInfo = dbConn.prepare(`PRAGMA table_info(${table.name})`).all() as any[];
       const hasTimestamp = tableInfo.some(col => col.name === 'timestamp' || col.name === 'created_at');
 
       if (hasTimestamp) {
         const timestampCol = tableInfo.find(col => col.name === 'timestamp' || col.name === 'created_at')!.name;
+
+        // Validate column name to prevent SQL injection
+        if (!isValidTableName(timestampCol)) {
+          logger.warn(`[Security] Skipping invalid column name: ${timestampCol}`);
+          continue;
+        }
 
         // Delete old records
         const deleteStmt = dbConn.prepare(`DELETE FROM ${table.name} WHERE ${timestampCol} < ?`);
@@ -2504,7 +2536,7 @@ app.post('/api/storage/clean/:dbname', async (req: Request, res: Response) => {
       cutoffDate: cutoffTimestamp
     });
   } catch (error: any) {
-    console.error('❌ Error cleaning old data:', error);
+    logger.error('❌ Error cleaning old data:', error);
     res.status(500).json({ error: 'Failed to clean old data: ' + error.message });
   }
 });
@@ -2528,7 +2560,7 @@ app.get('/api/storage/retention', async (req: Request, res: Response) => {
       });
     }
   } catch (error: any) {
-    console.error('❌ Error reading retention policy:', error);
+    logger.error('❌ Error reading retention policy:', error);
     res.status(500).json({ error: 'Failed to read retention policy' });
   }
 });
@@ -2560,7 +2592,7 @@ app.post('/api/storage/retention', async (req: Request, res: Response) => {
       message: 'Retention policy saved successfully'
     });
   } catch (error: any) {
-    console.error('❌ Error saving retention policy:', error);
+    logger.error('❌ Error saving retention policy:', error);
     res.status(500).json({ error: 'Failed to save retention policy' });
   }
 });
@@ -2568,17 +2600,17 @@ app.post('/api/storage/retention', async (req: Request, res: Response) => {
 // ==================== WebSocket ====================
 
 io.on('connection', (socket) => {
-  console.log('🔌 WebSocket client connected:', socket.id);
+  logger.info('🔌 WebSocket client connected:', socket.id);
 
   socket.on('disconnect', () => {
-    console.log('🔌 WebSocket client disconnected:', socket.id);
+    logger.info('🔌 WebSocket client disconnected:', socket.id);
   });
 });
 
 // ==================== Server Startup ====================
 
 httpServer.listen(PORT, async () => {
-  console.log(`
+  logger.info(`
 ╔════════════════════════════════════════════════╗
 ║     Raven Backend (TypeScript)                 ║
 ╠════════════════════════════════════════════════╣
@@ -2590,29 +2622,29 @@ httpServer.listen(PORT, async () => {
   `);
 
   // Start file watcher
-  console.log('📁 Starting file watcher...');
+  logger.info('📁 Starting file watcher...');
   fileWatcher.start();
 
   // Start git monitor (if git repo)
   const isRepo = await gitMonitor.isGitRepo();
   if (isRepo) {
-    console.log('🔀 Starting git monitor...');
+    logger.info('🔀 Starting git monitor...');
     await gitMonitor.start();
   } else {
-    console.log('⚠️  Not a git repository, skipping git monitor');
+    logger.warn('⚠️  Not a git repository, skipping git monitor');
   }
 
   // Start metrics collector
-  console.log('📊 Starting metrics collector...');
+  logger.info('📊 Starting metrics collector...');
   metricsCollector.start();
 
-  console.log('✅ All services started successfully');
+  logger.info('✅ All services started successfully');
 });
 
 // ==================== Graceful Shutdown ====================
 
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down Raven backend...');
+  logger.info('\n🛑 Shutting down Raven backend...');
 
   await fileWatcher.stop();
   gitMonitor.stop();

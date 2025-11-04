@@ -74,7 +74,10 @@ settingsStore.subscribe(value => {
     if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
       localStorage.setItem('raven-settings', JSON.stringify(value));
     }
-  } catch (_) {}
+  } catch (error) {
+    // localStorage may be unavailable in private browsing mode or due to quota
+    logger.debug('[Settings] localStorage unavailable:', error.message);
+  }
 });
 
 // Derived stores for specific setting sections
@@ -148,7 +151,10 @@ export const settings = {
         if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
           localStorage.setItem('raven-theme', updates.theme);
         }
-      } catch (_) {}
+      } catch (error) {
+        // localStorage may be unavailable in private browsing mode or due to quota
+        logger.debug('[Settings] Failed to save theme:', error.message);
+      }
     }
   },
 
@@ -167,7 +173,10 @@ export const settings = {
       if (typeof localStorage !== 'undefined' && typeof localStorage.removeItem === 'function') {
         localStorage.removeItem('raven-settings');
       }
-    } catch (_) {}
+    } catch (error) {
+      // localStorage may be unavailable in private browsing mode
+      logger.debug('[Settings] Failed to clear localStorage:', error.message);
+    }
   },
 
   // Get current settings value (non-reactive)

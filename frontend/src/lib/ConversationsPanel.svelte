@@ -7,6 +7,7 @@
   import { formatTime } from './timeFormat.js';
   import { Chart, registerables } from 'chart.js';
   import { settings } from './settingsStore.js';
+  import { logger } from './logger.js';
 
   Chart.register(...registerables);
 
@@ -544,7 +545,7 @@
     themeObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.attributeName === 'class' && showCharts) {
-          console.log('[ConversationsPanel] Theme changed, recreating charts');
+          logger.debug('[ConversationsPanel] Theme changed, recreating charts');
           setTimeout(createCharts, 100);
         }
       });

@@ -11,6 +11,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync, existsSync } from 'fs';
 import { dirname } from 'path';
+import { logger } from './utils/logger.js';
 
 // ==================== Type Definitions ====================
 
@@ -167,7 +168,7 @@ export class RavenDB {
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL'); // Better performance
     this.initializeSchema();
-    console.log(`✅ Database initialized at ${dbPath}`);
+    logger.info(`✅ Database initialized at ${dbPath}`);
   }
 
   private initializeSchema(): void {

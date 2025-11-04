@@ -129,7 +129,7 @@
 
   // Debug logging
   $: {
-    console.log('[App] activeTab:', activeTab, 'currentTab:', $currentTab, 'isInitialLoading:', isInitialLoading);
+    logger.debug('[App] activeTab:', activeTab, 'currentTab:', $currentTab, 'isInitialLoading:', isInitialLoading);
   }
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
   let showWelcome = false;
@@ -152,7 +152,7 @@
   if (typeof window !== 'undefined') {
     setTimeout(() => {
       if (isInitialLoading) {
-        console.warn('[App] Failsafe: Force clearing loading screen after timeout');
+        logger.warn('[App] Failsafe: Force clearing loading screen after timeout');
         isInitialLoading = false;
       }
     }, 3000);
@@ -338,7 +338,7 @@
 
     // Hide loading screen immediately - UI is now interactive!
     isInitialLoading = false;
-    console.log('[App] Loading screen cleared, activeTab:', activeTab);
+    logger.debug('[App] Loading screen cleared, activeTab:', activeTab);
 
     // Everything else happens in background, non-blocking
     Promise.all([

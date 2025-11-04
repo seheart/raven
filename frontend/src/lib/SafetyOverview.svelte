@@ -78,7 +78,7 @@
   let unsubscribers = [];
 
   onMount(() => {
-    console.log('✅ SafetyOverview OPTIMIZED SPACING loaded');
+    logger.debug('✅ SafetyOverview OPTIMIZED SPACING loaded');
     loadSafetyData();
 
     // Subscribe to relevant events

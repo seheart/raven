@@ -1,6 +1,7 @@
 <script>
   import { notificationHistory, unreadCount } from './notificationHistory.js';
   import { fade } from 'svelte/transition';
+  import { logger } from './logger.js';
 
   export let visible = false;
   export let onClose = () => {};
@@ -56,7 +57,7 @@
         copiedId = null;
       }, 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('Failed to copy:', err);
     }
   }
 

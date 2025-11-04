@@ -17,10 +17,10 @@ function createRouter() {
   function parseHash() {
     try {
       const hash = window.location.hash.slice(1); // Remove #
-      console.log('[Router] Parsing hash:', hash);
+      logger.debug('[Router] Parsing hash:', hash);
 
       if (!hash || hash === '/') {
-        console.log('[Router] No hash, defaulting to overview');
+        logger.debug('[Router] No hash, defaulting to overview');
         return { tab: 'overview', subTab: '' };
       }
 
@@ -39,7 +39,7 @@ function createRouter() {
 
   // Create the store with initial hash - this runs immediately when module loads
   const initialRoute = parseHash();
-  console.log('[Router] Initial route:', initialRoute);
+  logger.debug('[Router] Initial route:', initialRoute);
   const { subscribe, set, update } = writable(initialRoute);
 
   // Listen to hash changes
