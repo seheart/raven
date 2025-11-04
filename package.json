@@ -1,6 +1,6 @@
 {
   "name": "raven",
-  "version": "1.6.7",
+  "version": "1.0.0",
   "description": "Local-first AI agent monitoring tool - Web version",
   "scripts": {
     "dev": "concurrently -n backend,frontend -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",

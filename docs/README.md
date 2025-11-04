@@ -1,6 +1,6 @@
 # 📚 Raven Documentation
 
-**Version:** 1.6.8
+**Version:** 1.0.0
 **Last Updated:** 2025-11-03
 **Status:** ✅ Production Ready
 

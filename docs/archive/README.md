@@ -81,8 +81,8 @@ For current, actively maintained documentation, see:
 ---
 
 **Last Updated:** November 3, 2025
-**Archive Created:** v1.6.4
-**Latest Archive Additions:** v1.6.8 (November 3, 2025)
+**Archive Created:** v0.6.0
+**Latest Archive Additions:** v1.0.0 (November 3, 2025)
 
 ## Recent Additions (November 3, 2025)
 

@@ -231,7 +231,7 @@ export function createHealthRoutes(deps) {
   router.get('/status', (req, res) => {
     res.json({
       status: 'online',
-      version: '0.16.0',
+      version: '1.0.0',
       session_id: SESSION_ID,
       uptime: process.uptime(),
       timestamp: new Date().toISOString()
