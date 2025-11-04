@@ -12,7 +12,7 @@ export function createDashboardRoutes(deps) {
   const { projectDatabases, projectState, SESSION_ID, agentRegistry, getAgentColor } = deps;
 
   // GET /api/dashboard-stats - Aggregate stats from all projects (PARALLELIZED)
-  router.get('/dashboard-stats', async (req, res) => {
+  router.get('/dashboard-stats', cacheMiddleware(dashboardCache), async (req, res) => {
     try {
       // Get session filter from query param or default to SESSION_ID
       const sessionFilter = req.query.session || SESSION_ID || null;
@@ -103,7 +103,7 @@ export function createDashboardRoutes(deps) {
   });
 
   // GET /api/top-modified-files - Top files by modification count (PARALLELIZED)
-  router.get('/top-modified-files', async (req, res) => {
+  router.get('/top-modified-files', cacheMiddleware(dashboardCache), async (req, res) => {
     try {
       const limitNum = parseInt(req.query.limit, 10);
       const limit = isNaN(limitNum) || limitNum < 1 || limitNum > 1000 ? 10 : limitNum;
@@ -220,7 +220,7 @@ export function createDashboardRoutes(deps) {
   });
 
   // GET /api/top-files - Top files by activity (integration test alias)
-  router.get('/top-files', async (req, res) => {
+  router.get('/top-files', cacheMiddleware(dashboardCache), async (req, res) => {
     try {
       const limit = parseInt(req.query.limit, 10) || 10;
 
@@ -253,7 +253,7 @@ export function createDashboardRoutes(deps) {
   });
 
   // GET /api/agent-activity - Get agent activity stats
-  router.get('/agent-activity', async (req, res) => {
+  router.get('/agent-activity', cacheMiddleware(dashboardCache), async (req, res) => {
     try {
       // Aggregate agent activity from all projects
       const activityMap = new Map();
@@ -298,7 +298,7 @@ export function createDashboardRoutes(deps) {
   });
 
   // GET /api/timeline - Get event timeline
-  router.get('/timeline', async (req, res) => {
+  router.get('/timeline', cacheMiddleware(dashboardCache), async (req, res) => {
     try {
       const timelineMap = new Map();
 

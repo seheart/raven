@@ -3,6 +3,7 @@ import { logger } from '../utils/logger.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { validate } from '../middleware/validation.js';
+import { analyticsCache, cacheMiddleware } from '../utils/cache.js';
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
@@ -180,24 +181,29 @@ export function createEventsRoutes(deps) {
    * GET /api/activity-log
    * Get unified activity log with filtering options
    */
-  router.get('/activity-log', validate('activityLogQuery', 'query'), (req, res) => {
-    try {
-      const options = {
-        limit: parseInt(req.query.limit, 10) || 500,
-        offset: parseInt(req.query.offset, 10) || 0,
-        search: req.query.search || '',
-        eventType: req.query.type || 'all',
-        startDate: req.query.startDate || null,
-        endDate: req.query.endDate || null
-      };
+  router.get(
+    '/activity-log',
+    cacheMiddleware(analyticsCache),
+    validate('activityLogQuery', 'query'),
+    (req, res) => {
+      try {
+        const options = {
+          limit: parseInt(req.query.limit, 10) || 500,
+          offset: parseInt(req.query.offset, 10) || 0,
+          search: req.query.search || '',
+          eventType: req.query.type || 'all',
+          startDate: req.query.startDate || null,
+          endDate: req.query.endDate || null
+        };
 
-      const result = projectState.db.getActivityLog(options);
-      res.json(result);
-    } catch (error) {
-      logger.error('Activity log error:', error);
-      res.status(500).json({ error: error.message });
+        const result = projectState.db.getActivityLog(options);
+        res.json(result);
+      } catch (error) {
+        logger.error('Activity log error:', error);
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   /**
    * GET /api/files/:filepath/history
@@ -253,7 +259,7 @@ export function createEventsRoutes(deps) {
         }
 
         return res.status(404).json({
-          error: `Snapshot not found`,
+          error: 'Snapshot not found',
           details: `Looking for: ${snapshotFilename}`,
           event_id: eventId,
           filepath: event.filepath

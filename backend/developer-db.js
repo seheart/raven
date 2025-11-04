@@ -423,8 +423,12 @@ class DeveloperDB {
       preference_value: value,
       confidence_score: metadata.confidence_score || 0.5,
       timestamp: new Date().toISOString(),
-      applies_to_languages: metadata.applies_to_languages ? JSON.stringify(metadata.applies_to_languages) : null,
-      applies_to_projects: metadata.applies_to_projects ? JSON.stringify(metadata.applies_to_projects) : null
+      applies_to_languages: metadata.applies_to_languages
+        ? JSON.stringify(metadata.applies_to_languages)
+        : null,
+      applies_to_projects: metadata.applies_to_projects
+        ? JSON.stringify(metadata.applies_to_projects)
+        : null
     });
   }
 
@@ -465,10 +469,14 @@ class DeveloperDB {
   // ==================== QUERY METHODS ====================
 
   /**
-   * Get recent agent interactions
+   * Get recent agent interactions (lightweight - without large text fields)
    */
   getRecentInteractions(limit = 50, project = null) {
-    let query = 'SELECT * FROM agent_interactions';
+    let query = `SELECT
+      id, timestamp, project, agent_name, agent_version, event_type,
+      accepted, modified, rejected, file_path, language, lines_changed,
+      session_id, prompt_type, complexity_score, success_score
+    FROM agent_interactions`;
     const params = [];
 
     if (project) {
@@ -483,10 +491,16 @@ class DeveloperDB {
   }
 
   /**
-   * Get coding patterns for a language
+   * Get coding patterns for a language (lightweight - without commit messages)
    */
   getCodingPatterns(language = null, limit = 100) {
-    let query = 'SELECT * FROM code_patterns';
+    let query = `SELECT
+      id, timestamp, project, language, file_type,
+      edit_type, lines_added, lines_removed, complexity_change,
+      indent_style, indent_size, naming_convention, comment_density,
+      pattern_type, uses_types, uses_tests,
+      committed, time_to_commit, tested_before_commit, linted_before_commit
+    FROM code_patterns`;
     const params = [];
 
     if (language) {
@@ -507,7 +521,9 @@ class DeveloperDB {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
 
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT
         event_type,
         COUNT(*) as count,
@@ -516,17 +532,23 @@ class DeveloperDB {
       FROM workflow_events
       WHERE timestamp > ?
       GROUP BY event_type
-    `).all(cutoff.toISOString());
+    `
+      )
+      .all(cutoff.toISOString());
   }
 
   /**
    * Get all developer preferences
    */
   getAllPreferences() {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT * FROM developer_preferences
       ORDER BY confidence_score DESC, observation_count DESC
-    `).all();
+    `
+      )
+      .all();
   }
 
   /**
@@ -536,7 +558,9 @@ class DeveloperDB {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
 
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT
         from_project,
         to_project,
@@ -546,7 +570,9 @@ class DeveloperDB {
       WHERE timestamp > ?
       GROUP BY from_project, to_project
       ORDER BY switch_count DESC
-    `).all(cutoff.toISOString());
+    `
+      )
+      .all(cutoff.toISOString());
   }
 
   /**

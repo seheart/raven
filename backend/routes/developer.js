@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { logger } from '../utils/logger.js';
+import { analyticsCache, cacheMiddleware } from '../utils/cache.js';
 
 /**
  * Creates developer persona routes
@@ -11,12 +12,9 @@ export function createDeveloperRoutes(deps) {
   const { developerDB } = deps;
 
   // GET /api/developer/interactions - Get recent agent interactions
-  router.get('/interactions', (req, res) => {
+  router.get('/interactions', cacheMiddleware(analyticsCache), (req, res) => {
     try {
-      const {
-        limit = 50,
-        project = null
-      } = req.query;
+      const { limit = 50, project = null } = req.query;
 
       const interactions = developerDB.getRecentInteractions(
         parseInt(limit),
@@ -31,12 +29,9 @@ export function createDeveloperRoutes(deps) {
   });
 
   // GET /api/developer/patterns - Get coding patterns
-  router.get('/patterns', (req, res) => {
+  router.get('/patterns', cacheMiddleware(analyticsCache), (req, res) => {
     try {
-      const {
-        language = null,
-        limit = 100
-      } = req.query;
+      const { language = null, limit = 100 } = req.query;
 
       const patterns = developerDB.getCodingPatterns(
         language === 'null' || language === 'all' ? null : language,
@@ -51,7 +46,7 @@ export function createDeveloperRoutes(deps) {
   });
 
   // GET /api/developer/workflow - Get workflow statistics
-  router.get('/workflow', (req, res) => {
+  router.get('/workflow', cacheMiddleware(analyticsCache), (req, res) => {
     try {
       const { days = 30 } = req.query;
 
@@ -75,7 +70,7 @@ export function createDeveloperRoutes(deps) {
   });
 
   // GET /api/developer/context-switches - Get context switch statistics
-  router.get('/context-switches', (req, res) => {
+  router.get('/context-switches', cacheMiddleware(analyticsCache), (req, res) => {
     try {
       const { days = 30 } = req.query;
 
@@ -88,47 +83,69 @@ export function createDeveloperRoutes(deps) {
   });
 
   // GET /api/developer/stats - Get overall developer persona statistics
-  router.get('/stats', (req, res) => {
+  router.get('/stats', cacheMiddleware(analyticsCache), (req, res) => {
     try {
       // Query all tables for counts
       const stats = {
-        agent_interactions: developerDB.db.prepare('SELECT COUNT(*) as count FROM agent_interactions').get().count,
-        code_patterns: developerDB.db.prepare('SELECT COUNT(*) as count FROM code_patterns').get().count,
-        workflow_events: developerDB.db.prepare('SELECT COUNT(*) as count FROM workflow_events').get().count,
-        error_recovery: developerDB.db.prepare('SELECT COUNT(*) as count FROM error_recovery').get().count,
-        context_switches: developerDB.db.prepare('SELECT COUNT(*) as count FROM context_switches').get().count,
-        preferences: developerDB.db.prepare('SELECT COUNT(*) as count FROM developer_preferences').get().count
+        agent_interactions: developerDB.db
+          .prepare('SELECT COUNT(*) as count FROM agent_interactions')
+          .get().count,
+        code_patterns: developerDB.db.prepare('SELECT COUNT(*) as count FROM code_patterns').get()
+          .count,
+        workflow_events: developerDB.db
+          .prepare('SELECT COUNT(*) as count FROM workflow_events')
+          .get().count,
+        error_recovery: developerDB.db.prepare('SELECT COUNT(*) as count FROM error_recovery').get()
+          .count,
+        context_switches: developerDB.db
+          .prepare('SELECT COUNT(*) as count FROM context_switches')
+          .get().count,
+        preferences: developerDB.db
+          .prepare('SELECT COUNT(*) as count FROM developer_preferences')
+          .get().count
       };
 
       // Get language breakdown
-      const languages = developerDB.db.prepare(`
+      const languages = developerDB.db
+        .prepare(
+          `
         SELECT language, COUNT(*) as count
         FROM code_patterns
         WHERE language IS NOT NULL
         GROUP BY language
         ORDER BY count DESC
         LIMIT 10
-      `).all();
+      `
+        )
+        .all();
 
       // Get project activity breakdown
-      const projects = developerDB.db.prepare(`
+      const projects = developerDB.db
+        .prepare(
+          `
         SELECT project, COUNT(*) as count
         FROM agent_interactions
         WHERE project IS NOT NULL
         GROUP BY project
         ORDER BY count DESC
         LIMIT 10
-      `).all();
+      `
+        )
+        .all();
 
       // Get hourly activity pattern (24 hours max, but add LIMIT for safety)
-      const hourlyActivity = developerDB.db.prepare(`
+      const hourlyActivity = developerDB.db
+        .prepare(
+          `
         SELECT hour_of_day, COUNT(*) as count
         FROM workflow_events
         WHERE hour_of_day IS NOT NULL
         GROUP BY hour_of_day
         ORDER BY hour_of_day
         LIMIT 24
-      `).all();
+      `
+        )
+        .all();
 
       res.json({
         counts: stats,

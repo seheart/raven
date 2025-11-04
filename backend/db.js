@@ -180,7 +180,7 @@ export class RavenDB {
 
     // Add project_name column to existing agent_events tables (migration)
     try {
-      this.db.exec(`ALTER TABLE agent_events ADD COLUMN project_name TEXT`);
+      this.db.exec('ALTER TABLE agent_events ADD COLUMN project_name TEXT');
     } catch (err) {
       // Column already exists, ignore
     }
@@ -391,6 +391,7 @@ export class RavenDB {
       CREATE INDEX IF NOT EXISTS idx_pattern_warnings_category ON pattern_warnings(category);
       CREATE INDEX IF NOT EXISTS idx_pattern_warnings_resolved ON pattern_warnings(resolved);
       CREATE INDEX IF NOT EXISTS idx_pattern_warnings_session ON pattern_warnings(session_id);
+      CREATE INDEX IF NOT EXISTS idx_pattern_warnings_resolved_timestamp ON pattern_warnings(resolved, timestamp DESC);
 
       -- Test results indexes
       CREATE INDEX IF NOT EXISTS idx_test_results_timestamp ON test_results(timestamp);
@@ -440,7 +441,8 @@ export class RavenDB {
 
   getRecentAgentEvents(limit = 100) {
     const stmt = this.prepareStatement(`
-      SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, project_name
+      SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message,
+             SUBSTR(metadata, 1, 200) as metadata, project_name
       FROM agent_events
       ORDER BY timestamp DESC
       LIMIT ?
@@ -954,64 +956,58 @@ export class RavenDB {
   }
 
   getDashboardStats(session_id = null) {
-    // Get agent events (filtered by session if provided)
+    // Use pure SQL aggregations for performance - no JavaScript loops
     const whereClause = session_id ? 'WHERE session_id = ?' : '';
-    const stmt = this.prepareStatement(`
-      SELECT id, timestamp, agent, event_type as change_type, file as filepath, lines_changed, duration_ms, message
-      FROM agent_events
-      ${whereClause}
-      ORDER BY timestamp ASC
-    `);
-    const events = session_id ? stmt.all(session_id) : stmt.all();
+    const params = session_id ? [session_id] : [];
 
-    // Get unique files from agent events
-    const trackedFiles = new Set();
-    for (const event of events) {
-      if (event.filepath) {
-        trackedFiles.add(event.filepath);
-      }
-    }
-
-    // Get unique agents from agent events (filtered by session if provided)
-    const agentsStmt = this.db.prepare(`
-      SELECT COUNT(DISTINCT agent) as agent_count
+    // Get stats with a single aggregation query
+    const statsStmt = this.db.prepare(`
+      SELECT
+        COUNT(DISTINCT agent) as agent_count,
+        COUNT(DISTINCT file) as file_count,
+        MIN(timestamp) as first_timestamp,
+        COUNT(*) as total_events
       FROM agent_events
       ${whereClause}
     `);
-    const agentsResult = session_id ? agentsStmt.get(session_id) : agentsStmt.get();
-    const total_agents = agentsResult?.agent_count || 0;
+    const stats = params.length ? statsStmt.get(...params) : statsStmt.get();
+
+    const total_agents = stats?.agent_count || 0;
+    const trackedFilesCount = stats?.file_count || 0;
 
     // Calculate session duration (from first event to now)
     let session_duration_seconds = 0;
-    if (events.length > 0) {
-      const first = new Date(events[0].timestamp);
+    if (stats?.first_timestamp) {
+      const first = new Date(stats.first_timestamp);
       const now = new Date();
       session_duration_seconds = Math.floor((now - first) / 1000);
     }
 
-    // Count active files today from both agent_events and file events
+    // Count active files today with SQL
     const today = new Date().toISOString().split('T')[0];
-    const activeToday = new Set();
 
-    // Add files from agent_events
-    for (const event of events) {
-      const eventDate = event.timestamp.split('T')[0];
-      if (eventDate === today && event.filepath) {
-        activeToday.add(event.filepath);
-      }
-    }
+    const todayAgentFilesStmt = this.db.prepare(`
+      SELECT COUNT(DISTINCT file) as count
+      FROM agent_events
+      WHERE SUBSTR(timestamp, 1, 10) = ?
+        AND file IS NOT NULL
+        ${session_id ? 'AND session_id = ?' : ''}
+    `);
+    const todayAgentFiles = session_id
+      ? todayAgentFilesStmt.get(today, session_id)
+      : todayAgentFilesStmt.get(today);
 
-    // Also add files from file system events (events table)
-    const todayFilesStmt = this.db.prepare(`
-      SELECT DISTINCT filepath
+    let activeTodayCount = todayAgentFiles?.count || 0;
+
+    // Also count files from file system events (events table)
+    const todayEventsFilesStmt = this.db.prepare(`
+      SELECT COUNT(DISTINCT filepath) as count
       FROM events
       WHERE SUBSTR(timestamp, 1, 10) = ?
-      AND filepath IS NOT NULL
+        AND filepath IS NOT NULL
     `);
-    const todayFiles = todayFilesStmt.all(today);
-    for (const row of todayFiles) {
-      activeToday.add(row.filepath);
-    }
+    const todayEventsFiles = todayEventsFilesStmt.get(today);
+    activeTodayCount += todayEventsFiles?.count || 0;
 
     // Get breakdown from both file events and agent_events tables (filtered by session if provided)
     const eventWhereClause = session_id ? 'WHERE session_id = ?' : '';
@@ -1054,37 +1050,31 @@ export class RavenDB {
     const total_changes = creates + edits + deletes;
 
     // Get count of unique files modified (from both events and agent_events tables)
-    const uniqueFilesSet = new Set();
-
-    // Add unique files from events table
-    const eventsFilesWhere = session_id
-      ? 'WHERE session_id = ? AND filepath IS NOT NULL'
-      : 'WHERE filepath IS NOT NULL';
-    const eventsFilesStmt = this.db.prepare(`
-      SELECT DISTINCT filepath
-      FROM events
-      ${eventsFilesWhere}
-    `);
-    const eventsFiles = session_id ? eventsFilesStmt.all(session_id) : eventsFilesStmt.all();
-    for (const row of eventsFiles) {
-      uniqueFilesSet.add(row.filepath);
+    // Use UNION to combine both tables and count distinct files in SQL
+    let unique_files_modified = 0;
+    if (session_id) {
+      const uniqueFilesStmt = this.db.prepare(`
+        SELECT COUNT(DISTINCT filepath) as count
+        FROM (
+          SELECT filepath FROM events WHERE session_id = ? AND filepath IS NOT NULL
+          UNION
+          SELECT file as filepath FROM agent_events WHERE session_id = ? AND file IS NOT NULL
+        )
+      `);
+      const result = uniqueFilesStmt.get(session_id, session_id);
+      unique_files_modified = result?.count || 0;
+    } else {
+      const uniqueFilesStmt = this.db.prepare(`
+        SELECT COUNT(DISTINCT filepath) as count
+        FROM (
+          SELECT filepath FROM events WHERE filepath IS NOT NULL
+          UNION
+          SELECT file as filepath FROM agent_events WHERE file IS NOT NULL
+        )
+      `);
+      const result = uniqueFilesStmt.get();
+      unique_files_modified = result?.count || 0;
     }
-
-    // Add unique files from agent_events table
-    const agentFilesWhere = session_id
-      ? 'WHERE session_id = ? AND file IS NOT NULL'
-      : 'WHERE file IS NOT NULL';
-    const agentFilesStmt = this.db.prepare(`
-      SELECT DISTINCT file as filepath
-      FROM agent_events
-      ${agentFilesWhere}
-    `);
-    const agentFiles = session_id ? agentFilesStmt.all(session_id) : agentFilesStmt.all();
-    for (const row of agentFiles) {
-      uniqueFilesSet.add(row.filepath);
-    }
-
-    const unique_files_modified = uniqueFilesSet.size;
 
     // Calculate total lines changed from agent_events
     const linesChangedStmt = this.db.prepare(`
@@ -1098,11 +1088,11 @@ export class RavenDB {
     const total_lines_changed = linesChangedResult?.total_lines_changed || 0;
 
     return {
-      total_events: events.length,
-      total_files: trackedFiles.size,
+      total_events: stats?.total_events || 0,
+      total_files: trackedFilesCount,
       total_agents: total_agents,
       session_duration_seconds,
-      active_files_today: activeToday.size,
+      active_files_today: activeTodayCount,
       total_changes,
       creates,
       edits,
@@ -1303,7 +1293,7 @@ export class RavenDB {
    */
   getActivityLog(options = {}) {
     const {
-      limit = 500,
+      limit = 100, // Reduced from 500 for performance
       offset = 0,
       search = '',
       eventType = 'all', // all, file, agent, system
@@ -1346,7 +1336,7 @@ export class RavenDB {
           file_hash as hash,
           cpu,
           mem,
-          diff,
+          NULL as diff,
           session_id,
           NULL as file,
           NULL as lines_changed,
@@ -1385,7 +1375,7 @@ export class RavenDB {
           lines_changed,
           duration_ms,
           message,
-          metadata as metadata_json,
+          SUBSTR(metadata, 1, 200) as metadata_json,
           NULL as cpu_percent,
           NULL as memory_percent,
           NULL as memory_used_mb
@@ -1962,7 +1952,14 @@ export class RavenDB {
   getPatternWarnings(options = {}) {
     const { limit = 100, offset = 0, category = 'all', resolved = false } = options;
 
-    let query = 'SELECT * FROM pattern_warnings WHERE resolved = ?';
+    // Use SUBSTR in SQL to truncate large TEXT fields for performance
+    let query = `SELECT
+      id, timestamp, filepath, project_name, category, severity,
+      pattern_name, message, line_number,
+      SUBSTR(match_text, 1, 150) as match_text,
+      SUBSTR(context, 1, 150) as context,
+      suggestion, session_id, resolved, resolved_at
+    FROM pattern_warnings WHERE resolved = ?`;
     const params = [resolved ? 1 : 0];
 
     if (category !== 'all') {
@@ -1976,19 +1973,6 @@ export class RavenDB {
     const stmt = this.prepareStatement(query);
     const warnings = stmt.all(...params);
 
-    // Truncate code snippets for performance (show first 150 chars in list view)
-    const processedWarnings = warnings.map(warning => ({
-      ...warning,
-      context:
-        warning.context && warning.context.length > 150
-          ? warning.context.substring(0, 150) + '...'
-          : warning.context,
-      match_text:
-        warning.match_text && warning.match_text.length > 150
-          ? warning.match_text.substring(0, 150) + '...'
-          : warning.match_text
-    }));
-
     // Get count
     let countQuery = 'SELECT COUNT(*) as count FROM pattern_warnings WHERE resolved = ?';
     const countParams = [resolved ? 1 : 0];
@@ -2001,7 +1985,7 @@ export class RavenDB {
     const countStmt = this.prepareStatement(countQuery);
     const { count } = countStmt.get(...countParams);
 
-    return { warnings: processedWarnings, count };
+    return { warnings, count };
   }
 
   resolvePatternWarning(warningId) {

@@ -9,6 +9,15 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// Cache for expensive health check operations
+let healthCache = {
+  ravenSize: 0,
+  diskInfo: null,
+  telemetryBridge: null,
+  lastUpdate: 0
+};
+const HEALTH_CACHE_TTL = 30000; // 30 seconds
+
 /**
  * Check if telemetry bridge is running
  * @returns {Promise<object>} Bridge status
@@ -16,7 +25,9 @@ const execAsync = promisify(exec);
 async function checkTelemetryBridge() {
   try {
     // Check for running bridge process
-    const { stdout } = await execAsync('ps aux | grep -E "claude-telemetry-bridge\\.js" | grep -v grep');
+    const { stdout } = await execAsync(
+      'ps aux | grep -E "claude-telemetry-bridge\\.js" | grep -v grep'
+    );
 
     if (stdout.trim()) {
       // Extract PID from ps output (second column)
@@ -50,7 +61,16 @@ async function checkTelemetryBridge() {
  */
 export function createHealthRoutes(deps) {
   const router = Router();
-  const { projectState, io, SESSION_ID, RAVEN_DIR, projectDatabases, projectWatchers, getHealthCheckSystem, getMetricsDatabase } = deps;
+  const {
+    projectState,
+    io,
+    SESSION_ID,
+    RAVEN_DIR,
+    projectDatabases,
+    projectWatchers,
+    getHealthCheckSystem,
+    getMetricsDatabase
+  } = deps;
 
   /**
    * GET /api/health
@@ -59,6 +79,7 @@ export function createHealthRoutes(deps) {
   router.get('/health', async (req, res) => {
     try {
       const os = await import('os');
+      const now = Date.now();
 
       // Memory usage: use os metrics for system-level percent (matches tests)
       const totalMemory = os.totalmem();
@@ -69,42 +90,56 @@ export function createHealthRoutes(deps) {
       // Process memory
       const processMemory = process.memoryUsage();
 
-      // Calculate .raven directory size
-      const getRavenDirSize = (dirPath) => {
-        let totalSize = 0;
-        try {
-          const items = fs.readdirSync(dirPath);
-          for (const item of items) {
-            const itemPath = join(dirPath, item);
-            const stat = fs.statSync(itemPath);
-            if (stat.isDirectory()) {
-              totalSize += getRavenDirSize(itemPath);
-            } else {
-              totalSize += stat.size;
+      // Update cache if expired (30 seconds TTL)
+      if (now - healthCache.lastUpdate > HEALTH_CACHE_TTL) {
+        // Calculate .raven directory size (async to not block)
+        const getRavenDirSize = dirPath => {
+          let totalSize = 0;
+          try {
+            const items = fs.readdirSync(dirPath);
+            for (const item of items) {
+              const itemPath = join(dirPath, item);
+              const stat = fs.statSync(itemPath);
+              if (stat.isDirectory()) {
+                totalSize += getRavenDirSize(itemPath);
+              } else {
+                totalSize += stat.size;
+              }
             }
+          } catch (err) {
+            logger.error('Error calculating directory size:', err);
           }
+          return totalSize;
+        };
+
+        healthCache.ravenSize = getRavenDirSize(RAVEN_DIR);
+
+        // Get actual disk size using systeminformation
+        try {
+          healthCache.diskInfo = await si.fsSize();
         } catch (err) {
-          logger.error('Error calculating directory size:', err);
+          logger.warn('Failed to get disk size:', err);
+          healthCache.diskInfo = null;
         }
-        return totalSize;
-      };
 
-      const ravenSize = getRavenDirSize(RAVEN_DIR);
+        // Check telemetry bridge status
+        healthCache.telemetryBridge = await checkTelemetryBridge();
+        healthCache.lastUpdate = now;
+      }
 
-      // Get actual disk size using systeminformation
+      // Use cached values
+      const ravenSize = healthCache.ravenSize;
       let diskUsePercent = 0;
       let diskTotal = 0;
-      try {
-        const diskInfo = await si.fsSize();
-        // Find the disk containing RAVEN_DIR (usually root /)
-        const rootDisk = diskInfo.find(d => d.mount === '/') || diskInfo[0];
+
+      if (healthCache.diskInfo) {
+        const rootDisk = healthCache.diskInfo.find(d => d.mount === '/') || healthCache.diskInfo[0];
         if (rootDisk) {
           diskTotal = rootDisk.size;
           diskUsePercent = (ravenSize / diskTotal) * 100;
         }
-      } catch (err) {
-        // Fallback to estimated 100GB if systeminformation fails
-        logger.warn('Failed to get disk size, using estimate:', err);
+      } else {
+        // Fallback to estimated 100GB if disk info not available
         diskTotal = 100 * 1024 * 1024 * 1024; // 100GB
         diskUsePercent = (ravenSize / diskTotal) * 100;
       }
@@ -141,8 +176,11 @@ export function createHealthRoutes(deps) {
         });
       }
 
-      // Check telemetry bridge status
-      const telemetryBridge = await checkTelemetryBridge();
+      const telemetryBridge = healthCache.telemetryBridge || {
+        running: false,
+        healthy: false,
+        pid: null
+      };
 
       res.json({
         status,
@@ -356,30 +394,40 @@ export function createHealthRoutes(deps) {
       for (const [projectName, db] of projectDatabases.entries()) {
         try {
           // Component 1: Code Velocity (20 points) - Changes per day over last 7 days
-          const velocityData = db.db.prepare(`
+          const velocityData = db.db
+            .prepare(
+              `
             SELECT COUNT(*) as total_changes,
                    JULIANDAY('now') - JULIANDAY(MIN(timestamp)) as days
             FROM events
             WHERE timestamp >= datetime('now', '-7 days')
-          `).get();
-          const changesPerDay = velocityData.days > 0 ? velocityData.total_changes / velocityData.days : 0;
+          `
+            )
+            .get();
+          const changesPerDay =
+            velocityData.days > 0 ? velocityData.total_changes / velocityData.days : 0;
           const velocityScore = Math.min((changesPerDay / 50) * 20, 20); // Max 20 points if 50+ changes/day
 
           // Component 2: Rollback Rate (25 points) - Stability measure
           let stabilityScore = 25; // Default to full points if rollbacks table doesn't exist
           let rollbackRate = 0; // Declare outside try-catch for later use
           try {
-            const rollbackData = db.db.prepare(`
+            const rollbackData = db.db
+              .prepare(
+                `
               SELECT
                 COUNT(DISTINCT e.id) as total_changes,
                 COUNT(DISTINCT r.id) as rollback_count
               FROM events e
               LEFT JOIN rollbacks r ON e.id = r.event_id
               WHERE e.timestamp >= datetime('now', '-30 days')
-            `).get();
-            rollbackRate = rollbackData.total_changes > 0
-              ? rollbackData.rollback_count / rollbackData.total_changes
-              : 0;
+            `
+              )
+              .get();
+            rollbackRate =
+              rollbackData.total_changes > 0
+                ? rollbackData.rollback_count / rollbackData.total_changes
+                : 0;
             stabilityScore = Math.max((1 - rollbackRate) * 25, 0); // Max 25 points if 0% rollback
           } catch (rollbackError) {
             // Rollbacks table doesn't exist - assume no rollbacks (full stability score)
@@ -390,7 +438,9 @@ export function createHealthRoutes(deps) {
           // Component 3: Agent Reliability (20 points) - Agent success rates
           let reliabilityScore = 15; // Default to 75% if agent data not available
           try {
-            const agentStats = db.db.prepare(`
+            const agentStats = db.db
+              .prepare(
+                `
               SELECT
                 agent,
                 COUNT(*) as total,
@@ -399,10 +449,14 @@ export function createHealthRoutes(deps) {
               WHERE timestamp >= datetime('now', '-30 days')
               AND agent IS NOT NULL
               GROUP BY agent
-            `).all();
+            `
+              )
+              .all();
             let avgConfidence = 0;
             if (agentStats.length > 0) {
-              avgConfidence = agentStats.reduce((sum, a) => sum + (a.high_confidence / a.total), 0) / agentStats.length;
+              avgConfidence =
+                agentStats.reduce((sum, a) => sum + a.high_confidence / a.total, 0) /
+                agentStats.length;
             }
             reliabilityScore = avgConfidence * 20; // Max 20 points if 100% high confidence
           } catch (agentError) {
@@ -414,17 +468,19 @@ export function createHealthRoutes(deps) {
           let complexityScore = 15; // Default to full points if diff data not available
           let avgDiffSize = 0; // Declare outside try-catch for later use
           try {
-            const complexityData = db.db.prepare(`
+            const complexityData = db.db
+              .prepare(
+                `
               SELECT AVG(LENGTH(diff)) as avg_diff_size
               FROM events
               WHERE timestamp >= datetime('now', '-7 days')
               AND diff IS NOT NULL
-            `).get();
+            `
+              )
+              .get();
             avgDiffSize = complexityData.avg_diff_size || 0;
             // Score inversely - smaller changes = better (ideal: 200-500 bytes)
-            complexityScore = avgDiffSize > 0
-              ? Math.max(15 - ((avgDiffSize - 350) / 100), 0)
-              : 15;
+            complexityScore = avgDiffSize > 0 ? Math.max(15 - (avgDiffSize - 350) / 100, 0) : 15;
           } catch (complexityError) {
             // Diff column doesn't exist - use default score
             avgDiffSize = 0;
@@ -433,19 +489,28 @@ export function createHealthRoutes(deps) {
 
           // Component 5: Activity Recency (20 points) - How recent is development
           // Check BOTH file events AND agent events for most recent activity
-          const latestFileEvent = db.db.prepare(`
+          const latestFileEvent = db.db
+            .prepare(
+              `
             SELECT timestamp FROM events ORDER BY timestamp DESC LIMIT 1
-          `).get();
-          const latestAgentEvent = db.db.prepare(`
+          `
+            )
+            .get();
+          const latestAgentEvent = db.db
+            .prepare(
+              `
             SELECT timestamp FROM agent_events ORDER BY timestamp DESC LIMIT 1
-          `).get();
+          `
+            )
+            .get();
 
           // Get the most recent timestamp from either table
           let latestTimestamp = null;
           if (latestFileEvent && latestAgentEvent) {
-            latestTimestamp = new Date(latestFileEvent.timestamp) > new Date(latestAgentEvent.timestamp)
-              ? latestFileEvent.timestamp
-              : latestAgentEvent.timestamp;
+            latestTimestamp =
+              new Date(latestFileEvent.timestamp) > new Date(latestAgentEvent.timestamp)
+                ? latestFileEvent.timestamp
+                : latestAgentEvent.timestamp;
           } else if (latestFileEvent) {
             latestTimestamp = latestFileEvent.timestamp;
           } else if (latestAgentEvent) {
@@ -456,7 +521,8 @@ export function createHealthRoutes(deps) {
 
           let recencyScore = 0;
           if (latest) {
-            const hoursSinceActivity = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60);
+            const hoursSinceActivity =
+              (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60);
             if (hoursSinceActivity < 1) recencyScore = 20;
             else if (hoursSinceActivity < 6) recencyScore = 18;
             else if (hoursSinceActivity < 24) recencyScore = 15;
@@ -466,37 +532,56 @@ export function createHealthRoutes(deps) {
 
           // Calculate total health score (0-100)
           const healthScore = Math.round(
-            velocityScore + stabilityScore + reliabilityScore +
-            Math.min(complexityScore, 15) + recencyScore
+            velocityScore +
+              stabilityScore +
+              reliabilityScore +
+              Math.min(complexityScore, 15) +
+              recencyScore
           );
 
           // Determine status based on most recent activity (file OR agent events)
           let status = 'inactive';
           if (latest) {
-            const minutesSinceActivity = (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60);
-            if (minutesSinceActivity < 5) status = 'active';  // Active in last 5 minutes
-            else if (minutesSinceActivity < 60) status = 'recent';  // Active in last hour
-            else if (minutesSinceActivity < 1440) status = 'idle';  // Active in last 24 hours
-            else if (minutesSinceActivity < 10080) status = 'idle';  // Active in last 7 days (168 hours)
+            const minutesSinceActivity =
+              (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60);
+            if (minutesSinceActivity < 5)
+              status = 'active'; // Active in last 5 minutes
+            else if (minutesSinceActivity < 60)
+              status = 'recent'; // Active in last hour
+            else if (minutesSinceActivity < 1440)
+              status = 'idle'; // Active in last 24 hours
+            else if (minutesSinceActivity < 10080) status = 'idle'; // Active in last 7 days (168 hours)
           }
 
           // Get recent event count from BOTH tables
-          const recentFileEvents = db.db.prepare(`
+          const recentFileEvents = db.db
+            .prepare(
+              `
             SELECT COUNT(*) as count FROM events
             WHERE timestamp >= datetime('now', '-24 hours')
-          `).get();
-          const recentAgentEvents = db.db.prepare(`
+          `
+            )
+            .get();
+          const recentAgentEvents = db.db
+            .prepare(
+              `
             SELECT COUNT(*) as count FROM agent_events
             WHERE timestamp >= datetime('now', '-24 hours')
-          `).get();
+          `
+            )
+            .get();
           const totalRecentEvents = (recentFileEvents.count || 0) + (recentAgentEvents.count || 0);
 
           // Get error count from error_logs table
           let errorCount = 0;
           try {
-            const errorData = db.db.prepare(`
+            const errorData = db.db
+              .prepare(
+                `
               SELECT COUNT(*) as count FROM error_logs
-            `).get();
+            `
+              )
+              .get();
             errorCount = errorData.count || 0;
           } catch (errorQueryError) {
             // error_logs table doesn't exist - no errors to count
@@ -518,9 +603,11 @@ export function createHealthRoutes(deps) {
               changes_per_day: changesPerDay.toFixed(1),
               rollback_rate: (rollbackRate * 100).toFixed(1) + '%',
               avg_diff_size: Math.round(avgDiffSize),
-              hours_since_activity: latest ?
-                ((Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1) :
-                null
+              hours_since_activity: latest
+                ? ((Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(
+                    1
+                  )
+                : null
             },
             recent_events: totalRecentEvents,
             error_count: errorCount,
@@ -551,10 +638,11 @@ export function createHealthRoutes(deps) {
         total_projects: projectDatabases.size,
         active_projects: activeCount,
         recent_projects: recentCount,
-        idle_projects: idleCount + inactiveCount,  // Combine idle and inactive for display
-        average_health: healthData.length > 0
-          ? Math.round(healthData.reduce((sum, p) => sum + p.health_score, 0) / healthData.length)
-          : 0
+        idle_projects: idleCount + inactiveCount, // Combine idle and inactive for display
+        average_health:
+          healthData.length > 0
+            ? Math.round(healthData.reduce((sum, p) => sum + p.health_score, 0) / healthData.length)
+            : 0
       });
     } catch (error) {
       logger.error('Multi-project health error:', error);
