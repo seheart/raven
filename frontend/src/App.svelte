@@ -11,7 +11,7 @@
   import Footer from './lib/Footer.svelte';
   import RavenLogo from './lib/RavenLogo.svelte';
   import Toast from './lib/Toast.svelte';
-  import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
+  import NotificationPanel from './lib/NotificationPanel.svelte';
   import OverviewPanel from './lib/OverviewPanel.svelte';
   import ProjectsComparisonPanel from './lib/ProjectsComparisonPanel.svelte';
   import MultiProjectHealthPanel from './lib/MultiProjectHealthPanel.svelte';
@@ -33,6 +33,7 @@
   import { setupGlobalErrorHandler } from './lib/errorLogger.js';
   import { notifications } from './lib/notificationService.js';
   import { setupNotificationListeners } from './lib/notificationListener.js';
+  import { unreadCount } from './lib/notificationHistory.js';
   import { websocketService } from './lib/websocket.js';
   import { checkServerHealth } from './lib/apiClient.js';
   import { dataService } from './lib/dataService.js';
@@ -131,9 +132,9 @@
     console.log('[App] activeTab:', activeTab, 'currentTab:', $currentTab, 'isInitialLoading:', isInitialLoading);
   }
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
-  let showHelp = false;
   let showWelcome = false;
   let showQuickStart = false;
+  let showNotifications = false;
 
   // Today's Activity stats
   let todayStats = {
@@ -264,16 +265,19 @@
     notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
   }
 
-  // Handle error notification clicks - navigate to Error Log with details
+  // Handle error/warning notification clicks - navigate to appropriate page
   function handleErrorClick(notification) {
-    // Navigate to System tab and Error Log sub-view
-    router.navigate('system', 'errors');
-
-    // Log for debugging
-    logger.info('Navigating to Error Log from notification:', notification.message);
-
-    // Store the notification message to highlight in error log
-    sessionStorage.setItem('highlightError', notification.message);
+    if (notification.type === 'warning') {
+      // Warnings go to System > Status (where health metrics are shown)
+      router.navigate('system', 'status');
+      logger.info('Navigating to System Status from warning:', notification.message);
+    } else {
+      // Errors go to System > Error Log
+      router.navigate('system', 'errors');
+      logger.info('Navigating to Error Log from notification:', notification.message);
+      // Store the notification message to highlight in error log
+      sessionStorage.setItem('highlightError', notification.message);
+    }
   }
 
   // Helper function to wait for backend to be ready (quick check)
@@ -322,9 +326,8 @@
     setupGlobalErrorHandler();
 
     // Register keyboard shortcuts (instant)
-    keyboard.register('?', () => showHelp = !showHelp);
+    keyboard.register('?', () => router.navigate('docs'));
     keyboard.register('Escape', () => {
-      showHelp = false;
       showWelcome = false;
     });
 
@@ -458,27 +461,32 @@
 
     <!-- Today's Activity Stats - Compact Pills -->
     <div class="today-stats" role="region" aria-label="Today's coding activity">
-      <div class="stat-pill modified" role="status" aria-label="{todayStats.modified} files modified">
+      <a href="#activity/events" class="stat-pill modified" role="button" aria-label="{todayStats.modified} files modified - click to view">
         {todayStats.modified} modified
-      </div>
-      <div class="stat-pill added" role="status" aria-label="{todayStats.added} files added">
+      </a>
+      <a href="#activity/events" class="stat-pill added" role="button" aria-label="{todayStats.added} files added - click to view">
         +{todayStats.added} added
-      </div>
-      <div class="stat-pill deleted" role="status" aria-label="{todayStats.deleted} files deleted">
+      </a>
+      <a href="#activity/events" class="stat-pill deleted" role="button" aria-label="{todayStats.deleted} files deleted - click to view">
         -{todayStats.deleted} deleted
-      </div>
+      </a>
     </div>
 
-    <!-- User Menu & Help -->
-    <UserMenu on:openSettings={handleOpenSettings} />
+    <!-- Notifications Bell -->
     <button
-      class="help-button"
-      on:click={() => showHelp = !showHelp}
-      aria-label="Show keyboard shortcuts"
-      title="Keyboard Shortcuts"
+      class="notification-bell"
+      on:click={() => showNotifications = !showNotifications}
+      aria-label="Open notifications ({$unreadCount} unread)"
+      title="Notifications"
     >
-      ?
+      🔔
+      {#if $unreadCount > 0}
+        <span class="notification-badge">{$unreadCount}</span>
+      {/if}
     </button>
+
+    <!-- User Menu -->
+    <UserMenu on:openSettings={handleOpenSettings} />
   </header>
 
   <!-- Consolidated View Container -->
@@ -947,6 +955,21 @@
       {:catch}
         <div style="min-height:200px" role="status">Loading…</div>
       {/await}
+    {:else if activeTab === 'session'}
+      <!-- Session Details Page -->
+      {#await import('./lib/SessionDashboard.svelte') then M}
+        <div class="page-container">
+          <div class="page-header">
+            <button class="btn-back" on:click={() => router.navigate('overview')} aria-label="Go back to Overview">
+              ← Back
+            </button>
+            <h1>Session Details</h1>
+          </div>
+          <svelte:component this={M.default} />
+        </div>
+      {:catch}
+        <div style="min-height:200px" role="status">Loading…</div>
+      {/await}
     {:else}
       <!-- Fallback: Unknown tab or initialization issue -->
       <div class="empty-state" style="padding: 40px; text-align: center; color: var(--muted);">
@@ -956,12 +979,12 @@
         <button
           class="btn-primary"
           on:click={() => router.navigate('overview')}
-          style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer;"
+          style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: var(--radius); cursor: pointer;"
         >
           Go to Overview
         </button>
         <p style="margin-top: 16px; font-size: 11px;">
-          Current tab: <code style="background: var(--surface); padding: 2px 6px; border-radius: 3px;">{activeTab}</code>
+          Current tab: <code style="background: var(--surface); padding: 2px 6px; border-radius: var(--radius-sm);">{activeTab}</code>
         </p>
       </div>
     {/if}
@@ -971,6 +994,9 @@
 {#if !isInitialLoading}
   <Toast onErrorClick={handleErrorClick} />
 {/if}
+
+<!-- Notification Panel Sidebar -->
+<NotificationPanel visible={showNotifications} onClose={() => showNotifications = false} />
 
 <!-- Quick Start Wizard for New Users -->
 {#if showQuickStart}
@@ -991,16 +1017,11 @@
   <WelcomeScreen on:close={() => showWelcome = false} />
 {/if}
 
-<!-- Keyboard Shortcuts Help Modal -->
-{#if showHelp}
-  <KeyboardShortcuts visible={true} onClose={() => showHelp = false} />
-{/if}
-
 <Footer
   theme={theme}
   sessionId={sessionId}
   onThemeChange={switchTheme}
-  onSessionClick={() => router.navigate('system')}
+  onSessionClick={() => router.navigate('session')}
   onAboutClick={() => router.navigate('about')}
   onChangelogClick={() => router.navigate('changelog')}
   onDocsClick={() => router.navigate('docs')}
@@ -1069,7 +1090,7 @@
     color: var(--muted);
     padding: 4px 10px;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 12px;
     font-family: var(--sans);
     font-weight: 500;
@@ -1103,7 +1124,7 @@
     gap: 3px;
     padding: 2px 8px;
     background: var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-weight: 500;
   }
 
@@ -1111,37 +1132,41 @@
   .stat-pill.added { color: var(--success); }
   .stat-pill.deleted { color: var(--error); }
 
-  /* Help button - compact */
-  .help-button {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
+  /* Notification bell button */
+  .notification-bell {
+    position: relative;
+    background: none;
+    border: none;
     color: var(--muted);
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 20px;
     cursor: pointer;
-    transition: all 0.15s;
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+  }
+
+  .notification-bell:hover {
+    background: var(--surface-2);
+    color: var(--info);
+    transform: scale(1.1);
+  }
+
+  .notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    background: var(--error);
+    color: white;
+    border-radius: var(--radius-xl);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 5px;
+    min-width: 18px;
+    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .help-button:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .help-button:active {
-    transform: scale(0.95);
-  }
-
-  .help-button:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   .tab-icon {
@@ -1161,7 +1186,7 @@
     font-size: 11px;
     padding: 1px 3px;
     background: var(--bg);
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
     opacity: 0.4;
     line-height: 1;
   }
@@ -1219,7 +1244,7 @@
   .sub-tab:hover {
     background: var(--surface-2);
     color: var(--text);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .sub-tab.active {
@@ -1232,7 +1257,7 @@
   .sub-tab:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   /* Focus indicators for accessibility */
@@ -1272,12 +1297,6 @@
       display: none;
     }
 
-    .help-button {
-      width: 20px;
-      height: 20px;
-      font-size: 11px;
-    }
-
     .sub-navigation {
       padding: 4px 8px;
       overflow-x: auto;
@@ -1287,6 +1306,45 @@
       font-size: 11px;
       padding: 3px 8px;
     }
+  }
+
+  /* Session Page Styles */
+  .page-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .btn-back {
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--mono);
+  }
+
+  .btn-back:hover {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--accent);
   }
 
   /* (removed unused settings modal styles) */

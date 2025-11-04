@@ -187,14 +187,14 @@
     </div>
     <div class="header-actions" role="toolbar" aria-label="Settings actions">
       <span class="last-updated" role="status" aria-live="polite">Modified: {timeAgo}</span>
-      <button class="btn-secondary" on:click={exportSettings} aria-label="Export settings">
+      <button class="btn btn-secondary btn-sm" on:click={exportSettings} aria-label="Export settings">
         <span aria-hidden="true">📤</span> Export
       </button>
-      <label class="btn-secondary">
+      <label class="btn btn-secondary btn-sm">
         <span aria-hidden="true">📥</span> Import
         <input type="file" accept=".json" on:change={importSettings} style="display: none;" aria-label="Import settings file" />
       </label>
-      <button class="btn-secondary" on:click={resetToDefaults} aria-label="Reset settings to defaults">
+      <button class="btn btn-secondary btn-sm" on:click={resetToDefaults} aria-label="Reset settings to defaults">
         <span aria-hidden="true">🔄</span> Reset
       </button>
     </div>
@@ -256,7 +256,7 @@
           </span>
           {#if notificationPermission !== 'granted'}
             <button
-              class="btn-permission"
+              class="btn btn-primary btn-sm"
               on:click={requestNotificationPermission}
               disabled={!settings.notifications.enabled}
               aria-label="Request desktop notification permission"
@@ -495,7 +495,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 8px;
+    padding: var(--space-lg);
     position: relative;
     overflow: hidden;
   }
@@ -504,21 +504,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 16px;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-2xl);
     border-bottom: 2px solid var(--border);
   }
 
   .header-left {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .settings-header h2 {
     margin: 0;
     color: var(--text);
-    font-size: 11px;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     font-family: var(--mono);
   }
 
@@ -530,7 +531,7 @@
 
   .header-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
   }
 
@@ -544,63 +545,28 @@
     color: var(--warning);
     font-size: 11px;
     font-weight: 600;
-    margin-right: 8px;
+    margin-right: var(--space-lg);
   }
 
-  .btn-primary,
-  .btn-secondary {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    background: var(--accent-hover);
-    transform: translateY(-1px);
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-secondary {
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface);
-    border-color: var(--accent);
-  }
+  /* Button styles removed - now using global .btn classes */
 
   .settings-content {
     flex: 1;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: var(--space-4xl);
   }
 
   .settings-section {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-lg);
   }
 
   .settings-section h3 {
-    margin: 0 0 20px 0;
+    margin: 0 0 var(--space-3xl) 0;
     color: var(--text);
     font-size: 11px;
     font-family: var(--mono);
@@ -609,7 +575,7 @@
   }
 
   .subsection {
-    margin-top: 8px;
+    margin-top: var(--space-lg);
     padding-top: 20px;
     border-top: 1px solid var(--border);
   }
@@ -619,9 +585,9 @@
   .setting-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    gap: var(--space-md);
     align-items: center;
-    padding: 6px 0;
+    padding: var(--space-md) 0;
     border-bottom: 1px solid var(--border-subtle);
   }
 
@@ -636,7 +602,7 @@
   .setting-row label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     color: var(--text);
     font-size: 11px;
     font-weight: 500;
@@ -650,18 +616,18 @@
   }
 
   input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
     cursor: pointer;
   }
 
   input[type="number"],
   select {
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 11px;
     font-family: var(--mono);
   }
@@ -689,7 +655,7 @@
 
   .settings-content::-webkit-scrollbar-thumb {
     background: var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .settings-content::-webkit-scrollbar-thumb:hover {
@@ -705,15 +671,15 @@
     grid-column: 2;
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 8px;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
   }
 
   .permission-status {
     font-size: 12px;
     font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     border: 1px solid;
   }
 
@@ -735,27 +701,7 @@
     border-color: var(--warning);
   }
 
-  .btn-permission {
-    padding: 6px 12px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-permission:hover:not(:disabled) {
-    background: var(--accent-hover);
-    transform: translateY(-1px);
-  }
-
-  .btn-permission:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  /* Permission button styles removed - now using global .btn classes */
 
   .auto-save-note {
     color: var(--success);
@@ -785,7 +731,7 @@
   :global(body.compact-mode .activity-feed),
   :global(body.compact-mode .analysis-panel),
   :global(body.compact-mode .performance-panel) {
-    padding: 6px !important;
+    padding: var(--space-md) !important;
   }
 
   :global(body.compact-mode h1) {
@@ -818,18 +764,18 @@
   :global(body.compact-mode .notification-item),
   :global(body.compact-mode .error-item),
   :global(body.compact-mode .event-item) {
-    padding: 8px 0 !important;
+    padding: var(--space-lg) 0 !important;
   }
 
   :global(body.compact-mode .settings-section),
   :global(body.compact-mode .status-section),
   :global(body.compact-mode .card) {
-    padding: 8px !important;
-    margin-bottom: 6px !important;
+    padding: var(--space-lg) !important;
+    margin-bottom: var(--space-md) !important;
   }
 
   :global(body.compact-mode button) {
-    padding: 6px 12px !important;
+    padding: var(--space-md) var(--space-xl) !important;
     font-size: 12px !important;
   }
 
@@ -837,13 +783,13 @@
   body.compact-mode input[type="number"],
   body.compact-mode select,
   body.compact-mode textarea) {
-    padding: 6px 10px !important;
+    padding: var(--space-md) var(--space-lg) !important;
     font-size: 12px !important;
   }
 
   :global(body.compact-mode .table-row),
   :global(body.compact-mode .grid-row) {
-    min-height: 32px !important;
+    min-height: var(--icon-lg) !important;
   }
 
   :global(body.compact-mode .chart),
@@ -857,7 +803,7 @@
 
   :global(body.compact-mode .badge),
   :global(body.compact-mode .tag) {
-    padding: 2px 6px !important;
+    padding: var(--space-xs) var(--space-md) !important;
     font-size: 11px !important;
   }
 </style>

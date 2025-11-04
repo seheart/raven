@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
   import { formatDateTime } from './timeFormat.js';
-  import { formatDurationMinutesMinutes } from './formatUtils.js';
+  import { formatDurationMinutes } from './formatUtils.js';
   import { websocketService } from './websocket.js';
 
   export let project = 'raven';
@@ -27,20 +27,29 @@
 
       if (currentSession) {
         // Load quality metrics
-        const qualityData = await api.get(`/sessions/quality?project=${project}`);
-        quality = qualityData.quality;
-
-        // Load break recommendation
-        const breakData = await api.get(`/sessions/break-recommendation?project=${project}`);
-        breakRecommendation = breakData.recommendation;
+        try {
+          const qualityData = await api.get(`/sessions/quality?project=${project}`);
+          quality = qualityData.quality;
+          // Use recommendation from quality endpoint if available
+          breakRecommendation = qualityData.quality?.recommendation || null;
+        } catch (err) {
+          logger.warn('Quality metrics not available:', err);
+          quality = null;
+          breakRecommendation = null;
+        }
 
         // Store session start time for duration calculation
         sessionStartTime = currentSession.startTime ? new Date(currentSession.startTime) : null;
       }
 
       // Load session stats (last 30 days)
-      const statsData = await api.get(`/sessions/stats?project=${project}&days=30`);
-      stats = statsData.stats;
+      try {
+        const statsData = await api.get(`/sessions/stats?project=${project}&days=30`);
+        stats = statsData.stats;
+      } catch (err) {
+        logger.warn('Session stats not available:', err);
+        stats = null;
+      }
 
     } catch (err) {
       logger.error('Failed to load session data:', err);
@@ -75,10 +84,10 @@
   });
 
   function getQualityColor(score) {
-    if (score >= 80) return '#9ece6a'; // Green - excellent
-    if (score >= 70) return '#7aa2f7'; // Blue - good
-    if (score >= 50) return '#e0af68'; // Orange - warning
-    return '#f7768e'; // Red - critical
+    if (score >= 80) return 'var(--success)'; // Green - excellent
+    if (score >= 70) return 'var(--info)'; // Blue - good
+    if (score >= 50) return 'var(--warning)'; // Orange - warning
+    return 'var(--error)'; // Red - critical
   }
 
   function getQualityLabel(score) {
@@ -96,10 +105,10 @@
   }
 
   function getUrgencyColor(urgency) {
-    if (urgency === 'critical') return '#f7768e';
-    if (urgency === 'warning') return '#e0af68';
-    if (urgency === 'info') return '#7aa2f7';
-    return '#9ece6a';
+    if (urgency === 'critical') return 'var(--error)';
+    if (urgency === 'warning') return 'var(--warning)';
+    if (urgency === 'info') return 'var(--info)';
+    return 'var(--success)';
   }
 
 
@@ -120,7 +129,7 @@
     : (currentSession?.durationMinutes || 0);
 </script>
 
-<div class="session-dashboard">
+<div class="card session-dashboard">
   <div class="dashboard-header">
     <h3>⏱️ Session Intelligence</h3>
     {#if currentSession}
@@ -329,18 +338,18 @@
 
 <style>
   .session-dashboard {
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 4px;
+    /* Using standardized .card class */
+    border-width: 2px; /* Custom: thicker border */
+    padding: 0; /* Custom: no padding on container, padding on children instead */
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Custom: enhanced shadow */
   }
 
   .dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border-bottom: 2px solid var(--border);
   }
@@ -356,11 +365,11 @@
   .active-indicator {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-xl);
     background: color-mix(in srgb, var(--success) 15%, transparent);
     border: 1px solid var(--success);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 600;
     color: var(--success);
@@ -386,7 +395,7 @@
   }
 
   .loading, .error-state {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     text-align: center;
     color: var(--muted);
   }
@@ -398,34 +407,30 @@
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+    margin: 0 auto var(--space-2xl);
   }
 
   .error-detail {
     font-size: 12px;
     font-family: var(--mono);
     color: var(--error);
-    margin-top: 8px;
+    margin-top: var(--space-lg);
   }
 
   .dashboard-content {
-    padding: 12px;
+    padding: var(--space-xl);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
     animation: fadeInUp 0.3s ease-out;
   }
 
   .panel {
-    background: var(--bg);
+    background: var(--bg); /* Custom: different background */
     border: 2px solid var(--border);
-    border-radius: 4px;
-    padding: 8px;
-    transition: all 0.2s ease;
+    border-radius: var(--radius);
+    padding: var(--space-lg); /* Custom: 8px padding */
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .panel:hover {
@@ -437,7 +442,7 @@
     font-weight: 700;
     font-family: var(--sans);
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -450,12 +455,12 @@
 
   .session-timer {
     text-align: center;
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--surface);
-    border-radius: 4px;
-    margin-bottom: 8px;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-lg);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease;
+    transition: transform var(--duration-base) var(--ease-smooth);
   }
 
   .session-timer:hover {
@@ -464,12 +469,12 @@
   }
 
   .timer-display {
-    font-size: 28px;
+    font-size: var(--icon-lg);
     font-weight: 700;
     font-family: var(--mono);
     color: var(--accent);
     line-height: 1.1;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
     animation: fadeIn 0.3s ease;
   }
 
@@ -484,15 +489,15 @@
   .session-metrics {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .metric-item {
     text-align: center;
-    padding: 6px;
+    padding: var(--space-md);
     background: var(--surface);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .metric-value {
@@ -501,7 +506,7 @@
     font-family: var(--mono);
     color: var(--text);
     line-height: 1;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .metric-label {
@@ -512,23 +517,23 @@
   }
 
   .quality-section {
-    margin-top: 8px;
-    padding: 6px;
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .quality-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 12px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
   }
 
   .quality-badge {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     border: 2px solid;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 700;
     font-family: var(--mono);
@@ -540,7 +545,7 @@
   }
 
   .quality-factors {
-    margin-top: 12px;
+    margin-top: var(--space-xl);
   }
 
   .factors-title {
@@ -548,18 +553,18 @@
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
     font-weight: 600;
   }
 
   .factor-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--bg);
-    border-radius: 4px;
-    margin-bottom: 6px;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-md);
     font-size: 12px;
   }
 
@@ -572,11 +577,11 @@
   }
 
   .break-recommendation {
-    margin-top: 8px;
-    padding: 6px;
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
     background: var(--surface-2);
     border-left: 4px solid var(--accent);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .break-recommendation.critical {
@@ -592,8 +597,8 @@
   .break-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .break-icon {
@@ -609,32 +614,32 @@
   .break-message {
     font-size: 11px;
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
     font-weight: 600;
   }
 
   .break-duration {
     font-size: 12px;
     color: var(--muted);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .break-reasons {
-    margin-top: 12px;
+    margin-top: var(--space-xl);
     font-size: 11px;
     color: var(--muted);
   }
 
   .reason-item {
-    padding: 4px 0;
+    padding: var(--space-sm) 0;
   }
 
   .no-break-needed {
-    margin-top: 8px;
-    padding: 6px;
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
     background: color-mix(in srgb, var(--success) 10%, transparent);
     border-left: 4px solid var(--success);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--success);
     font-size: 11px;
     font-weight: 600;
@@ -644,19 +649,19 @@
   /* No Session Panel */
   .no-session-panel {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
   }
 
   .no-session-icon {
     font-size: 11px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .no-session-title {
     font-size: 11px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .no-session-hint {
@@ -668,17 +673,18 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .stat-card {
+    /* Card-like styling but with custom requirements */
     text-align: center;
-    padding: 8px;
+    padding: var(--space-lg); /* Custom: 8px padding */
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    border-radius: var(--radius);
+    transition: all var(--duration-base) var(--ease-smooth);
     cursor: pointer;
   }
 
@@ -693,17 +699,17 @@
   }
 
   .stat-icon {
-    font-size: 28px;
-    margin-bottom: 12px;
+    font-size: var(--icon-lg);
+    margin-bottom: var(--space-xl);
   }
 
   .stat-value {
-    font-size: 28px;
+    font-size: var(--icon-lg);
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
     line-height: 1;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .stat-label {
@@ -714,30 +720,30 @@
   }
 
   .peak-hours-section {
-    margin-top: 8px;
-    padding: 8px;
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .peak-hours-title {
     font-size: 11px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .peak-hours-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .peak-hour-item {
     display: grid;
     grid-template-columns: 60px 1fr 120px;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .peak-hour-time {
@@ -748,16 +754,16 @@
   }
 
   .peak-hour-bar {
-    height: 24px;
+    height: var(--icon-md);
     background: var(--bg);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
   .peak-hour-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--accent), var(--success));
-    transition: width 0.3s;
+    transition: width var(--duration-slow) var(--ease-smooth);
   }
 
   .peak-hour-stats {
@@ -767,39 +773,39 @@
   }
 
   .recent-sessions-section {
-    margin-top: 8px;
-    padding: 8px;
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .recent-sessions-title {
     font-size: 11px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .recent-sessions-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-lg);
   }
 
   .recent-session-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--bg);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
   }
 
   .session-info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     color: var(--muted);
   }
 
@@ -814,23 +820,23 @@
 
   /* Skeleton Loading */
   .loading-skeleton {
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .skeleton-panel {
-    padding: 8px;
-    border-radius: 4px;
+    padding: var(--space-lg);
+    border-radius: var(--radius);
   }
 
   .skeleton-hero {
     height: 120px;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .skeleton-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .skeleton-card {

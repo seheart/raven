@@ -176,7 +176,7 @@
 
   .type-badge {
     display: inline-block;
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-sm);
     font-family: var(--mono);
     font-size: 11px;

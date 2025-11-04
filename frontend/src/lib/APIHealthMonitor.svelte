@@ -149,8 +149,16 @@
     isManualRefresh = manual;
     const startTime = Date.now();
 
-    // Check all endpoints in parallel for much faster results
-    await Promise.all(apiEndpoints.map(endpoint => checkEndpoint(endpoint)));
+    // Check endpoints in larger batches with progressive rendering
+    const BATCH_SIZE = 20; // Increased from 10
+    for (let i = 0; i < apiEndpoints.length; i += BATCH_SIZE) {
+      const batch = apiEndpoints.slice(i, i + BATCH_SIZE);
+      // Start all checks in parallel and update UI as each completes
+      const promises = batch.map(endpoint => checkEndpoint(endpoint));
+      await Promise.all(promises);
+      // Force UI update after each batch
+      healthStatus = { ...healthStatus };
+    }
 
     lastCheck = new Date();
     lastUpdated = new Date();
@@ -172,7 +180,7 @@
       const controller = new AbortController();
       // Use longer timeout for known-slow endpoints (comprehensive health checks, etc.)
       const timeout = endpoint.path.includes('comprehensive') || endpoint.path.includes('snapshots')
-        ? 15000 // 15 seconds for slow endpoints
+        ? 25000 // 25 seconds for slow endpoints (comprehensive checks can take 18+ seconds)
         : 5000;  // 5 seconds for normal endpoints
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -212,12 +220,12 @@
         history: healthHistory[key].checks.slice(-10) // Last 10 for sparkline
       };
 
-      // Alert if endpoint fails
-      if (!response.ok && alertsEnabled) {
-        notifications.error(`API endpoint ${key} returned ${response.status}`, {
-          title: 'API Health Alert'
-        });
-      }
+      // Alert if endpoint fails (disabled - too noisy)
+      // if (!response.ok && alertsEnabled) {
+      //   notifications.error(`API endpoint ${key} returned ${response.status}`, {
+      //     title: 'API Health Alert'
+      //   });
+      // }
     } catch (error) {
       // Update history with failure
       healthHistory[key].checks.push({
@@ -243,8 +251,8 @@
         history: healthHistory[key].checks.slice(-10)
       };
 
-      // Alert on error
-      if (alertsEnabled) {
+      // Alert on error (disabled - too noisy)
+      if (false && alertsEnabled) {
         notifications.error(`API endpoint ${key} failed: ${error.message}`, {
           title: 'API Health Alert'
         });
@@ -304,10 +312,10 @@
         <input type="checkbox" bind:checked={alertsEnabled} aria-label="Enable health alerts" />
         <span>Alerts</span>
       </label>
-      <button on:click={clearHistory} disabled={checkingAll} class="btn-secondary" aria-label="Clear history and reset success rates" title="Clear history to reset success rates">
+      <button on:click={clearHistory} disabled={checkingAll} class="btn btn-danger btn-sm" aria-label="Clear history and reset success rates" title="Clear history to reset success rates">
         Clear History
       </button>
-      <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn-refresh" aria-label={checkingAll ? 'Checking all endpoints' : 'Check all endpoints'}>
+      <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn btn-secondary btn-sm" aria-label={checkingAll ? 'Checking all endpoints' : 'Check all endpoints'}>
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         {checkingAll ? 'Checking...' : 'Check All'}
       </button>
@@ -319,7 +327,7 @@
   {:else if apiEndpoints.length === 0}
     <div class="empty-state" role="status">
       <p><span aria-hidden="true">❌</span> No API endpoints found</p>
-      <button class="btn-refresh" on:click={() => loadEndpoints()} aria-label="Retry loading endpoints">Retry</button>
+      <button class="btn btn-secondary btn-sm" on:click={() => loadEndpoints()} aria-label="Retry loading endpoints">Retry</button>
     </div>
   {:else}
     <div class="categories" role="list" aria-labelledby="api-health-heading">
@@ -367,9 +375,12 @@
                       {#each status.history as check, i (i)}
                         <div
                           class="spark-bar"
-                          class:bar-success={check.success}
+                          class:bar-fast={check.success && check.responseTime < 50}
+                          class:bar-medium={check.success && check.responseTime >= 50 && check.responseTime < 200}
+                          class:bar-slow={check.success && check.responseTime >= 200}
                           class:bar-failure={!check.success}
                           style="height: {check.success && check.responseTime ? Math.min((check.responseTime / 500) * 100, 100) : 10}%"
+                          title="{check.responseTime || 'failed'}ms"
                           aria-hidden="true"
                         ></div>
                       {/each}
@@ -383,7 +394,7 @@
                 </div>
 
                 <div class="endpoint-actions">
-                  <button on:click={() => checkEndpoint(endpoint)} class="btn-test" aria-label="Test {endpoint.path} endpoint">
+                  <button on:click={() => checkEndpoint(endpoint)} class="btn btn-ghost btn-icon" aria-label="Test {endpoint.path} endpoint">
                     <span aria-hidden="true">⚡</span>
                   </button>
                 </div>
@@ -398,7 +409,7 @@
 
 <style>
   .api-health {
-    padding: 12px;
+    padding: var(--space-xl);
     width: 100%;
     margin: 0;
     font-family: var(--mono);
@@ -410,12 +421,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
-    padding: 0 8px;
+    margin-bottom: var(--space-md);
+    padding: 0 var(--space-lg);
   }
 
   h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 12px;
     font-weight: 600;
   }
@@ -423,16 +434,16 @@
   .status-indicators {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   /* (removed unused .last-check) */
 
   .realtime-badge {
-    padding: 4px 10px;
+    padding: var(--space-sm) var(--space-lg);
     background: color-mix(in srgb, var(--success) 15%, transparent);
     border: 1px solid var(--success);
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 600;
     color: var(--success);
@@ -447,7 +458,7 @@
   .header-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .last-updated {
@@ -456,29 +467,6 @@
     font-family: var(--mono);
   }
 
-  .btn-refresh {
-    padding: 8px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-refresh:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-refresh:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
 
   .refresh-icon {
     display: inline-block;
@@ -493,7 +481,7 @@
 
   .empty-state {
     text-align: center;
-    padding: 12px 8px;
+    padding: var(--space-xl) var(--space-lg);
     color: var(--muted);
     font-size: 11px;
   }
@@ -501,7 +489,7 @@
   .categories {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .category-section {
@@ -513,7 +501,7 @@
 
   .category-title {
     margin: 0;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     font-size: 11px;
     font-weight: 600;
     background: var(--bg);
@@ -530,11 +518,11 @@
   .endpoint-row {
     display: grid;
     grid-template-columns: 40px 70px 1fr 120px 50px;
-    gap: 12px;
-    padding: 6px 10px;
+    gap: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
     border-bottom: 1px solid var(--border);
     align-items: center;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .endpoint-row:last-child {
@@ -563,8 +551,8 @@
   }
 
   .method-badge {
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -584,7 +572,7 @@
   .endpoint-path {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-xs);
     overflow: hidden;
   }
 
@@ -604,14 +592,14 @@
 
   .endpoint-metrics {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
     justify-content: flex-end;
   }
 
   .response-time {
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 600;
   }
@@ -622,8 +610,8 @@
   }
 
   .response-time.medium {
-    background: color-mix(in srgb, #f59e0b 20%, transparent);
-    color: #fbbf24;
+    background: color-mix(in srgb, var(--warning) 20%, transparent);
+    color: var(--warning);
   }
 
   .response-time.slow {
@@ -632,8 +620,8 @@
   }
 
   .status-code {
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 600;
   }
@@ -648,46 +636,26 @@
     color: var(--error);
   }
 
-  .btn-test {
-    padding: 4px 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-  }
-
-  .btn-test:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-refresh:focus,
-  .btn-test:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 
   /* Header Controls */
   .header-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .control-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 13px;
     color: var(--text);
   }
 
   .control-label select {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     background: var(--surface);
     color: var(--text);
     font-family: var(--mono);
@@ -702,8 +670,8 @@
   .success-rate {
     font-size: 11px;
     font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     font-family: var(--mono);
   }
 
@@ -722,30 +690,53 @@
     color: white;
   }
 
-  /* Sparkline */
+  /* Sparkline - btop-style visualization */
   .sparkline {
     display: flex;
     align-items: flex-end;
-    gap: 2px;
-    height: 24px;
-    min-width: 80px;
+    gap: var(--space-xs);
+    height: var(--icon-lg);
+    min-width: 100px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius);
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--border);
   }
 
   .spark-bar {
     flex: 1;
-    min-width: 4px;
-    max-width: 8px;
+    min-width: 5px;
+    max-width: 10px;
     border-radius: 2px 2px 0 0;
-    transition: height 0.2s ease;
+    transition: all var(--duration-slow) var(--ease-smooth);
+    position: relative;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
   }
 
-  .spark-bar.bar-success {
-    background: var(--success);
-    opacity: 0.8;
+  .spark-bar:hover {
+    transform: scaleY(1.1);
+    filter: brightness(1.2);
+  }
+
+  /* Color-coded by response time (like btop) */
+  .spark-bar.bar-fast {
+    background: linear-gradient(to top, var(--success), color-mix(in srgb, var(--success) 80%, white));
+    box-shadow: 0 0 6px color-mix(in srgb, var(--success) 40%, transparent);
+  }
+
+  .spark-bar.bar-medium {
+    background: linear-gradient(to top, var(--warning), color-mix(in srgb, var(--warning) 80%, white));
+    box-shadow: 0 0 6px color-mix(in srgb, var(--warning) 40%, transparent);
+  }
+
+  .spark-bar.bar-slow {
+    background: linear-gradient(to top, var(--error), color-mix(in srgb, var(--error) 80%, white));
+    box-shadow: 0 0 6px color-mix(in srgb, var(--error) 40%, transparent);
   }
 
   .spark-bar.bar-failure {
-    background: var(--error);
+    background: linear-gradient(to top, var(--accent), color-mix(in srgb, var(--accent) 80%, white));
     height: 100% !important;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 40%, transparent);
   }
 </style>

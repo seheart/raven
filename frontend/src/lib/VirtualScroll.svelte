@@ -114,7 +114,7 @@
     align-items: center;
     padding: 0 var(--space-md);
     border-bottom: 1px solid var(--border);
-    transition: background var(--transition-fast);
+    transition: background var(--duration-fast) var(--ease-smooth);
   }
 
   .virtual-scroll-item:hover {
@@ -134,7 +134,7 @@
   .virtual-scroll-container::-webkit-scrollbar-thumb {
     background: var(--muted);
     border-radius: var(--radius-sm);
-    transition: background var(--transition-fast);
+    transition: background var(--duration-fast) var(--ease-smooth);
   }
 
   .virtual-scroll-container::-webkit-scrollbar-thumb:hover {

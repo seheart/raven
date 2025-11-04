@@ -45,7 +45,7 @@
     <div class="shortcuts-modal" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
       <div class="shortcuts-header">
         <h2 id="shortcuts-title"><span aria-hidden="true">⌨️</span> Keyboard Shortcuts</h2>
-        <button class="close-btn" on:click={onClose} aria-label="Close keyboard shortcuts dialog">×</button>
+        <button class="btn btn-ghost btn-icon" on:click={onClose} aria-label="Close keyboard shortcuts dialog">×</button>
       </div>
 
       <div class="shortcuts-content">
@@ -82,29 +82,34 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: color-mix(in srgb, var(--bg) 85%, black);
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 3000;
+    z-index: 9999;
+    overflow: auto;
   }
 
   .shortcuts-modal {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     width: 90%;
     max-width: 700px;
     max-height: 85vh;
     overflow-y: auto;
-    box-shadow: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    margin: auto;
+    position: relative;
   }
 
   .shortcuts-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
+    padding: var(--space-xl);
     border-bottom: 2px solid var(--info);
     position: sticky;
     top: 0;
@@ -118,27 +123,13 @@
     font-size: 12px;
   }
 
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 13px;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-  }
-
-  .close-btn:hover {
-    color: var(--text);
-  }
 
   .shortcuts-content {
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .shortcuts-section {
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
   }
 
   .shortcuts-section:last-child {
@@ -157,17 +148,17 @@
   .shortcuts-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-lg);
   }
 
   .shortcut-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface-2);
-    border-radius: 3px;
-    transition: background 0.2s;
+    border-radius: var(--radius-sm);
+    transition: background var(--duration-base) var(--ease-smooth);
   }
 
   .shortcut-item:hover {
@@ -176,22 +167,22 @@
 
   .shortcut-keys {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-lg);
     align-items: center;
   }
 
   .key {
     display: inline-block;
-    padding: 4px 0.6rem;
+    padding: var(--space-sm) 0.6rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
+    border-radius: var(--radius);
+    font-family: var(--mono);
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
     box-shadow: 0 2px 0 #222;
-    min-width: 28px;
+    min-width: var(--icon-lg);
     text-align: center;
   }
 
@@ -201,7 +192,7 @@
   }
 
   .shortcuts-footer {
-    padding: 10px 1.5rem;
+    padding: var(--space-lg) 1.5rem;
     border-top: 1px solid var(--border);
     text-align: center;
     color: var(--muted);

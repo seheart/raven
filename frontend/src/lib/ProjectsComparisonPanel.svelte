@@ -511,19 +511,19 @@
       Auto-refresh
     </label>
 
-    <button class="btn-refresh" on:click={loadProjects} disabled={loading} aria-label={loading ? 'Loading projects' : 'Refresh projects'}>
+    <button class="btn btn-primary btn-sm" on:click={loadProjects} disabled={loading} aria-label={loading ? 'Loading projects' : 'Refresh projects'}>
       <span aria-hidden="true">{#if loading}⏳{:else}🔄{/if}</span> Refresh
     </button>
 
-    <button class="btn-export" on:click={exportCSV} aria-label="Export comparison data to CSV">
+    <button class="btn btn-secondary btn-sm" on:click={exportCSV} aria-label="Export comparison data to CSV">
       <span aria-hidden="true">📤</span> CSV
     </button>
 
-    <button class="btn-export" on:click={exportJSON} aria-label="Export comparison data to JSON">
+    <button class="btn btn-secondary btn-sm" on:click={exportJSON} aria-label="Export comparison data to JSON">
       <span aria-hidden="true">📦</span> JSON
     </button>
 
-    <button class="btn-toggle-charts" on:click={() => showCharts = !showCharts} aria-label="{showCharts ? 'Hide' : 'Show'} charts">
+    <button class="btn btn-ghost btn-sm" on:click={() => showCharts = !showCharts} aria-label="{showCharts ? 'Hide' : 'Show'} charts">
       <span aria-hidden="true">{showCharts ? '📊' : '📈'}</span> {showCharts ? 'Hide' : 'Show'} Charts
     </button>
 
@@ -668,7 +668,7 @@
 
 <style>
   .comparison-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1600px;
     margin: 0 auto;
   }
@@ -676,11 +676,11 @@
   .controls {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
-    margin-bottom: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-2xl);
+    margin-bottom: var(--space-lg);
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
     flex-wrap: wrap;
   }
@@ -688,20 +688,20 @@
   .search-input {
     flex: 1;
     min-width: 200px;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-family: var(--mono);
     font-size: 11px;
   }
 
   .filter-select {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-family: var(--mono);
     font-size: 11px;
@@ -711,11 +711,11 @@
   .auto-refresh {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 11px;
   }
@@ -724,33 +724,6 @@
     cursor: pointer;
   }
 
-  .btn-refresh, .btn-export, .btn-toggle-charts {
-    padding: 8px 16px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 3px;
-    font-family: var(--mono);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-refresh:hover, .btn-export:hover, .btn-toggle-charts:hover {
-    filter: brightness(1.2);
-  }
-
-  .btn-refresh:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-refresh:focus,
-  .btn-export:focus,
-  .btn-toggle-charts:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 
   .sort-info {
     margin-left: auto;
@@ -761,15 +734,15 @@
   .comparison-table {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
   .table-header, .table-row {
     display: grid;
     grid-template-columns: 150px 1fr 100px 100px 200px 120px;
-    gap: 8px;
-    padding: 16px;
+    gap: var(--space-lg);
+    padding: var(--space-2xl);
     align-items: center;
   }
 
@@ -786,7 +759,7 @@
   .table-header > div.sortable {
     cursor: pointer;
     user-select: none;
-    transition: color 0.2s;
+    transition: color var(--duration-base) var(--ease-smooth);
   }
 
   .table-header > div.sortable:hover {
@@ -800,7 +773,7 @@
 
   .table-row {
     border-bottom: 1px solid var(--border);
-    transition: background 0.2s;
+    transition: background var(--duration-base) var(--ease-smooth);
   }
 
   .table-row:hover {
@@ -822,7 +795,7 @@
     font-size: inherit;
     text-decoration: underline;
     text-decoration-style: dotted;
-    transition: opacity 0.2s;
+    transition: opacity var(--duration-base) var(--ease-smooth);
   }
 
   .project-name-btn:hover {
@@ -832,7 +805,7 @@
   .col-path {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     font-family: var(--mono);
     font-size: 12px;
     color: var(--text-muted);
@@ -850,9 +823,9 @@
     border: none;
     cursor: pointer;
     font-size: 14px;
-    padding: 4px;
+    padding: var(--space-sm);
     opacity: 0.6;
-    transition: opacity 0.2s;
+    transition: opacity var(--duration-base) var(--ease-smooth);
     flex-shrink: 0;
   }
 
@@ -871,15 +844,15 @@
 
   .status-badge {
     display: inline-block;
-    padding: 4px 12px;
-    border-radius: 3px;
+    padding: var(--space-sm) var(--space-xl);
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     border: none;
     cursor: pointer;
     font-family: inherit;
-    transition: opacity 0.2s, transform 0.2s;
+    transition: opacity var(--duration-base) var(--ease-smooth), transform var(--duration-base) var(--ease-smooth);
   }
 
   .status-badge:hover {
@@ -913,8 +886,8 @@
   .results-info {
     font-size: 12px;
     color: var(--text-muted);
-    padding: 8px 0;
-    margin-top: 8px;
+    padding: var(--space-lg) 0;
+    margin-top: var(--space-lg);
   }
 
   .results-info strong {
@@ -924,12 +897,12 @@
 
   .summary {
     display: flex;
-    gap: 8px;
-    padding: 8px;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-top: 8px;
+    border-radius: var(--radius);
+    margin-top: var(--space-lg);
   }
 
   .summary-stat {
@@ -945,15 +918,15 @@
 
   .empty {
     text-align: center;
-    padding: 64px 24px;
+    padding: var(--space-4xl) var(--space-3xl);
     color: var(--text-muted);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .empty p {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-2xl);
     font-size: 14px;
   }
 
@@ -961,37 +934,37 @@
     font-size: 12px;
     color: var(--text-muted);
     opacity: 0.8;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   /* Charts Section */
   .charts-section {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .chart-container {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
+    border-radius: var(--radius);
+    padding: var(--space-2xl);
     border-left: 3px solid var(--accent);
   }
 
   .chart-header {
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .chart-header h3 {
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }

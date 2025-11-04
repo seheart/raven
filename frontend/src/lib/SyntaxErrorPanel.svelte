@@ -266,10 +266,10 @@ ${allErrorsText}`;
     const textColor = getColor('--text', '#c0caf5');
     const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
-    const successColor = getColor('--success', '#9ece6a');
-    const accentColor = getColor('--accent', '#7aa2f7');
-    const errorColor = getColor('--error', '#f7768e');
-    const warningColor = getColor('--warning', '#e0af68');
+    const successColor = getColor('--success', 'var(--success)');
+    const accentColor = getColor('--accent', 'var(--info)');
+    const errorColor = getColor('--error', 'var(--error)');
+    const warningColor = getColor('--warning', 'var(--warning)');
     const infoColor = getColor('--info', '#7dcfff');
 
     // 1. Pie Chart: Errors by Severity
@@ -561,14 +561,14 @@ ${allErrorsText}`;
       {/if}
       <div class="header-actions">
         {#if filteredCount > 0}
-          <button class="action-btn copy-all-btn" on:click={copyAllErrors} aria-label="Copy all errors">
+          <button class="btn btn-secondary btn-sm" on:click={copyAllErrors} aria-label="Copy all errors">
             <span aria-hidden="true">📋</span> Copy All
           </button>
-          <button class="action-btn clear-all-btn" on:click={clearAllErrors} aria-label="Clear all errors">
+          <button class="btn btn-danger btn-sm" on:click={clearAllErrors} aria-label="Clear all errors">
             <span aria-hidden="true">🗑️</span> Clear All
           </button>
         {/if}
-        <button class="refresh-btn" on:click={fetchErrors} aria-label="Refresh syntax errors">
+        <button class="btn btn-primary btn-icon" on:click={fetchErrors} aria-label="Refresh syntax errors">
           <span aria-hidden="true">↻</span>
         </button>
       </div>
@@ -580,7 +580,7 @@ ${allErrorsText}`;
         <label class="filter-label">Project:</label>
         <div class="project-filter">
           <button
-            class="project-btn"
+            class="btn btn-ghost btn-sm"
             class:active={selectedProject === 'all'}
             on:click={() => selectedProject = 'all'}
           >
@@ -588,7 +588,7 @@ ${allErrorsText}`;
           </button>
           {#each projects as project (project)}
             <button
-              class="project-btn"
+              class="btn btn-ghost btn-sm"
               class:active={selectedProject === project}
               on:click={() => selectedProject = project}
             >
@@ -620,7 +620,7 @@ ${allErrorsText}`;
   {#if error}
     <div class="error-state" role="alert">
       <p>Error: {error}</p>
-      <button class="btn-retry" on:click={fetchErrors} aria-label="Retry loading syntax errors">
+      <button class="btn btn-primary btn-sm" on:click={fetchErrors} aria-label="Retry loading syntax errors">
         Retry
       </button>
     </div>
@@ -678,10 +678,10 @@ ${allErrorsText}`;
                 {/if}
 
                 <div class="error-actions">
-                  <button class="open-file-btn" on:click={() => openFile(error.filepath, error.line_number)} aria-label="Open {error.filepath} at line {error.line_number}">
+                  <button class="btn btn-primary btn-sm" on:click={() => openFile(error.filepath, error.line_number)} aria-label="Open {error.filepath} at line {error.line_number}">
                     📂 Open File
                   </button>
-                  <button class="copy-btn" on:click={() => copyError(error)} aria-label="Copy error details">
+                  <button class="btn btn-secondary btn-sm" on:click={() => copyError(error)} aria-label="Copy error details">
                     📋 Copy
                   </button>
                 </div>
@@ -712,23 +712,23 @@ ${allErrorsText}`;
   .syntax-error-panel {
     background: var(--surface);
     border-radius: var(--radius);
-    padding: 8px;
+    padding: var(--space-lg);
     height: 100%;
     display: flex;
     flex-direction: column;
   }
 
   .panel-header {
-    margin-bottom: 8px;
-    padding-bottom: 16px;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-2xl);
     border-bottom: 1px solid var(--border);
   }
 
   .header-top {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
   }
 
   .panel-header h2 {
@@ -740,8 +740,8 @@ ${allErrorsText}`;
   }
 
   .error-count {
-    padding: 4px 12px;
-    border-radius: 3px;
+    padding: var(--space-sm) var(--space-xl);
+    border-radius: var(--radius-sm);
     font-size: 13px;
     font-weight: 600;
     background: var(--surface-2);
@@ -749,20 +749,20 @@ ${allErrorsText}`;
   }
 
   .error-count.has-errors {
-    background: #fef2f2;
-    color: #ef4444;
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    color: var(--error);
   }
 
   .total-count {
     font-size: 12px;
     color: var(--muted);
-    margin-left: 4px;
+    margin-left: var(--space-sm);
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     margin-left: auto;
   }
 
@@ -770,7 +770,7 @@ ${allErrorsText}`;
   .filter-section {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .filter-label {
@@ -783,110 +783,14 @@ ${allErrorsText}`;
 
   .project-filter {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     flex-wrap: wrap;
   }
 
-  .project-btn {
-    padding: 6px 12px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    font-family: var(--mono);
-    text-transform: uppercase;
-  }
-
-  .project-btn:hover {
-    background: var(--surface);
-    border-color: var(--accent);
-  }
-
-  .project-btn.active {
+  .btn.active {
     background: var(--accent);
     border-color: var(--accent);
     color: white;
-  }
-
-  .project-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .action-btn {
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .copy-all-btn {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .copy-all-btn:hover {
-    background: var(--accent-hover, var(--accent));
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .clear-all-btn {
-    background: var(--surface-2);
-    color: var(--text);
-  }
-
-  .clear-all-btn:hover {
-    background: var(--error);
-    border-color: var(--error);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .action-btn:active {
-    transform: translateY(0);
-  }
-
-  .action-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .refresh-btn {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-  }
-
-  .refresh-btn:hover {
-    background: var(--accent);
-    color: white;
-    transform: rotate(180deg);
-  }
-
-  .refresh-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
   }
 
   .loading {
@@ -894,8 +798,8 @@ ${allErrorsText}`;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px 12px;
-    gap: 8px;
+    padding: var(--space-lg) var(--space-xl);
+    gap: var(--space-lg);
   }
 
   .spinner {
@@ -907,26 +811,22 @@ ${allErrorsText}`;
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
   .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     text-align: center;
   }
 
   .empty-icon {
     font-size: 11px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .empty-state h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 12px;
     font-weight: 600;
     color: var(--text);
@@ -943,13 +843,13 @@ ${allErrorsText}`;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .file-group {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
@@ -957,8 +857,8 @@ ${allErrorsText}`;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 10px 14px;
+    gap: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
@@ -966,7 +866,7 @@ ${allErrorsText}`;
   .file-header-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-lg);
     flex: 1;
     min-width: 0;
   }
@@ -990,13 +890,13 @@ ${allErrorsText}`;
   .file-badges {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     flex-shrink: 0;
   }
 
   .project-badge-file {
-    padding: 3px 8px;
-    border-radius: 3px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 700;
     background: var(--accent);
@@ -1006,12 +906,12 @@ ${allErrorsText}`;
   }
 
   .file-error-count {
-    padding: 3px 10px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 12px;
     font-weight: 700;
-    background: #fef2f2;
-    color: #ef4444;
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    color: var(--error);
   }
 
   .errors {
@@ -1020,7 +920,7 @@ ${allErrorsText}`;
   }
 
   .error-item {
-    padding: 16px;
+    padding: var(--space-2xl);
     border-bottom: 1px solid var(--border);
     border-left: 3px solid var(--severity-color);
   }
@@ -1033,14 +933,14 @@ ${allErrorsText}`;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-lg);
   }
 
   .error-title-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-lg);
   }
 
   .language-icon {
@@ -1055,8 +955,8 @@ ${allErrorsText}`;
   }
 
   .severity-badge {
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -1069,21 +969,21 @@ ${allErrorsText}`;
     font-size: 13px;
     color: var(--text);
     line-height: 1.6;
-    margin-bottom: 12px;
-    padding: 8px 12px;
+    margin-bottom: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .code-snippet {
     font-family: var(--mono);
     font-size: 12px;
     line-height: 1.6;
-    margin: 12px 0;
-    padding: 12px;
+    margin: var(--space-xl) 0;
+    padding: var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow-x: auto;
     color: var(--text);
   }
@@ -1096,98 +996,37 @@ ${allErrorsText}`;
   .error-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 12px;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
   }
 
-  .open-file-btn {
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    background: var(--accent);
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .open-file-btn:hover {
-    background: var(--accent-hover, var(--accent));
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .open-file-btn:active {
-    transform: translateY(0);
-  }
-
-  .open-file-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .copy-btn {
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    background: var(--surface);
-    color: var(--text);
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .copy-btn:hover {
-    background: var(--info);
-    border-color: var(--info);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .copy-btn:active {
-    transform: translateY(0);
-  }
-
-  .copy-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 
   /* Load More */
   .load-more-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 24px;
+    gap: var(--space-xl);
+    padding: var(--space-3xl);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-top: 8px;
+    border-radius: var(--radius);
+    margin-top: var(--space-lg);
   }
 
   .load-more-btn {
-    padding: 12px 24px;
+    padding: var(--space-xl) var(--space-3xl);
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .load-more-btn:hover:not(:disabled) {
@@ -1220,61 +1059,36 @@ ${allErrorsText}`;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 32px 16px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
+    gap: var(--space-xl);
+    padding: var(--space-4xl) var(--space-2xl);
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
+    border-radius: var(--radius);
     text-align: center;
   }
 
   .error-state p {
     margin: 0;
-    color: #991b1b;
+    color: var(--error);
     font-size: 13px;
     font-weight: 500;
   }
 
-  .btn-retry {
-    padding: 8px 16px;
-    background: var(--error);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-retry:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .btn-retry:focus {
-    outline: 2px solid var(--error);
-    outline-offset: 2px;
-  }
 
   /* Charts Section */
   .charts-section {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-2xl);
   }
 
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .chart-container {
     height: 250px;
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);

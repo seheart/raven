@@ -67,7 +67,7 @@
 
       <div class="dialog-footer" role="group" aria-label="Dialog actions">
         <button
-          class="btn btn-cancel"
+          class="btn btn-secondary"
           on:click={handleCancel}
           tabindex="0"
           aria-label="Cancel and close dialog"
@@ -75,7 +75,7 @@
           {cancelText}
         </button>
         <button
-          class="btn btn-confirm btn-{type}"
+          class="btn {type === 'danger' ? 'btn-danger' : 'btn-primary'}"
           on:click={handleConfirm}
           tabindex="0"
           autofocus
@@ -102,13 +102,13 @@
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    padding: 16px;
+    padding: var(--space-2xl);
   }
 
   .dialog-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     max-width: 400px;
     width: 100%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -118,8 +118,8 @@
   .dialog-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 24px;
+    gap: var(--space-xl);
+    padding: var(--space-lg) var(--space-3xl);
     border-bottom: 1px solid var(--border);
     background: var(--surface-2);
   }
@@ -137,7 +137,7 @@
   }
 
   .dialog-body {
-    padding: 8px;
+    padding: var(--space-lg);
     font-family: var(--mono);
     font-size: 13px;
     color: var(--text);
@@ -146,67 +146,14 @@
 
   .dialog-footer {
     display: flex;
-    gap: 12px;
-    padding: 8px 12px;
+    gap: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
     border-top: 1px solid var(--border);
     background: var(--bg);
     justify-content: flex-end;
   }
 
-  .btn {
-    padding: 6px 10px;
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-    outline: none;
-  }
-
-  .btn:focus {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
-  }
-
-  .btn-cancel {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  .btn-cancel:hover {
-    background: var(--surface-2);
-    transform: translateY(-1px);
-  }
-
-  .btn-confirm {
-    color: white;
-  }
-
-  .btn-info {
-    background: var(--info);
-  }
-
-  .btn-info:hover {
-    background: color-mix(in srgb, var(--info) 80%, black);
-  }
-
-  .btn-warning {
-    background: var(--warning);
-  }
-
-  .btn-warning:hover {
-    background: color-mix(in srgb, var(--warning) 80%, black);
-  }
-
-  .btn-danger {
-    background: var(--error);
-  }
-
-  .btn-danger:hover {
-    background: color-mix(in srgb, var(--error) 80%, black);
-  }
+  /* Button styles removed - now using global .btn classes */
 
   /* Type-specific styling */
   .dialog-danger {

@@ -211,10 +211,10 @@
   }
 
   function getHealthBarColor(score) {
-    if (score >= 75) return '#10b981'; // green - excellent
-    if (score >= 50) return '#3b82f6'; // blue - good
-    if (score >= 25) return '#f59e0b'; // yellow - fair
-    return '#ef4444'; // red - poor
+    if (score >= 75) return 'var(--success)'; // green - excellent
+    if (score >= 50) return 'var(--info)'; // blue - good
+    if (score >= 25) return 'var(--warning)'; // yellow - fair
+    return 'var(--error)'; // red - poor
   }
 
   function handleExportCSV() {
@@ -260,9 +260,9 @@
         Auto-refresh
       </label>
       <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
-      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export project health data as CSV"><span aria-hidden="true">📤</span> CSV</button>
-      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export project health data as JSON"><span aria-hidden="true">📦</span> JSON</button>
-      <button class="btn-primary" on:click={loadHealthData} aria-label="Refresh project health data"><span aria-hidden="true">🔄</span> Refresh</button>
+      <button class="btn btn-secondary btn-sm" on:click={handleExportCSV} aria-label="Export project health data as CSV"><span aria-hidden="true">📤</span> CSV</button>
+      <button class="btn btn-secondary btn-sm" on:click={handleExportJSON} aria-label="Export project health data as JSON"><span aria-hidden="true">📦</span> JSON</button>
+      <button class="btn btn-primary btn-sm" on:click={loadHealthData} aria-label="Refresh project health data"><span aria-hidden="true">🔄</span> Refresh</button>
     </div>
   </div>
 
@@ -314,16 +314,16 @@
 
     <div class="control-group" role="radiogroup" aria-labelledby="sort-label">
       <span id="sort-label">Sort by:</span>
-      <button class="sort-btn" class:active={sortBy === 'health'} on:click={() => handleSort('health')} role="radio" aria-checked={sortBy === 'health'}>
+      <button class="btn btn-ghost btn-sm" class:active={sortBy === 'health'} on:click={() => handleSort('health')} role="radio" aria-checked={sortBy === 'health'}>
         Health {sortBy === 'health' ? (sortDesc ? '▼' : '▲') : ''}
       </button>
-      <button class="sort-btn" class:active={sortBy === 'name'} on:click={() => handleSort('name')} role="radio" aria-checked={sortBy === 'name'}>
+      <button class="btn btn-ghost btn-sm" class:active={sortBy === 'name'} on:click={() => handleSort('name')} role="radio" aria-checked={sortBy === 'name'}>
         Name {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}
       </button>
-      <button class="sort-btn" class:active={sortBy === 'activity'} on:click={() => handleSort('activity')} role="radio" aria-checked={sortBy === 'activity'}>
+      <button class="btn btn-ghost btn-sm" class:active={sortBy === 'activity'} on:click={() => handleSort('activity')} role="radio" aria-checked={sortBy === 'activity'}>
         Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}
       </button>
-      <button class="sort-btn" class:active={sortBy === 'errors'} on:click={() => handleSort('errors')} role="radio" aria-checked={sortBy === 'errors'}>
+      <button class="btn btn-ghost btn-sm" class:active={sortBy === 'errors'} on:click={() => handleSort('errors')} role="radio" aria-checked={sortBy === 'errors'}>
         Errors {sortBy === 'errors' ? (sortDesc ? '▼' : '▲') : ''}
       </button>
     </div>
@@ -334,7 +334,7 @@
   {:else if error}
     <div class="error-state" role="alert">
       <p><span aria-hidden="true">❌</span> Error loading project health: {error}</p>
-      <button class="btn-primary" on:click={loadHealthData} aria-label="Retry loading project health">Try Again</button>
+      <button class="btn btn-primary btn-sm" on:click={loadHealthData} aria-label="Retry loading project health">Try Again</button>
     </div>
   {:else if projects.length === 0}
     <div class="empty-state" role="status">
@@ -428,7 +428,7 @@
 
 <style>
   .multi-project-health-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -437,11 +437,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .header-left h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -454,7 +454,7 @@
 
   .header-right {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
     flex-wrap: wrap;
   }
@@ -462,8 +462,8 @@
   .auto-refresh {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -483,12 +483,12 @@
   .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .stat-card {
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
@@ -500,7 +500,7 @@
 
   .stat-card.clickable {
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .stat-card.clickable:hover {
@@ -509,11 +509,11 @@
   }
 
   .stat-card.active {
-    border-color: #10b981;
+    border-color: var(--success);
   }
 
   .stat-card.recent {
-    border-color: #3b82f6;
+    border-color: var(--info);
   }
 
   .stat-card.idle {
@@ -525,7 +525,7 @@
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .stat-label {
@@ -536,8 +536,8 @@
   }
 
   .controls {
-    margin-bottom: 8px;
-    padding: 16px;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -545,15 +545,15 @@
 
   .controls-row {
     display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-2xl);
     flex-wrap: wrap;
   }
 
   .search-input {
     flex: 1;
     min-width: 200px;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -563,7 +563,7 @@
   }
 
   .filter-select {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -576,50 +576,28 @@
   .control-group {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
     flex-wrap: wrap;
   }
 
-  /* (removed unused .control-group label) */
-
-  .sort-btn {
-    padding: 6px 14px;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .sort-btn:hover {
-    border-color: var(--accent);
-  }
-
-  .sort-btn.active {
+  .btn.active {
     background: var(--accent);
     color: white;
     border-color: var(--accent);
   }
 
-  .sort-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .project-card {
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .project-card:hover {
@@ -628,11 +606,11 @@
   }
 
   .project-card.card-active {
-    border-color: #10b981;
+    border-color: var(--success);
   }
 
   .project-card.card-recent {
-    border-color: #3b82f6;
+    border-color: var(--info);
   }
 
   .project-card.card-idle {
@@ -643,8 +621,8 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 6px;
-    gap: 8px;
+    margin-bottom: var(--space-md);
+    gap: var(--space-lg);
   }
 
   .project-name-container {
@@ -661,7 +639,7 @@
   .project-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .copy-btn {
@@ -669,9 +647,9 @@
     border: none;
     cursor: pointer;
     font-size: 14px;
-    padding: 4px;
+    padding: var(--space-sm);
     opacity: 0.6;
-    transition: opacity 0.2s;
+    transition: opacity var(--duration-base) var(--ease-smooth);
   }
 
   .copy-btn:hover {
@@ -681,7 +659,7 @@
   .project-status {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .status-dot {
@@ -690,16 +668,16 @@
     border-radius: 50%;
     background: #6b7280;
     flex-shrink: 0;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) var(--ease-smooth);
   }
 
   .status-dot.status-active {
-    background: #10b981;
+    background: var(--success);
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
   }
 
   .status-dot.status-recent {
-    background: #3b82f6;
+    background: var(--info);
     box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
   }
 
@@ -717,21 +695,21 @@
   .health-bar-container {
     height: 8px;
     background: var(--bg);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .health-bar {
     height: 100%;
-    transition: width 0.3s ease, background 0.3s ease;
+    transition: width var(--duration-slow) var(--ease-smooth), background var(--duration-slow) var(--ease-smooth);
   }
 
   .health-score {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-md);
   }
 
   .score-value {
@@ -749,8 +727,8 @@
   .results-info {
     font-size: 12px;
     color: var(--text-muted);
-    padding: 8px 0;
-    margin-bottom: 8px;
+    padding: var(--space-lg) 0;
+    margin-bottom: var(--space-lg);
   }
 
   .results-info strong {
@@ -761,9 +739,9 @@
   .project-metrics {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 6px;
-    padding-top: 16px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-md);
+    padding-top: var(--space-2xl);
     border-top: 1px solid var(--border);
   }
 
@@ -795,52 +773,17 @@
     font-family: var(--mono);
   }
 
-  .btn-primary, .btn-secondary {
-    padding: 8px 16px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid var(--border);
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .btn-primary:hover {
-    opacity: 0.9;
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--text);
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-primary:focus,
-  .btn-secondary:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
   .empty-state p, .error-state p {
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
     color: var(--text);
   }
 
@@ -852,7 +795,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 8px;
+      gap: var(--space-lg);
     }
 
     .header-right {

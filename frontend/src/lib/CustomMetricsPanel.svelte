@@ -198,7 +198,7 @@
 
 <style>
   .custom-metrics-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1600px;
     margin: 0 auto;
   }
@@ -207,11 +207,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 32px;
+    margin-bottom: var(--space-4xl);
   }
 
   .header-left h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -224,7 +224,7 @@
 
   .header-right {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
   }
 
@@ -236,16 +236,16 @@
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .metric-card {
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
     text-align: center;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .metric-card:hover {
@@ -258,23 +258,23 @@
   }
 
   .metric-card.primary {
-    border-color: var(--accent, #7aa2f7);
+    border-color: var(--accent, var(--info));
   }
 
   .metric-card.success {
-    border-color: var(--success, #10b981);
+    border-color: var(--success, var(--success));
   }
 
   .metric-card.warning {
-    border-color: var(--warning, #e0af68);
+    border-color: var(--warning, var(--warning));
   }
 
   .metric-card.error {
-    border-color: var(--error, #f7768e);
+    border-color: var(--error, var(--error));
   }
 
   .metric-card.accent {
-    border-color: var(--accent, #7aa2f7);
+    border-color: var(--accent, var(--info));
   }
 
   .metric-card.info {
@@ -283,7 +283,7 @@
 
   .metric-icon {
     font-size: 11px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .metric-value {
@@ -291,7 +291,7 @@
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
     line-height: 1;
   }
 
@@ -299,7 +299,7 @@
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -316,8 +316,8 @@
   .breakdown-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 6px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-md);
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
   }
@@ -335,11 +335,11 @@
   .breakdown-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .breakdown-item {
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--bg);
     border-radius: var(--radius);
     text-align: center;
@@ -349,7 +349,7 @@
     font-size: 11px;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
     letter-spacing: 0.5px;
   }
 
@@ -367,8 +367,8 @@
   .highlight-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 6px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-md);
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
   }
@@ -387,7 +387,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--bg);
     border-radius: var(--radius);
   }
@@ -406,11 +406,11 @@
     font-family: var(--mono);
     color: var(--accent);
     white-space: nowrap;
-    margin-left: 16px;
+    margin-left: var(--space-2xl);
   }
 
   .btn-primary {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--accent);
     color: white;
     border: 1px solid var(--accent);
@@ -418,7 +418,7 @@
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-primary:hover {
@@ -432,20 +432,20 @@
 
   .error-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
   .error-state p {
-    margin: 8px 0;
-    color: var(--error, #f7768e);
+    margin: var(--space-lg) 0;
+    color: var(--error, var(--error));
   }
 
   .error-state button {
-    margin-top: 16px;
-    padding: 8px 16px;
+    margin-top: var(--space-2xl);
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--accent);
     color: white;
     border: none;
@@ -471,7 +471,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 8px;
+      gap: var(--space-lg);
     }
 
     .metrics-grid {

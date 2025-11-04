@@ -237,7 +237,7 @@
     <h2 id="status-heading"><span aria-hidden="true">🏥</span> System Status</h2>
     <div class="header-actions" role="toolbar" aria-label="Status panel actions">
       <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
-      <button on:click={() => checkBackendHealth(true)} class="btn-refresh" disabled={loading} aria-label="Refresh system status">
+      <button on:click={() => checkBackendHealth(true)} class="btn btn-secondary" disabled={loading} aria-label="Refresh system status">
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         <span>Refresh</span>
       </button>
@@ -276,7 +276,7 @@
             <div class="session-id-container">
               <span class="value mono session-id-value" title="{backendStatus.session_id}">{backendStatus.session_id}</span>
               <button
-                class="copy-btn"
+                class="btn btn-sm btn-icon"
                 on:click={() => {
                   navigator.clipboard.writeText(backendStatus.session_id);
                   notifications.success('Session ID copied to clipboard!');
@@ -417,7 +417,7 @@
             <div class="info-message">
               ✅ Claude Code operations are being tracked
             </div>
-            <button on:click={restartBridge} class="btn-restart" disabled={restartingBridge} aria-label="Restart telemetry bridge">
+            <button on:click={restartBridge} class="btn btn-secondary" disabled={restartingBridge} aria-label="Restart telemetry bridge">
               <span class="refresh-icon" class:spinning={restartingBridge} aria-hidden="true">↻</span>
               {restartingBridge ? 'Restarting...' : 'Restart Bridge'}
             </button>
@@ -426,7 +426,7 @@
               ⚠️ Telemetry bridge is not running
               <p class="hint">Claude Code operations will not be tracked</p>
             </div>
-            <button on:click={restartBridge} class="btn-restart btn-start" disabled={restartingBridge} aria-label="Start telemetry bridge">
+            <button on:click={restartBridge} class="btn btn-primary" disabled={restartingBridge} aria-label="Start telemetry bridge">
               <span class="refresh-icon" class:spinning={restartingBridge} aria-hidden="true">↻</span>
               {restartingBridge ? 'Starting...' : 'Start Bridge'}
             </button>
@@ -462,7 +462,7 @@
           {#each $availableProjects as project (project.name || project)}
             {@const projectName = project.name || project}
             <button
-              class="project-item"
+              class="btn btn-ghost project-item"
               class:selected={$projectFilter === projectName}
               on:click={() => projectFilter.set(projectName)}
               aria-label="Switch to project {projectName}"
@@ -612,7 +612,7 @@
 
 <style>
   .status-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     position: relative;
     width: 100%;
     margin: 0;
@@ -626,8 +626,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding: 0 8px;
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-lg);
   }
 
   h2 {
@@ -639,38 +639,13 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .last-updated {
     font-size: 12px;
     color: var(--muted);
     font-family: var(--mono);
-  }
-
-  .btn-refresh {
-    padding: 8px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-refresh:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-refresh:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   .refresh-icon {
@@ -682,61 +657,16 @@
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  .btn-restart {
-    width: 100%;
-    padding: 6px 10px;
-    margin-top: 12px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .btn-restart:hover:not(:disabled) {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--bg);
-  }
-
-  .btn-restart.btn-start {
-    background: var(--success);
-    border-color: var(--success);
-    color: var(--bg);
-  }
-
-  .btn-restart.btn-start:hover:not(:disabled) {
-    background: var(--success-hover, var(--success));
-    opacity: 0.9;
-  }
-
-  .btn-restart:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
   .status-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .status-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
   }
 
@@ -745,7 +675,7 @@
   }
 
   .card-header {
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--bg);
     border-bottom: 1px solid var(--surface-2);
     display: flex;
@@ -761,8 +691,8 @@
   }
 
   .status-indicator {
-    padding: 6px 14px;
-    border-radius: 3px;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-sm);
     font-size: 13px;
     font-weight: 600;
   }
@@ -778,14 +708,14 @@
   }
 
   .card-body {
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .info-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
+    padding: var(--space-xl) 0;
     border-bottom: 1px solid var(--border);
   }
 
@@ -795,15 +725,15 @@
 
   .session-row {
     background: var(--bg);
-    padding: 16px 12px;
-    margin: 0 -12px;
+    padding: var(--space-2xl) var(--space-xl);
+    margin: 0 calc(-1 * var(--space-xl));
     border-left: 3px solid var(--accent);
   }
 
   .session-id-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     max-width: 60%;
   }
 
@@ -812,26 +742,6 @@
     font-size: 11px;
   }
 
-  .copy-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-
-  .copy-btn:hover {
-    background: var(--accent);
-    border-color: var(--accent);
-    transform: scale(1.1);
-  }
-
-  .copy-btn:active {
-    transform: scale(0.95);
-  }
 
   .label {
     color: var(--muted);
@@ -850,7 +760,7 @@
   }
 
   .value.mono {
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     font-size: 12px;
   }
 
@@ -859,26 +769,26 @@
   }
 
   .error-message {
-    padding: 12px;
+    padding: var(--space-xl);
     background: color-mix(in srgb, var(--error) 10%, transparent);
     border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--error);
     text-align: center;
   }
 
   .info-message {
-    padding: 12px;
+    padding: var(--space-xl);
     background: color-mix(in srgb, var(--success) 10%, transparent);
     border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--success);
     text-align: center;
-    margin-top: 12px;
+    margin-top: var(--space-xl);
   }
 
   .hint {
-    margin-top: 8px;
+    margin-top: var(--space-lg);
     font-size: 13px;
     color: var(--muted);
   }
@@ -886,18 +796,18 @@
   .endpoints-grid {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .endpoint-item {
     display: grid;
     grid-template-columns: 80px 1fr 200px;
-    gap: 12px;
-    padding: 12px;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
     background: var(--bg);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .endpoint-item:hover {
@@ -906,12 +816,12 @@
   }
 
   .method {
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 700;
     text-align: center;
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
   }
 
   .endpoint-item:nth-child(1) .method,
@@ -934,7 +844,7 @@
   }
 
   .path {
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     font-size: 13px;
     color: var(--text);
     overflow: hidden;
@@ -949,7 +859,7 @@
 
   /* Git Section Styles */
   .git-section {
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
   }
 
   .git-section:last-child {
@@ -960,7 +870,7 @@
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
@@ -968,19 +878,19 @@
   .branches-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 0;
+    gap: var(--space-lg);
+    padding: var(--space-lg) 0;
   }
 
   .branch-tag {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     color: var(--muted);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .branch-tag.active {
@@ -993,16 +903,16 @@
   .commits-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .commit-item {
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     border-left: 3px solid var(--info);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .commit-item:hover {
@@ -1014,11 +924,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .commit-hash {
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     font-size: 12px;
     color: var(--info);
     font-weight: 600;
@@ -1032,7 +942,7 @@
   .commit-message {
     font-size: 13px;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
     line-height: 1.4;
   }
 
@@ -1046,30 +956,14 @@
   .projects-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
   }
 
   .project-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text);
-    text-align: left;
-  }
-
-  .project-item:hover {
-    background: var(--surface);
-    border-color: var(--accent);
-    transform: translateY(-1px);
+    gap: var(--space-lg);
   }
 
   .project-item.selected {
@@ -1098,9 +992,9 @@
   }
 
   .project-badge {
-    padding: 2px 8px;
+    padding: var(--space-xs) var(--space-lg);
     background: var(--accent);
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 700;
     color: white;
@@ -1115,23 +1009,23 @@
 
     .endpoint-item {
       grid-template-columns: 1fr;
-      gap: 8px;
+      gap: var(--space-lg);
     }
   }
 
   /* Uptime Visualization */
   .uptime-visualization {
-    margin-top: 8px;
+    margin-top: var(--space-lg);
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .uptime-bar {
     flex: 1;
     height: 8px;
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
     position: relative;
   }
@@ -1139,8 +1033,8 @@
   .uptime-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--success) 0%, var(--accent) 100%);
-    border-radius: 4px;
-    transition: width 1s ease;
+    border-radius: var(--radius);
+    transition: width var(--duration-slower) var(--ease-smooth);
   }
 
   .uptime-label {
@@ -1154,7 +1048,7 @@
   .db-error-hint {
     font-size: 11px;
     color: var(--error);
-    margin-left: 4px;
+    margin-left: var(--space-sm);
   }
 
   .value.error {

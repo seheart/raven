@@ -54,7 +54,7 @@
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   @keyframes shimmer {
@@ -67,20 +67,20 @@
   }
 
   .skeleton-text {
-    height: 16px;
-    margin-bottom: 8px;
+    height: var(--icon-xs);
+    margin-bottom: var(--space-lg);
   }
 
   .skeleton-card {
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-bottom: 6px;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-md);
   }
 
   .skeleton-header {
-    height: 20px;
+    height: var(--icon-sm);
     width: 150px;
     background: linear-gradient(
       90deg,
@@ -90,14 +90,14 @@
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
-    border-radius: 4px;
-    margin-bottom: 12px;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-xl);
   }
 
   .skeleton-body {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .skeleton-line {
@@ -110,7 +110,7 @@
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .skeleton-small {
@@ -120,22 +120,22 @@
   .skeleton-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .skeleton-list-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .skeleton-icon {
-    width: 32px;
-    height: 32px;
+    width: var(--icon-lg);
+    height: var(--icon-lg);
     background: linear-gradient(
       90deg,
       var(--surface-2) 0%,
@@ -152,14 +152,14 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .skeleton-chart {
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     display: flex;
     align-items: flex-end;
   }
@@ -167,7 +167,7 @@
   .skeleton-bars {
     display: flex;
     align-items: flex-end;
-    gap: 8px;
+    gap: var(--space-lg);
     width: 100%;
     height: 100%;
   }
@@ -182,7 +182,7 @@
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
-    border-radius: 4px 4px 0 0;
+    border-radius: var(--radius) var(--radius) 0 0;
   }
 
   /* Stagger animation for more natural feel */

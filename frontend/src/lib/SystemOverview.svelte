@@ -23,13 +23,13 @@
       error = null;
 
       // Parallel data fetching
-      const [healthData, projectsData, dbStats, errorsData, notifData, apiHealthData] = await Promise.all([
+      const [healthData, projectsData, errorsData, notifData, apiHealthData, dashboardData] = await Promise.all([
         fetch('/api/health').then(r => r.json()).catch(() => ({})),
         fetch('/api/health/projects').then(r => r.json()).catch(() => ({ projects: [] })),
-        fetch('/api/database/stats').then(r => r.json()).catch(() => ({ size: 0, events: 0 })),
         fetch('/api/errors/stats').then(r => r.json()).catch(() => ({ total: 0 })),
         fetch('/api/notifications/stats').then(r => r.json()).catch(() => ({ unread: 0 })),
-        fetch('/api/health-checks').then(r => r.json()).catch(() => null)
+        fetch('/api/health-checks').then(r => r.json()).catch(() => null),
+        fetch('/api/dashboard-stats').then(r => r.json()).catch(() => ({ total_events: 0 }))
       ]);
 
       backendHealth = {
@@ -42,8 +42,8 @@
 
       projectHealth = projectsData.projects || [];
       databaseStats = {
-        size: dbStats.total_size || dbStats.size || 0,
-        events: dbStats.total_events || dbStats.events || 0
+        size: healthData.storage?.ravenSize || 0,
+        events: dashboardData.total_events || 0
       };
 
       errorCount = errorsData.total || 0;
@@ -102,10 +102,18 @@
     unsubscribers.forEach(unsub => unsub());
   });
 
-  $: healthyProjects = projectHealth.filter(p => p.status === 'healthy').length;
+  $: healthyProjects = projectHealth.filter(p =>
+    p.status === 'active' ||
+    p.status === 'recent' ||
+    p.status === 'idle' ||
+    (p.health_score && p.health_score >= 60)
+  ).length;
   $: totalProjects = projectHealth.length;
-  $: systemStatus = backendHealth.status === 'healthy' && healthyProjects === totalProjects ? 'healthy' : 'degraded';
-  $: statusColor = systemStatus === 'healthy' ? '#10b981' : '#f59e0b';
+  // System is healthy if backend is operational (healthy or warning) and at least 50% of projects are healthy
+  $: systemStatus = (backendHealth.status === 'healthy' || backendHealth.status === 'warning') &&
+                    projectHealth.length > 0 &&
+                    healthyProjects >= (totalProjects * 0.5) ? 'healthy' : 'degraded';
+  $: statusColor = systemStatus === 'healthy' ? 'var(--success)' : 'var(--warning)';
 </script>
 
 <div class="system-overview">
@@ -211,12 +219,20 @@
         <h2>📊 Project Health Status</h2>
         <div class="projects-grid">
           {#each projectHealth.slice(0, 6) as project}
-            <div class="project-item" class:healthy={project.status === 'healthy'}>
-              <div class="project-status">{project.status === 'healthy' ? '✅' : '⚠️'}</div>
+            <div class="project-item" class:healthy={project.status === 'active' || project.status === 'recent' || project.status === 'idle'}>
+              <div class="project-status">
+                {#if project.status === 'active' || project.status === 'recent'}
+                  ✅
+                {:else if project.status === 'idle'}
+                  🟢
+                {:else}
+                  ⚠️
+                {/if}
+              </div>
               <div class="project-info">
                 <div class="project-name">{project.name}</div>
                 <div class="project-meta">
-                  {project.events || 0} events · {project.files || 0} files
+                  {project.recent_events || 0} events · Health: {project.health_score || 0}%
                 </div>
               </div>
             </div>
@@ -337,13 +353,13 @@
     align-items: flex-start;
     margin-bottom: 1rem;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .header-content h1 {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
     color: var(--text-primary);
   }
 
@@ -356,7 +372,7 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .last-updated {
@@ -368,10 +384,10 @@
     padding: 0.5rem 1rem;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
     font-size: 0.9rem;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .refresh-btn:hover:not(:disabled) {
@@ -388,11 +404,11 @@
   .status-card {
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
     border: 2px solid var(--status-color);
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 1rem;
     margin-bottom: 1rem;
     display: flex;
-    gap: 1.5rem;
+    gap: var(--space-2xl);
     align-items: flex-start;
   }
 
@@ -407,7 +423,8 @@
 
   .status-content h2 {
     margin: 0 0 0.5rem 0;
-    font-size: 1.5rem;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
 
@@ -423,13 +440,13 @@
   .status-details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .detail-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-lg);
     color: var(--text-primary);
     font-size: 0.95rem;
   }
@@ -442,20 +459,20 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
+    gap: var(--space-lg);
     margin-bottom: 1rem;
   }
 
   .stat-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 0.65rem 0.85rem;
     display: flex;
-    gap: 0.85rem;
+    gap: var(--space-lg);
     align-items: center;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .stat-card:hover {
@@ -464,8 +481,8 @@
   }
 
   .stat-card.alert {
-    border-color: #ef4444;
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(239, 68, 68, 0.05) 100%);
+    border-color: var(--error);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, color-mix(in srgb, var(--error) 5%, transparent) 100%);
   }
 
   .stat-icon {
@@ -478,7 +495,7 @@
     flex: 1;
     display: flex;
     align-items: baseline;
-    gap: 0.6rem;
+    gap: var(--space-lg);
     flex-wrap: wrap;
   }
 
@@ -509,38 +526,39 @@
   .stat-status {
     font-size: 0.85rem;
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: var(--radius);
     display: inline-block;
     margin-top: 0.5rem;
   }
 
   .stat-status.ok {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    background: color-mix(in srgb, var(--success) 10%, transparent);
+    color: var(--success);
   }
 
   .stat-status.warning {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
+    background: color-mix(in srgb, var(--warning) 10%, transparent);
+    color: var(--warning);
   }
 
   .stat-status.critical {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--error) 10%, transparent);
+    color: var(--error);
   }
 
   /* Section Card */
   .section-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 1rem;
     margin-bottom: 1rem;
   }
 
   .section-card h2 {
     margin: 0 0 0.75rem 0;
-    font-size: 1rem;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
 
@@ -548,20 +566,20 @@
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .project-item {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-lg);
     padding: 0.65rem 0.85rem;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
   }
 
   .project-item.healthy {
-    border-left: 3px solid #10b981;
+    border-left: 3px solid var(--success);
   }
 
   .project-status {
@@ -602,7 +620,7 @@
   /* Health Summary */
   .health-summary {
     display: flex;
-    gap: 2rem;
+    gap: var(--space-2xl);
     margin-bottom: 1rem;
   }
 
@@ -612,17 +630,17 @@
 
   .health-value {
     display: block;
-    font-size: 2rem;
+    font-size: var(--icon-lg);
     font-weight: 700;
     color: var(--text-primary);
   }
 
   .health-stat.success .health-value {
-    color: #10b981;
+    color: var(--success);
   }
 
   .health-stat.error .health-value {
-    color: #ef4444;
+    color: var(--error);
   }
 
   .health-label {
@@ -645,26 +663,27 @@
   /* Quick Actions */
   .quick-actions h2 {
     margin: 0 0 0.75rem 0;
-    font-size: 1rem;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
 
   .actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
+    gap: var(--space-lg);
   }
 
   .action-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     padding: 0.65rem 0.85rem;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: var(--space-lg);
   }
 
   .action-card:hover {
@@ -697,7 +716,7 @@
   .loading-skeleton {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+    gap: var(--space-2xl);
   }
 
   .skeleton-card {
@@ -705,7 +724,7 @@
     background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
   }
 
   @keyframes loading {
@@ -714,9 +733,9 @@
   }
 
   .error-banner {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid #ef4444;
-    border-radius: 8px;
+    background: color-mix(in srgb, var(--error) 10%, transparent);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-xl);
     padding: 1rem;
     display: flex;
     justify-content: space-between;
@@ -726,10 +745,10 @@
 
   .error-banner button {
     padding: 0.5rem 1rem;
-    background: #ef4444;
+    background: var(--error);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
   }
 
@@ -759,7 +778,7 @@
 
     .health-summary {
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-xl);
     }
   }
 </style>

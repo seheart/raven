@@ -207,21 +207,21 @@
 
 <style>
   .timeline-slider {
-    padding: 10px;
+    padding: var(--space-lg);
     background: var(--surface-2);
-    border-radius: 3px;
-    margin-bottom: 8px;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-lg);
   }
 
   .timeline-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .timeline-header {
-    padding: 0 8px;
+    padding: 0 var(--space-lg);
   }
 
   .timeline-label {
@@ -233,14 +233,14 @@
   }
 
   .reset-btn {
-    padding: 4px 0.75rem;
+    padding: var(--space-sm) 0.75rem;
     font-size: 11px;
     background: var(--surface);
     color: var(--muted);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .reset-btn:hover {
@@ -262,7 +262,7 @@
     right: 0;
     height: 100%;
     display: flex;
-    gap: 1%;
+    gap: var(--space-xs);
   }
 
   .density-bar {
@@ -270,7 +270,7 @@
     background: var(--info);
     align-self: flex-end;
     border-radius: 2px 2px 0 0;
-    transition: opacity 0.2s;
+    transition: opacity var(--duration-base) var(--ease-smooth);
   }
 
   .range-overlay {
@@ -297,15 +297,15 @@
   .slider-handle {
     position: absolute;
     top: 50%;
-    width: 16px;
-    height: 24px;
+    width: var(--icon-xs);
+    height: var(--icon-md);
     background: var(--info);
     border: 2px solid var(--text);
-    border-radius: 4px;
+    border-radius: var(--radius);
     transform: translate(-50%, -50%);
     cursor: grab;
     z-index: 10;
-    transition: background 0.2s;
+    transition: background var(--duration-base) var(--ease-smooth);
   }
 
   .slider-handle:hover {
@@ -326,17 +326,17 @@
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    padding: 4px 0.5rem;
+    padding: var(--space-sm) 0.5rem;
     background: var(--surface);
     border: 1px solid var(--info);
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 11px;
     color: var(--text);
     white-space: nowrap;
     margin-bottom: 0.5rem;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: opacity var(--duration-base) var(--ease-smooth);
   }
 
   .slider-handle:hover .handle-label {

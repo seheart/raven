@@ -6,23 +6,19 @@ Raven provides keyboard shortcuts for quick navigation and common actions.
 
 | Shortcut | Description |
 |----------|-------------|
-| `?` | Show/hide keyboard shortcuts help (deprecated - now in docs) |
+| `?` | Open documentation (including this page) |
 | `Esc` | Close modals and dialogs |
 
 ## Navigation
 
 | Shortcut | Description |
 |----------|-------------|
-| `1` | Dashboard view |
-| `2` | Git view |
-| `3` | Session Replay view |
-| `4` | Performance view |
-| `5` | Triggers view |
-| `6` | Agents view |
-| `7` | Status view |
-| `8` | Error Log view |
-| `9` | Notifications view |
-| `0` | Storage view |
+| `1` | Overview (Dashboard) |
+| `2` | Safety view |
+| `3` | Agents view |
+| `4` | Activity view |
+| `5` | Analysis view |
+| `6` | System view |
 
 ## Tips
 

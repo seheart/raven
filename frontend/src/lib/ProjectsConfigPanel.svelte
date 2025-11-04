@@ -286,10 +286,10 @@
       <p class="subtitle">Manage which projects Raven monitors</p>
     </div>
     <div class="header-right" role="toolbar" aria-label="Project configuration actions">
-      <button class="btn-secondary" on:click={discoverProjects} disabled={discovering} aria-label={discovering ? 'Discovering projects' : 'Discover projects automatically'}>
+      <button class="btn btn-secondary btn-sm" on:click={discoverProjects} disabled={discovering} aria-label={discovering ? 'Discovering projects' : 'Discover projects automatically'}>
         <span aria-hidden="true">{discovering ? '🔍' : '🔍'}</span> {discovering ? 'Discovering...' : 'Discover Projects'}
       </button>
-      <button class="btn-primary" on:click={openAddModal} aria-label="Add new project">+ Add Project</button>
+      <button class="btn btn-primary btn-sm" on:click={openAddModal} aria-label="Add new project">+ Add Project</button>
     </div>
   </div>
 
@@ -305,7 +305,7 @@
       <div class="empty-state" role="status">
         <p><span aria-hidden="true">📭</span> No projects configured</p>
         <p class="hint">Add a project or discover projects automatically</p>
-        <button class="btn-primary" on:click={discoverProjects} aria-label="Discover projects automatically"><span aria-hidden="true">🔍</span> Discover Projects</button>
+        <button class="btn btn-primary btn-sm" on:click={discoverProjects} aria-label="Discover projects automatically"><span aria-hidden="true">🔍</span> Discover Projects</button>
       </div>
     {:else}
       <div class="projects-grid" role="list" aria-labelledby="projects-config-heading">
@@ -348,9 +348,9 @@
             </div>
 
             <div class="project-footer">
-              <button class="btn-sm btn-edit" on:click={() => openEditModal(project)}>✏️ Edit</button>
-              <button class="btn-sm btn-delete" on:click={() => deleteProject(project.name, false)}>🗑️ Remove</button>
-              <button class="btn-sm btn-danger" on:click={() => deleteProject(project.name, true)}>🗑️ Delete DB</button>
+              <button class="btn btn-secondary btn-sm" on:click={() => openEditModal(project)}>✏️ Edit</button>
+              <button class="btn btn-ghost btn-sm" on:click={() => deleteProject(project.name, false)}>🗑️ Remove</button>
+              <button class="btn btn-danger btn-sm" on:click={() => deleteProject(project.name, true)}>🗑️ Delete DB</button>
             </div>
           </div>
         {/each}
@@ -449,10 +449,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" on:click={() => { showAddModal = false; showEditModal = false; }}>
+        <button class="btn btn-secondary btn-sm" on:click={() => { showAddModal = false; showEditModal = false; }}>
           Cancel
         </button>
-        <button class="btn-primary" on:click={showAddModal ? addProject : updateProject}>
+        <button class="btn btn-primary btn-sm" on:click={showAddModal ? addProject : updateProject}>
           {showAddModal ? 'Add Project' : 'Save Changes'}
         </button>
       </div>
@@ -481,7 +481,7 @@
                   <span class="mono">{project.path}</span>
                 </div>
                 <button
-                  class="btn-sm btn-primary"
+                  class="btn btn-primary btn-sm"
                   on:click={() => addDiscoveredProject(project)}
                 >
                   + Add
@@ -493,7 +493,7 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" on:click={() => showDiscoverModal = false}>Close</button>
+        <button class="btn btn-secondary btn-sm" on:click={() => showDiscoverModal = false}>Close</button>
       </div>
     </div>
   </div>
@@ -513,10 +513,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" on:click={() => showConfirmModal = false}>
+        <button class="btn btn-secondary btn-sm" on:click={() => showConfirmModal = false}>
           Cancel
         </button>
-        <button class="btn-danger" on:click={confirmAction}>
+        <button class="btn btn-danger btn-sm" on:click={confirmAction}>
           Confirm
         </button>
       </div>
@@ -526,7 +526,7 @@
 
 <style>
   .projects-config-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -535,11 +535,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .header-left h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -552,21 +552,21 @@
 
   .header-right {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .project-card {
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
-    padding: 8px;
-    transition: all 0.2s;
+    padding: var(--space-lg);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .project-card.disabled {
@@ -582,11 +582,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .project-info h3 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 12px;
     color: var(--text);
   }
@@ -598,13 +598,13 @@
   }
 
   .btn-toggle {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-toggle.active {
@@ -614,13 +614,13 @@
   }
 
   .project-details {
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .detail-row {
     display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
     font-size: 13px;
   }
 
@@ -641,107 +641,30 @@
 
   .project-footer {
     display: flex;
-    gap: 8px;
-    padding-top: 16px;
+    gap: var(--space-lg);
+    padding-top: var(--space-2xl);
     border-top: 1px solid var(--border);
   }
 
-  .btn-sm {
-    padding: 6px 12px;
-    font-size: 12px;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-edit {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-
-  .btn-edit:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .btn-delete {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-
-  .btn-delete:hover {
-    background: #f59e0b;
-    color: white;
-    border-color: #f59e0b;
-  }
-
-  .btn-danger {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-
-  .btn-danger:hover {
-    background: #ef4444;
-    color: white;
-    border-color: #ef4444;
-  }
-
-  .btn-primary, .btn-secondary {
-    padding: 8px 16px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid var(--border);
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .btn-primary:hover {
-    opacity: 0.9;
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--text);
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
+  /* Button styles removed - using global .btn classes */
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
   .empty-state p, .error-state p {
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
     color: var(--text);
   }
 
   .hint {
     font-size: 13px;
     color: var(--muted);
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   /* Modal Styles */
@@ -773,7 +696,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px;
+    padding: var(--space-lg);
     border-bottom: 1px solid var(--border);
   }
 
@@ -802,20 +725,17 @@
   }
 
   .btn-toggle:focus,
-  .btn-sm:focus,
-  .btn-primary:focus,
-  .btn-secondary:focus,
   .modal-close:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
 
   .modal-body {
-    padding: 8px;
+    padding: var(--space-lg);
   }
 
   .form-group {
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .form-group label {
@@ -823,17 +743,17 @@
     font-size: 13px;
     font-weight: 500;
     color: var(--text);
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .form-group input[type="text"],
   .form-group input[type="number"],
   .form-group textarea {
     width: 100%;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 13px;
     font-family: var(--mono);
@@ -847,7 +767,7 @@
 
   .path-input-group {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: stretch;
   }
 
@@ -856,19 +776,19 @@
   }
 
   .browse-btn {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .browse-btn:hover {
@@ -890,37 +810,37 @@
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    padding: 8px;
+    gap: var(--space-xl);
+    padding: var(--space-lg);
     border-top: 1px solid var(--border);
   }
 
   .discovered-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .discovered-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .discovered-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .discovered-info strong {
@@ -935,7 +855,7 @@
   .empty-message {
     text-align: center;
     color: var(--muted);
-    padding: 8px;
+    padding: var(--space-lg);
   }
 
   .modal-confirm {

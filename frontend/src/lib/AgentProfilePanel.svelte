@@ -12,11 +12,11 @@
 
   // Agent badge configuration
   const agentConfig = {
-    'ant': { icon: '🐜', color: '#7aa2f7', name: 'ANT' },
-    'claude-code': { icon: '🤖', color: '#bb9af7', name: 'Claude Code' },
-    'cursor': { icon: '↗️', color: '#9ece6a', name: 'Cursor' },
-    'github-copilot': { icon: '🤝', color: '#f7768e', name: 'Copilot' },
-    'aider': { icon: '💬', color: '#e0af68', name: 'Aider' },
+    'ant': { icon: '🐜', color: 'var(--info)', name: 'ANT' },
+    'claude-code': { icon: '🤖', color: 'var(--accent)', name: 'Claude Code' },
+    'cursor': { icon: '↗️', color: 'var(--success)', name: 'Cursor' },
+    'github-copilot': { icon: '🤝', color: 'var(--error)', name: 'Copilot' },
+    'aider': { icon: '💬', color: 'var(--warning)', name: 'Aider' },
     'manual': { icon: '👤', color: '#a9b1d6', name: 'Manual' },
     'unknown': { icon: '❓', color: '#565f89', name: 'Unknown' }
   };
@@ -104,7 +104,7 @@
   }
 </script>
 
-<div class="agent-profile-panel" role="region" aria-label="Agent profiles panel">
+<div class="card agent-profile-panel" role="region" aria-label="Agent profiles panel">
   <div class="panel-header">
     <h2 id="agent-profiles-heading"><span aria-hidden="true">🤖</span> Agent Profiles</h2>
     <div class="panel-controls" role="toolbar" aria-label="Agent profiles actions">
@@ -231,17 +231,16 @@
 
 <style>
   .agent-profile-panel {
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 4px;
-    padding: 8px;
+    /* Using standardized .card class - removed duplicate styling */
+    border-width: 2px; /* Custom: thicker border for emphasis */
+    padding: var(--space-lg); /* Custom: 8px instead of default 24px */
   }
 
   .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .panel-header h2 {
@@ -253,15 +252,15 @@
 
   .panel-controls {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
   }
 
   .project-select {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--text);
     font-size: 12px;
     cursor: pointer;
@@ -273,14 +272,14 @@
   }
 
   .refresh-btn {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--text);
     font-size: 11px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .refresh-btn:hover {
@@ -295,12 +294,12 @@
 
   .loading, .error, .empty {
     text-align: center;
-    padding: 40px 20px;
+    padding: var(--space-4xl) var(--space-3xl);
     color: var(--muted);
   }
 
   .error p {
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
   }
 
   .error-detail {
@@ -316,15 +315,15 @@
   .agents-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .agent-card {
-    background: var(--bg);
+    background: var(--bg); /* Custom: different background than default card */
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 8px;
-    transition: all 0.2s;
+    border-radius: var(--radius);
+    padding: var(--space-lg); /* Custom: 8px padding */
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .agent-card:hover {
@@ -335,17 +334,17 @@
 
   .agent-header {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
-    margin-bottom: 6px;
-    padding-bottom: 16px;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-2xl);
     border-bottom: 1px solid var(--border);
   }
 
   .agent-avatar {
     width: 50px;
     height: 50px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -354,7 +353,7 @@
   }
 
   .agent-avatar-icon {
-    font-size: 28px;
+    font-size: var(--icon-lg);
   }
 
   .agent-info {
@@ -365,14 +364,14 @@
     font-size: 11px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .agent-stats-quick {
     font-size: 11px;
     color: var(--muted);
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     align-items: center;
   }
 
@@ -383,14 +382,14 @@
   .agent-characteristics {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 6px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-md);
   }
 
   .characteristic {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 13px;
   }
 
@@ -412,15 +411,15 @@
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 6px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-md);
   }
 
   .metric-box {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 12px;
+    border-radius: var(--radius-sm);
+    padding: var(--space-xl);
     text-align: center;
   }
 
@@ -429,7 +428,7 @@
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .metric-value {
@@ -440,8 +439,8 @@
   }
 
   .change-breakdown {
-    margin-top: 16px;
-    padding-top: 16px;
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-2xl);
     border-top: 1px solid var(--border);
   }
 
@@ -450,15 +449,15 @@
     color: var(--muted);
     text-transform: uppercase;
     font-weight: 600;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
   }
 
   .breakdown-bars {
     display: flex;
-    height: 24px;
-    border-radius: 3px;
+    height: var(--icon-md);
+    border-radius: var(--radius-sm);
     overflow: hidden;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
     background: var(--surface-2);
   }
 
@@ -466,7 +465,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) var(--ease-smooth);
   }
 
   .breakdown-bar.create {
@@ -490,7 +489,7 @@
 
   .breakdown-legend {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     justify-content: center;
     font-size: 11px;
   }
@@ -498,7 +497,7 @@
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-sm);
     color: var(--muted);
   }
 

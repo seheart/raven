@@ -120,7 +120,7 @@
     width: 100%;
     min-height: 100vh;
     overflow-y: auto;
-    padding: 12px 8px;
+    padding: var(--space-xl) var(--space-lg);
     color: var(--text);
     font-family: var(--mono);
   }
@@ -132,13 +132,13 @@
 
   .changelog-header {
     text-align: center;
-    margin-bottom: 60px;
+    margin-bottom: var(--space-4xl);
     padding-bottom: 30px;
     border-bottom: 2px solid var(--border);
   }
 
   .changelog-header h1 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 12px;
     font-weight: 600;
     color: var(--text);
@@ -154,15 +154,15 @@
   .changelog-content {
     display: flex;
     flex-direction: column;
-    gap: 40px;
+    gap: var(--space-4xl);
   }
 
   .release-section {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 3px;
-    padding: 12px;
-    transition: all 0.3s;
+    border-radius: var(--radius-sm);
+    padding: var(--space-xl);
+    transition: all var(--duration-slow) var(--ease-smooth);
   }
 
   .release-section:hover {
@@ -174,7 +174,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
     padding-bottom: 10px;
     border-bottom: 1px solid var(--surface-2);
   }
@@ -182,7 +182,7 @@
   .release-title {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .release-title h2 {
@@ -201,27 +201,27 @@
   .release-date {
     font-size: 12px;
     color: var(--muted);
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     background: var(--bg);
-    padding: 6px 12px;
-    border-radius: 3px;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-sm);
     border: 1px solid var(--surface-2);
   }
 
   .changes-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .change-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 12px;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
     background: var(--bg);
-    border-radius: 4px;
-    transition: all 0.2s;
+    border-radius: var(--radius);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .change-item:hover {
@@ -231,7 +231,7 @@
   .change-icon {
     font-size: 12px;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: var(--space-xs);
   }
 
   .change-description {
@@ -242,8 +242,8 @@
 
   .changelog-footer {
     text-align: center;
-    padding: 16px 20px;
-    margin-top: 8px;
+    padding: var(--space-2xl) var(--space-3xl);
+    margin-top: var(--space-lg);
   }
 
   .changelog-footer p {
@@ -260,14 +260,14 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     text-align: center;
   }
 
   .loading-state p,
   .error-state p,
   .empty-state p {
-    margin: 16px 0 0 0;
+    margin: var(--space-2xl) 0 0 0;
     font-size: 13px;
     color: var(--muted);
   }
@@ -285,10 +285,6 @@
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
   @media (max-width: 768px) {
     .changelog-header h1 {
       font-size: 12px;
@@ -300,7 +296,7 @@
 
     .release-header {
       flex-direction: column;
-      gap: 12px;
+      gap: var(--space-xl);
     }
 
     .release-title h2 {

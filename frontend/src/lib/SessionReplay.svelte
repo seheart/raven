@@ -419,7 +419,7 @@
 
 <style>
   .session-replay {
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--bg);
     min-height: 80vh;
     color: var(--text);
@@ -432,8 +432,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding: 0 8px;
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-lg);
   }
 
   h2 {
@@ -449,18 +449,18 @@
   }
 
   .btn-refresh {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .btn-refresh:hover:not(:disabled) {
@@ -482,21 +482,16 @@
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
   .header-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .filter-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-lg);
   }
 
   .filter-group label {
@@ -506,15 +501,15 @@
   }
 
   .session-select {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     border: 1px solid var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .session-select:hover {
@@ -530,26 +525,26 @@
 
   .empty-state {
     text-align: center;
-    padding: 16px;
+    padding: var(--space-2xl);
     color: var(--muted);
     font-size: 12px;
   }
 
   .timeline {
-    margin-top: 8px;
-    padding: 0 20px;
+    margin-top: var(--space-lg);
+    padding: 0 var(--space-3xl);
   }
 
   h3 {
     font-size: 12px;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
     color: var(--text);
   }
 
   .events-list {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: var(--space-2xl);
     padding-bottom: 10px;
   }
 
@@ -557,9 +552,9 @@
     background: var(--surface);
     border: 1px solid var(--surface-2);
     border-left: 4px solid var(--accent);
-    border-radius: 4px;
-    padding: 12px;
-    transition: all 0.2s;
+    border-radius: var(--radius);
+    padding: var(--space-xl);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .event-item:hover {
@@ -570,32 +565,32 @@
 
   .event-header {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
     flex-wrap: wrap;
   }
 
   .timestamp {
     color: var(--accent-2);
     font-size: 13px;
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
   }
 
   .agent {
-    padding: 4px 12px;
+    padding: var(--space-sm) var(--space-xl);
     background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--accent);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 600;
   }
 
   .event-type {
-    padding: 4px 12px;
+    padding: var(--space-sm) var(--space-xl);
     background: color-mix(in srgb, var(--accent-2) 20%, transparent);
     color: var(--accent-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 600;
   }
@@ -603,7 +598,7 @@
   .event-body {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .message {
@@ -619,19 +614,19 @@
   }
 
   .file {
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
   }
 
   /* Enhanced Filters Section */
   .filters-section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
-    margin: 16px 20px;
+    border-radius: var(--radius);
+    padding: var(--space-2xl);
+    margin: var(--space-2xl) var(--space-3xl);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .search-bar {
@@ -640,14 +635,14 @@
 
   .search-input {
     width: 100%;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-family: var(--mono);
     font-size: 13px;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .search-input:focus {
@@ -663,7 +658,7 @@
   .filter-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
     flex-wrap: wrap;
   }
 
@@ -678,7 +673,7 @@
 
   .event-type-filters {
     display: flex;
-    gap: 10px;
+    gap: var(--space-lg);
     flex-wrap: wrap;
     flex: 1;
   }
@@ -686,24 +681,24 @@
   .filter-checkbox {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     cursor: pointer;
     user-select: none;
   }
 
   .filter-checkbox input[type="checkbox"] {
     cursor: pointer;
-    width: 16px;
-    height: 16px;
+    width: var(--icon-xs);
+    height: var(--icon-xs);
     accent-color: var(--accent);
   }
 
   .filter-badge {
-    padding: 6px 12px;
-    border-radius: 3px;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 500;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     border: 1px solid transparent;
   }
 
@@ -743,15 +738,15 @@
   }
 
   .agent-select {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-family: var(--mono);
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     min-width: 200px;
   }
 
@@ -767,10 +762,10 @@
 
   .filter-stats {
     margin-left: auto;
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: color-mix(in srgb, var(--accent) 10%, transparent);
     color: var(--accent);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 600;
   }
@@ -779,19 +774,19 @@
   .timeline-viz {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 8px;
-    margin: 16px 20px;
+    border-radius: var(--radius);
+    padding: var(--space-lg);
+    margin: var(--space-2xl) var(--space-3xl);
   }
 
   .timeline-viz h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 12px;
     color: var(--text);
   }
 
   .timeline-hint {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 12px;
     color: var(--muted);
     font-style: italic;
@@ -799,15 +794,15 @@
 
   .timeline-buckets {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: flex-end;
     height: 120px;
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     overflow-x: auto;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
     position: relative;
     /* Add scroll snap for better mobile experience */
     scroll-snap-type: x proximity;
@@ -843,12 +838,12 @@
 
   .timeline-buckets::-webkit-scrollbar-track {
     background: color-mix(in srgb, var(--border) 30%, transparent);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .timeline-buckets::-webkit-scrollbar-thumb {
     background: var(--accent);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .timeline-buckets::-webkit-scrollbar-thumb:hover {
@@ -859,14 +854,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-sm);
     min-width: 60px;
     cursor: pointer;
     background: transparent;
     border: none;
     padding: 0;
     position: relative;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .timeline-bucket:hover {
@@ -884,10 +879,10 @@
 
   .timeline-bar {
     width: 40px;
-    min-height: 20px;
+    min-height: var(--icon-sm);
     background: linear-gradient(to top, var(--accent), var(--accent-2));
-    border-radius: 4px 4px 0 0;
-    transition: all 0.3s;
+    border-radius: var(--radius) var(--radius) 0 0;
+    transition: all var(--duration-slow) var(--ease-smooth);
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
   }
 
@@ -921,16 +916,16 @@
   }
 
   .btn-clear-filter {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: color-mix(in srgb, var(--error) 20%, transparent);
     border: 1px solid var(--error);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--error);
     font-family: var(--mono);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-clear-filter:hover {
@@ -945,14 +940,14 @@
     }
 
     .filters-section {
-      margin: 12px;
-      padding: 12px;
+      margin: var(--space-xl);
+      padding: var(--space-xl);
     }
 
     .filter-row {
       flex-direction: column;
       align-items: flex-start;
-      gap: 8px;
+      gap: var(--space-lg);
     }
 
     .filter-label {

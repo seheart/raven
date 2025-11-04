@@ -44,7 +44,7 @@
 
 <div class="user-menu-container">
   <button
-    class="user-button"
+    class="btn btn-ghost btn-sm user-button"
     on:click|stopPropagation={toggleMenu}
     aria-label="User menu for {$currentUser?.username || 'User'}"
     aria-expanded={showMenu}
@@ -81,7 +81,7 @@
       <div class="menu-divider" aria-hidden="true"></div>
 
       <button
-        class="menu-item"
+        class="btn btn-ghost menu-item"
         on:click={handleSettings}
         role="menuitem"
         aria-label="Open settings"
@@ -91,7 +91,7 @@
       </button>
 
       <button
-        class="menu-item"
+        class="btn btn-ghost menu-item"
         on:click={handleLogout}
         role="menuitem"
         aria-label="Logout from account"
@@ -111,31 +111,12 @@
   .user-button {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .user-button:hover {
-    background: var(--surface);
-    border-color: var(--accent);
-  }
-
-  .user-button:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    gap: var(--space-md);
   }
 
   .user-avatar {
-    width: 20px;
-    height: 20px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
     border-radius: 50%;
     background: var(--accent);
     color: white;
@@ -163,7 +144,7 @@
     min-width: 240px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     z-index: 10000;
     animation: slideDown 0.2s ease-out;
@@ -183,8 +164,8 @@
   .user-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px;
+    gap: var(--space-xl);
+    padding: var(--space-2xl);
   }
 
   .user-avatar-large {
@@ -209,16 +190,16 @@
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .role-badge {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-lg);
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
     width: fit-content;
   }
 
@@ -236,11 +217,11 @@
   .menu-divider {
     height: 1px;
     background: var(--border);
-    margin: 0 8px;
+    margin: 0 var(--space-lg);
   }
 
   .menu-section {
-    padding: 12px;
+    padding: var(--space-xl);
     display: flex;
     justify-content: center;
   }
@@ -248,26 +229,9 @@
   .menu-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
     width: 100%;
-    padding: 6px 10px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
     text-align: left;
-  }
-
-  .menu-item:hover {
-    background: var(--surface-2);
-  }
-
-  .menu-item:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
   }
 
   .menu-icon {
@@ -284,7 +248,7 @@
     }
 
     .user-button {
-      padding: 6px;
+      padding: var(--space-md);
     }
   }
 </style>

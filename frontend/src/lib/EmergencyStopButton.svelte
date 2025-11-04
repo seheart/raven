@@ -141,7 +141,7 @@
 {#if paused}
   <!-- Paused State: Resume Button -->
   <div class="emergency-stop paused" class:pulsing role="region" aria-label="Monitoring paused">
-    <button class="resume-btn" on:click={resume} aria-label="Resume file monitoring">
+    <button class="btn resume-btn" on:click={resume} aria-label="Resume file monitoring">
       <span class="icon" aria-hidden="true">▶️</span>
       <div class="button-content">
         <span class="button-label">MONITORING PAUSED</span>
@@ -155,7 +155,7 @@
   </div>
 {:else}
   <!-- Active State: Emergency Stop Button -->
-  <button class="emergency-stop active" on:click={pause} aria-label="Emergency stop - Pause file monitoring">
+  <button class="btn emergency-stop active" on:click={pause} aria-label="Emergency stop - Pause file monitoring">
     <span class="icon" aria-hidden="true">🛑</span>
     <div class="button-content">
       <span class="button-label">EMERGENCY STOP</span>
@@ -169,26 +169,26 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .emergency-stop.active {
-    padding: 8px 12px;
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    padding: var(--space-lg) var(--space-xl);
+    background: linear-gradient(135deg, var(--error) 0%, var(--error) 100%);
     border: 2px solid #b91c1c;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: white;
     font-family: var(--mono);
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
   }
 
   .emergency-stop.active:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    background: linear-gradient(135deg, var(--error) 0%, #b91c1c 100%);
   }
 
   .emergency-stop.active:active {
@@ -196,13 +196,13 @@
   }
 
   .emergency-stop.paused {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface-2);
-    border: 2px solid #f59e0b;
-    border-radius: 3px;
+    border: 2px solid var(--warning);
+    border-radius: var(--radius-sm);
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .emergency-stop.paused.pulsing {
@@ -217,16 +217,16 @@
   .resume-btn {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 10px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    gap: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
+    background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
     border: 2px solid #047857;
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: white;
     font-family: var(--mono);
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     width: 100%;
   }
 
@@ -264,9 +264,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border);
   }
 
@@ -274,7 +274,7 @@
     font-family: var(--mono);
     font-size: 11px;
     font-weight: 700;
-    color: #f59e0b;
+    color: var(--warning);
   }
 
   .pause-reason {
@@ -286,7 +286,7 @@
   @media (max-width: 768px) {
     .emergency-stop.active,
     .emergency-stop.paused {
-      padding: 6px 10px;
+      padding: var(--space-md) var(--space-lg);
     }
 
     .icon {

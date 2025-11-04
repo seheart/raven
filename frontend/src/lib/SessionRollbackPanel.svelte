@@ -379,7 +379,7 @@
         <input type="checkbox" bind:checked={showCharts} on:change={updateCharts} aria-label="Show charts" />
         Show Charts
       </label>
-      <button class="refresh-btn" on:click={fetchSessions} aria-label="Refresh sessions">
+      <button class="btn btn-secondary btn-sm" on:click={fetchSessions} aria-label="Refresh sessions">
         <span aria-hidden="true">↻</span>
       </button>
     </div>
@@ -413,7 +413,7 @@
   {#if error}
     <div class="error-state" role="alert">
       <p>Error: {error}</p>
-      <button class="btn-retry" on:click={fetchSessions} aria-label="Retry loading sessions">
+      <button class="btn btn-danger btn-sm" on:click={fetchSessions} aria-label="Retry loading sessions">
         Retry
       </button>
     </div>
@@ -434,7 +434,7 @@
     >
       <div class="preview-header">
         <h3 id="preview-heading">Rollback Preview</h3>
-        <button class="close-btn" on:click={cancelPreview} aria-label="Close preview">
+        <button class="btn btn-ghost btn-icon" on:click={cancelPreview} aria-label="Close preview">
           <span aria-hidden="true">✕</span>
         </button>
       </div>
@@ -488,10 +488,10 @@
         </div>
 
         <div class="preview-actions" role="group" aria-label="Rollback actions">
-          <button class="cancel-btn" on:click={cancelPreview} disabled={rollingback} aria-label="Cancel rollback">
+          <button class="btn btn-secondary btn-sm" on:click={cancelPreview} disabled={rollingback} aria-label="Cancel rollback">
             Cancel
           </button>
-          <button class="rollback-btn" on:click={showRollbackConfirmation} disabled={rollingback} aria-label={rollingback ? 'Rolling back files' : 'Confirm and execute rollback'}>
+          <button class="btn btn-danger btn-sm" on:click={showRollbackConfirmation} disabled={rollingback} aria-label={rollingback ? 'Rolling back files' : 'Confirm and execute rollback'}>
             {rollingback ? 'Rolling back...' : 'Confirm Rollback'}
           </button>
         </div>
@@ -542,7 +542,7 @@
           </div>
 
           <button
-            class="preview-btn"
+            class="btn btn-primary btn-sm"
             on:click={() => previewRollback(session)}
             disabled={previewing}
             aria-label={previewing && selectedSession === session.id ? 'Loading rollback preview' : 'Preview rollback for this session'}
@@ -590,14 +590,14 @@
       </div>
       <div class="modal-actions">
         <button
-          class="cancel-btn"
+          class="btn btn-secondary btn-sm"
           on:click={closeConfirmDialog}
           aria-label="Cancel rollback"
         >
           Cancel
         </button>
         <button
-          class="rollback-btn danger"
+          class="btn btn-danger btn-sm"
           on:click={executeRollback}
           disabled={!confirmCheckbox}
           aria-label="Execute rollback"
@@ -613,28 +613,28 @@
   .session-rollback-panel {
     background: var(--surface);
     border-radius: var(--radius);
-    padding: 8px;
+    padding: var(--space-lg);
     height: 100%;
     display: flex;
     flex-direction: column;
   }
 
   .panel-header {
-    margin-bottom: 8px;
-    padding-bottom: 16px;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-2xl);
     border-bottom: 1px solid var(--border);
     position: relative;
   }
 
   .panel-header h2 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
   }
 
   .panel-description {
-    margin: 0 0 12px 0;
+    margin: 0 0 var(--space-xl) 0;
     font-size: 13px;
     color: var(--muted);
   }
@@ -642,13 +642,13 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .toggle-label {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     font-size: 11px;
     color: var(--text);
     cursor: pointer;
@@ -656,38 +656,19 @@
   }
 
   .toggle-label input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: var(--icon-xs);
+    height: var(--icon-xs);
     cursor: pointer;
   }
 
-  .refresh-btn {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-  }
-
-  .refresh-btn:hover {
-    background: var(--accent);
-    color: white;
-    transform: rotate(180deg);
-  }
 
   .loading, .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px 12px;
-    gap: 8px;
+    padding: var(--space-lg) var(--space-xl);
+    gap: var(--space-lg);
     text-align: center;
   }
 
@@ -700,17 +681,13 @@
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
   .empty-icon {
     font-size: 11px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .empty-state h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 12px;
     font-weight: 600;
     color: var(--text);
@@ -727,15 +704,15 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .session-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
-    transition: all 0.2s;
+    border-radius: var(--radius);
+    padding: var(--space-2xl);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .session-card:hover {
@@ -746,8 +723,8 @@
   .session-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 6px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-md);
   }
 
   .session-icon {
@@ -761,16 +738,16 @@
   .session-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-sm);
   }
 
   .project-badge {
     display: inline-block;
-    padding: 3px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--accent);
     color: white;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 700;
     font-family: var(--mono);
@@ -779,7 +756,7 @@
 
   .project-badge-small {
     display: inline-block;
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     background: var(--accent);
     color: white;
     border-radius: 2px;
@@ -803,17 +780,17 @@
 
   .session-stats {
     display: flex;
-    gap: 8px;
-    margin-bottom: 6px;
-    padding: 12px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-md);
+    padding: var(--space-xl);
     background: var(--surface);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .stat {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .stat-icon {
@@ -832,28 +809,9 @@
     color: var(--muted);
   }
 
-  .preview-btn {
-    margin-top: 6px;
+  .session-card .btn {
+    margin-top: var(--space-md);
     width: 100%;
-    padding: 10px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .preview-btn:hover:not(:disabled) {
-    background: var(--accent-dark, #6366f1);
-    transform: translateY(-1px);
-  }
-
-  .preview-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   /* Preview Container */
@@ -867,7 +825,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .preview-header h3 {
@@ -877,35 +835,15 @@
     color: var(--text);
   }
 
-  .close-btn {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 11px;
-    color: var(--muted);
-    transition: all 0.2s;
-  }
-
-  .close-btn:hover {
-    background: var(--error);
-    border-color: var(--error);
-    color: white;
-  }
 
   .preview-info {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 8px;
-    padding: 16px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-2xl);
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .info-item {
@@ -924,12 +862,12 @@
   }
 
   .info-value.success {
-    color: #10b981;
+    color: var(--success);
     font-weight: 700;
   }
 
   .info-value.error {
-    color: #ef4444;
+    color: var(--error);
     font-weight: 700;
   }
 
@@ -938,13 +876,13 @@
   }
 
   .warning-box {
-    padding: 16px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
+    padding: var(--space-2xl);
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
+    border-radius: var(--radius);
     display: flex;
     align-items: start;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .warning-icon {
@@ -954,18 +892,18 @@
   .warning-box p {
     margin: 0;
     font-size: 13px;
-    color: #991b1b;
+    color: var(--error);
     line-height: 1.6;
   }
 
   .changes-list {
     flex: 1;
     overflow-y: auto;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .changes-list h4 {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
@@ -974,11 +912,11 @@
   .change-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    margin-bottom: 4px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
+    margin-bottom: var(--space-sm);
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .change-item.has-backup {
@@ -997,61 +935,26 @@
   }
 
   .no-backup-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 700;
-    background: #fef2f2;
-    color: #ef4444;
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    color: var(--error);
   }
 
   .preview-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
-  .cancel-btn, .rollback-btn {
+  .preview-actions {
+    display: flex;
+    gap: var(--space-xl);
+  }
+
+  .preview-actions .btn {
     flex: 1;
-    padding: 12px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .cancel-btn {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-
-  .cancel-btn:hover:not(:disabled) {
-    background: var(--surface);
-  }
-
-  .rollback-btn {
-    background: var(--error);
-    border: none;
-    color: white;
-  }
-
-  .rollback-btn:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--error) 90%, black);
-    transform: translateY(-1px);
-  }
-
-  .cancel-btn:disabled, .rollback-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .refresh-btn:focus,
-  .close-btn:focus,
-  .cancel-btn:focus,
-  .rollback-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
   }
 
   /* Confirmation Modal Styles */
@@ -1077,8 +980,8 @@
   .modal-content {
     background: var(--surface);
     border: 2px solid var(--error);
-    border-radius: 8px;
-    padding: 24px;
+    border-radius: var(--radius-xl);
+    padding: var(--space-3xl);
     max-width: 500px;
     width: 90%;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -1097,40 +1000,40 @@
   }
 
   .modal-content h3 {
-    margin: 0 0 16px 0;
-    font-size: 18px;
+    margin: 0 0 var(--space-2xl) 0;
+    font-size: var(--icon-sm);
     color: var(--error);
     font-family: var(--mono);
   }
 
   .modal-body {
-    margin-bottom: 20px;
+    margin-bottom: var(--space-3xl);
   }
 
   .warning-text {
     font-size: 14px;
     color: var(--text);
-    margin: 0 0 12px 0;
+    margin: 0 0 var(--space-xl) 0;
     line-height: 1.5;
   }
 
   .warning-subtext {
     font-size: 13px;
     color: var(--muted);
-    margin: 0 0 20px 0;
+    margin: 0 0 var(--space-3xl) 0;
     line-height: 1.5;
   }
 
   .confirm-checkbox {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px;
+    gap: var(--space-lg);
+    padding: var(--space-xl);
     background: var(--bg);
     border: 2px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .confirm-checkbox:hover {
@@ -1138,8 +1041,8 @@
   }
 
   .confirm-checkbox input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
     cursor: pointer;
   }
 
@@ -1151,22 +1054,14 @@
 
   .modal-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     justify-content: flex-end;
   }
 
-  .rollback-btn.danger {
-    background: var(--error);
-    color: white;
-  }
-
-  .rollback-btn.danger:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--error) 90%, black);
-  }
-
-  .rollback-btn.danger:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  .modal-actions {
+    display: flex;
+    gap: var(--space-xl);
+    justify-content: flex-end;
   }
 
   .error-state {
@@ -1174,65 +1069,43 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 32px 16px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
+    gap: var(--space-xl);
+    padding: var(--space-4xl) var(--space-2xl);
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
+    border-radius: var(--radius);
     text-align: center;
   }
 
   .error-state p {
     margin: 0;
-    color: #991b1b;
+    color: var(--error);
     font-size: 13px;
     font-weight: 500;
   }
 
-  .btn-retry {
-    padding: 8px 16px;
-    background: var(--error);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-retry:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .btn-retry:focus {
-    outline: 2px solid var(--error);
-    outline-offset: 2px;
-  }
 
   /* Charts Section */
   .charts-section {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-2xl);
   }
 
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .chart-container {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 12px;
+    border-radius: var(--radius);
+    padding: var(--space-xl);
     border-left: 3px solid var(--accent);
   }
 
   .chart-header {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .chart-header h3 {

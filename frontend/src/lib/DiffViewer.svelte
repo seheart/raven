@@ -80,7 +80,7 @@
   <div class="diff-modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
     <div class="diff-header">
       <h2 id="diff-title"><span aria-hidden="true">📊</span> Diff Viewer</h2>
-      <button class="close-btn" on:click={onClose} aria-label="Close diff viewer">×</button>
+      <button class="btn btn-ghost btn-icon" on:click={onClose} aria-label="Close diff viewer">×</button>
     </div>
 
     {#if diffLines.length > 0}
@@ -142,7 +142,7 @@
   .diff-modal-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     width: 95%;
     max-width: 1400px;
     max-height: 90vh;
@@ -155,12 +155,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
+    padding: var(--space-xl);
     border-bottom: 2px solid var(--info);
   }
 
   .diff-header {
-    padding: 0 8px;
+    padding: 0 var(--space-lg);
   }
 
   h2 {
@@ -169,34 +169,14 @@
     font-size: 12px;
   }
 
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 13px;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-  }
-
-  .close-btn:hover {
-    color: var(--text);
-  }
-
-  .close-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
   .unified-diff {
     flex: 1;
     overflow: auto;
-    padding: 10px;
+    padding: var(--space-lg);
   }
 
   .diff-content {
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     font-size: 12px;
     margin: 0;
     white-space: pre;
@@ -204,7 +184,7 @@
 
   .diff-line {
     display: block;
-    padding: 2px 8px;
+    padding: var(--space-xs) var(--space-lg);
   }
 
   .diff-line.line-add {
@@ -236,7 +216,7 @@
 
   .pane-header {
     background: var(--surface-2);
-    padding: 8px 1rem;
+    padding: var(--space-lg) 1rem;
     font-weight: 600;
     color: var(--text);
     border-bottom: 1px solid var(--border);
@@ -245,7 +225,7 @@
   .pane-content {
     flex: 1;
     overflow: auto;
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     font-size: 12px;
   }
 
@@ -256,8 +236,8 @@
 
   .code-line {
     display: flex;
-    padding: 2px 0;
-    min-height: 20px;
+    padding: var(--space-xs) 0;
+    min-height: var(--icon-sm);
   }
 
   .code-line.line-add {
@@ -295,7 +275,7 @@
 
   .empty {
     text-align: center;
-    padding: 16px;
+    padding: var(--space-2xl);
     color: var(--muted);
   }
 </style>

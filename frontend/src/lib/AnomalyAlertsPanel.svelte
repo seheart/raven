@@ -235,7 +235,7 @@
 
 <style>
   .anomaly-alerts-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -244,11 +244,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .header-left h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -261,7 +261,7 @@
 
   .header-right {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
   }
 
@@ -272,9 +272,9 @@
 
   .controls {
     display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding: 16px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-2xl);
     background: var(--surface);
     border-radius: var(--radius);
     border: 1px solid var(--border);
@@ -283,7 +283,7 @@
   .control-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .control-group label {
@@ -293,7 +293,7 @@
   }
 
   .control-group select {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
@@ -306,31 +306,31 @@
   .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .stat-badge {
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
     display: flex;
     align-items: center;
-    gap: 12px;
-    transition: all 0.2s;
+    gap: var(--space-xl);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .stat-badge.critical {
-    border-color: var(--error, #f7768e);
+    border-color: var(--error, var(--error));
   }
 
   .stat-badge.warning {
-    border-color: var(--warning, #e0af68);
+    border-color: var(--warning, var(--warning));
   }
 
   .stat-badge.info {
-    border-color: var(--accent, #7aa2f7);
+    border-color: var(--accent, var(--info));
   }
 
   .badge-icon {
@@ -338,7 +338,7 @@
   }
 
   .badge-count {
-    font-size: 28px;
+    font-size: var(--icon-lg);
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
@@ -353,16 +353,16 @@
   .anomalies-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .anomaly-card {
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-left: 4px solid;
     border-radius: var(--radius);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .anomaly-card:hover {
@@ -371,22 +371,22 @@
   }
 
   .anomaly-card.severity-critical {
-    border-left-color: var(--error, #f7768e);
+    border-left-color: var(--error, var(--error));
   }
 
   .anomaly-card.severity-warning {
-    border-left-color: var(--warning, #e0af68);
+    border-left-color: var(--warning, var(--warning));
   }
 
   .anomaly-card.severity-info {
-    border-left-color: var(--accent, #7aa2f7);
+    border-left-color: var(--accent, var(--info));
   }
 
   .anomaly-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-lg);
   }
 
   .anomaly-icon {
@@ -405,21 +405,21 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     background: var(--bg);
-    padding: 2px 8px;
-    border-radius: 3px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius-sm);
   }
 
   .anomaly-message {
     font-size: 11px;
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
     line-height: 1.5;
   }
 
   .anomaly-details {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--space-xl);
     padding-top: 8px;
     border-top: 1px solid var(--border);
   }
@@ -436,12 +436,12 @@
   }
 
   .btn-primary, .btn-secondary {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     border-radius: var(--radius);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     border: 1px solid var(--border);
   }
 
@@ -473,14 +473,14 @@
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
   .empty-state p, .error-state p {
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
     color: var(--text);
   }
 

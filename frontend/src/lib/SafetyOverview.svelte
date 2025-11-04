@@ -258,13 +258,13 @@
     align-items: flex-start;
     margin-bottom: 1rem;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: var(--space-lg);
   }
 
   .header-content h1 {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
     color: var(--text-primary);
   }
 
@@ -277,7 +277,7 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .last-updated {
@@ -289,10 +289,10 @@
     padding: 0.5rem 1rem;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
     font-size: 0.9rem;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .refresh-btn:hover:not(:disabled) {
@@ -309,11 +309,11 @@
   .health-card {
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
     border: 2px solid var(--health-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     display: flex;
-    gap: 1rem;
+    gap: var(--space-xl);
     align-items: center;
   }
 
@@ -326,7 +326,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: var(--space-2xl);
     flex-wrap: wrap;
   }
 
@@ -354,14 +354,14 @@
 
   .health-breakdown {
     display: flex;
-    gap: 1.5rem;
+    gap: var(--space-2xl);
     flex-wrap: wrap;
   }
 
   .breakdown-item {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.4rem;
+    gap: var(--space-md);
   }
 
   .breakdown-label {
@@ -387,20 +387,20 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
+    gap: var(--space-lg);
     margin-bottom: 1rem;
   }
 
   .stat-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     padding: 0.65rem 0.85rem;
     display: flex;
-    gap: 0.85rem;
+    gap: var(--space-lg);
     align-items: center;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .stat-card:hover {
@@ -418,7 +418,7 @@
     flex: 1;
     display: flex;
     align-items: baseline;
-    gap: 0.6rem;
+    gap: var(--space-lg);
     flex-wrap: wrap;
   }
 
@@ -449,33 +449,34 @@
   .stat-status {
     font-size: 0.85rem;
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: var(--radius);
     display: inline-block;
     margin-top: 0.5rem;
   }
 
   .stat-status.ok {
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    color: var(--success);
   }
 
   .stat-status.critical {
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--error);
   }
 
   /* Section Card */
   .section-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 1.25rem;
     margin-bottom: 1.5rem;
   }
 
   .section-card h2 {
     margin: 0 0 0.75rem 0;
-    font-size: 1.1rem;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
 
@@ -483,20 +484,20 @@
   .issues-list {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: var(--space-lg);
   }
 
   .issue-item {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-lg);
     padding: 0.75rem;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
   }
 
   .issue-item.error {
-    border-left: 3px solid #ef4444;
+    border-left: 3px solid var(--error);
   }
 
   .issue-icon {
@@ -523,26 +524,27 @@
   /* Quick Actions */
   .quick-actions h2 {
     margin: 0 0 0.75rem 0;
-    font-size: 1rem;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
 
   .actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.75rem;
+    gap: var(--space-lg);
   }
 
   .action-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     padding: 0.65rem 0.85rem;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: var(--space-lg);
   }
 
   .action-card:hover {
@@ -575,7 +577,7 @@
   .loading-skeleton {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+    gap: var(--space-2xl);
   }
 
   .skeleton-card {
@@ -583,7 +585,7 @@
     background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
   }
 
   @keyframes loading {
@@ -593,8 +595,8 @@
 
   .error-banner {
     background: rgba(239, 68, 68, 0.1);
-    border: 1px solid #ef4444;
-    border-radius: 8px;
+    border: 1px solid var(--error);
+    border-radius: var(--radius-xl);
     padding: 1rem;
     display: flex;
     justify-content: space-between;
@@ -604,10 +606,10 @@
 
   .error-banner button {
     padding: 0.5rem 1rem;
-    background: #ef4444;
+    background: var(--error);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
   }
 

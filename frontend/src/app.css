@@ -59,6 +59,13 @@
   --duration-base: 250ms;
   --duration-slow: 350ms;
   --duration-slower: 500ms;
+
+  /* Icon Sizes */
+  --icon-xs: 16px;
+  --icon-sm: 20px;
+  --icon-md: 24px;
+  --icon-lg: 32px;
+  --icon-xl: 40px;
 }
 
 /* DAY — Gruvbox Light */
@@ -350,18 +357,33 @@ body {
   background: var(--surface-2);
 }
 
-/* Card */
+/* Card - Standardized card/panel component */
 .card {
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: var(--radius);
-  padding: var(--space-xl);
+  padding: var(--space-3xl); /* 24px */
   box-shadow: var(--shadow-sm);
   transition: box-shadow var(--duration-base) var(--ease-smooth),
               transform var(--duration-base) var(--ease-smooth);
 }
 
 .card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Card Compact - For smaller cards with less padding */
+.card-compact {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: var(--space-2xl); /* 16px */
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--duration-base) var(--ease-smooth),
+              transform var(--duration-base) var(--ease-smooth);
+}
+
+.card-compact:hover {
   box-shadow: var(--shadow-md);
 }
 
@@ -511,85 +533,124 @@ pre {
   color: var(--code-text);
 }
 
-/* Buttons - WCAG 2.5.5 compliant (44x44px minimum touch target) */
+/* Buttons - Standardized button system */
+/* Base button - apply to all buttons for consistent behavior */
 .btn {
-  padding: var(--space-sm) var(--space-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
   font-size: var(--text-sm);
   font-family: var(--sans);
   cursor: pointer;
-  border: 1px solid var(--border);
-  transition: all var(--duration-fast) var(--ease-out-expo);
-  min-height: 44px;
-  min-width: 44px;
+  border: none;
+  transition: all 0.2s ease;
+  outline: none;
+  white-space: nowrap;
 }
 
-.btn:hover {
-  transform: scale(1.02);
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
 }
 
-.btn:active {
-  transform: scale(0.96);
+.btn:active:not(:disabled) {
+  transform: translateY(0);
   transition-duration: 50ms;
 }
 
-.btn-primary {
-  background: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
-  border-color: var(--btn-primary-bg);
-}
-
-.btn-primary:hover {
-  background: var(--btn-primary-hover);
-  border-color: var(--btn-primary-hover);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-secondary {
-  background: var(--btn-secondary-bg);
-  color: var(--btn-secondary-text);
-}
-
-.btn-secondary:hover {
-  background: var(--btn-secondary-hover);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-ghost {
-  background: var(--btn-ghost-bg);
-  color: var(--btn-ghost-text);
-}
-
-.btn-ghost:hover {
-  background: var(--btn-ghost-hover);
-}
-
-.btn-disabled {
-  background: var(--btn-disabled-bg);
-  color: var(--btn-disabled-text);
+.btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.btn-disabled:hover {
-  transform: none;
-  box-shadow: none;
+/* Size variants */
+.btn-sm {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-xs);
+  gap: var(--space-xs);
 }
 
-.btn-group {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+.btn-md {
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--text-sm);
+}
+
+.btn-lg {
+  padding: var(--space-lg) var(--space-xl);
+  font-size: var(--text-base);
+}
+
+/* Color variants */
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border: 1px solid var(--accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.btn-danger {
+  background: var(--error);
+  color: white;
+  border: 1px solid var(--error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--error) 80%, black);
+  border-color: color-mix(in srgb, var(--error) 80%, black);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Icon-only buttons */
 .btn-icon {
-  width: 44px;
-  height: 44px;
-  padding: 12px;
+  padding: var(--space-md);
+  min-width: unset;
+  aspect-ratio: 1;
+}
+
+.btn-icon.btn-sm {
+  padding: var(--space-sm);
+}
+
+.btn-icon.btn-lg {
+  padding: var(--space-lg);
+}
+
+/* Button group */
+.btn-group {
   display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
 }
 
 /* Inputs */
@@ -846,6 +907,15 @@ a:focus:not(:focus-visible),
 }
 
 @keyframes spin-refresh {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin {
   from {
     transform: rotate(0deg);
   }

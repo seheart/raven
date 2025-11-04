@@ -114,7 +114,7 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: 12px;
+    padding: var(--space-xl);
     animation: fadeIn 0.2s ease;
   }
 
@@ -130,7 +130,7 @@
   .modal {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     max-width: 700px;
     width: 100%;
     max-height: 90vh;
@@ -153,7 +153,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
+    padding: var(--space-xl);
     border-bottom: 1px solid var(--surface-2);
   }
 
@@ -170,13 +170,13 @@
     font-size: 13px;
     cursor: pointer;
     padding: 0;
-    width: 32px;
-    height: 32px;
+    width: var(--icon-lg);
+    height: var(--icon-lg);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    transition: all 0.2s;
+    border-radius: var(--radius);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .close-btn:hover {
@@ -190,11 +190,11 @@
   }
 
   .modal-content {
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .section {
-    margin-bottom: 28px;
+    margin-bottom: var(--space-3xl);
   }
 
   .section:last-child {
@@ -202,7 +202,7 @@
   }
 
   .section h3 {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     font-size: 12px;
     color: var(--accent);
   }
@@ -218,14 +218,14 @@
   }
 
   .section ul {
-    margin: 8px 0 0 0;
+    margin: var(--space-lg) 0 0 0;
     padding-left: 20px;
     list-style: none;
   }
 
   .section ul li {
     color: var(--text);
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
     position: relative;
     padding-left: 20px;
   }
@@ -240,18 +240,18 @@
   .tech-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-    margin-top: 12px;
+    gap: var(--space-xl);
+    margin-top: var(--space-xl);
   }
 
   .tech-item {
     background: var(--bg);
-    padding: 12px;
-    border-radius: 3px;
+    padding: var(--space-xl);
+    border-radius: var(--radius-sm);
     border: 1px solid var(--surface-2);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .tech-item strong {
@@ -268,16 +268,16 @@
 
   .session-info {
     background: var(--bg);
-    padding: 16px;
-    border-radius: 4px;
+    padding: var(--space-2xl);
+    border-radius: var(--radius);
     border: 1px solid var(--surface-2);
-    margin-top: 12px;
+    margin-top: var(--space-xl);
   }
 
   .info-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
+    padding: var(--space-lg) 0;
     border-bottom: 1px solid var(--border);
   }
 
@@ -293,7 +293,7 @@
   .info-row .value {
     color: var(--text);
     font-size: 12px;
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
   }
 
   .info-row .value.status-online {

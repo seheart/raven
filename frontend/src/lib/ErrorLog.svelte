@@ -504,16 +504,16 @@
     </div>
     <div class="header-actions" role="toolbar" aria-label="Error log actions">
       <span class="last-updated" role="status" aria-live="polite" aria-label="Last updated {timeAgo}">Updated: {timeAgo}</span>
-      <button class="btn-charts" on:click={() => showCharts = !showCharts} aria-label="Toggle charts visibility">
+      <button class="btn btn-ghost btn-sm" on:click={() => showCharts = !showCharts} aria-label="Toggle charts visibility">
         <span aria-hidden="true">📊</span> {showCharts ? 'Hide' : 'Show'} Charts
       </button>
-      <button class="btn-test" on:click={triggerTestError} aria-label="Trigger test error">
+      <button class="btn btn-secondary btn-sm" on:click={triggerTestError} aria-label="Trigger test error">
         <span aria-hidden="true">🧪</span> Test Error
       </button>
-      <button class="btn-export" on:click={exportLog} aria-label="Export error log to JSON file">
+      <button class="btn btn-primary btn-sm" on:click={exportLog} aria-label="Export error log to JSON file">
         <span aria-hidden="true">💾</span> Export JSON
       </button>
-      <button class="btn-refresh" on:click={() => { currentPage = 0; loadErrors(true); loadStats(); }} disabled={loading} aria-label="Refresh error log">
+      <button class="btn btn-secondary btn-sm" on:click={() => { currentPage = 0; loadErrors(true); loadStats(); }} disabled={loading} aria-label="Refresh error log">
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
         Refresh
       </button>
@@ -553,7 +553,7 @@
         use:debounceInput={{ delay: 300 }}
         on:debounced={handleDebouncedSearch}
       />
-      <button on:click={handleSearch}>🔍 Search</button>
+      <button class="btn btn-primary btn-sm" on:click={handleSearch}>🔍 Search</button>
     </div>
 
     <div class="filter-tabs">
@@ -588,8 +588,8 @@
     </div>
 
     <div class="action-buttons">
-      <button on:click={handleClearOld}>🗑️ Clear Old</button>
-      <button class="btn-danger" on:click={handleClearAll}>🗑️ Clear All</button>
+      <button class="btn btn-secondary btn-sm" on:click={handleClearOld}>🗑️ Clear Old</button>
+      <button class="btn btn-danger btn-sm" on:click={handleClearAll}>🗑️ Clear All</button>
     </div>
   </div>
 
@@ -747,11 +747,11 @@
 
       <!-- Pagination -->
       <div class="pagination">
-        <button on:click={prevPage} disabled={currentPage === 0}>← Previous</button>
+        <button class="btn btn-secondary btn-sm" on:click={prevPage} disabled={currentPage === 0}>← Previous</button>
         <span class="page-info">
           Page {currentPage + 1} • {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalErrors)} of {totalErrors}
         </span>
-        <button on:click={nextPage} disabled={!hasMore}>Next →</button>
+        <button class="btn btn-secondary btn-sm" on:click={nextPage} disabled={!hasMore}>Next →</button>
       </div>
     {/if}
   </div>
@@ -759,7 +759,7 @@
 
 <style>
   .error-log {
-    padding: 8px;
+    padding: var(--space-lg);
     position: relative;
     max-width: 1600px;
     margin: 0 auto;
@@ -769,13 +769,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 16px;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-2xl);
     border-bottom: 2px solid var(--border);
   }
 
   .header-title h1 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -788,7 +788,7 @@
 
   .header-actions {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     align-items: center;
   }
 
@@ -796,30 +796,6 @@
     font-size: 12px;
     color: var(--muted);
     font-family: var(--mono);
-  }
-
-  .btn-refresh {
-    padding: 6px 10px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-refresh:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-refresh:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   .refresh-icon {
@@ -831,61 +807,21 @@
     /* Animation defined in global app.css */
   }
 
-  .btn-export,
-  .btn-test,
-  .btn-charts {
-    padding: 6px 10px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.2s;
-  }
-
-  .btn-test {
-    background: var(--warning);
-    border-color: var(--warning);
-    color: white;
-  }
-
-  .btn-charts {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-  }
-
-  .btn-export:hover,
-  .btn-test:hover,
-  .btn-charts:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-test:hover {
-    background: color-mix(in srgb, var(--warning) 80%, black);
-  }
-
-  .btn-charts:hover {
-    background: color-mix(in srgb, var(--accent) 80%, black);
-  }
-
   .stats-bar {
     display: flex;
-    gap: 6px;
-    margin-bottom: 8px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
   }
 
   .stat-item {
     flex: 1;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 6px;
+    border-radius: var(--radius-sm);
+    padding: var(--space-md);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .stat-item.error {
@@ -917,25 +853,25 @@
   .controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
     background: var(--surface);
-    padding: 8px;
-    border-radius: 4px;
+    padding: var(--space-lg);
+    border-radius: var(--radius);
     border: 1px solid var(--border);
   }
 
   .search-bar {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .search-bar input {
     flex: 1;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -946,38 +882,23 @@
     border-color: var(--accent);
   }
 
-  .search-bar button {
-    padding: 6px 10px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-
-  .search-bar button:hover {
-    background: color-mix(in srgb, var(--accent) 80%, black);
-  }
 
   .filter-tabs {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     flex-wrap: wrap;
   }
 
   .filter-tab {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .filter-tab:hover {
@@ -998,50 +919,20 @@
 
   .action-buttons {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
-  .action-buttons button {
-    padding: 8px 16px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-  }
-
-  .action-buttons button:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .action-buttons button:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .btn-danger {
-    background: var(--error) !important;
-    border-color: var(--error) !important;
-    color: white !important;
-  }
-
-  .btn-danger:hover {
-    background: color-mix(in srgb, var(--error) 80%, black) !important;
-  }
 
   .timeline {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .error-state,
   .empty-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     color: var(--muted);
   }
 
@@ -1050,22 +941,22 @@
   .empty-icon,
   .error-icon {
     font-size: 11px;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .empty-state h2,
   .error-state h2 {
     font-size: 11px;
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     color: var(--text);
   }
 
   .error-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .error-item:hover {
@@ -1081,7 +972,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 20px;
+    padding: var(--space-md) var(--space-3xl);
     cursor: pointer;
     width: 100%;
     background: none;
@@ -1100,7 +991,7 @@
   .error-left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     flex: 1;
     min-width: 0;
   }
@@ -1126,7 +1017,7 @@
     font-size: 11px;
     color: var(--text);
     font-weight: 500;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1135,7 +1026,7 @@
   .error-meta {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     font-size: 11px;
     color: var(--muted);
   }
@@ -1151,7 +1042,7 @@
   .error-right {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     flex-shrink: 0;
   }
 
@@ -1162,30 +1053,30 @@
   }
 
   .error-severity {
-    padding: 4px 10px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
   }
 
   .error-details {
-    padding: 0 20px 20px 20px;
+    padding: 0 var(--space-3xl) var(--space-3xl) var(--space-3xl);
     border-top: 1px solid var(--border);
   }
 
   .details-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 6px;
-    padding: 6px 0;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
   }
 
   .detail-item {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .detail-label {
@@ -1208,12 +1099,12 @@
 
   .stack-section,
   .metadata-section {
-    margin-top: 16px;
+    margin-top: var(--space-2xl);
   }
 
   .stack-section h4,
   .metadata-section h4 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
@@ -1223,8 +1114,8 @@
   .metadata-code {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
     font-size: 11px;
     font-family: var(--mono);
     color: var(--text);
@@ -1238,39 +1129,13 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--radius);
     border: 1px solid var(--border);
   }
 
-  .pagination button {
-    padding: 6px 10px;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-
-  .pagination button:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .pagination button:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .pagination button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 
   .page-info {
     font-size: 11px;
@@ -1280,19 +1145,19 @@
 
   /* Charts Section */
   .charts-section {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    gap: var(--space-2xl);
   }
 
   .chart-container {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     padding: 1rem;
     border-left: 3px solid var(--accent);
   }

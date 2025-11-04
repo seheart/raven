@@ -285,10 +285,10 @@
         colors.info,
         colors.warning,
         colors.success,
-        '#bb9af7',
+        'var(--accent)',
         '#ff9e64',
         '#7dcfff',
-        '#9ece6a'
+        'var(--success)'
       ];
 
       charts.dbDistChart = new Chart(dbDistCanvas, {
@@ -420,10 +420,10 @@
         colors.warning,
         colors.error,
         colors.accent,
-        '#bb9af7',
+        'var(--accent)',
         '#7dcfff',
         '#ff9e64',
-        '#9ece6a'
+        'var(--success)'
       ];
 
       charts.dbSizeChart = new Chart(dbSizeCanvas, {
@@ -478,7 +478,7 @@
     <div class="error-state">
       <h3>⚠️ Error Loading Storage Data</h3>
       <p>{error}</p>
-      <button on:click={loadStorageData}>Retry</button>
+      <button class="btn btn-primary" on:click={loadStorageData}>Retry</button>
     </div>
   {:else if storageData}
     <!-- Header Section -->
@@ -489,7 +489,7 @@
       </div>
       <div class="header-actions">
         <span class="last-updated">Updated: {timeAgo}</span>
-        <button on:click={() => loadStorageData(true)} class="btn-refresh" disabled={loading}>
+        <button class="btn btn-secondary" on:click={() => loadStorageData(true)} disabled={loading}>
           <span class="refresh-icon" class:spinning={isManualRefresh}>🔄</span>
           Refresh
         </button>
@@ -526,7 +526,7 @@
       <div class="charts-section">
         <div class="charts-header">
           <h2>Storage Analytics</h2>
-          <button class="btn-toggle-charts" on:click={() => showCharts = !showCharts}>
+          <button class="btn btn-ghost btn-sm" on:click={() => showCharts = !showCharts}>
             {showCharts ? 'Hide Charts' : 'Show Charts'}
           </button>
         </div>
@@ -602,16 +602,16 @@
                 <td>{formatDate(db.modified)}</td>
                 <td>
                   <div class="db-actions">
-                    <button class="btn-sm" on:click={() => toggleDatabaseExpansion(db.name)}>
+                    <button class="btn btn-ghost btn-sm" on:click={() => toggleDatabaseExpansion(db.name)}>
                       {expandedDatabase === db.name ? '▼' : '▶'} Details
                     </button>
-                    <button class="btn-sm btn-export" on:click={() => exportDatabase(db.name)} title="Export database">
+                    <button class="btn btn-icon btn-sm" on:click={() => exportDatabase(db.name)} title="Export database">
                       💾
                     </button>
-                    <button class="btn-sm btn-optimize" on:click={() => optimizeDatabase(db.name)} title="Optimize database (VACUUM)">
+                    <button class="btn btn-icon btn-sm" on:click={() => optimizeDatabase(db.name)} title="Optimize database (VACUUM)">
                       ⚡
                     </button>
-                    <button class="btn-sm btn-clean" on:click={() => cleanDatabase(db.name)} title="Clean old data">
+                    <button class="btn btn-danger btn-icon btn-sm" on:click={() => cleanDatabase(db.name)} title="Clean old data">
                       🧹
                     </button>
                   </div>
@@ -710,7 +710,7 @@
       <h2>⚙️ Actions</h2>
       <p class="help-text">Use per-database action buttons in the table above, or configure retention policy below.</p>
       <div class="action-buttons">
-        <button class="btn-secondary" on:click={openRetentionConfig}>⚙️ Configure Retention</button>
+        <button class="btn btn-secondary" on:click={openRetentionConfig}>⚙️ Configure Retention</button>
       </div>
     </section>
 
@@ -725,7 +725,7 @@
       <div class="modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
         <div class="modal-header">
           <h2>⚙️ Configure Retention Policy</h2>
-          <button class="modal-close" on:click={() => showRetentionModal = false}>✕</button>
+          <button class="btn btn-ghost btn-icon" on:click={() => showRetentionModal = false}>✕</button>
         </div>
 
         <div class="modal-body">
@@ -774,8 +774,8 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn-secondary" on:click={() => showRetentionModal = false}>Cancel</button>
-          <button class="btn-primary" on:click={saveRetentionPolicy}>Save Policy</button>
+          <button class="btn btn-ghost" on:click={() => showRetentionModal = false}>Cancel</button>
+          <button class="btn btn-primary" on:click={saveRetentionPolicy}>Save Policy</button>
         </div>
       </div>
     </div>
@@ -784,7 +784,7 @@
 
 <style>
   .storage-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     position: relative;
     max-width: 1400px;
     margin: 0 auto;
@@ -803,8 +803,8 @@
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 2rem;
-    padding: 0 8px;
-    gap: 2rem;
+    padding: 0 var(--space-lg);
+    gap: var(--space-2xl);
   }
 
   .header-left h1 {
@@ -823,38 +823,13 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .last-updated {
     font-size: 12px;
     color: var(--muted);
     font-family: var(--mono);
-  }
-
-  .btn-refresh {
-    padding: 8px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-refresh:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-refresh:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   .refresh-icon {
@@ -864,11 +839,6 @@
 
   .refresh-icon.spinning {
     animation: spin-refresh 1s linear infinite;
-  }
-
-  @keyframes spin-refresh {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
   }
 
   h2 {
@@ -888,7 +858,7 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    gap: var(--space-xl);
     margin-bottom: 1rem;
   }
 
@@ -928,7 +898,7 @@
     font-family: var(--mono);
     background: var(--bg);
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   /* Tables */
@@ -979,7 +949,7 @@
     display: inline-block;
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
-    border-radius: 4px;
+    border-radius: var(--radius);
     margin-left: 0.5rem;
   }
 
@@ -991,19 +961,19 @@
   .status {
     display: inline-block;
     padding: 0.25rem 0.75rem;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 0.75rem;
     font-weight: 600;
   }
 
   .status.ok {
-    background: color-mix(in srgb, #10b981 20%, transparent);
-    color: #10b981;
+    background: color-mix(in srgb, var(--success) 20%, transparent);
+    color: var(--success);
   }
 
   .status.error {
-    background: color-mix(in srgb, #ef4444 20%, transparent);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--error) 20%, transparent);
+    color: var(--error);
   }
 
   /* Details Row */
@@ -1035,16 +1005,16 @@
   .progress-bar {
     position: relative;
     width: 100%;
-    height: 24px;
+    height: var(--icon-md);
     background: var(--bg);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
   .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    transition: width 0.3s ease;
+    transition: width var(--duration-slow) var(--ease-smooth);
   }
 
   .progress-label {
@@ -1062,7 +1032,7 @@
   .file-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-lg);
   }
 
   .file-item {
@@ -1086,77 +1056,10 @@
   }
 
   /* Buttons */
-  .btn-sm {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.75rem;
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-sm:hover {
-    background: var(--accent);
-    color: var(--bg);
-    border-color: var(--accent);
-  }
-
   .action-buttons {
     display: flex;
-    gap: 1rem;
+    gap: var(--space-xl);
     flex-wrap: wrap;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: var(--bg);
-    border-color: var(--accent);
-  }
-
-  .btn-primary:hover {
-    background: var(--accent-2);
-    border-color: var(--accent-2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
-  }
-
-  .btn-secondary {
-    background: var(--surface-2);
-    color: var(--text);
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    background: var(--accent);
-    color: var(--bg);
-    border-color: var(--accent);
-  }
-
-  .btn-secondary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-refresh:focus,
-  .btn-sm:focus,
-  .btn-primary:focus,
-  .btn-secondary:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
   }
 
   /* (removed unused .loading/.spinner) */
@@ -1168,23 +1071,8 @@
   }
 
   .error-state h3 {
-    color: #ef4444;
+    color: var(--error);
     margin-bottom: 1rem;
-  }
-
-  .error-state button {
-    margin-top: 1rem;
-    padding: 0.75rem 1.5rem;
-    background: var(--accent);
-    color: var(--bg);
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-  }
-
-  .error-state button:hover {
-    background: var(--accent-2);
   }
 
   /* Empty State */
@@ -1217,12 +1105,6 @@
       flex-direction: column;
     }
 
-    .btn-primary,
-    .btn-secondary {
-      width: 100%;
-      justify-content: center;
-    }
-
     table {
       font-size: 0.75rem;
     }
@@ -1235,39 +1117,9 @@
   /* Database Actions */
   .db-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-lg);
     align-items: center;
     flex-wrap: wrap;
-  }
-
-  .btn-export {
-    background: var(--info) !important;
-    color: white !important;
-    border-color: var(--info) !important;
-  }
-
-  .btn-export:hover {
-    background: color-mix(in srgb, var(--info) 80%, black) !important;
-  }
-
-  .btn-optimize {
-    background: var(--warning) !important;
-    color: white !important;
-    border-color: var(--warning) !important;
-  }
-
-  .btn-optimize:hover {
-    background: color-mix(in srgb, var(--warning) 80%, black) !important;
-  }
-
-  .btn-clean {
-    background: var(--error) !important;
-    color: white !important;
-    border-color: var(--error) !important;
-  }
-
-  .btn-clean:hover {
-    background: color-mix(in srgb, var(--error) 80%, black) !important;
   }
 
   /* Modal */
@@ -1312,27 +1164,6 @@
     color: var(--text);
   }
 
-  .modal-close {
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0;
-    width: 2rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: all 0.2s;
-  }
-
-  .modal-close:hover {
-    background: var(--surface-2);
-    color: var(--error);
-  }
-
   .modal-body {
     padding: 1.5rem;
   }
@@ -1340,7 +1171,7 @@
   .modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
+    gap: var(--space-xl);
     padding: 1.5rem;
     border-top: 1px solid var(--border);
   }
@@ -1413,34 +1244,16 @@
     margin: 0;
   }
 
-  .btn-toggle-charts {
-    padding: 0.5rem 1rem;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-
-  .btn-toggle-charts:hover {
-    background: var(--accent);
-    color: var(--bg);
-    border-color: var(--accent);
-  }
-
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    gap: var(--space-2xl);
   }
 
   .chart-container {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     padding: 1rem;
     border-left: 3px solid var(--accent);
   }

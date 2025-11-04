@@ -102,7 +102,7 @@
             {
               label: 'Memory %',
               data: memData,
-              borderColor: '#10b981',
+              borderColor: 'var(--success)',
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               fill: true,
               tension: 0.4
@@ -185,7 +185,7 @@
         </div>
         <div class="perf-value">{performanceMetrics.cpu}%</div>
         <div class="perf-bar">
-          <div class="perf-fill" style="width: {performanceMetrics.cpu}%; background: {cpuHealth === 'critical' ? '#ef4444' : cpuHealth === 'warning' ? '#f59e0b' : '#10b981'}"></div>
+          <div class="perf-fill" style="width: {performanceMetrics.cpu}%; background: {cpuHealth === 'critical' ? 'var(--error)' : cpuHealth === 'warning' ? 'var(--warning)' : 'var(--success)'}"></div>
         </div>
         <div class="perf-status">{cpuHealth === 'good' ? 'Normal' : cpuHealth === 'warning' ? 'Elevated' : 'High'}</div>
       </div>
@@ -197,7 +197,7 @@
         </div>
         <div class="perf-value">{performanceMetrics.memory}%</div>
         <div class="perf-bar">
-          <div class="perf-fill" style="width: {performanceMetrics.memory}%; background: {memHealth === 'critical' ? '#ef4444' : memHealth === 'warning' ? '#f59e0b' : '#10b981'}"></div>
+          <div class="perf-fill" style="width: {performanceMetrics.memory}%; background: {memHealth === 'critical' ? 'var(--error)' : memHealth === 'warning' ? 'var(--warning)' : 'var(--success)'}"></div>
         </div>
         <div class="perf-status">{memHealth === 'good' ? 'Normal' : memHealth === 'warning' ? 'Elevated' : 'High'}</div>
       </div>
@@ -339,13 +339,13 @@
     align-items: flex-start;
     margin-bottom: 1rem;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .header-content h1 {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
     color: var(--text-primary);
   }
 
@@ -358,7 +358,7 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .last-updated {
@@ -370,10 +370,10 @@
     padding: 0.5rem 1rem;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
     font-size: 0.9rem;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .refresh-btn:hover:not(:disabled) {
@@ -390,36 +390,36 @@
   .performance-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+    gap: var(--space-2xl);
     margin-bottom: 1rem;
   }
 
   .perf-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 1.5rem;
   }
 
   .perf-card.warning {
-    border-color: #f59e0b;
+    border-color: var(--warning);
     background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(245, 158, 11, 0.05) 100%);
   }
 
   .perf-card.critical {
-    border-color: #ef4444;
+    border-color: var(--error);
     background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(239, 68, 68, 0.05) 100%);
   }
 
   .perf-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-lg);
     margin-bottom: 1rem;
   }
 
   .perf-icon {
-    font-size: 1.5rem;
+    font-size: var(--icon-md);
   }
 
   .perf-label {
@@ -437,14 +437,14 @@
   .perf-bar {
     height: 8px;
     background: var(--bg-tertiary);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
     margin-bottom: 0.5rem;
   }
 
   .perf-fill {
     height: 100%;
-    transition: width 0.5s ease;
+    transition: width var(--duration-slower) var(--ease-smooth);
   }
 
   .perf-status {
@@ -456,14 +456,15 @@
   .chart-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 1rem;
     margin-bottom: 1rem;
   }
 
   .chart-card h2 {
     margin: 0 0 0.75rem 0;
-    font-size: 1rem;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
 
@@ -475,20 +476,20 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
+    gap: var(--space-lg);
     margin-bottom: 1rem;
   }
 
   .stat-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 0.65rem 0.85rem;
     display: flex;
-    gap: 0.85rem;
+    gap: var(--space-lg);
     align-items: center;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .stat-card:hover {
@@ -506,7 +507,7 @@
     flex: 1;
     display: flex;
     align-items: baseline;
-    gap: 0.6rem;
+    gap: var(--space-lg);
     flex-wrap: wrap;
   }
 
@@ -538,14 +539,15 @@
   .section-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 1rem;
     margin-bottom: 1rem;
   }
 
   .section-card h2 {
     margin: 0 0 0.75rem 0;
-    font-size: 1rem;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
 
@@ -553,16 +555,16 @@
   .events-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-lg);
   }
 
   .trigger-event {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-lg);
     padding: 0.65rem 0.85rem;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
   }
 
   .trigger-icon {
@@ -588,26 +590,27 @@
   /* Quick Actions */
   .quick-actions h2 {
     margin: 0 0 0.75rem 0;
-    font-size: 1rem;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
 
   .actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
+    gap: var(--space-lg);
   }
 
   .action-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     padding: 0.65rem 0.85rem;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: var(--space-lg);
   }
 
   .action-card:hover {
@@ -640,7 +643,7 @@
   .loading-skeleton {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+    gap: var(--space-2xl);
   }
 
   .skeleton-card {
@@ -648,7 +651,7 @@
     background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
   }
 
   @keyframes loading {
@@ -658,8 +661,8 @@
 
   .error-banner {
     background: rgba(239, 68, 68, 0.1);
-    border: 1px solid #ef4444;
-    border-radius: 8px;
+    border: 1px solid var(--error);
+    border-radius: var(--radius-xl);
     padding: 1rem;
     display: flex;
     justify-content: space-between;
@@ -669,10 +672,10 @@
 
   .error-banner button {
     padding: 0.5rem 1rem;
-    background: #ef4444;
+    background: var(--error);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
   }
 

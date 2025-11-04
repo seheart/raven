@@ -223,7 +223,7 @@
   <div class="inline-header">
     <div class="header-actions" role="toolbar" aria-label="File history actions">
       <button
-        class="btn-comparison-mode"
+        class="btn btn-secondary btn-sm"
         class:active={comparisonMode}
         on:click={toggleComparisonMode}
         aria-pressed={comparisonMode}
@@ -233,7 +233,7 @@
       </button>
       {#if comparisonMode && selectedForComparison.length === 2}
         <button
-          class="btn-compare"
+          class="btn btn-primary btn-sm"
           on:click={compareSelectedSnapshots}
           disabled={comparingSnapshots}
           aria-label={comparingSnapshots ? 'Comparing snapshots' : 'Compare selected snapshots'}
@@ -311,16 +311,16 @@
               <span class="event-id">Event #{event.id}</span>
             </div>
             <div class="event-actions" role="group" aria-label="Event actions">
-              <button class="btn-view" on:click={() => viewSnapshot(event)} aria-label="View snapshot for event #{event.id}">
+              <button class="btn btn-secondary btn-sm" on:click={() => viewSnapshot(event)} aria-label="View snapshot for event #{event.id}">
                 View Snapshot
               </button>
               {#if event.diff}
-                <button class="btn-diff" on:click={() => viewDiff(event)} aria-label="View diff for event #{event.id}">
+                <button class="btn btn-secondary btn-sm" on:click={() => viewDiff(event)} aria-label="View diff for event #{event.id}">
                   View Diff
                 </button>
               {/if}
               <button
-                class="btn-restore"
+                class="btn btn-primary btn-sm"
                 on:click={() => restoreToEvent(event)}
                 disabled={restoring}
                 aria-label={restoring ? 'Restoring file' : 'Restore file to this snapshot'}
@@ -338,7 +338,7 @@
     <div class="snapshot-viewer" role="document" aria-labelledby="snapshot-heading">
       <div class="snapshot-header">
         <h3 id="snapshot-heading">Snapshot - Event #{selectedEvent?.id || 'N/A'}</h3>
-        <button on:click={() => showSnapshot = false} aria-label="Close snapshot viewer">Close</button>
+        <button class="btn btn-ghost btn-sm" on:click={() => showSnapshot = false} aria-label="Close snapshot viewer">Close</button>
       </div>
       <pre class="snapshot-content" role="region" aria-label="Snapshot file content">{snapshotContent}</pre>
     </div>
@@ -357,7 +357,7 @@
       <h2 id="file-history-heading"><span aria-hidden="true">📜</span> File History</h2>
       <div class="header-actions" role="toolbar" aria-label="File history actions">
         <button
-          class="btn-comparison-mode"
+          class="btn btn-secondary btn-sm"
           class:active={comparisonMode}
           on:click={toggleComparisonMode}
           aria-pressed={comparisonMode}
@@ -367,7 +367,7 @@
         </button>
         {#if comparisonMode && selectedForComparison.length === 2}
           <button
-            class="btn-compare"
+            class="btn btn-primary btn-sm"
             on:click={compareSelectedSnapshots}
             disabled={comparingSnapshots}
             aria-label={comparingSnapshots ? 'Comparing snapshots' : 'Compare selected snapshots'}
@@ -376,7 +376,7 @@
           </button>
         {/if}
       </div>
-      <button class="close-btn" on:click={onClose} aria-label="Close file history dialog">×</button>
+      <button class="btn btn-ghost btn-icon" on:click={onClose} aria-label="Close file history dialog">×</button>
     </div>
 
     <div class="file-path">{filepath}</div>
@@ -448,16 +448,16 @@
                 <span class="event-id">Event #{event.id}</span>
               </div>
               <div class="event-actions" role="group" aria-label="Event actions">
-                <button class="btn-view" on:click={() => viewSnapshot(event)} aria-label="View snapshot for event #{event.id}">
+                <button class="btn btn-secondary btn-sm" on:click={() => viewSnapshot(event)} aria-label="View snapshot for event #{event.id}">
                   View Snapshot
                 </button>
                 {#if event.diff}
-                  <button class="btn-diff" on:click={() => viewDiff(event)} aria-label="View diff for event #{event.id}">
+                  <button class="btn btn-secondary btn-sm" on:click={() => viewDiff(event)} aria-label="View diff for event #{event.id}">
                     View Diff
                   </button>
                 {/if}
                 <button
-                  class="btn-restore"
+                  class="btn btn-primary btn-sm"
                   on:click={() => restoreToEvent(event)}
                   disabled={restoring}
                   aria-label={restoring ? 'Restoring file' : 'Restore file to this snapshot'}
@@ -475,7 +475,7 @@
       <div class="snapshot-viewer" role="document" aria-labelledby="snapshot-heading">
         <div class="snapshot-header">
           <h3 id="snapshot-heading">Snapshot - Event #{selectedEvent?.id || 'N/A'}</h3>
-          <button on:click={() => showSnapshot = false} aria-label="Close snapshot viewer">Close</button>
+          <button class="btn btn-ghost btn-sm" on:click={() => showSnapshot = false} aria-label="Close snapshot viewer">Close</button>
         </div>
         <pre class="snapshot-content" role="region" aria-label="Snapshot file content">{snapshotContent}</pre>
       </div>
@@ -510,25 +510,25 @@
   .modal-content {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     width: 90%;
     max-width: 900px;
     max-height: 90vh;
     overflow-y: auto;
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
     padding-bottom: 1rem;
     border-bottom: 2px solid var(--info);
   }
 
   .modal-header {
-    padding: 0 8px;
+    padding: 0 var(--space-lg);
   }
 
   h2 {
@@ -537,38 +537,18 @@
     font-size: 12px;
   }
 
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 13px;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-  }
-
-  .close-btn:hover {
-    color: var(--text);
-  }
-
-  .close-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
   .file-path {
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     color: var(--info);
-    margin-bottom: 10px;
-    padding: 8px;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .loading, .empty {
     text-align: center;
-    padding: 16px;
+    padding: var(--space-2xl);
     color: var(--muted);
   }
 
@@ -589,7 +569,7 @@
 
   .timeline-event {
     position: relative;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
   }
 
   .event-marker {
@@ -617,8 +597,8 @@
 
   .event-content {
     background: var(--surface-2);
-    padding: 10px;
-    border-radius: 3px;
+    padding: var(--space-lg);
+    border-radius: var(--radius-sm);
     border-left: 3px solid var(--info);
   }
 
@@ -642,9 +622,9 @@
   }
 
   .badge {
-    padding: 4px 0.5rem;
+    padding: var(--space-sm) 0.5rem;
     font-size: 11px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     text-transform: uppercase;
     font-weight: 600;
   }
@@ -671,7 +651,7 @@
 
   .event-meta {
     display: flex;
-    gap: 10px;
+    gap: var(--space-lg);
     margin-bottom: 0.75rem;
     font-size: 11px;
     color: var(--muted);
@@ -683,54 +663,7 @@
 
   .event-actions {
     display: flex;
-    gap: 0.5rem;
-  }
-
-  .btn-view, .btn-diff, .btn-restore {
-    padding: 6px 1rem;
-    font-size: 11px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .btn-view {
-    background: var(--surface-2);
-    color: var(--info);
-    border: 1px solid var(--info);
-  }
-
-  .btn-view:hover {
-    background: var(--info);
-    color: white;
-  }
-
-  .btn-view:focus,
-  .btn-diff:focus,
-  .btn-restore:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .btn-diff {
-    background: var(--surface-2);
-    color: var(--warning);
-    border: 1px solid var(--warning);
-  }
-
-  .btn-diff:hover {
-    background: var(--warning);
-    color: var(--text-heading);
-  }
-
-  .btn-restore {
-    background: var(--success);
-    color: var(--text-heading);
-  }
-
-  .btn-restore:hover {
-    background: var(--success);
+    gap: var(--space-lg);
   }
 
   .snapshot-viewer {
@@ -740,8 +673,8 @@
     transform: translate(-50%, -50%);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 12px;
+    border-radius: var(--radius);
+    padding: var(--space-xl);
     max-width: 800px;
     max-height: 80vh;
     overflow-y: auto;
@@ -752,7 +685,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border);
   }
@@ -763,27 +696,13 @@
     font-size: 12px;
   }
 
-  .snapshot-header button {
-    background: var(--surface-2);
-    color: var(--muted);
-    border: 1px solid var(--border);
-    padding: 6px 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .snapshot-header button:hover {
-    background: var(--surface-2);
-    color: var(--text);
-  }
-
   .snapshot-content {
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     font-size: 12px;
     color: var(--text);
     background: var(--bg);
-    padding: 10px;
-    border-radius: 4px;
+    padding: var(--space-lg);
+    border-radius: var(--radius);
     overflow-x: auto;
     white-space: pre-wrap;
     max-height: 60vh;
@@ -798,7 +717,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
@@ -818,14 +737,14 @@
   }
 
   .inline-content .filter-bar {
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .inline-content .comparison-help {
-    margin-bottom: 12px;
-    padding: 8px;
+    margin-bottom: var(--space-xl);
+    padding: var(--space-lg);
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 12px;
     color: var(--muted);
     text-align: center;

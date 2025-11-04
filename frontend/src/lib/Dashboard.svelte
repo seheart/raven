@@ -123,7 +123,7 @@
     <h2 id="dashboard-title">Raven Dashboard</h2>
     <button
       on:click={loadAllData}
-      class="btn-refresh"
+      class="btn btn-secondary btn-sm"
       aria-label="Refresh dashboard data"
       title="Refresh dashboard data">
       ↻ Refresh
@@ -137,7 +137,7 @@
     <div class="stats-grid" role="region" aria-labelledby="stats-heading">
       <h3 id="stats-heading" class="visually-hidden">Dashboard Statistics</h3>
 
-      <div class="stat-card" role="status" aria-label="Total events: {stats.total_events}">
+      <div class="card-compact stat-card" role="status" aria-label="Total events: {stats.total_events}">
         <div class="stat-icon" aria-hidden="true">📊</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_events}</div>
@@ -145,7 +145,7 @@
         </div>
       </div>
 
-      <div class="stat-card" role="status" aria-label="Tracked files: {stats.total_files}">
+      <div class="card-compact stat-card" role="status" aria-label="Tracked files: {stats.total_files}">
         <div class="stat-icon" aria-hidden="true">📁</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_files}</div>
@@ -153,7 +153,7 @@
         </div>
       </div>
 
-      <div class="stat-card" role="status" aria-label="AI agents: {stats.total_agents}">
+      <div class="card-compact stat-card" role="status" aria-label="AI agents: {stats.total_agents}">
         <div class="stat-icon" aria-hidden="true">🤖</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_agents}</div>
@@ -161,7 +161,7 @@
         </div>
       </div>
 
-      <div class="stat-card" role="status" aria-label="Session duration: {formatDurationSeconds(stats.session_duration_seconds)}">
+      <div class="card-compact stat-card" role="status" aria-label="Session duration: {formatDurationSeconds(stats.session_duration_seconds)}">
         <div class="stat-icon" aria-hidden="true">⏱️</div>
         <div class="stat-content">
           <div class="stat-value">{formatDurationSeconds(stats.session_duration_seconds)}</div>
@@ -169,7 +169,7 @@
         </div>
       </div>
 
-      <div class="stat-card" role="status" aria-label="Active files today: {stats.active_files_today}">
+      <div class="card-compact stat-card" role="status" aria-label="Active files today: {stats.active_files_today}">
         <div class="stat-icon" aria-hidden="true">🔥</div>
         <div class="stat-content">
           <div class="stat-value">{stats.active_files_today}</div>
@@ -181,7 +181,7 @@
     <!-- Main Content Grid -->
     <div class="content-grid">
       <!-- Top Modified Files -->
-      <section class="panel" aria-labelledby="top-files-heading">
+      <section class="card panel" aria-labelledby="top-files-heading">
         <div class="panel-header">
           <h2 id="top-files-heading"><span aria-hidden="true">📝</span> Top Modified Files</h2>
           <span class="panel-count" aria-label="{topFiles.length} files">{topFiles.length}</span>
@@ -216,7 +216,7 @@
       </section>
 
       <!-- Longest Edits -->
-      <section class="panel" aria-labelledby="longest-edits-heading">
+      <section class="card panel" aria-labelledby="longest-edits-heading">
         <div class="panel-header">
           <h2 id="longest-edits-heading"><span aria-hidden="true">🎯</span> Longest Edits</h2>
           <span class="panel-count" aria-label="{longestEdits.length} edits">{longestEdits.length}</span>
@@ -257,7 +257,7 @@
       </section>
 
       <!-- Active Agents -->
-      <section class="panel agents-panel" aria-labelledby="active-agents-heading">
+      <section class="card panel agents-panel" aria-labelledby="active-agents-heading">
         <div class="panel-header">
           <h2 id="active-agents-heading"><span aria-hidden="true">🤖</span> Active Agents</h2>
           <span class="panel-count" aria-label="{agents.filter(a => a?.is_running).length} of {agents.length} agents running">{agents.filter(a => a?.is_running).length} / {agents.length}</span>
@@ -303,10 +303,9 @@
 
 <style>
   .dashboard {
-    padding: 8px;
+    padding: var(--space-lg);
     width: 100%;
     margin: 0;
-    font-family: var(--mono);
     background-color: var(--bg);
     min-height: calc(100vh - 200px);
     color: var(--text);
@@ -317,37 +316,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 0 6px;
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-md);
   }
 
   h2 {
     margin: 0;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
     font-family: var(--sans);
   }
 
-  .btn-refresh {
-    padding: 4px 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 11px;
-    font-family: var(--sans);
-    transition: all 0.15s;
-  }
-
-  .btn-refresh:hover {
-    background: var(--surface-2);
-    border-color: var(--border);
-  }
+  /* Button styles removed - now using global .btn classes */
 
   .loading {
     text-align: center;
-    padding: 12px;
+    padding: var(--space-xl);
     font-size: 11px;
     color: var(--muted);
   }
@@ -356,20 +340,18 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 6px;
-    margin-bottom: 8px;
-    padding: 0 8px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-lg);
   }
 
   .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px 8px;
+    /* Using standardized .card-compact class */
+    padding: var(--space-md) var(--space-lg); /* Custom: asymmetric padding */
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.15s;
+    gap: var(--space-lg);
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .stat-card:hover {
@@ -379,13 +361,13 @@
 
   .stat-icon {
     font-size: 11px;
-    width: 24px;
-    height: 24px;
+    width: var(--icon-md);
+    height: var(--icon-md);
     display: flex;
     align-items: center;
     justify-content: center;
     background: color-mix(in srgb, var(--accent) 10%, transparent);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     flex-shrink: 0;
   }
 
@@ -398,7 +380,7 @@
     font-size: 11px;
     font-weight: 700;
     color: var(--accent);
-    margin-bottom: 2px;
+    margin-bottom: var(--space-xs);
   }
 
   .stat-label {
@@ -412,24 +394,23 @@
   .content-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
-    gap: 6px;
+    gap: var(--space-md);
     width: 100%;
-    padding: 0 8px 8px 8px;
+    padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
   }
 
   .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    /* Using standardized .card class */
+    padding: 0; /* Custom: no padding, children handle their own padding */
     overflow: hidden;
   }
 
   .full-width-panel {
-    margin-top: 8px;
+    margin-top: var(--space-lg);
   }
 
   .panel-header {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -439,17 +420,17 @@
 
   .panel-header h2 {
     margin: 0;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
     color: var(--text);
     font-family: var(--sans);
   }
 
   .panel-count {
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--accent);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
   }
@@ -459,7 +440,7 @@
   }
 
   .empty-state {
-    padding: 10px 12px;
+    padding: var(--space-lg) var(--space-xl);
     text-align: center;
     color: var(--muted);
     font-size: 11px;
@@ -474,8 +455,8 @@
   .table-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1.5fr;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     font-size: 11px;
@@ -489,10 +470,10 @@
   .table-row {
     display: grid;
     grid-template-columns: 2fr 1fr 1.5fr;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
     border-bottom: 1px solid var(--border);
-    transition: all 0.15s;
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .table-row:hover {
@@ -506,7 +487,7 @@
   .col-file {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     overflow: hidden;
   }
 
@@ -537,10 +518,10 @@
   }
 
   .badge {
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     background: color-mix(in srgb, var(--info) 20%, transparent);
     color: var(--info);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
   }
@@ -551,8 +532,8 @@
   }
 
   .agent-badge {
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
     text-transform: capitalize;
@@ -565,20 +546,20 @@
 
   /* Agents Panel */
   .agents-list {
-    padding: 6px;
+    padding: var(--space-md);
   }
 
   .agent-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
     border-left-width: 3px;
-    border-radius: 3px;
-    margin-bottom: 4px;
-    transition: all 0.15s;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-sm);
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .agent-item:last-child {
@@ -604,7 +585,7 @@
     font-weight: 600;
     color: var(--text);
     text-transform: capitalize;
-    margin-bottom: 2px;
+    margin-bottom: var(--space-xs);
   }
 
   .agent-meta {

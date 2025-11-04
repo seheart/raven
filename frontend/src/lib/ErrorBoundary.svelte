@@ -184,7 +184,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    padding: 8px;
+    padding: var(--space-lg);
     overflow-y: auto;
   }
 
@@ -192,22 +192,22 @@
     max-width: 800px;
     width: 100%;
     background: var(--surface-2, #24283b);
-    border: 2px solid var(--error, #f7768e);
-    border-radius: 3px;
-    padding: 40px;
+    border: 2px solid var(--error, var(--error));
+    border-radius: var(--radius-sm);
+    padding: var(--space-4xl);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   }
 
   .error-icon {
     font-size: 11px;
     text-align: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   h1 {
-    color: var(--error, #f7768e);
+    color: var(--error, var(--error));
     font-size: 11px;
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     text-align: center;
     font-family: var(--mono, monospace);
   }
@@ -216,39 +216,39 @@
     color: var(--text, #c0caf5);
     font-size: 11px;
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: var(--space-3xl);
     line-height: 1.6;
   }
 
   .error-details {
     background: var(--surface, #1a1b26);
     border: 1px solid var(--border, #414868);
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 30px;
+    border-radius: var(--radius);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-3xl);
   }
 
   .error-summary {
     color: var(--text, #c0caf5);
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
     word-break: break-word;
   }
 
   .error-summary strong {
-    color: var(--error, #f7768e);
+    color: var(--error, var(--error));
   }
 
   .stack-trace {
-    margin: 16px 0;
+    margin: var(--space-2xl) 0;
   }
 
   .stack-trace summary {
     color: var(--muted, #565f89);
     cursor: pointer;
     user-select: none;
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface-2, #24283b);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .stack-trace summary:hover {
@@ -257,11 +257,11 @@
   }
 
   .stack-trace pre {
-    margin: 12px 0 0 0;
-    padding: 16px;
+    margin: var(--space-xl) 0 0 0;
+    padding: var(--space-2xl);
     background: var(--surface, #1a1b26);
     border: 1px solid var(--border, #414868);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow-x: auto;
     color: var(--muted, #565f89);
     font-size: 12px;
@@ -272,9 +272,9 @@
   .error-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 16px;
-    padding-top: 16px;
+    gap: var(--space-lg);
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-2xl);
     border-top: 1px solid var(--border, #414868);
     font-size: 13px;
     color: var(--muted, #565f89);
@@ -282,25 +282,25 @@
 
   .error-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     justify-content: center;
-    margin-bottom: 30px;
+    margin-bottom: var(--space-3xl);
   }
 
   .btn-primary,
   .btn-secondary {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     border: none;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     font-family: var(--mono, monospace);
   }
 
   .btn-primary {
-    background: var(--accent, #7aa2f7);
+    background: var(--accent, var(--info));
     color: white;
   }
 
@@ -323,20 +323,20 @@
 
   .btn-secondary:hover {
     background: var(--surface-2, #24283b);
-    border-color: var(--accent, #7aa2f7);
+    border-color: var(--accent, var(--info));
   }
 
   .error-help {
     background: var(--surface, #1a1b26);
     border: 1px solid var(--border, #414868);
-    border-radius: 4px;
-    padding: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-lg);
     color: var(--muted, #565f89);
     font-size: 11px;
   }
 
   .error-help p {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     font-weight: 600;
     color: var(--text, #c0caf5);
   }
@@ -348,6 +348,6 @@
   }
 
   .error-help li {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 </style>

@@ -105,7 +105,7 @@
             {
               label: 'CPU %',
               data: cpuData,
-              borderColor: '#7aa2f7',
+              borderColor: 'var(--info)',
               backgroundColor: 'rgba(122, 162, 247, 0.1)',
               fill: true,
               tension: 0.4
@@ -149,7 +149,7 @@
             {
               label: 'Memory %',
               data: memoryData,
-              borderColor: '#10b981',
+              borderColor: 'var(--success)',
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               fill: true,
               tension: 0.4
@@ -293,7 +293,7 @@
 
 <style>
   .performance-metrics-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -302,11 +302,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .header-left h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -319,15 +319,15 @@
 
   .header-right {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
   }
 
   select {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 13px;
     font-family: var(--mono);
@@ -341,12 +341,12 @@
   .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .stat-card {
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
@@ -358,7 +358,7 @@
     font-weight: 700;
     font-family: var(--mono);
     color: var(--accent);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .stat-label {
@@ -372,12 +372,12 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 8px;
-    margin-bottom: 8px;
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .chart-card h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -387,12 +387,12 @@
   }
 
   .btn-primary, .btn-secondary {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     border-radius: var(--radius);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     border: 1px solid var(--border);
   }
 
@@ -414,14 +414,14 @@
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
   .empty-state p, .error-state p {
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
     color: var(--text);
   }
 

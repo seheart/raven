@@ -222,16 +222,16 @@
     };
 
     const colors = {
-      '.py': getColor('--accent', '#7aa2f7'),
-      '.js': getColor('--warning', '#e0af68'),
-      '.jsx': getColor('--warning', '#e0af68'),
-      '.ts': getColor('--accent', '#7aa2f7'),
-      '.tsx': getColor('--accent', '#7aa2f7'),
+      '.py': getColor('--accent', 'var(--info)'),
+      '.js': getColor('--warning', 'var(--warning)'),
+      '.jsx': getColor('--warning', 'var(--warning)'),
+      '.ts': getColor('--accent', 'var(--info)'),
+      '.tsx': getColor('--accent', 'var(--info)'),
       '.svelte': '#ff3e00',
-      '.json': getColor('--success', '#9ece6a'),
-      '.css': '#8b5cf6',
-      '.scss': '#8b5cf6',
-      '.html': getColor('--error', '#f7768e'),
+      '.json': getColor('--success', 'var(--success)'),
+      '.css': 'var(--accent)',
+      '.scss': 'var(--accent)',
+      '.html': getColor('--error', 'var(--error)'),
       '.md': getColor('--muted', '#565f89'),
       '.rs': '#f97316',
       '.toml': getColor('--muted', '#565f89'),
@@ -414,10 +414,10 @@
 
     // Extract theme colors for charts
     const themeColors = {
-      accent: getColor('--accent', '#7aa2f7'),
-      success: getColor('--success', '#9ece6a'),
-      error: getColor('--error', '#f7768e'),
-      warning: getColor('--warning', '#e0af68')
+      accent: getColor('--accent', 'var(--info)'),
+      success: getColor('--success', 'var(--success)'),
+      error: getColor('--error', 'var(--error)'),
+      warning: getColor('--warning', 'var(--warning)')
     };
 
     // 1. Pie Chart: File types distribution
@@ -575,10 +575,10 @@
           {/each}
         </select>
       {/if}
-      <button class="refresh-btn" on:click={refresh} disabled={loading} aria-label="Refresh file list">
+      <button class="btn btn-secondary btn-sm" on:click={refresh} disabled={loading} aria-label="Refresh file list">
         <span aria-hidden="true">{loading ? '⟳' : '↻'}</span> Refresh
       </button>
-      <button class="toggle-charts-btn" on:click={() => showCharts = !showCharts} aria-label="Toggle charts">
+      <button class="btn btn-ghost btn-icon" on:click={() => showCharts = !showCharts} aria-label="Toggle charts">
         {showCharts ? '📊' : '📈'}
       </button>
     </div>
@@ -587,7 +587,7 @@
   {#if error}
     <div class="error-state" role="alert">
       <p>Error: {error}</p>
-      <button class="btn-retry" on:click={loadFiles} aria-label="Retry loading files">
+      <button class="btn btn-secondary btn-sm" on:click={loadFiles} aria-label="Retry loading files">
         Retry
       </button>
     </div>
@@ -669,7 +669,7 @@
           aria-label="Search files"
         />
         {#if searchQuery}
-          <button class="clear-search-btn" on:click={() => searchQuery = ''} aria-label="Clear search">×</button>
+          <button class="btn btn-ghost btn-icon clear-search-btn" on:click={() => searchQuery = ''} aria-label="Clear search">×</button>
         {/if}
       </div>
 
@@ -681,7 +681,7 @@
             <option value="lastModified">Last Modified</option>
             <option value="changeCount">Change Count</option>
           </select>
-          <button class="sort-order-btn" on:click={toggleSortOrder} aria-label="Toggle sort order">
+          <button class="btn btn-ghost btn-icon" on:click={toggleSortOrder} aria-label="Toggle sort order">
             {sortOrder === 'asc' ? '↓' : '↑'}
           </button>
         </div>
@@ -692,7 +692,7 @@
             <div class="type-filters">
               {#each availableFileTypes as ext (ext)}
                 <button
-                  class="type-filter-btn"
+                  class="btn btn-ghost btn-sm"
                   class:active={selectedFileTypes.includes(ext)}
                   style="--type-color: {getFileTypeColor(ext)}"
                   on:click={() => toggleFileType(ext)}
@@ -767,9 +767,9 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 8px;
+    padding: var(--space-lg);
     position: relative;
-    gap: 8px;
+    gap: var(--space-lg);
     overflow-y: auto;
   }
 
@@ -779,7 +779,7 @@
     align-items: center;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
-    gap: 6px;
+    gap: var(--space-md);
     flex-shrink: 0;
   }
 
@@ -794,19 +794,19 @@
   .header-controls {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .project-selector {
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
-    padding: 5px 8px;
-    border-radius: 3px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 10px;
     font-family: var(--mono);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     min-width: 120px;
   }
 
@@ -819,32 +819,9 @@
     outline-offset: 2px;
   }
 
-  .refresh-btn,
-  .toggle-charts-btn {
-    background: var(--surface-2);
-    color: var(--info);
-    border: 1px solid var(--info);
-    padding: 5px 10px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 10px;
-    transition: all 0.2s;
-  }
-
-  .refresh-btn:hover:not(:disabled),
-  .toggle-charts-btn:hover {
-    background: var(--info);
-    color: white;
-  }
-
-  .refresh-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
   .loading {
     text-align: center;
-    padding: 8px;
+    padding: var(--space-lg);
     color: var(--muted);
     font-family: var(--mono);
     font-size: 10px;
@@ -852,7 +829,7 @@
 
   .empty {
     text-align: center;
-    padding: 12px 8px;
+    padding: var(--space-xl) var(--space-lg);
     color: var(--muted);
   }
 
@@ -870,17 +847,17 @@
   .stats-header {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    padding: 8px;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .stat-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .stat-label {
@@ -905,11 +882,11 @@
   .type-breakdown {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     flex-wrap: wrap;
   }
 
@@ -922,18 +899,18 @@
 
   .breakdown-tags {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     flex-wrap: wrap;
   }
 
   .type-tag {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
     background: var(--surface);
     border: 1px solid;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 9px;
     font-family: var(--mono);
     color: var(--text);
@@ -947,20 +924,20 @@
   .charts-section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .chart-row {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .chart-container {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 8px;
+    border-radius: var(--radius-sm);
+    padding: var(--space-lg);
     min-height: 200px;
   }
 
@@ -973,7 +950,7 @@
   .controls-section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .search-bar {
@@ -984,15 +961,15 @@
 
   .search-input {
     width: 100%;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     padding-right: 30px;
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 10px;
     font-family: var(--mono);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .search-input:focus {
@@ -1008,30 +985,18 @@
   .clear-search-btn {
     position: absolute;
     right: 6px;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 16px;
-    cursor: pointer;
-    padding: 2px 6px;
-    line-height: 1;
-    transition: color 0.2s;
-  }
-
-  .clear-search-btn:hover {
-    color: var(--text);
   }
 
   .filter-controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .filter-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     flex-wrap: wrap;
   }
 
@@ -1047,12 +1012,12 @@
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
-    padding: 4px 8px;
-    border-radius: 3px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-sm);
     font-size: 10px;
     font-family: var(--mono);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .sort-select:hover {
@@ -1064,65 +1029,24 @@
     outline-offset: 2px;
   }
 
-  .sort-order-btn {
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-  }
-
-  .sort-order-btn:hover {
-    background: var(--info);
-    color: white;
-    border-color: var(--info);
-  }
-
   .type-filters {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     flex-wrap: wrap;
-  }
-
-  .type-filter-btn {
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 4px 8px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 9px;
-    font-family: var(--mono);
-    transition: all 0.2s;
-  }
-
-  .type-filter-btn:hover {
-    border-color: var(--type-color);
-    background: var(--surface);
-  }
-
-  .type-filter-btn.active {
-    background: var(--type-color);
-    border-color: var(--type-color);
-    color: white;
-    font-weight: 600;
   }
 
   /* File List */
   .file-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-md);
     flex: 1;
     overflow-y: auto;
   }
 
   .no-results {
     text-align: center;
-    padding: 16px;
+    padding: var(--space-2xl);
     color: var(--muted);
     font-size: 10px;
     font-family: var(--mono);
@@ -1130,7 +1054,7 @@
 
   .file-container {
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
     background: var(--surface-2);
   }
@@ -1138,11 +1062,11 @@
   .file-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
     background: transparent;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     border: none;
     border-bottom: 1px solid transparent;
     width: 100%;
@@ -1171,11 +1095,11 @@
     color: var(--muted);
     width: 10px;
     flex-shrink: 0;
-    transition: transform 0.2s;
+    transition: transform var(--duration-base) var(--ease-smooth);
   }
 
   .history-expansion {
-    padding: 6px;
+    padding: var(--space-md);
     background: var(--bg);
     border-top: 1px solid var(--border);
   }
@@ -1190,27 +1114,27 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: var(--space-sm);
   }
 
   .file-name {
     color: var(--text);
     font-weight: 500;
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     font-size: 10px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .recent-badge {
     display: inline-block;
     background: var(--success);
     color: white;
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     border-radius: 2px;
     font-size: 8px;
     font-weight: 600;
@@ -1221,7 +1145,7 @@
   .file-path {
     color: var(--muted);
     font-size: 9px;
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1230,14 +1154,14 @@
   .file-metadata {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-lg);
     flex-shrink: 0;
   }
 
   .metadata-item {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-sm);
     font-size: 9px;
     color: var(--muted);
     font-family: var(--mono);
@@ -1250,26 +1174,10 @@
   .change-badge {
     background: var(--info);
     color: white;
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     border-radius: 2px;
     font-size: 9px;
     font-weight: 600;
-  }
-
-  .view-btn {
-    color: var(--info);
-    font-size: 9px;
-    font-weight: 500;
-    white-space: nowrap;
-    padding: 4px 8px;
-    border-radius: 3px;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-
-  .file-item:hover .view-btn {
-    background: var(--info);
-    color: white;
   }
 
   /* Responsive adjustments */
@@ -1288,42 +1196,20 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 32px 16px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
+    gap: var(--space-xl);
+    padding: var(--space-4xl) var(--space-2xl);
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
+    border-radius: var(--radius);
     text-align: center;
-    margin: 16px 0;
+    margin: var(--space-2xl) 0;
   }
 
   .error-state p {
     margin: 0;
-    color: #991b1b;
+    color: var(--error);
     font-size: 13px;
     font-weight: 500;
   }
 
-  .btn-retry {
-    padding: 8px 16px;
-    background: var(--error);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-retry:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .btn-retry:focus {
-    outline: 2px solid var(--error);
-    outline-offset: 2px;
-  }
 </style>

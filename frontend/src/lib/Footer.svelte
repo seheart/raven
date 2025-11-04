@@ -8,9 +8,6 @@
   export let sessionId = 'Loading...';
 
   let version = '0.8.0';
-
-  // Show shortened session ID (last 8 chars)
-  $: shortSessionId = sessionId === 'Loading...' ? sessionId : `...${sessionId.slice(-8)}`;
 </script>
 
 <footer class="footer">
@@ -24,7 +21,7 @@
         title="Session ID: {sessionId} (Click for details)"
         aria-label="View session details"
       >
-        Session: <span class="session-id">{shortSessionId}</span>
+        Session: <span class="session-id">{sessionId}</span>
       </button>
       <span class="footer-divider" aria-hidden="true">|</span>
       <div class="theme-selector" role="group" aria-label="Theme selector">
@@ -91,7 +88,7 @@
     right: 0;
     background: var(--surface);
     border-top: 1px solid var(--border);
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     z-index: 100;
     font-family: var(--mono);
   }
@@ -108,7 +105,7 @@
   .footer-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .footer-brand {
@@ -124,10 +121,10 @@
     padding: 0;
     cursor: pointer;
     font-family: var(--mono);
-    transition: color 0.2s;
+    transition: color var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .footer-session-btn:hover {
@@ -139,10 +136,10 @@
   }
 
   .session-id {
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     color: var(--text);
     font-weight: 600;
-    transition: color 0.2s;
+    transition: color var(--duration-base) var(--ease-smooth);
   }
 
   .footer-divider {
@@ -153,7 +150,7 @@
     color: var(--muted);
     text-decoration: none;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color var(--duration-base) var(--ease-smooth);
     background: none;
     border: none;
     font-size: 13px;
@@ -177,9 +174,9 @@
     color: var(--muted);
     font-family: var(--mono);
     font-size: 13px;
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color var(--duration-base) var(--ease-smooth);
     font-weight: 500;
   }
 
@@ -195,13 +192,13 @@
   .theme-button:not(:last-child)::after {
     content: '·';
     color: var(--muted);
-    margin-left: 8px;
+    margin-left: var(--space-lg);
   }
 
   .footer-status {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     color: var(--success);
     font-size: 12px;
   }
@@ -231,7 +228,7 @@
   @media (max-width: 768px) {
     .footer-content {
       flex-direction: column;
-      gap: 8px;
+      gap: var(--space-lg);
       text-align: center;
     }
 

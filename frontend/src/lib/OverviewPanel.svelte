@@ -225,7 +225,7 @@
   <ProjectsOverview />
 
   <!-- Live Activity Stream - MOVED UP for better visibility -->
-  <section class="activity-section" aria-labelledby="activity-heading">
+  <section class="card-compact activity-section" aria-labelledby="activity-heading">
     <div class="section-header">
       <h3 id="activity-heading">Live Activity Stream</h3>
       <div class="header-actions" role="toolbar" aria-label="Activity stream controls">
@@ -287,7 +287,7 @@
   </section>
 
   <!-- Current Session Card -->
-  <div class="stat-card session-card" role="article" aria-labelledby="session-card-heading">
+  <div class="card-compact stat-card session-card" role="article" aria-labelledby="session-card-heading">
     <div class="card-header">
       <span class="card-icon" aria-hidden="true">⏱️</span>
       <h3 id="session-card-heading">Current Session</h3>
@@ -320,7 +320,7 @@
 
   <!-- Top Files Section -->
   {#if topFiles.length > 0}
-    <section class="files-section" aria-labelledby="top-files-heading">
+    <section class="card-compact files-section" aria-labelledby="top-files-heading">
       <h3 id="top-files-heading">Most Active Files</h3>
       <ul class="files-list" role="list" aria-label="Files with most changes">
         {#each topFiles as file (file.id || file.name || file)}
@@ -339,7 +339,7 @@
   {/if}
 
   <!-- System Health - MOVED TO BOTTOM (less critical for overview) -->
-  <div class="stat-card metrics-card" role="article" aria-labelledby="metrics-card-heading">
+  <div class="card-compact stat-card metrics-card" role="article" aria-labelledby="metrics-card-heading">
     <div class="card-header">
       <span class="card-icon" aria-hidden="true">📊</span>
       <h3 id="metrics-card-heading">System Health</h3>
@@ -393,31 +393,31 @@
 
 <style>
   .overview-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1400px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
     position: relative;
   }
 
   .greeting-section {
     text-align: center;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .greeting-text {
     font-family: var(--mono);
-    font-size: 18px;
+    font-size: var(--icon-sm);
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 10px 0;
+    margin: 0 0 var(--space-lg) 0;
   }
 
   .overview-stats {
     display: flex;
-    gap: 24px;
+    gap: var(--space-3xl);
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
@@ -426,7 +426,7 @@
   .overview-stat {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     font-family: var(--mono);
     font-size: 11px;
     color: var(--muted);
@@ -443,15 +443,13 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
-    transition: all 0.2s ease;
+    /* Using standardized .card-compact class */
+    padding: var(--space-md); /* Custom: 6px padding for tight spacing */
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .stat-card:hover {
@@ -463,12 +461,12 @@
   .card-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-md);
   }
 
   .card-header h3 {
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
@@ -482,7 +480,7 @@
   .stat-rows {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .stat-row {
@@ -508,13 +506,13 @@
   .metrics-display {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .metric-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .metric-label {
@@ -528,13 +526,13 @@
     flex: 1;
     height: 8px;
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
   .metric-fill {
     height: 100%;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) var(--ease-smooth);
   }
 
   .metric-value {
@@ -547,21 +545,19 @@
 
   /* Activity Section */
   .activity-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
+    /* Using standardized .card-compact class */
+    padding: var(--space-md); /* Custom: 6px padding */
   }
 
   .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .section-header h3 {
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
@@ -571,7 +567,7 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .last-updated {
@@ -583,16 +579,16 @@
   .refresh-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-xl);
     font-family: var(--mono);
     font-size: 11px;
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .refresh-btn:hover:not(:disabled) {
@@ -609,22 +605,17 @@
 
   .refresh-icon {
     display: inline-block;
-    transition: transform 0.3s ease;
+    transition: transform var(--duration-slow) var(--ease-smooth);
   }
 
   .refresh-icon.spinning {
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
   .live-indicator {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     font-family: var(--mono);
     font-size: 11px;
     color: var(--success);
@@ -646,7 +637,7 @@
   .activity-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
     list-style: none;
     padding: 0;
     margin: 0;
@@ -655,11 +646,11 @@
   .activity-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 12px;
+    gap: var(--space-md);
+    padding: var(--space-xl);
     background: var(--bg);
-    border-radius: 3px;
-    transition: all 0.2s ease;
+    border-radius: var(--radius-sm);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .activity-item:hover {
@@ -678,7 +669,7 @@
     font-family: var(--mono);
     font-size: 12px;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .activity-meta {
@@ -689,11 +680,11 @@
 
   .project-badge {
     display: inline-block;
-    padding: 2px 8px;
-    margin-right: 8px;
+    padding: var(--space-xs) var(--space-lg);
+    margin-right: var(--space-lg);
     background: var(--accent);
     color: white;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-family: var(--mono);
     font-size: 11px;
     font-weight: 600;
@@ -703,10 +694,8 @@
 
   /* Files Section */
   .files-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
+    /* Using standardized .card-compact class */
+    padding: var(--space-md); /* Custom: 6px padding */
   }
 
   .files-section h3 {
@@ -714,13 +703,13 @@
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
   }
 
   .files-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
     list-style: none;
     padding: 0;
     margin: 0;
@@ -730,9 +719,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-family: var(--mono);
     font-size: 12px;
   }
@@ -742,7 +731,7 @@
   }
 
   .file-project {
-    color: #3b82f6;
+    color: var(--info);
     font-weight: 600;
   }
 
@@ -754,14 +743,14 @@
   /* Empty State */
   .empty-state {
     text-align: center;
-    padding: 12px;
+    padding: var(--space-xl);
     color: var(--muted);
   }
 
   .empty-icon {
     font-size: 11px;
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .empty-state p {

@@ -77,7 +77,7 @@ export function matchesFilter(projectName, filterValue) {
  * Uses a deterministic hash to assign consistent colors
  */
 const PROJECT_COLORS = [
-  '#7aa2f7', // blue
+  'var(--info)', // blue
   '#bb9af7', // purple
   '#9ece6a', // green
   '#e0af68', // yellow

@@ -318,10 +318,10 @@
             </div>
           </div>
           <div class="notification-buttons" role="group" aria-label="Notification preference">
-            <button class="btn-primary" on:click={() => handleNotifications(true)} aria-label="Enable desktop notifications">
+            <button class="btn btn-primary" on:click={() => handleNotifications(true)} aria-label="Enable desktop notifications">
               Enable Notifications
             </button>
-            <button class="btn-secondary" on:click={() => handleNotifications(false)} aria-label="Skip notifications setup">
+            <button class="btn btn-secondary" on:click={() => handleNotifications(false)} aria-label="Skip notifications setup">
               Skip for Now
             </button>
           </div>
@@ -355,31 +355,31 @@
     <!-- Footer -->
     <div class="wizard-footer" role="navigation" aria-label="Wizard navigation">
       {#if currentStep === 0}
-        <button class="btn-secondary" on:click={skipWizard} aria-label="Skip setup wizard">
+        <button class="btn btn-secondary" on:click={skipWizard} aria-label="Skip setup wizard">
           Skip Setup
         </button>
-        <button class="btn-primary" on:click={nextStep} aria-label="Start setup wizard">
+        <button class="btn btn-primary" on:click={nextStep} aria-label="Start setup wizard">
           Get Started →
         </button>
       {:else if currentStep === 1}
-        <button class="btn-secondary" on:click={prevStep} aria-label="Go to previous step">
+        <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
-        <button class="btn-primary" on:click={selectProjectDirectory} aria-label="Continue to next step">
+        <button class="btn btn-primary" on:click={selectProjectDirectory} aria-label="Continue to next step">
           Next →
         </button>
       {:else if currentStep === 2}
-        <button class="btn-secondary" on:click={prevStep} aria-label="Go to previous step">
+        <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
         <span class="step-indicator" role="status">Selected: {templates.find(t => t.id === selectedTemplate)?.name}</span>
       {:else}
         <!-- Final step (3): Enable Notifications -->
-        <button class="btn-secondary" on:click={prevStep} aria-label="Go to previous step">
+        <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
         <button
-          class="btn-primary btn-complete"
+          class="btn btn-primary btn-lg"
           on:click={completeSetup}
           disabled={loading}
           aria-label={loading ? 'Setting up Raven' : 'Complete setup and start monitoring'}
@@ -406,7 +406,7 @@
   .wizard-container {
     background: var(--bg);
     border: 2px solid var(--accent);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     width: 90%;
     max-width: 700px;
     max-height: 90vh;
@@ -418,25 +418,25 @@
   .progress-bar {
     height: 4px;
     background: var(--border);
-    border-radius: 3px 12px 0 0;
+    border-radius: var(--radius-sm) var(--radius-xl) 0 0;
     overflow: hidden;
   }
 
   .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--accent), var(--accent-2, var(--accent)));
-    transition: width 0.3s ease;
+    transition: width var(--duration-slow) var(--ease-smooth);
   }
 
   .wizard-header {
-    padding: 12px 40px 24px;
+    padding: var(--space-xl) var(--space-4xl) var(--space-3xl);
     text-align: center;
     border-bottom: 1px solid var(--border);
   }
 
   .wizard-header h1 {
-    margin: 0 0 8px 0;
-    font-size: 28px;
+    margin: 0 0 var(--space-lg) 0;
+    font-size: var(--icon-lg);
     font-weight: 700;
     color: var(--text);
   }
@@ -449,7 +449,7 @@
   }
 
   .wizard-content {
-    padding: 12px 40px;
+    padding: var(--space-xl) var(--space-4xl);
     flex: 1;
     overflow-y: auto;
   }
@@ -457,7 +457,7 @@
   .step-content {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .welcome-icon, .success-icon {
@@ -477,7 +477,7 @@
   .features-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
     max-width: 500px;
     margin: 0 auto;
   }
@@ -485,10 +485,10 @@
   .feature {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .feature-icon {
@@ -505,7 +505,7 @@
   .project-input {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .project-input label {
@@ -517,14 +517,14 @@
   /* (removed unused .path-input-group) */
 
   .project-input input {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
-    transition: border-color 0.2s;
+    transition: border-color var(--duration-base) var(--ease-smooth);
   }
 
   .project-input input:focus {
@@ -541,22 +541,22 @@
   .hint {
     font-size: 13px;
     color: var(--muted);
-    margin: 4px 0 0 0;
+    margin: var(--space-sm) 0 0 0;
   }
 
   .templates-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .template-card {
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     text-align: center;
   }
 
@@ -579,18 +579,18 @@
 
   .template-icon {
     font-size: 40px;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .template-card h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
   }
 
   .template-card p {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     font-size: 13px;
     color: var(--muted);
     line-height: 1.4;
@@ -603,20 +603,20 @@
   }
 
   .notification-preview {
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--radius);
     display: flex;
     justify-content: center;
   }
 
   .preview-notification {
     display: flex;
-    gap: 12px;
-    padding: 16px;
+    gap: var(--space-xl);
+    padding: var(--space-2xl);
     background: white;
     border: 2px solid #e5e7eb;
-    border-radius: 4px;
+    border-radius: var(--radius);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     max-width: 350px;
   }
@@ -631,7 +631,7 @@
     font-size: 11px;
     font-weight: 600;
     color: #1f2937;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .preview-content p {
@@ -642,19 +642,19 @@
 
   .notification-buttons {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     justify-content: center;
   }
 
   .summary-box {
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .summary-box h4 {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
@@ -668,74 +668,29 @@
   .summary-box li {
     font-size: 11px;
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .error-message {
-    padding: 12px;
+    padding: var(--space-xl);
     background: #fee2e2;
-    border: 1px solid #ef4444;
-    border-radius: 3px;
-    color: #991b1b;
+    border: 1px solid var(--error);
+    border-radius: var(--radius-sm);
+    color: var(--error);
     font-size: 11px;
     text-align: center;
     margin: 0;
   }
 
   .wizard-footer {
-    padding: 8px 40px;
+    padding: var(--space-lg) var(--space-4xl);
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
-  .btn-primary, .btn-secondary {
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  .btn-primary:focus,
-  .btn-secondary:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-complete {
-    font-size: 11px;
-    padding: 14px 32px;
-  }
+  /* Button styles removed - now using global .btn classes */
 
   .step-indicator {
     font-size: 13px;

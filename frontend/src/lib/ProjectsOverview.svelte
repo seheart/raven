@@ -212,36 +212,36 @@
   .projects-overview {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
   }
 
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   h3 {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
+    font-family: var(--sans);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
     color: var(--text);
     margin: 0;
   }
 
   .view-all {
-    padding: 4px 12px;
+    padding: var(--space-sm) var(--space-xl);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--accent);
     font-family: var(--mono);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .view-all:hover {
@@ -251,7 +251,7 @@
 
   .loading, .empty {
     text-align: center;
-    padding: 12px;
+    padding: var(--space-xl);
     color: var(--muted);
     font-size: 11px;
   }
@@ -259,16 +259,16 @@
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .project-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 12px;
+    border-radius: var(--radius-sm);
+    padding: var(--space-xl);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-base) var(--ease-smooth);
     text-align: left;
   }
 
@@ -284,7 +284,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .project-name {
@@ -304,16 +304,16 @@
     flex-shrink: 0;
     display: block;
     padding: 0;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) var(--ease-smooth);
   }
 
   .project-status-dot.active {
-    background: #10b981;
+    background: var(--success);
     box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
   }
 
   .project-status-dot.recent {
-    background: #3b82f6;
+    background: var(--info);
     box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
   }
 
@@ -324,13 +324,13 @@
 
   .project-stats {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .stat {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-xs);
   }
 
   .stat-label {

@@ -542,11 +542,11 @@
 
     // Extract theme colors for charts with fallbacks
     const themeColors = {
-      accent: getColor('--accent', '#7aa2f7'),
-      success: getColor('--success', '#9ece6a'),
-      error: getColor('--error', '#f7768e'),
-      warning: getColor('--warning', '#e0af68'),
-      info: getColor('--info', '#7aa2f7')
+      accent: getColor('--accent', 'var(--info)'),
+      success: getColor('--success', 'var(--success)'),
+      error: getColor('--error', 'var(--error)'),
+      warning: getColor('--warning', 'var(--warning)'),
+      info: getColor('--info', 'var(--info)')
     };
 
     logger.info('[LiveCodeFeed] Extracted chart colors:', themeColors);
@@ -567,8 +567,8 @@
           datasets: [{
             data: fileTypeData.map(([_, count]) => count),
             backgroundColor: [
-              themeColors.accent, themeColors.success, themeColors.warning, themeColors.error, '#8b5cf6',
-              '#ec4899', themeColors.info, '#84cc16', '#f97316', '#6366f1'
+              themeColors.accent, themeColors.success, themeColors.warning, themeColors.error, 'var(--accent)',
+              'var(--accent)', themeColors.info, '#84cc16', '#f97316', '#6366f1'
             ]
           }]
         },
@@ -793,7 +793,7 @@
       {/if}
 
       <div class="stat-controls">
-        <button class="btn-pause" on:click={togglePause} aria-label={isPaused ? 'Resume live feed updates' : 'Pause live feed updates'} aria-pressed={isPaused}>
+        <button class="btn btn-secondary btn-sm" on:click={togglePause} aria-label={isPaused ? 'Resume live feed updates' : 'Pause live feed updates'} aria-pressed={isPaused}>
           <span aria-hidden="true">{isPaused ? '▶️' : '⏸️'}</span>
           <span class="pause-text">{isPaused ? 'Resume' : 'Pause'}</span>
         </button>
@@ -862,7 +862,7 @@
       <div class="charts-section">
         <div class="charts-header">
           <h3>📈 Analytics</h3>
-          <button class="btn-toggle-charts" on:click={() => showCharts = false}>Hide Charts</button>
+          <button class="btn btn-ghost btn-sm" on:click={() => showCharts = false}>Hide Charts</button>
         </div>
         <div class="charts-grid">
           <div class="chart-container">
@@ -884,7 +884,7 @@
       </div>
     {:else}
       <div class="charts-toggle">
-        <button class="btn-toggle-charts" on:click={() => showCharts = true}>Show Charts</button>
+        <button class="btn btn-ghost btn-sm" on:click={() => showCharts = true}>Show Charts</button>
       </div>
     {/if}
 
@@ -905,19 +905,19 @@
         <div class="filter-group">
           <span class="filter-label">Change Type:</span>
           <button
-            class="filter-btn {selectedChangeTypes.includes('created') ? 'active' : ''}"
+            class="btn btn-ghost btn-sm {selectedChangeTypes.includes('created') ? 'active' : ''}"
             on:click={() => toggleChangeType('created')}
           >
             ➕ Created
           </button>
           <button
-            class="filter-btn {selectedChangeTypes.includes('modified') ? 'active' : ''}"
+            class="btn btn-ghost btn-sm {selectedChangeTypes.includes('modified') ? 'active' : ''}"
             on:click={() => toggleChangeType('modified')}
           >
             ✏️ Modified
           </button>
           <button
-            class="filter-btn {selectedChangeTypes.includes('deleted') ? 'active' : ''}"
+            class="btn btn-ghost btn-sm {selectedChangeTypes.includes('deleted') ? 'active' : ''}"
             on:click={() => toggleChangeType('deleted')}
           >
             🗑️ Deleted
@@ -943,8 +943,8 @@
 
         <!-- Export Buttons -->
         <div class="filter-group">
-          <button class="export-btn" on:click={exportToJSON}>Export JSON</button>
-          <button class="export-btn" on:click={exportToCSV}>Export CSV</button>
+          <button class="btn btn-primary btn-sm" on:click={exportToJSON}>Export JSON</button>
+          <button class="btn btn-primary btn-sm" on:click={exportToCSV}>Export CSV</button>
         </div>
       </div>
 
@@ -955,7 +955,7 @@
             <span class="filter-label">File Types:</span>
             {#each allFileTypes.slice(0, 15) as fileType (fileType)}
               <button
-                class="filter-btn small {selectedFileTypes.includes(fileType) ? 'active' : ''}"
+                class="btn btn-ghost btn-sm {selectedFileTypes.includes(fileType) ? 'active' : ''}"
                 on:click={() => toggleFileType(fileType)}
               >
                 {fileType} ({statistics.byFileType[fileType] || 0})
@@ -984,7 +984,7 @@
       {#if searchQuery || selectedChangeTypes.length > 0 || selectedFileTypes.length > 0 || selectedProject !== 'all'}
         <div class="filters-row">
           <button
-            class="clear-filters-btn"
+            class="btn btn-danger btn-sm"
             on:click={() => {
               searchQuery = '';
               selectedChangeTypes = [];
@@ -1005,7 +1005,7 @@
         {#if error}
           <div class="error-state" role="alert">
             <p>Error: {error}</p>
-            <button class="btn-retry" on:click={loadAllData} aria-label="Retry loading code changes">
+            <button class="btn btn-primary btn-sm" on:click={loadAllData} aria-label="Retry loading code changes">
               Retry
             </button>
           </div>
@@ -1038,7 +1038,7 @@
                     {/if}
                     <span class="change-time">{formatTime(change.timestamp)}</span>
                   </div>
-                  <button class="btn-copy" title="Copy file path" on:click={() => {
+                  <button class="btn btn-ghost btn-icon" title="Copy file path" on:click={() => {
                     navigator.clipboard.writeText(change.filepath || 'Unknown file');
                     notifications.success('File path copied!');
                   }}>📋</button>
@@ -1094,12 +1094,12 @@
   }
 
   .stats-header {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     border-bottom: 1px solid var(--border);
   }
 
   .stats-title h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 12px;
     color: var(--text);
     font-weight: 600;
@@ -1113,21 +1113,21 @@
 
   .stats-bar {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
     justify-content: space-between;
-    padding: 4px 10px;
+    padding: var(--space-sm) var(--space-lg);
   }
 
   .stat-item {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     align-items: center;
-    padding: 3px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    transition: all 0.15s ease;
+    border-radius: var(--radius-sm);
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .stat-item:hover {
@@ -1142,7 +1142,7 @@
   .stat-content {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: var(--space-xs);
   }
 
   .stat-label {
@@ -1164,31 +1164,7 @@
     margin-left: auto;
   }
 
-  .btn-pause {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    border-radius: 3px;
-    color: white;
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .btn-pause:hover {
-    background: var(--accent-2, var(--accent));
-    border-color: var(--accent-2, var(--accent));
-  }
-
-  .btn-pause:focus {
-    outline: 2px solid white;
-    outline-offset: 2px;
-  }
+  /* Button styles removed - using global .btn classes */
 
   .pause-text {
     text-transform: uppercase;
@@ -1196,11 +1172,11 @@
   }
 
   .paused-banner {
-    margin-top: 12px;
-    padding: 6px 10px;
+    margin-top: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
     background: color-mix(in srgb, var(--warning) 15%, transparent);
     border: 1px solid var(--warning);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--warning);
     font-size: 12px;
     font-weight: 600;
@@ -1217,12 +1193,12 @@
   .sparkline-item {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 3px 8px;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    transition: all 0.15s ease;
+    border-radius: var(--radius-sm);
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .sparkline-item:hover {
@@ -1234,7 +1210,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .sparkline-label {
@@ -1258,7 +1234,7 @@
   }
 
   .sparkline path {
-    transition: stroke 0.3s ease;
+    transition: stroke var(--duration-slow) var(--ease-smooth);
   }
 
   .feed-layout {
@@ -1272,23 +1248,23 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   /* Code Changes Styles */
   .changes-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
     padding-bottom: 20px;
   }
 
   .change-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px 8px;
-    transition: all 0.15s;
+    border-radius: var(--radius);
+    padding: var(--space-md) var(--space-lg);
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .change-item:hover {
@@ -1300,12 +1276,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .change-meta {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     align-items: center;
   }
 
@@ -1320,12 +1296,12 @@
   }
 
   .project-badge {
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     background: var(--accent);
     color: white;
     font-size: 10px;
     font-weight: 600;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
@@ -1335,48 +1311,30 @@
     color: var(--muted);
   }
 
-  .btn-copy {
-    padding: 2px 6px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.15s;
-  }
-
-  .btn-copy:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-copy:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+  /* Button styles removed - using global .btn classes */
 
   .change-file {
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .change-file code {
     font-size: 11px;
     color: var(--accent);
     background: var(--bg);
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-sm);
     display: inline-block;
   }
 
   .change-diff {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    margin-bottom: 4px;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-sm);
     overflow-x: auto;
     max-height: 300px;
     overflow-y: auto;
-    font-family: 'Courier New', 'Consolas', monospace;
+    font-family: var(--mono);
   }
 
   .diff-line {
@@ -1384,8 +1342,8 @@
     align-items: stretch;
     font-size: 11px;
     line-height: 1.5;
-    min-height: 18px;
-    transition: background 0.1s ease;
+    min-height: var(--icon-sm);
+    transition: background var(--duration-fast) var(--ease-smooth);
   }
 
   .diff-line:hover {
@@ -1416,8 +1374,8 @@
 
   .line-number {
     display: inline-block;
-    width: 32px;
-    padding: 1px 6px;
+    width: var(--icon-lg);
+    padding: var(--space-xs) var(--space-md);
     color: var(--muted);
     text-align: right;
     user-select: none;
@@ -1436,7 +1394,7 @@
 
   .line-content {
     flex: 1;
-    padding: 1px 8px;
+    padding: var(--space-xs) var(--space-lg);
     white-space: pre;
     overflow-x: auto;
     color: var(--text);
@@ -1458,39 +1416,39 @@
 
   .change-diff::-webkit-scrollbar-thumb {
     background: var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .change-footer {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     font-size: 11px;
     color: var(--muted);
   }
 
   .change-size,
   .change-hash {
-    padding: 2px 4px;
+    padding: var(--space-xs) var(--space-sm);
     background: var(--bg);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   /* Activity Styles */
   .activity-list {
-    padding: 6px;
+    padding: var(--space-md);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .activity-item {
     display: flex;
-    gap: 6px;
-    padding: 6px;
+    gap: var(--space-md);
+    padding: var(--space-md);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    transition: all 0.15s;
+    border-radius: var(--radius-sm);
+    transition: all var(--duration-fast) var(--ease-smooth);
     cursor: pointer;
   }
 
@@ -1516,12 +1474,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-bottom: 2px;
+    margin-bottom: var(--space-xs);
   }
 
   .activity-meta {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     font-size: 11px;
     color: var(--muted);
   }
@@ -1533,19 +1491,19 @@
 
   .loading {
     text-align: center;
-    padding: 8px;
+    padding: var(--space-lg);
     color: var(--muted);
     font-size: 11px;
   }
 
   .empty-state {
     text-align: center;
-    padding: 12px 8px;
+    padding: var(--space-xl) var(--space-lg);
     color: var(--muted);
   }
 
   .empty-state p {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 12px;
   }
 
@@ -1562,31 +1520,31 @@
   .code-changes-content::-webkit-scrollbar-thumb,
   .activity-content::-webkit-scrollbar-thumb {
     background: var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   /* Statistics Dashboard */
   .statistics-dashboard {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .stats-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .stats-card {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
-    padding: 8px 10px;
+    padding: var(--space-lg) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    transition: all 0.15s ease;
+    border-radius: var(--radius);
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .stats-card:hover {
@@ -1612,14 +1570,14 @@
   }
 
   .stats-card-icon {
-    font-size: 20px;
+    font-size: var(--icon-sm);
     flex-shrink: 0;
   }
 
   .stats-card-content {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-xs);
     min-width: 0;
   }
 
@@ -1645,14 +1603,14 @@
   .charts-section {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .charts-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .charts-header h3 {
@@ -1665,14 +1623,14 @@
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .chart-container {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 12px;
+    border-radius: var(--radius);
+    padding: var(--space-xl);
   }
 
   .chart-container.chart-wide {
@@ -1682,49 +1640,32 @@
   .charts-toggle {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     text-align: center;
   }
 
-  .btn-toggle-charts {
-    padding: 4px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .btn-toggle-charts:hover {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-  }
+  /* Button styles removed - using global .btn classes */
 
   /* Filters Section */
   .filters-section {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 12px;
+    padding: var(--space-xl);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .filters-row {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
     flex-wrap: wrap;
   }
 
   .filter-group {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     align-items: center;
     flex-wrap: wrap;
   }
@@ -1738,15 +1679,15 @@
   }
 
   .search-input {
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-family: var(--mono);
     font-size: 11px;
     min-width: 200px;
-    transition: all 0.15s ease;
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .search-input:focus {
@@ -1755,47 +1696,19 @@
     background: var(--surface-2);
   }
 
-  .filter-btn {
-    padding: 4px 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-  }
-
-  .filter-btn:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .filter-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-  }
-
-  .filter-btn.small {
-    padding: 3px 6px;
-    font-size: 10px;
-  }
+  /* Button styles removed - using global .btn classes */
 
   .sort-select,
   .project-select {
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-family: var(--mono);
     font-size: 11px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .sort-select:focus,
@@ -1805,15 +1718,15 @@
   }
 
   .sort-order-btn {
-    padding: 4px 10px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .sort-order-btn:hover {
@@ -1822,45 +1735,12 @@
     color: white;
   }
 
-  .export-btn {
-    padding: 4px 10px;
-    background: var(--success);
-    border: 1px solid var(--success);
-    border-radius: 3px;
-    color: white;
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .export-btn:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  .clear-filters-btn {
-    padding: 4px 10px;
-    background: var(--error);
-    border: 1px solid var(--error);
-    border-radius: 3px;
-    color: white;
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .clear-filters-btn:hover {
-    opacity: 0.9;
-  }
+  /* Button styles removed - using global .btn classes */
 
   /* Responsive */
   @media (max-width: 768px) {
     .code-changes-content {
-      padding: 8px;
+      padding: var(--space-lg);
     }
 
     .stats-cards {
@@ -1895,41 +1775,20 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 32px 16px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
+    gap: var(--space-xl);
+    padding: var(--space-4xl) var(--space-2xl);
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
+    border-radius: var(--radius);
     text-align: center;
   }
 
   .error-state p {
     margin: 0;
-    color: #991b1b;
+    color: var(--error);
     font-size: 13px;
     font-weight: 500;
   }
 
-  .btn-retry {
-    padding: 8px 16px;
-    background: var(--error);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-retry:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .btn-retry:focus {
-    outline: 2px solid var(--error);
-    outline-offset: 2px;
-  }
+  /* Button styles removed - using global .btn classes */
 </style>

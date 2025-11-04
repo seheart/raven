@@ -159,13 +159,13 @@
     font-size: var(--text-base);
     color: var(--text);
     margin-top: var(--space-xl);
-    min-height: 24px;
+    min-height: var(--icon-md);
     animation: slideUp 0.5s ease-out 0.2s both;
   }
 
   .dots {
     display: inline-block;
-    width: 20px;
+    width: var(--icon-sm);
     text-align: left;
   }
 
@@ -187,7 +187,7 @@
       var(--accent-2, var(--accent)) 100%
     );
     border-radius: 2px;
-    transition: width 0.3s ease-out;
+    transition: width var(--duration-slow) var(--ease-smooth);
     position: relative;
     overflow: hidden;
   }

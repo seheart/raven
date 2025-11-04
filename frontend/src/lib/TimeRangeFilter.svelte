@@ -142,7 +142,7 @@
   <div class="preset-buttons" role="group" aria-label="Time range presets">
     {#each presets as preset (preset)}
       <button
-        class="preset-btn"
+        class="btn btn-ghost btn-sm"
         class:active={value.preset === preset && !showCustom}
         on:click={() => selectPreset(preset)}
         aria-pressed={value.preset === preset && !showCustom}
@@ -152,7 +152,7 @@
       </button>
     {/each}
     <button
-      class="preset-btn custom-btn"
+      class="btn btn-ghost btn-sm custom-btn"
       class:active={showCustom}
       on:click={() => showCustom = !showCustom}
       aria-pressed={showCustom}
@@ -185,8 +185,8 @@
         </div>
       </div>
       <div class="custom-actions" role="group" aria-label="Custom range actions">
-        <button class="btn-apply" on:click={applyCustomRange} aria-label="Apply custom time range">Apply</button>
-        <button class="btn-reset" on:click={resetToDefault} aria-label="Reset to default time range">Reset</button>
+        <button class="btn btn-primary btn-sm" on:click={applyCustomRange} aria-label="Apply custom time range">Apply</button>
+        <button class="btn btn-secondary btn-sm" on:click={resetToDefault} aria-label="Reset to default time range">Reset</button>
       </div>
     </div>
   {/if}
@@ -202,40 +202,18 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 6px;
+    padding: var(--space-2xl);
+    margin-bottom: var(--space-md);
   }
 
   .preset-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
   }
 
-  .preset-btn {
-    padding: 8px 16px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .preset-btn:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .preset-btn:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .preset-btn.active {
+  .btn.active {
     background: var(--accent);
     color: white;
     border-color: var(--accent);
@@ -246,25 +224,25 @@
   }
 
   .custom-range {
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    margin-bottom: 12px;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-xl);
   }
 
   .custom-inputs {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
     flex-wrap: wrap;
   }
 
   .input-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .input-group label {
@@ -274,10 +252,10 @@
   }
 
   input[type="datetime-local"] {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 13px;
     font-family: var(--mono);
@@ -295,49 +273,13 @@
 
   .custom-actions {
     display: flex;
-    gap: 8px;
-  }
-
-  .btn-apply, .btn-reset {
-    padding: 8px 16px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-apply {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .btn-apply:hover {
-    opacity: 0.9;
-  }
-
-  .btn-apply:focus,
-  .btn-reset:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .btn-reset {
-    background: var(--surface);
-    color: var(--text);
-  }
-
-  .btn-reset:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
+    gap: var(--space-lg);
   }
 
   .current-range {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     padding-top: 12px;
     border-top: 1px solid var(--border);
     font-size: 13px;

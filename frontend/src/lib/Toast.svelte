@@ -63,7 +63,7 @@
     z-index: 99999;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
     max-width: 400px;
     pointer-events: none;
   }
@@ -71,15 +71,15 @@
   .toast {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 10px;
+    gap: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     pointer-events: all;
     min-width: 300px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform var(--duration-base) var(--ease-smooth), box-shadow var(--duration-base) var(--ease-smooth);
   }
 
   .toast.clickable {
@@ -133,15 +133,15 @@
   }
 
   .toast-action {
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius);
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .toast-action:hover {
@@ -156,10 +156,10 @@
     color: currentColor;
     cursor: pointer;
     opacity: 0.6;
-    transition: opacity 0.2s;
+    transition: opacity var(--duration-base) var(--ease-smooth);
     padding: 0;
-    width: 24px;
-    height: 24px;
+    width: var(--icon-md);
+    height: var(--icon-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -173,7 +173,7 @@
   .toast-close:focus {
     outline: 2px solid currentColor;
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .toast-hint {

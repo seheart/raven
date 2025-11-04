@@ -352,7 +352,7 @@
         performance: colors.info,
         git: colors.success,
         agent: colors.accent,
-        file: '#bb9af7',
+        file: 'var(--accent)',
         system: '#ff9e64',
         default: colors.muted
       };
@@ -534,16 +534,16 @@
         <input type="checkbox" bind:checked={showCharts} on:change={updateCharts} aria-label="Show charts" />
         Show Charts
       </label>
-      <button class="btn-secondary" on:click={exportNotifications} disabled={notifications.length === 0} aria-label="Export notifications to JSON">
+      <button class="btn btn-primary btn-sm" on:click={exportNotifications} disabled={notifications.length === 0} aria-label="Export notifications to JSON">
         <span aria-hidden="true">📤</span> Export
       </button>
-      <button class="btn-secondary" on:click={markAllAsRead} disabled={stats.unread === 0} aria-label="Mark all {stats.unread} notifications as read">
+      <button class="btn btn-secondary btn-sm" on:click={markAllAsRead} disabled={stats.unread === 0} aria-label="Mark all {stats.unread} notifications as read">
         Mark All Read
       </button>
-      <button class="btn-secondary" on:click={clearAll} disabled={stats.total === 0} aria-label="Clear all {stats.total} notifications">
+      <button class="btn btn-danger btn-sm" on:click={clearAll} disabled={stats.total === 0} aria-label="Clear all {stats.total} notifications">
         Clear All
       </button>
-      <button class="btn-primary" on:click={() => { offset = 0; loadNotifications(true); loadStats(); }} disabled={loading} aria-label="Refresh notifications">
+      <button class="btn btn-secondary btn-sm" on:click={() => { offset = 0; loadNotifications(true); loadStats(); }} disabled={loading} aria-label="Refresh notifications">
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
         Refresh
       </button>
@@ -697,7 +697,7 @@
             </div>
             <div class="notification-actions" role="group" aria-label="Notification actions">
               <button
-                class="btn-icon"
+                class="btn btn-ghost btn-icon"
                 on:click|stopPropagation={() => clearNotification(notification.id)}
                 aria-label="Clear notification"
               >
@@ -705,7 +705,7 @@
               </button>
               {#if !notification.read}
                 <button
-                  class="btn-icon"
+                  class="btn btn-ghost btn-icon"
                   on:click|stopPropagation={() => markAsRead(notification.id)}
                   aria-label="Mark notification as read"
                 >
@@ -738,7 +738,7 @@
 
       {#if hasMore}
         <div class="load-more">
-          <button class="btn-secondary" on:click={loadMore} disabled={loading} aria-label="Load more notifications">
+          <button class="btn btn-secondary btn-sm" on:click={loadMore} disabled={loading} aria-label="Load more notifications">
             {loading ? 'Loading...' : 'Load More'}
           </button>
         </div>
@@ -749,7 +749,7 @@
 
 <style>
   .notifications-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     position: relative;
     max-width: 1400px;
     margin: 0 auto;
@@ -760,11 +760,11 @@
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 2rem;
-    gap: 2rem;
+    gap: var(--space-2xl);
   }
 
   .header {
-    padding: 0 8px;
+    padding: 0 var(--space-lg);
   }
 
   .header-left h1 {
@@ -782,7 +782,7 @@
 
   .header-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
   }
 
@@ -801,54 +801,18 @@
     /* Animation defined in global app.css */
   }
 
-  .btn-primary, .btn-secondary {
-    padding: 6px 10px;
-    border-radius: 3px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: var(--mono);
-    border: none;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    opacity: 0.9;
-    transform: translateY(-2px);
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-primary:disabled, .btn-secondary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 
   .stats-bar {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
+    gap: var(--space-xl);
     margin-bottom: 2rem;
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     padding: 1rem;
     border-left: 3px solid var(--border);
   }
@@ -874,12 +838,12 @@
 
   .filters {
     display: flex;
-    gap: 1.5rem;
+    gap: var(--space-2xl);
     align-items: center;
     padding: 1rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     margin-bottom: 2rem;
     flex-wrap: wrap;
   }
@@ -887,7 +851,7 @@
   .filter-group {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-lg);
   }
 
   .filter-group label {
@@ -897,10 +861,10 @@
   }
 
   .filter-group select {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 13px;
     font-family: var(--mono);
@@ -915,7 +879,7 @@
   .checkbox-label {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-lg);
     cursor: pointer;
   }
 
@@ -932,16 +896,16 @@
   .notifications-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .notification-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     padding: 1rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     border-left: 3px solid var(--border);
   }
 
@@ -976,13 +940,13 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 1rem;
+    gap: var(--space-xl);
   }
 
   .notification-left {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-xl);
     flex: 1;
   }
 
@@ -1004,7 +968,7 @@
   .notification-meta {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--space-lg);
     font-size: 11px;
     color: var(--muted);
   }
@@ -1015,34 +979,19 @@
   }
 
   .unread-badge {
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     background: var(--accent);
     color: white;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 700;
   }
 
   .notification-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-lg);
   }
 
-  .btn-icon {
-    padding: 6px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 11px;
-    color: var(--success);
-    transition: all 0.2s;
-  }
-
-  .btn-icon:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
 
   .notification-details {
     margin-top: 1rem;
@@ -1074,8 +1023,8 @@
   .detail-metadata {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 12px;
+    border-radius: var(--radius-sm);
+    padding: var(--space-xl);
     font-size: 12px;
     color: var(--text);
     overflow-x: auto;
@@ -1091,7 +1040,7 @@
   .empty-state {
     background: var(--surface);
     border: 1px dashed var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .empty-icon {
@@ -1123,9 +1072,9 @@
     color: white;
     font-size: 11px;
     font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 3px;
-    margin-left: 8px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius-sm);
+    margin-left: var(--space-lg);
     vertical-align: middle;
   }
 
@@ -1133,15 +1082,15 @@
   .toggle-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 13px;
     color: var(--text);
     cursor: pointer;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    transition: all 0.2s;
+    border-radius: var(--radius-sm);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .toggle-label:hover {
@@ -1151,8 +1100,8 @@
 
   .toggle-label input[type="checkbox"] {
     cursor: pointer;
-    width: 16px;
-    height: 16px;
+    width: var(--icon-xs);
+    height: var(--icon-xs);
   }
 
   /* Charts Section */
@@ -1163,13 +1112,13 @@
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    gap: var(--space-2xl);
   }
 
   .chart-container {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     padding: 1rem;
     border-left: 3px solid var(--accent);
   }

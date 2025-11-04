@@ -87,7 +87,7 @@
 </script>
 
 <div class="health-status" role="region" aria-label="System health status">
-  <button class="health-summary" on:click={() => expanded = !expanded} aria-expanded={expanded} aria-controls="health-details">
+  <button class="btn btn-ghost health-summary" on:click={() => expanded = !expanded} aria-expanded={expanded} aria-controls="health-details">
     <div class="status-badge" style="background: {getStatusColor(healthStatus)}" role="status" aria-live="polite">
       <span class="status-icon" aria-hidden="true">{getStatusIcon(healthStatus)}</span>
       <span class="status-text">
@@ -157,7 +157,7 @@
   .health-status {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
@@ -165,32 +165,16 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 10px;
-    cursor: pointer;
-    transition: background 0.2s;
     width: 100%;
-    background: transparent;
-    border: none;
     text-align: left;
-    font-family: inherit;
-    color: inherit;
-  }
-
-  .health-summary:hover {
-    background: var(--surface-2);
-  }
-
-  .health-summary:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
   }
 
   .status-badge {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    border-radius: 3px;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-sm);
     color: white;
     font-family: var(--mono);
     font-size: 12px;
@@ -204,7 +188,7 @@
   .status-stats {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .stat {
@@ -219,8 +203,8 @@
     color: var(--muted);
     font-size: 11px;
     cursor: pointer;
-    padding: 4px;
-    transition: color 0.2s;
+    padding: var(--space-sm);
+    transition: color var(--duration-base) var(--ease-smooth);
   }
 
   .expand-btn:hover {
@@ -229,11 +213,11 @@
 
   .health-details {
     border-top: 1px solid var(--border);
-    padding: 16px;
+    padding: var(--space-2xl);
   }
 
   .category-section {
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .category-section:last-child {
@@ -243,8 +227,8 @@
   .category-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
     padding-bottom: 8px;
     border-bottom: 1px solid var(--surface-2);
   }
@@ -277,16 +261,16 @@
   .category-checks {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .check-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 8px 12px;
+    gap: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
-    border-radius: 4px;
+    border-radius: var(--radius);
     border-left: 3px solid var(--success);
   }
 
@@ -298,7 +282,7 @@
   .check-icon {
     font-size: 12px;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: var(--space-xs);
   }
 
   .check-info {
@@ -311,7 +295,7 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .check-message {

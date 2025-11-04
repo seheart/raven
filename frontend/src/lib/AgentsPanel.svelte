@@ -263,10 +263,10 @@
     const gridColor = 'rgba(128, 128, 128, 0.15)';
 
     // Extract CSS variable colors for charts
-    const successColor = getColor('--success', '#9ece6a');
-    const accentColor = getColor('--accent', '#7aa2f7');
-    const errorColor = getColor('--error', '#f7768e');
-    const warningColor = getColor('--warning', '#e0af68');
+    const successColor = getColor('--success', 'var(--success)');
+    const accentColor = getColor('--accent', 'var(--info)');
+    const errorColor = getColor('--error', 'var(--error)');
+    const warningColor = getColor('--warning', 'var(--warning)');
 
     // Create charts for each agent
     filteredAgentStats.forEach(stat => {
@@ -1148,7 +1148,7 @@
             </tbody>
           </table>
 
-          <h4 style="margin-top: 16px;">Optional Fields</h4>
+          <h4 style="margin-top: var(--space-2xl);">Optional Fields</h4>
           <table class="fields-table">
             <tbody>
               <tr>
@@ -1242,7 +1242,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
 <style>
   .agents-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     width: 100%;
     margin: 0;
     font-family: var(--mono);
@@ -1255,8 +1255,8 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding: 0 8px;
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-lg);
   }
 
   h2 {
@@ -1268,7 +1268,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .last-updated {
@@ -1280,15 +1280,15 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .btn-refresh {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-refresh:hover:not(:disabled) {
@@ -1305,16 +1305,11 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   .refresh-icon {
     display: inline-block;
-    transition: transform 0.3s ease;
+    transition: transform var(--duration-slow) var(--ease-smooth);
   }
 
   .refresh-icon.spinning {
     animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
   }
 
   /* Export Dropdown */
@@ -1323,14 +1318,14 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .btn-export {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-export:hover {
@@ -1347,10 +1342,10 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     position: absolute;
     top: 100%;
     right: 0;
-    margin-top: 4px;
+    margin-top: var(--space-sm);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     z-index: 100;
     min-width: 150px;
@@ -1364,7 +1359,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .export-menu button {
     display: block;
     width: 100%;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: transparent;
     border: none;
     color: var(--text);
@@ -1372,7 +1367,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     cursor: pointer;
     font-size: 12px;
     font-family: var(--mono);
-    transition: background 0.2s;
+    transition: background var(--duration-base) var(--ease-smooth);
   }
 
   .export-menu button:hover {
@@ -1380,17 +1375,17 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .export-menu button:first-child {
-    border-radius: 3px 6px 0 0;
+    border-radius: var(--radius-sm) var(--radius-lg) 0 0;
   }
 
   .export-menu button:last-child {
-    border-radius: 0 0 6px 6px;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   }
 
   .message {
-    padding: 6px;
-    border-radius: 3px;
-    margin-bottom: 10px;
+    padding: var(--space-md);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-lg);
     font-size: 12px;
   }
 
@@ -1405,36 +1400,36 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 32px 16px;
-    margin-bottom: 10px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
+    gap: var(--space-xl);
+    padding: var(--space-4xl) var(--space-2xl);
+    margin-bottom: var(--space-lg);
+    background: color-mix(in srgb, var(--error) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
+    border-radius: var(--radius);
     text-align: center;
   }
 
   .error-state p {
     margin: 0;
-    color: #991b1b;
+    color: var(--error);
     font-size: 13px;
     font-weight: 500;
   }
 
   .btn-retry {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--error);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-retry:hover {
-    background: #dc2626;
+    background: var(--error);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
@@ -1446,19 +1441,19 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   /* Search Section */
   .search-section {
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .search-input {
     width: 100%;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-family: var(--mono);
     font-size: 11px;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .search-input:focus {
@@ -1475,15 +1470,15 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .summary-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 6px;
-    margin-bottom: 10px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 4px;
-    padding: 6px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
     text-align: center;
   }
 
@@ -1491,7 +1486,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     font-size: 11px;
     font-weight: 700;
     color: var(--warning);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .stat-label {
@@ -1504,14 +1499,14 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   /* Tabs */
   .tabs {
     display: flex;
-    gap: 4px;
+    gap: var(--space-sm);
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
     border-bottom: 2px solid var(--surface-2);
   }
 
   .tab {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
@@ -1519,7 +1514,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .tab:hover {
@@ -1545,25 +1540,25 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   .empty {
     text-align: center;
-    padding: 40px 20px;
+    padding: var(--space-4xl) var(--space-3xl);
     color: var(--muted);
   }
 
   .empty .icon {
     font-size: 11px;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
   }
 
   .empty h3 {
     color: var(--text);
     font-size: 11px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .empty p {
     font-size: 12px;
     line-height: 1.4;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .empty .hint {
@@ -1576,22 +1571,22 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .agents-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .agent-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
     border-left-width: 4px;
-    border-radius: 4px;
-    padding: 6px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
   }
 
   .agent-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 10px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
     padding-bottom: 12px;
     border-bottom: 1px solid var(--surface-2);
   }
@@ -1614,7 +1609,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .agent-info h3 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
@@ -1630,7 +1625,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .agent-stats {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .stat-row {
@@ -1653,18 +1648,18 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .events-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .event-row {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
+    gap: var(--space-md);
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 3px;
-    padding: 6px;
-    transition: all 0.2s;
+    border-radius: var(--radius-sm);
+    padding: var(--space-md);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .event-row:hover {
@@ -1675,7 +1670,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .event-icon {
     font-size: 12px;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: var(--space-xs);
   }
 
   .event-details {
@@ -1685,9 +1680,9 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   .event-header {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .event-agent {
@@ -1697,8 +1692,8 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   .event-type {
     background: var(--surface-2);
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
@@ -1707,7 +1702,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .event-message {
     color: var(--text);
     font-size: 11px;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .event-file {
@@ -1725,7 +1720,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 4px;
+    gap: var(--space-sm);
     font-size: 11px;
     color: var(--muted);
   }
@@ -1733,22 +1728,22 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .event-duration,
   .event-lines {
     background: var(--surface-2);
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-sm);
   }
 
   /* Performance Tab */
   .agent-performance-section {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-2xl);
   }
 
   .agent-section-title {
     font-size: 13px;
     font-weight: 600;
-    margin-bottom: 10px;
-    padding: 8px 12px;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
     display: flex;
     align-items: center;
   }
@@ -1756,36 +1751,36 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .performance-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 10px;
+    gap: var(--space-lg);
   }
 
   .performance-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 4px;
-    padding: 10px 12px;
+    border-radius: var(--radius);
+    padding: var(--space-lg) var(--space-xl);
   }
 
   .performance-card h4 {
     color: var(--text);
     font-size: 12px;
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-weight: 600;
   }
 
   .metric-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    gap: var(--space-lg);
   }
 
   .metric-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 6px;
+    gap: var(--space-sm);
+    padding: var(--space-md);
     background: var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .metric-label {
@@ -1808,7 +1803,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .metric-value.success {
-    color: #10b981;
+    color: var(--success);
   }
 
   .metric-value.warning {
@@ -1818,20 +1813,20 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .breakdown-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-lg);
     background: var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .breakdown-icon {
-    font-size: 16px;
+    font-size: var(--icon-xs);
     width: 36px;
     height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: var(--radius);
     flex-shrink: 0;
   }
 
@@ -1850,12 +1845,12 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .breakdown-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-xs);
     flex: 1;
   }
 
   .breakdown-value {
-    font-size: 16px;
+    font-size: var(--icon-xs);
     font-weight: 700;
     color: var(--text);
     font-family: var(--mono);
@@ -1874,24 +1869,24 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 24px;
-    margin-top: 16px;
+    gap: var(--space-xl);
+    padding: var(--space-3xl);
+    margin-top: var(--space-2xl);
   }
 
   .load-more-btn {
-    padding: 10px 20px;
+    padding: var(--space-lg) var(--space-3xl);
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     font-family: var(--mono);
   }
 
@@ -1929,15 +1924,15 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   .setup-header {
     text-align: center;
-    margin-bottom: 32px;
-    padding: 20px;
+    margin-bottom: var(--space-4xl);
+    padding: var(--space-3xl);
     background: var(--surface-2);
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
   }
 
   .setup-header h3 {
-    font-size: 18px;
-    margin: 0 0 12px 0;
+    font-size: var(--icon-sm);
+    margin: 0 0 var(--space-xl) 0;
     color: var(--text);
   }
 
@@ -1953,41 +1948,41 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .payload-section,
   .fields-section,
   .integration-section {
-    margin-bottom: 32px;
-    padding: 20px;
+    margin-bottom: var(--space-4xl);
+    padding: var(--space-3xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
   }
 
   .setup-guide h4 {
     font-size: 14px;
     font-weight: 700;
     color: var(--text);
-    margin: 0 0 12px 0;
+    margin: 0 0 var(--space-xl) 0;
   }
 
   .setup-guide p {
     font-size: 13px;
     color: var(--muted);
-    margin: 0 0 16px 0;
+    margin: 0 0 var(--space-2xl) 0;
     line-height: 1.6;
   }
 
   .btn-test {
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    padding: var(--space-xl) var(--space-3xl);
+    background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
     border: 1px solid #047857;
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: white;
     font-family: var(--mono);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .btn-test:hover:not(:disabled) {
@@ -2003,11 +1998,11 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .endpoint-box {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .endpoint-url {
@@ -2020,14 +2015,14 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   .btn-copy,
   .btn-copy-payload {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--surface-3);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--text);
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-copy:hover,
@@ -2038,14 +2033,14 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .btn-copy-payload {
-    margin-top: 12px;
+    margin-top: var(--space-xl);
   }
 
   .payload-example {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
+    border-radius: var(--radius);
+    padding: var(--space-2xl);
     overflow-x: auto;
     margin: 0;
   }
@@ -2061,7 +2056,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
-    margin-bottom: 16px;
+    margin-bottom: var(--space-2xl);
   }
 
   .fields-table tr {
@@ -2069,7 +2064,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .fields-table td {
-    padding: 12px 8px;
+    padding: var(--space-xl) var(--space-lg);
     vertical-align: top;
   }
 
@@ -2092,14 +2087,14 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .integration-tabs details {
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     background: var(--surface-2);
   }
 
   .integration-tabs summary {
-    padding: 12px 16px;
+    padding: var(--space-xl) var(--space-2xl);
     cursor: pointer;
     font-weight: 600;
     font-size: 13px;
@@ -2113,7 +2108,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   .integration-tabs pre {
     margin: 0;
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--surface);
     border-top: 1px solid var(--border);
     overflow-x: auto;
@@ -2128,7 +2123,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   /* Footer */
   .footer {
-    margin-top: 20px;
+    margin-top: var(--space-3xl);
     padding-top: 12px;
     border-top: 1px solid var(--surface-2);
   }
@@ -2156,12 +2151,12 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .active-filters {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-bottom: 10px;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-lg);
     flex-wrap: wrap;
   }
 
@@ -2175,17 +2170,17 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .filter-chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     font-size: 11px;
     font-weight: 600;
     font-family: var(--mono);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .filter-chip:hover {
@@ -2194,20 +2189,20 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .btn-clear-filters {
-    padding: 4px 12px;
+    padding: var(--space-sm) var(--space-xl);
     background: var(--error);
     color: white;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     margin-left: auto;
   }
 
   .btn-clear-filters:hover {
-    background: #dc2626;
+    background: var(--error);
     transform: translateY(-1px);
   }
 
@@ -2215,11 +2210,11 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .sort-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px;
+    gap: var(--space-lg);
+    padding: var(--space-xl);
     background: var(--surface-2);
-    border-radius: 4px;
-    margin-bottom: 16px;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-2xl);
   }
 
   .sort-label {
@@ -2227,19 +2222,19 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     color: var(--muted);
     font-weight: 600;
     text-transform: uppercase;
-    margin-right: 4px;
+    margin-right: var(--space-sm);
   }
 
   .sort-btn {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     font-family: var(--mono);
   }
 
@@ -2259,30 +2254,30 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .filter-controls {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
     background: var(--surface-2);
-    border-radius: 4px;
-    margin-bottom: 16px;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-2xl);
   }
 
   .filter-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     flex-wrap: wrap;
   }
 
   .filter-btn {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     font-family: var(--mono);
   }
 
@@ -2301,7 +2296,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   /* Agent Card Enhancements */
   .agent-card.clickable {
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .agent-card.clickable:hover {
@@ -2321,7 +2316,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   .performance-alert {
-    font-size: 16px;
+    font-size: var(--icon-xs);
     margin-left: auto;
     animation: pulse 2s ease-in-out infinite;
   }
@@ -2329,26 +2324,26 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .performance-alert-inline {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
     background: rgba(234, 179, 8, 0.2);
     color: var(--warning);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
-    margin-left: 12px;
+    margin-left: var(--space-xl);
   }
 
   .click-hint {
     text-align: center;
     font-size: 10px;
     color: var(--muted);
-    margin-top: 8px;
-    padding: 4px;
+    margin-top: var(--space-lg);
+    padding: var(--space-sm);
     background: var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: opacity var(--duration-base) var(--ease-smooth);
   }
 
   .agent-card:hover .click-hint {
@@ -2360,9 +2355,9 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     font-size: 10px;
     color: white;
     background: var(--accent);
-    margin-top: 8px;
-    padding: 6px;
-    border-radius: 3px;
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    border-radius: var(--radius-sm);
     font-weight: 600;
   }
 
@@ -2380,7 +2375,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     flex: 1;
     height: 180px;
     max-height: 180px;
-    padding: 12px 16px;
+    padding: var(--space-xl) var(--space-2xl);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2389,25 +2384,25 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   .chart-container.pie {
     height: 200px;
     max-height: 200px;
-    padding: 16px;
+    padding: var(--space-2xl);
   }
 
   .metric-grid.compact {
-    margin-top: 8px;
-    gap: 8px;
+    margin-top: var(--space-lg);
+    gap: var(--space-lg);
   }
 
   .breakdown-summary {
     display: flex;
     flex-direction: row;
     justify-content: space-around;
-    gap: 8px;
-    padding: 12px;
+    gap: var(--space-lg);
+    padding: var(--space-xl);
     border-top: 1px solid var(--border);
   }
 
   .breakdown-item.compact {
-    padding: 4px 6px;
+    padding: var(--space-sm) var(--space-md);
     flex: 1;
   }
 

@@ -186,7 +186,7 @@
           datasets: [{
             label: 'Total Events',
             data: eventCounts,
-            borderColor: '#7aa2f7',
+            borderColor: 'var(--info)',
             backgroundColor: 'rgba(122, 162, 247, 0.1)',
             fill: true,
             tension: 0.4,
@@ -258,22 +258,22 @@
             {
               label: 'Created',
               data: createdData,
-              backgroundColor: '#10b981',
-              borderColor: '#10b981',
+              backgroundColor: 'var(--success)',
+              borderColor: 'var(--success)',
               borderWidth: 1
             },
             {
               label: 'Modified',
               data: modifiedData,
-              backgroundColor: '#7aa2f7',
-              borderColor: '#7aa2f7',
+              backgroundColor: 'var(--info)',
+              borderColor: 'var(--info)',
               borderWidth: 1
             },
             {
               label: 'Deleted',
               data: deletedData,
-              backgroundColor: '#f7768e',
-              borderColor: '#f7768e',
+              backgroundColor: 'var(--error)',
+              borderColor: 'var(--error)',
               borderWidth: 1
             }
           ]
@@ -370,9 +370,9 @@
     </div>
     <div class="header-right" role="toolbar" aria-label="Historical trends actions">
       <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
-      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export trends data as CSV">Export CSV</button>
-      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export trends data as JSON">Export JSON</button>
-      <button class="btn-primary" on:click={loadTrends} aria-label="Refresh trends data"><span aria-hidden="true">↻</span> Refresh</button>
+      <button class="btn btn-secondary btn-sm" on:click={handleExportCSV} aria-label="Export trends data as CSV">Export CSV</button>
+      <button class="btn btn-secondary btn-sm" on:click={handleExportJSON} aria-label="Export trends data as JSON">Export JSON</button>
+      <button class="btn btn-primary btn-sm" on:click={loadTrends} aria-label="Refresh trends data"><span aria-hidden="true">↻</span> Refresh</button>
     </div>
   </div>
 
@@ -415,7 +415,7 @@
       <div class="charts-header">
         <h3>Analytics Visualizations</h3>
         <button
-          class="toggle-charts"
+          class="btn btn-ghost btn-sm"
           on:click={() => showCharts = !showCharts}
           aria-label="{showCharts ? 'Hide' : 'Show'} charts"
           aria-expanded={showCharts}
@@ -478,7 +478,7 @@
 
 <style>
   .historical-trends-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -487,11 +487,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .header-left h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -504,7 +504,7 @@
 
   .header-right {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
   }
 
@@ -515,9 +515,9 @@
 
   .controls {
     display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding: 16px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-2xl);
     background: var(--surface);
     border-radius: var(--radius);
     border: 1px solid var(--border);
@@ -526,7 +526,7 @@
   .control-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .control-group label {
@@ -536,7 +536,7 @@
   }
 
   .control-group select {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
@@ -560,15 +560,15 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 12px;
-    margin-bottom: 8px;
+    padding: var(--space-xl);
+    margin-bottom: var(--space-lg);
   }
 
   .charts-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .charts-header h3 {
@@ -578,52 +578,32 @@
     font-weight: 700;
   }
 
-  .toggle-charts {
-    padding: 6px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .toggle-charts:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .toggle-charts:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .chart-wrapper {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 8px;
+    padding: var(--space-lg);
     text-align: center;
   }
 
@@ -632,7 +612,7 @@
     font-weight: 700;
     color: var(--accent);
     font-family: var(--mono);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .stat-label {
@@ -645,8 +625,8 @@
   .legend {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    padding: 16px;
+    gap: var(--space-lg);
+    padding: var(--space-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -655,64 +635,28 @@
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 13px;
     color: var(--text);
   }
 
   .legend-color {
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
+    width: var(--icon-xs);
+    height: var(--icon-xs);
+    border-radius: var(--radius-sm);
   }
 
-  .btn-primary, .btn-secondary {
-    padding: 8px 16px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid var(--border);
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .btn-primary:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--text);
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-primary:focus,
-  .btn-secondary:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 
   .empty-state, .error-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
   .empty-state p, .error-state p {
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
     color: var(--muted);
   }
 
@@ -724,7 +668,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 8px;
+      gap: var(--space-lg);
     }
 
     .header-right {
@@ -740,7 +684,7 @@
     }
 
     .chart-wrapper {
-      padding: 8px;
+      padding: var(--space-lg);
     }
 
     .stats-grid {

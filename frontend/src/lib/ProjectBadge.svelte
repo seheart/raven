@@ -34,8 +34,8 @@
 
 <style>
   .project-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 600;
     text-transform: lowercase;
@@ -47,28 +47,28 @@
   }
 
   .project-badge.small {
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     font-size: 11px;
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .project-badge.medium {
-    padding: 4px 10px;
+    padding: var(--space-sm) var(--space-lg);
     font-size: 11px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .project-badge.large {
-    padding: 6px 14px;
+    padding: var(--space-md) var(--space-xl);
     font-size: 13px;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-weight: 700;
   }
 
   .project-badge-with-dot {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     font-family: var(--mono);
     font-size: 11px;
     font-weight: 600;
@@ -76,17 +76,17 @@
   }
 
   .project-badge-with-dot.small {
-    gap: 4px;
+    gap: var(--space-sm);
     font-size: 11px;
   }
 
   .project-badge-with-dot.medium {
-    gap: 6px;
+    gap: var(--space-md);
     font-size: 12px;
   }
 
   .project-badge-with-dot.large {
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 11px;
   }
 

@@ -82,13 +82,13 @@
   .metrics {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .metric {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-lg);
   }
 
   .label {
@@ -107,14 +107,14 @@
   .bar {
     height: 8px;
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
   .fill {
     height: 100%;
     background: var(--info);
-    transition: width 0.3s ease;
+    transition: width var(--duration-slow) var(--ease-smooth);
   }
 
   .fill.memory {
@@ -129,7 +129,7 @@
   .status {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-lg);
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border);

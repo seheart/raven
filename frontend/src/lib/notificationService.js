@@ -1,6 +1,7 @@
 import { logger } from './logger.js';
 import { toasts } from './toastStore.js';
 import { settings as settingsStore } from './settingsStore.js';
+import { notificationHistory } from './notificationHistory.js';
 
 /**
  * @typedef {'info'|'success'|'warning'|'error'|'trigger'|'performance'} NotificationType
@@ -13,6 +14,7 @@ import { settings as settingsStore } from './settingsStore.js';
  * @property {boolean} [browserNotification=false] - Show browser notification
  * @property {boolean} [playSound] - Play notification sound
  * @property {boolean} [critical] - Mark as critical (for warnings)
+ * @property {string} [link] - Navigation link when notification is clicked
  */
 
 /**
@@ -256,8 +258,31 @@ class NotificationService {
       title = 'Raven',
       duration,
       browserNotification = false,
-      playSound = type === 'error' || type === 'warning'
+      playSound = type === 'error' || type === 'warning',
+      link = null
     } = options;
+
+    // Determine navigation link based on type (if not provided)
+    let finalLink = link;
+    if (!finalLink) {
+      if (type === 'error') {
+        finalLink = '/system';
+      } else if (type === 'warning') {
+        finalLink = '/safety';
+      } else if (type === 'trigger') {
+        finalLink = '/activity';
+      } else if (type === 'performance') {
+        finalLink = '/analysis';
+      }
+    }
+
+    // Add to notification history
+    notificationHistory.add({
+      message,
+      type,
+      title,
+      link: finalLink
+    });
 
     // Show toast notification
     if (this.settings.notifications.showToasts) {

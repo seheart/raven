@@ -516,10 +516,10 @@
 
     // Extract theme colors for charts
     const themeColors = {
-      accent: getColor('--accent', '#7aa2f7'),
-      success: getColor('--success', '#9ece6a'),
-      error: getColor('--error', '#f7768e'),
-      warning: getColor('--warning', '#e0af68')
+      accent: getColor('--accent', 'var(--info)'),
+      success: getColor('--success', 'var(--success)'),
+      error: getColor('--error', 'var(--error)'),
+      warning: getColor('--warning', 'var(--warning)')
     };
 
     // 1. Pie Chart: Activity type breakdown (file/agent/system)
@@ -537,7 +537,7 @@
           labels: ['File', 'Agent', 'System'],
           datasets: [{
             data: [typeCounts.file, typeCounts.agent, typeCounts.system],
-            backgroundColor: [themeColors.accent, '#8b5cf6', themeColors.warning]
+            backgroundColor: [themeColors.accent, 'var(--accent)', themeColors.warning]
           }]
         },
         options: {
@@ -820,7 +820,7 @@
     <div class="header-actions" role="toolbar" aria-label="Activity log actions">
       <span class="last-updated" role="status" aria-live="polite" aria-label="Last updated {timeAgo}">Updated: {timeAgo}</span>
       <button
-        class="refresh-btn"
+        class="btn btn-secondary btn-sm"
         on:click={() => loadActivities(true)}
         disabled={loading}
         aria-label="Refresh activity log"
@@ -828,10 +828,10 @@
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
         Refresh
       </button>
-      <button class="btn-export" on:click={exportLog} aria-label="Export activity log to JSON file">
+      <button class="btn btn-primary btn-sm" on:click={exportLog} aria-label="Export activity log to JSON file">
         <span aria-hidden="true">💾</span> Export JSON
       </button>
-      <button class="btn-export" on:click={exportToCSV} aria-label="Export activity log to CSV file">
+      <button class="btn btn-primary btn-sm" on:click={exportToCSV} aria-label="Export activity log to CSV file">
         <span aria-hidden="true">📊</span> Export CSV
       </button>
     </div>
@@ -997,7 +997,7 @@
       <div class="charts-section">
         <div class="charts-header">
           <h3>📊 Analytics Visualizations</h3>
-          <button class="btn-toggle-charts" on:click={() => showCharts = false}>Hide Charts</button>
+          <button class="btn btn-ghost btn-sm" on:click={() => showCharts = false}>Hide Charts</button>
         </div>
         <div class="charts-grid">
           <div class="chart-container">
@@ -1024,7 +1024,7 @@
       </div>
     {:else}
       <div class="charts-toggle">
-        <button class="btn-toggle-charts" on:click={() => showCharts = true}>Show Charts</button>
+        <button class="btn btn-ghost btn-sm" on:click={() => showCharts = true}>Show Charts</button>
       </div>
     {/if}
   {/if}
@@ -1046,7 +1046,7 @@
         {:else}
           <p>No activity has been logged yet. Start coding and Raven will track all changes!</p>
         {/if}
-        <button class="clear-filters-btn" on:click={() => { selectedType = 'all'; searchQuery = ''; loadActivities(); }} aria-label="Clear all filters and reload">
+        <button class="btn btn-primary" on:click={() => { selectedType = 'all'; searchQuery = ''; loadActivities(); }} aria-label="Clear all filters and reload">
           Clear Filters
         </button>
       </div>
@@ -1321,8 +1321,8 @@
   .activity-log {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 8px;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
     max-width: 1600px;
     margin: 0 auto;
     position: relative;
@@ -1338,13 +1338,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 0 8px 12px 8px;
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-lg) var(--space-xl) var(--space-lg);
     border-bottom: 2px solid var(--border);
   }
 
   .header-title h1 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 12px;
     color: var(--text);
   }
@@ -1358,7 +1358,7 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .last-updated {
@@ -1367,30 +1367,7 @@
     font-family: var(--mono);
   }
 
-  .refresh-btn {
-    padding: 6px 10px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .refresh-btn:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .refresh-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  /* Refresh button styles removed - now using global .btn classes */
 
   .refresh-icon {
     display: inline-block;
@@ -1401,66 +1378,47 @@
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  .btn-export {
-    padding: 6px 10px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.2s;
-  }
-
-  .btn-export:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
+  /* Export button styles removed - now using global .btn classes */
 
   .controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
     background: var(--surface);
-    padding: 8px;
-    border-radius: 4px;
+    padding: var(--space-lg);
+    border-radius: var(--radius);
     border: 1px solid var(--border);
   }
 
   .controls-row {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
   }
 
   .search-bar {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     flex: 1;
   }
 
   .view-controls {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
   }
 
   .view-toggle {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     white-space: nowrap;
   }
 
@@ -1476,11 +1434,11 @@
   }
 
   .time-grouping {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-family: var(--mono);
     cursor: pointer;
@@ -1493,11 +1451,11 @@
   }
 
   .session-filter {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-family: var(--mono);
     cursor: pointer;
@@ -1511,10 +1469,10 @@
 
   .search-bar input {
     flex: 1;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -1526,15 +1484,15 @@
   }
 
   .search-bar button {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .search-bar button:hover {
@@ -1543,19 +1501,19 @@
 
   .filter-tabs {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .filter-tab {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .filter-tab:hover {
@@ -1571,9 +1529,9 @@
 
   /* Session Grouping Styles */
   .session-group {
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
     border: 2px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
     background: var(--bg);
   }
@@ -1582,12 +1540,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border-bottom: 2px solid var(--border);
     cursor: pointer;
     user-select: none;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .session-header:hover {
@@ -1601,7 +1559,7 @@
   .session-header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
     flex: 1;
   }
 
@@ -1612,8 +1570,8 @@
   .session-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-md);
   }
 
   .session-icon {
@@ -1630,7 +1588,7 @@
   .session-stats {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 11px;
     color: var(--muted);
     font-family: var(--mono);
@@ -1657,64 +1615,50 @@
   }
 
   .session-activities {
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--bg);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .timeline {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .empty-state {
     text-align: center;
-    padding: 40px 20px;
+    padding: var(--space-4xl) var(--space-3xl);
     color: var(--muted);
   }
 
   .empty-icon {
     font-size: 11px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .empty-state h2 {
     font-size: 12px;
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     color: var(--text);
   }
 
   .empty-state p {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     font-size: 11px;
     color: var(--muted);
   }
 
-  .clear-filters-btn {
-    padding: 6px 12px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-
-  .clear-filters-btn:hover {
-    background: color-mix(in srgb, var(--accent) 80%, black);
-  }
+  /* Clear filters button styles removed - now using global .btn classes */
 
   .activity-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .activity-item:hover {
@@ -1730,7 +1674,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     cursor: pointer;
     user-select: none;
     width: 100%;
@@ -1749,7 +1693,7 @@
   .activity-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
     flex: 1;
     min-width: 0;
   }
@@ -1775,7 +1719,7 @@
     font-size: 13px;
     color: var(--text);
     font-weight: 500;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1784,7 +1728,7 @@
   .activity-meta {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     font-size: 11px;
     color: var(--muted);
   }
@@ -1805,7 +1749,7 @@
   .activity-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
     flex-shrink: 0;
   }
 
@@ -1816,10 +1760,10 @@
   }
 
   .activity-category {
-    padding: 4px 10px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -1827,20 +1771,20 @@
   }
 
   .activity-details {
-    padding: 0 12px 12px 12px;
+    padding: 0 var(--space-xl) var(--space-xl) var(--space-xl);
     border-top: 1px solid var(--border);
   }
 
   .details-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 12px;
-    padding: 8px 0;
+    gap: var(--space-xl);
+    padding: var(--space-lg) 0;
   }
 
   .detail-item {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .detail-label {
@@ -1858,12 +1802,12 @@
 
   .metadata-section,
   .diff-section {
-    margin-top: 8px;
+    margin-top: var(--space-lg);
   }
 
   .metadata-section h4,
   .diff-section h4 {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--space-md) 0;
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
@@ -1873,8 +1817,8 @@
   .diff-code {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-lg);
     font-size: 11px;
     font-family: var(--mono);
     color: var(--text);
@@ -1886,19 +1830,19 @@
 
   .load-more {
     text-align: center;
-    padding: 8px;
+    padding: var(--space-lg);
   }
 
   .load-more button {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .load-more button:hover:not(:disabled) {
@@ -1937,13 +1881,13 @@
     flex-direction: column;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
     height: 100%;
   }
 
   .sidebar-header {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
@@ -1963,25 +1907,25 @@
 
   .sidebar-loading,
   .sidebar-empty {
-    padding: 20px 12px;
+    padding: var(--space-3xl) var(--space-xl);
     text-align: center;
     color: var(--muted);
     font-size: 11px;
   }
 
   .sidebar-list {
-    padding: 4px;
+    padding: var(--space-sm);
   }
 
   .sidebar-item {
     display: flex;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    margin-bottom: 4px;
-    transition: all 0.2s;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-sm);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .sidebar-item:hover {
@@ -1992,7 +1936,7 @@
   .sidebar-icon {
     font-size: 11px;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: var(--space-xs);
   }
 
   .sidebar-details {
@@ -2008,12 +1952,12 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 2px;
+    margin-bottom: var(--space-xs);
   }
 
   .sidebar-meta {
     display: flex;
-    gap: 4px;
+    gap: var(--space-sm);
     align-items: center;
     font-size: 10px;
     color: var(--muted);
@@ -2022,7 +1966,7 @@
 
   .sidebar-type {
     background: var(--surface);
-    padding: 1px 4px;
+    padding: var(--space-xs) var(--space-sm);
     border-radius: 2px;
     font-size: 10px;
     text-transform: uppercase;
@@ -2035,11 +1979,11 @@
 
   /* Sort select styling */
   .sort-select {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-family: var(--mono);
     cursor: pointer;
@@ -2055,26 +1999,26 @@
   .statistics-dashboard {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-xl);
+    margin-bottom: var(--space-lg);
   }
 
   .stats-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .stats-card {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
-    padding: 10px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    transition: all 0.15s ease;
+    border-radius: var(--radius);
+    transition: all var(--duration-fast) var(--ease-smooth);
   }
 
   .stats-card:hover {
@@ -2084,14 +2028,14 @@
   }
 
   .stats-card-icon {
-    font-size: 20px;
+    font-size: var(--icon-sm);
     flex-shrink: 0;
   }
 
   .stats-card-content {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-xs);
     min-width: 0;
   }
 
@@ -2104,7 +2048,7 @@
   }
 
   .stats-card-value {
-    font-size: 16px;
+    font-size: var(--icon-xs);
     color: var(--text);
     font-weight: 700;
     font-family: var(--mono);
@@ -2114,16 +2058,16 @@
   .charts-section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-xl);
+    margin-bottom: var(--space-lg);
   }
 
   .charts-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .charts-header h3 {
@@ -2136,14 +2080,14 @@
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .chart-container {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 12px;
+    border-radius: var(--radius);
+    padding: var(--space-xl);
     overflow: visible;
   }
 
@@ -2154,35 +2098,18 @@
   .charts-toggle {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 8px 12px;
+    border-radius: var(--radius);
+    padding: var(--space-lg) var(--space-xl);
     text-align: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
-  .btn-toggle-charts {
-    padding: 6px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .btn-toggle-charts:hover {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-  }
+  /* Toggle charts button styles removed - now using global .btn classes */
 
   @media (max-width: 768px) {
     .activity-log {
       grid-template-columns: 1fr;
-      padding: 8px;
+      padding: var(--space-lg);
       height: auto;
     }
 
@@ -2194,7 +2121,7 @@
     .activity-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 8px;
+      gap: var(--space-lg);
     }
 
     .activity-right {

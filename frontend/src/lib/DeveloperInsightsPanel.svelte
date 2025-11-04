@@ -116,10 +116,10 @@
     const textColor = getColor('--text', '#c0caf5');
     const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
-    const successColor = getColor('--success', '#9ece6a');
-    const accentColor = getColor('--accent', '#7aa2f7');
-    const errorColor = getColor('--error', '#f7768e');
-    const warningColor = getColor('--warning', '#e0af68');
+    const successColor = getColor('--success', 'var(--success)');
+    const accentColor = getColor('--accent', 'var(--info)');
+    const errorColor = getColor('--error', 'var(--error)');
+    const warningColor = getColor('--warning', 'var(--warning)');
     const infoColor = getColor('--info', '#7dcfff');
 
     // 1. Bar chart: Activity by hour of day
@@ -591,7 +591,7 @@
 
 <style>
   .insights-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -599,11 +599,11 @@
   .controls {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
-    margin-bottom: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-2xl);
+    margin-bottom: var(--space-lg);
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
     flex-wrap: wrap;
   }
@@ -611,25 +611,25 @@
   .auto-refresh {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 11px;
   }
 
   .btn-refresh, .btn-export {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-family: var(--mono);
     font-size: 11px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-refresh:hover, .btn-export:hover {
@@ -655,40 +655,40 @@
 
   .empty-state {
     text-align: center;
-    padding: 64px 24px;
+    padding: var(--space-4xl) var(--space-3xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .empty-icon {
     font-size: 11px;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .empty-state h2 {
     color: var(--accent);
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .empty-state p {
     color: var(--text-muted);
     max-width: 600px;
-    margin: 0 auto 32px;
+    margin: 0 auto var(--space-4xl);
   }
 
   .empty-info {
     max-width: 800px;
     margin: 0 auto;
     text-align: left;
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--bg);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .empty-info h3 {
     color: var(--accent);
-    margin: 24px 0 12px 0;
+    margin: var(--space-3xl) 0 var(--space-xl) 0;
     font-size: 11px;
   }
 
@@ -697,19 +697,19 @@
   }
 
   .empty-info ul {
-    margin: 0 0 24px 20px;
+    margin: 0 0 var(--space-3xl) var(--space-3xl);
     color: var(--text);
   }
 
   .empty-info li {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
     line-height: 1.6;
   }
 
   .empty-info code {
     background: var(--surface);
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius);
     font-family: var(--mono);
     font-size: 13px;
   }
@@ -717,18 +717,18 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 8px;
-    margin-bottom: 32px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-4xl);
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-lg);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .stat-icon {
@@ -744,15 +744,15 @@
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .stat-value {
-    font-size: 28px;
+    font-size: var(--icon-lg);
     font-weight: 600;
     color: var(--accent);
     font-family: var(--mono);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .stat-desc {
@@ -763,13 +763,13 @@
   .section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 8px;
-    margin-bottom: 8px;
+    border-radius: var(--radius-sm);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .section-title {
-    margin: 0 0 20px 0;
+    margin: 0 0 var(--space-3xl) 0;
     font-size: 12px;
     color: var(--accent);
   }
@@ -777,26 +777,26 @@
   .languages-grid, .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .language-card, .project-card {
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .language-name, .project-name {
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
     color: var(--text);
   }
 
   .language-count, .project-count {
     font-size: 12px;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .language-bar, .project-bar {
@@ -809,13 +809,13 @@
   .language-bar-fill, .project-bar-fill {
     height: 100%;
     background: var(--accent);
-    transition: width 0.3s;
+    transition: width var(--duration-slow) var(--ease-smooth);
   }
 
   .chart-container {
     position: relative;
     width: 100%;
-    padding: 8px;
+    padding: var(--space-lg);
   }
 
   .chart-container canvas {
@@ -827,20 +827,20 @@
   .interactions-list, .patterns-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .interaction-item, .pattern-item {
-    padding: 16px;
+    padding: var(--space-2xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .interaction-header, .pattern-header {
     display: flex;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-lg);
     flex-wrap: wrap;
   }
 
@@ -851,9 +851,9 @@
 
   .interaction-agent, .pattern-type {
     font-size: 12px;
-    padding: 2px 8px;
+    padding: var(--space-xs) var(--space-lg);
     background: var(--surface);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text-muted);
   }
 
@@ -867,29 +867,29 @@
     color: var(--text);
     font-size: 11px;
     line-height: 1.6;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .interaction-meta, .pattern-stats {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     flex-wrap: wrap;
   }
 
   .meta-tag, .pattern-stat {
     font-size: 11px;
-    padding: 2px 8px;
+    padding: var(--space-xs) var(--space-lg);
     background: var(--surface);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text-muted);
   }
 
   .pattern-badge {
     font-size: 11px;
-    padding: 2px 6px;
+    padding: var(--space-xs) var(--space-md);
     background: var(--accent);
     color: white;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-weight: 600;
   }
 </style>

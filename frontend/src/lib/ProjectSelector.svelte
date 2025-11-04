@@ -159,7 +159,7 @@
   .project-selector {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 12px;
   }
 
@@ -169,7 +169,7 @@
   }
 
   select {
-    padding: 6px 12px;
+    padding: var(--space-md) var(--space-xl);
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
@@ -177,7 +177,7 @@
     cursor: pointer;
     font-size: 12px;
     font-family: var(--mono);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     min-width: 120px;
   }
 
@@ -202,14 +202,14 @@
   }
 
   .refresh-btn {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface);
     color: var(--accent);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     cursor: pointer;
     font-size: 11px;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -237,18 +237,9 @@
   }
 
   .error-message {
-    color: var(--error, #ef4444);
+    color: var(--error, var(--error));
     font-size: 11px;
     cursor: help;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
   }
 
   @media (max-width: 768px) {
@@ -259,7 +250,7 @@
     select {
       min-width: 100px;
       font-size: 11px;
-      padding: 4px 8px;
+      padding: var(--space-sm) var(--space-lg);
     }
 
     label {

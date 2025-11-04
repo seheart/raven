@@ -158,10 +158,10 @@
     return {
       text: getColor('--text', '#c0caf5'),
       muted: getColor('--muted', '#565f89'),
-      accent: getColor('--accent', '#7aa2f7'),
-      success: getColor('--success', '#10b981'),
-      error: getColor('--error', '#f7768e'),
-      warning: getColor('--warning', '#e0af68'),
+      accent: getColor('--accent', 'var(--info)'),
+      success: getColor('--success', 'var(--success)'),
+      error: getColor('--error', 'var(--error)'),
+      warning: getColor('--warning', 'var(--warning)'),
       surface: getColor('--surface', '#1a1b26'),
       border: getColor('--border', '#24283b')
     };
@@ -581,10 +581,10 @@
     </div>
     <div class="header-right" role="toolbar" aria-label="Search actions">
       {#if processedResults.length > 0}
-        <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export results as CSV">Export CSV</button>
-        <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export results as JSON">Export JSON</button>
+        <button class="btn btn-primary btn-sm" on:click={handleExportCSV} aria-label="Export results as CSV">Export CSV</button>
+        <button class="btn btn-primary btn-sm" on:click={handleExportJSON} aria-label="Export results as JSON">Export JSON</button>
         {#if selectedResults.size > 0}
-          <button class="btn-secondary" on:click={exportSelected} aria-label="Export selected results">Export Selected ({selectedResults.size})</button>
+          <button class="btn btn-primary btn-sm" on:click={exportSelected} aria-label="Export selected results">Export Selected ({selectedResults.size})</button>
         {/if}
       {/if}
     </div>
@@ -603,7 +603,7 @@
         aria-describedby="search-hint"
       />
       {#if searchQuery}
-        <button class="clear-btn" on:click={clearSearch} aria-label="Clear search">Clear</button>
+        <button class="btn btn-ghost btn-sm" on:click={clearSearch} aria-label="Clear search">Clear</button>
       {/if}
     </div>
 
@@ -611,7 +611,7 @@
       <div class="search-history">
         <div class="history-header">
           <span class="history-title">Recent Searches</span>
-          <button class="clear-history-btn" on:click={clearHistory}>Clear</button>
+          <button class="btn btn-ghost btn-sm" on:click={clearHistory}>Clear</button>
         </div>
         <div class="history-items">
           {#each searchHistory as historyItem (historyItem)}
@@ -733,27 +733,27 @@
 
     <!-- Type Filters -->
     <div class="filter-bar" role="tablist" aria-label="Filter search results">
-      <button class="filter-btn" class:active={filterType === 'all'} on:click={() => filterType = 'all'} role="tab" aria-selected={filterType === 'all'} aria-controls="results-list">
+      <button class="btn btn-ghost btn-sm" class:active={filterType === 'all'} on:click={() => filterType = 'all'} role="tab" aria-selected={filterType === 'all'} aria-controls="results-list">
         All ({processedResults.length})
       </button>
-      <button class="filter-btn" class:active={filterType === 'event'} on:click={() => filterType = 'event'} role="tab" aria-selected={filterType === 'event'} aria-controls="results-list">
+      <button class="btn btn-ghost btn-sm" class:active={filterType === 'event'} on:click={() => filterType = 'event'} role="tab" aria-selected={filterType === 'event'} aria-controls="results-list">
         Files ({stats.byType.event || 0})
       </button>
-      <button class="filter-btn" class:active={filterType === 'conversation'} on:click={() => filterType = 'conversation'} role="tab" aria-selected={filterType === 'conversation'} aria-controls="results-list">
+      <button class="btn btn-ghost btn-sm" class:active={filterType === 'conversation'} on:click={() => filterType = 'conversation'} role="tab" aria-selected={filterType === 'conversation'} aria-controls="results-list">
         Conversations ({stats.byType.conversation || 0})
       </button>
-      <button class="filter-btn" class:active={filterType === 'error'} on:click={() => filterType = 'error'} role="tab" aria-selected={filterType === 'error'} aria-controls="results-list">
+      <button class="btn btn-ghost btn-sm" class:active={filterType === 'error'} on:click={() => filterType = 'error'} role="tab" aria-selected={filterType === 'error'} aria-controls="results-list">
         Errors ({stats.byType.error || 0})
       </button>
-      <button class="filter-btn" class:active={filterType === 'notification'} on:click={() => filterType = 'notification'} role="tab" aria-selected={filterType === 'notification'} aria-controls="results-list">
+      <button class="btn btn-ghost btn-sm" class:active={filterType === 'notification'} on:click={() => filterType = 'notification'} role="tab" aria-selected={filterType === 'notification'} aria-controls="results-list">
         Notifications ({stats.byType.notification || 0})
       </button>
     </div>
 
     <!-- Batch Actions -->
     <div class="batch-actions">
-      <button class="btn-secondary" on:click={selectAll}>Select All</button>
-      <button class="btn-secondary" on:click={deselectAll}>Deselect All</button>
+      <button class="btn btn-secondary btn-sm" on:click={selectAll}>Select All</button>
+      <button class="btn btn-secondary btn-sm" on:click={deselectAll}>Deselect All</button>
       <span class="batch-info">{selectedResults.size} selected</span>
     </div>
   {/if}
@@ -777,7 +777,7 @@
               aria-label="Select result"
             />
             <button
-              class="bookmark-btn"
+              class="btn btn-ghost btn-icon"
               class:bookmarked={isBookmarked(result)}
               on:click={() => toggleBookmark(result)}
               aria-label={isBookmarked(result) ? 'Remove bookmark' : 'Bookmark result'}
@@ -811,7 +811,7 @@
 
     {#if hasMore}
       <div class="load-more-container">
-        <button class="btn-load-more" on:click={loadMore}>
+        <button class="btn btn-primary btn-md" on:click={loadMore}>
           Load More ({processedResults.length - displayLimit} remaining)
         </button>
       </div>
@@ -836,7 +836,7 @@
 
 <style>
   .global-search-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -845,11 +845,11 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .header-left h2 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -862,12 +862,12 @@
 
   .header-right {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     flex-wrap: wrap;
   }
 
   .search-bar-container {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .search-bar {
@@ -877,8 +877,8 @@
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
-    padding: 6px 10px;
-    transition: all 0.2s;
+    padding: var(--space-md) var(--space-lg);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .search-bar:focus-within {
@@ -900,25 +900,11 @@
     color: var(--muted);
   }
 
-  .clear-btn {
-    padding: 4px 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.2s;
-  }
-
-  .clear-btn:hover {
-    background: var(--surface-2);
-    color: var(--text);
-  }
+  /* Button styles removed - using global .btn classes */
 
   .search-history {
-    margin-top: 8px;
-    padding: 8px;
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -928,7 +914,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .history-title {
@@ -937,30 +923,16 @@
     font-family: var(--mono);
   }
 
-  .clear-history-btn {
-    padding: 2px 6px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 10px;
-    transition: all 0.2s;
-  }
-
-  .clear-history-btn:hover {
-    background: var(--bg);
-    color: var(--text);
-  }
+  /* Button styles removed - using global .btn classes */
 
   .history-items {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .history-item {
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -968,7 +940,7 @@
     cursor: pointer;
     font-size: 11px;
     font-family: var(--mono);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .history-item:hover {
@@ -977,7 +949,7 @@
   }
 
   .search-hint {
-    margin-top: 8px;
+    margin-top: var(--space-lg);
     font-size: 11px;
     color: var(--muted);
     font-family: var(--mono);
@@ -985,9 +957,9 @@
 
   .advanced-filters {
     display: flex;
-    gap: 12px;
-    margin-bottom: 8px;
-    padding: 8px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -997,7 +969,7 @@
   .filter-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .filter-group label {
@@ -1007,7 +979,7 @@
   }
 
   .filter-select {
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1015,7 +987,7 @@
     font-size: 11px;
     font-family: var(--mono);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .filter-select:hover {
@@ -1031,12 +1003,12 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 6px;
-    margin-bottom: 8px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
   }
 
   .stat-card {
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1047,7 +1019,7 @@
     font-size: 10px;
     color: var(--muted);
     font-family: var(--mono);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
   }
 
   .stat-value {
@@ -1060,13 +1032,13 @@
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
   }
 
   .chart-container {
     height: 200px;
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1079,39 +1051,19 @@
 
   .filter-bar {
     display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
     flex-wrap: wrap;
   }
 
-  .filter-btn {
-    padding: 8px 16px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 11px;
-    font-family: var(--mono);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .filter-btn:hover {
-    border-color: var(--accent);
-  }
-
-  .filter-btn.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
+  /* Button styles removed - using global .btn classes */
 
   .batch-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
-    margin-bottom: 8px;
-    padding: 8px;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1127,18 +1079,18 @@
   .results-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .result-card {
     position: relative;
-    padding: 8px;
+    padding: var(--space-lg);
     padding-left: 40px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-left: 4px solid;
     border-radius: var(--radius);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .result-card:hover {
@@ -1168,7 +1120,7 @@
     top: 8px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
     align-items: center;
   }
 
@@ -1178,28 +1130,12 @@
     height: 14px;
   }
 
-  .bookmark-btn {
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 0;
-    transition: all 0.2s;
-  }
-
-  .bookmark-btn:hover {
-    color: var(--warning);
-  }
-
-  .bookmark-btn.bookmarked {
-    color: var(--warning);
-  }
+  /* Button styles removed - using global .btn classes */
 
   .result-header {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .result-icon {
@@ -1217,20 +1153,20 @@
     font-weight: 600;
     color: var(--text);
     font-family: var(--mono);
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
     word-break: break-all;
   }
 
   .result-title :global(mark) {
     background: var(--warning);
     color: var(--surface);
-    padding: 1px 3px;
+    padding: var(--space-xs) var(--space-xs);
     border-radius: 2px;
   }
 
   .result-info {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     flex-wrap: wrap;
     font-size: 12px;
     color: var(--muted);
@@ -1238,8 +1174,8 @@
 
   .result-type {
     background: var(--bg);
-    padding: 2px 8px;
-    border-radius: 3px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-size: 10px;
@@ -1251,7 +1187,7 @@
   }
 
   .result-preview {
-    margin-top: 8px;
+    margin-top: var(--space-lg);
     font-size: 11px;
     color: var(--muted);
     line-height: 1.5;
@@ -1262,37 +1198,20 @@
   .result-preview :global(mark) {
     background: var(--warning);
     color: var(--surface);
-    padding: 1px 3px;
+    padding: var(--space-xs) var(--space-xs);
     border-radius: 2px;
   }
 
   .load-more-container {
     text-align: center;
-    margin-top: 12px;
+    margin-top: var(--space-xl);
   }
 
-  .btn-load-more {
-    padding: 8px 24px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-size: 11px;
-    font-family: var(--mono);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-load-more:hover {
-    background: color-mix(in srgb, var(--accent) 90%, black);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
+  /* Button styles removed - using global .btn classes */
 
   .empty-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1300,11 +1219,11 @@
 
   .empty-icon {
     font-size: 11px;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .empty-state p {
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
     color: var(--text);
   }
 
@@ -1314,7 +1233,7 @@
   }
 
   .search-tips {
-    margin-top: 32px;
+    margin-top: var(--space-4xl);
     text-align: left;
     max-width: 500px;
     margin-left: auto;
@@ -1324,7 +1243,7 @@
   .search-tips h3 {
     font-size: 11px;
     color: var(--text);
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .search-tips ul {
@@ -1333,46 +1252,31 @@
   }
 
   .search-tips li {
-    padding: 8px 0;
+    padding: var(--space-lg) 0;
     color: var(--muted);
     font-size: 11px;
   }
 
   .search-tips code {
     background: var(--bg);
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-sm);
     font-family: var(--mono);
     color: var(--accent);
   }
 
-  .btn-secondary {
-    padding: 8px 16px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 11px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
+  /* Button styles removed - using global .btn classes */
 
   .error-state {
     text-align: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
   .error-state p {
-    margin: 8px 0;
+    margin: var(--space-lg) 0;
     color: var(--error);
     font-size: 11px;
   }
@@ -1380,7 +1284,7 @@
   @media (max-width: 768px) {
     .panel-header {
       flex-direction: column;
-      gap: 8px;
+      gap: var(--space-lg);
     }
 
     .header-right {
@@ -1414,7 +1318,7 @@
 
     .result-info {
       flex-direction: column;
-      gap: 4px;
+      gap: var(--space-sm);
     }
   }
 </style>

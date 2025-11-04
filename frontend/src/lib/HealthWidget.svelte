@@ -32,19 +32,19 @@
     good: {
       icon: '✅',
       emoji: '🟢',
-      color: '#10b981',
+      color: 'var(--success)',
       message: 'All Systems OK'
     },
     warning: {
       icon: '⚠️',
       emoji: '🟡',
-      color: '#f59e0b',
+      color: 'var(--warning)',
       message: 'Some Issues Detected'
     },
     critical: {
       icon: '🚨',
       emoji: '🔴',
-      color: '#ef4444',
+      color: 'var(--error)',
       message: 'Critical Issues Found'
     }
   };
@@ -286,7 +286,7 @@
   }
 </script>
 
-<div class="health-widget" style="--status-color: {config.color}" role="region" aria-label="Project health status">
+<div class="card-compact health-widget" style="--status-color: {config.color}" role="region" aria-label="Project health status">
   {#if loading}
     <div class="health-loading" role="status" aria-live="polite" aria-busy="true">
       <div class="spinner" aria-hidden="true"></div>
@@ -295,7 +295,7 @@
   {:else if error}
     <div class="health-error" role="alert">
       <p>❌ {error}</p>
-      <button on:click={fetchHealth} aria-label="Retry health check">Try Again</button>
+      <button class="btn btn-primary btn-sm" on:click={fetchHealth} aria-label="Retry health check">Try Again</button>
     </div>
   {:else}
     <div class="health-compact">
@@ -352,7 +352,7 @@
         </div>
 
         <!-- Refresh Button (far right) -->
-        <button class="refresh-btn" on:click={async () => { await loadStartupHealthChecks(); await fetchHealth(); }} aria-label="Refresh health checks">
+        <button class="btn btn-primary btn-icon" on:click={async () => { await loadStartupHealthChecks(); await fetchHealth(); }} aria-label="Refresh health checks">
           <span aria-hidden="true">↻</span>
         </button>
       </div>
@@ -377,30 +377,29 @@
 
 <style>
   .health-widget {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--status-color);
-    border-radius: 4px;
-    padding: 6px 10px;
+    /* Using standardized .card-compact class */
+    border-left-width: 3px; /* Custom: thicker left border for status indicator */
+    border-left-color: var(--status-color);
+    padding: var(--space-md) var(--space-lg); /* Custom: asymmetric padding */
   }
 
   .health-compact {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .health-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-lg);
     flex-wrap: nowrap;
   }
 
   .status-section {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .health-icon {
@@ -426,56 +425,29 @@
     white-space: nowrap;
   }
 
-  .refresh-btn {
-    background: var(--accent);
-    border: 2px solid var(--accent);
-    border-radius: 3px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 12px;
-    color: white;
-    transition: all 0.2s;
+  .btn.btn-icon {
     margin-left: auto;
     flex-shrink: 0;
   }
 
-  .refresh-btn:hover {
-    background: var(--accent-hover, var(--accent));
-    border-color: var(--accent-hover, var(--accent));
-    transform: rotate(180deg);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .refresh-btn:active {
-    transform: rotate(180deg) scale(0.95);
-  }
-
   .health-loading, .health-error {
     text-align: center;
-    padding: 12px;
+    padding: var(--space-xl);
   }
 
   .spinner {
-    width: 24px;
-    height: 24px;
+    width: var(--icon-md);
+    height: var(--icon-md);
     border: 2px solid var(--border);
     border-top-color: var(--accent);
     border-radius: 50%;
-    margin: 0 auto 8px;
+    margin: 0 auto var(--space-lg);
     animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
   }
 
   .health-checks {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
     flex: 1;
   }
@@ -483,7 +455,7 @@
   .check-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
     font-size: 12px;
     color: var(--text);
     font-family: var(--mono);
@@ -494,11 +466,11 @@
   }
 
   .check-item.warning {
-    color: #f59e0b;
+    color: var(--warning);
   }
 
   .check-item.critical {
-    color: #ef4444;
+    color: var(--error);
     font-weight: 600;
   }
 
@@ -514,16 +486,16 @@
 
   .check-divider {
     width: 1px;
-    height: 20px;
+    height: var(--icon-sm);
     background: var(--border);
-    margin: 0 4px;
+    margin: 0 var(--space-sm);
   }
 
   .startup-check {
     font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background 0.2s;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
+    transition: background var(--duration-base) var(--ease-smooth);
   }
 
   .startup-check.clickable {
@@ -536,31 +508,31 @@
 
   .expand-arrow {
     font-size: 11px;
-    margin-left: 4px;
+    margin-left: var(--space-sm);
     opacity: 0.6;
   }
 
   .startup-details {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px;
-    background: var(--bg);
-    border-radius: 3px;
+    gap: var(--space-lg);
+    padding: var(--space-xl);
+    background: var(--bg); /* Custom: different background */
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border);
   }
 
   .startup-check-item {
     display: grid;
     grid-template-columns: 20px 1fr 2fr auto;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
     font-size: 11px;
     font-family: var(--mono);
-    padding: 6px 8px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface);
-    border-radius: 4px;
-    border-left: 3px solid var(--success);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--success); /* Custom: left border for status */
   }
 
   .startup-check-item.failed {
@@ -588,14 +560,7 @@
   }
 
   .health-error button {
-    margin-top: 8px;
-    padding: 6px 12px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
+    margin-top: var(--space-lg);
   }
 
   /* Responsive adjustments */
@@ -603,7 +568,7 @@
     .health-row {
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
+      gap: var(--space-xl);
     }
 
     .today-stats {

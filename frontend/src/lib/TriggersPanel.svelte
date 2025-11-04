@@ -514,7 +514,7 @@
 
 <style>
   .triggers-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     width: 100%;
     margin: 0;
     position: relative;
@@ -527,8 +527,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding: 0 8px;
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-lg);
   }
 
   h2 {
@@ -539,7 +539,7 @@
 
   .header-actions {
     display: flex;
-    gap: 10px;
+    gap: var(--space-lg);
     align-items: center;
   }
 
@@ -551,21 +551,21 @@
 
   .btn-action,
   .btn-refresh {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-refresh {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .btn-action:hover,
@@ -588,15 +588,10 @@
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
   .message {
-    padding: 12px;
-    border-radius: 3px;
-    margin-bottom: 10px;
+    padding: var(--space-xl);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-lg);
     font-size: 12px;
   }
 
@@ -614,13 +609,13 @@
 
   .tabs {
     display: flex;
-    gap: 4px;
-    margin-bottom: 10px;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
     border-bottom: 2px solid var(--surface-2);
   }
 
   .tab {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
@@ -628,7 +623,7 @@
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .tab:hover {
@@ -654,33 +649,33 @@
 
   .empty {
     text-align: center;
-    padding: 16px 20px;
+    padding: var(--space-2xl) var(--space-3xl);
     color: var(--muted);
   }
 
   .empty .icon {
     font-size: 13px;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
   }
 
   .empty h3 {
     color: var(--text);
     font-size: 13px;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .empty p {
     font-size: 12px;
     line-height: 1.4;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .empty code {
     background: var(--surface);
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius);
     color: var(--warning);
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
   }
 
   .empty .hint {
@@ -692,21 +687,21 @@
   /* Filters Bar */
   .filters-bar {
     display: flex;
-    gap: 12px;
+    gap: var(--space-xl);
     align-items: center;
-    margin-bottom: 6px;
-    padding: 16px;
+    margin-bottom: var(--space-md);
+    padding: var(--space-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .search-input {
     flex: 1;
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -718,10 +713,10 @@
   }
 
   .filter-select {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -735,10 +730,10 @@
   }
 
   .filter-stats {
-    padding: 6px 10px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--muted);
     font-size: 12px;
     font-weight: 600;
@@ -749,15 +744,15 @@
   .rules-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .trigger-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 4px;
-    padding: 16px;
-    transition: all 0.2s;
+    border-radius: var(--radius);
+    padding: var(--space-2xl);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .trigger-card:hover {
@@ -778,8 +773,8 @@
   .trigger-header {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
     padding-bottom: 12px;
     border-bottom: 1px solid var(--surface-2);
   }
@@ -799,8 +794,8 @@
 
   .trigger-action {
     background: var(--surface-2);
-    padding: 4px 12px;
-    border-radius: 3px;
+    padding: var(--space-sm) var(--space-xl);
+    border-radius: var(--radius-sm);
     font-size: 12px;
     color: var(--warning);
     text-transform: capitalize;
@@ -813,7 +808,7 @@
   .trigger-details .label {
     color: var(--muted);
     font-weight: 500;
-    margin-right: 8px;
+    margin-right: var(--space-lg);
   }
 
   .trigger-details .value {
@@ -821,36 +816,36 @@
   }
 
   .conditions {
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
   }
 
   .conditions ul {
-    margin: 8px 0 0 0;
+    margin: var(--space-lg) 0 0 0;
     padding-left: 20px;
     list-style: disc;
   }
 
   .conditions li {
     color: var(--text);
-    margin: 4px 0;
+    margin: var(--space-sm) 0;
     font-size: 13px;
   }
 
   .message-preview,
   .command-preview,
   .cooldown {
-    margin-top: 8px;
+    margin-top: var(--space-lg);
   }
 
   .command-preview code {
     background: var(--bg);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
+    font-family: var(--mono);
     font-size: 12px;
     color: var(--success);
     display: block;
-    margin-top: 4px;
+    margin-top: var(--space-sm);
     overflow-x: auto;
   }
 
@@ -859,7 +854,7 @@
     position: relative;
     display: inline-block;
     width: 44px;
-    height: 24px;
+    height: var(--icon-md);
     cursor: pointer;
   }
 
@@ -877,20 +872,20 @@
     bottom: 0;
     background-color: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 24px;
-    transition: all 0.3s;
+    border-radius: var(--radius-xl);
+    transition: all var(--duration-slow) var(--ease-smooth);
   }
 
   .toggle-slider:before {
     content: "";
     position: absolute;
-    height: 16px;
-    width: 16px;
+    height: var(--icon-xs);
+    width: var(--icon-xs);
     left: 3px;
     bottom: 3px;
     background-color: var(--muted);
     border-radius: 50%;
-    transition: all 0.3s;
+    transition: all var(--duration-slow) var(--ease-smooth);
   }
 
   .toggle-switch input:checked + .toggle-slider {
@@ -908,21 +903,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 12px;
+    margin-top: var(--space-xl);
     padding-top: 12px;
     border-top: 1px solid var(--surface-2);
   }
 
   .btn-test {
-    padding: 8px 16px;
+    padding: var(--space-lg) var(--space-2xl);
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .btn-test:hover:not(:disabled) {
@@ -941,27 +936,27 @@
   .trigger-status {
     font-size: 12px;
     font-weight: 600;
-    padding: 4px 10px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--surface-2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   /* Triggered Events Tab */
   .events-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .event-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 3px;
-    padding: 6px 10px;
-    transition: all 0.2s;
+    border-radius: var(--radius-sm);
+    padding: var(--space-md) var(--space-lg);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .event-row:hover {
@@ -981,8 +976,8 @@
   .event-header-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-sm);
   }
 
   .event-trigger-name {
@@ -1002,13 +997,13 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .event-action {
     background: var(--surface-2);
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     color: var(--muted);
     text-transform: capitalize;
@@ -1023,14 +1018,14 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--surface-2);
-    border-radius: 4px;
-    padding: 12px;
+    border-radius: var(--radius);
+    padding: var(--space-xl);
     text-align: center;
   }
 
@@ -1043,7 +1038,7 @@
     font-size: 13px;
     font-weight: 700;
     color: var(--warning);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-lg);
   }
 
   .stat-label {
@@ -1056,22 +1051,22 @@
   .stat-card h3 {
     color: var(--text);
     font-size: 12px;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
   }
 
   .trigger-counts {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-xl);
   }
 
   .count-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
+    padding: var(--space-xl);
     background: var(--bg);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .count-name {
@@ -1082,8 +1077,8 @@
 
   .count-value {
     background: var(--surface-2);
-    padding: 4px 12px;
-    border-radius: 3px;
+    padding: var(--space-sm) var(--space-xl);
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 700;
     color: var(--warning);

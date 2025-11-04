@@ -50,16 +50,16 @@
   });
 
   function getSimilarityColor(similarity) {
-    if (similarity >= 0.8) return '#9ece6a'; // High similarity - green
-    if (similarity >= 0.6) return '#e0af68'; // Medium - orange
-    return '#f7768e'; // Low - red
+    if (similarity >= 0.8) return 'var(--success)'; // High similarity - green
+    if (similarity >= 0.6) return 'var(--warning)'; // Medium - orange
+    return 'var(--error)'; // Low - red
   }
 
   function getOutcomeBadge(outcome) {
     if (outcome === 'kept') {
-      return { icon: '✅', text: 'Kept', color: '#9ece6a' };
+      return { icon: '✅', text: 'Kept', color: 'var(--success)' };
     } else {
-      return { icon: '↩️', text: 'Rolled Back', color: '#f7768e' };
+      return { icon: '↩️', text: 'Rolled Back', color: 'var(--error)' };
     }
   }
 </script>
@@ -108,7 +108,7 @@
         <div class="prediction-stats" role="list" aria-label="Prediction statistics">
           <div class="stat-item" role="listitem">
             <div class="stat-label">Success Rate</div>
-            <div class="stat-value" role="status" style="color: {prediction.successRate >= 0.7 ? '#9ece6a' : prediction.successRate >= 0.5 ? '#e0af68' : '#f7768e'}">
+            <div class="stat-value" role="status" style="color: {prediction.successRate >= 0.7 ? 'var(--success)' : prediction.successRate >= 0.5 ? 'var(--warning)' : 'var(--error)'}">
               {(prediction.successRate * 100).toFixed(0)}%
             </div>
           </div>
@@ -220,7 +220,7 @@
   .similar-changes-panel {
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
@@ -228,7 +228,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: var(--space-2xl) var(--space-3xl);
     background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
@@ -241,16 +241,16 @@
   }
 
   .count-badge {
-    padding: 4px 12px;
+    padding: var(--space-sm) var(--space-xl);
     background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--accent);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
   }
 
   .loading {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     text-align: center;
     color: var(--muted);
   }
@@ -262,29 +262,25 @@
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+    margin: 0 auto var(--space-2xl);
   }
 
   .empty-state, .error-state {
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     text-align: center;
     color: var(--muted);
   }
 
   .empty-icon {
     font-size: 11px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .empty-title {
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
   }
 
   .empty-hint {
@@ -296,16 +292,16 @@
     font-size: 12px;
     font-family: var(--mono);
     color: var(--error);
-    margin-top: 8px;
+    margin-top: var(--space-lg);
   }
 
   /* Prediction Box */
   .prediction-box {
-    margin: 20px;
-    padding: 8px;
+    margin: var(--space-3xl);
+    padding: var(--space-lg);
     background: var(--bg);
     border: 2px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .prediction-box.high-risk {
@@ -316,8 +312,8 @@
   .prediction-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 6px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-md);
   }
 
   .prediction-icon {
@@ -333,8 +329,8 @@
   .prediction-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-md);
   }
 
   .stat-item {
@@ -347,7 +343,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-md);
   }
 
   .stat-value {
@@ -370,15 +366,15 @@
   }
 
   .outcome-breakdown {
-    margin-top: 16px;
+    margin-top: var(--space-2xl);
   }
 
   .outcome-bar {
     display: flex;
-    height: 32px;
-    border-radius: 3px;
+    height: var(--icon-lg);
+    border-radius: var(--radius-sm);
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-xl);
     background: var(--surface-2);
   }
 
@@ -386,7 +382,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
+    transition: all var(--duration-slow) var(--ease-smooth);
   }
 
   .outcome-segment.kept {
@@ -406,7 +402,7 @@
 
   .outcome-legend {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     justify-content: center;
     font-size: 12px;
   }
@@ -414,7 +410,7 @@
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .legend-item.kept {
@@ -426,22 +422,22 @@
   }
 
   .warning-message {
-    margin-top: 16px;
-    padding: 12px;
+    margin-top: var(--space-2xl);
+    padding: var(--space-xl);
     background: color-mix(in srgb, var(--error) 15%, transparent);
     border-left: 4px solid var(--error);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--error);
     font-size: 13px;
     font-weight: 600;
   }
 
   .success-message {
-    margin-top: 16px;
-    padding: 12px;
+    margin-top: var(--space-2xl);
+    padding: var(--space-xl);
     background: color-mix(in srgb, var(--success) 15%, transparent);
     border-left: 4px solid var(--success);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--success);
     font-size: 13px;
     font-weight: 600;
@@ -449,19 +445,19 @@
 
   /* Changes List */
   .changes-list {
-    padding: 8px;
+    padding: var(--space-lg);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .change-card {
     background: var(--bg);
     border: 1px solid var(--border);
     border-left: 4px solid var(--success);
-    border-radius: 4px;
-    padding: 16px;
-    transition: all 0.2s;
+    border-radius: var(--radius);
+    padding: var(--space-2xl);
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .change-card:hover {
@@ -477,17 +473,17 @@
 
   .change-header {
     display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
   }
 
   .similarity-badge {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 12px;
+    padding: var(--space-lg) var(--space-xl);
     border: 1px solid;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     min-width: 70px;
   }
 
@@ -507,10 +503,10 @@
   .outcome-badge {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: var(--space-md);
+    padding: var(--space-lg) var(--space-xl);
     border: 1px solid;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 600;
   }
@@ -518,12 +514,12 @@
   .change-details {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .detail-row {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 12px;
   }
 
@@ -543,10 +539,10 @@
   }
 
   .rollback-reason {
-    margin-top: 8px;
-    padding: 10px;
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--surface-2);
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 12px;
   }
 
@@ -555,7 +551,7 @@
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-sm);
     font-weight: 600;
   }
 

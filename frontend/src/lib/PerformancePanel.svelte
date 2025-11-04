@@ -223,13 +223,13 @@
     <h2 id="performance-heading"><span class="lightning-icon" aria-hidden="true">⚡</span> Performance Profiling</h2>
     <div class="header-actions" role="toolbar" aria-label="Performance panel actions">
       <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
-      <button on:click={exportToJSON} class="btn-export" aria-label="Export performance data as JSON">
+      <button on:click={exportToJSON} class="btn btn-primary btn-sm" aria-label="Export performance data as JSON">
         <span aria-hidden="true">📥</span> JSON
       </button>
-      <button on:click={exportToCSV} class="btn-export" aria-label="Export performance data as CSV">
+      <button on:click={exportToCSV} class="btn btn-primary btn-sm" aria-label="Export performance data as CSV">
         <span aria-hidden="true">📥</span> CSV
       </button>
-      <button on:click={() => fetchAllData(true)} class="btn-refresh" disabled={loading} aria-label="Refresh performance data">
+      <button on:click={() => fetchAllData(true)} class="btn btn-secondary btn-sm" disabled={loading} aria-label="Refresh performance data">
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         Refresh
       </button>
@@ -241,7 +241,7 @@
     <div class="alerts-banner" role="alert" aria-live="assertive">
       <div class="banner-header">
         <strong><span aria-hidden="true">⚠️</span> Active Performance Alerts</strong>
-        <button class="btn-dismiss" on:click={() => showAlerts = false} aria-label="Dismiss performance alerts">✕</button>
+        <button class="btn btn-ghost btn-icon" on:click={() => showAlerts = false} aria-label="Dismiss performance alerts">✕</button>
       </div>
       <div class="alerts-list" role="list" aria-label="Active performance alerts">
         {#each activeAlerts as alert (alert)}
@@ -585,7 +585,7 @@
 
 <style>
   .performance-panel {
-    padding: 8px;
+    padding: var(--space-lg);
     background: var(--bg);
     color: var(--text);
     min-height: 400px;
@@ -598,8 +598,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding: 0 8px;
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-lg);
   }
 
   h2 {
@@ -621,35 +621,7 @@
     font-family: var(--mono);
   }
 
-  .btn-refresh {
-    padding: 8px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-refresh:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--accent);
-  }
-
-  .btn-refresh:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-refresh:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+  /* Button styles removed - using global .btn classes */
 
   .refresh-icon {
     display: inline-block;
@@ -660,27 +632,22 @@
     animation: spin 1s linear infinite;
   }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-    gap: 6px;
-    margin-bottom: 10px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
   }
 
   .metric-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
   }
 
   .metric-card h3 {
-    margin: 0 0 15px 0;
+    margin: 0 0 var(--space-2xl) 0;
     font-size: 11px;
     color: var(--warning);
     border-bottom: 1px solid var(--border);
@@ -690,7 +657,7 @@
   .metric-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
+    padding: var(--space-lg) 0;
     border-bottom: 1px solid var(--border);
   }
 
@@ -727,7 +694,7 @@
   }
 
   .timestamp {
-    margin-top: 10px;
+    margin-top: var(--space-lg);
     font-size: 12px;
     color: var(--muted);
     text-align: right;
@@ -741,12 +708,12 @@
   .hint {
     font-size: 12px;
     color: var(--muted);
-    margin-top: 5px;
+    margin-top: var(--space-sm);
   }
 
   .loading, .error, .empty-state {
     text-align: center;
-    padding: 6px;
+    padding: var(--space-md);
     color: var(--muted);
   }
 
@@ -755,14 +722,14 @@
   }
 
   .empty-state p {
-    margin: 10px 0;
+    margin: var(--space-lg) 0;
   }
 
   /* Tab Navigation */
   .tab-nav {
     display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
     border-bottom: 2px solid var(--border);
     padding-bottom: 0;
   }
@@ -771,12 +738,12 @@
     background: transparent;
     color: var(--muted);
     border: none;
-    padding: 6px 24px;
+    padding: var(--space-md) var(--space-3xl);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     border-bottom: 3px solid transparent;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
     margin-bottom: -2px;
   }
 
@@ -801,11 +768,11 @@
   }
 
   .section-header {
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
   }
 
   .section-header h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 11px;
     color: var(--warning);
   }
@@ -819,16 +786,16 @@
   .correlations-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .correlation-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
     border-left: 4px solid var(--warning);
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .correlation-card:hover {
@@ -840,13 +807,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
-    gap: 10px;
+    margin-bottom: var(--space-md);
+    gap: var(--space-lg);
   }
 
   .file-name {
     font-size: 11px;
-    font-family: 'Courier New', monospace;
+    font-family: var(--mono);
     color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -855,8 +822,8 @@
   }
 
   .event-type {
-    padding: 4px 10px;
-    border-radius: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius);
     font-size: 11px;
     font-weight: bold;
     text-transform: uppercase;
@@ -879,15 +846,15 @@
 
   .metrics-row {
     display: flex;
-    gap: 6px;
-    margin-bottom: 6px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
   }
 
   .metric-item {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
   }
 
   .metric-label {
@@ -917,83 +884,43 @@
   /* Header Actions */
   .header-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     align-items: center;
-  }
-
-  .btn-export {
-    padding: 8px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-
-  .btn-export:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .btn-export:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
   }
 
   /* Alerts Banner */
   .alerts-banner {
     background: color-mix(in srgb, var(--warning) 10%, var(--surface));
     border: 1px solid var(--warning);
-    border-radius: 4px;
-    padding: 6px;
-    margin-bottom: 6px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
   }
 
   .banner-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-lg);
     color: var(--warning);
     font-size: 11px;
   }
 
-  .btn-dismiss {
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 11px;
-    padding: 4px;
-    transition: color 0.2s;
-  }
-
-  .btn-dismiss:hover {
-    color: var(--error);
-  }
-
-  .btn-dismiss:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+  /* Button styles removed - using global .btn classes */
 
   .alerts-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .alert-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 4px 8px;
+    gap: var(--space-lg);
+    padding: var(--space-sm) var(--space-lg);
     background: var(--surface);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     border-left: 4px solid;
     font-size: 12px;
   }
@@ -1019,26 +946,26 @@
 
   /* Charts Section */
   .charts-section {
-    padding: 6px;
+    padding: var(--space-md);
   }
 
   .chart-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 6px;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .time-range-select {
-    margin-left: 8px;
-    padding: 6px 12px;
+    margin-left: var(--space-lg);
+    padding: var(--space-md) var(--space-xl);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--text);
     font-size: 12px;
     cursor: pointer;
@@ -1051,14 +978,14 @@
 
   .chart-legend {
     display: flex;
-    gap: 8px;
+    gap: var(--space-lg);
     font-size: 12px;
   }
 
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .legend-color {
@@ -1086,20 +1013,20 @@
   .chart-container {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
-    margin-bottom: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
   }
 
   .chart-container h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 11px;
     color: var(--text);
   }
 
   .chart {
     display: flex;
-    gap: 6px;
+    gap: var(--space-md);
     height: 200px;
   }
 
@@ -1119,7 +1046,7 @@
     flex: 1;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
 
   .threshold-line {
@@ -1145,7 +1072,7 @@
     font-size: 11px;
     color: var(--muted);
     background: var(--bg);
-    padding: 0 4px;
+    padding: 0 var(--space-sm);
   }
 
   .data-point {
@@ -1155,7 +1082,7 @@
     border-radius: 50%;
     transform: translate(-50%, 50%);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-base) var(--ease-smooth);
   }
 
   .data-point:hover {
@@ -1193,13 +1120,13 @@
   .threshold-config {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
-    margin-top: 8px;
+    border-radius: var(--radius);
+    padding: var(--space-md);
+    margin-top: var(--space-lg);
   }
 
   .threshold-config h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-lg) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -1207,13 +1134,13 @@
   .threshold-controls {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px;
+    gap: var(--space-lg);
   }
 
   .threshold-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-md);
   }
 
   .threshold-group label {
@@ -1223,10 +1150,10 @@
   }
 
   .threshold-input {
-    padding: 4px 8px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
     color: var(--text);
     font-size: 12px;
     font-family: var(--mono);
@@ -1249,7 +1176,7 @@
     .panel-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
+      gap: var(--space-xl);
     }
 
     .header-controls {
@@ -1260,7 +1187,7 @@
 
     .stats-grid {
       grid-template-columns: 1fr;
-      gap: 8px;
+      gap: var(--space-lg);
     }
 
     .correlations-grid {
@@ -1291,7 +1218,7 @@
 
   @media (max-width: 480px) {
     .stat-value {
-      font-size: 20px;
+      font-size: var(--icon-sm);
     }
 
     .chart-container {
@@ -1300,7 +1227,7 @@
 
     .tab-button {
       font-size: 11px;
-      padding: 6px 10px;
+      padding: var(--space-md) var(--space-lg);
     }
   }
 </style>
