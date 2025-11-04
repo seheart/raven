@@ -90,12 +90,73 @@ Raven monitors **all your AI agent projects simultaneously** from a single, eleg
 - ✅ **Accessibility**: 100% ARIA compliant with proper labels and roles
 - ✅ **Performance**: Optimized reactive statements and efficient chart updates
 
-**💡 Why This Matters:**
-Version 1.6.8 transforms Raven from a data monitoring platform into a comprehensive analytics powerhouse. With 18+ pages featuring professional Chart.js visualizations, users can now understand their data at a glance through interactive charts. The theme-aware implementation ensures charts look great in any color scheme, while accessibility features make visualizations available to all users. Proper memory management with cleanup hooks prevents memory leaks, ensuring Raven remains lightweight even with extensive chart usage.
+**💡 Why v1.0.0 Matters:**
+
+Version 1.0.0 marks Raven's official production release - a stable, feature-complete AI agent monitoring platform with:
+
+- 18+ pages of interactive Chart.js visualizations
+- Multi-project monitoring (13+ projects simultaneously)
+- Multi-agent support (Claude, Ollama, LM Studio, Custom)
+- Enterprise-grade security and performance
+- 575+ tests with 98% E2E pass rate
+- Complete REST and WebSocket APIs
+
+This is transformative analytics for AI-assisted development - understand patterns, track performance, and gain insights across all your projects from a single dashboard.
 
 ---
 
-### Previous Release - 1.6.7 - System Performance & UX Excellence (November 2025)
+## 📋 Quick Start
+
+```bash
+# Clone and start
+git clone https://github.com/seheart/raven.git
+cd raven
+./start.sh
+
+# Open dashboard
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:3030
+```
+
+---
+
+## 🔑 Key Features
+
+### Multi-Project Monitoring
+
+Monitor all your AI agent projects from one dashboard with instant project switching and auto-discovery.
+
+### Interactive Analytics
+
+18+ pages with Chart.js visualizations - see trends, patterns, and insights at a glance.
+
+### Multi-Agent Support
+
+Built-in telemetry for Claude Code, with support for Ollama, LM Studio, and custom agents.
+
+### Developer Insights
+
+Activity heatmaps, language breakdown, workflow patterns - understand how you code.
+
+### Production Ready
+
+Enterprise security, comprehensive testing, optimized performance, full documentation.
+
+---
+
+## 📚 Documentation
+
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get running in 5 minutes
+- **[Full Documentation](docs/README.md)** - Complete feature reference
+- **[REST API](docs/api/REST_API.md)** - 37 API endpoints
+- **[WebSocket API](docs/api/WEBSOCKET_API.md)** - 8 real-time events
+- **[CHANGELOG](CHANGELOG.md)** - Version history
+
+---
+
+## Previous Releases
+
+### v0.9.0 - System Performance & UX Excellence (November 2, 2025)
 
 **⚡ Major Performance Optimizations:**
 
