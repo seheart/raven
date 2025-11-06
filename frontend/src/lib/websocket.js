@@ -5,6 +5,15 @@ import { notifications } from './notificationService.js';
 // Get WebSocket URL from environment or use default
 const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3030';
 
+// WebSocket configuration constants
+const WEBSOCKET_CONFIG = {
+  RECONNECTION_DELAY_MS: 1000,
+  RECONNECTION_DELAY_MAX_MS: 30000,
+  RECONNECTION_ATTEMPTS: 20,
+  CONNECTION_TIMEOUT_MS: 20000,
+  MAX_RECONNECT_CALLBACKS: 50
+};
+
 class WebSocketService {
   constructor() {
     this.socket = null;
@@ -22,9 +31,10 @@ class WebSocketService {
     this.socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity // Keep trying to reconnect
+      reconnectionDelay: WEBSOCKET_CONFIG.RECONNECTION_DELAY_MS,
+      reconnectionDelayMax: WEBSOCKET_CONFIG.RECONNECTION_DELAY_MAX_MS,
+      reconnectionAttempts: WEBSOCKET_CONFIG.RECONNECTION_ATTEMPTS,
+      timeout: WEBSOCKET_CONFIG.CONNECTION_TIMEOUT_MS
     });
 
     this.socket.on('connect', () => {
@@ -33,13 +43,13 @@ class WebSocketService {
       notifications.websocketConnected();
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', reason => {
       logger.info('🔌 WebSocket disconnected:', reason);
       this.connected = false;
       notifications.websocketDisconnected();
     });
 
-    this.socket.on('connect_error', (error) => {
+    this.socket.on('connect_error', error => {
       logger.error('🔌 WebSocket connection error:', error);
       notifications.error(`WebSocket error: ${error.message || 'Connection failed'}`, {
         title: 'WebSocket Error'
@@ -47,7 +57,7 @@ class WebSocketService {
     });
 
     // Handle successful reconnection
-    this.socket.on('reconnect', (attemptNumber) => {
+    this.socket.on('reconnect', attemptNumber => {
       logger.info(`🔌 WebSocket reconnected after ${attemptNumber} attempts`);
       this.connected = true;
       notifications.success(`Reconnected after ${attemptNumber} attempt(s)`, {
@@ -65,9 +75,10 @@ class WebSocketService {
     });
 
     // Track reconnection attempts
-    this.socket.on('reconnect_attempt', (attemptNumber) => {
+    this.socket.on('reconnect_attempt', attemptNumber => {
       logger.info(`🔌 Attempting to reconnect (${attemptNumber})...`);
-      if (attemptNumber % 5 === 0) { // Only notify every 5 attempts to avoid spam
+      if (attemptNumber % 5 === 0) {
+        // Only notify every 5 attempts to avoid spam
         notifications.websocketReconnecting(attemptNumber);
       }
     });
@@ -85,9 +96,23 @@ class WebSocketService {
 
   // Register a callback to be called when reconnection succeeds
   onReconnect(callback) {
-    if (typeof callback === 'function') {
-      this.reconnectCallbacks.push(callback);
+    if (typeof callback !== 'function') {
+      return;
     }
+
+    // Limit reconnect callbacks to prevent unbounded growth
+    if (this.reconnectCallbacks.length >= WEBSOCKET_CONFIG.MAX_RECONNECT_CALLBACKS) {
+      logger.warn('Max reconnect callbacks reached, removing oldest');
+      this.reconnectCallbacks.shift();
+    }
+
+    // Check for duplicates
+    if (this.reconnectCallbacks.includes(callback)) {
+      logger.warn('Duplicate reconnect callback prevented');
+      return;
+    }
+
+    this.reconnectCallbacks.push(callback);
   }
 
   // Remove a reconnect callback
@@ -107,8 +132,15 @@ class WebSocketService {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
-    this.listeners.get(event).push(callback);
 
+    // Check if this exact callback is already registered (prevent duplicates)
+    const callbacks = this.listeners.get(event);
+    if (callbacks.includes(callback)) {
+      logger.warn(`Duplicate listener prevented for event: ${event}`);
+      return; // Don't add duplicate
+    }
+
+    callbacks.push(callback);
     this.socket.on(event, callback);
   }
 

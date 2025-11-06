@@ -44,9 +44,8 @@
 
   // Prefetch likely-next panels during idle to improve perceived performance
   function prefetchPanels() {
-    const idle = typeof requestIdleCallback === 'function'
-      ? requestIdleCallback
-      : (fn) => setTimeout(fn, 300);
+    const idle =
+      typeof requestIdleCallback === 'function' ? requestIdleCallback : fn => setTimeout(fn, 300);
     idle(() => {
       // Use Vite preload hint to start fetching in background
       import(/* @vite-preload */ './lib/StatusPanel.svelte');
@@ -62,48 +61,48 @@
   function preloadByTab(tabId) {
     try {
       switch (tabId) {
-      case 'agents':
-        import(/* @vite-preload */ './lib/AgentsPanel.svelte');
-        import(/* @vite-preload */ './lib/ConversationsPanel.svelte');
-        break;
-      case 'activity':
-        import(/* @vite-preload */ './lib/LiveCodeFeed.svelte');
-        import(/* @vite-preload */ './lib/LiveFeed.svelte');
-        import(/* @vite-preload */ './lib/EventFeed.svelte');
-        import(/* @vite-preload */ './lib/ActivityLog.svelte');
-        import(/* @vite-preload */ './lib/FileBrowser.svelte');
-        import(/* @vite-preload */ './lib/GlobalSearchPanel.svelte');
-        break;
-      case 'analysis':
-        import(/* @vite-preload */ './lib/PerformancePanel.svelte');
-        import(/* @vite-preload */ './lib/CustomMetricsPanel.svelte');
-        import(/* @vite-preload */ './lib/HistoricalTrendsPanel.svelte');
-        import(/* @vite-preload */ './lib/TriggersPanel.svelte');
-        import(/* @vite-preload */ './lib/SessionReplay.svelte');
-        import(/* @vite-preload */ './lib/DeveloperInsightsPanel.svelte');
-        break;
-      case 'system':
-        import(/* @vite-preload */ './lib/StatusPanel.svelte');
-        import(/* @vite-preload */ './lib/AnomalyAlertsPanel.svelte');
-        import(/* @vite-preload */ './lib/StoragePanel.svelte');
-        import(/* @vite-preload */ './lib/ProjectsConfigPanel.svelte');
-        import(/* @vite-preload */ './lib/ServerSyncPanel.svelte');
-        import(/* @vite-preload */ './lib/NotificationsPanel.svelte');
-        import(/* @vite-preload */ './lib/ErrorLog.svelte');
-        import(/* @vite-preload */ './lib/APIHealthMonitor.svelte');
-        break;
-      case 'settings':
-        import(/* @vite-preload */ './lib/SettingsPanel.svelte');
-        break;
-      case 'about':
-        import(/* @vite-preload */ './lib/AboutPage.svelte');
-        break;
-      case 'changelog':
-        import(/* @vite-preload */ './lib/ChangelogPage.svelte');
-        break;
-      case 'docs':
-        import(/* @vite-preload */ './lib/DocsViewer.svelte');
-        break;
+        case 'agents':
+          import(/* @vite-preload */ './lib/AgentsPanel.svelte');
+          import(/* @vite-preload */ './lib/ConversationsPanel.svelte');
+          break;
+        case 'activity':
+          import(/* @vite-preload */ './lib/LiveCodeFeed.svelte');
+          import(/* @vite-preload */ './lib/LiveFeed.svelte');
+          import(/* @vite-preload */ './lib/EventFeed.svelte');
+          import(/* @vite-preload */ './lib/ActivityLog.svelte');
+          import(/* @vite-preload */ './lib/FileBrowser.svelte');
+          import(/* @vite-preload */ './lib/GlobalSearchPanel.svelte');
+          break;
+        case 'analysis':
+          import(/* @vite-preload */ './lib/PerformancePanel.svelte');
+          import(/* @vite-preload */ './lib/CustomMetricsPanel.svelte');
+          import(/* @vite-preload */ './lib/HistoricalTrendsPanel.svelte');
+          import(/* @vite-preload */ './lib/TriggersPanel.svelte');
+          import(/* @vite-preload */ './lib/SessionReplay.svelte');
+          import(/* @vite-preload */ './lib/DeveloperInsightsPanel.svelte');
+          break;
+        case 'system':
+          import(/* @vite-preload */ './lib/StatusPanel.svelte');
+          import(/* @vite-preload */ './lib/AnomalyAlertsPanel.svelte');
+          import(/* @vite-preload */ './lib/StoragePanel.svelte');
+          import(/* @vite-preload */ './lib/ProjectsConfigPanel.svelte');
+          import(/* @vite-preload */ './lib/ServerSyncPanel.svelte');
+          import(/* @vite-preload */ './lib/NotificationsPanel.svelte');
+          import(/* @vite-preload */ './lib/ErrorLog.svelte');
+          import(/* @vite-preload */ './lib/APIHealthMonitor.svelte');
+          break;
+        case 'settings':
+          import(/* @vite-preload */ './lib/SettingsPanel.svelte');
+          break;
+        case 'about':
+          import(/* @vite-preload */ './lib/AboutPage.svelte');
+          break;
+        case 'changelog':
+          import(/* @vite-preload */ './lib/ChangelogPage.svelte');
+          break;
+        case 'docs':
+          import(/* @vite-preload */ './lib/DocsViewer.svelte');
+          break;
       }
     } catch {
       // Ignore preload errors - components will load on demand
@@ -129,7 +128,14 @@
 
   // Debug logging
   $: {
-    logger.debug('[App] activeTab:', activeTab, 'currentTab:', $currentTab, 'isInitialLoading:', isInitialLoading);
+    logger.debug(
+      '[App] activeTab:',
+      activeTab,
+      'currentTab:',
+      $currentTab,
+      'isInitialLoading:',
+      isInitialLoading
+    );
   }
   let theme = 'theme--night'; // Default theme: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night)
   let showWelcome = false;
@@ -223,10 +229,12 @@
 
       fileStates.forEach((state, filepath) => {
         // Skip temp files, test databases, and SQLite internals
-        if (filepath.includes('.tmp.') ||
-            filepath.includes('test-databases') ||
-            filepath.endsWith('-wal') ||
-            filepath.endsWith('-shm')) {
+        if (
+          filepath.includes('.tmp.') ||
+          filepath.includes('test-databases') ||
+          filepath.endsWith('-wal') ||
+          filepath.endsWith('-shm')
+        ) {
           return;
         }
 
@@ -262,7 +270,9 @@
     theme = newTheme;
     document.body.className = theme;
     localStorage.setItem('raven-theme', theme);
-    notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`);
+    notifications.success(`Theme changed to ${newTheme.replace('theme--', '')}`, {
+      saveToHistory: false
+    });
   }
 
   // Handle error/warning notification clicks - navigate to appropriate page
@@ -290,7 +300,7 @@
         loadingMessage = 'Connecting to backend server...';
         const response = await fetch(API_CONFIG.ENDPOINTS.HEALTH, {
           method: 'GET',
-          headers: { 'Accept': 'application/json' },
+          headers: { Accept: 'application/json' },
           signal: AbortSignal.timeout(500) // 500ms timeout per request
         });
 
@@ -347,66 +357,67 @@
         loadSessionId();
         resolve();
       })
-    ]).then(() => {
-      // Start uptime tracking
-      updateUptime();
-      uptimeInterval = setInterval(updateUptime, 1000);
+    ])
+      .then(() => {
+        // Start uptime tracking
+        updateUptime();
+        uptimeInterval = setInterval(updateUptime, 1000);
 
-      // Initialize WebSocket connection
-      websocketService.connect();
+        // Initialize WebSocket connection
+        websocketService.connect();
 
-      // Load data in background (non-blocking)
-      Promise.all([
-        dataService.preloadInitialData(),
-        fetchTodayActivity()
-      ]).catch(err => {
-        logger.error('Background data loading error:', err);
+        // Load data in background (non-blocking)
+        Promise.all([dataService.preloadInitialData(), fetchTodayActivity()]).catch(err => {
+          logger.error('Background data loading error:', err);
+        });
+
+        // Listen for file changes to update today's activity
+        websocketService.on('file-changed', () => {
+          fetchTodayActivity();
+        });
+
+        // Start periodic health checks (every 60 seconds)
+        checkServerHealth(); // Initial check
+        healthCheckInterval = setInterval(checkServerHealth, 60000);
+
+        // Check health on WebSocket reconnect
+        // Store callback reference for cleanup
+        reconnectCallback = () => {
+          checkServerHealth();
+          fetchTodayActivity();
+        };
+        websocketService.onReconnect(reconnectCallback);
+
+        // NOW set up notification listeners (after loading screen is gone)
+        // This prevents startup warnings from showing on the loading screen
+        setupNotificationListeners();
+
+        // Kick off background prefetch of common panels
+        try {
+          prefetchPanels();
+        } catch {
+          // Ignore prefetch errors - panels will load on demand
+        }
+
+        // Show Quick Start Wizard for first-time users
+        if (!localStorage.getItem('raven-quick-start-completed')) {
+          showQuickStart = true;
+        } else if (!localStorage.getItem('raven-welcome-seen')) {
+          showWelcome = true;
+        } else if (!localStorage.getItem('raven-visited')) {
+          // Show notification for returning users who haven't seen the new UI
+          setTimeout(() => {
+            notifications.info('Welcome back! Press ? for keyboard shortcuts', {
+              title: 'Welcome',
+              duration: 5000
+            });
+            localStorage.setItem('raven-visited', 'true');
+          }, 500);
+        }
+      })
+      .catch(err => {
+        logger.error('Initialization error:', err);
       });
-
-      // Listen for file changes to update today's activity
-      websocketService.on('file-changed', () => {
-        fetchTodayActivity();
-      });
-
-      // Start periodic health checks (every 60 seconds)
-      checkServerHealth(); // Initial check
-      healthCheckInterval = setInterval(checkServerHealth, 60000);
-
-      // Check health on WebSocket reconnect
-      // Store callback reference for cleanup
-      reconnectCallback = () => {
-        checkServerHealth();
-        fetchTodayActivity();
-      };
-      websocketService.onReconnect(reconnectCallback);
-
-      // NOW set up notification listeners (after loading screen is gone)
-      // This prevents startup warnings from showing on the loading screen
-      setupNotificationListeners();
-
-      // Kick off background prefetch of common panels
-      try { prefetchPanels(); } catch {
-        // Ignore prefetch errors - panels will load on demand
-      }
-
-      // Show Quick Start Wizard for first-time users
-      if (!localStorage.getItem('raven-quick-start-completed')) {
-        showQuickStart = true;
-      } else if (!localStorage.getItem('raven-welcome-seen')) {
-        showWelcome = true;
-      } else if (!localStorage.getItem('raven-visited')) {
-        // Show notification for returning users who haven't seen the new UI
-        setTimeout(() => {
-          notifications.info('Welcome back! Press ? for keyboard shortcuts', {
-            title: 'Welcome',
-            duration: 5000
-          });
-          localStorage.setItem('raven-visited', 'true');
-        }, 500);
-      }
-    }).catch(err => {
-      logger.error('Initialization error:', err);
-    });
   });
 
   onDestroy(() => {
@@ -420,616 +431,639 @@
 </script>
 
 <ErrorBoundary>
-
-<!-- Initial Loading Screen -->
-{#if isInitialLoading}
-  <AppLoadingScreen progress={loadingProgress} message={loadingMessage} />
-{:else}
-
-<!-- Skip Links for Keyboard Navigation -->
-<div class="skip-links">
-  <a href="#main-content" class="skip-link">Skip to main content</a>
-  <a href="#main-navigation" class="skip-link">Skip to navigation</a>
-  <a href="#theme-switcher" class="skip-link">Skip to theme switcher</a>
-</div>
-
-<!-- Authentication removed - app is always accessible -->
-<main>
-  <!-- COMPACT HEADER LAYOUT -->
-  <header class="compact-header">
-    <!-- Logo -->
-    <button class="logo" on:click={() => handleTabChange('overview')} aria-label="Go to Overview">
-      <RavenLogo size={16} />
-      <span>Raven</span>
-    </button>
-
-    <!-- Main Navigation Tabs -->
-    <nav class="main-tabs" aria-label="Main navigation">
-      {#each tabs as tab (tab.id)}
-        <button
-          class="tab"
-          class:active={activeTab === tab.id}
-          on:click={() => handleTabChange(tab.id)}
-          on:mouseenter={() => preloadByTab(tab.id)}
-          aria-current={activeTab === tab.id ? 'page' : undefined}
-          title="{tab.label} (Shortcut: {tab.shortcut})"
-        >
-          {tab.label}
-        </button>
-      {/each}
-    </nav>
-
-    <!-- Today's Activity Stats - Compact Pills -->
-    <div class="today-stats" role="region" aria-label="Today's coding activity">
-      <a href="#activity/events" class="stat-pill modified" role="button" aria-label="{todayStats.modified} files modified - click to view">
-        {todayStats.modified} modified
-      </a>
-      <a href="#activity/events" class="stat-pill added" role="button" aria-label="{todayStats.added} files added - click to view">
-        +{todayStats.added} added
-      </a>
-      <a href="#activity/events" class="stat-pill deleted" role="button" aria-label="{todayStats.deleted} files deleted - click to view">
-        -{todayStats.deleted} deleted
-      </a>
+  <!-- Initial Loading Screen -->
+  {#if isInitialLoading}
+    <AppLoadingScreen progress={loadingProgress} message={loadingMessage} />
+  {:else}
+    <!-- Skip Links for Keyboard Navigation -->
+    <div class="skip-links">
+      <a href="#main-content" class="skip-link">Skip to main content</a>
+      <a href="#main-navigation" class="skip-link">Skip to navigation</a>
+      <a href="#theme-switcher" class="skip-link">Skip to theme switcher</a>
     </div>
 
-    <!-- Notifications Bell -->
-    <button
-      class="notification-bell"
-      on:click={() => showNotifications = !showNotifications}
-      aria-label="Open notifications ({$unreadCount} unread)"
-      title="Notifications"
-    >
-      🔔
-      {#if $unreadCount > 0}
-        <span class="notification-badge">{$unreadCount}</span>
-      {/if}
-    </button>
-
-    <!-- User Menu -->
-    <UserMenu on:openSettings={handleOpenSettings} />
-  </header>
-
-  <!-- Consolidated View Container -->
-  <div id="main-content" class="view-container" role="main" tabindex="-1">
-    {#if activeTab === 'overview'}
-      <!-- Overview: Dashboard + Projects Comparison + Multi-Project Health -->
-      <div class="tab-content">
-        <div class="sub-navigation">
-          <button
-            class="sub-tab"
-            class:active={!currentSubView}
-            on:click={() => router.navigate(activeTab)}
-          >
-            Dashboard
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'projects'}
-            on:click={() => router.navigate(activeTab, 'projects')}
-          >
-            Projects Comparison
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'health'}
-            on:click={() => router.navigate(activeTab, 'health')}
-          >
-            Project Health
-          </button>
-        </div>
-        {#if !currentSubView}
-          <OverviewPanel {sessionId} {sessionUptime} />
-        {:else if currentSubView === 'projects'}
-          <ProjectsComparisonPanel />
-        {:else if currentSubView === 'health'}
-          <MultiProjectHealthPanel />
-        {/if}
-      </div>
-    {:else if activeTab === 'safety'}
-      <!-- Safety: Overview + Syntax Errors + Session Rollback + Pattern Warnings + Test Results -->
-      <div class="tab-content">
-        <div class="sub-navigation">
-          <button
-            class="sub-tab"
-            class:active={!currentSubView}
-            on:click={() => router.navigate(activeTab)}
-          >
-            Overview
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'syntax'}
-            on:click={() => router.navigate(activeTab, 'syntax')}
-          >
-            🔍 Syntax Errors
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'rollback'}
-            on:click={() => router.navigate(activeTab, 'rollback')}
-          >
-            ⏪ Session Rollback
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'patterns'}
-            on:click={() => router.navigate(activeTab, 'patterns')}
-          >
-            ⚠️ Pattern Warnings
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'tests'}
-            on:click={() => router.navigate(activeTab, 'tests')}
-          >
-            🧪 Raven Tests
-          </button>
-        </div>
-        {#if !currentSubView}
-          <SafetyOverview />
-        {:else if currentSubView === 'syntax'}
-          <SyntaxErrorPanel />
-        {:else if currentSubView === 'rollback'}
-          <SessionRollbackPanel />
-        {:else if currentSubView === 'patterns'}
-          <PatternWarningsPanel />
-        {:else if currentSubView === 'tests'}
-          <TestResultsPanel />
-        {/if}
-      </div>
-    {:else if activeTab === 'agents'}
-      <!-- Agents: Overview + Agent Stats + Conversations -->
-      <div class="tab-content">
-        <div class="sub-navigation">
-          <button
-            class="sub-tab"
-            class:active={!currentSubView}
-            on:click={() => router.navigate(activeTab)}
-          >
-            Overview
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'stats'}
-            on:click={() => router.navigate(activeTab, 'stats')}
-          >
-            Agent Stats
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'conversations'}
-            on:click={() => router.navigate(activeTab, 'conversations')}
-          >
-            Conversations
-          </button>
-        </div>
-        {#if !currentSubView}
-          <AgentsOverview />
-        {:else if currentSubView === 'stats'}
-          {#await import('./lib/AgentsPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'conversations'}
-          {#await import('./lib/ConversationsPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {/if}
-      </div>
-    {:else if activeTab === 'activity'}
-      <!-- Activity: Overview + Code Changes + Live Feed + Events + Files + Global Search -->
-      <div class="tab-content">
-        <div class="sub-navigation">
-          <button
-            class="sub-tab"
-            class:active={!currentSubView}
-            on:click={() => router.navigate(activeTab)}
-          >
-            Overview
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'code'}
-            on:click={() => router.navigate(activeTab, 'code')}
-          >
-            Code Changes
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'live'}
-            on:click={() => router.navigate(activeTab, 'live')}
-          >
-            Live Feed
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'events'}
-            on:click={() => router.navigate(activeTab, 'events')}
-          >
-            Event Log
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'activity'}
-            on:click={() => router.navigate(activeTab, 'activity')}
-          >
-            Activity Log
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'files'}
-            on:click={() => router.navigate(activeTab, 'files')}
-          >
-            File Browser
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'search'}
-            on:click={() => router.navigate(activeTab, 'search')}
-          >
-            Global Search
-          </button>
-        </div>
-        {#if !currentSubView}
-          <ActivityOverview />
-        {:else if currentSubView === 'code'}
-          {#await import('./lib/LiveCodeFeed.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'live'}
-          {#await import('./lib/LiveFeed.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'events'}
-          {#await import('./lib/EventFeed.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'activity'}
-          {#await import('./lib/ActivityLog.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'files'}
-          {#await import('./lib/FileBrowser.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'search'}
-          {#await import('./lib/GlobalSearchPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {/if}
-      </div>
-    {:else if activeTab === 'analysis'}
-      <!-- Analysis: Overview + Performance + Custom Metrics + Historical Trends + Triggers + Session Replay + Developer Insights -->
-      <div class="tab-content">
-        <div class="sub-navigation">
-          <button
-            class="sub-tab"
-            class:active={!currentSubView}
-            on:click={() => router.navigate(activeTab)}
-          >
-            Overview
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'performance'}
-            on:click={() => router.navigate(activeTab, 'performance')}
-          >
-            Performance
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'metrics'}
-            on:click={() => router.navigate(activeTab, 'metrics')}
-          >
-            Custom Metrics
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'trends'}
-            on:click={() => router.navigate(activeTab, 'trends')}
-          >
-            Historical Trends
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'triggers'}
-            on:click={() => router.navigate(activeTab, 'triggers')}
-          >
-            Triggers
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'replay'}
-            on:click={() => router.navigate(activeTab, 'replay')}
-          >
-            Session Replay
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'insights'}
-            on:click={() => router.navigate(activeTab, 'insights')}
-          >
-            Developer Insights
-          </button>
-        </div>
-        {#if !currentSubView}
-          <AnalysisOverview />
-        {:else if currentSubView === 'performance'}
-          {#await import('./lib/PerformancePanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'metrics'}
-          {#await import('./lib/CustomMetricsPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'trends'}
-          {#await import('./lib/HistoricalTrendsPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'triggers'}
-          {#await import('./lib/TriggersPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'replay'}
-          {#await import('./lib/SessionReplay.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'insights'}
-          {#await import('./lib/DeveloperInsightsPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:240px" role="status">Loading…</div>
-          {/await}
-        {/if}
-      </div>
-    {:else if activeTab === 'system'}
-      <!-- System: Overview + Status + Anomaly Alerts + Storage + Projects + Server Sync + Notifications + Errors + API Health -->
-      <div class="tab-content">
-        <div class="sub-navigation">
-          <button
-            class="sub-tab"
-            class:active={!currentSubView}
-            on:click={() => router.navigate(activeTab)}
-          >
-            Overview
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'status'}
-            on:click={() => router.navigate(activeTab, 'status')}
-          >
-            Status
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'anomalies'}
-            on:click={() => router.navigate(activeTab, 'anomalies')}
-          >
-            Anomaly Alerts
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'storage'}
-            on:click={() => router.navigate(activeTab, 'storage')}
-          >
-            Storage
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'projects'}
-            on:click={() => router.navigate(activeTab, 'projects')}
-          >
-            Projects
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'sync'}
-            on:click={() => router.navigate(activeTab, 'sync')}
-          >
-            Server Sync
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'notifications'}
-            on:click={() => router.navigate(activeTab, 'notifications')}
-          >
-            Notifications
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'errors'}
-            on:click={() => router.navigate(activeTab, 'errors')}
-          >
-            Errors
-          </button>
-          <button
-            class="sub-tab"
-            class:active={currentSubView === 'api'}
-            on:click={() => router.navigate(activeTab, 'api')}
-          >
-            API Health
-          </button>
-        </div>
-        {#if !currentSubView}
-          <SystemOverview />
-        {:else if currentSubView === 'status'}
-          {#await import('./lib/StatusPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'anomalies'}
-          {#await import('./lib/AnomalyAlertsPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'storage'}
-          {#await import('./lib/StoragePanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'projects'}
-          {#await import('./lib/ProjectsConfigPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'sync'}
-          {#await import('./lib/ServerSyncPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'notifications'}
-          {#await import('./lib/NotificationsPanel.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'errors'}
-          {#await import('./lib/ErrorLog.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {:else if currentSubView === 'api'}
-          {#await import('./lib/APIHealthMonitor.svelte') then M}
-            <svelte:component this={M.default} />
-          {:catch _}
-            <div style="min-height:200px" role="status">Loading…</div>
-          {/await}
-        {/if}
-      </div>
-    {:else if activeTab === 'settings'}
-      <!-- Settings Page -->
-      {#await import('./lib/SettingsPanel.svelte') then M}
-        <svelte:component this={M.default} />
-      {:catch _}
-        <div style="min-height:200px" role="status">Loading…</div>
-      {/await}
-    {:else if activeTab === 'about'}
-      <!-- About Page -->
-      {#await import('./lib/AboutPage.svelte') then M}
-        <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
-      {:catch}
-        <div style="min-height:200px" role="status">Loading…</div>
-      {/await}
-    {:else if activeTab === 'changelog'}
-      <!-- Changelog Page -->
-      {#await import('./lib/ChangelogPage.svelte') then M}
-        <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
-      {:catch}
-        <div style="min-height:200px" role="status">Loading…</div>
-      {/await}
-    {:else if activeTab === 'docs'}
-      <!-- Docs Page -->
-      {#await import('./lib/DocsViewer.svelte') then M}
-        <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
-      {:catch}
-        <div style="min-height:200px" role="status">Loading…</div>
-      {/await}
-    {:else if activeTab === 'session'}
-      <!-- Session Details Page -->
-      {#await import('./lib/SessionDashboard.svelte') then M}
-        <div class="page-container">
-          <div class="page-header">
-            <button class="btn-back" on:click={() => router.navigate('overview')} aria-label="Go back to Overview">
-              ← Back
-            </button>
-            <h1>Session Details</h1>
-          </div>
-          <svelte:component this={M.default} />
-        </div>
-      {:catch}
-        <div style="min-height:200px" role="status">Loading…</div>
-      {/await}
-    {:else}
-      <!-- Fallback: Unknown tab or initialization issue -->
-      <div class="empty-state" style="padding: 40px; text-align: center; color: var(--muted);">
-        <div style="font-size: 48px; margin-bottom: 16px;">🤔</div>
-        <h3 style="color: var(--text); margin-bottom: 12px;">Page Not Found</h3>
-        <p style="margin-bottom: 24px;">The requested page doesn't exist or failed to load.</p>
+    <!-- Authentication removed - app is always accessible -->
+    <main>
+      <!-- COMPACT HEADER LAYOUT -->
+      <header class="compact-header">
+        <!-- Logo -->
         <button
-          class="btn-primary"
-          on:click={() => router.navigate('overview')}
-          style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: var(--radius); cursor: pointer;"
+          class="logo"
+          on:click={() => handleTabChange('overview')}
+          aria-label="Go to Overview"
         >
-          Go to Overview
+          <RavenLogo size={16} />
+          <span>Raven</span>
         </button>
-        <p style="margin-top: 16px; font-size: 11px;">
-          Current tab: <code style="background: var(--surface); padding: 2px 6px; border-radius: var(--radius-sm);">{activeTab}</code>
-        </p>
+
+        <!-- Main Navigation Tabs -->
+        <nav class="main-tabs" aria-label="Main navigation">
+          {#each tabs as tab (tab.id)}
+            <button
+              class="tab"
+              class:active={activeTab === tab.id}
+              on:click={() => handleTabChange(tab.id)}
+              on:mouseenter={() => preloadByTab(tab.id)}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+              title="{tab.label} (Shortcut: {tab.shortcut})"
+            >
+              {tab.label}
+            </button>
+          {/each}
+        </nav>
+
+        <!-- Today's Activity Stats - Compact Pills -->
+        <div class="today-stats" role="region" aria-label="Today's coding activity">
+          <a
+            href="#activity/events"
+            class="stat-pill modified"
+            role="button"
+            aria-label="{todayStats.modified} files modified - click to view"
+          >
+            {todayStats.modified} modified
+          </a>
+          <a
+            href="#activity/events"
+            class="stat-pill added"
+            role="button"
+            aria-label="{todayStats.added} files added - click to view"
+          >
+            +{todayStats.added} added
+          </a>
+          <a
+            href="#activity/events"
+            class="stat-pill deleted"
+            role="button"
+            aria-label="{todayStats.deleted} files deleted - click to view"
+          >
+            -{todayStats.deleted} deleted
+          </a>
+        </div>
+
+        <!-- Notifications Bell -->
+        <button
+          class="notification-bell"
+          on:click={() => (showNotifications = !showNotifications)}
+          aria-label="Open notifications ({$unreadCount} unread)"
+          title="Notifications"
+        >
+          🔔
+          {#if $unreadCount > 0}
+            <span class="notification-badge">{$unreadCount}</span>
+          {/if}
+        </button>
+
+        <!-- User Menu -->
+        <UserMenu on:openSettings={handleOpenSettings} />
+      </header>
+
+      <!-- Consolidated View Container -->
+      <div id="main-content" class="view-container" role="main" tabindex="-1">
+        {#if activeTab === 'overview'}
+          <!-- Overview: Dashboard + Projects Comparison + Multi-Project Health -->
+          <div class="tab-content">
+            <div class="sub-navigation">
+              <button
+                class="sub-tab"
+                class:active={!currentSubView}
+                on:click={() => router.navigate(activeTab)}
+              >
+                Dashboard
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'projects'}
+                on:click={() => router.navigate(activeTab, 'projects')}
+              >
+                Projects Comparison
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'health'}
+                on:click={() => router.navigate(activeTab, 'health')}
+              >
+                Project Health
+              </button>
+            </div>
+            {#if !currentSubView}
+              <OverviewPanel {sessionId} {sessionUptime} />
+            {:else if currentSubView === 'projects'}
+              <ProjectsComparisonPanel />
+            {:else if currentSubView === 'health'}
+              <MultiProjectHealthPanel />
+            {/if}
+          </div>
+        {:else if activeTab === 'safety'}
+          <!-- Safety: Overview + Syntax Errors + Session Rollback + Pattern Warnings + Test Results -->
+          <div class="tab-content">
+            <div class="sub-navigation">
+              <button
+                class="sub-tab"
+                class:active={!currentSubView}
+                on:click={() => router.navigate(activeTab)}
+              >
+                Overview
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'syntax'}
+                on:click={() => router.navigate(activeTab, 'syntax')}
+              >
+                🔍 Syntax Errors
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'rollback'}
+                on:click={() => router.navigate(activeTab, 'rollback')}
+              >
+                ⏪ Session Rollback
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'patterns'}
+                on:click={() => router.navigate(activeTab, 'patterns')}
+              >
+                ⚠️ Pattern Warnings
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'tests'}
+                on:click={() => router.navigate(activeTab, 'tests')}
+              >
+                🧪 Raven Tests
+              </button>
+            </div>
+            {#if !currentSubView}
+              <SafetyOverview />
+            {:else if currentSubView === 'syntax'}
+              <SyntaxErrorPanel />
+            {:else if currentSubView === 'rollback'}
+              <SessionRollbackPanel />
+            {:else if currentSubView === 'patterns'}
+              <PatternWarningsPanel />
+            {:else if currentSubView === 'tests'}
+              <TestResultsPanel />
+            {/if}
+          </div>
+        {:else if activeTab === 'agents'}
+          <!-- Agents: Overview + Agent Stats + Conversations -->
+          <div class="tab-content">
+            <div class="sub-navigation">
+              <button
+                class="sub-tab"
+                class:active={!currentSubView}
+                on:click={() => router.navigate(activeTab)}
+              >
+                Overview
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'stats'}
+                on:click={() => router.navigate(activeTab, 'stats')}
+              >
+                Agent Stats
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'conversations'}
+                on:click={() => router.navigate(activeTab, 'conversations')}
+              >
+                Conversations
+              </button>
+            </div>
+            {#if !currentSubView}
+              <AgentsOverview />
+            {:else if currentSubView === 'stats'}
+              {#await import('./lib/AgentsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'conversations'}
+              {#await import('./lib/ConversationsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {/if}
+          </div>
+        {:else if activeTab === 'activity'}
+          <!-- Activity: Overview + Code Changes + Live Feed + Events + Files + Global Search -->
+          <div class="tab-content">
+            <div class="sub-navigation">
+              <button
+                class="sub-tab"
+                class:active={!currentSubView}
+                on:click={() => router.navigate(activeTab)}
+              >
+                Overview
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'code'}
+                on:click={() => router.navigate(activeTab, 'code')}
+              >
+                Code Changes
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'live'}
+                on:click={() => router.navigate(activeTab, 'live')}
+              >
+                Live Feed
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'events'}
+                on:click={() => router.navigate(activeTab, 'events')}
+              >
+                Event Log
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'activity'}
+                on:click={() => router.navigate(activeTab, 'activity')}
+              >
+                Activity Log
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'files'}
+                on:click={() => router.navigate(activeTab, 'files')}
+              >
+                File Browser
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'search'}
+                on:click={() => router.navigate(activeTab, 'search')}
+              >
+                Global Search
+              </button>
+            </div>
+            {#if !currentSubView}
+              <ActivityOverview />
+            {:else if currentSubView === 'code'}
+              {#await import('./lib/LiveCodeFeed.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'live'}
+              {#await import('./lib/LiveFeed.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'events'}
+              {#await import('./lib/EventFeed.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'activity'}
+              {#await import('./lib/ActivityLog.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'files'}
+              {#await import('./lib/FileBrowser.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'search'}
+              {#await import('./lib/GlobalSearchPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {/if}
+          </div>
+        {:else if activeTab === 'analysis'}
+          <!-- Analysis: Overview + Performance + Custom Metrics + Historical Trends + Triggers + Session Replay + Developer Insights -->
+          <div class="tab-content">
+            <div class="sub-navigation">
+              <button
+                class="sub-tab"
+                class:active={!currentSubView}
+                on:click={() => router.navigate(activeTab)}
+              >
+                Overview
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'performance'}
+                on:click={() => router.navigate(activeTab, 'performance')}
+              >
+                Performance
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'metrics'}
+                on:click={() => router.navigate(activeTab, 'metrics')}
+              >
+                Custom Metrics
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'trends'}
+                on:click={() => router.navigate(activeTab, 'trends')}
+              >
+                Historical Trends
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'triggers'}
+                on:click={() => router.navigate(activeTab, 'triggers')}
+              >
+                Triggers
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'replay'}
+                on:click={() => router.navigate(activeTab, 'replay')}
+              >
+                Session Replay
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'insights'}
+                on:click={() => router.navigate(activeTab, 'insights')}
+              >
+                Developer Insights
+              </button>
+            </div>
+            {#if !currentSubView}
+              <AnalysisOverview />
+            {:else if currentSubView === 'performance'}
+              {#await import('./lib/PerformancePanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'metrics'}
+              {#await import('./lib/CustomMetricsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'trends'}
+              {#await import('./lib/HistoricalTrendsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'triggers'}
+              {#await import('./lib/TriggersPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'replay'}
+              {#await import('./lib/SessionReplay.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'insights'}
+              {#await import('./lib/DeveloperInsightsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {/if}
+          </div>
+        {:else if activeTab === 'system'}
+          <!-- System: Overview + Status + Anomaly Alerts + Storage + Projects + Server Sync + Notifications + Errors + API Health -->
+          <div class="tab-content">
+            <div class="sub-navigation">
+              <button
+                class="sub-tab"
+                class:active={!currentSubView}
+                on:click={() => router.navigate(activeTab)}
+              >
+                Overview
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'status'}
+                on:click={() => router.navigate(activeTab, 'status')}
+              >
+                Status
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'anomalies'}
+                on:click={() => router.navigate(activeTab, 'anomalies')}
+              >
+                Anomaly Alerts
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'storage'}
+                on:click={() => router.navigate(activeTab, 'storage')}
+              >
+                Storage
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'projects'}
+                on:click={() => router.navigate(activeTab, 'projects')}
+              >
+                Projects
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'sync'}
+                on:click={() => router.navigate(activeTab, 'sync')}
+              >
+                Server Sync
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'notifications'}
+                on:click={() => router.navigate(activeTab, 'notifications')}
+              >
+                Notifications
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'errors'}
+                on:click={() => router.navigate(activeTab, 'errors')}
+              >
+                Errors
+              </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'api'}
+                on:click={() => router.navigate(activeTab, 'api')}
+              >
+                API Health
+              </button>
+            </div>
+            {#if !currentSubView}
+              <SystemOverview />
+            {:else if currentSubView === 'status'}
+              {#await import('./lib/StatusPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'anomalies'}
+              {#await import('./lib/AnomalyAlertsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'storage'}
+              {#await import('./lib/StoragePanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'projects'}
+              {#await import('./lib/ProjectsConfigPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'sync'}
+              {#await import('./lib/ServerSyncPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'notifications'}
+              {#await import('./lib/NotificationsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'errors'}
+              {#await import('./lib/ErrorLog.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'api'}
+              {#await import('./lib/APIHealthMonitor.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {/if}
+          </div>
+        {:else if activeTab === 'settings'}
+          <!-- Settings Page -->
+          {#await import('./lib/SettingsPanel.svelte') then M}
+            <svelte:component this={M.default} />
+          {:catch _}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
+        {:else if activeTab === 'about'}
+          <!-- About Page -->
+          {#await import('./lib/AboutPage.svelte') then M}
+            <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
+          {:catch}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
+        {:else if activeTab === 'changelog'}
+          <!-- Changelog Page -->
+          {#await import('./lib/ChangelogPage.svelte') then M}
+            <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
+          {:catch}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
+        {:else if activeTab === 'docs'}
+          <!-- Docs Page -->
+          {#await import('./lib/DocsViewer.svelte') then M}
+            <svelte:component this={M.default} on:close={() => router.navigate('overview')} />
+          {:catch}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
+        {:else if activeTab === 'session'}
+          <!-- Session Details Page -->
+          {#await import('./lib/SessionDashboard.svelte') then M}
+            <div class="page-container">
+              <div class="page-header">
+                <button
+                  class="btn-back"
+                  on:click={() => router.navigate('overview')}
+                  aria-label="Go back to Overview"
+                >
+                  ← Back
+                </button>
+                <h1>Session Details</h1>
+              </div>
+              <svelte:component this={M.default} />
+            </div>
+          {:catch}
+            <div style="min-height:200px" role="status">Loading…</div>
+          {/await}
+        {:else}
+          <!-- Fallback: Unknown tab or initialization issue -->
+          <div class="empty-state" style="padding: 40px; text-align: center; color: var(--muted);">
+            <div style="font-size: 48px; margin-bottom: 16px;">🤔</div>
+            <h3 style="color: var(--text); margin-bottom: 12px;">Page Not Found</h3>
+            <p style="margin-bottom: 24px;">The requested page doesn't exist or failed to load.</p>
+            <button
+              class="btn-primary"
+              on:click={() => router.navigate('overview')}
+              style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: var(--radius); cursor: pointer;"
+            >
+              Go to Overview
+            </button>
+            <p style="margin-top: 16px; font-size: 11px;">
+              Current tab: <code
+                style="background: var(--surface); padding: 2px 6px; border-radius: var(--radius-sm);"
+                >{activeTab}</code
+              >
+            </p>
+          </div>
+        {/if}
       </div>
+    </main>
+
+    <!-- Toast Notifications (hidden during loading) -->
+    {#if !isInitialLoading}
+      <Toast onErrorClick={handleErrorClick} />
     {/if}
-  </div></main>
 
-<!-- Toast Notifications (hidden during loading) -->
-{#if !isInitialLoading}
-  <Toast onErrorClick={handleErrorClick} />
-{/if}
+    <!-- Notification Panel Sidebar -->
+    <NotificationPanel visible={showNotifications} onClose={() => (showNotifications = false)} />
 
-<!-- Notification Panel Sidebar -->
-<NotificationPanel visible={showNotifications} onClose={() => showNotifications = false} />
+    <!-- Quick Start Wizard for New Users -->
+    {#if showQuickStart}
+      <QuickStartWizard
+        on:complete={_e => {
+          showQuickStart = false;
+          notifications.success("Welcome to Raven! You're all set up and protected.");
+        }}
+        on:skip={() => {
+          showQuickStart = false;
+          notifications.info('You can run setup anytime from Settings');
+        }}
+      />
+    {/if}
 
-<!-- Quick Start Wizard for New Users -->
-{#if showQuickStart}
-  <QuickStartWizard
-    on:complete={(_e) => {
-      showQuickStart = false;
-      notifications.success('Welcome to Raven! You\'re all set up and protected.');
-    }}
-    on:skip={() => {
-      showQuickStart = false;
-      notifications.info('You can run setup anytime from Settings');
-    }}
-  />
-{/if}
+    <!-- Welcome Screen for First-Time Users -->
+    {#if showWelcome}
+      <WelcomeScreen on:close={() => (showWelcome = false)} />
+    {/if}
 
-<!-- Welcome Screen for First-Time Users -->
-{#if showWelcome}
-  <WelcomeScreen on:close={() => showWelcome = false} />
-{/if}
-
-<Footer
-  theme={theme}
-  sessionId={sessionId}
-  onThemeChange={switchTheme}
-  onSessionClick={() => router.navigate('session')}
-  onAboutClick={() => router.navigate('about')}
-  onChangelogClick={() => router.navigate('changelog')}
-  onDocsClick={() => router.navigate('docs')}
-/>
-
-{/if}
-<!-- End of isInitialLoading conditional -->
-
+    <Footer
+      {theme}
+      {sessionId}
+      onThemeChange={switchTheme}
+      onSessionClick={() => router.navigate('session')}
+      onAboutClick={() => router.navigate('about')}
+      onChangelogClick={() => router.navigate('changelog')}
+      onDocsClick={() => router.navigate('docs')}
+    />
+  {/if}
+  <!-- End of isInitialLoading conditional -->
 </ErrorBoundary>
 
 <style>
@@ -1128,9 +1162,15 @@
     font-weight: 500;
   }
 
-  .stat-pill.modified { color: var(--info); }
-  .stat-pill.added { color: var(--success); }
-  .stat-pill.deleted { color: var(--error); }
+  .stat-pill.modified {
+    color: var(--info);
+  }
+  .stat-pill.added {
+    color: var(--success);
+  }
+  .stat-pill.deleted {
+    color: var(--error);
+  }
 
   /* Notification bell button */
   .notification-bell {

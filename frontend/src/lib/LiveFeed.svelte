@@ -47,13 +47,13 @@
   }, 300);
 
   // WebSocket event handlers
-  const handleFileChanged = (data) => {
+  const handleFileChanged = data => {
     if (isPaused) return;
     logger.info('🟢 LIVE: File change detected:', data);
     debouncedLoadChanges();
   };
 
-  const handleProjectSwitched = (data) => {
+  const handleProjectSwitched = data => {
     logger.info('📡 Project switched, reloading live feed:', data.project);
     loadRecentChanges();
   };
@@ -109,49 +109,51 @@
     const lines = diff.split('\n');
     let currentLineNum = 0;
 
-    return lines.map((line, index) => {
-      let type = 'context';
-      let displayNum = '';
+    return lines
+      .map((line, index) => {
+        let type = 'context';
+        let displayNum = '';
 
-      // Check if it's a header line (@@)
-      if (line.startsWith('@@')) {
-        type = 'header';
-        const match = line.match(/\+(\d+)/);
-        if (match) {
-          currentLineNum = parseInt(match[1], 10) - 1;
+        // Check if it's a header line (@@)
+        if (line.startsWith('@@')) {
+          type = 'header';
+          const match = line.match(/\+(\d+)/);
+          if (match) {
+            currentLineNum = parseInt(match[1], 10) - 1;
+          }
+          displayNum = '•';
         }
-        displayNum = '•';
-      }
-      // Addition line
-      else if (line.startsWith('+') && !line.startsWith('+++')) {
-        type = 'add';
-        currentLineNum++;
-        displayNum = currentLineNum.toString();
-      }
-      // Deletion line
-      else if (line.startsWith('-') && !line.startsWith('---')) {
-        type = 'remove';
-        displayNum = '-';
-      }
-      // File header lines
-      else if (line.startsWith('+++') || line.startsWith('---')) {
-        type = 'header';
-        displayNum = '•';
-      }
-      // Context line
-      else if (line.trim() !== '') {
-        type = 'context';
-        currentLineNum++;
-        displayNum = currentLineNum.toString();
-      }
+        // Addition line
+        else if (line.startsWith('+') && !line.startsWith('+++')) {
+          type = 'add';
+          currentLineNum++;
+          displayNum = currentLineNum.toString();
+        }
+        // Deletion line
+        else if (line.startsWith('-') && !line.startsWith('---')) {
+          type = 'remove';
+          displayNum = '-';
+        }
+        // File header lines
+        else if (line.startsWith('+++') || line.startsWith('---')) {
+          type = 'header';
+          displayNum = '•';
+        }
+        // Context line
+        else if (line.trim() !== '') {
+          type = 'context';
+          currentLineNum++;
+          displayNum = currentLineNum.toString();
+        }
 
-      return {
-        text: line,
-        type,
-        lineNum: displayNum,
-        index
-      };
-    }).filter(line => line.text.trim() !== '' || line.type !== 'context');
+        return {
+          text: line,
+          type,
+          lineNum: displayNum,
+          index
+        };
+      })
+      .filter(line => line.text.trim() !== '' || line.type !== 'context');
   }
 
   function getChangeTypeIcon(changeType) {
@@ -232,10 +234,14 @@
       aria-label="Search file changes"
     />
     {#if searchQuery}
-      <button class="clear-search" on:click={() => searchQuery = ''} aria-label="Clear search">✕</button>
+      <button class="clear-search" on:click={() => (searchQuery = '')} aria-label="Clear search"
+        >✕</button
+      >
     {/if}
     <div class="search-info">
-      <span class="count">{filteredChanges.length} {filteredChanges.length === 1 ? 'change' : 'changes'}</span>
+      <span class="count"
+        >{filteredChanges.length} {filteredChanges.length === 1 ? 'change' : 'changes'}</span
+      >
     </div>
   </div>
 
@@ -270,10 +276,14 @@
                 {/if}
                 <span class="change-time">{formatTime(change.timestamp)}</span>
               </div>
-              <button class="btn-copy" title="Copy file path" on:click={() => {
-                navigator.clipboard.writeText(change.filepath || 'Unknown file');
-                notifications.success('File path copied!');
-              }}>📋</button>
+              <button
+                class="btn-copy"
+                title="Copy file path"
+                on:click={() => {
+                  navigator.clipboard.writeText(change.filepath || 'Unknown file');
+                  notifications.success('File path copied!');
+                }}>📋</button
+              >
             </div>
 
             <div class="change-file">
@@ -289,6 +299,8 @@
                   </div>
                 {/each}
               </div>
+            {:else if change.filepath && /\.(png|jpg|jpeg|gif|pdf|zip|exe|dll|so|mp3|mp4|woff|woff2|ttf|eot|otf)$/i.test(change.filepath)}
+              <div class="binary-file-notice">📦 Binary file (no diff available)</div>
             {/if}
 
             <div class="change-footer">
@@ -364,7 +376,7 @@
     user-select: none;
   }
 
-  .checkbox-label input[type="checkbox"] {
+  .checkbox-label input[type='checkbox'] {
     cursor: pointer;
   }
 
@@ -412,8 +424,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
   }
 
   /* Search Bar */
@@ -711,6 +728,18 @@
 
   .empty-hint {
     font-size: 11px;
+  }
+
+  .binary-file-notice {
+    padding: var(--space-lg) var(--space-xl);
+    background: color-mix(in srgb, var(--info) 10%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+    font-style: italic;
+    margin-bottom: var(--space-md);
   }
 
   /* Scrollbar */

@@ -44,7 +44,6 @@
     memory: []
   };
 
-
   // Filter out build artifacts - only show real source code changes
   function isSourceCodeFile(filepath) {
     if (!filepath) return false;
@@ -78,7 +77,7 @@
   }, 300);
 
   // WebSocket event handlers
-  const handleFileChanged = (data) => {
+  const handleFileChanged = data => {
     logger.info('File change detected:', data);
     debouncedLoadChanges();
   };
@@ -87,7 +86,7 @@
     debouncedLoadChanges();
   };
 
-  const handleProjectSwitched = (data) => {
+  const handleProjectSwitched = data => {
     logger.info('📡 Project switched, reloading data:', data.project);
     loadAllData();
   };
@@ -115,8 +114,8 @@
     // Event-driven updates via WebSocket (no polling!)
 
     // Watch for theme changes on body element
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
           logger.info('[LiveCodeFeed] Theme changed, recreating charts');
           setTimeout(createCharts, 100);
@@ -152,11 +151,7 @@
 
   async function loadAllData() {
     try {
-      await Promise.all([
-        loadCodeChanges(),
-        loadRecentActivity(),
-        loadSessionStats()
-      ]);
+      await Promise.all([loadCodeChanges(), loadRecentActivity(), loadSessionStats()]);
       loading = false;
       error = null;
     } catch (err) {
@@ -213,11 +208,13 @@
     const min = Math.min(...data, 0);
     const range = max - min || 1;
 
-    const points = data.map((value, index) => {
-      const x = (index / (data.length - 1)) * width;
-      const y = height - ((value - min) / range) * height;
-      return `${x},${y}`;
-    }).join(' ');
+    const points = data
+      .map((value, index) => {
+        const x = (index / (data.length - 1)) * width;
+        const y = height - ((value - min) / range) * height;
+        return `${x},${y}`;
+      })
+      .join(' ');
 
     return `M ${points.split(' ').join(' L ')}`;
   }
@@ -270,50 +267,52 @@
     const lines = diff.split('\n');
     let currentLineNum = 0;
 
-    return lines.map((line, index) => {
-      let type = 'context';
-      let displayNum = '';
+    return lines
+      .map((line, index) => {
+        let type = 'context';
+        let displayNum = '';
 
-      // Check if it's a header line (@@)
-      if (line.startsWith('@@')) {
-        type = 'header';
-        // Extract starting line number from @@ -x,y +a,b @@
-        const match = line.match(/\+(\d+)/);
-        if (match) {
-          currentLineNum = parseInt(match[1], 10) - 1;
+        // Check if it's a header line (@@)
+        if (line.startsWith('@@')) {
+          type = 'header';
+          // Extract starting line number from @@ -x,y +a,b @@
+          const match = line.match(/\+(\d+)/);
+          if (match) {
+            currentLineNum = parseInt(match[1], 10) - 1;
+          }
+          displayNum = '•';
         }
-        displayNum = '•';
-      }
-      // Addition line
-      else if (line.startsWith('+') && !line.startsWith('+++')) {
-        type = 'add';
-        currentLineNum++;
-        displayNum = currentLineNum.toString();
-      }
-      // Deletion line
-      else if (line.startsWith('-') && !line.startsWith('---')) {
-        type = 'remove';
-        displayNum = '-';
-      }
-      // File header lines
-      else if (line.startsWith('+++') || line.startsWith('---')) {
-        type = 'header';
-        displayNum = '•';
-      }
-      // Context line
-      else if (line.trim() !== '') {
-        type = 'context';
-        currentLineNum++;
-        displayNum = currentLineNum.toString();
-      }
+        // Addition line
+        else if (line.startsWith('+') && !line.startsWith('+++')) {
+          type = 'add';
+          currentLineNum++;
+          displayNum = currentLineNum.toString();
+        }
+        // Deletion line
+        else if (line.startsWith('-') && !line.startsWith('---')) {
+          type = 'remove';
+          displayNum = '-';
+        }
+        // File header lines
+        else if (line.startsWith('+++') || line.startsWith('---')) {
+          type = 'header';
+          displayNum = '•';
+        }
+        // Context line
+        else if (line.trim() !== '') {
+          type = 'context';
+          currentLineNum++;
+          displayNum = currentLineNum.toString();
+        }
 
-      return {
-        text: line,
-        type,
-        lineNum: displayNum,
-        index
-      };
-    }).filter(line => line.text.trim() !== '' || line.type !== 'context');
+        return {
+          text: line,
+          type,
+          lineNum: displayNum,
+          index
+        };
+      })
+      .filter(line => line.text.trim() !== '' || line.type !== 'context');
   }
 
   function getChangeTypeIcon(changeType) {
@@ -523,7 +522,10 @@
     charts = {};
 
     if (!showCharts || filteredChanges.length === 0) {
-      logger.warn('[LiveCodeFeed] Skipping chart creation', { showCharts, filteredChanges: filteredChanges.length });
+      logger.warn('[LiveCodeFeed] Skipping chart creation', {
+        showCharts,
+        filteredChanges: filteredChanges.length
+      });
       return;
     }
 
@@ -532,7 +534,7 @@
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
       // Only use if it's a valid color (hex or rgb)
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     // Get theme-aware colors from body element
@@ -564,13 +566,23 @@
         type: 'pie',
         data: {
           labels: fileTypeData.map(([ext]) => ext),
-          datasets: [{
-            data: fileTypeData.map(([_, count]) => count),
-            backgroundColor: [
-              themeColors.accent, themeColors.success, themeColors.warning, themeColors.error, 'var(--accent)',
-              'var(--accent)', themeColors.info, '#84cc16', '#f97316', '#6366f1'
-            ]
-          }]
+          datasets: [
+            {
+              data: fileTypeData.map(([_, count]) => count),
+              backgroundColor: [
+                themeColors.accent,
+                themeColors.success,
+                themeColors.warning,
+                themeColors.error,
+                'var(--accent)',
+                'var(--accent)',
+                themeColors.info,
+                '#84cc16',
+                '#f97316',
+                '#6366f1'
+              ]
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -602,11 +614,13 @@
         type: 'bar',
         data: {
           labels: ['Created', 'Modified', 'Deleted'],
-          datasets: [{
-            label: 'Changes',
-            data: [statistics.created, statistics.modified, statistics.deleted],
-            backgroundColor: [themeColors.success, themeColors.accent, themeColors.error]
-          }]
+          datasets: [
+            {
+              label: 'Changes',
+              data: [statistics.created, statistics.modified, statistics.deleted],
+              backgroundColor: [themeColors.success, themeColors.accent, themeColors.error]
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -658,14 +672,16 @@
         type: 'line',
         data: {
           labels: timestamps,
-          datasets: [{
-            label: 'Change Size (bytes)',
-            data: sizes,
-            borderColor: themeColors.accent,
-            backgroundColor: `${themeColors.accent}1a`,
-            fill: true,
-            tension: 0.4
-          }]
+          datasets: [
+            {
+              label: 'Change Size (bytes)',
+              data: sizes,
+              borderColor: themeColors.accent,
+              backgroundColor: `${themeColors.accent}1a`,
+              fill: true,
+              tension: 0.4
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -760,7 +776,9 @@
         <div class="sparkline-item">
           <div class="sparkline-header">
             <span class="sparkline-label">CPU</span>
-            <span class="sparkline-current">{metricsHistory.cpu[metricsHistory.cpu.length - 1]?.toFixed(1)}%</span>
+            <span class="sparkline-current"
+              >{metricsHistory.cpu[metricsHistory.cpu.length - 1]?.toFixed(1)}%</span
+            >
           </div>
           <svg class="sparkline" width="60" height="24" viewBox="0 0 60 24">
             <path
@@ -778,7 +796,9 @@
         <div class="sparkline-item">
           <div class="sparkline-header">
             <span class="sparkline-label">MEM</span>
-            <span class="sparkline-current">{metricsHistory.memory[metricsHistory.memory.length - 1]?.toFixed(1)}%</span>
+            <span class="sparkline-current"
+              >{metricsHistory.memory[metricsHistory.memory.length - 1]?.toFixed(1)}%</span
+            >
           </div>
           <svg class="sparkline" width="60" height="24" viewBox="0 0 60 24">
             <path
@@ -793,7 +813,12 @@
       {/if}
 
       <div class="stat-controls">
-        <button class="btn btn-secondary btn-sm" on:click={togglePause} aria-label={isPaused ? 'Resume live feed updates' : 'Pause live feed updates'} aria-pressed={isPaused}>
+        <button
+          class="btn btn-secondary btn-sm"
+          on:click={togglePause}
+          aria-label={isPaused ? 'Resume live feed updates' : 'Pause live feed updates'}
+          aria-pressed={isPaused}
+        >
           <span aria-hidden="true">{isPaused ? '▶️' : '⏸️'}</span>
           <span class="pause-text">{isPaused ? 'Resume' : 'Pause'}</span>
         </button>
@@ -862,7 +887,9 @@
       <div class="charts-section">
         <div class="charts-header">
           <h3>📈 Analytics</h3>
-          <button class="btn btn-ghost btn-sm" on:click={() => showCharts = false}>Hide Charts</button>
+          <button class="btn btn-ghost btn-sm" on:click={() => (showCharts = false)}
+            >Hide Charts</button
+          >
         </div>
         <div class="charts-grid">
           <div class="chart-container">
@@ -884,7 +911,9 @@
       </div>
     {:else}
       <div class="charts-toggle">
-        <button class="btn btn-ghost btn-sm" on:click={() => showCharts = true}>Show Charts</button>
+        <button class="btn btn-ghost btn-sm" on:click={() => (showCharts = true)}
+          >Show Charts</button
+        >
       </div>
     {/if}
 
@@ -934,7 +963,7 @@
           </select>
           <button
             class="sort-order-btn"
-            on:click={() => sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'}
+            on:click={() => (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc')}
             title="Toggle sort order"
           >
             {sortOrder === 'desc' ? '↓' : '↑'}
@@ -1002,73 +1031,83 @@
   <div class="feed-layout">
     <!-- Code Changes List -->
     <section class="code-changes-content" aria-labelledby="code-changes-heading">
-        {#if error}
-          <div class="error-state" role="alert">
-            <p>Error: {error}</p>
-            <button class="btn btn-primary btn-sm" on:click={loadAllData} aria-label="Retry loading code changes">
-              Retry
-            </button>
-          </div>
-        {:else if loading}
-          <LoadingSkeleton type="list" count={5} height="80px" />
-        {:else if codeChanges.length === 0}
-          <div class="empty-state" role="status">
-            <p>No recent code changes</p>
-            <p class="empty-hint">Waiting for file modifications to be detected</p>
-          </div>
-        {:else if sortedChanges.length === 0}
-          <div class="empty-state" role="status">
-            <p>No changes match your filters</p>
-            <p class="empty-hint">Try adjusting your search or filter criteria</p>
-          </div>
-        {:else}
-          <div class="changes-list" role="feed" aria-label="Code changes feed" aria-busy={loading}>
-            {#each sortedChanges || [] as change, index (`${change.id || change.filepath}-${index}`)}
-              <div class="change-item">
-                <div class="change-header">
-                  <div class="change-meta">
-                    <span class="change-icon" style="color: {getChangeTypeColor(change.change_type)}">
-                      {getChangeTypeIcon(change.change_type)}
-                    </span>
-                    <span class="change-type" style="color: {getChangeTypeColor(change.change_type)}">
-                      {change.change_type.toUpperCase()}
-                    </span>
-                    {#if change.project}
-                      <ProjectBadge project={change.project} size="small" />
-                    {/if}
-                    <span class="change-time">{formatTime(change.timestamp)}</span>
-                  </div>
-                  <button class="btn btn-ghost btn-icon" title="Copy file path" on:click={() => {
+      {#if error}
+        <div class="error-state" role="alert">
+          <p>Error: {error}</p>
+          <button
+            class="btn btn-primary btn-sm"
+            on:click={loadAllData}
+            aria-label="Retry loading code changes"
+          >
+            Retry
+          </button>
+        </div>
+      {:else if loading}
+        <LoadingSkeleton type="list" count={5} height="80px" />
+      {:else if codeChanges.length === 0}
+        <div class="empty-state" role="status">
+          <p>No recent code changes</p>
+          <p class="empty-hint">Waiting for file modifications to be detected</p>
+        </div>
+      {:else if sortedChanges.length === 0}
+        <div class="empty-state" role="status">
+          <p>No changes match your filters</p>
+          <p class="empty-hint">Try adjusting your search or filter criteria</p>
+        </div>
+      {:else}
+        <div class="changes-list" role="feed" aria-label="Code changes feed" aria-busy={loading}>
+          {#each sortedChanges || [] as change, index (`${change.id || change.filepath}-${index}`)}
+            <div class="change-item">
+              <div class="change-header">
+                <div class="change-meta">
+                  <span class="change-icon" style="color: {getChangeTypeColor(change.change_type)}">
+                    {getChangeTypeIcon(change.change_type)}
+                  </span>
+                  <span class="change-type" style="color: {getChangeTypeColor(change.change_type)}">
+                    {change.change_type.toUpperCase()}
+                  </span>
+                  {#if change.project}
+                    <ProjectBadge project={change.project} size="small" />
+                  {/if}
+                  <span class="change-time">{formatTime(change.timestamp)}</span>
+                </div>
+                <button
+                  class="btn btn-ghost btn-icon"
+                  title="Copy file path"
+                  on:click={() => {
                     navigator.clipboard.writeText(change.filepath || 'Unknown file');
                     notifications.success('File path copied!');
-                  }}>📋</button>
-                </div>
-
-                <div class="change-file">
-                  <code>{change.filepath || 'Unknown file'}</code>
-                </div>
-
-                {#if change.diff}
-                  <div class="change-diff">
-                    {#each parseDiffLines(change.diff) as line (line.index)}
-                      <div class="diff-line {line.type}">
-                        <span class="line-number">{line.lineNum}</span>
-                        <code class="line-content">{line.text}</code>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-
-                <div class="change-footer">
-                  <span class="change-size">{change.event_size || 0} bytes</span>
-                  {#if change.file_hash}
-                    <span class="change-hash">{change.file_hash.substring(0, 8)}</span>
-                  {/if}
-                </div>
+                  }}>📋</button
+                >
               </div>
-            {/each}
-          </div>
-        {/if}
+
+              <div class="change-file">
+                <code>{change.filepath || 'Unknown file'}</code>
+              </div>
+
+              {#if change.diff}
+                <div class="change-diff">
+                  {#each parseDiffLines(change.diff) as line (line.index)}
+                    <div class="diff-line {line.type}">
+                      <span class="line-number">{line.lineNum}</span>
+                      <code class="line-content">{line.text}</code>
+                    </div>
+                  {/each}
+                </div>
+              {:else if change.filepath && /\.(png|jpg|jpeg|gif|pdf|zip|exe|dll|so|mp3|mp4|woff|woff2|ttf|eot|otf)$/i.test(change.filepath)}
+                <div class="binary-file-notice">📦 Binary file (no diff available)</div>
+              {/if}
+
+              <div class="change-footer">
+                <span class="change-size">{change.event_size || 0} bytes</span>
+                {#if change.file_hash}
+                  <span class="change-hash">{change.file_hash.substring(0, 8)}</span>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </section>
   </div>
 </div>
@@ -1185,8 +1224,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
   }
 
   /* Sparklines */
@@ -1509,6 +1553,18 @@
 
   .empty-hint {
     font-size: 11px;
+  }
+
+  .binary-file-notice {
+    padding: var(--space-lg) var(--space-xl);
+    background: color-mix(in srgb, var(--info) 10%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+    font-style: italic;
+    margin-bottom: var(--space-sm);
   }
 
   /* Scrollbar */

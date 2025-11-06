@@ -15,6 +15,7 @@ import { notificationHistory } from './notificationHistory.js';
  * @property {boolean} [playSound] - Play notification sound
  * @property {boolean} [critical] - Mark as critical (for warnings)
  * @property {string} [link] - Navigation link when notification is clicked
+ * @property {boolean} [saveToHistory=true] - Save notification to history
  */
 
 /**
@@ -90,7 +91,7 @@ class NotificationService {
     const now = Date.now();
     const lastShown = this.recentNotifications.get(key);
 
-    if (lastShown && (now - lastShown) < this.rateLimitWindow) {
+    if (lastShown && now - lastShown < this.rateLimitWindow) {
       return true; // Too soon, rate limit
     }
 
@@ -122,12 +123,12 @@ class NotificationService {
     if (!this.settings.notifications.enabled) return false;
 
     const typeMap = {
-      'error': 'errors',
-      'warning': 'warnings',
-      'trigger': 'triggers',
-      'performance': 'performance',
-      'info': 'info',
-      'success': 'info' // Map success to info
+      error: 'errors',
+      warning: 'warnings',
+      trigger: 'triggers',
+      performance: 'performance',
+      info: 'info',
+      success: 'info' // Map success to info
     };
 
     const settingKey = typeMap[type] || 'info';
@@ -166,18 +167,16 @@ class NotificationService {
           { freq: 500, duration: 0.08, delay: 0.1 }
         ],
         success: [
-          { freq: 523, duration: 0.06, delay: 0 },      // C5
-          { freq: 659, duration: 0.06, delay: 0.08 },   // E5
-          { freq: 784, duration: 0.12, delay: 0.16 }    // G5
+          { freq: 523, duration: 0.06, delay: 0 }, // C5
+          { freq: 659, duration: 0.06, delay: 0.08 }, // E5
+          { freq: 784, duration: 0.12, delay: 0.16 } // G5
         ],
         trigger: [
           { freq: 800, duration: 0.05, delay: 0 },
           { freq: 1000, duration: 0.05, delay: 0.06 },
           { freq: 800, duration: 0.05, delay: 0.12 }
         ],
-        info: [
-          { freq: 800, duration: 0.1, delay: 0 }
-        ]
+        info: [{ freq: 800, duration: 0.1, delay: 0 }]
       };
 
       const pattern = soundPatterns[type] || soundPatterns.info;
@@ -203,7 +202,10 @@ class NotificationService {
       });
     } catch (e) {
       // Handle AudioContext errors (e.g., before user interaction)
-      const isAutoplayError = e.message.includes('user gesture') || e.message.includes('play()') || e.message.includes('interact with the document');
+      const isAutoplayError =
+        e.message.includes('user gesture') ||
+        e.message.includes('play()') ||
+        e.message.includes('interact with the document');
 
       if (isAutoplayError) {
         // Expected autoplay restriction - debug level only
@@ -228,9 +230,8 @@ class NotificationService {
     if (this.browserPermission !== 'granted') return;
 
     try {
-      const icon = type === 'error' ? '🔴' :
-        type === 'warning' ? '⚠️' :
-          type === 'success' ? '✅' : 'ℹ️';
+      const icon =
+        type === 'error' ? '🔴' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
 
       new Notification(`${icon} ${title}`, {
         body: message,
@@ -259,7 +260,8 @@ class NotificationService {
       duration,
       browserNotification = false,
       playSound = type === 'error' || type === 'warning',
-      link = null
+      link = null,
+      saveToHistory = true
     } = options;
 
     // Determine navigation link based on type (if not provided)
@@ -276,13 +278,15 @@ class NotificationService {
       }
     }
 
-    // Add to notification history
-    notificationHistory.add({
-      message,
-      type,
-      title,
-      link: finalLink
-    });
+    // Add to notification history (unless explicitly disabled)
+    if (saveToHistory) {
+      notificationHistory.add({
+        message,
+        type,
+        title,
+        link: finalLink
+      });
+    }
 
     // Show toast notification
     if (this.settings.notifications.showToasts) {
@@ -367,7 +371,7 @@ class NotificationService {
 
   // System-level notifications
   websocketConnected() {
-    this.success('WebSocket connected', { title: 'Connection Established' });
+    this.success('WebSocket connected', { title: 'Connection Established', saveToHistory: false });
   }
 
   websocketDisconnected() {

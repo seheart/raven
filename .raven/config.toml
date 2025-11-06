@@ -108,12 +108,13 @@ action = "log"
 message = "Large edit detected: {file} ({lines_changed} lines)"
 cooldown_seconds = 60
 
-[triggers.slow_operation]
-agent = "claude"
-duration_ms = ">5000"
-action = "log"
-message = "Slow {agent} operation: {file} took {duration_ms}ms"
-cooldown_seconds = 120
+# [triggers.slow_operation]
+# agent = "claude"
+# duration_ms = ">5000"
+# action = "log"
+# message = "Slow {agent} operation: {file} took {duration_ms}ms"
+# cooldown_seconds = 120
+# Note: Disabled - this trigger fires on file events that don't have duration_ms
 
 [triggers.high_cpu]
 cpu_percent = ">80"

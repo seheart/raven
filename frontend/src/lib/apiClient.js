@@ -70,7 +70,8 @@ export async function apiFetch(endpoint, options = {}) {
       signal: options.signal || controller.signal
     });
 
-    // Clear timeout on successful response
+    // Clear timeout IMMEDIATELY after fetch completes (before any parsing)
+    // This ensures timeout won't fire during JSON parsing
     clearTimeout(timeoutId);
 
     // Handle HTTP errors
@@ -124,7 +125,8 @@ export async function apiFetch(endpoint, options = {}) {
       return await response.text();
     }
   } catch (error) {
-    // Clear timeout on error
+    // Clear timeout on error (if not already cleared)
+    // This is redundant with line 74 but ensures cleanup in all paths
     clearTimeout(timeoutId);
 
     // Handle timeout errors specially

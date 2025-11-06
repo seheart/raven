@@ -30,7 +30,6 @@
   let projects = [];
   let projectCount = 0;
 
-
   let systemMetrics = {
     cpu_percent: 0,
     memory_percent: 0,
@@ -144,7 +143,7 @@
   }
 
   // WebSocket handlers for real-time updates (event-driven, no polling)
-  const handleMetricsUpdate = (data) => {
+  const handleMetricsUpdate = data => {
     systemMetrics = data;
     metricsLoading = false;
     lastUpdated = new Date();
@@ -209,11 +208,15 @@
     <div class="overview-stats">
       <div class="overview-stat">
         <span class="stat-icon" aria-hidden="true">📁</span>
-        <span class="stat-text">Monitoring {projectCount} project{projectCount !== 1 ? 's' : ''}</span>
+        <span class="stat-text"
+          >Monitoring {projectCount} project{projectCount !== 1 ? 's' : ''}</span
+        >
       </div>
       <div class="overview-stat">
         <span class="stat-icon" aria-hidden="true">📝</span>
-        <span class="stat-text">{stats.unique_files_modified} file{stats.unique_files_modified !== 1 ? 's' : ''} changed today</span>
+        <span class="stat-text"
+          >{stats.unique_files_modified} file{stats.unique_files_modified !== 1 ? 's' : ''} changed today</span
+        >
       </div>
     </div>
   </div>
@@ -251,7 +254,7 @@
       <LoadingSkeleton type="list" count={3} />
     {:else if recentActivity.length > 0}
       <ul class="activity-list" role="list" aria-label="Recent file changes">
-        {#each recentActivity as event (event.id || event.timestamp)}
+        {#each recentActivity as event, index (event.id || `${event.timestamp}-${index}`)}
           <li class="activity-item">
             <span class="activity-icon" aria-hidden="true">
               {#if event.change_type === 'create' || event.change_type === 'add'}
@@ -287,7 +290,11 @@
   </section>
 
   <!-- Current Session Card -->
-  <div class="card-compact stat-card session-card" role="article" aria-labelledby="session-card-heading">
+  <div
+    class="card-compact stat-card session-card"
+    role="article"
+    aria-labelledby="session-card-heading"
+  >
     <div class="card-header">
       <span class="card-icon" aria-hidden="true">⏱️</span>
       <h3 id="session-card-heading">Current Session</h3>
@@ -311,7 +318,8 @@
         <div class="stat-row">
           <span class="stat-label">Current flow:</span>
           <span class="stat-value" style="color: {flowState.color}">
-            {flowState.icon} {flowState.state}
+            {flowState.icon}
+            {flowState.state}
           </span>
         </div>
       </div>
@@ -323,7 +331,7 @@
     <section class="card-compact files-section" aria-labelledby="top-files-heading">
       <h3 id="top-files-heading">Most Active Files</h3>
       <ul class="files-list" role="list" aria-label="Files with most changes">
-        {#each topFiles as file (file.id || file.name || file)}
+        {#each topFiles as file, index (file.id || `${file.filepath}-${index}`)}
           <li class="file-item">
             <span class="file-name">
               {#if file.project}
@@ -331,7 +339,11 @@
               {/if}
               {file.filepath}
             </span>
-            <span class="file-changes" aria-label="{formatNumber(file.edit_count || file.change_count)} changes">{formatNumber(file.edit_count || file.change_count)} changes</span>
+            <span
+              class="file-changes"
+              aria-label="{formatNumber(file.edit_count || file.change_count)} changes"
+              >{formatNumber(file.edit_count || file.change_count)} changes</span
+            >
           </li>
         {/each}
       </ul>
@@ -339,7 +351,11 @@
   {/if}
 
   <!-- System Health - MOVED TO BOTTOM (less critical for overview) -->
-  <div class="card-compact stat-card metrics-card" role="article" aria-labelledby="metrics-card-heading">
+  <div
+    class="card-compact stat-card metrics-card"
+    role="article"
+    aria-labelledby="metrics-card-heading"
+  >
     <div class="card-header">
       <span class="card-icon" aria-hidden="true">📊</span>
       <h3 id="metrics-card-heading">System Health</h3>
@@ -354,14 +370,19 @@
             class="metric-bar"
             role="progressbar"
             aria-labelledby="cpu-metric-label"
-            aria-valuenow="{systemMetrics.cpu_percent?.toFixed(1)}"
+            aria-valuenow={systemMetrics.cpu_percent?.toFixed(1)}
             aria-valuemin="0"
             aria-valuemax="100"
             aria-label="CPU usage: {systemMetrics.cpu_percent?.toFixed(1)}%"
           >
             <div
               class="metric-fill"
-              style="width: {systemMetrics.cpu_percent}%; background: {systemMetrics.cpu_percent > 80 ? 'var(--error)' : systemMetrics.cpu_percent > 50 ? 'var(--warning)' : 'var(--success)'};"
+              style="width: {systemMetrics.cpu_percent}%; background: {systemMetrics.cpu_percent >
+              80
+                ? 'var(--error)'
+                : systemMetrics.cpu_percent > 50
+                  ? 'var(--warning)'
+                  : 'var(--success)'};"
             ></div>
           </div>
           <div class="metric-value">{systemMetrics.cpu_percent?.toFixed(1)}%</div>
@@ -372,18 +393,27 @@
             class="metric-bar"
             role="progressbar"
             aria-labelledby="memory-metric-label"
-            aria-valuenow="{systemMetrics.memory_percent?.toFixed(1)}"
+            aria-valuenow={systemMetrics.memory_percent?.toFixed(1)}
             aria-valuemin="0"
             aria-valuemax="100"
-            aria-label="Memory usage: {systemMetrics.memory_percent?.toFixed(1)}% ({formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} of {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB)"
+            aria-label="Memory usage: {systemMetrics.memory_percent?.toFixed(1)}% ({formatNumber(
+              systemMetrics.memory_used_mb?.toFixed(0)
+            )} of {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB)"
           >
             <div
               class="metric-fill"
-              style="width: {systemMetrics.memory_percent}%; background: {systemMetrics.memory_percent > 85 ? 'var(--error)' : systemMetrics.memory_percent > 60 ? 'var(--warning)' : 'var(--success)'};"
+              style="width: {systemMetrics.memory_percent}%; background: {systemMetrics.memory_percent >
+              85
+                ? 'var(--error)'
+                : systemMetrics.memory_percent > 60
+                  ? 'var(--warning)'
+                  : 'var(--success)'};"
             ></div>
           </div>
           <div class="metric-value">
-            {formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} / {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB
+            {formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} / {formatNumber(
+              systemMetrics.memory_total_mb?.toFixed(0)
+            )} MB
           </div>
         </div>
       </div>
@@ -630,8 +660,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   .activity-list {
@@ -767,8 +802,13 @@
 
   /* Alive feeling - subtle animations */
   @keyframes gentleFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-2px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
   }
 
   .session-card {
