@@ -15,15 +15,21 @@ describe('Database Concurrency Integration', () => {
   let db;
 
   beforeEach(() => {
-    // Remove existing test database
-    if (existsSync(TEST_DB_PATH)) {
-      rmSync(TEST_DB_PATH);
+    // Remove existing test database (ignore errors if file doesn't exist)
+    try {
+      if (existsSync(TEST_DB_PATH)) rmSync(TEST_DB_PATH);
+    } catch (e) {
+      /* ignore */
     }
-    if (existsSync(`${TEST_DB_PATH}-shm`)) {
-      rmSync(`${TEST_DB_PATH}-shm`);
+    try {
+      if (existsSync(`${TEST_DB_PATH}-shm`)) rmSync(`${TEST_DB_PATH}-shm`);
+    } catch (e) {
+      /* ignore */
     }
-    if (existsSync(`${TEST_DB_PATH}-wal`)) {
-      rmSync(`${TEST_DB_PATH}-wal`);
+    try {
+      if (existsSync(`${TEST_DB_PATH}-wal`)) rmSync(`${TEST_DB_PATH}-wal`);
+    } catch (e) {
+      /* ignore */
     }
 
     // Create new database
@@ -35,15 +41,21 @@ describe('Database Concurrency Integration', () => {
       db.close();
     }
 
-    // Clean up test database
-    if (existsSync(TEST_DB_PATH)) {
-      rmSync(TEST_DB_PATH);
+    // Clean up test database (ignore errors if file doesn't exist)
+    try {
+      if (existsSync(TEST_DB_PATH)) rmSync(TEST_DB_PATH);
+    } catch (e) {
+      /* ignore */
     }
-    if (existsSync(`${TEST_DB_PATH}-shm`)) {
-      rmSync(`${TEST_DB_PATH}-shm`);
+    try {
+      if (existsSync(`${TEST_DB_PATH}-shm`)) rmSync(`${TEST_DB_PATH}-shm`);
+    } catch (e) {
+      /* ignore */
     }
-    if (existsSync(`${TEST_DB_PATH}-wal`)) {
-      rmSync(`${TEST_DB_PATH}-wal`);
+    try {
+      if (existsSync(`${TEST_DB_PATH}-wal`)) rmSync(`${TEST_DB_PATH}-wal`);
+    } catch (e) {
+      /* ignore */
     }
   });
 
