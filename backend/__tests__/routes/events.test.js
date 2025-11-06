@@ -2,6 +2,7 @@
  * Tests for Events Routes
  */
 
+import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { createEventsRoutes } from '../../routes/events.js';
@@ -73,6 +74,7 @@ describe('Events Routes', () => {
           watchPath: '/home/seth/Projects/raven/backend' // Actual git repo
         },
         projectDatabases: new Map([['test-project', testDb]]),
+        projectPaths: new Map([['test-project', '/home/seth/Projects/raven/backend']]),
         getDb: () => testDb
       };
 
@@ -83,6 +85,32 @@ describe('Events Routes', () => {
       expect(Array.isArray(response.body)).toBe(true);
       // Should have git-tracked files from backend repo
       expect(response.body.length).toBeGreaterThan(0);
+    });
+
+    test('should return tracked files for specific project', async () => {
+      // Create app with projectPaths
+      const multiApp = express();
+      multiApp.use(express.json());
+
+      const mockProjectDbs = new Map([['test-project', testDb]]);
+      const mockProjectPaths = new Map([['test-project', '/home/seth/Projects/raven/backend']]);
+
+      const multiDeps = {
+        projectState: {
+          db: testDb,
+          watchPath: testDir
+        },
+        projectDatabases: mockProjectDbs,
+        projectPaths: mockProjectPaths
+      };
+
+      multiApp.use('/api', createEventsRoutes(multiDeps));
+
+      const response = await request(multiApp)
+        .get('/api/tracked-files?project=test-project')
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
     });
   });
 
@@ -355,6 +383,200 @@ describe('Events Routes', () => {
 
       expect(response.body).toHaveProperty('total');
       expect(typeof response.body.total).toBe('number');
+    });
+  });
+
+  describe('GET /api/files/:filepath/history', () => {
+    beforeEach(() => {
+      // Mock getFileHistory
+      testDb.getFileHistory = jest.fn().mockReturnValue([
+        {
+          id: 1,
+          timestamp: '2025-01-01T10:00:00Z',
+          filepath: '/test/file.js',
+          change_type: 'create',
+          diff: 'Initial commit'
+        },
+        {
+          id: 2,
+          timestamp: '2025-01-01T11:00:00Z',
+          filepath: '/test/file.js',
+          change_type: 'edit',
+          diff: 'Modified content'
+        }
+      ]);
+    });
+
+    test('should return file history', async () => {
+      const response = await request(app)
+        .get('/api/files/test/file.js/history')
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body).toHaveLength(2);
+      expect(testDb.getFileHistory).toHaveBeenCalledWith('test/file.js');
+    });
+
+    test('should map change_type to frontend format', async () => {
+      const response = await request(app).get('/api/files/test/file.js/history').expect(200);
+
+      expect(response.body[0].change_type).toBe('created');
+      expect(response.body[1].change_type).toBe('modified');
+    });
+
+    test('should handle URL-encoded filepath', async () => {
+      const response = await request(app)
+        .get('/api/files/test%2Fpath%2Ffile.js/history')
+        .expect(200);
+
+      expect(testDb.getFileHistory).toHaveBeenCalledWith('test/path/file.js');
+    });
+
+    test('should handle filepath with special characters', async () => {
+      const response = await request(app)
+        .get('/api/files/src/components/Test Component.svelte/history')
+        .expect(200);
+
+      expect(testDb.getFileHistory).toHaveBeenCalled();
+    });
+
+    test('should handle errors in file history retrieval', async () => {
+      testDb.getFileHistory.mockImplementation(() => {
+        throw new Error('File history failed');
+      });
+
+      const response = await request(app)
+        .get('/api/files/test/file.js/history')
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).toHaveProperty('error', 'File history failed');
+    });
+  });
+
+  describe('GET /api/snapshot/:eventId/:filename', () => {
+    let snapshotsDir;
+
+    beforeEach(() => {
+      snapshotsDir = join(testDir, 'snapshots');
+      mkdirSync(snapshotsDir, { recursive: true });
+
+      // Update projectState with snapshotsDir
+      const mockProjectDatabases = new Map();
+      mockProjectDatabases.set('test-project', testDb);
+
+      const depsWithSnapshots = {
+        projectState: {
+          db: testDb,
+          watchPath: testDir,
+          snapshotsDir
+        },
+        projectDatabases: mockProjectDatabases
+      };
+
+      app = express();
+      app.use(express.json());
+      app.use('/api', createEventsRoutes(depsWithSnapshots));
+
+      // Mock getEventById
+      testDb.getEventById = jest.fn().mockReturnValue({
+        id: 1,
+        timestamp: '2025-01-01T10:00:00Z',
+        filepath: 'test/file.js'
+      });
+    });
+
+    test('should return 404 when event not found', async () => {
+      testDb.getEventById.mockReturnValue(null);
+
+      const response = await request(app)
+        .get('/api/snapshot/999/file.js')
+        .expect('Content-Type', /json/)
+        .expect(404);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Event 999 not found');
+    });
+
+    test('should return 404 when snapshot file not found', async () => {
+      const response = await request(app)
+        .get('/api/snapshot/1/file.js')
+        .expect('Content-Type', /json/)
+        .expect(404);
+
+      expect(response.body).toHaveProperty('error', 'Snapshot not found');
+      expect(response.body).toHaveProperty('event_id', '1');
+    });
+
+    test('should return snapshot content from gzip file', async () => {
+      const fs = await import('fs');
+      const zlib = await import('zlib');
+
+      const timestamp = new Date('2025-01-01T10:00:00Z').getTime();
+      const snapshotFilename = `test_file.js_${timestamp}.gz`;
+      const snapshotPath = join(snapshotsDir, snapshotFilename);
+
+      // Create compressed snapshot
+      const content = 'const test = "Hello World";\n';
+      const compressed = zlib.gzipSync(content);
+      fs.writeFileSync(snapshotPath, compressed);
+
+      const response = await request(app)
+        .get('/api/snapshot/1/file.js')
+        .expect('Content-Type', /text\/plain/)
+        .expect(200);
+
+      expect(response.text).toBe(content);
+    });
+
+    test('should handle uncompressed snapshots (backwards compatibility)', async () => {
+      const fs = await import('fs');
+
+      const timestamp = new Date('2025-01-01T10:00:00Z').getTime();
+      const snapshotFilename = `test_file.js_${timestamp}.txt`;
+      const snapshotPath = join(snapshotsDir, snapshotFilename);
+
+      const content = 'const test = "Hello World";\n';
+      fs.writeFileSync(snapshotPath, content, 'utf8');
+
+      const response = await request(app)
+        .get('/api/snapshot/1/file.js')
+        .expect('Content-Type', /text\/plain/)
+        .expect(200);
+
+      expect(response.text).toBe(content);
+    });
+
+    test('should handle errors during snapshot decompression', async () => {
+      const fs = await import('fs');
+
+      const timestamp = new Date('2025-01-01T10:00:00Z').getTime();
+      const snapshotFilename = `test_file.js_${timestamp}.gz`;
+      const snapshotPath = join(snapshotsDir, snapshotFilename);
+
+      // Write invalid gzip data
+      fs.writeFileSync(snapshotPath, 'invalid gzip data');
+
+      const response = await request(app)
+        .get('/api/snapshot/1/file.js')
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).toHaveProperty('error');
+    });
+
+    test('should handle errors in getEventById', async () => {
+      testDb.getEventById.mockImplementation(() => {
+        throw new Error('Database error');
+      });
+
+      const response = await request(app)
+        .get('/api/snapshot/1/file.js')
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).toHaveProperty('error', 'Database error');
     });
   });
 });
