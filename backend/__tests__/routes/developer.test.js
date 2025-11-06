@@ -6,6 +6,7 @@ import { jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createDeveloperRoutes } from '../../routes/developer.js';
+import { analyticsCache } from '../../utils/cache.js';
 
 describe('Developer Routes', () => {
   let app;
@@ -15,20 +16,22 @@ describe('Developer Routes', () => {
   beforeEach(() => {
     // Create mock developer database
     mockDeveloperDB = {
-      getRecentInteractions: jest.fn().mockReturnValue([
-        { id: 1, agent_name: 'test-agent', event_type: 'edit', project: 'test' }
-      ]),
-      getCodingPatterns: jest.fn().mockReturnValue([
-        { id: 1, language: 'javascript', pattern_type: 'function', count: 5 }
-      ]),
+      getRecentInteractions: jest
+        .fn()
+        .mockReturnValue([
+          { id: 1, agent_name: 'test-agent', event_type: 'edit', project: 'test' }
+        ]),
+      getCodingPatterns: jest
+        .fn()
+        .mockReturnValue([{ id: 1, language: 'javascript', pattern_type: 'function', count: 5 }]),
       getWorkflowStats: jest.fn().mockReturnValue({
         total_sessions: 10,
         total_duration: 3600,
         avg_session_duration: 360
       }),
-      getAllPreferences: jest.fn().mockReturnValue([
-        { preference_key: 'editor', preference_value: 'vscode' }
-      ]),
+      getAllPreferences: jest
+        .fn()
+        .mockReturnValue([{ preference_key: 'editor', preference_value: 'vscode' }]),
       getContextSwitchStats: jest.fn().mockReturnValue({
         total_switches: 15,
         avg_focus_time: 1200
@@ -37,7 +40,7 @@ describe('Developer Routes', () => {
       logCodePattern: jest.fn().mockReturnValue(456),
       logWorkflowEvent: jest.fn().mockReturnValue(789),
       db: {
-        prepare: jest.fn((sql) => ({
+        prepare: jest.fn(sql => ({
           get: jest.fn(() => ({ count: 10 })),
           all: jest.fn(() => {
             if (sql.includes('language')) {
@@ -95,11 +98,15 @@ describe('Developer Routes', () => {
     });
 
     it('should handle database errors', async () => {
+      analyticsCache.clear(); // Clear cache before error test
+
       mockDeveloperDB.getRecentInteractions.mockImplementation(() => {
         throw new Error('Database error');
       });
 
-      const response = await request(app).get('/api/developer/interactions');
+      const response = await request(app)
+        .get('/api/developer/interactions')
+        .set('Cache-Control', 'no-cache'); // Bypass cache
 
       expect(response.status).toBe(500);
       expect(response.body.error).toBe('Database error');
@@ -137,11 +144,15 @@ describe('Developer Routes', () => {
     });
 
     it('should handle errors', async () => {
+      analyticsCache.clear(); // Clear cache
+
       mockDeveloperDB.getCodingPatterns.mockImplementation(() => {
         throw new Error('Query error');
       });
 
-      const response = await request(app).get('/api/developer/patterns');
+      const response = await request(app)
+        .get('/api/developer/patterns')
+        .set('Cache-Control', 'no-cache');
 
       expect(response.status).toBe(500);
     });
@@ -167,11 +178,15 @@ describe('Developer Routes', () => {
     });
 
     it('should handle errors', async () => {
+      analyticsCache.clear(); // Clear cache
+
       mockDeveloperDB.getWorkflowStats.mockImplementation(() => {
         throw new Error('Stats error');
       });
 
-      const response = await request(app).get('/api/developer/workflow');
+      const response = await request(app)
+        .get('/api/developer/workflow')
+        .set('Cache-Control', 'no-cache');
 
       expect(response.status).toBe(500);
     });
@@ -194,7 +209,9 @@ describe('Developer Routes', () => {
         throw new Error('Preferences error');
       });
 
-      const response = await request(app).get('/api/developer/preferences');
+      const response = await request(app)
+        .get('/api/developer/preferences')
+        .set('Cache-Control', 'no-cache');
 
       expect(response.status).toBe(500);
     });
@@ -219,11 +236,15 @@ describe('Developer Routes', () => {
     });
 
     it('should handle errors', async () => {
+      analyticsCache.clear(); // Clear cache
+
       mockDeveloperDB.getContextSwitchStats.mockImplementation(() => {
         throw new Error('Stats error');
       });
 
-      const response = await request(app).get('/api/developer/context-switches');
+      const response = await request(app)
+        .get('/api/developer/context-switches')
+        .set('Cache-Control', 'no-cache');
 
       expect(response.status).toBe(500);
     });
@@ -251,11 +272,15 @@ describe('Developer Routes', () => {
     });
 
     it('should handle database errors', async () => {
+      analyticsCache.clear(); // Clear cache
+
       mockDeveloperDB.db.prepare.mockImplementation(() => {
         throw new Error('SQL error');
       });
 
-      const response = await request(app).get('/api/developer/stats');
+      const response = await request(app)
+        .get('/api/developer/stats')
+        .set('Cache-Control', 'no-cache');
 
       expect(response.status).toBe(500);
     });
@@ -269,9 +294,7 @@ describe('Developer Routes', () => {
         project: 'test-project'
       };
 
-      const response = await request(app)
-        .post('/api/developer/interactions')
-        .send(interactionData);
+      const response = await request(app).post('/api/developer/interactions').send(interactionData);
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
@@ -286,9 +309,7 @@ describe('Developer Routes', () => {
         throw new Error('Insert error');
       });
 
-      const response = await request(app)
-        .post('/api/developer/interactions')
-        .send({});
+      const response = await request(app).post('/api/developer/interactions').send({});
 
       expect(response.status).toBe(500);
     });
@@ -302,9 +323,7 @@ describe('Developer Routes', () => {
         count: 5
       };
 
-      const response = await request(app)
-        .post('/api/developer/patterns')
-        .send(patternData);
+      const response = await request(app).post('/api/developer/patterns').send(patternData);
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
@@ -319,9 +338,7 @@ describe('Developer Routes', () => {
         throw new Error('Insert error');
       });
 
-      const response = await request(app)
-        .post('/api/developer/patterns')
-        .send({});
+      const response = await request(app).post('/api/developer/patterns').send({});
 
       expect(response.status).toBe(500);
     });
@@ -335,9 +352,7 @@ describe('Developer Routes', () => {
         hour_of_day: 9
       };
 
-      const response = await request(app)
-        .post('/api/developer/workflow')
-        .send(workflowData);
+      const response = await request(app).post('/api/developer/workflow').send(workflowData);
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
@@ -352,9 +367,7 @@ describe('Developer Routes', () => {
         throw new Error('Insert error');
       });
 
-      const response = await request(app)
-        .post('/api/developer/workflow')
-        .send({});
+      const response = await request(app).post('/api/developer/workflow').send({});
 
       expect(response.status).toBe(500);
     });

@@ -6,6 +6,7 @@ import request from 'supertest';
 import express from 'express';
 import { createEventsRoutes } from '../../routes/events.js';
 import { RavenDB } from '../../db.js';
+import { analyticsCache } from '../../utils/cache.js';
 import { mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -77,9 +78,7 @@ describe('Events Routes', () => {
 
       gitApp.use('/api', createEventsRoutes(gitDeps));
 
-      const response = await request(gitApp)
-        .get('/api/tracked-files')
-        .expect(200);
+      const response = await request(gitApp).get('/api/tracked-files').expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
       // Should have git-tracked files from backend repo
@@ -100,9 +99,7 @@ describe('Events Routes', () => {
     });
 
     test('should handle limit parameter', async () => {
-      const response = await request(app)
-        .get('/api/file-events?limit=10')
-        .expect(200);
+      const response = await request(app).get('/api/file-events?limit=10').expect(200);
 
       expect(response.body).toHaveProperty('events');
       expect(Array.isArray(response.body.events)).toBe(true);
@@ -121,16 +118,18 @@ describe('Events Routes', () => {
 
     test('should tag events with project names when events exist', async () => {
       // Insert some events into the database (using correct column names)
-      testDb.db.prepare(`
+      testDb.db
+        .prepare(
+          `
         INSERT INTO events (timestamp, filepath, change_type, diff)
         VALUES
           (datetime('now'), '/test/file1.js', 'modified', 'diff1'),
           (datetime('now'), '/test/file2.js', 'created', 'diff2')
-      `).run();
+      `
+        )
+        .run();
 
-      const response = await request(app)
-        .get('/api/all-file-events')
-        .expect(200);
+      const response = await request(app).get('/api/all-file-events').expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBeGreaterThan(0);
@@ -199,9 +198,7 @@ describe('Events Routes', () => {
 
       appNoDb.use('/api', createEventsRoutes(depsNoDb));
 
-      const response = await request(appNoDb)
-        .get('/api/file-events')
-        .expect(500);
+      const response = await request(appNoDb).get('/api/file-events').expect(500);
 
       expect(response.body.error).toContain('No active project database');
     });
@@ -213,9 +210,7 @@ describe('Events Routes', () => {
         throw new Error('Database error');
       };
 
-      const response = await request(app)
-        .get('/api/tracked-files')
-        .expect(500);
+      const response = await request(app).get('/api/tracked-files').expect(500);
 
       expect(response.body.error).toBe('Database error');
 
@@ -248,9 +243,7 @@ describe('Events Routes', () => {
         throw new Error('Events query failed');
       };
 
-      const response = await request(app)
-        .get('/api/file-events')
-        .expect(500);
+      const response = await request(app).get('/api/file-events').expect(500);
 
       expect(response.body.error).toBe('Events query failed');
 
@@ -280,14 +273,14 @@ describe('Events Routes', () => {
 
       appFaulty.use('/api', createEventsRoutes(depsFaulty));
 
-      const response = await request(appFaulty)
-        .get('/api/all-file-events')
-        .expect(500);
+      const response = await request(appFaulty).get('/api/all-file-events').expect(500);
 
       expect(response.body.error).toContain('Faulty database');
     });
 
     test('should handle errors in activity log', async () => {
+      analyticsCache.clear(); // Clear cache before error test
+
       // Override getActivityLog to throw error
       const originalFn = testDb.getActivityLog;
       testDb.getActivityLog = () => {
@@ -296,6 +289,7 @@ describe('Events Routes', () => {
 
       const response = await request(app)
         .get('/api/activity-log')
+        .set('Cache-Control', 'no-cache')
         .expect(500);
 
       expect(response.body.error).toBe('Activity log failed');
@@ -307,26 +301,20 @@ describe('Events Routes', () => {
 
   describe('Advanced Query Parameters', () => {
     test('should handle diff parameter in file-events', async () => {
-      const response = await request(app)
-        .get('/api/file-events?diff=true')
-        .expect(200);
+      const response = await request(app).get('/api/file-events?diff=true').expect(200);
 
       expect(response.body).toHaveProperty('events');
     });
 
     test('should handle project parameter in file-events', async () => {
-      const response = await request(app)
-        .get('/api/file-events?project=test-project')
-        .expect(200);
+      const response = await request(app).get('/api/file-events?project=test-project').expect(200);
 
       expect(response.body).toHaveProperty('events');
       expect(response.body.project).toBe('test-project');
     });
 
     test('should handle diff parameter in all-file-events', async () => {
-      const response = await request(app)
-        .get('/api/all-file-events?diff=true')
-        .expect(200);
+      const response = await request(app).get('/api/all-file-events?diff=true').expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
     });
@@ -354,9 +342,7 @@ describe('Events Routes', () => {
       // Add getTotalEventCount method
       testDb.getTotalEventCount = () => 42;
 
-      const response = await request(app)
-        .get('/api/file-events')
-        .expect(200);
+      const response = await request(app).get('/api/file-events').expect(200);
 
       expect(response.body.total).toBe(42);
     });
@@ -365,9 +351,7 @@ describe('Events Routes', () => {
       // Ensure getTotalEventCount doesn't exist
       delete testDb.getTotalEventCount;
 
-      const response = await request(app)
-        .get('/api/file-events')
-        .expect(200);
+      const response = await request(app).get('/api/file-events').expect(200);
 
       expect(response.body).toHaveProperty('total');
       expect(typeof response.body.total).toBe('number');
