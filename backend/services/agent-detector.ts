@@ -10,17 +10,81 @@
  * - Manual edits (human developer)
  */
 
-import { execSync, execFileSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
 
+/**
+ * Agent type
+ */
+export type AgentType =
+  | 'ant'
+  | 'claude-code'
+  | 'cursor'
+  | 'github-copilot'
+  | 'aider'
+  | 'manual'
+  | 'unknown'
+  | 'none';
+
+/**
+ * Agent pattern configuration
+ */
+interface AgentPattern {
+  processNames: string[];
+  envVars: string[];
+  fileMarkers: string[];
+  confidence: number;
+}
+
+/**
+ * Detection signal
+ */
+interface DetectionSignal {
+  agent: AgentType;
+  confidence: number;
+  signal: string;
+  value: string;
+}
+
+/**
+ * Detection result
+ */
+export interface DetectionResult {
+  agent: AgentType;
+  confidence: number;
+  signals: string[];
+  active?: boolean;
+}
+
+/**
+ * File change for detection
+ */
+interface FileChange {
+  filepath: string;
+  timestamp: string;
+  diff?: string;
+}
+
+/**
+ * Detection context
+ */
+interface DetectionContext {
+  processName?: string;
+  env?: NodeJS.ProcessEnv;
+  projectRoot?: string;
+}
+
 export class AgentDetector {
+  private detectionCache: Map<string, DetectionResult>;
+  private processPatterns: Record<string, AgentPattern>;
+
   constructor() {
     this.detectionCache = new Map();
     this.processPatterns = this.loadProcessPatterns();
   }
 
-  loadProcessPatterns() {
+  private loadProcessPatterns(): Record<string, AgentPattern> {
     return {
       ant: {
         processNames: ['ant', 'ant-cli', 'ant-agent'],
@@ -57,19 +121,19 @@ export class AgentDetector {
 
   /**
    * Detect which agent made the change
-   * @param {Object} change - The file change event
-   * @param {Object} context - Additional context (process, env, etc)
-   * @returns {Object} { agent: string, confidence: number, signals: array }
+   * @param change - The file change event
+   * @param context - Additional context (process, env, etc)
+   * @returns Detection result with agent, confidence, and signals
    */
-  detectAgent(change, context = {}) {
+  detectAgent(change: FileChange, context: DetectionContext = {}): DetectionResult {
     const cacheKey = `${change.filepath}_${change.timestamp}`;
 
     // Check cache first
     if (this.detectionCache.has(cacheKey)) {
-      return this.detectionCache.get(cacheKey);
+      return this.detectionCache.get(cacheKey)!;
     }
 
-    const signals = [];
+    const signals: DetectionSignal[] = [];
 
     // Signal 1: Process name detection
     const processSignal = this.detectFromProcess(context.processName);
@@ -100,7 +164,7 @@ export class AgentDetector {
     return result;
   }
 
-  detectFromProcess(processName) {
+  private detectFromProcess(processName?: string): DetectionSignal | null {
     if (!processName) return null;
 
     const lower = processName.toLowerCase();
@@ -108,7 +172,7 @@ export class AgentDetector {
       for (const name of pattern.processNames) {
         if (lower.includes(name)) {
           return {
-            agent,
+            agent: agent as AgentType,
             confidence: pattern.confidence,
             signal: 'process_name',
             value: processName
@@ -119,12 +183,12 @@ export class AgentDetector {
     return null;
   }
 
-  detectFromEnv(env) {
+  private detectFromEnv(env: NodeJS.ProcessEnv): DetectionSignal | null {
     for (const [agent, pattern] of Object.entries(this.processPatterns)) {
       for (const envVar of pattern.envVars) {
         if (env[envVar]) {
           return {
-            agent,
+            agent: agent as AgentType,
             confidence: pattern.confidence - 5, // Slightly lower confidence
             signal: 'environment_variable',
             value: envVar
@@ -135,7 +199,7 @@ export class AgentDetector {
     return null;
   }
 
-  detectFromFileMarkers(projectRoot) {
+  private detectFromFileMarkers(projectRoot?: string): DetectionSignal | null {
     if (!projectRoot) return null;
 
     for (const [agent, pattern] of Object.entries(this.processPatterns)) {
@@ -143,7 +207,7 @@ export class AgentDetector {
         const markerPath = join(projectRoot, marker);
         if (existsSync(markerPath)) {
           return {
-            agent,
+            agent: agent as AgentType,
             confidence: pattern.confidence - 10, // Lower confidence for file markers
             signal: 'file_marker',
             value: marker
@@ -154,7 +218,7 @@ export class AgentDetector {
     return null;
   }
 
-  analyzeChangePattern(change) {
+  private analyzeChangePattern(change: FileChange): DetectionSignal | null {
     // Different agents have characteristic editing patterns
     if (!change.diff) return null;
 
@@ -201,7 +265,7 @@ export class AgentDetector {
     return null;
   }
 
-  analyzeGitInfo(filepath) {
+  private analyzeGitInfo(filepath: string): DetectionSignal | null {
     try {
       // Try to get the author of the most recent change to this file
       // Use execFileSync with array args to prevent command injection
@@ -226,13 +290,13 @@ export class AgentDetector {
     return null;
   }
 
-  aggregateSignals(signals) {
+  private aggregateSignals(signals: DetectionSignal[]): DetectionResult {
     if (signals.length === 0) {
       return { agent: 'manual', confidence: 80, signals: ['no_agent_detected'] };
     }
 
     // Score each agent based on signals
-    const agentScores = new Map();
+    const agentScores = new Map<string, number>();
 
     for (const signal of signals) {
       const currentScore = agentScores.get(signal.agent) || 0;
@@ -240,13 +304,13 @@ export class AgentDetector {
     }
 
     // Find the agent with highest score
-    let bestAgent = 'unknown';
+    let bestAgent: AgentType = 'unknown';
     let bestScore = 0;
 
     for (const [agent, score] of agentScores.entries()) {
       if (score > bestScore) {
         bestScore = score;
-        bestAgent = agent;
+        bestAgent = agent as AgentType;
       }
     }
 
@@ -273,7 +337,7 @@ export class AgentDetector {
    * Get current running agent (if any)
    * Useful for real-time detection
    */
-  getCurrentAgent() {
+  getCurrentAgent(): DetectionResult {
     try {
       // Try to detect from current process tree
       // Use execFileSync for better security (no shell injection risk)
@@ -286,9 +350,10 @@ export class AgentDetector {
         for (const processName of pattern.processNames) {
           if (processes.toLowerCase().includes(processName)) {
             return {
-              agent,
+              agent: agent as AgentType,
               confidence: pattern.confidence,
-              active: true
+              active: true,
+              signals: ['process_tree']
             };
           }
         }
@@ -297,13 +362,13 @@ export class AgentDetector {
       // Process listing failed
     }
 
-    return { agent: 'none', confidence: 90, active: false };
+    return { agent: 'none', confidence: 90, active: false, signals: [] };
   }
 
   /**
    * Clear the detection cache (call periodically to avoid memory growth)
    */
-  clearCache() {
+  clearCache(): void {
     this.detectionCache.clear();
   }
 }

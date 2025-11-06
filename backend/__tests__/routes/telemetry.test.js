@@ -23,14 +23,14 @@ describe('Telemetry Routes', () => {
       getAgentStats: jest.fn().mockReturnValue({ total: 10, errors: 0 }),
       db: {
         prepare: jest.fn().mockReturnValue({
-          all: jest.fn().mockReturnValue([
-            { id: 1, metric: 'test', timestamp: '2024-01-01T00:00:00Z' }
-          ])
+          all: jest
+            .fn()
+            .mockReturnValue([{ id: 1, metric: 'test', timestamp: '2024-01-01T00:00:00Z' }])
         })
       },
-      getProcessMetricsByAgent: jest.fn().mockReturnValue([
-        { agent: 'test-agent', cpu: 50, memory: 100 }
-      ])
+      getProcessMetricsByAgent: jest
+        .fn()
+        .mockReturnValue([{ agent: 'test-agent', cpu: 50, memory: 100 }])
     };
 
     // Create mock developer database
@@ -58,7 +58,7 @@ describe('Telemetry Routes', () => {
       availableProjects: [{ name: 'test-project' }],
       SESSION_ID: 'test-session-123',
       agentRegistry: mockAgentRegistry,
-      getAgentColor: (_name) => '#FF0000',
+      getAgentColor: _name => '#FF0000',
       triggerEngine: mockTriggerEngine,
       io: mockIo,
       activeProject: 'test-project'
@@ -73,62 +73,52 @@ describe('Telemetry Routes', () => {
 
   describe('POST /telemetry - Validation Tests', () => {
     test('should reject when agent is missing', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Missing required fields');
     });
 
     test('should reject when event and event_type are both missing', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Missing required fields');
     });
 
     test('should reject when message is missing', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Missing required fields');
     });
 
     test('should reject when agent is not a string', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 123,
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 123,
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid agent');
     });
 
     test('should reject when agent is an empty string', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: '',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: '',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Missing required fields');
@@ -160,26 +150,22 @@ describe('Telemetry Routes', () => {
     });
 
     test('should reject when event is not a string', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 123,
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 123,
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid event');
     });
 
     test('should reject when event is an empty string', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: '',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: '',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Missing required fields');
@@ -211,26 +197,22 @@ describe('Telemetry Routes', () => {
     });
 
     test('should reject when message is not a string', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 123
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 123
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid message');
     });
 
     test('should reject when message is an empty string', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: ''
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: ''
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Missing required fields');
@@ -262,188 +244,160 @@ describe('Telemetry Routes', () => {
     });
 
     test('should reject when file is not a string', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          file: 123
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        file: 123
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid file');
     });
 
     test('should accept when file is a valid string', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          file: '/path/to/file.js'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        file: '/path/to/file.js'
+      });
 
       expect(response.status).toBe(200);
     });
 
     test('should accept when file is undefined', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
     });
 
     test('should reject when lines_changed is not a number', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          lines_changed: 'not-a-number'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        lines_changed: 'not-a-number'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid lines_changed');
     });
 
     test('should reject when lines_changed is negative', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          lines_changed: -1
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        lines_changed: -1
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid lines_changed');
     });
 
     test('should reject when lines_changed exceeds 1000000', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          lines_changed: 1000001
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        lines_changed: 1000001
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid lines_changed');
     });
 
     test('should accept lines_changed of 0', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          lines_changed: 0
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        lines_changed: 0
+      });
 
       expect(response.status).toBe(200);
     });
 
     test('should accept lines_changed of 1000000', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          lines_changed: 1000000
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        lines_changed: 1000000
+      });
 
       expect(response.status).toBe(200);
     });
 
     test('should reject when duration_ms is not a number', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          duration_ms: 'not-a-number'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        duration_ms: 'not-a-number'
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid duration_ms');
     });
 
     test('should reject when duration_ms is negative', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          duration_ms: -1
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        duration_ms: -1
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid duration_ms');
     });
 
     test('should reject when duration_ms exceeds 3600000', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          duration_ms: 3600001
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        duration_ms: 3600001
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid duration_ms');
     });
 
     test('should accept duration_ms of 0', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          duration_ms: 0
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        duration_ms: 0
+      });
 
       expect(response.status).toBe(200);
     });
 
     test('should accept duration_ms of 3600000', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          duration_ms: 3600000
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        duration_ms: 3600000
+      });
 
       expect(response.status).toBe(200);
     });
 
     test('should support event_type for backwards compatibility', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event_type: 'legacy-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event_type: 'legacy-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       expect(mockDb.insertAgentEvent).toHaveBeenCalledWith(
@@ -461,31 +415,28 @@ describe('Telemetry Routes', () => {
     });
 
     test('should prefer event over event_type when both provided', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'new-event',
-          event_type: 'legacy-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'new-event',
+        event_type: 'legacy-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       // Verify the call was made with 'new-event' as the event type (3rd parameter)
-      const callArgs = mockDb.insertAgentEvent.mock.calls[mockDb.insertAgentEvent.mock.calls.length - 1];
+      const callArgs =
+        mockDb.insertAgentEvent.mock.calls[mockDb.insertAgentEvent.mock.calls.length - 1];
       expect(callArgs[2]).toBe('new-event');
     });
   });
 
   describe('POST /telemetry - Success Cases', () => {
     test('should accept minimal valid request', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
@@ -519,13 +470,11 @@ describe('Telemetry Routes', () => {
     });
 
     test('should use activeProject when no project specified', async () => {
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.project).toBe('test-project');
@@ -539,14 +488,12 @@ describe('Telemetry Routes', () => {
 
       mockDeps.projectDatabases.set('custom-project', customDb);
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          project: 'custom-project'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        project: 'custom-project'
+      });
 
       expect(customDb.insertAgentEvent).toHaveBeenCalled();
       expect(response.body.project).toBe('custom-project');
@@ -567,13 +514,11 @@ describe('Telemetry Routes', () => {
       app.use(express.json());
       app.use('/telemetry', createTelemetryRoutes(mockDeps));
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(ravenDb.insertAgentEvent).toHaveBeenCalled();
       expect(response.body.project).toBe('raven');
@@ -594,13 +539,11 @@ describe('Telemetry Routes', () => {
       app.use(express.json());
       app.use('/telemetry', createTelemetryRoutes(mockDeps));
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(firstDb.insertAgentEvent).toHaveBeenCalled();
       expect(response.body.project).toBe('first-project');
@@ -616,13 +559,11 @@ describe('Telemetry Routes', () => {
       app.use(express.json());
       app.use('/telemetry', createTelemetryRoutes(mockDeps));
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.project).toBe('simple-project');
@@ -690,25 +631,21 @@ describe('Telemetry Routes', () => {
       app.use(express.json());
       app.use('/telemetry', createTelemetryRoutes(mockDeps));
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
     });
 
     test('should update agentRegistry for new agent (Map style)', async () => {
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'new-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'new-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(mockDeps.agentRegistry.has('new-agent')).toBe(true);
       const agent = mockDeps.agentRegistry.get('new-agent');
@@ -725,22 +662,18 @@ describe('Telemetry Routes', () => {
 
     test('should update agentRegistry for existing agent (Map style)', async () => {
       // First request
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'existing-agent',
-          event: 'test-event',
-          message: 'Test message 1'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'existing-agent',
+        event: 'test-event',
+        message: 'Test message 1'
+      });
 
       // Second request
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'existing-agent',
-          event: 'test-event',
-          message: 'Test message 2'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'existing-agent',
+        event: 'test-event',
+        message: 'Test message 2'
+      });
 
       const agent = mockDeps.agentRegistry.get('existing-agent');
       expect(agent.requests_handled).toBe(2);
@@ -759,13 +692,11 @@ describe('Telemetry Routes', () => {
       app.use(express.json());
       app.use('/telemetry', createTelemetryRoutes(mockDeps));
 
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(mockRegistry.registerAgent).toHaveBeenCalledWith(
         'test-agent',
@@ -779,16 +710,14 @@ describe('Telemetry Routes', () => {
     });
 
     test('should evaluate triggers with correct event data', async () => {
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          file: 'test.js',
-          lines_changed: 10,
-          duration_ms: 500
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        file: 'test.js',
+        lines_changed: 10,
+        duration_ms: 500
+      });
 
       expect(mockTriggerEngine.evaluateTriggers).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -834,18 +763,14 @@ describe('Telemetry Routes', () => {
     test('should emit file-changed event when file provided and not session event', async () => {
       mockIo.emit.mockClear();
 
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'edit',
-          message: 'Test message',
-          file: 'test.js'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'edit',
+        message: 'Test message',
+        file: 'test.js'
+      });
 
-      const fileChangedCall = mockIo.emit.mock.calls.find(
-        call => call[0] === 'file-changed'
-      );
+      const fileChangedCall = mockIo.emit.mock.calls.find(call => call[0] === 'file-changed');
 
       expect(fileChangedCall).toBeDefined();
       expect(fileChangedCall[1]).toMatchObject({
@@ -859,64 +784,50 @@ describe('Telemetry Routes', () => {
     test('should NOT emit file-changed for session-start event', async () => {
       mockIo.emit.mockClear();
 
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'session-start',
-          message: 'Session started',
-          file: 'test.js'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'session-start',
+        message: 'Session started',
+        file: 'test.js'
+      });
 
-      const fileChangedCalls = mockIo.emit.mock.calls.filter(
-        call => call[0] === 'file-changed'
-      );
+      const fileChangedCalls = mockIo.emit.mock.calls.filter(call => call[0] === 'file-changed');
       expect(fileChangedCalls).toHaveLength(0);
     });
 
     test('should NOT emit file-changed for session-end event', async () => {
       mockIo.emit.mockClear();
 
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'session-end',
-          message: 'Session ended',
-          file: 'test.js'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'session-end',
+        message: 'Session ended',
+        file: 'test.js'
+      });
 
-      const fileChangedCalls = mockIo.emit.mock.calls.filter(
-        call => call[0] === 'file-changed'
-      );
+      const fileChangedCalls = mockIo.emit.mock.calls.filter(call => call[0] === 'file-changed');
       expect(fileChangedCalls).toHaveLength(0);
     });
 
     test('should NOT emit file-changed when file is not provided', async () => {
       mockIo.emit.mockClear();
 
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'edit',
-          message: 'Test message'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'edit',
+        message: 'Test message'
+      });
 
-      const fileChangedCalls = mockIo.emit.mock.calls.filter(
-        call => call[0] === 'file-changed'
-      );
+      const fileChangedCalls = mockIo.emit.mock.calls.filter(call => call[0] === 'file-changed');
       expect(fileChangedCalls).toHaveLength(0);
     });
 
     test('should emit agent-stats with correct data', async () => {
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(mockIo.emit).toHaveBeenCalledWith('agent-stats', { total: 10, errors: 0 });
     });
@@ -928,14 +839,12 @@ describe('Telemetry Routes', () => {
         custom: 'data'
       };
 
-      await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message',
-          metadata
-        });
+      await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message',
+        metadata
+      });
 
       expect(mockDb.insertAgentEvent).toHaveBeenCalledWith(
         expect.any(String),
@@ -963,16 +872,16 @@ describe('Telemetry Routes', () => {
       app.use(express.json());
       app.use('/telemetry', createTelemetryRoutes(mockDeps));
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toContain('No project database available');
+      // With the new buffering feature, this now returns 200 with buffered flag
+      expect(response.status).toBe(200);
+      expect(response.body.buffered).toBe(true);
+      expect(response.body.message).toContain('buffered');
     });
 
     test('should continue when developerDB.logAgentInteraction throws', async () => {
@@ -980,13 +889,11 @@ describe('Telemetry Routes', () => {
         throw new Error('Developer DB error');
       });
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -997,33 +904,31 @@ describe('Telemetry Routes', () => {
         throw new Error('Trigger engine error');
       });
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
     });
 
-    test('should return 500 when database insertAgentEvent throws', async () => {
+    test('should buffer when database insertAgentEvent throws', async () => {
       mockDb.insertAgentEvent.mockImplementation(() => {
         throw new Error('Database error');
       });
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toContain('Database error');
+      // With the new buffering feature, database errors result in buffering
+      expect(response.status).toBe(200);
+      expect(response.body.buffered).toBe(true);
+      expect(response.body.message).toContain('buffered');
     });
 
     test('should return 500 when database getAgentStats throws', async () => {
@@ -1031,13 +936,11 @@ describe('Telemetry Routes', () => {
         throw new Error('Stats error');
       });
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(500);
       expect(response.body.error).toContain('Stats error');
@@ -1051,13 +954,11 @@ describe('Telemetry Routes', () => {
       app.use(express.json());
       app.use('/telemetry', createTelemetryRoutes(mockDeps));
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -1071,13 +972,11 @@ describe('Telemetry Routes', () => {
       app.use(express.json());
       app.use('/telemetry', createTelemetryRoutes(mockDeps));
 
-      const response = await request(app)
-        .post('/telemetry')
-        .send({
-          agent: 'test-agent',
-          event: 'test-event',
-          message: 'Test message'
-        });
+      const response = await request(app).post('/telemetry').send({
+        agent: 'test-agent',
+        event: 'test-event',
+        message: 'Test message'
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -1093,9 +992,7 @@ describe('Telemetry Routes', () => {
       const response = await request(app).get('/api/system-metrics');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual([
-        { id: 1, metric: 'test', timestamp: '2024-01-01T00:00:00Z' }
-      ]);
+      expect(response.body).toEqual([{ id: 1, metric: 'test', timestamp: '2024-01-01T00:00:00Z' }]);
     });
 
     test('should use default limit of 100', async () => {
@@ -1194,9 +1091,7 @@ describe('Telemetry Routes', () => {
       const response = await request(app).get('/api/process-metrics');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual([
-        { id: 1, metric: 'test', timestamp: '2024-01-01T00:00:00Z' }
-      ]);
+      expect(response.body).toEqual([{ id: 1, metric: 'test', timestamp: '2024-01-01T00:00:00Z' }]);
     });
 
     test('should use default limit of 100', async () => {
@@ -1315,9 +1210,7 @@ describe('Telemetry Routes', () => {
       const response = await request(app).get('/api/process-metrics/test-agent');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual([
-        { agent: 'test-agent', cpu: 50, memory: 100 }
-      ]);
+      expect(response.body).toEqual([{ agent: 'test-agent', cpu: 50, memory: 100 }]);
     });
 
     test('should call getProcessMetricsByAgent with correct agent', async () => {

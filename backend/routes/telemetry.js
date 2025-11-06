@@ -1,5 +1,55 @@
 import { Router } from 'express';
 import { logger } from '../utils/logger.js';
+import { LIMITS } from '../config/constants.js';
+
+// In-memory buffer for telemetry events when database is unavailable
+const telemetryBuffer = [];
+const MAX_BUFFER_SIZE = LIMITS.TELEMETRY.MAX_BUFFER_SIZE;
+
+/**
+ * Drain buffered telemetry events to database
+ * @param {object} db - Database instance
+ * @param {string} projectName - Project name
+ * @param {string} SESSION_ID - Session ID
+ */
+function drainTelemetryBuffer(db, projectName, SESSION_ID) {
+  if (telemetryBuffer.length === 0) return;
+
+  logger.info(`Draining ${telemetryBuffer.length} buffered telemetry events to database`);
+  let drained = 0;
+  let failed = 0;
+
+  while (telemetryBuffer.length > 0) {
+    const event = telemetryBuffer.shift();
+    try {
+      db.insertAgentEvent(
+        event.timestamp,
+        event.agent,
+        event.eventName,
+        event.file,
+        event.lines_changed,
+        event.duration_ms,
+        event.message,
+        event.metadata,
+        SESSION_ID,
+        projectName
+      );
+      drained++;
+    } catch (error) {
+      logger.error('Failed to drain buffered event:', error);
+      failed++;
+      // Stop draining if database is still having issues
+      if (failed > 5) {
+        logger.warn('Too many failures draining buffer, stopping');
+        break;
+      }
+    }
+  }
+
+  if (drained > 0) {
+    logger.info(`Successfully drained ${drained} buffered events, ${failed} failed`);
+  }
+}
 
 /**
  * Creates telemetry routes
@@ -25,32 +75,77 @@ export function createTelemetryRoutes(deps) {
   router.post('/', (req, res) => {
     try {
       // Support both 'event' and 'event_type' for backwards compatibility
-      const { agent, event, event_type, file, lines_changed, duration_ms, message, metadata, project } = req.body;
+      const {
+        agent,
+        event,
+        event_type,
+        file,
+        lines_changed,
+        duration_ms,
+        message,
+        metadata,
+        project
+      } = req.body;
       const eventName = event || event_type;
 
       // Validate required fields
       if (!agent || !eventName || !message) {
-        return res.status(400).json({ error: 'Missing required fields: agent, event/event_type, message' });
+        return res
+          .status(400)
+          .json({ error: 'Missing required fields: agent, event/event_type, message' });
       }
 
       // Validate field types and sanitize
-      if (typeof agent !== 'string' || agent.length > 100) {
-        return res.status(400).json({ error: 'Invalid agent: must be string ≤100 chars' });
+      if (typeof agent !== 'string' || agent.length > LIMITS.TELEMETRY.AGENT_NAME_MAX_LENGTH) {
+        return res
+          .status(400)
+          .json({
+            error: `Invalid agent: must be string ≤${LIMITS.TELEMETRY.AGENT_NAME_MAX_LENGTH} chars`
+          });
       }
-      if (typeof eventName !== 'string' || eventName.length > 100) {
-        return res.status(400).json({ error: 'Invalid event: must be string ≤100 chars' });
+      if (
+        typeof eventName !== 'string' ||
+        eventName.length > LIMITS.TELEMETRY.EVENT_NAME_MAX_LENGTH
+      ) {
+        return res
+          .status(400)
+          .json({
+            error: `Invalid event: must be string ≤${LIMITS.TELEMETRY.EVENT_NAME_MAX_LENGTH} chars`
+          });
       }
-      if (typeof message !== 'string' || message.length > 1000) {
-        return res.status(400).json({ error: 'Invalid message: must be string ≤1000 chars' });
+      if (typeof message !== 'string' || message.length > LIMITS.TELEMETRY.MESSAGE_MAX_LENGTH) {
+        return res
+          .status(400)
+          .json({
+            error: `Invalid message: must be string ≤${LIMITS.TELEMETRY.MESSAGE_MAX_LENGTH} chars`
+          });
       }
       if (file !== undefined && typeof file !== 'string') {
         return res.status(400).json({ error: 'Invalid file: must be string' });
       }
-      if (lines_changed !== undefined && (typeof lines_changed !== 'number' || lines_changed < 0 || lines_changed > 1000000)) {
-        return res.status(400).json({ error: 'Invalid lines_changed: must be number 0-1000000' });
+      if (
+        lines_changed !== undefined &&
+        (typeof lines_changed !== 'number' ||
+          lines_changed < 0 ||
+          lines_changed > LIMITS.TELEMETRY.LINES_CHANGED_MAX)
+      ) {
+        return res
+          .status(400)
+          .json({
+            error: `Invalid lines_changed: must be number 0-${LIMITS.TELEMETRY.LINES_CHANGED_MAX}`
+          });
       }
-      if (duration_ms !== undefined && (typeof duration_ms !== 'number' || duration_ms < 0 || duration_ms > 3600000)) {
-        return res.status(400).json({ error: 'Invalid duration_ms: must be number 0-3600000 (1 hour max)' });
+      if (
+        duration_ms !== undefined &&
+        (typeof duration_ms !== 'number' ||
+          duration_ms < 0 ||
+          duration_ms > LIMITS.TELEMETRY.DURATION_MAX_MS)
+      ) {
+        return res
+          .status(400)
+          .json({
+            error: `Invalid duration_ms: must be number 0-${LIMITS.TELEMETRY.DURATION_MAX_MS} (1 hour max)`
+          });
       }
 
       const timestamp = new Date().toISOString();
@@ -64,30 +159,96 @@ export function createTelemetryRoutes(deps) {
         } else if (availableProjects && availableProjects.length > 0) {
           // Default to 'raven' if it exists, otherwise first project
           const ravenProject = availableProjects.find(p => p.name === 'raven' || p === 'raven');
-          projectName = ravenProject ? (ravenProject.name || ravenProject) : (availableProjects[0].name || availableProjects[0]);
+          projectName = ravenProject
+            ? ravenProject.name || ravenProject
+            : availableProjects[0].name || availableProjects[0];
         }
       }
 
       // Get project database (or use first available)
-      const db = projectName ? projectDatabases.get(projectName) : projectDatabases.values().next().value;
+      const db = projectName
+        ? projectDatabases.get(projectName)
+        : projectDatabases.values().next().value;
 
-      if (!db) {
-        return res.status(500).json({ error: 'No project database available' });
+      // Validate we have both database and project name
+      if (!db || !projectName) {
+        // Buffer the event if database is unavailable
+        if (telemetryBuffer.length < MAX_BUFFER_SIZE) {
+          telemetryBuffer.push({
+            timestamp,
+            agent,
+            eventName,
+            file,
+            lines_changed,
+            duration_ms,
+            message,
+            metadata
+          });
+          logger.warn(
+            `Database unavailable, buffering telemetry event (${telemetryBuffer.length}/${MAX_BUFFER_SIZE})`
+          );
+          return res.json({
+            success: true,
+            buffered: true,
+            message: 'Event buffered - will be persisted when database recovers'
+          });
+        } else {
+          logger.error('Database unavailable and telemetry buffer is full');
+          return res.status(503).json({
+            error: 'Database unavailable and buffer full',
+            hint: 'Ensure at least one project is initialized',
+            retryAfter: 5000
+          });
+        }
+      }
+
+      // Try to drain any buffered events now that database is available
+      if (telemetryBuffer.length > 0) {
+        setImmediate(() => drainTelemetryBuffer(db, projectName, SESSION_ID));
       }
 
       // Insert into project-specific database
-      const eventId = db.insertAgentEvent(
-        timestamp,
-        agent,
-        eventName,
-        file,
-        lines_changed,
-        duration_ms,
-        message,
-        metadata,
-        SESSION_ID,
-        projectName
-      );
+      let eventId;
+      try {
+        eventId = db.insertAgentEvent(
+          timestamp,
+          agent,
+          eventName,
+          file,
+          lines_changed,
+          duration_ms,
+          message,
+          metadata,
+          SESSION_ID,
+          projectName
+        );
+      } catch (dbError) {
+        logger.error('Failed to insert agent event:', dbError);
+
+        // Buffer the event on database error
+        if (telemetryBuffer.length < MAX_BUFFER_SIZE) {
+          telemetryBuffer.push({
+            timestamp,
+            agent,
+            eventName,
+            file,
+            lines_changed,
+            duration_ms,
+            message,
+            metadata
+          });
+          return res.json({
+            success: true,
+            buffered: true,
+            message: 'Event buffered due to database error'
+          });
+        }
+
+        return res.status(503).json({
+          error: 'Database temporarily unavailable',
+          retryAfter: 5000
+        });
+      }
 
       // ALSO log to global developer persona database (if available)
       if (developerDB && developerDB.logAgentInteraction) {
@@ -112,11 +273,11 @@ export function createTelemetryRoutes(deps) {
       // Update agent registry (if available and is a Map)
       if (agentRegistry && typeof agentRegistry.has === 'function') {
         // Enforce size limit before adding new agents
-        if (!agentRegistry.has(agent) && enforceAgentRegistryLimit) {
-          enforceAgentRegistryLimit();
-        }
-
         if (!agentRegistry.has(agent)) {
+          if (typeof enforceAgentRegistryLimit === 'function') {
+            enforceAgentRegistryLimit();
+          }
+
           agentRegistry.set(agent, {
             agent_name: agent,
             agent_type: agent,
@@ -204,7 +365,9 @@ export function createTelemetryRoutes(deps) {
       });
     } catch (error) {
       logger.error('Telemetry error', { error: error.message || error, stack: error.stack });
-      res.status(500).json({ error: error.message || 'Internal server error', details: String(error) });
+      res
+        .status(500)
+        .json({ error: error.message || 'Internal server error', details: String(error) });
     }
   });
 

@@ -71,6 +71,11 @@ export class RavenDB {
     /** @type {Map<string, import('better-sqlite3').Statement>} */
     this.stmtCache = new Map();
 
+    // Track database state and active statements
+    this.closed = false;
+    /** @type {Set<import('better-sqlite3').Statement>} */
+    this.activeStatements = new Set();
+
     this.initializeSchema();
     logger.info('Database initialized', { dbPath });
   }
@@ -81,8 +86,24 @@ export class RavenDB {
    * @returns {Statement} Prepared statement with performance tracking
    */
   prepareStatement(sql) {
+    // Check if database is closed
+    if (this.closed) {
+      throw new Error('Cannot prepare statement: Database is closed');
+    }
+
     if (!this.stmtCache.has(sql)) {
-      const stmt = this.db.prepare(sql);
+      let stmt;
+      try {
+        stmt = this.db.prepare(sql);
+      } catch (error) {
+        // Check if database was closed during preparation
+        if (this.closed) {
+          throw new Error('Database closed during statement preparation');
+        }
+        // Re-throw original error if it's not due to closure
+        throw error;
+      }
+      this.activeStatements.add(stmt);
 
       // Wrap statement methods with performance tracking
       const originalGet = stmt.get.bind(stmt);
@@ -406,6 +427,20 @@ export class RavenDB {
 
   // ==================== Agent Events ====================
 
+  /**
+   * Insert an agent event into the database
+   * @param {string} timestamp - ISO timestamp of the event
+   * @param {string} agent - Name of the agent (e.g., 'claude-code', 'copilot')
+   * @param {string} event_type - Type of event (e.g., 'file_edit', 'command_run')
+   * @param {string|null} file - File path associated with the event
+   * @param {number|null} lines_changed - Number of lines changed
+   * @param {number|null} duration_ms - Duration of the operation in milliseconds
+   * @param {string} message - Human-readable message describing the event
+   * @param {object|null} metadata - Additional metadata as JSON object
+   * @param {string|null} session_id - Session identifier
+   * @param {string|null} project_name - Name of the project
+   * @returns {number} - ID of the inserted row
+   */
   insertAgentEvent(
     timestamp,
     agent,
@@ -2201,7 +2236,44 @@ export class RavenDB {
     return { sessions, total: count };
   }
 
+  /**
+   * Close database connection and clean up all resources
+   * Safe to call multiple times
+   */
   close() {
-    this.db.close();
+    if (this.closed) {
+      logger.debug('Database already closed, skipping');
+      return;
+    }
+
+    this.closed = true;
+    logger.info('Closing database connection', {
+      cachedStatements: this.stmtCache.size,
+      activeStatements: this.activeStatements.size
+    });
+
+    try {
+      // Finalize all active prepared statements
+      for (const stmt of this.activeStatements) {
+        try {
+          // Note: better-sqlite3 statements don't have a finalize method
+          // They are automatically cleaned up when the database closes
+          // We're just tracking them here for visibility
+        } catch (error) {
+          logger.warn('Error finalizing statement:', error);
+        }
+      }
+
+      // Clear caches
+      this.activeStatements.clear();
+      this.stmtCache.clear();
+
+      // Close database connection
+      this.db.close();
+      logger.info('Database connection closed successfully');
+    } catch (error) {
+      logger.error('Error closing database:', error);
+      throw error;
+    }
   }
 }

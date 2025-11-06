@@ -79,6 +79,8 @@ import { createRiskAnalyzer } from './services/risk-analyzer.js';
 import { createBehaviorProfiler } from './services/behavior-profiler.js';
 import { createPatternMatcher } from './services/pattern-matcher.js';
 import { createSessionTracker } from './services/session-tracker.js';
+import { MonitoringService } from './services/monitoring.js';
+import { FileChangeHandler } from './services/file-change-handler.js';
 import { ConversationSync } from './services/conversation-sync.js';
 import { GitBackfillService } from './services/git-backfill.js';
 import { createDeveloperRoutes } from './routes/developer.js';
@@ -421,6 +423,7 @@ class FileProcessingLock {
    */
   cleanup() {
     const now = Date.now();
+    const toDelete = [];
 
     for (const [filepath, mutex] of this.locks.entries()) {
       // Only cleanup if mutex exists, not locked, and hasn't been used recently
@@ -430,9 +433,15 @@ class FileProcessingLock {
         mutex.lastUsed &&
         now - mutex.lastUsed > LIMITS.CACHE.LOCK_TTL_MS
       ) {
-        this.locks.delete(filepath);
+        // Double-check it's still unlocked and has no pending operations
+        if (!mutex.locked && (!mutex.queue || mutex.queue.length === 0)) {
+          toDelete.push(filepath);
+        }
       }
     }
+
+    // Delete locks in a separate pass to avoid race conditions
+    toDelete.forEach(filepath => this.locks.delete(filepath));
   }
 
   /**
@@ -476,14 +485,15 @@ let healthCheckSystem;
 
 // In-memory agent registry
 const agentRegistry = new Map();
-const MAX_AGENTS = 10000; // Prevent unbounded memory growth
+const MAX_AGENTS = LIMITS.AGENT_REGISTRY.MAX_AGENTS;
 
 /**
  * Enforce size limit on agent registry using LRU eviction
  * Removes 20% oldest agents when limit is exceeded
  */
 function enforceAgentRegistryLimit() {
-  if (agentRegistry.size > MAX_AGENTS) {
+  // Use >= instead of > to prevent temporary exceedance
+  if (agentRegistry.size >= MAX_AGENTS) {
     // Sort by last_seen timestamp (oldest first)
     const sortedEntries = Array.from(agentRegistry.entries()).sort((a, b) => {
       const timeA = new Date(a[1].last_seen).getTime();
@@ -498,7 +508,7 @@ function enforceAgentRegistryLimit() {
     removedAgents.forEach(([name]) => agentRegistry.delete(name));
 
     logger.warn(
-      `🚨 Agent registry limit exceeded (${agentRegistry.size}), evicted ${toRemove} oldest agents`
+      `🚨 Agent registry limit reached (${agentRegistry.size + toRemove} agents), evicted ${toRemove} oldest agents (${agentRegistry.size} remaining)`
     );
   }
 }
@@ -535,32 +545,52 @@ const snapshotCleanupInterval = setInterval(async () => {
     const SNAPSHOT_TTL_MS =
       parseInt(process.env.SNAPSHOT_TTL_DAYS || '30', 10) * 24 * 60 * 60 * 1000;
     const now = Date.now();
-    let removed = 0;
+    let totalRemoved = 0;
 
-    // Check if snapshots directory exists
-    if (!fs.existsSync(projectState.snapshotsDir)) {
-      return;
-    }
+    // Iterate over ALL project snapshot dirs (not just current project)
+    for (const [projectName, snapshotsDir] of projectSnapshotDirs.entries()) {
+      try {
+        // Check existence for EACH project
+        if (!snapshotsDir || !fs.existsSync(snapshotsDir)) {
+          logger.debug(`Snapshots dir doesn't exist for project: ${projectName}`);
+          continue;
+        }
 
-    const files = await fs.promises.readdir(projectState.snapshotsDir);
+        const files = await fs.promises.readdir(snapshotsDir);
+        let removed = 0;
 
-    for (const file of files) {
-      const filePath = join(projectState.snapshotsDir, file);
-      const stats = await fs.promises.stat(filePath);
+        for (const file of files) {
+          try {
+            const filePath = join(snapshotsDir, file);
+            const stats = await fs.promises.stat(filePath);
 
-      if (now - stats.mtimeMs > SNAPSHOT_TTL_MS) {
-        await fs.promises.unlink(filePath);
-        removed++;
+            if (now - stats.mtimeMs > SNAPSHOT_TTL_MS) {
+              await fs.promises.unlink(filePath);
+              removed++;
+            }
+          } catch (fileError) {
+            logger.error(`Error processing snapshot file ${file} in ${projectName}:`, fileError);
+            // Continue with other files
+          }
+        }
+
+        if (removed > 0) {
+          logger.info(
+            `🧹 Cleaned up ${removed} old snapshots in ${projectName} (>${process.env.SNAPSHOT_TTL_DAYS || '30'} days)`
+          );
+          totalRemoved += removed;
+        }
+      } catch (projectError) {
+        logger.error(`Error cleaning snapshots for project ${projectName}:`, projectError);
+        // Continue with other projects
       }
     }
 
-    if (removed > 0) {
-      logger.info(
-        `🧹 Cleaned up ${removed} old snapshots (>${process.env.SNAPSHOT_TTL_DAYS || '30'} days)`
-      );
+    if (totalRemoved > 0) {
+      logger.info(`Total snapshots cleaned: ${totalRemoved} across all projects`);
     }
   } catch (error) {
-    logger.error('Error cleaning snapshots:', error);
+    logger.error('Fatal error in snapshot cleanup:', error);
   } finally {
     isSnapshotCleanupRunning = false;
   }
@@ -583,6 +613,11 @@ function generateDiff(oldContent, newContent) {
   return diff;
 }
 
+/**
+ * Detect programming language from file extension
+ * @param {string} filepath - File path to analyze
+ * @returns {string} - Language identifier (e.g., 'javascript', 'python', 'unknown')
+ */
 function detectLanguage(filepath) {
   const parts = filepath.split('.');
   const ext = parts.length > 1 ? parts.pop().toLowerCase() : '';
@@ -635,6 +670,13 @@ function detectLanguage(filepath) {
  */
 // detectProjectFromPath moved to utils/project-utils.js
 
+/**
+ * Save a snapshot of file content for recovery purposes
+ * @param {string} filepath - Absolute file path
+ * @param {string} content - File content to snapshot
+ * @param {string} projectName - Name of the project
+ * @returns {Promise<string|null>} - Path to saved snapshot or null on error
+ */
 async function saveSnapshot(filepath, content, projectName) {
   try {
     // Get project-specific paths
@@ -675,245 +717,23 @@ async function saveSnapshot(filepath, content, projectName) {
   }
 }
 
-async function handleFileChange(eventType, filepath) {
-  // Acquire lock for this file to prevent race conditions
-  // This ensures only one handler processes a file at a time
-  const release = await fileProcessingLock.acquire(filepath);
+/**
+ * File change handling has been extracted to FileChangeHandler class
+ * See: backend/services/file-change-handler.js
+ *
+ * This improves:
+ * - Modularity: Separate class for file change logic
+ * - Testability: Can be unit tested in isolation
+ * - Maintainability: Clear dependencies via constructor injection
+ * - Code organization: Reduces server.js size by ~360 lines
+ *
+ * The FileChangeHandler is initialized in initializeMonitoringServices()
+ * and called via: fileChangeHandler.handleFileChange(eventType, filepath)
+ */
 
-  try {
-    // Detect which project this file belongs to
-    const projectName = detectProjectFromPath(filepath, projectPaths);
-    if (!projectName) {
-      logger.warn(`⚠️  Could not determine project for file: ${filepath}`);
-      return;
-    }
-
-    // Get project-specific resources
-    const projectPath = projectPaths.get(projectName);
-    const db = projectDatabases.get(projectName);
-    const gitMonitor = projectGitMonitors.get(projectName);
-
-    if (!db || !projectPath) {
-      logger.error(`❌ Project resources not found for ${projectName}`);
-      return;
-    }
-
-    const relPath = relative(projectPath, filepath);
-    const timestamp = new Date().toISOString();
-
-    let diff = null;
-    let fileHash = null;
-    let eventSize = 0;
-    let content = '';
-
-    // Read file content for 'create' and 'edit' events
-    if (eventType === 'create' || eventType === 'edit') {
-      try {
-        // Check file size before reading to prevent OOM errors
-        const stats = await fs.promises.stat(filepath);
-        const fileSizeBytes = stats.size;
-
-        if (fileSizeBytes > MAX_FILE_SIZE_BYTES) {
-          logger.warn(
-            `File too large to track: [${projectName}] ${relPath} (${(fileSizeBytes / 1024 / 1024).toFixed(2)} MB, limit: ${(MAX_FILE_SIZE_BYTES / 1024 / 1024).toFixed(2)} MB)`
-          );
-
-          // Emit a special event for large files
-          io.emit('file-too-large', {
-            timestamp,
-            project: projectName,
-            filepath: relPath,
-            size_bytes: fileSizeBytes,
-            limit_bytes: MAX_FILE_SIZE_BYTES
-          });
-
-          return; // Skip processing this file
-        }
-
-        content = await fs.promises.readFile(filepath, 'utf8');
-        eventSize = content.length;
-        fileHash = calculateFileHash(content);
-
-        // Generate diff for 'edit' events
-        if (eventType === 'edit' && fileCache.has(filepath)) {
-          const oldContent = fileCache.get(filepath);
-          diff = generateDiff(oldContent, content);
-        }
-        // For 'create' events, generate a synthetic diff showing all content as additions
-        else if (eventType === 'create' && content) {
-          // Create unified diff format with all lines as additions
-          const lines = content.split('\n');
-          diff = `@@ -0,0 +1,${lines.length} @@\n` + lines.map(line => `+${line}`).join('\n');
-        }
-
-        // Save snapshot (project-specific)
-        await saveSnapshot(filepath, content, projectName);
-
-        // Update cache with LRU eviction (only if file is not too large)
-        if (fileSizeBytes < MAX_FILE_SIZE_BYTES / 2) {
-          // Only cache files up to 5MB
-          addToFileCache(filepath, content);
-        }
-      } catch (readError) {
-        logger.error(`Error reading file [${projectName}] ${relPath}:`, readError);
-        return;
-      }
-    } else if (eventType === 'delete') {
-      // Capture deleted content from cache before removing it
-      if (fileCache.has(filepath)) {
-        const deletedContent = fileCache.get(filepath);
-        eventSize = deletedContent.length;
-
-        // Generate a synthetic diff showing all content as deletions
-        const lines = deletedContent.split('\n');
-        diff = `@@ -1,${lines.length} +0,0 @@\n` + lines.map(line => `-${line}`).join('\n');
-      }
-
-      // File deleted - remove from cache
-      fileCache.delete(filepath);
-
-      // Clear syntax errors and pattern warnings for deleted files
-      db.clearSyntaxErrors(filepath);
-      db.clearPatternWarnings(filepath);
-    }
-
-    // Run syntax and pattern checks on added/changed files (async, non-blocking)
-    if ((eventType === 'create' || eventType === 'edit') && content) {
-      // Import checkers dynamically to avoid circular dependencies
-      setImmediate(async () => {
-        try {
-          const { SyntaxChecker } = await import('./services/syntax-checker.js');
-          const { PatternChecker } = await import('./services/pattern-checker.js');
-
-          const syntaxChecker = new SyntaxChecker(db, SESSION_ID, io, projectName);
-          const patternChecker = new PatternChecker(db, SESSION_ID, io, projectName);
-
-          // Run checks in parallel
-          await Promise.all([
-            syntaxChecker
-              .checkFile(filepath)
-              .catch(err => logger.error(`Syntax check failed for ${filepath}:`, err)),
-            patternChecker
-              .checkFile(filepath)
-              .catch(err => logger.error(`Pattern check failed for ${filepath}:`, err))
-          ]);
-        } catch (error) {
-          logger.error('Error running safety checks:', error);
-        }
-      });
-    }
-
-    // Get system metrics
-    const cpuLoad = await si.currentLoad();
-    const memInfo = await si.mem();
-    const cpuPercent = cpuLoad.currentLoad || 0;
-    const memPercent = (memInfo.used / memInfo.total) * 100;
-
-    // Insert event into project-specific database
-    let eventId = null;
-    let dbInsertSuccess = false;
-    try {
-      eventId = db.insertEvent(
-        timestamp,
-        relPath,
-        eventType,
-        diff,
-        cpuPercent,
-        memPercent,
-        SESSION_ID,
-        fileHash,
-        eventSize
-      );
-      dbInsertSuccess = true;
-      logger.info(`📁 [${projectName}] File ${eventType}: ${relPath} (${eventSize} bytes)`);
-
-      // Track session activity
-      if (sessionTracker) {
-        sessionTracker.recordActivity(projectName, {
-          change_type: eventType,
-          diff,
-          filepath: relPath,
-          agent: null, // Will be enriched by agent detector
-          risk_score: 0 // Will be calculated if needed
-        });
-      }
-
-      // ALSO log to global developer persona database
-      const language = detectLanguage(filepath);
-      const linesAdded = diff ? (diff.match(/^\+/gm) || []).length : 0;
-      const linesRemoved = diff ? (diff.match(/^-/gm) || []).length : 0;
-
-      try {
-        developerDB.logCodePattern({
-          project: projectName,
-          language,
-          file_type: filepath.split('.').pop(),
-          edit_type:
-            eventType === 'create' ? 'create' : eventType === 'delete' ? 'delete' : 'modify',
-          lines_added: linesAdded,
-          lines_removed: linesRemoved,
-          timestamp
-        });
-      } catch (devDbError) {
-        logger.error(`Failed to log to developer DB [${projectName}]:`, devDbError);
-        // Don't fail the whole operation if dev DB logging fails
-      }
-    } catch (dbError) {
-      logger.error(`Database insert failed [${projectName}]:`, dbError);
-      // Continue processing to ensure event is still emitted
-    }
-
-    // Only emit WebSocket event if database insert succeeded
-    if (dbInsertSuccess && eventId) {
-      io.emit('file-changed', {
-        id: eventId,
-        timestamp,
-        project: projectName,
-        filepath: relPath,
-        change_type: eventType,
-        event_size: eventSize,
-        file_hash: fileHash
-      });
-    } else {
-      // Emit without ID to indicate tracking failure
-      logger.warn(`File change tracked but not persisted: [${projectName}] ${relPath}`);
-      io.emit('file-changed-untracked', {
-        timestamp,
-        project: projectName,
-        filepath: relPath,
-        change_type: eventType,
-        error: 'Database insert failed'
-      });
-    }
-
-    // Check if this event triggers any alerts
-    const linesDeleted = diff ? (diff.match(/^-/gm) || []).length : 0;
-    const linesAdded = diff ? (diff.match(/^\+/gm) || []).length : 0;
-
-    const triggerEvent = {
-      file: relPath,
-      lines_changed: diff ? diff.split('\n').length : 0,
-      lines_deleted: linesDeleted,
-      lines_added: linesAdded,
-      event_type: eventType,
-      cpu_percent: cpuPercent,
-      memory_percent: memPercent,
-      event_size: eventSize,
-      project: projectName
-    };
-    triggerEngine.evaluate(triggerEvent);
-
-    // Emit git status update for this project
-    if (gitMonitor) {
-      await emitGitStatusUpdate(projectName);
-    }
-  } catch (error) {
-    logger.error('❌ File change handler error:', error);
-  } finally {
-    // Always release the lock to prevent deadlock
-    release();
-  }
-}
+// ==================== OLD handleFileChange function removed ====================
+// This function has been moved to FileChangeHandler class (file-change-handler.js)
+// Keeping this comment for reference during transition
 
 // ==================== Project Management Functions ====================
 
@@ -922,6 +742,8 @@ let riskAnalyzer;
 let behaviorProfiler;
 let patternMatcher;
 let sessionTracker;
+let monitoringService;
+let fileChangeHandler;
 
 /**
  * Initialize monitoring services after projects are loaded
@@ -934,6 +756,32 @@ function initializeMonitoringServices() {
     behaviorProfiler = createBehaviorProfiler(projectDatabases);
     patternMatcher = createPatternMatcher(projectDatabases);
     sessionTracker = createSessionTracker(projectDatabases);
+
+    // Initialize and start monitoring service for health tracking
+    monitoringService = new MonitoringService({
+      io: io,
+      errorRateThreshold: 10,
+      memoryPercentThreshold: 85,
+      cpuPercentThreshold: 80,
+      watcherFailuresThreshold: 3
+    });
+    monitoringService.start();
+
+    // Initialize file change handler with all required dependencies
+    fileChangeHandler = new FileChangeHandler({
+      projectPaths,
+      projectDatabases,
+      projectGitMonitors,
+      projectSnapshotDirs,
+      fileCache,
+      io,
+      SESSION_ID,
+      fileProcessingLock,
+      developerDB,
+      sessionTracker,
+      addToFileCache,
+      emitGitStatusUpdate: emitGitStatusUpdateExternal
+    });
 
     // Add services to shared deps objects for routes
     sessionsDeps.sessionTracker = sessionTracker;
@@ -949,7 +797,9 @@ function initializeMonitoringServices() {
         'RiskAnalyzer',
         'BehaviorProfiler',
         'PatternMatcher',
-        'SessionTracker'
+        'SessionTracker',
+        'MonitoringService',
+        'FileChangeHandler'
       ]
     });
   } catch (error) {
@@ -1912,7 +1762,7 @@ httpServer.listen(PORT, async () => {
           };
 
           const eventType = eventTypeMap[event.type] || event.type;
-          await handleFileChange(eventType, event.path);
+          await fileChangeHandler.handleFileChange(eventType, event.path);
         }, logger);
 
         await claudeLogWatcher.start();
@@ -1966,6 +1816,10 @@ async function gracefulShutdown(signal) {
   if (performanceMonitor) {
     performanceMonitor.stop();
     logger.info('✅ Stopped performance monitor interval');
+  }
+  if (monitoringService) {
+    monitoringService.stop();
+    logger.info('✅ Stopped monitoring service');
   }
 
   // Stop Claude Log Watcher

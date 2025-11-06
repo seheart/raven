@@ -5,12 +5,45 @@
  * Handles file change detection, debouncing, and event emission.
  */
 
-import chokidar from 'chokidar';
+import chokidar, { FSWatcher } from 'chokidar';
 import { join } from 'path';
+import type {
+  ProjectName,
+  SocketIOServer,
+  FileWatcherServiceOptions,
+  FileWatcherStats,
+  WatcherInitResult
+} from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
+/**
+ * File type for chokidar's ignored function
+ */
+type IgnoreFn = (path: string, stats?: unknown) => boolean;
+
+/**
+ * Ignore pattern type
+ */
+type IgnorePattern = RegExp | string;
+
 export class FileWatcherService {
-  constructor(options = {}) {
+  private io?: SocketIOServer;
+  private handleFileChange?: (eventType: string, filepath: string) => void | Promise<void>;
+  private projectPaths: Map<ProjectName, string>;
+  private watchers: Map<ProjectName, FSWatcher>;
+  private stats: {
+    totalEvents: number;
+    addEvents: number;
+    changeEvents: number;
+    unlinkEvents: number;
+  };
+  private FILE_WATCH_DEBOUNCE_MS: number;
+  private skipProjects: string[];
+  private ignoreCache: Map<string, boolean>;
+  private maxIgnoreCacheSize: number;
+  private defaultIgnored: IgnorePattern[];
+
+  constructor(options: FileWatcherServiceOptions = {}) {
     this.io = options.io;
     this.handleFileChange = options.handleFileChange;
     this.projectPaths = options.projectPaths || new Map();
@@ -96,21 +129,23 @@ export class FileWatcherService {
   /**
    * Set the Socket.io instance for real-time event emission
    */
-  setIO(io) {
+  setIO(io: SocketIOServer): void {
     this.io = io;
   }
 
   /**
    * Set the file change handler callback
    */
-  setFileChangeHandler(handler) {
+  setFileChangeHandler(
+    handler: (eventType: string, filepath: string) => void | Promise<void>
+  ): void {
     this.handleFileChange = handler;
   }
 
   /**
    * Initialize a watcher for a specific project
    */
-  initializeWatcher(projectName) {
+  initializeWatcher(projectName: ProjectName): FSWatcher | null {
     const projectPath = this.projectPaths.get(projectName);
     if (!projectPath) {
       logger.error(`Cannot create watcher for ${projectName}: path not found`);
@@ -118,8 +153,8 @@ export class FileWatcherService {
     }
 
     // Allow custom ignore patterns via environment variable
-    const customIgnored = process.env.CHOKIDAR_IGNORE_PATTERNS
-      ? process.env.CHOKIDAR_IGNORE_PATTERNS.split(',').map(p => p.trim())
+    const customIgnored: string[] = process.env['CHOKIDAR_IGNORE_PATTERNS']
+      ? process.env['CHOKIDAR_IGNORE_PATTERNS'].split(',').map(p => p.trim())
       : [];
 
     // Platform detection
@@ -135,7 +170,7 @@ export class FileWatcherService {
     // Special handling for projects with heavy dependencies
     const isRavenProject = projectName === 'raven';
 
-    let watchPaths;
+    let watchPaths: string | string[];
     if (isRavenProject) {
       // Raven: only watch specific directories
       watchPaths = [
@@ -151,13 +186,13 @@ export class FileWatcherService {
     }
 
     // Create a function to check if path should be ignored (with memoization)
-    const shouldIgnore = (path, _stats) => {
+    const shouldIgnore: IgnoreFn = (path: string, _stats?: unknown): boolean => {
       // Normalize path to use forward slashes
       const normalizedPath = path.replace(/\\/g, '/');
 
       // Check memoization cache first
       if (this.ignoreCache.has(normalizedPath)) {
-        return this.ignoreCache.get(normalizedPath);
+        return this.ignoreCache.get(normalizedPath)!;
       }
 
       let shouldIgnoreResult = false;
@@ -183,7 +218,7 @@ export class FileWatcherService {
       // Check if path ends with common venv directory names
       if (!shouldIgnoreResult) {
         const pathParts = normalizedPath.split('/');
-        const lastPart = pathParts[pathParts.length - 1];
+        const lastPart = pathParts[pathParts.length - 1] || '';
         if (
           [
             'venv',
@@ -221,8 +256,10 @@ export class FileWatcherService {
       // Store in cache with LRU eviction
       if (this.ignoreCache.size >= this.maxIgnoreCacheSize) {
         // Remove oldest entry (first key in Map maintains insertion order)
-        const firstKey = this.ignoreCache.keys().next().value;
-        this.ignoreCache.delete(firstKey);
+        const firstKey = this.ignoreCache.keys().next().value as string | undefined;
+        if (firstKey !== undefined) {
+          this.ignoreCache.delete(firstKey);
+        }
       }
       this.ignoreCache.set(normalizedPath, shouldIgnoreResult);
 
@@ -238,42 +275,44 @@ export class FileWatcherService {
         pollInterval: this.FILE_WATCH_DEBOUNCE_MS
       },
       usePolling: false,
-      useFsEvents: isMacOS,
       depth: 99,
-      ignorePermissionErrors: true
+      ignorePermissionErrors: true,
+      // useFsEvents is macOS-specific but not in TypeScript types
+      ...(isMacOS && ({ useFsEvents: true } as any))
     });
 
     watcher
-      .on('add', filepath => {
+      .on('add', (filepath: string) => {
         this.stats.addEvents++;
         this.stats.totalEvents++;
         if (this.handleFileChange) {
           this.handleFileChange('add', filepath);
         }
       })
-      .on('change', filepath => {
+      .on('change', (filepath: string) => {
         this.stats.changeEvents++;
         this.stats.totalEvents++;
         if (this.handleFileChange) {
           this.handleFileChange('change', filepath);
         }
       })
-      .on('unlink', filepath => {
+      .on('unlink', (filepath: string) => {
         this.stats.unlinkEvents++;
         this.stats.totalEvents++;
         if (this.handleFileChange) {
           this.handleFileChange('unlink', filepath);
         }
       })
-      .on('error', error => {
-        logger.error(`Watcher error [${projectName}]:`, error);
+      .on('error', (error: unknown) => {
+        const err = error as Error;
+        logger.error(`Watcher error [${projectName}]:`, err as any);
 
         if (this.io) {
           this.io.emit('file-watcher-error', {
             project: projectName,
             timestamp: new Date().toISOString(),
-            message: error.message || 'File watcher encountered an error',
-            error: error.toString(),
+            message: err.message || 'File watcher encountered an error',
+            error: err.toString(),
             canRecover: true // Indicate we'll try to recover
           });
         }
@@ -291,13 +330,14 @@ export class FileWatcherService {
                 });
               }
             })
-            .catch(restartError => {
-              logger.error(`Failed to restart watcher ${projectName}:`, restartError);
+            .catch((restartError: unknown) => {
+              const restartErr = restartError as Error;
+              logger.error(`Failed to restart watcher ${projectName}:`, restartErr as any);
               if (this.io) {
                 this.io.emit('file-watcher-failed', {
                   project: projectName,
                   timestamp: new Date().toISOString(),
-                  error: restartError.message
+                  error: restartErr.message
                 });
               }
             });
@@ -314,7 +354,7 @@ export class FileWatcherService {
   /**
    * Initialize watchers for all projects
    */
-  initializeAllWatchers() {
+  initializeAllWatchers(): WatcherInitResult {
     logger.info('Starting file watchers for all projects');
 
     let successCount = 0;
@@ -342,7 +382,7 @@ export class FileWatcherService {
   /**
    * Stop a specific watcher
    */
-  async stopWatcher(projectName) {
+  async stopWatcher(projectName: ProjectName): Promise<boolean> {
     const watcher = this.watchers.get(projectName);
     if (watcher) {
       await watcher.close();
@@ -356,7 +396,7 @@ export class FileWatcherService {
   /**
    * Restart a specific watcher (stop and reinitialize)
    */
-  async restartWatcher(projectName) {
+  async restartWatcher(projectName: ProjectName): Promise<FSWatcher> {
     try {
       // Stop existing watcher if it exists
       await this.stopWatcher(projectName);
@@ -374,7 +414,7 @@ export class FileWatcherService {
       logger.info(`Watcher restarted for ${projectName}`);
       return watcher;
     } catch (error) {
-      logger.error(`Error restarting watcher for ${projectName}:`, error);
+      logger.error(`Error restarting watcher for ${projectName}:`, error as any);
       throw error;
     }
   }
@@ -382,10 +422,10 @@ export class FileWatcherService {
   /**
    * Stop all watchers
    */
-  async stopAllWatchers() {
+  async stopAllWatchers(): Promise<void> {
     logger.info('Stopping all file watchers');
 
-    const promises = [];
+    const promises: Promise<void>[] = [];
     for (const [projectName, watcher] of this.watchers.entries()) {
       promises.push(
         watcher
@@ -393,8 +433,8 @@ export class FileWatcherService {
           .then(() => {
             logger.info(`Watcher closed for ${projectName}`);
           })
-          .catch(error => {
-            logger.error(`Error closing watcher for ${projectName}:`, error);
+          .catch((error: unknown) => {
+            logger.error(`Error closing watcher for ${projectName}:`, error as any);
           })
       );
     }
@@ -407,7 +447,7 @@ export class FileWatcherService {
   /**
    * Get watcher statistics
    */
-  getStats() {
+  getStats(): FileWatcherStats {
     return {
       ...this.stats,
       activeWatchers: this.watchers.size,
@@ -418,24 +458,14 @@ export class FileWatcherService {
   /**
    * Check if a project has an active watcher
    */
-  hasWatcher(projectName) {
+  hasWatcher(projectName: ProjectName): boolean {
     return this.watchers.has(projectName);
   }
 
   /**
    * Get watcher for a specific project
    */
-  getWatcher(projectName) {
+  getWatcher(projectName: ProjectName): FSWatcher | undefined {
     return this.watchers.get(projectName);
   }
-
-  /**
-   * Restart a watcher for a specific project
-   */
-  async restartWatcher(projectName) {
-    await this.stopWatcher(projectName);
-    return this.initializeWatcher(projectName);
-  }
 }
-
-export default FileWatcherService;

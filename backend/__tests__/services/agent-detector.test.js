@@ -6,10 +6,12 @@ import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 
 // Mock modules BEFORE importing the service
 const mockExecSync = jest.fn();
+const mockExecFileSync = jest.fn();
 const mockExistsSync = jest.fn();
 
 jest.unstable_mockModule('child_process', () => ({
-  execSync: mockExecSync
+  execSync: mockExecSync,
+  execFileSync: mockExecFileSync
 }));
 
 jest.unstable_mockModule('fs', () => ({
@@ -27,6 +29,7 @@ describe('AgentDetector', () => {
     detector.clearCache();
     jest.clearAllMocks();
     mockExecSync.mockReset();
+    mockExecFileSync.mockReset();
     mockExistsSync.mockReset();
   });
 
@@ -194,13 +197,13 @@ describe('AgentDetector', () => {
     });
 
     test('should detect cursor from .cursorrules', () => {
-      mockExistsSync.mockImplementation((path) => path.includes('.cursorrules'));
+      mockExistsSync.mockImplementation(path => path.includes('.cursorrules'));
       const result = detector.detectFromFileMarkers('/project');
       expect(result.agent).toBe('cursor');
     });
 
     test('should detect claude-code from .anthropic file', () => {
-      mockExistsSync.mockImplementation((path) => path.includes('.anthropic'));
+      mockExistsSync.mockImplementation(path => path.includes('.anthropic'));
       const result = detector.detectFromFileMarkers('/project');
       expect(result.agent).toBe('claude-code');
     });
@@ -283,7 +286,7 @@ describe('AgentDetector', () => {
 
   describe('analyzeGitInfo', () => {
     test('should detect claude from git author', () => {
-      mockExecSync.mockReturnValue('Claude <noreply@anthropic.com>\n');
+      mockExecFileSync.mockReturnValue('Claude <noreply@anthropic.com>\n');
       const result = detector.analyzeGitInfo('/test.js');
       expect(result.agent).toBe('claude-code');
       expect(result.confidence).toBe(70);
@@ -291,31 +294,31 @@ describe('AgentDetector', () => {
     });
 
     test('should detect cursor from git author', () => {
-      mockExecSync.mockReturnValue('Cursor <cursor@cursor.sh>\n');
+      mockExecFileSync.mockReturnValue('Cursor <cursor@cursor.sh>\n');
       const result = detector.analyzeGitInfo('/test.js');
       expect(result.agent).toBe('cursor');
     });
 
     test('should detect copilot from git author', () => {
-      mockExecSync.mockReturnValue('GitHub Copilot <copilot@github.com>\n');
+      mockExecFileSync.mockReturnValue('GitHub Copilot <copilot@github.com>\n');
       const result = detector.analyzeGitInfo('/test.js');
       expect(result.agent).toBe('github-copilot');
     });
 
     test('should detect ant from git author', () => {
-      mockExecSync.mockReturnValue('ANT <ant@anthropic.com>\n');
+      mockExecFileSync.mockReturnValue('ANT <ant@anthropic.com>\n');
       const result = detector.analyzeGitInfo('/test.js');
       expect(result.agent).toBe('ant');
     });
 
     test('should return null for non-agent git author', () => {
-      mockExecSync.mockReturnValue('John Doe <john@example.com>\n');
+      mockExecFileSync.mockReturnValue('John Doe <john@example.com>\n');
       const result = detector.analyzeGitInfo('/test.js');
       expect(result).toBeNull();
     });
 
     test('should return null when git command fails', () => {
-      mockExecSync.mockImplementation(() => {
+      mockExecFileSync.mockImplementation(() => {
         throw new Error('not a git repository');
       });
       const result = detector.analyzeGitInfo('/test.js');
@@ -323,7 +326,7 @@ describe('AgentDetector', () => {
     });
 
     test('should be case-insensitive for author matching', () => {
-      mockExecSync.mockReturnValue('CLAUDE <noreply@anthropic.com>\n');
+      mockExecFileSync.mockReturnValue('CLAUDE <noreply@anthropic.com>\n');
       const result = detector.analyzeGitInfo('/test.js');
       expect(result.agent).toBe('claude-code');
     });
@@ -338,9 +341,7 @@ describe('AgentDetector', () => {
     });
 
     test('should aggregate single signal', () => {
-      const signals = [
-        { agent: 'ant', confidence: 90, signal: 'process_name' }
-      ];
+      const signals = [{ agent: 'ant', confidence: 90, signal: 'process_name' }];
       const result = detector.aggregateSignals(signals);
       expect(result.agent).toBe('ant');
       expect(result.confidence).toBe(90);
@@ -367,9 +368,7 @@ describe('AgentDetector', () => {
     });
 
     test('should return unknown for low confidence', () => {
-      const signals = [
-        { agent: 'ant', confidence: 30, signal: 'change_pattern' }
-      ];
+      const signals = [{ agent: 'ant', confidence: 30, signal: 'change_pattern' }];
       const result = detector.aggregateSignals(signals);
       expect(result.agent).toBe('unknown');
       expect(result.confidence).toBe(50); // Low confidence returns exactly 50
@@ -438,16 +437,16 @@ describe('AgentDetector', () => {
     });
 
     test('should use cache for repeated detections', () => {
-      mockExecSync.mockReturnValue('Claude\n');
+      mockExecFileSync.mockReturnValue('Claude\n');
       const change = { filepath: '/test.js', timestamp: '2025-10-28' };
 
       // First call
       const result1 = detector.detectAgent(change);
-      const callCount1 = mockExecSync.mock.calls.length;
+      const callCount1 = mockExecFileSync.mock.calls.length;
 
       // Second call - should use cache
       const result2 = detector.detectAgent(change);
-      const callCount2 = mockExecSync.mock.calls.length;
+      const callCount2 = mockExecFileSync.mock.calls.length;
 
       expect(result1.agent).toBe(result2.agent);
       expect(callCount2).toBe(callCount1); // No additional calls
@@ -455,7 +454,9 @@ describe('AgentDetector', () => {
 
     test('should return manual for no signals', () => {
       mockExistsSync.mockReturnValue(false);
-      mockExecSync.mockImplementation(() => { throw new Error('Git error'); });
+      mockExecSync.mockImplementation(() => {
+        throw new Error('Git error');
+      });
 
       const change = { filepath: '/test.js', timestamp: '2025-10-28' };
       const result = detector.detectAgent(change);
@@ -480,28 +481,28 @@ describe('AgentDetector', () => {
 
   describe('getCurrentAgent', () => {
     test('should detect currently running ant', () => {
-      mockExecSync.mockReturnValue('ant-cli process running\nother stuff');
+      mockExecFileSync.mockReturnValue('ant-cli process running\nother stuff');
       const result = detector.getCurrentAgent();
       expect(result.agent).toBe('ant');
       expect(result.active).toBe(true);
     });
 
     test('should detect currently running cursor', () => {
-      mockExecSync.mockReturnValue('cursor-server is running');
+      mockExecFileSync.mockReturnValue('cursor-server is running');
       const result = detector.getCurrentAgent();
       expect(result.agent).toBe('cursor');
       expect(result.active).toBe(true);
     });
 
     test('should return none when no agent running', () => {
-      mockExecSync.mockReturnValue('bash\nnode\nvscode');
+      mockExecFileSync.mockReturnValue('bash\nnode\nvscode');
       const result = detector.getCurrentAgent();
       expect(result.agent).toBe('none');
       expect(result.active).toBe(false);
     });
 
     test('should handle ps command failure gracefully', () => {
-      mockExecSync.mockImplementation(() => {
+      mockExecFileSync.mockImplementation(() => {
         throw new Error('ps command failed');
       });
       const result = detector.getCurrentAgent();
@@ -510,7 +511,7 @@ describe('AgentDetector', () => {
     });
 
     test('should be case-insensitive for process matching', () => {
-      mockExecSync.mockReturnValue('CURSOR-SERVER running');
+      mockExecFileSync.mockReturnValue('CURSOR-SERVER running');
       const result = detector.getCurrentAgent();
       expect(result.agent).toBe('cursor');
     });

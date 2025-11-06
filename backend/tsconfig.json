@@ -7,16 +7,42 @@
     "outDir": "./dist",
     "rootDir": "./",
     "declaration": true,
+    "declarationMap": true,
     "sourceMap": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": false,
-    "noImplicitAny": false,
+
+    // Strict Type-Checking Options (UPGRADED for 10/10!)
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    // Additional Checks (BEST PRACTICES)
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+
+    // Module Resolution
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+
+    // Emit Options
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "isolatedModules": true
   },
-  "include": ["**/*.ts", "**/*.js"],
-  "exclude": ["node_modules", "dist", "__tests__"]
+  "include": ["**/*.ts", "repositories/**/*.ts", "services/**/*.ts", "utils/**/*.ts", "**/*.js"],
+  "exclude": ["node_modules", "dist", "__tests__", "**/*.test.js", "**/*.test.ts"]
 }

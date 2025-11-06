@@ -7,11 +7,41 @@
 
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join, basename } from 'path';
+import type {
+  ProjectName,
+  ProjectManagerOptions,
+  DiscoveredProject,
+  ProjectInitResult,
+  ProjectState,
+  ProjectInfo
+} from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { RavenDB } from '../db.js';
 
+/**
+ * Mutex for thread-safe operations
+ */
+interface Mutex {
+  locked: boolean;
+  queue: Array<{
+    fn: () => Promise<unknown>;
+    resolve: (value: unknown) => void;
+    reject: (reason?: unknown) => void;
+  }>;
+}
+
 export class ProjectManager {
-  constructor(options = {}) {
+  private RAVEN_DIR: string;
+  private CONFIG_PATH: string;
+  private DB_DIR: string;
+  private projectState: Map<ProjectName, ProjectState>;
+  private projectDatabases: Map<ProjectName, RavenDB>;
+  private projectPaths: Map<ProjectName, string>;
+  private availableProjects: ProjectName[];
+  private activeProject: ProjectName | null;
+  private mutex: Mutex;
+
+  constructor(options: ProjectManagerOptions = {}) {
     this.RAVEN_DIR = options.ravenDir || join(process.cwd(), '.raven');
     this.CONFIG_PATH = options.configPath || join(this.RAVEN_DIR, 'config.toml');
     this.DB_DIR = options.dbDir || join(this.RAVEN_DIR, 'db');
@@ -33,8 +63,8 @@ export class ProjectManager {
   /**
    * Discover projects from config or auto-detect
    */
-  discoverProjects() {
-    let projects = [];
+  discoverProjects(): DiscoveredProject[] {
+    let projects: DiscoveredProject[] = [];
 
     // Try loading from config first
     if (existsSync(this.CONFIG_PATH)) {
@@ -44,7 +74,7 @@ export class ProjectManager {
 
         for (const line of lines) {
           const match = line.match(/path\s*=\s*["'](.+)["']/);
-          if (match) {
+          if (match && match[1]) {
             const projectPath = match[1];
             const projectName = basename(projectPath);
             projects.push({ name: projectName, path: projectPath });
@@ -57,7 +87,7 @@ export class ProjectManager {
           });
         }
       } catch (error) {
-        logger.error('Failed to load config:', error);
+        logger.error('Failed to load config:', error as any);
       }
     }
 
@@ -104,7 +134,7 @@ export class ProjectManager {
   /**
    * Initialize a single project
    */
-  initializeProject(projectName) {
+  initializeProject(projectName: ProjectName): ProjectInitResult {
     try {
       const dbPath = join(this.DB_DIR, `${projectName}.db`);
       const db = new RavenDB(dbPath);
@@ -128,11 +158,12 @@ export class ProjectManager {
         database: dbPath
       };
     } catch (error) {
-      logger.error(`Failed to initialize project ${projectName}:`, error);
+      const err = error as Error;
+      logger.error(`Failed to initialize project ${projectName}:`, err as any);
       return {
         success: false,
         projectName,
-        error: error.message
+        error: err.message
       };
     }
   }
@@ -140,7 +171,12 @@ export class ProjectManager {
   /**
    * Initialize all discovered projects
    */
-  initializeAllProjects() {
+  initializeAllProjects(): {
+    success: number;
+    failed: number;
+    total: number;
+    projects: ProjectName[];
+  } {
     const projects = this.discoverProjects();
 
     let successCount = 0;
@@ -162,8 +198,10 @@ export class ProjectManager {
 
     // Set active project (first one or default)
     if (this.availableProjects.length > 0) {
-      this.activeProject = this.availableProjects[0];
-      logger.info(`Active project set to: ${this.activeProject}`);
+      this.activeProject = this.availableProjects[0] || null;
+      if (this.activeProject) {
+        logger.info(`Active project set to: ${this.activeProject}`);
+      }
     }
 
     logger.info(`Projects initialized: ${successCount} successful, ${failCount} failed`);
@@ -179,7 +217,9 @@ export class ProjectManager {
   /**
    * Switch active project
    */
-  async switchProject(projectName) {
+  async switchProject(
+    projectName: ProjectName
+  ): Promise<{ success: boolean; activeProject: ProjectName }> {
     return this.withMutex(async () => {
       if (!this.projectPaths.has(projectName)) {
         throw new Error(`Project not found: ${projectName}`);
@@ -198,27 +238,29 @@ export class ProjectManager {
   /**
    * Get database for a specific project
    */
-  getProjectDatabase(projectName) {
-    return this.projectDatabases.get(projectName || this.activeProject);
+  getProjectDatabase(projectName?: ProjectName): RavenDB | undefined {
+    const name = projectName || this.activeProject;
+    if (!name) return undefined;
+    return this.projectDatabases.get(name);
   }
 
   /**
    * Get default project database
    */
-  getDefaultProjectDb() {
+  getDefaultProjectDb(): RavenDB | null {
     if (this.activeProject && this.projectDatabases.has(this.activeProject)) {
-      return this.projectDatabases.get(this.activeProject);
+      return this.projectDatabases.get(this.activeProject) || null;
     }
 
     // Fallback to first available database
     const firstProject = Array.from(this.projectDatabases.keys())[0];
-    return firstProject ? this.projectDatabases.get(firstProject) : null;
+    return firstProject ? this.projectDatabases.get(firstProject) || null : null;
   }
 
   /**
    * Get default project name
    */
-  getDefaultProjectName() {
+  getDefaultProjectName(): string {
     // Try current directory name
     const cwd = process.cwd();
     return basename(cwd) || 'default-project';
@@ -227,11 +269,11 @@ export class ProjectManager {
   /**
    * Get all projects
    */
-  getAllProjects() {
+  getAllProjects(): ProjectInfo[] {
     return this.availableProjects.map(name => ({
       name,
       path: this.projectPaths.get(name),
-      database: this.projectDatabases.get(name)?.dbPath,
+      database: (this.projectDatabases.get(name) as any)?.dbPath,
       state: this.projectState.get(name),
       isActive: name === this.activeProject
     }));
@@ -240,39 +282,47 @@ export class ProjectManager {
   /**
    * Get project state
    */
-  getProjectState(projectName) {
-    return this.projectState.get(projectName || this.activeProject);
+  getProjectState(projectName?: ProjectName): ProjectState | undefined {
+    const name = projectName || this.activeProject;
+    if (!name) return undefined;
+    return this.projectState.get(name);
   }
 
   /**
    * Mutex helper for thread-safe operations
    * Ensures proper unlocking even when fn() throws errors
    */
-  async withMutex(fn) {
+  async withMutex<T>(fn: () => Promise<T>): Promise<T> {
     if (this.mutex.locked) {
       return new Promise((resolve, reject) => {
-        this.mutex.queue.push({ fn, resolve, reject });
-      });
+        this.mutex.queue.push({
+          fn: fn as () => Promise<unknown>,
+          resolve: resolve as (value: unknown) => void,
+          reject
+        });
+      }) as Promise<T>;
     }
 
     this.mutex.locked = true;
-    let error = null;
-    let result = null;
+    let error: unknown = null;
+    let result: T | null = null;
 
     try {
       result = await fn();
     } catch (err) {
       error = err;
-      logger.error('Error in mutex-protected operation:', err);
+      logger.error('Error in mutex-protected operation:', err as any);
     } finally {
       this.mutex.locked = false;
 
       // Process next item in queue
       if (this.mutex.queue.length > 0) {
-        const { fn: nextFn, resolve, reject } = this.mutex.queue.shift();
+        const { fn: nextFn, resolve, reject } = this.mutex.queue.shift()!;
 
         // Run next function and handle its result/error
-        this.withMutex(nextFn).then(resolve).catch(reject);
+        this.withMutex(nextFn as () => Promise<unknown>)
+          .then(resolve)
+          .catch(reject);
       }
     }
 
@@ -281,13 +331,13 @@ export class ProjectManager {
       throw error;
     }
 
-    return result;
+    return result as T;
   }
 
   /**
    * Cleanup resources
    */
-  async cleanup() {
+  async cleanup(): Promise<void> {
     logger.info('Cleaning up project manager resources');
 
     // Close all database connections
@@ -296,7 +346,7 @@ export class ProjectManager {
         db.close();
         logger.info(`Database closed for ${projectName}`);
       } catch (error) {
-        logger.error(`Error closing database for ${projectName}:`, error);
+        logger.error(`Error closing database for ${projectName}:`, error as any);
       }
     }
 
