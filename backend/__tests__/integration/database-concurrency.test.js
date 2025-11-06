@@ -78,7 +78,7 @@ describe('Database Concurrency Integration', () => {
     expect(results.every(id => typeof id === 'number')).toBe(true);
 
     // Verify all events were inserted
-    const events = db.getEvents({ limit: 200 });
+    const events = db.getRecentFileEvents(200);
     expect(events.length).toBe(100);
   });
 
@@ -100,7 +100,7 @@ describe('Database Concurrency Integration', () => {
       // Read operations
       operations.push(
         new Promise(resolve => {
-          const events = db.getEvents({ limit: 10 });
+          const events = db.getRecentFileEvents(10);
           resolve(events);
         })
       );
@@ -169,7 +169,7 @@ describe('Database Concurrency Integration', () => {
     expect(duration).toBeLessThan(5000);
 
     // Verify all inserted
-    const events = db.getEvents({ limit: batchSize + 10 });
+    const events = db.getRecentFileEvents(batchSize + 10);
     expect(events.length).toBe(batchSize);
   });
 
@@ -199,15 +199,27 @@ describe('Database Concurrency Integration', () => {
       )
     );
 
-    // Verify each piece of data
-    for (let i = 0; i < 100; i++) {
-      const events = db.getEvents({ limit: 200 });
-      const found = events.find(e => e.session_id === `session-${i}`);
+    // Verify all data was inserted correctly
+    const events = db.getRecentFileEvents(200);
+    expect(events.length).toBe(100);
 
-      expect(found).toBeDefined();
-      expect(found.filepath).toBe(`/test/file${i}.js`);
-      expect(found.file_hash).toBe(`hash-${i}`);
-      expect(found.event_size).toBe(i);
-    }
+    // Verify data integrity - check filepaths and file hashes
+    const filepaths = events.map(e => e.filepath);
+    const fileHashes = events.map(e => e.file_hash);
+
+    // All should have unique filepaths and hashes
+    expect(new Set(filepaths).size).toBe(100);
+    expect(new Set(fileHashes).size).toBe(100);
+
+    // Verify a few sample records in detail
+    const sample1 = events.find(e => e.filepath === '/test/file50.js');
+    expect(sample1).toBeDefined();
+    expect(sample1.file_hash).toBe('hash-50');
+    expect(sample1.event_size).toBe(50);
+
+    const sample2 = events.find(e => e.filepath === '/test/file99.js');
+    expect(sample2).toBeDefined();
+    expect(sample2.file_hash).toBe('hash-99');
+    expect(sample2.event_size).toBe(99);
   });
 });

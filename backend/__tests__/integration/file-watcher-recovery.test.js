@@ -32,8 +32,11 @@ describe('File Watcher Recovery Integration', () => {
     const module = await import('../../services/file-watcher-service.js');
     FileWatcherService = module.FileWatcherService;
 
-    // Create watcher service
-    watcherService = new FileWatcherService(mockIo);
+    // Create watcher service with initial project paths
+    watcherService = new FileWatcherService({
+      io: mockIo,
+      projectPaths: new Map([[TEST_PROJECT_NAME, TEST_PROJECT_PATH]])
+    });
   });
 
   afterEach(async () => {
@@ -48,8 +51,6 @@ describe('File Watcher Recovery Integration', () => {
   });
 
   test('should initialize watcher for a project', () => {
-    watcherService.setProjectPaths(new Map([[TEST_PROJECT_NAME, TEST_PROJECT_PATH]]));
-
     const watcher = watcherService.initializeWatcher(TEST_PROJECT_NAME);
 
     expect(watcher).toBeDefined();
@@ -57,8 +58,6 @@ describe('File Watcher Recovery Integration', () => {
   });
 
   test('should restart watcher after stop', async () => {
-    watcherService.setProjectPaths(new Map([[TEST_PROJECT_NAME, TEST_PROJECT_PATH]]));
-
     // Initialize
     const watcher1 = watcherService.initializeWatcher(TEST_PROJECT_NAME);
     expect(watcher1).toBeDefined();
@@ -74,8 +73,6 @@ describe('File Watcher Recovery Integration', () => {
   });
 
   test('should handle multiple concurrent restarts gracefully', async () => {
-    watcherService.setProjectPaths(new Map([[TEST_PROJECT_NAME, TEST_PROJECT_PATH]]));
-
     watcherService.initializeWatcher(TEST_PROJECT_NAME);
 
     // Try to restart multiple times concurrently
@@ -92,8 +89,6 @@ describe('File Watcher Recovery Integration', () => {
   });
 
   test('should detect file changes after restart', async () => {
-    watcherService.setProjectPaths(new Map([[TEST_PROJECT_NAME, TEST_PROJECT_PATH]]));
-
     let changeDetected = false;
     watcherService.handleFileChange = (type, path) => {
       if (type === 'add' && path.includes('test-file.txt')) {
@@ -132,14 +127,19 @@ describe('File Watcher Recovery Integration', () => {
       }
     }
 
-    watcherService.setProjectPaths(projects);
-    watcherService.initializeAllWatchers();
+    // Create new service with multiple projects
+    const multiProjectService = new FileWatcherService({
+      io: mockIo,
+      projectPaths: projects
+    });
 
-    expect(watcherService.watchers.size).toBe(2);
+    multiProjectService.initializeAllWatchers();
 
-    await watcherService.stopAllWatchers();
+    expect(multiProjectService.watchers.size).toBe(2);
 
-    expect(watcherService.watchers.size).toBe(0);
+    await multiProjectService.stopAllWatchers();
+
+    expect(multiProjectService.watchers.size).toBe(0);
 
     // Clean up test directories
     for (const [, path] of projects) {

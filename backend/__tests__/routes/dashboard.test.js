@@ -7,6 +7,7 @@ import { jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createDashboardRoutes } from '../../routes/dashboard.js';
+import { dashboardCache } from '../../utils/cache.js';
 
 describe('Dashboard Routes', () => {
   let app;
@@ -32,16 +33,22 @@ describe('Dashboard Routes', () => {
         { filepath: 'file1.js', change_count: 10, edit_count: 10, total_lines_changed: 100 },
         { filepath: 'file2.js', change_count: 8, edit_count: 8, total_lines_changed: 80 }
       ]),
-      getLongestEdits: jest.fn().mockReturnValue([
-        { file: 'long1.js', duration_ms: 5000 }
-      ]),
-      getHistoricalAgents: jest.fn().mockReturnValue([
-        { agent_name: 'agent1', agent_type: 'type1', last_seen: new Date().toISOString(), requests_handled: 10, errors: 0 }
-      ]),
+      getLongestEdits: jest.fn().mockReturnValue([{ file: 'long1.js', duration_ms: 5000 }]),
+      getHistoricalAgents: jest
+        .fn()
+        .mockReturnValue([
+          {
+            agent_name: 'agent1',
+            agent_type: 'type1',
+            last_seen: new Date().toISOString(),
+            requests_handled: 10,
+            errors: 0
+          }
+        ]),
       getAgentStats: jest.fn().mockReturnValue({ total: 10, avg_duration: 100 }),
       db: {
-        prepare: jest.fn((sql) => ({
-          all: jest.fn((_sessionId) => {
+        prepare: jest.fn(sql => ({
+          all: jest.fn(_sessionId => {
             // Mock agent queries for project1 - return 2 unique agents
             if (sql.includes('DISTINCT agent FROM agent_events')) {
               return [{ agent: 'agent1' }, { agent: 'agent2' }];
@@ -73,8 +80,8 @@ describe('Dashboard Routes', () => {
       getHistoricalAgents: jest.fn().mockReturnValue([]),
       getAgentStats: jest.fn().mockReturnValue({ total: 20, avg_duration: 200 }),
       db: {
-        prepare: jest.fn((sql) => ({
-          all: jest.fn((_sessionId) => {
+        prepare: jest.fn(sql => ({
+          all: jest.fn(_sessionId => {
             // Mock agent queries for project2 - return 3 unique agents (no overlap)
             if (sql.includes('DISTINCT agent FROM agent_events')) {
               return [{ agent: 'agent3' }, { agent: 'agent4' }, { agent: 'agent5' }];
@@ -99,7 +106,7 @@ describe('Dashboard Routes', () => {
       projectState: mockProjectState,
       SESSION_ID: 'test-session-123',
       agentRegistry: new Map(),
-      getAgentColor: (_name) => '#FF0000'
+      getAgentColor: _name => '#FF0000'
     };
 
     // Create Express app with dashboard routes
@@ -133,6 +140,8 @@ describe('Dashboard Routes', () => {
     });
 
     test('should handle single project', async () => {
+      dashboardCache.clear(); // Clear cache before test
+
       // Create new app with single project
       const singleProjectDeps = {
         ...mockDeps,
@@ -150,7 +159,11 @@ describe('Dashboard Routes', () => {
     });
 
     test('should use longest session duration', async () => {
-      const response = await request(app).get('/api/dashboard-stats');
+      dashboardCache.clear(); // Clear cache before test
+
+      const response = await request(app)
+        .get('/api/dashboard-stats')
+        .set('Cache-Control', 'no-cache');
 
       expect(response.status).toBe(200);
       // Should use the longer duration (7200)
@@ -158,11 +171,15 @@ describe('Dashboard Routes', () => {
     });
 
     test('should handle database errors gracefully', async () => {
+      dashboardCache.clear(); // Clear cache before error test
+
       mockDb1.getDashboardStats.mockImplementation(() => {
         throw new Error('Database error');
       });
 
-      const response = await request(app).get('/api/dashboard-stats');
+      const response = await request(app)
+        .get('/api/dashboard-stats')
+        .set('Cache-Control', 'no-cache');
 
       expect(response.status).toBe(500);
       expect(response.body.error).toBeDefined();
@@ -228,9 +245,13 @@ describe('Dashboard Routes', () => {
     });
 
     test('should handle empty results from some projects', async () => {
+      dashboardCache.clear(); // Clear cache before test
+
       mockDb2.getTopModifiedFiles.mockReturnValue([]);
 
-      const response = await request(app).get('/api/top-modified-files');
+      const response = await request(app)
+        .get('/api/top-modified-files')
+        .set('Cache-Control', 'no-cache');
 
       expect(response.status).toBe(200);
       expect(response.body.files).toHaveLength(2);
