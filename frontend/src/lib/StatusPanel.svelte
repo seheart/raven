@@ -149,7 +149,11 @@
     if (restartingBridge) return;
 
     // Add confirmation
-    if (!confirm('Are you sure you want to restart the telemetry bridge? Claude Code tracking will be interrupted briefly.')) {
+    if (
+      !confirm(
+        'Are you sure you want to restart the telemetry bridge? Claude Code tracking will be interrupted briefly.'
+      )
+    ) {
       return;
     }
 
@@ -176,12 +180,12 @@
   }
 
   // WebSocket event handlers
-  const handleProjectSwitched = async (data) => {
+  const handleProjectSwitched = async data => {
     await checkBackendHealth();
     await checkGitStatus();
   };
 
-  const handleGitStatusUpdated = (data) => {
+  const handleGitStatusUpdated = data => {
     // Update git status from WebSocket event
     if (data && data.project === $projectFilter) {
       gitStatus = {
@@ -237,7 +241,12 @@
     <h2 id="status-heading"><span aria-hidden="true">🏥</span> System Status</h2>
     <div class="header-actions" role="toolbar" aria-label="Status panel actions">
       <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
-      <button on:click={() => checkBackendHealth(true)} class="btn btn-secondary" disabled={loading} aria-label="Refresh system status">
+      <button
+        on:click={() => checkBackendHealth(true)}
+        class="btn btn-secondary"
+        disabled={loading}
+        aria-label="Refresh system status"
+      >
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         <span>Refresh</span>
       </button>
@@ -254,8 +263,15 @@
             <span aria-hidden="true">⏳</span> Loading...
           </div>
         {:else}
-          <div class="status-indicator" class:online={backendStatus.connected} class:offline={!backendStatus.connected} role="status" aria-live="polite">
-            <span aria-hidden="true">{backendStatus.connected ? '🟢' : '🔴'}</span> {backendStatus.connected ? 'Online' : 'Offline'}
+          <div
+            class="status-indicator"
+            class:online={backendStatus.connected}
+            class:offline={!backendStatus.connected}
+            role="status"
+            aria-live="polite"
+          >
+            <span aria-hidden="true">{backendStatus.connected ? '🟢' : '🔴'}</span>
+            {backendStatus.connected ? 'Online' : 'Offline'}
           </div>
         {/if}
       </div>
@@ -274,7 +290,9 @@
           <div class="info-row session-row">
             <span class="label">Session ID:</span>
             <div class="session-id-container">
-              <span class="value mono session-id-value" title="{backendStatus.session_id}">{backendStatus.session_id}</span>
+              <span class="value mono session-id-value" title={backendStatus.session_id}
+                >{backendStatus.session_id}</span
+              >
               <button
                 class="btn btn-sm btn-icon"
                 on:click={() => {
@@ -296,10 +314,12 @@
             <div
               class="uptime-bar"
               role="progressbar"
-              aria-valuenow="{(backendStatus.uptime / 86400) * 100}"
+              aria-valuenow={(backendStatus.uptime / 86400) * 100}
               aria-valuemin="0"
               aria-valuemax="100"
-              aria-label="Server uptime: {((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24 hours"
+              aria-label="Server uptime: {((backendStatus.uptime / 86400) * 100).toFixed(
+                1
+              )}% of 24 hours"
             >
               <div
                 class="uptime-fill"
@@ -307,7 +327,9 @@
                 aria-hidden="true"
               ></div>
             </div>
-            <span class="uptime-label" aria-hidden="true">{((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24h</span>
+            <span class="uptime-label" aria-hidden="true"
+              >{((backendStatus.uptime / 86400) * 100).toFixed(1)}% of 24h</span
+            >
           </div>
           <div class="info-row">
             <span class="label">Session ID:</span>
@@ -319,14 +341,20 @@
           </div>
           <div class="info-row">
             <span class="label">Database:</span>
-            <span class="value mono small">{backendStatus?.database?.split('/')?.slice(-3)?.join('/') || 'N/A'}</span>
+            <span class="value mono small"
+              >{backendStatus?.database?.split('/')?.slice(-3)?.join('/') || 'N/A'}</span
+            >
           </div>
           <div class="info-row">
             <span class="label">DB Health:</span>
-            <span class="value" class:success={backendStatus.database_health.status === 'healthy'} class:error={backendStatus.database_health.status === 'error'}>
+            <span
+              class="value"
+              class:success={backendStatus.database_health.status === 'healthy'}
+              class:error={backendStatus.database_health.status === 'error'}
+            >
               {backendStatus.database_health.status === 'healthy' ? '✓ Healthy' : '✗ Error'}
               {#if !backendStatus.database_health.accessible}
-                <span class="db-error-hint" title="{backendStatus.database_health.lastError}">
+                <span class="db-error-hint" title={backendStatus.database_health.lastError}>
                   (Inaccessible)
                 </span>
               {/if}
@@ -350,8 +378,15 @@
             <span aria-hidden="true">⏳</span> Loading...
           </div>
         {:else}
-          <div class="status-indicator" class:online={websocketStatus.connected} class:offline={!websocketStatus.connected} role="status" aria-live="polite">
-            <span aria-hidden="true">{websocketStatus.connected ? '🟢' : '🔴'}</span> {websocketStatus.connected ? 'Connected' : 'Disconnected'}
+          <div
+            class="status-indicator"
+            class:online={websocketStatus.connected}
+            class:offline={!websocketStatus.connected}
+            role="status"
+            aria-live="polite"
+          >
+            <span aria-hidden="true">{websocketStatus.connected ? '🟢' : '🔴'}</span>
+            {websocketStatus.connected ? 'Connected' : 'Disconnected'}
           </div>
         {/if}
       </div>
@@ -371,9 +406,7 @@
             <span class="label">Real-time Updates:</span>
             <span class="value success">Enabled ✓</span>
           </div>
-          <div class="info-message">
-            ✅ Receiving real-time events from backend
-          </div>
+          <div class="info-message">✅ Receiving real-time events from backend</div>
         {:else}
           <div class="error-message" role="alert">
             ⚠️ WebSocket disconnected
@@ -392,8 +425,15 @@
             <span aria-hidden="true">⏳</span> Loading...
           </div>
         {:else}
-          <div class="status-indicator" class:online={backendStatus.telemetry_bridge.healthy} class:offline={!backendStatus.telemetry_bridge.healthy} role="status" aria-live="polite">
-            <span aria-hidden="true">{backendStatus.telemetry_bridge.healthy ? '🟢' : '🔴'}</span> {backendStatus.telemetry_bridge.healthy ? 'Running' : 'Stopped'}
+          <div
+            class="status-indicator"
+            class:online={backendStatus.telemetry_bridge.healthy}
+            class:offline={!backendStatus.telemetry_bridge.healthy}
+            role="status"
+            aria-live="polite"
+          >
+            <span aria-hidden="true">{backendStatus.telemetry_bridge.healthy ? '🟢' : '🔴'}</span>
+            {backendStatus.telemetry_bridge.healthy ? 'Running' : 'Stopped'}
           </div>
         {/if}
       </div>
@@ -414,11 +454,16 @@
               <span class="label">Health:</span>
               <span class="value success">✓ Healthy</span>
             </div>
-            <div class="info-message">
-              ✅ Claude Code operations are being tracked
-            </div>
-            <button on:click={restartBridge} class="btn btn-secondary" disabled={restartingBridge} aria-label="Restart telemetry bridge">
-              <span class="refresh-icon" class:spinning={restartingBridge} aria-hidden="true">↻</span>
+            <div class="info-message">✅ Claude Code operations are being tracked</div>
+            <button
+              on:click={restartBridge}
+              class="btn btn-secondary"
+              disabled={restartingBridge}
+              aria-label="Restart telemetry bridge"
+            >
+              <span class="refresh-icon" class:spinning={restartingBridge} aria-hidden="true"
+                >↻</span
+              >
               {restartingBridge ? 'Restarting...' : 'Restart Bridge'}
             </button>
           {:else}
@@ -426,8 +471,15 @@
               ⚠️ Telemetry bridge is not running
               <p class="hint">Claude Code operations will not be tracked</p>
             </div>
-            <button on:click={restartBridge} class="btn btn-primary" disabled={restartingBridge} aria-label="Start telemetry bridge">
-              <span class="refresh-icon" class:spinning={restartingBridge} aria-hidden="true">↻</span>
+            <button
+              on:click={restartBridge}
+              class="btn btn-primary"
+              disabled={restartingBridge}
+              aria-label="Start telemetry bridge"
+            >
+              <span class="refresh-icon" class:spinning={restartingBridge} aria-hidden="true"
+                >↻</span
+              >
               {restartingBridge ? 'Starting...' : 'Start Bridge'}
             </button>
           {/if}
@@ -450,7 +502,8 @@
           </div>
         {:else}
           <div class="status-indicator online" role="status">
-            <span aria-hidden="true">🟢</span> {formatNumber($availableProjects.length)} Active
+            <span aria-hidden="true">🟢</span>
+            {formatNumber($availableProjects.length)} Active
           </div>
         {/if}
       </div>
@@ -459,26 +512,24 @@
           <LoadingSkeleton height="100px" />
         {:else}
           <div class="projects-list" role="list" aria-label="Monitored projects">
-          {#each $availableProjects as project (project.name || project)}
-            {@const projectName = project.name || project}
-            <button
-              class="btn btn-ghost project-item"
-              class:selected={$projectFilter === projectName}
-              on:click={() => projectFilter.set(projectName)}
-              aria-label="Switch to project {projectName}"
-              aria-pressed={$projectFilter === projectName}
-            >
-              <div class="project-status-dot" aria-hidden="true"></div>
-              <span class="project-name">{projectName}</span>
-              {#if $projectFilter === projectName}
-                <span class="project-badge" aria-label="Currently viewing">viewing</span>
-              {/if}
-            </button>
-          {/each}
+            {#each $availableProjects as project (project.name || project)}
+              {@const projectName = project.name || project}
+              <button
+                class="btn btn-ghost project-item"
+                class:selected={$projectFilter === projectName}
+                on:click={() => projectFilter.set(projectName)}
+                aria-label="Switch to project {projectName}"
+                aria-pressed={$projectFilter === projectName}
+              >
+                <div class="project-status-dot" aria-hidden="true"></div>
+                <span class="project-name">{projectName}</span>
+                {#if $projectFilter === projectName}
+                  <span class="project-badge" aria-label="Currently viewing">viewing</span>
+                {/if}
+              </button>
+            {/each}
           </div>
-          <div class="info-message" role="status">
-            ✅ Global multi-project monitoring active
-          </div>
+          <div class="info-message" role="status">✅ Global multi-project monitoring active</div>
         {/if}
       </div>
     </article>
@@ -492,8 +543,14 @@
             <span aria-hidden="true">⏳</span> Loading...
           </div>
         {:else}
-          <div class="status-indicator" class:online={gitStatus.available} class:offline={!gitStatus.available} role="status">
-            <span aria-hidden="true">{gitStatus.available ? '🟢' : '⚫'}</span> {gitStatus.available ? 'Available' : 'Not a Git Repo'}
+          <div
+            class="status-indicator"
+            class:online={gitStatus.available}
+            class:offline={!gitStatus.available}
+            role="status"
+          >
+            <span aria-hidden="true">{gitStatus.available ? '🟢' : '⚫'}</span>
+            {gitStatus.available ? 'Available' : 'Not a Git Repo'}
           </div>
         {/if}
       </div>
@@ -525,7 +582,9 @@
           <!-- All Branches -->
           {#if gitStatus?.branches?.length > 0}
             <div class="git-section">
-              <h4 class="section-title">🌿 All Branches ({formatNumber(gitStatus?.branches?.length || 0)})</h4>
+              <h4 class="section-title">
+                🌿 All Branches ({formatNumber(gitStatus?.branches?.length || 0)})
+              </h4>
               <div class="branches-list">
                 {#each gitStatus?.branches || [] as branch (branch)}
                   <span class="branch-tag" class:active={branch === gitStatus?.branch}>
@@ -555,7 +614,10 @@
             </div>
           {/if}
         {:else}
-          <div class="info-message" style="background: color-mix(in srgb, var(--muted) 10%, transparent); border-color: color-mix(in srgb, var(--muted) 30%, transparent); color: var(--muted);">
+          <div
+            class="info-message"
+            style="background: color-mix(in srgb, var(--muted) 10%, transparent); border-color: color-mix(in srgb, var(--muted) 30%, transparent); color: var(--muted);"
+          >
             ℹ️ Not a Git repository or Git monitoring is disabled
           </div>
         {/if}
@@ -619,7 +681,7 @@
     font-family: var(--mono);
     background: var(--bg);
     color: var(--text);
-    min-height: calc(100vh - 200px);
+    min-height: calc(100vh - 102px); /* header + sub-nav + footer */
   }
 
   .header {
@@ -741,7 +803,6 @@
     word-break: break-all;
     font-size: 11px;
   }
-
 
   .label {
     color: var(--muted);

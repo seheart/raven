@@ -1115,7 +1115,7 @@
 <style>
   .live-code-feed {
     width: 100%;
-    height: calc(100vh - 180px);
+    height: calc(100vh - 38px - 32px - 32px); /* header + sub-nav + footer */
     display: flex;
     flex-direction: column;
     background: var(--bg);
@@ -1300,7 +1300,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
-    padding-bottom: 20px;
+    padding-bottom: 0;
   }
 
   .change-item {

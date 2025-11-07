@@ -48,7 +48,7 @@
     }
   };
 
-  const handleProjectSwitched = async (data) => {
+  const handleProjectSwitched = async data => {
     try {
       logger.info('📡 Project switched, reloading dashboard data:', data.project);
       await loadAllData();
@@ -91,10 +91,18 @@
   async function loadAllData() {
     try {
       const [statsData, filesData, editsData, agentsData] = await Promise.all([
-        fetch(`${API_BASE}/dashboard-stats`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
-        fetch(`${API_BASE}/top-modified-files?limit=10`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
-        fetch(`${API_BASE}/longest-edits?limit=10`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
-        fetch(`${API_BASE}/agents-status`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+        fetch(`${API_BASE}/dashboard-stats`).then(r =>
+          r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
+        ),
+        fetch(`${API_BASE}/top-modified-files?limit=10`).then(r =>
+          r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
+        ),
+        fetch(`${API_BASE}/longest-edits?limit=10`).then(r =>
+          r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
+        ),
+        fetch(`${API_BASE}/agents-status`).then(r =>
+          r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
+        )
       ]);
 
       stats = statsData;
@@ -125,19 +133,26 @@
       on:click={loadAllData}
       class="btn btn-secondary btn-sm"
       aria-label="Refresh dashboard data"
-      title="Refresh dashboard data">
+      title="Refresh dashboard data"
+    >
       ↻ Refresh
     </button>
   </div>
 
   {#if loading}
-    <div class="loading" role="status" aria-live="polite" aria-busy="true">Loading dashboard...</div>
+    <div class="loading" role="status" aria-live="polite" aria-busy="true">
+      Loading dashboard...
+    </div>
   {:else}
     <!-- Stats Cards -->
     <div class="stats-grid" role="region" aria-labelledby="stats-heading">
       <h3 id="stats-heading" class="visually-hidden">Dashboard Statistics</h3>
 
-      <div class="card-compact stat-card" role="status" aria-label="Total events: {stats.total_events}">
+      <div
+        class="card-compact stat-card"
+        role="status"
+        aria-label="Total events: {stats.total_events}"
+      >
         <div class="stat-icon" aria-hidden="true">📊</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_events}</div>
@@ -145,7 +160,11 @@
         </div>
       </div>
 
-      <div class="card-compact stat-card" role="status" aria-label="Tracked files: {stats.total_files}">
+      <div
+        class="card-compact stat-card"
+        role="status"
+        aria-label="Tracked files: {stats.total_files}"
+      >
         <div class="stat-icon" aria-hidden="true">📁</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_files}</div>
@@ -153,7 +172,11 @@
         </div>
       </div>
 
-      <div class="card-compact stat-card" role="status" aria-label="AI agents: {stats.total_agents}">
+      <div
+        class="card-compact stat-card"
+        role="status"
+        aria-label="AI agents: {stats.total_agents}"
+      >
         <div class="stat-icon" aria-hidden="true">🤖</div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_agents}</div>
@@ -161,7 +184,11 @@
         </div>
       </div>
 
-      <div class="card-compact stat-card" role="status" aria-label="Session duration: {formatDurationSeconds(stats.session_duration_seconds)}">
+      <div
+        class="card-compact stat-card"
+        role="status"
+        aria-label="Session duration: {formatDurationSeconds(stats.session_duration_seconds)}"
+      >
         <div class="stat-icon" aria-hidden="true">⏱️</div>
         <div class="stat-content">
           <div class="stat-value">{formatDurationSeconds(stats.session_duration_seconds)}</div>
@@ -169,7 +196,11 @@
         </div>
       </div>
 
-      <div class="card-compact stat-card" role="status" aria-label="Active files today: {stats.active_files_today}">
+      <div
+        class="card-compact stat-card"
+        role="status"
+        aria-label="Active files today: {stats.active_files_today}"
+      >
         <div class="stat-icon" aria-hidden="true">🔥</div>
         <div class="stat-content">
           <div class="stat-value">{stats.active_files_today}</div>
@@ -203,7 +234,8 @@
                     <span class="file-path">{file.filepath}</span>
                   </div>
                   <div class="col-count" role="cell">
-                    <span class="badge" aria-label="{file.edit_count} edits">{file.edit_count}</span>
+                    <span class="badge" aria-label="{file.edit_count} edits">{file.edit_count}</span
+                    >
                   </div>
                   <div class="col-time" role="cell">
                     <time datetime={file.last_modified}>{formatTimestamp(file.last_modified)}</time>
@@ -219,7 +251,9 @@
       <section class="card panel" aria-labelledby="longest-edits-heading">
         <div class="panel-header">
           <h2 id="longest-edits-heading"><span aria-hidden="true">🎯</span> Longest Edits</h2>
-          <span class="panel-count" aria-label="{longestEdits.length} edits">{longestEdits.length}</span>
+          <span class="panel-count" aria-label="{longestEdits.length} edits"
+            >{longestEdits.length}</span
+          >
         </div>
         <div class="panel-content">
           {#if longestEdits.length === 0}
@@ -231,18 +265,24 @@
                 <div class="col-count" role="columnheader">Lines</div>
                 <div class="col-agent" role="columnheader">Agent</div>
               </div>
-              {#each longestEdits || [] as edit (edit.id || `${edit.filepath}-${edit.timestamp}`)  }
+              {#each longestEdits || [] as edit (edit.id || `${edit.filepath}-${edit.timestamp}`)}
                 <div class="table-row" role="row">
                   <div class="col-file" role="cell" title={edit.filepath}>
                     <span class="file-icon" aria-hidden="true">📄</span>
                     <span class="file-path">{edit.filepath || 'Unknown'}</span>
                   </div>
                   <div class="col-count" role="cell">
-                    <span class="badge lines" aria-label="{edit.lines_changed} lines changed">{edit.lines_changed}</span>
+                    <span class="badge lines" aria-label="{edit.lines_changed} lines changed"
+                      >{edit.lines_changed}</span
+                    >
                   </div>
                   <div class="col-agent" role="cell">
                     {#if edit.agent}
-                      <span class="agent-badge" style="background-color: {getAgentColor(edit.agent)}" aria-label="Agent: {edit.agent}">
+                      <span
+                        class="agent-badge"
+                        style="background-color: {getAgentColor(edit.agent)}"
+                        aria-label="Agent: {edit.agent}"
+                      >
                         {edit.agent}
                       </span>
                     {:else}
@@ -260,7 +300,12 @@
       <section class="card panel agents-panel" aria-labelledby="active-agents-heading">
         <div class="panel-header">
           <h2 id="active-agents-heading"><span aria-hidden="true">🤖</span> Active Agents</h2>
-          <span class="panel-count" aria-label="{agents.filter(a => a?.is_running).length} of {agents.length} agents running">{agents.filter(a => a?.is_running).length} / {agents.length}</span>
+          <span
+            class="panel-count"
+            aria-label="{agents.filter(a => a?.is_running)
+              .length} of {agents.length} agents running"
+            >{agents.filter(a => a?.is_running).length} / {agents.length}</span
+          >
         </div>
         <div class="panel-content">
           {#if agents.length === 0}
@@ -269,12 +314,22 @@
             <div class="agents-list" role="list" aria-label="AI agents">
               {#each agents || [] as agent (agent?.agent_name || agent?.id)}
                 <div class="agent-item" style="border-left-color: {agent?.color}" role="listitem">
-                  <div class="agent-status" class:running={agent?.is_running} aria-label="{agent?.is_running ? 'Running' : 'Stopped'}">
+                  <div
+                    class="agent-status"
+                    class:running={agent?.is_running}
+                    aria-label={agent?.is_running ? 'Running' : 'Stopped'}
+                  >
                     <span aria-hidden="true">{agent?.is_running ? '🟢' : '🔴'}</span>
                   </div>
                   <div class="agent-info">
                     <div class="agent-name">{agent?.agent_name || 'Unknown'}</div>
-                    <div class="agent-meta" aria-label="{agent?.models_available?.length || 0} models available{agent?.requests_handled > 0 ? `, ${agent.requests_handled} requests handled` : ''}">
+                    <div
+                      class="agent-meta"
+                      aria-label="{agent?.models_available?.length ||
+                        0} models available{agent?.requests_handled > 0
+                        ? `, ${agent.requests_handled} requests handled`
+                        : ''}"
+                    >
                       {agent?.models_available?.length || 0} models
                       {#if agent?.requests_handled > 0}
                         · {agent.requests_handled} requests
@@ -307,7 +362,7 @@
     width: 100%;
     margin: 0;
     background-color: var(--bg);
-    min-height: calc(100vh - 200px);
+    min-height: calc(100vh - 102px); /* header + sub-nav + footer */
     color: var(--text);
     position: relative;
   }
@@ -510,7 +565,8 @@
     justify-content: center;
   }
 
-  .col-time, .col-agent {
+  .col-time,
+  .col-agent {
     display: flex;
     align-items: center;
     font-size: 11px;
@@ -617,7 +673,8 @@
       grid-template-columns: 1fr;
     }
 
-    .table-header, .table-row {
+    .table-header,
+    .table-row {
       grid-template-columns: 2fr 1fr;
     }
 

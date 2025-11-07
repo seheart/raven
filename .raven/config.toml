@@ -101,12 +101,12 @@ skip_projects = [
 
 # ==================== Custom Triggers ====================
 
-[triggers.large_edit]
-file = "*.js"
-lines_changed = ">100"
-action = "log"
-message = "Large edit detected: {file} ({lines_changed} lines)"
-cooldown_seconds = 60
+# [triggers.large_edit]
+# file = "*.js"
+# lines_changed = ">100"
+# action = "log"
+# message = "Large edit detected: {file} ({lines_changed} lines)"
+# cooldown_seconds = 60
 
 # [triggers.slow_operation]
 # agent = "claude"

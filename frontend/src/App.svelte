@@ -1244,13 +1244,25 @@
     padding: 0;
     max-width: 100%;
     margin: 0;
-    min-height: calc(100vh - 100px);
-    padding-bottom: 60px; /* Space for fixed footer */
+    min-height: calc(
+      100vh - 70px
+    ); /* Fill visible space: viewport - header (38px) - footer (~32px) */
+    padding-bottom: 32px; /* Space for fixed footer */
+    margin-bottom: 0;
   }
 
   .tab-content {
     width: 100%;
     animation: fadeIn var(--duration-base) var(--ease-smooth);
+  }
+
+  /* Remove extra bottom spacing from content */
+  .tab-content > :last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .tab-content > * {
+    padding-bottom: 0 !important;
   }
 
   /* Sub-navigation - compact */
