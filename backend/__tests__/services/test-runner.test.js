@@ -3,21 +3,36 @@
  */
 
 import { jest } from '@jest/globals';
-import { TestRunner } from '../../services/test-runner.js';
 
 // Mock dependencies
 const mockExistsSync = jest.fn();
 const mockReadFileSync = jest.fn();
+const mockJoin = jest.fn((...args) => args.join('/'));
 
 jest.mock('fs', () => ({
   existsSync: mockExistsSync,
   readFileSync: mockReadFileSync
 }));
 
+jest.mock('path', () => ({
+  join: mockJoin
+}));
+
 jest.mock('child_process', () => ({
   exec: jest.fn(),
   spawn: jest.fn()
 }));
+
+jest.mock('../../utils/logger.js', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn()
+  }
+}));
+
+import { TestRunner } from '../../services/test-runner.js';
 
 describe('TestRunner', () => {
   let testRunner;
