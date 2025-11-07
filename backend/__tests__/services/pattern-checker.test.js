@@ -4,14 +4,10 @@
 
 import { jest } from '@jest/globals';
 import { PatternChecker } from '../../services/pattern-checker.js';
+import * as fs from 'fs';
 
 // Mock fs module
-jest.mock('fs', () => ({
-  readFileSync: jest.fn()
-}));
-
-// Import mocked fs
-import { readFileSync } from 'fs';
+jest.mock('fs');
 
 describe('PatternChecker', () => {
   let checker;
@@ -77,7 +73,7 @@ describe('PatternChecker', () => {
     test('should skip binary files', async () => {
       const result = await checker.checkFile('/path/to/image.png');
       expect(result).toEqual([]);
-      expect(readFileSync).not.toHaveBeenCalled();
+      expect(fs.readFileSync).not.toHaveBeenCalled();
     });
 
     test('should skip common binary extensions', async () => {
@@ -104,7 +100,7 @@ describe('PatternChecker', () => {
     test('should skip node_modules', async () => {
       const result = await checker.checkFile('/path/node_modules/package/index.js');
       expect(result).toEqual([]);
-      expect(readFileSync).not.toHaveBeenCalled();
+      expect(fs.readFileSync).not.toHaveBeenCalled();
     });
 
     test('should skip .git directory', async () => {
@@ -118,11 +114,11 @@ describe('PatternChecker', () => {
     });
 
     test('should process valid source files', async () => {
-      readFileSync.mockReturnValue('const x = 1;');
+      fs.readFileSync.mockReturnValue('const x = 1;');
 
       const result = await checker.checkFile('/path/to/source.js');
 
-      expect(readFileSync).toHaveBeenCalledWith('/path/to/source.js', 'utf-8');
+      expect(fs.readFileSync).toHaveBeenCalledWith('/path/to/source.js', 'utf-8');
       expect(Array.isArray(result)).toBe(true);
     });
   });
@@ -134,7 +130,7 @@ describe('PatternChecker', () => {
         const api_key = 'my-api-key';
         const token = "abc123def";
       `;
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       const result = await checker.checkFile('/path/to/file.js');
 
@@ -148,7 +144,7 @@ describe('PatternChecker', () => {
         const result = eval("2 + 2");
         eval(userInput);
       `;
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       const result = await checker.checkFile('/path/to/file.js');
 
@@ -159,7 +155,7 @@ describe('PatternChecker', () => {
 
     test('should emit WebSocket event for critical security issues', async () => {
       const content = 'const password = "secret123";';
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       await checker.checkFile('/path/to/file.js');
 
@@ -180,7 +176,7 @@ describe('PatternChecker', () => {
         console.warn("warning");
         console.error("error");
       `;
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       const result = await checker.checkFile('/path/to/file.js');
 
@@ -195,7 +191,7 @@ describe('PatternChecker', () => {
           return 42;
         }
       `;
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       const result = await checker.checkFile('/path/to/file.js');
 
@@ -209,7 +205,7 @@ describe('PatternChecker', () => {
         // HACK: Temporary solution
         /* XXX: Needs review */
       `;
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       const result = await checker.checkFile('/path/to/file.js');
 
@@ -227,7 +223,7 @@ describe('PatternChecker', () => {
         ${longLine}
         const another = 2;
       `;
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       const result = await checker.checkFile('/path/to/file.js');
 
@@ -239,7 +235,7 @@ describe('PatternChecker', () => {
 
     test('should truncate long line match text', async () => {
       const longLine = 'x'.repeat(250);
-      readFileSync.mockReturnValue(longLine);
+      fs.readFileSync.mockReturnValue(longLine);
 
       const result = await checker.checkFile('/path/to/file.js');
 
@@ -251,7 +247,7 @@ describe('PatternChecker', () => {
 
   describe('checkFile() - Database Operations', () => {
     test('should clear old warnings before inserting new ones', async () => {
-      readFileSync.mockReturnValue('const x = 1;');
+      fs.readFileSync.mockReturnValue('const x = 1;');
 
       await checker.checkFile('/path/to/file.js');
 
@@ -260,7 +256,7 @@ describe('PatternChecker', () => {
 
     test('should insert warnings into database', async () => {
       const content = 'console.log("test");';
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       await checker.checkFile('/path/to/file.js');
 
@@ -287,7 +283,7 @@ describe('PatternChecker', () => {
         debugger;
         // TODO: fix this
       `;
-      readFileSync.mockReturnValue(content);
+      fs.readFileSync.mockReturnValue(content);
 
       await checker.checkFile('/path/to/file.js');
 
@@ -297,7 +293,7 @@ describe('PatternChecker', () => {
 
   describe('checkFile() - Error Handling', () => {
     test('should handle file read errors', async () => {
-      readFileSync.mockImplementation(() => {
+      fs.readFileSync.mockImplementation(() => {
         throw new Error('File not found');
       });
 
@@ -307,7 +303,7 @@ describe('PatternChecker', () => {
     });
 
     test('should handle encoding errors', async () => {
-      readFileSync.mockImplementation(() => {
+      fs.readFileSync.mockImplementation(() => {
         throw new Error('Invalid UTF-8');
       });
 
@@ -317,7 +313,7 @@ describe('PatternChecker', () => {
     });
 
     test('should not throw on database errors', async () => {
-      readFileSync.mockReturnValue('console.log("test");');
+      fs.readFileSync.mockReturnValue('console.log("test");');
       mockDb.insertPatternWarning.mockImplementation(() => {
         throw new Error('Database error');
       });
@@ -429,7 +425,7 @@ line4`;
           return data;
         }
       `;
-      readFileSync.mockReturnValue(realContent);
+      fs.readFileSync.mockReturnValue(realContent);
 
       const result = await checker.checkFile('/path/to/real-file.js');
 
@@ -442,7 +438,7 @@ line4`;
     });
 
     test('should handle empty files', async () => {
-      readFileSync.mockReturnValue('');
+      fs.readFileSync.mockReturnValue('');
 
       const result = await checker.checkFile('/path/to/empty.js');
 
@@ -456,7 +452,7 @@ line4`;
           return a + b;
         }
       `;
-      readFileSync.mockReturnValue(cleanContent);
+      fs.readFileSync.mockReturnValue(cleanContent);
 
       const result = await checker.checkFile('/path/to/clean.js');
 

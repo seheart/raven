@@ -4,20 +4,16 @@
 
 import { jest } from '@jest/globals';
 import { SyntaxChecker } from '../../services/syntax-checker.js';
+import * as fs from 'fs';
 
 // Mock fs module
-jest.mock('fs', () => ({
-  readFileSync: jest.fn()
-}));
+jest.mock('fs');
 
 // Mock acorn module
 const mockAcornParse = jest.fn();
 jest.mock('acorn', () => ({
   parse: mockAcornParse
 }));
-
-// Import mocked modules
-import { readFileSync } from 'fs';
 
 describe('SyntaxChecker', () => {
   let checker;
@@ -61,25 +57,25 @@ describe('SyntaxChecker', () => {
     test('should skip node_modules', async () => {
       const result = await checker.checkFile('/path/node_modules/package/index.js');
       expect(result).toEqual([]);
-      expect(readFileSync).not.toHaveBeenCalled();
+      expect(fs.readFileSync).not.toHaveBeenCalled();
     });
 
     test('should skip TypeScript declaration files (.d.ts)', async () => {
       const result = await checker.checkFile('/path/types.d.ts');
       expect(result).toEqual([]);
-      expect(readFileSync).not.toHaveBeenCalled();
+      expect(fs.readFileSync).not.toHaveBeenCalled();
     });
 
     test('should skip dist directory', async () => {
       const result = await checker.checkFile('/path/dist/bundle.js');
       expect(result).toEqual([]);
-      expect(readFileSync).not.toHaveBeenCalled();
+      expect(fs.readFileSync).not.toHaveBeenCalled();
     });
 
     test('should skip build directory', async () => {
       const result = await checker.checkFile('/path/build/index.js');
       expect(result).toEqual([]);
-      expect(readFileSync).not.toHaveBeenCalled();
+      expect(fs.readFileSync).not.toHaveBeenCalled();
     });
 
     test('should skip unsupported file extensions', async () => {
@@ -88,12 +84,12 @@ describe('SyntaxChecker', () => {
     });
 
     test('should process valid source files', async () => {
-      readFileSync.mockReturnValue('const x = 1;');
+      fs.readFileSync.mockReturnValue('const x = 1;');
       mockAcornParse.mockImplementation(() => {}); // No error
 
       const result = await checker.checkFile('/path/to/source.js');
 
-      expect(readFileSync).toHaveBeenCalledWith('/path/to/source.js', 'utf-8');
+      expect(fs.readFileSync).toHaveBeenCalledWith('/path/to/source.js', 'utf-8');
       expect(Array.isArray(result)).toBe(true);
     });
   });
@@ -322,7 +318,7 @@ describe('SyntaxChecker', () => {
 
   describe('checkFile() - Database Operations', () => {
     test('should clear old errors before inserting new ones', async () => {
-      readFileSync.mockReturnValue('const x = 1;');
+      fs.readFileSync.mockReturnValue('const x = 1;');
       mockAcornParse.mockImplementation(() => {}); // No error
 
       await checker.checkFile('/path/to/file.js');
@@ -334,7 +330,7 @@ describe('SyntaxChecker', () => {
       const syntaxError = new Error('Unexpected token');
       syntaxError.loc = { line: 2, column: 5 };
 
-      readFileSync.mockReturnValue('const x =');
+      fs.readFileSync.mockReturnValue('const x =');
       mockAcornParse.mockImplementation(() => {
         throw syntaxError;
       });
@@ -357,7 +353,7 @@ describe('SyntaxChecker', () => {
     });
 
     test('should insert multiple errors', async () => {
-      readFileSync.mockReturnValue('{"invalid": json}');
+      fs.readFileSync.mockReturnValue('{"invalid": json}');
 
       await checker.checkFile('/path/to/file.json');
 
@@ -371,7 +367,7 @@ describe('SyntaxChecker', () => {
       const syntaxError = new Error('Unexpected token');
       syntaxError.loc = { line: 2, column: 5 };
 
-      readFileSync.mockReturnValue('const x =');
+      fs.readFileSync.mockReturnValue('const x =');
       mockAcornParse.mockImplementation(() => {
         throw syntaxError;
       });
@@ -394,7 +390,7 @@ describe('SyntaxChecker', () => {
     });
 
     test('should emit multiple errors', async () => {
-      readFileSync.mockReturnValue('{"invalid": json}');
+      fs.readFileSync.mockReturnValue('{"invalid": json}');
 
       await checker.checkFile('/path/to/file.json');
 
@@ -405,7 +401,7 @@ describe('SyntaxChecker', () => {
 
   describe('checkFile() - Error Handling', () => {
     test('should handle file read errors', async () => {
-      readFileSync.mockImplementation(() => {
+      fs.readFileSync.mockImplementation(() => {
         throw new Error('File not found');
       });
 
@@ -415,7 +411,7 @@ describe('SyntaxChecker', () => {
     });
 
     test('should handle encoding errors', async () => {
-      readFileSync.mockImplementation(() => {
+      fs.readFileSync.mockImplementation(() => {
         throw new Error('Invalid UTF-8');
       });
 
@@ -425,7 +421,7 @@ describe('SyntaxChecker', () => {
     });
 
     test('should not throw on database errors', async () => {
-      readFileSync.mockReturnValue('{"invalid": json}');
+      fs.readFileSync.mockReturnValue('{"invalid": json}');
       mockDb.insertSyntaxError.mockImplementation(() => {
         throw new Error('Database error');
       });
@@ -436,7 +432,7 @@ describe('SyntaxChecker', () => {
     });
 
     test('should handle WebSocket emit errors', async () => {
-      readFileSync.mockReturnValue('{"invalid": json}');
+      fs.readFileSync.mockReturnValue('{"invalid": json}');
       mockIo.emit.mockImplementation(() => {
         throw new Error('WebSocket error');
       });
@@ -458,7 +454,7 @@ describe('SyntaxChecker', () => {
       const syntaxError = new Error('Unexpected token');
       syntaxError.loc = { line: 3, column: 8 };
 
-      readFileSync.mockReturnValue(jsContent);
+      fs.readFileSync.mockReturnValue(jsContent);
       mockAcornParse.mockImplementation(() => {
         throw syntaxError;
       });
@@ -479,7 +475,7 @@ describe('SyntaxChecker', () => {
 
     test('should process JSON file with errors correctly', async () => {
       const jsonContent = '{"key": invalid}';
-      readFileSync.mockReturnValue(jsonContent);
+      fs.readFileSync.mockReturnValue(jsonContent);
 
       const result = await checker.checkFile('/path/to/file.json');
 
@@ -492,7 +488,7 @@ describe('SyntaxChecker', () => {
 
     test('should process valid JavaScript file', async () => {
       const jsContent = 'const x = 1; console.log(x);';
-      readFileSync.mockReturnValue(jsContent);
+      fs.readFileSync.mockReturnValue(jsContent);
       mockAcornParse.mockImplementation(() => {}); // No error
 
       const result = await checker.checkFile('/path/to/file.js');
@@ -505,7 +501,7 @@ describe('SyntaxChecker', () => {
 
     test('should process valid JSON file', async () => {
       const jsonContent = '{"key": "value", "nested": {"prop": 123}}';
-      readFileSync.mockReturnValue(jsonContent);
+      fs.readFileSync.mockReturnValue(jsonContent);
 
       const result = await checker.checkFile('/path/to/file.json');
 
@@ -516,7 +512,7 @@ describe('SyntaxChecker', () => {
     });
 
     test('should handle empty files', async () => {
-      readFileSync.mockReturnValue('');
+      fs.readFileSync.mockReturnValue('');
       mockAcornParse.mockImplementation(() => {}); // Empty is valid
 
       const result = await checker.checkFile('/path/to/empty.js');
@@ -527,7 +523,7 @@ describe('SyntaxChecker', () => {
 
     test('should process files with multiple extensions', async () => {
       mockAcornParse.mockImplementation(() => {});
-      readFileSync.mockReturnValue('const x = 1;');
+      fs.readFileSync.mockReturnValue('const x = 1;');
 
       await checker.checkFile('/path/to/file.mjs');
       expect(mockAcornParse).toHaveBeenCalled();

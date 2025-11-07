@@ -83,7 +83,9 @@ describe('FileChangeHandler', () => {
     // Clear all mocks
     jest.clearAllMocks();
 
-    // Mock system metrics (after clear)
+    // Reset and mock system metrics (after clear)
+    mockCurrentLoad.mockReset();
+    mockMem.mockReset();
     mockCurrentLoad.mockResolvedValue({ currentLoad: 50 });
     mockMem.mockResolvedValue({ used: 5000000000, total: 10000000000 });
   });
