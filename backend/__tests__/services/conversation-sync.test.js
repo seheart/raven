@@ -582,4 +582,270 @@ describe('ConversationSync', () => {
       expect(sync.isRunning).toBe(false);
     });
   });
+
+  describe('Additional Edge Cases', () => {
+    test('should handle metadata field in entries', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        '{"type":"user","content":"Test","metadata":{"source":"test","priority":1}}'
+      );
+
+      await sync.processFile('/path/to/session-123.jsonl', false);
+
+      expect(mockDb.insertConversation).toHaveBeenCalledWith(
+        expect.any(String),
+        'session-123',
+        'user',
+        'Test',
+        null,
+        null,
+        null,
+        false,
+        null,
+        '{"source":"test","priority":1}',
+        projectName,
+        sessionId
+      );
+    });
+
+    test('should handle parent_uuid field', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        '{"type":"assistant","content":"Response","parent_uuid":"parent-id-123"}'
+      );
+
+      await sync.processFile('/path/to/session-123.jsonl', false);
+
+      expect(mockDb.insertConversation).toHaveBeenCalledWith(
+        expect.any(String),
+        'session-123',
+        'assistant',
+        'Response',
+        null,
+        null,
+        null,
+        false,
+        'parent-id-123',
+        null,
+        projectName,
+        sessionId
+      );
+    });
+
+    test('should handle error field in entries', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        '{"type":"tool_result","output":"Failed to execute","error":true}'
+      );
+
+      await sync.processFile('/path/to/session-123.jsonl', false);
+
+      expect(mockDb.insertConversation).toHaveBeenCalledWith(
+        expect.any(String),
+        'session-123',
+        'tool_result',
+        null,
+        null,
+        null,
+        'Failed to execute',
+        true,
+        null,
+        null,
+        projectName,
+        sessionId
+      );
+    });
+
+    test('should handle old format tool_name and input fields', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        '{"type":"tool_call","tool_name":"ReadFile","input":{"path":"test.js"}}'
+      );
+
+      await sync.processFile('/path/to/session-123.jsonl', false);
+
+      expect(mockDb.insertConversation).toHaveBeenCalledWith(
+        expect.any(String),
+        'session-123',
+        'tool_call',
+        null,
+        'ReadFile',
+        '{"path":"test.js"}',
+        null,
+        false,
+        null,
+        null,
+        projectName,
+        sessionId
+      );
+    });
+
+    test('should handle old format result field instead of output', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('{"type":"tool_result","result":"File contents here"}');
+
+      await sync.processFile('/path/to/session-123.jsonl', false);
+
+      expect(mockDb.insertConversation).toHaveBeenCalledWith(
+        expect.any(String),
+        'session-123',
+        'tool_result',
+        null,
+        null,
+        null,
+        'File contents here',
+        false,
+        null,
+        null,
+        projectName,
+        sessionId
+      );
+    });
+
+    test('should handle text field fallback for content', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        '{"type":"assistant_text","text":"Using text field instead of content"}'
+      );
+
+      await sync.processFile('/path/to/session-123.jsonl', false);
+
+      expect(mockDb.insertConversation).toHaveBeenCalledWith(
+        expect.any(String),
+        'session-123',
+        'assistant_text',
+        'Using text field instead of content',
+        null,
+        null,
+        null,
+        false,
+        null,
+        null,
+        projectName,
+        sessionId
+      );
+    });
+
+    test('should skip empty lines when processing file', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        '\n' +
+          '{"type":"user","content":"Message 1"}\n' +
+          '\n' +
+          '   \n' +
+          '{"type":"user","content":"Message 2"}\n' +
+          '\n'
+      );
+
+      await sync.processFile('/path/to/session-123.jsonl', false);
+
+      expect(mockDb.insertConversation).toHaveBeenCalledTimes(2);
+    });
+
+    test('should only process .jsonl files in directory', async () => {
+      mockReaddirSync.mockReturnValue([
+        'session-123.jsonl',
+        'session-456.jsonl',
+        'config.json',
+        'readme.md',
+        'backup.txt'
+      ]);
+      mockStatSync.mockReturnValue({ mtime: new Date() });
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('{"type":"user","content":"test"}');
+
+      jest.spyOn(sync, 'processFile').mockResolvedValue();
+
+      await sync.processExistingFiles();
+
+      // Should only call with .jsonl file
+      expect(sync.processFile).toHaveBeenCalledTimes(1);
+      expect(sync.processFile).toHaveBeenCalledWith(expect.stringContaining('.jsonl'), true);
+    });
+
+    test('should handle all conversation entry types', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        '{"type":"user_message","content":"A"}\n' +
+          '{"type":"assistant_text","content":"B"}\n' +
+          '{"type":"tool_call","content":"C"}\n' +
+          '{"type":"tool_result","content":"D"}\n' +
+          '{"type":"user","content":"E"}\n' +
+          '{"type":"assistant","content":"F"}'
+      );
+
+      await sync.processFile('/path/to/session-123.jsonl', false);
+
+      expect(mockDb.insertConversation).toHaveBeenCalledTimes(6);
+    });
+
+    test('should log import count with initial sync', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('{"type":"user","content":"test"}');
+
+      await sync.processFile('/path/to/session-123.jsonl', true);
+
+      // Just verify it doesn't throw - logger is mocked
+      expect(mockDb.insertConversation).toHaveBeenCalledTimes(1);
+    });
+
+    test('should handle multiple files but only process most recent', async () => {
+      const now = Date.now();
+      mockReaddirSync.mockReturnValue([
+        'session-1.jsonl',
+        'session-2.jsonl',
+        'session-3.jsonl',
+        'session-4.jsonl'
+      ]);
+
+      // Make session-3 the most recent
+      mockStatSync
+        .mockReturnValueOnce({ mtime: new Date(now - 1000000) })
+        .mockReturnValueOnce({ mtime: new Date(now - 500000) })
+        .mockReturnValueOnce({ mtime: new Date(now - 100) }) // Most recent
+        .mockReturnValueOnce({ mtime: new Date(now - 2000000) });
+
+      jest.spyOn(sync, 'processFile').mockResolvedValue();
+
+      await sync.processExistingFiles();
+
+      expect(sync.processFile).toHaveBeenCalledTimes(1);
+      expect(sync.processFile).toHaveBeenCalledWith(
+        expect.stringContaining('session-3.jsonl'),
+        true
+      );
+    });
+
+    test('should handle watcher callback with null filename', async () => {
+      mockExistsSync.mockReturnValue(true);
+      let changeCallback;
+      mockWatch.mockImplementation((dir, options, callback) => {
+        changeCallback = callback;
+        return { close: jest.fn() };
+      });
+
+      jest.spyOn(sync, 'processExistingFiles').mockResolvedValue();
+      jest.spyOn(sync, 'handleFileChange').mockImplementation(() => {});
+
+      await sync.start();
+
+      // Trigger with null filename
+      changeCallback('change', null);
+
+      expect(sync.handleFileChange).not.toHaveBeenCalled();
+    });
+
+    test('should calculate days since modified correctly', async () => {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      mockReaddirSync.mockReturnValue(['session-recent.jsonl']);
+      mockStatSync.mockReturnValue({ mtime: sevenDaysAgo });
+
+      jest.spyOn(sync, 'processFile').mockResolvedValue();
+
+      await sync.processExistingFiles();
+
+      // Should process files that are exactly 7 days old
+      expect(sync.processFile).toHaveBeenCalled();
+    });
+  });
 });
