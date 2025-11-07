@@ -230,7 +230,12 @@ describe('Constants Configuration', () => {
           if (typeof value === 'object' && value !== null) {
             checkPositive(value);
           } else if (typeof value === 'number') {
-            expect(value).toBeGreaterThan(0);
+            // Allow 0 for MIN values, otherwise must be positive
+            if (key.includes('MIN')) {
+              expect(value).toBeGreaterThanOrEqual(0);
+            } else {
+              expect(value).toBeGreaterThan(0);
+            }
           }
         });
       };

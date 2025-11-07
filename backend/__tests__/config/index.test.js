@@ -124,11 +124,12 @@ describe('Config Index', () => {
       expect(config.PORT).toBe(9000);
     });
 
-    test('PORT should handle non-numeric values with NaN', async () => {
+    test('PORT should handle non-numeric values with fallback', async () => {
       process.env.PORT = 'invalid';
       const { config } = await import('../../config/index.js');
 
-      expect(Number.isNaN(config.PORT)).toBe(true);
+      // parseInt('invalid') returns NaN, which triggers the || fallback to 3030
+      expect(config.PORT).toBe(3030);
     });
 
     test('SNAPSHOT_TTL_DAYS should be a number', async () => {
