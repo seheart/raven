@@ -11,6 +11,8 @@ const mockReaddirSync = jest.fn();
 const mockStatSync = jest.fn();
 const mockWatch = jest.fn();
 const mockHomedir = jest.fn(() => '/home/testuser');
+const mockJoin = jest.fn((...args) => args.join('/'));
+const mockBasename = jest.fn(path => path.split('/').pop());
 
 // Mock modules with explicit mock implementations
 jest.mock('fs', () => ({
@@ -21,12 +23,27 @@ jest.mock('fs', () => ({
   watch: mockWatch
 }));
 
+jest.mock('path', () => ({
+  join: mockJoin,
+  basename: mockBasename
+}));
+
 jest.mock('os', () => ({
   homedir: mockHomedir
 }));
 
+jest.mock('../../utils/logger.js', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn()
+  }
+}));
+
 import * as fs from 'fs';
 import * as os from 'os';
+import * as path from 'path';
 import { ConversationSync } from '../../services/conversation-sync.js';
 
 describe('ConversationSync', () => {

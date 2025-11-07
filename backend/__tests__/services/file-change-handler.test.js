@@ -19,8 +19,10 @@ jest.mock('fs', () => ({
   }
 }));
 
+const mockCreateHash = jest.fn();
+
 jest.mock('crypto', () => ({
-  createHash: jest.fn()
+  createHash: mockCreateHash
 }));
 
 jest.mock('diff', () => ({
@@ -34,6 +36,15 @@ jest.mock('zlib', () => ({
 jest.mock('systeminformation', () => ({
   currentLoad: mockCurrentLoad,
   mem: mockMem
+}));
+
+jest.mock('../../utils/logger.js', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn()
+  }
 }));
 
 // Import mocked modules
@@ -94,6 +105,7 @@ describe('FileChangeHandler', () => {
     // Reset and mock system metrics (after clear)
     mockCurrentLoad.mockReset();
     mockMem.mockReset();
+    mockCreateHash.mockReset();
     mockCurrentLoad.mockResolvedValue({ currentLoad: 50 });
     mockMem.mockResolvedValue({ used: 5000000000, total: 10000000000 });
   });

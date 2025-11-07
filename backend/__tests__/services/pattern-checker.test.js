@@ -6,13 +6,35 @@ import { jest } from '@jest/globals';
 
 // Create mock functions before jest.mock
 const mockReadFileSync = jest.fn();
+const mockExtname = jest.fn(path => {
+  const match = path.match(/\.[^.]+$/);
+  return match ? match[0].toLowerCase() : '';
+});
+const mockBasename = jest.fn(path => path.split('/').pop());
 
 // Mock fs module
 jest.mock('fs', () => ({
   readFileSync: mockReadFileSync
 }));
 
+// Mock path module
+jest.mock('path', () => ({
+  extname: mockExtname,
+  basename: mockBasename
+}));
+
+// Mock logger
+jest.mock('../../utils/logger.js', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn()
+  }
+}));
+
 import * as fs from 'fs';
+import * as path from 'path';
 import { PatternChecker } from '../../services/pattern-checker.js';
 
 describe('PatternChecker', () => {
@@ -37,6 +59,12 @@ describe('PatternChecker', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    mockReadFileSync.mockReset();
+    mockExtname.mockImplementation(path => {
+      const match = path.match(/\.[^.]+$/);
+      return match ? match[0].toLowerCase() : '';
+    });
+    mockBasename.mockImplementation(path => path.split('/').pop());
   });
 
   describe('Constructor', () => {
