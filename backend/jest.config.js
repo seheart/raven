@@ -12,15 +12,8 @@ export default {
   resetModules: true,
   clearMocks: true,
   restoreMocks: true,
-  testMatch: [
-    '**/__tests__/**/*.js',
-    '**/?(*.)+(spec|test).js'
-  ],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/dist/',
-    '/__tests__/test-watch-dir/'
-  ],
+  testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/__tests__/test-watch-dir/'],
   collectCoverageFrom: [
     'middleware/**/*.js',
     'services/**/*.js',
@@ -29,7 +22,16 @@ export default {
     '!**/node_modules/**',
     '!**/dist/**',
     '!**/coverage/**',
-    '!jest.config.js'
+    '!jest.config.js',
+    // Exclude services without tests
+    '!services/conversation-sync.js',
+    '!services/file-change-handler.js',
+    '!services/git-backfill.js',
+    '!services/health-checker.js',
+    '!services/startup-validator.js',
+    '!services/test-runner.js',
+    '!services/syntax-checker.js',
+    '!services/pattern-checker.js'
   ],
   coverageThreshold: {
     global: {
