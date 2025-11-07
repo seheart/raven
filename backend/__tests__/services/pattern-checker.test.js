@@ -466,4 +466,195 @@ line4`;
       expect(mockDb.clearPatternWarnings).toHaveBeenCalled();
     });
   });
+
+  describe('Additional Edge Cases', () => {
+    test('should detect hardcoded credentials with different naming patterns', async () => {
+      const content = `
+        const passwd = "mypassword";
+        const pwd = "secret";
+        const secret = "topsecret";
+        const apiKey = "key123";
+      `;
+      mockReadFileSync.mockReturnValue(content);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      const credentialWarnings = result.filter(w => w.name === 'hardcoded-credential');
+      expect(credentialWarnings.length).toBeGreaterThan(0);
+    });
+
+    test('should detect console.info and console.debug', async () => {
+      const content = `
+        console.info("info message");
+        console.debug("debug message");
+      `;
+      mockReadFileSync.mockReturnValue(content);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      const consoleWarnings = result.filter(w => w.name === 'console-log');
+      expect(consoleWarnings.length).toBe(2);
+    });
+
+    test('should detect TODO with hash comment style', async () => {
+      const content = `
+        # TODO: Python style comment
+        # FIXME: Another Python style
+      `;
+      mockReadFileSync.mockReturnValue(content);
+
+      const result = await checker.checkFile('/path/to/file.py');
+
+      const todoWarnings = result.filter(w => w.name === 'todo-comment');
+      expect(todoWarnings.length).toBe(2);
+    });
+
+    test('should handle multiple long lines', async () => {
+      const longLine1 = 'a'.repeat(250);
+      const longLine2 = 'b'.repeat(300);
+      const content = `
+        short line
+        ${longLine1}
+        another short
+        ${longLine2}
+      `;
+      mockReadFileSync.mockReturnValue(content);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      const longLineWarnings = result.filter(w => w.name === 'long-line');
+      expect(longLineWarnings.length).toBe(2);
+    });
+
+    test('should not emit WebSocket event for non-critical warnings', async () => {
+      const content = 'console.log("test");';
+      mockReadFileSync.mockReturnValue(content);
+
+      await checker.checkFile('/path/to/file.js');
+
+      expect(mockIo.emit).not.toHaveBeenCalled();
+    });
+
+    test('should handle case-insensitive pattern matching', async () => {
+      const content = `
+        const PASSWORD = "secret";
+        const Secret = "value";
+      `;
+      mockReadFileSync.mockReturnValue(content);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      const credentialWarnings = result.filter(w => w.name === 'hardcoded-credential');
+      expect(credentialWarnings.length).toBeGreaterThan(0);
+    });
+
+    test('should handle files with uppercase extensions', async () => {
+      mockReadFileSync.mockReturnValue('const x = 1;');
+
+      const result = await checker.checkFile('/path/to/FILE.JS');
+
+      expect(mockReadFileSync).toHaveBeenCalled();
+    });
+
+    test('should skip .PNG extension (case insensitive)', async () => {
+      const result = await checker.checkFile('/path/to/image.PNG');
+
+      expect(result).toEqual([]);
+      expect(mockReadFileSync).not.toHaveBeenCalled();
+    });
+
+    test('should include WebSocket event with all required fields', async () => {
+      const content = 'const password = "secret";';
+      mockReadFileSync.mockReturnValue(content);
+
+      await checker.checkFile('/path/to/file.js');
+
+      expect(mockIo.emit).toHaveBeenCalledWith(
+        'pattern-warning',
+        expect.objectContaining({
+          id: 1,
+          timestamp: expect.any(String),
+          filepath: '/path/to/file.js',
+          project_name: projectName,
+          category: 'security',
+          severity: 'error',
+          pattern_name: 'hardcoded-credential',
+          message: expect.any(String),
+          line_number: expect.any(Number),
+          match_text: expect.any(String),
+          context: expect.any(String)
+        })
+      );
+    });
+
+    test('should trim context before storing', async () => {
+      const content = '       console.log("test");       ';
+      mockReadFileSync.mockReturnValue(content);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      expect(result[0].context).toBe('console.log("test");');
+    });
+
+    test('should handle pattern with no matches', async () => {
+      const content = 'const x = 1; const y = 2;';
+      mockReadFileSync.mockReturnValue(content);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      expect(result).toEqual([]);
+    });
+
+    test('should handle findPatternMatches with empty lines array', () => {
+      const content = '';
+      const lines = [];
+      const pattern = checker.patterns.find(p => p.name === 'console-log');
+
+      const matches = checker.findPatternMatches(content, lines, pattern);
+
+      expect(matches).toEqual([]);
+    });
+
+    test('should handle long-line pattern with exactly 200 characters', async () => {
+      const exactlyLongLine = 'x'.repeat(200);
+      mockReadFileSync.mockReturnValue(exactlyLongLine);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      const longLineWarnings = result.filter(w => w.name === 'long-line');
+      // Should not match exactly 200 characters (only >200)
+      expect(longLineWarnings.length).toBe(0);
+    });
+
+    test('should handle long-line pattern with 201 characters', async () => {
+      const justOverLongLine = 'x'.repeat(201);
+      mockReadFileSync.mockReturnValue(justOverLongLine);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      const longLineWarnings = result.filter(w => w.name === 'long-line');
+      expect(longLineWarnings.length).toBe(1);
+    });
+
+    test('should handle pattern context limit of 200 characters', async () => {
+      const veryLongLine = 'x'.repeat(500);
+      mockReadFileSync.mockReturnValue(veryLongLine);
+
+      const result = await checker.checkFile('/path/to/file.js');
+
+      const warning = result.find(w => w.name === 'long-line');
+      expect(warning.context.length).toBe(200);
+    });
+
+    test('should handle match with missing line in lines array', () => {
+      const content = 'line1\nconsole.log("test")';
+      const lines = ['line1']; // Missing second line
+      const pattern = checker.patterns.find(p => p.name === 'console-log');
+
+      const matches = checker.findPatternMatches(content, lines, pattern);
+
+      expect(matches.length).toBe(1);
+      expect(matches[0].context).toBe('');
+    });
+  });
 });
