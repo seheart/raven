@@ -84,9 +84,7 @@ describe('Triggers Routes', () => {
     });
 
     test('should handle limit parameter', async () => {
-      await request(app)
-        .get('/api/triggered-events?limit=50')
-        .expect(200);
+      await request(app).get('/api/triggered-events?limit=50').expect(200);
 
       expect(mockTriggerEngine.getTriggeredEvents).toHaveBeenCalledWith(50);
     });
@@ -204,6 +202,38 @@ describe('Triggers Routes', () => {
         .post('/api/triggers-clear-cooldowns')
         .expect('Content-Type', /json/)
         .expect(500);
+
+      expect(response.body).toHaveProperty('error');
+    });
+  });
+
+  describe('Additional Error Handling', () => {
+    test('should handle errors when getting triggers config', async () => {
+      mockTriggerEngine.getTriggersConfig.mockImplementation(() => {
+        throw new Error('Config error');
+      });
+
+      const response = await request(app).get('/api/triggers-config').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+    });
+
+    test('should handle errors when getting triggered events', async () => {
+      mockTriggerEngine.getTriggeredEvents.mockImplementation(() => {
+        throw new Error('Events error');
+      });
+
+      const response = await request(app).get('/api/triggered-events').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+    });
+
+    test('should handle errors when getting trigger stats', async () => {
+      mockTriggerEngine.getTriggerStats.mockImplementation(() => {
+        throw new Error('Stats error');
+      });
+
+      const response = await request(app).get('/api/trigger-stats').expect(500);
 
       expect(response.body).toHaveProperty('error');
     });

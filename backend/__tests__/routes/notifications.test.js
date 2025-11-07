@@ -43,9 +43,7 @@ describe('Notifications Routes', () => {
   describe('GET /api/notifications', () => {
     test('should return notifications list', async () => {
       mockDb.getNotifications.mockReturnValue({
-        notifications: [
-          { id: 1, title: 'Test notification', read: false }
-        ],
+        notifications: [{ id: 1, title: 'Test notification', read: false }],
         total: 1
       });
 
@@ -60,29 +58,19 @@ describe('Notifications Routes', () => {
     });
 
     test('should handle limit parameter', async () => {
-      await request(app)
-        .get('/api/notifications?limit=20')
-        .expect(200);
+      await request(app).get('/api/notifications?limit=20').expect(200);
 
-      expect(mockDb.getNotifications).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: 20 })
-      );
+      expect(mockDb.getNotifications).toHaveBeenCalledWith(expect.objectContaining({ limit: 20 }));
     });
 
     test('should handle offset parameter', async () => {
-      await request(app)
-        .get('/api/notifications?offset=10')
-        .expect(200);
+      await request(app).get('/api/notifications?offset=10').expect(200);
 
-      expect(mockDb.getNotifications).toHaveBeenCalledWith(
-        expect.objectContaining({ offset: 10 })
-      );
+      expect(mockDb.getNotifications).toHaveBeenCalledWith(expect.objectContaining({ offset: 10 }));
     });
 
     test('should handle type filter', async () => {
-      await request(app)
-        .get('/api/notifications?type=warning')
-        .expect(200);
+      await request(app).get('/api/notifications?type=warning').expect(200);
 
       expect(mockDb.getNotifications).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'warning' })
@@ -90,9 +78,7 @@ describe('Notifications Routes', () => {
     });
 
     test('should handle severity filter', async () => {
-      await request(app)
-        .get('/api/notifications?severity=high')
-        .expect(200);
+      await request(app).get('/api/notifications?severity=high').expect(200);
 
       expect(mockDb.getNotifications).toHaveBeenCalledWith(
         expect.objectContaining({ severity: 'high' })
@@ -100,9 +86,7 @@ describe('Notifications Routes', () => {
     });
 
     test('should handle unread_only filter', async () => {
-      await request(app)
-        .get('/api/notifications?unread_only=true')
-        .expect(200);
+      await request(app).get('/api/notifications?unread_only=true').expect(200);
 
       expect(mockDb.getNotifications).toHaveBeenCalledWith(
         expect.objectContaining({ unread_only: true })
@@ -221,6 +205,52 @@ describe('Notifications Routes', () => {
 
       expect(response.body).toHaveProperty('success', true);
       expect(mockDb.clearNotifications).toHaveBeenCalledWith(7);
+    });
+  });
+
+  describe('Error Handling', () => {
+    test('should handle errors when fetching notifications', async () => {
+      mockDb.getNotifications.mockImplementation(() => {
+        throw new Error('Database error');
+      });
+
+      const response = await request(app).get('/api/notifications').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Failed to fetch notifications');
+    });
+
+    test('should handle errors when fetching stats', async () => {
+      mockDb.getNotificationStats.mockImplementation(() => {
+        throw new Error('Stats error');
+      });
+
+      const response = await request(app).get('/api/notifications/stats').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Failed to fetch notification stats');
+    });
+
+    test('should handle errors when marking notification as read', async () => {
+      mockDb.markNotificationAsRead.mockImplementation(() => {
+        throw new Error('Mark read error');
+      });
+
+      const response = await request(app).post('/api/notifications/1/read').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Failed to mark notification as read');
+    });
+
+    test('should handle errors when marking all as read', async () => {
+      mockDb.markAllNotificationsAsRead.mockImplementation(() => {
+        throw new Error('Mark all error');
+      });
+
+      const response = await request(app).post('/api/notifications/mark-all-read').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Failed to mark all notifications as read');
     });
   });
 });

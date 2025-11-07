@@ -4,7 +4,9 @@
 
 import request from 'supertest';
 import express from 'express';
+import { jest } from '@jest/globals';
 import { createCacheRoutes } from '../../routes/cache.js';
+import * as cache from '../../utils/cache.js';
 
 describe('Cache Routes', () => {
   let app;
@@ -13,6 +15,7 @@ describe('Cache Routes', () => {
     app = express();
     app.use(express.json());
     app.use('/api/cache', createCacheRoutes());
+    jest.clearAllMocks();
   });
 
   describe('GET /api/cache/stats', () => {
@@ -28,9 +31,7 @@ describe('Cache Routes', () => {
     });
 
     test('should include timestamp in ISO format', async () => {
-      const response = await request(app)
-        .get('/api/cache/stats')
-        .expect(200);
+      const response = await request(app).get('/api/cache/stats').expect(200);
 
       const timestamp = new Date(response.body.timestamp);
       expect(timestamp).toBeInstanceOf(Date);
@@ -52,9 +53,7 @@ describe('Cache Routes', () => {
     });
 
     test('should return timestamp after clearing', async () => {
-      const response = await request(app)
-        .post('/api/cache/clear')
-        .expect(200);
+      const response = await request(app).post('/api/cache/clear').expect(200);
 
       expect(response.body.timestamp).toBeDefined();
       const timestamp = new Date(response.body.timestamp);
@@ -115,14 +114,47 @@ describe('Cache Routes', () => {
     });
 
     test('should list valid cache names in error', async () => {
-      const response = await request(app)
-        .post('/api/cache/clear/invalid')
-        .expect(404);
+      const response = await request(app).post('/api/cache/clear/invalid').expect(404);
 
       expect(response.body.error).toContain('dashboard');
       expect(response.body.error).toContain('analytics');
       expect(response.body.error).toContain('metrics');
       expect(response.body.error).toContain('query');
+    });
+  });
+
+  describe('Error Handling', () => {
+    test('should handle errors when getting cache stats', async () => {
+      jest.spyOn(cache, 'getAllCacheStats').mockImplementation(() => {
+        throw new Error('Cache stats error');
+      });
+
+      const response = await request(app).get('/api/cache/stats').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Failed to retrieve cache statistics');
+    });
+
+    test('should handle errors when clearing all caches', async () => {
+      jest.spyOn(cache, 'clearAllCaches').mockImplementation(() => {
+        throw new Error('Clear all error');
+      });
+
+      const response = await request(app).post('/api/cache/clear').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Failed to clear caches');
+    });
+
+    test('should handle errors when clearing specific cache', async () => {
+      jest.spyOn(cache.dashboardCache, 'clear').mockImplementation(() => {
+        throw new Error('Clear cache error');
+      });
+
+      const response = await request(app).post('/api/cache/clear/dashboard').expect(500);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Failed to clear cache');
     });
   });
 });
