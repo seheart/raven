@@ -773,6 +773,290 @@ describe('Safety Routes', () => {
     });
   });
 
+  describe('GET /api/tests/details/:timestamp', () => {
+    beforeEach(() => {
+      safetyCache.clear();
+      mockDb.db = {
+        prepare: jest.fn().mockReturnValue({
+          all: jest.fn().mockReturnValue([
+            {
+              test_file: 'tests/unit/user.test.js',
+              test_name: 'should create user',
+              status: 'passed',
+              error_message: null,
+              error_stack: null,
+              duration_ms: 45
+            },
+            {
+              test_file: 'tests/unit/auth.test.js',
+              test_name: 'should authenticate',
+              status: 'failed',
+              error_message: 'Expected true but got false',
+              error_stack: 'at line 42',
+              duration_ms: 120
+            },
+            {
+              test_file: 'tests/integration/api.test.js',
+              test_name: 'should skip slow test',
+              status: 'skipped',
+              error_message: null,
+              error_stack: null,
+              duration_ms: 0
+            }
+          ])
+        })
+      };
+    });
+
+    it('should return test details for timestamp', async () => {
+      const response = await request(app)
+        .get('/api/tests/details/2025-01-01T12:00:00Z')
+        .set('Cache-Control', 'no-cache');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        timestamp: '2025-01-01T12:00:00Z',
+        total: 3,
+        failed: 1,
+        passed: 1,
+        skipped: 1
+      });
+      expect(response.body.tests).toHaveLength(3);
+    });
+
+    it('should order failed tests first', async () => {
+      const response = await request(app)
+        .get('/api/tests/details/2025-01-01T12:00:00Z')
+        .set('Cache-Control', 'no-cache');
+
+      expect(response.status).toBe(200);
+      const tests = response.body.tests;
+      expect(tests[0].status).toBe('failed');
+    });
+
+    it('should include error details for failed tests', async () => {
+      const response = await request(app)
+        .get('/api/tests/details/2025-01-01T12:00:00Z')
+        .set('Cache-Control', 'no-cache');
+
+      const failedTest = response.body.tests.find(t => t.status === 'failed');
+      expect(failedTest).toMatchObject({
+        error_message: 'Expected true but got false',
+        error_stack: 'at line 42'
+      });
+    });
+
+    it('should handle database errors', async () => {
+      mockDb.db.prepare.mockImplementation(() => {
+        throw new Error('Database error');
+      });
+
+      const response = await request(app)
+        .get('/api/tests/details/2025-01-01T12:00:00Z')
+        .set('Cache-Control', 'no-cache');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Database error');
+    });
+  });
+
+  describe('GET /api/tests/export/:timestamp', () => {
+    beforeEach(() => {
+      mockDb.db = {
+        prepare: jest.fn().mockReturnValue({
+          all: jest.fn().mockReturnValue([
+            {
+              test_file: 'tests/user.test.js',
+              test_name: 'should create user',
+              status: 'passed',
+              error_message: null,
+              duration_ms: 45
+            },
+            {
+              test_file: 'tests/auth.test.js',
+              test_name: 'should authenticate with "special" chars',
+              status: 'failed',
+              error_message: 'Expected "true", got "false"',
+              duration_ms: 120
+            }
+          ])
+        })
+      };
+    });
+
+    it('should export test results as CSV', async () => {
+      const response = await request(app).get('/api/tests/export/2025-01-01T12:00:00Z');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toContain('text/csv');
+      expect(response.headers['content-disposition']).toContain(
+        'attachment; filename="test-results-2025-01-01T12:00:00Z.csv"'
+      );
+    });
+
+    it('should include CSV header', async () => {
+      const response = await request(app).get('/api/tests/export/2025-01-01T12:00:00Z');
+
+      expect(response.text).toContain('File,Test Name,Status,Error,Duration (ms)');
+    });
+
+    it('should include test data in CSV', async () => {
+      const response = await request(app).get('/api/tests/export/2025-01-01T12:00:00Z');
+
+      expect(response.text).toContain('tests/user.test.js');
+      expect(response.text).toContain('should create user');
+      expect(response.text).toContain('passed');
+    });
+
+    it('should escape quotes in CSV fields', async () => {
+      const response = await request(app).get('/api/tests/export/2025-01-01T12:00:00Z');
+
+      // Check that quotes are escaped properly
+      expect(response.text).toContain('should authenticate with ""special"" chars');
+      expect(response.text).toContain('Expected ""true"", got ""false""');
+    });
+
+    it('should handle empty test results', async () => {
+      mockDb.db.prepare.mockReturnValue({
+        all: jest.fn().mockReturnValue([])
+      });
+
+      const response = await request(app).get('/api/tests/export/2025-01-01T12:00:00Z');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toBe('File,Test Name,Status,Error,Duration (ms)\n');
+    });
+
+    it('should handle database errors', async () => {
+      mockDb.db.prepare.mockImplementation(() => {
+        throw new Error('Export failed');
+      });
+
+      const response = await request(app).get('/api/tests/export/2025-01-01T12:00:00Z');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Export failed');
+    });
+  });
+
+  describe('POST /api/errors - severity handling', () => {
+    beforeEach(() => {
+      mockDb.insertNotification.mockClear();
+      mockIo.emit.mockClear();
+    });
+
+    it('should not create notification for info severity', async () => {
+      await request(app).post('/api/errors').send({
+        error_type: 'Info',
+        message: 'User logged in',
+        severity: 'info'
+      });
+
+      expect(mockDb.insertNotification).not.toHaveBeenCalled();
+    });
+
+    it('should create notification when severity is not set (defaults to error)', async () => {
+      await request(app).post('/api/errors').send({
+        error_type: 'TypeError',
+        message: 'Null reference'
+        // No severity field
+      });
+
+      expect(mockDb.insertNotification).toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /api/pattern-warnings/export - CSV edge cases', () => {
+    beforeEach(() => {
+      safetyCache.clear();
+      mockDb.getPatternWarnings = jest.fn().mockReturnValue({
+        warnings: [
+          {
+            id: 1,
+            timestamp: '2025-01-01T12:00:00Z',
+            filepath: 'src/auth.js',
+            project_name: 'test-project',
+            category: 'security',
+            severity: 'error',
+            pattern_name: 'hardcoded-credential',
+            message: 'Password "test123" found',
+            line_number: 42,
+            match_text: 'const pwd = "test123"',
+            context: 'function login() { const pwd = "test123"; }',
+            suggestion: 'Use environment variables',
+            resolved: false
+          },
+          {
+            id: 2,
+            timestamp: '2025-01-01T12:01:00Z',
+            filepath: 'src/utils.js',
+            project_name: 'my-app',
+            category: 'quality',
+            severity: 'warning',
+            pattern_name: 'console-log',
+            message: 'Console.log statement, contains "commas, quotes" and newlines',
+            line_number: 15,
+            match_text: 'console.log("test")',
+            context: 'function debug() {\n  console.log("test");\n}',
+            suggestion: 'Remove before production',
+            resolved: true
+          }
+        ]
+      });
+    });
+
+    it('should properly escape CSV fields with quotes', async () => {
+      const response = await request(app)
+        .get('/api/pattern-warnings/export?format=csv')
+        .set('Cache-Control', 'no-cache');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('Password ""test123"" found');
+      expect(response.text).toContain('const pwd = ""test123""');
+    });
+
+    it('should properly escape CSV fields with commas', async () => {
+      const response = await request(app)
+        .get('/api/pattern-warnings/export?format=csv')
+        .set('Cache-Control', 'no-cache');
+
+      expect(response.text).toContain('"commas, quotes"');
+    });
+
+    it('should include resolved status in CSV', async () => {
+      const response = await request(app)
+        .get('/api/pattern-warnings/export?format=csv')
+        .set('Cache-Control', 'no-cache');
+
+      expect(response.text).toContain(',No\n');
+      expect(response.text).toContain(',Yes\n');
+    });
+
+    it('should export with category filter', async () => {
+      const response = await request(app)
+        .get('/api/pattern-warnings/export?format=csv&category=security')
+        .set('Cache-Control', 'no-cache');
+
+      expect(mockDb.getPatternWarnings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: 'security'
+        })
+      );
+    });
+
+    it('should export with resolved filter', async () => {
+      const response = await request(app)
+        .get('/api/pattern-warnings/export?format=csv&resolved=true')
+        .set('Cache-Control', 'no-cache');
+
+      expect(mockDb.getPatternWarnings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          resolved: true
+        })
+      );
+    });
+  });
+
   describe('Error handling - No database', () => {
     beforeEach(() => {
       // Clear cache to ensure fresh responses
