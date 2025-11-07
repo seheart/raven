@@ -3,17 +3,20 @@
  */
 
 import { jest } from '@jest/globals';
-import { SyntaxChecker } from '../../services/syntax-checker.js';
-import * as fs from 'fs';
 
-// Mock fs module
-jest.mock('fs');
+// Mock modules with explicit implementations before imports
+jest.mock('fs', () => ({
+  readFileSync: jest.fn(),
+  existsSync: jest.fn()
+}));
 
-// Mock acorn module
 const mockAcornParse = jest.fn();
 jest.mock('acorn', () => ({
   parse: mockAcornParse
 }));
+
+import * as fs from 'fs';
+import { SyntaxChecker } from '../../services/syntax-checker.js';
 
 describe('SyntaxChecker', () => {
   let checker;
