@@ -18,7 +18,8 @@ jest.mock('simple-git', () => ({
 describe('GitBackfillService', () => {
   let service;
   let mockDb;
-  const projectPath = process.cwd(); // Use actual directory to avoid simple-git validation errors
+  // Use parent directory which is the actual git repository root
+  const projectPath = '/home/seth/Projects/raven';
   const sessionId = 'test-session-123';
 
   beforeEach(() => {

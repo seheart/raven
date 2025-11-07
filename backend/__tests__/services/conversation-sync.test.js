@@ -3,13 +3,22 @@
  */
 
 import { jest } from '@jest/globals';
+
+// Mock modules with explicit mock implementations
+jest.mock('fs', () => ({
+  existsSync: jest.fn(),
+  readFileSync: jest.fn(),
+  readdirSync: jest.fn(),
+  statSync: jest.fn(),
+  watch: jest.fn()
+}));
+
+jest.mock('os', () => ({
+  homedir: jest.fn(() => '/home/testuser')
+}));
+
 import * as fs from 'fs';
 import * as os from 'os';
-
-// Mock modules before importing service
-jest.mock('fs');
-jest.mock('os');
-
 import { ConversationSync } from '../../services/conversation-sync.js';
 
 describe('ConversationSync', () => {
@@ -29,12 +38,9 @@ describe('ConversationSync', () => {
       emit: jest.fn()
     };
 
-    // Mock os.homedir before creating service instance
-    os.homedir.mockReturnValue('/home/testuser');
-
     sync = new ConversationSync(mockDb, sessionId, mockIo, projectPath);
 
-    // Clear all mocks
+    // Clear all mocks after service creation
     jest.clearAllMocks();
   });
 
@@ -213,9 +219,8 @@ describe('ConversationSync', () => {
   describe('processExistingFiles()', () => {
     test('should process most recent session file', async () => {
       fs.readdirSync.mockReturnValue(['session-old.jsonl', 'session-recent.jsonl']);
-      fs.statSync
-        .mockReturnValueOnce({ mtime: new Date('2025-01-01') })
-        .mockReturnValueOnce({ mtime: new Date('2025-01-10') });
+      fs.statSync.mockReturnValueOnce({ mtime: new Date('2025-01-01') });
+      fs.statSync.mockReturnValueOnce({ mtime: new Date('2025-01-10') });
 
       jest.spyOn(sync, 'processFile').mockResolvedValue();
 
