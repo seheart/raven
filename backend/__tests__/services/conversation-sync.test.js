@@ -4,7 +4,6 @@
 
 import { jest } from '@jest/globals';
 import { ConversationSync } from '../../services/conversation-sync.js';
-import { watch, readFileSync, existsSync, statSync } from 'fs';
 
 // Mock fs module
 jest.mock('fs', () => ({
@@ -18,6 +17,9 @@ jest.mock('fs', () => ({
 jest.mock('os', () => ({
   homedir: jest.fn(() => '/home/testuser')
 }));
+
+// Import mocked fs functions
+import { watch, readFileSync, existsSync, statSync } from 'fs';
 
 describe('ConversationSync', () => {
   let sync;

@@ -4,8 +4,6 @@
 
 import { jest } from '@jest/globals';
 import { FileChangeHandler } from '../../services/file-change-handler.js';
-import fs from 'fs';
-import { createHash } from 'crypto';
 
 // Mock dependencies
 jest.mock('fs');
@@ -27,6 +25,8 @@ jest.mock('systeminformation', () => ({
 }));
 
 // Import mocked modules
+import fs from 'fs';
+import { createHash } from 'crypto';
 import * as Diff from 'diff';
 import * as si from 'systeminformation';
 

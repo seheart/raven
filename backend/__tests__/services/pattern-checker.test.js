@@ -4,12 +4,14 @@
 
 import { jest } from '@jest/globals';
 import { PatternChecker } from '../../services/pattern-checker.js';
-import { readFileSync } from 'fs';
 
 // Mock fs module
 jest.mock('fs', () => ({
   readFileSync: jest.fn()
 }));
+
+// Import mocked fs
+import { readFileSync } from 'fs';
 
 describe('PatternChecker', () => {
   let checker;
