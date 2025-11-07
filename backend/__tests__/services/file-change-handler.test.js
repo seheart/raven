@@ -8,9 +8,17 @@ import { FileChangeHandler } from '../../services/file-change-handler.js';
 // Create mock functions
 const mockCurrentLoad = jest.fn();
 const mockMem = jest.fn();
+const mockMkdir = jest.fn().mockResolvedValue();
+const mockWriteFile = jest.fn().mockResolvedValue();
 
 // Mock dependencies
-jest.mock('fs');
+jest.mock('fs', () => ({
+  promises: {
+    mkdir: mockMkdir,
+    writeFile: mockWriteFile
+  }
+}));
+
 jest.mock('crypto', () => ({
   createHash: jest.fn()
 }));
@@ -156,10 +164,8 @@ describe('FileChangeHandler', () => {
 
   describe('saveSnapshot()', () => {
     beforeEach(() => {
-      fs.promises = {
-        mkdir: jest.fn().mockResolvedValue(),
-        writeFile: jest.fn().mockResolvedValue()
-      };
+      mockMkdir.mockReset().mockResolvedValue();
+      mockWriteFile.mockReset().mockResolvedValue();
     });
 
     test('should save compressed snapshot', async () => {
@@ -169,8 +175,8 @@ describe('FileChangeHandler', () => {
         'test-project'
       );
 
-      expect(fs.promises.mkdir).toHaveBeenCalled();
-      expect(fs.promises.writeFile).toHaveBeenCalled();
+      expect(mockMkdir).toHaveBeenCalled();
+      expect(mockWriteFile).toHaveBeenCalled();
       expect(result).toContain('src_file.js');
     });
 
@@ -181,7 +187,7 @@ describe('FileChangeHandler', () => {
     });
 
     test('should handle save errors', async () => {
-      fs.promises.mkdir.mockRejectedValue(new Error('Mkdir failed'));
+      mockMkdir.mockRejectedValue(new Error('Mkdir failed'));
 
       const result = await handler.saveSnapshot('/test/project/file.js', 'content', 'test-project');
 
