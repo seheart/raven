@@ -79,7 +79,7 @@ fi
 # Step 3: Start backend in background
 echo -e "${YELLOW}[3/6]${NC} Starting backend server..."
 cd backend
-nohup env DISABLE_AUTH=true node server.js > /tmp/raven-backend.log 2>&1 &
+nohup env NODE_ENV=development DISABLE_AUTH=true node server.js > /tmp/raven-backend.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > /tmp/raven-backend.pid
 disown
