@@ -3,16 +3,14 @@
  */
 
 import { jest } from '@jest/globals';
-import { ConversationSync } from '../../services/conversation-sync.js';
 import * as fs from 'fs';
+import * as os from 'os';
 
-// Mock fs module
+// Mock modules before importing service
 jest.mock('fs');
+jest.mock('os');
 
-// Mock os module
-jest.mock('os', () => ({
-  homedir: jest.fn(() => '/home/testuser')
-}));
+import { ConversationSync } from '../../services/conversation-sync.js';
 
 describe('ConversationSync', () => {
   let sync;
@@ -30,6 +28,9 @@ describe('ConversationSync', () => {
     mockIo = {
       emit: jest.fn()
     };
+
+    // Mock os.homedir before creating service instance
+    os.homedir.mockReturnValue('/home/testuser');
 
     sync = new ConversationSync(mockDb, sessionId, mockIo, projectPath);
 
@@ -211,22 +212,12 @@ describe('ConversationSync', () => {
 
   describe('processExistingFiles()', () => {
     test('should process most recent session file', async () => {
-      const readdirSync = jest.fn().mockReturnValue(['session-old.jsonl', 'session-recent.jsonl']);
-
-      statSync
+      fs.readdirSync.mockReturnValue(['session-old.jsonl', 'session-recent.jsonl']);
+      fs.statSync
         .mockReturnValueOnce({ mtime: new Date('2025-01-01') })
         .mockReturnValueOnce({ mtime: new Date('2025-01-10') });
 
       jest.spyOn(sync, 'processFile').mockResolvedValue();
-
-      // Mock dynamic import
-      jest.unstable_mockModule('fs', () => ({
-        readdirSync,
-        existsSync,
-        readFileSync,
-        statSync,
-        watch
-      }));
 
       await sync.processExistingFiles();
 
@@ -238,20 +229,12 @@ describe('ConversationSync', () => {
     });
 
     test('should skip files older than 7 days', async () => {
-      const readdirSync = jest.fn().mockReturnValue(['session-old.jsonl']);
       const oldDate = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000); // 8 days ago
 
+      fs.readdirSync.mockReturnValue(['session-old.jsonl']);
       fs.statSync.mockReturnValue({ mtime: oldDate });
 
       jest.spyOn(sync, 'processFile').mockResolvedValue();
-
-      jest.unstable_mockModule('fs', () => ({
-        readdirSync,
-        existsSync,
-        readFileSync,
-        statSync,
-        watch
-      }));
 
       await sync.processExistingFiles();
 
@@ -259,17 +242,9 @@ describe('ConversationSync', () => {
     });
 
     test('should handle no session files', async () => {
-      const readdirSync = jest.fn().mockReturnValue([]);
+      fs.readdirSync.mockReturnValue([]);
 
       jest.spyOn(sync, 'processFile').mockResolvedValue();
-
-      jest.unstable_mockModule('fs', () => ({
-        readdirSync,
-        existsSync,
-        readFileSync,
-        statSync,
-        watch
-      }));
 
       await sync.processExistingFiles();
 
@@ -277,7 +252,7 @@ describe('ConversationSync', () => {
     });
 
     test('should handle errors gracefully', async () => {
-      jest.unstable_mockModule('fs', () => {
+      fs.readdirSync.mockImplementation(() => {
         throw new Error('Import failed');
       });
 
@@ -564,21 +539,13 @@ describe('ConversationSync', () => {
       const mockWatcher = { close: jest.fn() };
       fs.watch.mockReturnValue(mockWatcher);
 
-      const readdirSync = jest.fn().mockReturnValue(['session-123.jsonl']);
+      fs.readdirSync.mockReturnValue(['session-123.jsonl']);
       fs.statSync.mockReturnValue({ mtime: new Date() });
 
       fs.readFileSync.mockReturnValue(
         '{"type":"user_message","timestamp":"2025-01-01T12:00:00Z","content":"Hello"}\n' +
           '{"type":"assistant_text","timestamp":"2025-01-01T12:00:01Z","content":"Hi"}'
       );
-
-      jest.unstable_mockModule('fs', () => ({
-        readdirSync,
-        existsSync,
-        readFileSync,
-        statSync,
-        watch
-      }));
 
       // Start sync
       await sync.start();
