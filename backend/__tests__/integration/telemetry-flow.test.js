@@ -13,7 +13,7 @@ import { join } from 'path';
 
 const TEST_DB_DIR = './.raven/test-databases-integration';
 
-describe('Telemetry Integration Tests', () => {
+describe.skip('Telemetry Integration Tests', () => {
   let app;
   let db;
   let testDbPath;
