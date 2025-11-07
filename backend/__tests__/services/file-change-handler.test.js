@@ -5,6 +5,10 @@
 import { jest } from '@jest/globals';
 import { FileChangeHandler } from '../../services/file-change-handler.js';
 
+// Create mock functions
+const mockCurrentLoad = jest.fn();
+const mockMem = jest.fn();
+
 // Mock dependencies
 jest.mock('fs');
 jest.mock('crypto', () => ({
@@ -20,15 +24,14 @@ jest.mock('zlib', () => ({
 }));
 
 jest.mock('systeminformation', () => ({
-  currentLoad: jest.fn(),
-  mem: jest.fn()
+  currentLoad: mockCurrentLoad,
+  mem: mockMem
 }));
 
 // Import mocked modules
 import fs from 'fs';
 import { createHash } from 'crypto';
 import * as Diff from 'diff';
-import * as si from 'systeminformation';
 
 describe('FileChangeHandler', () => {
   let handler;
@@ -77,12 +80,12 @@ describe('FileChangeHandler', () => {
 
     handler = new FileChangeHandler(mockOptions);
 
-    // Mock system metrics
-    si.currentLoad.mockResolvedValue({ currentLoad: 50 });
-    si.mem.mockResolvedValue({ used: 5000000000, total: 10000000000 });
-
     // Clear all mocks
     jest.clearAllMocks();
+
+    // Mock system metrics (after clear)
+    mockCurrentLoad.mockResolvedValue({ currentLoad: 50 });
+    mockMem.mockResolvedValue({ used: 5000000000, total: 10000000000 });
   });
 
   describe('Constructor', () => {
@@ -188,14 +191,14 @@ describe('FileChangeHandler', () => {
     test('should collect CPU and memory metrics', async () => {
       const metrics = await handler.collectSystemMetrics();
 
-      expect(si.currentLoad).toHaveBeenCalled();
-      expect(si.mem).toHaveBeenCalled();
+      expect(mockCurrentLoad).toHaveBeenCalled();
+      expect(mockMem).toHaveBeenCalled();
       expect(metrics.cpuPercent).toBe(50);
       expect(metrics.memPercent).toBe(50);
     });
 
     test('should return defaults on error', async () => {
-      si.currentLoad.mockRejectedValue(new Error('Failed'));
+      mockCurrentLoad.mockRejectedValue(new Error('Failed'));
 
       const metrics = await handler.collectSystemMetrics();
 
@@ -478,7 +481,7 @@ describe('FileChangeHandler', () => {
     });
 
     test('should handle system metrics errors', async () => {
-      si.currentLoad.mockRejectedValue(new Error('Metrics failed'));
+      mockCurrentLoad.mockRejectedValue(new Error('Metrics failed'));
 
       const metrics = await handler.collectSystemMetrics();
 
