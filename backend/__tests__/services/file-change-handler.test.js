@@ -497,4 +497,249 @@ describe('FileChangeHandler', () => {
       expect(metrics.memPercent).toBe(0);
     });
   });
+
+  describe('Additional Edge Cases', () => {
+    test('detectLanguage should handle various file extensions', () => {
+      expect(handler.detectLanguage('file.jsx')).toBe('javascript');
+      expect(handler.detectLanguage('file.tsx')).toBe('typescript');
+      expect(handler.detectLanguage('file.go')).toBe('go');
+      expect(handler.detectLanguage('file.rs')).toBe('rust');
+      expect(handler.detectLanguage('file.java')).toBe('java');
+      expect(handler.detectLanguage('file.cpp')).toBe('cpp');
+      expect(handler.detectLanguage('file.c')).toBe('c');
+      expect(handler.detectLanguage('file.rb')).toBe('ruby');
+      expect(handler.detectLanguage('file.php')).toBe('php');
+      expect(handler.detectLanguage('file.swift')).toBe('swift');
+      expect(handler.detectLanguage('file.kt')).toBe('kotlin');
+      expect(handler.detectLanguage('file.html')).toBe('html');
+      expect(handler.detectLanguage('file.css')).toBe('css');
+      expect(handler.detectLanguage('file.md')).toBe('markdown');
+      expect(handler.detectLanguage('file.json')).toBe('json');
+      expect(handler.detectLanguage('file.yaml')).toBe('yaml');
+      expect(handler.detectLanguage('file.yml')).toBe('yaml');
+      expect(handler.detectLanguage('file.xml')).toBe('xml');
+      expect(handler.detectLanguage('file.sql')).toBe('sql');
+      expect(handler.detectLanguage('file.sh')).toBe('shell');
+      expect(handler.detectLanguage('Dockerfile')).toBe('docker');
+    });
+
+    test('logToDeveloperDB should map create event type', async () => {
+      const mockDeveloperDB = {
+        logCodePattern: jest.fn()
+      };
+      handler.developerDB = mockDeveloperDB;
+
+      await handler.logToDeveloperDB(
+        'test-project',
+        'src/file.js',
+        'create',
+        '+new file content',
+        '2025-01-01T12:00:00Z'
+      );
+
+      expect(mockDeveloperDB.logCodePattern).toHaveBeenCalledWith(
+        expect.objectContaining({
+          edit_type: 'create'
+        })
+      );
+    });
+
+    test('logToDeveloperDB should map delete event type', async () => {
+      const mockDeveloperDB = {
+        logCodePattern: jest.fn()
+      };
+      handler.developerDB = mockDeveloperDB;
+
+      await handler.logToDeveloperDB(
+        'test-project',
+        'src/file.js',
+        'delete',
+        '-deleted content',
+        '2025-01-01T12:00:00Z'
+      );
+
+      expect(mockDeveloperDB.logCodePattern).toHaveBeenCalledWith(
+        expect.objectContaining({
+          edit_type: 'delete'
+        })
+      );
+    });
+
+    test('logToDeveloperDB should extract file type from path', async () => {
+      const mockDeveloperDB = {
+        logCodePattern: jest.fn()
+      };
+      handler.developerDB = mockDeveloperDB;
+
+      await handler.logToDeveloperDB(
+        'test-project',
+        'src/utils/helper.tsx',
+        'edit',
+        '+added',
+        '2025-01-01T12:00:00Z'
+      );
+
+      expect(mockDeveloperDB.logCodePattern).toHaveBeenCalledWith(
+        expect.objectContaining({
+          file_type: 'tsx',
+          language: 'typescript'
+        })
+      );
+    });
+
+    test('saveSnapshot should handle paths with multiple slashes correctly', async () => {
+      mockMkdir.mockReset().mockResolvedValue();
+      mockWriteFile.mockReset().mockResolvedValue();
+
+      const result = await handler.saveSnapshot(
+        '/test/project/src/components/ui/Button.js',
+        'content',
+        'test-project'
+      );
+
+      expect(result).toContain('src_components_ui_Button.js');
+      expect(mockMkdir).toHaveBeenCalled();
+      expect(mockWriteFile).toHaveBeenCalled();
+    });
+
+    test('saveSnapshot should handle missing snapshot directory', async () => {
+      handler.projectSnapshotDirs.clear();
+
+      const result = await handler.saveSnapshot('/test/project/file.js', 'content', 'test-project');
+
+      expect(result).toBeNull();
+      expect(mockMkdir).not.toHaveBeenCalled();
+    });
+
+    test('collectSystemMetrics should handle missing currentLoad property', async () => {
+      mockCurrentLoad.mockResolvedValue({});
+      mockMem.mockResolvedValue({ used: 1000, total: 10000 });
+
+      const metrics = await handler.collectSystemMetrics();
+
+      expect(metrics.cpuPercent).toBe(0);
+      expect(metrics.memPercent).toBe(10);
+    });
+
+    test('collectSystemMetrics should handle memory info errors separately', async () => {
+      mockCurrentLoad.mockResolvedValue({ currentLoad: 75 });
+      mockMem.mockRejectedValue(new Error('Memory info failed'));
+
+      const metrics = await handler.collectSystemMetrics();
+
+      expect(metrics.cpuPercent).toBe(0);
+      expect(metrics.memPercent).toBe(0);
+    });
+
+    test('emitFileChangeEvent should not emit when success is true but eventId is null', () => {
+      const eventData = {
+        timestamp: '2025-01-01T12:00:00Z',
+        projectName: 'test-project',
+        relPath: 'src/file.js',
+        eventType: 'edit'
+      };
+
+      handler.emitFileChangeEvent(true, null, eventData);
+
+      expect(mockIo.emit).toHaveBeenCalledWith('file-changed-untracked', expect.any(Object));
+    });
+
+    test('emitFileChangeEvent should not emit when success is false but eventId exists', () => {
+      const eventData = {
+        timestamp: '2025-01-01T12:00:00Z',
+        projectName: 'test-project',
+        relPath: 'src/file.js',
+        eventType: 'edit'
+      };
+
+      handler.emitFileChangeEvent(false, 1, eventData);
+
+      expect(mockIo.emit).toHaveBeenCalledWith('file-changed-untracked', expect.any(Object));
+    });
+
+    test('generateDiff should use context of 3 lines', () => {
+      Diff.createPatch.mockReturnValue('diff');
+
+      handler.generateDiff('old', 'new');
+
+      expect(Diff.createPatch).toHaveBeenCalledWith('file', 'old', 'new', '', '', { context: 3 });
+    });
+
+    test('calculateFileHash should handle empty content', () => {
+      const mockHasher = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest
+          .fn()
+          .mockReturnValue('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+      };
+      createHash.mockReturnValue(mockHasher);
+
+      const hash = handler.calculateFileHash('');
+
+      expect(mockHasher.update).toHaveBeenCalledWith('');
+      expect(hash).toBeTruthy();
+    });
+
+    test('saveSnapshot should create directory recursively', async () => {
+      mockMkdir.mockReset().mockResolvedValue();
+      mockWriteFile.mockReset().mockResolvedValue();
+
+      await handler.saveSnapshot('/test/project/deep/nested/file.js', 'content', 'test-project');
+
+      expect(mockMkdir).toHaveBeenCalledWith(expect.any(String), { recursive: true });
+    });
+
+    test('insertEventToDatabase should log info message', async () => {
+      const eventData = {
+        timestamp: '2025-01-01T12:00:00Z',
+        relPath: 'src/file.js',
+        eventType: 'create',
+        diff: 'diff',
+        cpuPercent: 10,
+        memPercent: 20,
+        fileHash: 'hash123',
+        eventSize: 500,
+        projectName: 'test-project'
+      };
+
+      await handler.insertEventToDatabase(mockDb, eventData);
+
+      expect(mockDb.insertEvent).toHaveBeenCalled();
+    });
+
+    test('handleFileChange should handle delete with empty cache', async () => {
+      const releaseMock = jest.fn();
+      mockLock.acquire.mockResolvedValue(releaseMock);
+
+      // Ensure cache is empty
+      handler.fileCache.clear();
+
+      await handler.handleFileChange('delete', '/test/project/src/file.js');
+
+      expect(mockDb.clearSyntaxErrors).toHaveBeenCalled();
+      expect(mockDb.clearPatternWarnings).toHaveBeenCalled();
+      expect(mockDb.insertEvent).toHaveBeenCalled();
+    });
+
+    test('logToDeveloperDB should handle files without extension', async () => {
+      const mockDeveloperDB = {
+        logCodePattern: jest.fn()
+      };
+      handler.developerDB = mockDeveloperDB;
+
+      await handler.logToDeveloperDB(
+        'test-project',
+        'Makefile',
+        'edit',
+        '',
+        '2025-01-01T12:00:00Z'
+      );
+
+      expect(mockDeveloperDB.logCodePattern).toHaveBeenCalledWith(
+        expect.objectContaining({
+          file_type: 'Makefile'
+        })
+      );
+    });
+  });
 });
