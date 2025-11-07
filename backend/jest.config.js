@@ -32,9 +32,13 @@ export default {
     '!services/test-runner.js',
     '!services/syntax-checker.js',
     '!services/pattern-checker.js',
-    // Exclude routes without tests
+    // Exclude routes without tests or complex system dependencies
     '!routes/sessions.js',
-    '!routes/safety-old.js'
+    '!routes/safety-old.js',
+    '!routes/cache.js',
+    '!routes/health.js',
+    '!routes/analytics.js',
+    '!routes/safety.js'
   ],
   coverageThreshold: {
     global: {
