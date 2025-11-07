@@ -26,6 +26,7 @@
   let loading = true;
   let error = null;
   let ws = null;
+  let healthCheckTimeoutId = null; // Track timeout for cleanup
 
   // Status icons and colors
   const statusConfig = {
@@ -53,18 +54,17 @@
   async function loadStartupHealthChecks() {
     try {
       // Set timeout of 10 seconds for health checks (prevents indefinite hang)
-      let timeoutId;
       const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('Health check timeout')), 10000);
+        healthCheckTimeoutId = setTimeout(() => reject(new Error('Health check timeout')), 10000);
       });
 
-      const data = await Promise.race([
-        dataService.fetchHealthChecks(),
-        timeoutPromise
-      ]);
+      const data = await Promise.race([dataService.fetchHealthChecks(), timeoutPromise]);
 
       // Clear timeout if fetch completed successfully
-      clearTimeout(timeoutId);
+      if (healthCheckTimeoutId) {
+        clearTimeout(healthCheckTimeoutId);
+        healthCheckTimeoutId = null;
+      }
 
       startupHealthStatus = data.status;
       startupHealthResults = data;
@@ -81,6 +81,11 @@
         );
       }
     } catch (error) {
+      // Clear timeout on error as well
+      if (healthCheckTimeoutId) {
+        clearTimeout(healthCheckTimeoutId);
+        healthCheckTimeoutId = null;
+      }
       logger.warn('Health check failed or timed out:', error.message);
       startupHealthStatus = 'error';
       startupHealthResults = {
@@ -91,7 +96,6 @@
       // Don't show error notification - health checks are non-critical
     }
   }
-
 
   // Fetch health data (both project health and startup health checks)
   async function fetchHealth() {
@@ -126,7 +130,10 @@
 
           // Check for security file changes
           const securityPatterns = ['.env', '.git/config', '.pem', '.key', 'credentials'];
-          if (event.filepath && securityPatterns.some(pattern => event.filepath.includes(pattern))) {
+          if (
+            event.filepath &&
+            securityPatterns.some(pattern => event.filepath.includes(pattern))
+          ) {
             securityChanges++;
           }
 
@@ -233,8 +240,15 @@
   });
 
   onDestroy(() => {
+    // Clean up websocket subscriptions
     if (ws) ws();
     websocketService.off('health-check-failed', handleHealthCheckFailed);
+
+    // Clean up any pending timeouts
+    if (healthCheckTimeoutId) {
+      clearTimeout(healthCheckTimeoutId);
+      healthCheckTimeoutId = null;
+    }
   });
 
   // Get status configuration
@@ -256,21 +270,31 @@
   // Startup health check helpers
   function getStartupStatusIcon(status) {
     switch (status) {
-    case 'healthy': return '✅';
-    case 'unhealthy': return '⚠️';
-    case 'error': return '❌';
-    case 'pending': return '⏳';
-    default: return '❓';
+      case 'healthy':
+        return '✅';
+      case 'unhealthy':
+        return '⚠️';
+      case 'error':
+        return '❌';
+      case 'pending':
+        return '⏳';
+      default:
+        return '❓';
     }
   }
 
   function getStartupStatusColor(status) {
     switch (status) {
-    case 'healthy': return 'var(--success)';
-    case 'unhealthy': return 'var(--warning)';
-    case 'error': return 'var(--error)';
-    case 'pending': return 'var(--muted)';
-    default: return 'var(--muted)';
+      case 'healthy':
+        return 'var(--success)';
+      case 'unhealthy':
+        return 'var(--warning)';
+      case 'error':
+        return 'var(--error)';
+      case 'pending':
+        return 'var(--muted)';
+      default:
+        return 'var(--muted)';
     }
   }
 
@@ -286,7 +310,12 @@
   }
 </script>
 
-<div class="card-compact health-widget" style="--status-color: {config.color}" role="region" aria-label="Project health status">
+<div
+  class="card-compact health-widget"
+  style="--status-color: {config.color}"
+  role="region"
+  aria-label="Project health status"
+>
   {#if loading}
     <div class="health-loading" role="status" aria-live="polite" aria-busy="true">
       <div class="spinner" aria-hidden="true"></div>
@@ -295,7 +324,9 @@
   {:else if error}
     <div class="health-error" role="alert">
       <p>❌ {error}</p>
-      <button class="btn btn-primary btn-sm" on:click={fetchHealth} aria-label="Retry health check">Try Again</button>
+      <button class="btn btn-primary btn-sm" on:click={fetchHealth} aria-label="Retry health check"
+        >Try Again</button
+      >
     </div>
   {:else}
     <div class="health-compact">
@@ -309,71 +340,120 @@
 
         <!-- Health Checks (horizontal) -->
         <div class="health-checks" role="group" aria-labelledby="health-title">
-        <!-- Startup Health Check Badge -->
-        <div
-          class="check-item startup-check"
-          class:clickable={startupHealthResults && startupHealthResults.summary}
-          on:click={() => startupHealthExpanded = !startupHealthExpanded}
-          on:keydown={(e) => e.key === 'Enter' && (startupHealthExpanded = !startupHealthExpanded)}
-          role="button"
-          tabindex="0"
-          style="color: {getStartupStatusColor(startupHealthStatus)}"
-          aria-label="Startup health check: {getStartupStatusText(startupHealthStatus)}"
-          aria-expanded={startupHealthExpanded}
-          aria-controls="startup-details"
-        >
-          <span class="check-icon">{getStartupStatusIcon(startupHealthStatus)}</span>
-          <span class="check-label">
-            {getStartupStatusText(startupHealthStatus)}
-            {#if startupHealthResults && startupHealthResults.summary}
-              <span class="expand-arrow">{startupHealthExpanded ? '▼' : '▶'}</span>
-            {/if}
-          </span>
-        </div>
+          <!-- Startup Health Check Badge -->
+          <div
+            class="check-item startup-check"
+            class:clickable={startupHealthResults && startupHealthResults.summary}
+            on:click={() => (startupHealthExpanded = !startupHealthExpanded)}
+            on:keydown={e => e.key === 'Enter' && (startupHealthExpanded = !startupHealthExpanded)}
+            role="button"
+            tabindex="0"
+            style="color: {getStartupStatusColor(startupHealthStatus)}"
+            aria-label="Startup health check: {getStartupStatusText(startupHealthStatus)}"
+            aria-expanded={startupHealthExpanded}
+            aria-controls="startup-details"
+          >
+            <span class="check-icon">{getStartupStatusIcon(startupHealthStatus)}</span>
+            <span class="check-label">
+              {getStartupStatusText(startupHealthStatus)}
+              {#if startupHealthResults && startupHealthResults.summary}
+                <span class="expand-arrow">{startupHealthExpanded ? '▼' : '▶'}</span>
+              {/if}
+            </span>
+          </div>
 
-        <div class="check-divider" aria-hidden="true"></div>
+          <div class="check-divider" aria-hidden="true"></div>
 
-        <div class="check-item" class:ok={health.checks.syntaxErrors === 0} role="status" aria-label="Syntax errors: {health.checks.syntaxErrors}">
-          <span class="check-icon" aria-hidden="true">{health.checks.syntaxErrors === 0 ? '✅' : '❌'}</span>
-          <span class="check-label">Syntax</span>
-        </div>
-        <div class="check-item" class:ok={health.checks.testFailures === 0} role="status" aria-label="Test failures: {health.checks.testFailures}">
-          <span class="check-icon" aria-hidden="true">{health.checks.testFailures === 0 ? '✅' : '❌'}</span>
-          <span class="check-label">Tests</span>
-        </div>
-        <div class="check-item" class:warning={health.checks.largeDeletions > 0} role="status" aria-label="Large deletions: {health.checks.largeDeletions}">
-          <span class="check-icon" aria-hidden="true">{health.checks.largeDeletions === 0 ? '✅' : '⚠️'}</span>
-          <span class="check-label">Deletions ({health.checks.largeDeletions})</span>
-        </div>
-        <div class="check-item" class:critical={health.checks.securityChanges > 0} role="status" aria-label="Security file changes: {health.checks.securityChanges}">
-          <span class="check-icon" aria-hidden="true">{health.checks.securityChanges === 0 ? '✅' : '🚨'}</span>
-          <span class="check-label">Security ({health.checks.securityChanges})</span>
-        </div>
+          <div
+            class="check-item"
+            class:ok={health.checks.syntaxErrors === 0}
+            role="status"
+            aria-label="Syntax errors: {health.checks.syntaxErrors}"
+          >
+            <span class="check-icon" aria-hidden="true"
+              >{health.checks.syntaxErrors === 0 ? '✅' : '❌'}</span
+            >
+            <span class="check-label">Syntax</span>
+          </div>
+          <div
+            class="check-item"
+            class:ok={health.checks.testFailures === 0}
+            role="status"
+            aria-label="Test failures: {health.checks.testFailures}"
+          >
+            <span class="check-icon" aria-hidden="true"
+              >{health.checks.testFailures === 0 ? '✅' : '❌'}</span
+            >
+            <span class="check-label">Tests</span>
+          </div>
+          <div
+            class="check-item"
+            class:warning={health.checks.largeDeletions > 0}
+            role="status"
+            aria-label="Large deletions: {health.checks.largeDeletions}"
+          >
+            <span class="check-icon" aria-hidden="true"
+              >{health.checks.largeDeletions === 0 ? '✅' : '⚠️'}</span
+            >
+            <span class="check-label">Deletions ({health.checks.largeDeletions})</span>
+          </div>
+          <div
+            class="check-item"
+            class:critical={health.checks.securityChanges > 0}
+            role="status"
+            aria-label="Security file changes: {health.checks.securityChanges}"
+          >
+            <span class="check-icon" aria-hidden="true"
+              >{health.checks.securityChanges === 0 ? '✅' : '🚨'}</span
+            >
+            <span class="check-label">Security ({health.checks.securityChanges})</span>
+          </div>
         </div>
 
         <!-- Refresh Button (far right) -->
-        <button class="btn btn-primary btn-icon" on:click={async () => { await loadStartupHealthChecks(); await fetchHealth(); }} aria-label="Refresh health checks">
+        <button
+          class="btn btn-primary btn-icon"
+          on:click={async () => {
+            await loadStartupHealthChecks();
+            await fetchHealth();
+          }}
+          aria-label="Refresh health checks"
+        >
           <span aria-hidden="true">↻</span>
         </button>
       </div>
 
-
-    <!-- Expandable Startup Health Details -->
-    {#if startupHealthExpanded && startupHealthResults && startupHealthResults.checks}
-        <div class="startup-details" id="startup-details" role="region" aria-label="Startup health check details">
+      <!-- Expandable Startup Health Details -->
+      {#if startupHealthExpanded && startupHealthResults && startupHealthResults.checks}
+        <div
+          class="startup-details"
+          id="startup-details"
+          role="region"
+          aria-label="Startup health check details"
+        >
           {#each startupHealthResults.checks as check (check.path || check.name)}
-            <div class="startup-check-item" class:failed={!check.passed} role="status" aria-label="{check.name}: {check.passed ? 'passed' : 'failed'} - {check.message}">
+            <div
+              class="startup-check-item"
+              class:failed={!check.passed}
+              role="status"
+              aria-label="{check.name}: {check.passed ? 'passed' : 'failed'} - {check.message}"
+            >
               <span class="check-icon" aria-hidden="true">{check.passed ? '✅' : '❌'}</span>
               <span class="check-name">{check.name}</span>
               <span class="check-message" class:error={!check.passed}>{check.message}</span>
-              <span class="check-duration" aria-label="Duration: {check.duration} milliseconds">{check.duration}ms</span>
+              <span class="check-duration" aria-label="Duration: {check.duration} milliseconds"
+                >{check.duration}ms</span
+              >
             </div>
           {/each}
         </div>
       {/if}
-    </div>  <!-- close health-compact -->
+    </div>
+    <!-- close health-compact -->
   {/if}
-</div>  <!-- close health-widget -->
+</div>
+
+<!-- close health-widget -->
 
 <style>
   .health-widget {
@@ -430,7 +510,8 @@
     flex-shrink: 0;
   }
 
-  .health-loading, .health-error {
+  .health-loading,
+  .health-error {
     text-align: center;
     padding: var(--space-xl);
   }

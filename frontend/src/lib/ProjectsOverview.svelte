@@ -7,13 +7,14 @@
   let projectsData = [];
   let availableProjects = [];
   let loading = true;
+  let projectsLoadTimeoutId = null; // Track timeout for cleanup
 
   async function loadProjectsOverview() {
     try {
       // Add timeout protection (10 seconds max to prevent indefinite hang)
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Projects load timeout')), 10000)
-      );
+      const timeoutPromise = new Promise((_, reject) => {
+        projectsLoadTimeoutId = setTimeout(() => reject(new Error('Projects load timeout')), 10000);
+      });
 
       // Use dataService - it handles caching and deduplication
       // Fetch both file events AND agent events to detect activity
@@ -27,6 +28,12 @@
         dataPromise,
         timeoutPromise
       ]);
+
+      // Clear timeout after successful fetch
+      if (projectsLoadTimeoutId) {
+        clearTimeout(projectsLoadTimeoutId);
+        projectsLoadTimeoutId = null;
+      }
 
       availableProjects = projects;
 
@@ -57,9 +64,7 @@
         const projectEvents = events.filter(e => e.project === projectName);
 
         // Get most recent event timestamp (from either file changes or agent activity)
-        const lastEvent = projectEvents.length > 0
-          ? projectEvents[0].timestamp
-          : null;
+        const lastEvent = projectEvents.length > 0 ? projectEvents[0].timestamp : null;
 
         // Determine status based on recency
         let status = 'idle';
@@ -93,13 +98,15 @@
       projectsData = availableProjects
         .map(project => {
           const name = project.name || project;
-          return projectStats[name] || {
-            name,
-            status: 'idle',
-            lastActivity: null,
-            eventCount: 0,
-            recentChanges: 0
-          };
+          return (
+            projectStats[name] || {
+              name,
+              status: 'idle',
+              lastActivity: null,
+              eventCount: 0,
+              recentChanges: 0
+            }
+          );
         })
         .sort((a, b) => {
           if (!a.lastActivity) return 1;
@@ -109,6 +116,12 @@
 
       loading = false;
     } catch (error) {
+      // Clear timeout on error
+      if (projectsLoadTimeoutId) {
+        clearTimeout(projectsLoadTimeoutId);
+        projectsLoadTimeoutId = null;
+      }
+
       if (error && error.message === 'Projects load timeout') {
         logger.warn('Projects load timed out (10s)');
       } else {
@@ -156,15 +169,21 @@
 
   onDestroy(() => {
     websocketService.off('file-changed', handleFileChanged);
+
+    // Clean up any pending timeouts
+    if (projectsLoadTimeoutId) {
+      clearTimeout(projectsLoadTimeoutId);
+      projectsLoadTimeoutId = null;
+    }
   });
 </script>
 
 <section class="projects-overview" aria-labelledby="projects-heading">
   <div class="header">
-    <h3 id="projects-heading"><span aria-hidden="true">📁</span> Projects ({availableProjects.length})</h3>
-    <button class="view-all" style="visibility: hidden;" aria-hidden="true">
-      View All
-    </button>
+    <h3 id="projects-heading">
+      <span aria-hidden="true">📁</span> Projects ({availableProjects.length})
+    </h3>
+    <button class="view-all" style="visibility: hidden;" aria-hidden="true"> View All </button>
   </div>
 
   {#if loading}
@@ -177,7 +196,9 @@
         <button
           class="project-card"
           on:click={() => selectProject(project.name)}
-          aria-label="{project.name}: {project.recentChanges} recent changes, last activity {formatRelativeTime(project.lastActivity)}, status: {project.status}"
+          aria-label="{project.name}: {project.recentChanges} recent changes, last activity {formatRelativeTime(
+            project.lastActivity
+          )}, status: {project.status}"
         >
           <div class="project-header">
             <div class="project-name">
@@ -189,17 +210,27 @@
               class:recent={project.status === 'recent'}
               class:idle={project.status === 'idle'}
               role="status"
-              aria-label="{project.status === 'active' ? 'Active now' : project.status === 'recent' ? 'Recently active' : 'Idle'}"
+              aria-label={project.status === 'active'
+                ? 'Active now'
+                : project.status === 'recent'
+                  ? 'Recently active'
+                  : 'Idle'}
             ></div>
           </div>
           <div class="project-stats" role="group" aria-label="Project statistics">
             <div class="stat">
               <span class="stat-label">Recent</span>
-              <span class="stat-value" aria-label="{project.recentChanges} recent changes">{project.recentChanges}</span>
+              <span class="stat-value" aria-label="{project.recentChanges} recent changes"
+                >{project.recentChanges}</span
+              >
             </div>
             <div class="stat">
               <span class="stat-label">Activity</span>
-              <span class="stat-value" aria-label="Last activity {formatRelativeTime(project.lastActivity)}">{formatRelativeTime(project.lastActivity)}</span>
+              <span
+                class="stat-value"
+                aria-label="Last activity {formatRelativeTime(project.lastActivity)}"
+                >{formatRelativeTime(project.lastActivity)}</span
+              >
             </div>
           </div>
         </button>
@@ -249,7 +280,8 @@
     color: white;
   }
 
-  .loading, .empty {
+  .loading,
+  .empty {
     text-align: center;
     padding: var(--space-xl);
     color: var(--muted);

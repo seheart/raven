@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import Toast from '../Toast.svelte';
-import { notifications } from '../stores/notifications.js';
+import { toasts } from '../toastStore.js';
 
 describe('Toast Component', () => {
   beforeEach(() => {
@@ -29,20 +29,20 @@ describe('Toast Component', () => {
       return animation;
     });
 
-    // Clear notifications before each test
-    notifications.clear();
+    // Clear toasts before each test
+    toasts.clear();
   });
 
   afterEach(() => {
-    // Clear notifications after each test
-    notifications.clear();
+    // Clear toasts after each test
+    toasts.clear();
   });
 
   it('should render toast when notification is added', async () => {
     const { getByText } = render(Toast);
 
-    // Add a notification
-    notifications.add({ type: 'info', message: 'Test message', timeout: 0 });
+    // Add a toast
+    toasts.show('Test message', 'info', 0);
 
     // Wait for the toast to appear
     await waitFor(() => {
@@ -59,7 +59,7 @@ describe('Toast Component', () => {
   it('should render with correct type class', async () => {
     const { container } = render(Toast);
 
-    notifications.add({ type: 'info', message: 'Test', timeout: 0 });
+    toasts.show('Test', 'info', 0);
 
     await waitFor(() => {
       const toast = container.querySelector('.toast');
@@ -73,8 +73,8 @@ describe('Toast Component', () => {
     const types = ['success', 'error', 'warning', 'info'];
 
     for (const type of types) {
-      notifications.clear();
-      notifications.add({ type, message: `Test ${type}`, timeout: 0 });
+      toasts.clear();
+      toasts.show(`Test ${type}`, type, 0);
 
       await waitFor(() => {
         const toast = container.querySelector('.toast');
@@ -88,7 +88,7 @@ describe('Toast Component', () => {
     const { container, getByText, queryByText } = render(Toast);
 
     // eslint-disable-next-line no-unused-vars
-    const id = notifications.add({ type: 'info', message: 'Test message', timeout: 0 });
+    const id = toasts.show('Test message', 'info', 0);
 
     await waitFor(() => {
       expect(getByText('Test message')).toBeInTheDocument();
@@ -99,18 +99,21 @@ describe('Toast Component', () => {
 
     await fireEvent.click(closeButton);
 
-    // Wait for the notification to be removed from the store
+    // Wait for the toast to be removed from the store
     // Note: There may be a short transition period
-    await waitFor(() => {
-      expect(queryByText('Test message')).not.toBeInTheDocument();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(queryByText('Test message')).not.toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
   });
 
   it('should display the correct message', async () => {
     const message = 'This is a test toast message';
     const { getByText } = render(Toast);
 
-    notifications.add({ type: 'info', message, timeout: 0 });
+    toasts.show(message, 'info', 0);
 
     await waitFor(() => {
       expect(getByText(message)).toBeInTheDocument();
@@ -120,7 +123,7 @@ describe('Toast Component', () => {
   it('should have appropriate ARIA attributes for accessibility', async () => {
     const { container } = render(Toast);
 
-    notifications.add({ type: 'info', message: 'Test', timeout: 0 });
+    toasts.show('Test', 'info', 0);
 
     await waitFor(() => {
       const toast = container.querySelector('.toast');
@@ -132,8 +135,8 @@ describe('Toast Component', () => {
   it('should support multiple notifications simultaneously', async () => {
     const { getByText } = render(Toast);
 
-    notifications.add({ type: 'info', message: 'Message 1', timeout: 0 });
-    notifications.add({ type: 'success', message: 'Message 2', timeout: 0 });
+    toasts.show('Message 1', 'info', 0);
+    toasts.show('Message 2', 'success', 0);
 
     await waitFor(() => {
       expect(getByText('Message 1')).toBeInTheDocument();
