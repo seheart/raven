@@ -780,14 +780,6 @@ describe('Safety Routes', () => {
         prepare: jest.fn().mockReturnValue({
           all: jest.fn().mockReturnValue([
             {
-              test_file: 'tests/unit/user.test.js',
-              test_name: 'should create user',
-              status: 'passed',
-              error_message: null,
-              error_stack: null,
-              duration_ms: 45
-            },
-            {
               test_file: 'tests/unit/auth.test.js',
               test_name: 'should authenticate',
               status: 'failed',
@@ -802,6 +794,14 @@ describe('Safety Routes', () => {
               error_message: null,
               error_stack: null,
               duration_ms: 0
+            },
+            {
+              test_file: 'tests/unit/user.test.js',
+              test_name: 'should create user',
+              status: 'passed',
+              error_message: null,
+              error_stack: null,
+              duration_ms: 45
             }
           ])
         })
