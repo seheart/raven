@@ -38,15 +38,6 @@ jest.mock('systeminformation', () => ({
   mem: mockMem
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn()
-  }
-}));
-
 // Import mocked modules
 import fs from 'fs';
 import { createHash } from 'crypto';

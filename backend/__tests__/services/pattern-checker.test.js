@@ -23,16 +23,6 @@ jest.mock('path', () => ({
   basename: mockBasename
 }));
 
-// Mock logger
-jest.mock('../../utils/logger.js', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn()
-  }
-}));
-
 import * as fs from 'fs';
 import * as path from 'path';
 import { PatternChecker } from '../../services/pattern-checker.js';

@@ -32,15 +32,6 @@ jest.mock('os', () => ({
   homedir: mockHomedir
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn()
-  }
-}));
-
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
