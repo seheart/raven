@@ -4,17 +4,25 @@
 
 import { jest } from '@jest/globals';
 
+// Create mock functions before jest.mock
+const mockExistsSync = jest.fn();
+const mockReadFileSync = jest.fn();
+const mockReaddirSync = jest.fn();
+const mockStatSync = jest.fn();
+const mockWatch = jest.fn();
+const mockHomedir = jest.fn(() => '/home/testuser');
+
 // Mock modules with explicit mock implementations
 jest.mock('fs', () => ({
-  existsSync: jest.fn(),
-  readFileSync: jest.fn(),
-  readdirSync: jest.fn(),
-  statSync: jest.fn(),
-  watch: jest.fn()
+  existsSync: mockExistsSync,
+  readFileSync: mockReadFileSync,
+  readdirSync: mockReaddirSync,
+  statSync: mockStatSync,
+  watch: mockWatch
 }));
 
 jest.mock('os', () => ({
-  homedir: jest.fn(() => '/home/testuser')
+  homedir: mockHomedir
 }));
 
 import * as fs from 'fs';
@@ -37,6 +45,14 @@ describe('ConversationSync', () => {
     mockIo = {
       emit: jest.fn()
     };
+
+    // Reset all mock implementations
+    mockExistsSync.mockReset();
+    mockReadFileSync.mockReset();
+    mockReaddirSync.mockReset();
+    mockStatSync.mockReset();
+    mockWatch.mockReset();
+    mockHomedir.mockReturnValue('/home/testuser');
 
     sync = new ConversationSync(mockDb, sessionId, mockIo, projectPath);
 
@@ -73,7 +89,7 @@ describe('ConversationSync', () => {
 
   describe('getStatus()', () => {
     test('should return sync status', () => {
-      fs.existsSync.mockReturnValue(true);
+      mockExistsSync.mockReturnValue(true);
 
       const status = sync.getStatus();
 
@@ -91,7 +107,7 @@ describe('ConversationSync', () => {
       sync.isRunning = true;
       sync.lastSyncTime = new Date('2025-01-01T12:00:00Z');
       sync.syncedCount = 5;
-      fs.existsSync.mockReturnValue(true);
+      mockExistsSync.mockReturnValue(true);
 
       const status = sync.getStatus();
 
@@ -101,12 +117,12 @@ describe('ConversationSync', () => {
     });
 
     test('should check directory existence', () => {
-      fs.existsSync.mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
 
       const status = sync.getStatus();
 
       expect(status.exists).toBe(false);
-      expect(fs.existsSync).toHaveBeenCalledWith(sync.claudeProjectDir);
+      expect(mockExistsSync).toHaveBeenCalledWith(sync.claudeProjectDir);
     });
   });
 
@@ -133,7 +149,7 @@ describe('ConversationSync', () => {
 
   describe('start()', () => {
     beforeEach(() => {
-      fs.existsSync.mockReturnValue(true);
+      mockExistsSync.mockReturnValue(true);
     });
 
     test('should not start if already running', async () => {
@@ -141,28 +157,28 @@ describe('ConversationSync', () => {
 
       await sync.start();
 
-      expect(fs.watch).not.toHaveBeenCalled();
+      expect(mockWatch).not.toHaveBeenCalled();
     });
 
     test('should warn if Claude project directory does not exist', async () => {
-      fs.existsSync.mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
 
       await sync.start();
 
-      expect(fs.watch).not.toHaveBeenCalled();
+      expect(mockWatch).not.toHaveBeenCalled();
       expect(sync.isRunning).toBe(false);
     });
 
     test('should process existing files and start watching', async () => {
       const mockWatcher = { close: jest.fn() };
-      fs.watch.mockReturnValue(mockWatcher);
+      mockWatch.mockReturnValue(mockWatcher);
 
       jest.spyOn(sync, 'processExistingFiles').mockResolvedValue();
 
       await sync.start();
 
       expect(sync.processExistingFiles).toHaveBeenCalled();
-      expect(fs.watch).toHaveBeenCalledWith(
+      expect(mockWatch).toHaveBeenCalledWith(
         sync.claudeProjectDir,
         { recursive: false },
         expect.any(Function)
@@ -174,7 +190,7 @@ describe('ConversationSync', () => {
 
     test('should handle file change events from watcher', async () => {
       let changeCallback;
-      fs.watch.mockImplementation((dir, options, callback) => {
+      mockWatch.mockImplementation((dir, options, callback) => {
         changeCallback = callback;
         return { close: jest.fn() };
       });
@@ -194,7 +210,7 @@ describe('ConversationSync', () => {
 
     test('should ignore non-jsonl files in watcher', async () => {
       let changeCallback;
-      fs.watch.mockImplementation((dir, options, callback) => {
+      mockWatch.mockImplementation((dir, options, callback) => {
         changeCallback = callback;
         return { close: jest.fn() };
       });
@@ -218,9 +234,9 @@ describe('ConversationSync', () => {
 
   describe('processExistingFiles()', () => {
     test('should process most recent session file', async () => {
-      fs.readdirSync.mockReturnValue(['session-old.jsonl', 'session-recent.jsonl']);
-      fs.statSync.mockReturnValueOnce({ mtime: new Date('2025-01-01') });
-      fs.statSync.mockReturnValueOnce({ mtime: new Date('2025-01-10') });
+      mockReaddirSync.mockReturnValue(['session-old.jsonl', 'session-recent.jsonl']);
+      mockStatSync.mockReturnValueOnce({ mtime: new Date('2025-01-01') });
+      mockStatSync.mockReturnValueOnce({ mtime: new Date('2025-01-10') });
 
       jest.spyOn(sync, 'processFile').mockResolvedValue();
 
@@ -236,8 +252,8 @@ describe('ConversationSync', () => {
     test('should skip files older than 7 days', async () => {
       const oldDate = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000); // 8 days ago
 
-      fs.readdirSync.mockReturnValue(['session-old.jsonl']);
-      fs.statSync.mockReturnValue({ mtime: oldDate });
+      mockReaddirSync.mockReturnValue(['session-old.jsonl']);
+      mockStatSync.mockReturnValue({ mtime: oldDate });
 
       jest.spyOn(sync, 'processFile').mockResolvedValue();
 
@@ -247,7 +263,7 @@ describe('ConversationSync', () => {
     });
 
     test('should handle no session files', async () => {
-      fs.readdirSync.mockReturnValue([]);
+      mockReaddirSync.mockReturnValue([]);
 
       jest.spyOn(sync, 'processFile').mockResolvedValue();
 
@@ -257,7 +273,7 @@ describe('ConversationSync', () => {
     });
 
     test('should handle errors gracefully', async () => {
-      fs.readdirSync.mockImplementation(() => {
+      mockReaddirSync.mockImplementation(() => {
         throw new Error('Import failed');
       });
 
@@ -302,16 +318,16 @@ describe('ConversationSync', () => {
 
   describe('processFile()', () => {
     test('should skip non-existent files', async () => {
-      fs.existsSync.mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
 
       await sync.processFile('/path/to/nonexistent.jsonl');
 
-      expect(fs.readFileSync).not.toHaveBeenCalled();
+      expect(mockReadFileSync).not.toHaveBeenCalled();
     });
 
     test('should process new conversation entries', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue(
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
         '{"type":"user_message","timestamp":"2025-01-01T12:00:00Z","content":"Hello"}\n' +
           '{"type":"assistant_text","timestamp":"2025-01-01T12:00:01Z","content":"Hi there"}'
       );
@@ -336,8 +352,8 @@ describe('ConversationSync', () => {
     });
 
     test('should support new format types (user, assistant)', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue(
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
         '{"type":"user","timestamp":"2025-01-01T12:00:00Z","content":"Question"}\n' +
           '{"type":"assistant","timestamp":"2025-01-01T12:00:01Z","content":"Answer"}'
       );
@@ -348,8 +364,8 @@ describe('ConversationSync', () => {
     });
 
     test('should process tool calls', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue(
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
         '{"type":"tool_call","timestamp":"2025-01-01T12:00:00Z","tool":{"name":"Read","input":{"file":"test.js"}}}'
       );
 
@@ -372,8 +388,8 @@ describe('ConversationSync', () => {
     });
 
     test('should process tool results', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue(
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
         '{"type":"tool_result","timestamp":"2025-01-01T12:00:00Z","output":"Success"}'
       );
 
@@ -396,8 +412,8 @@ describe('ConversationSync', () => {
     });
 
     test('should skip non-conversation entries', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue(
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
         '{"type":"system_config","setting":"value"}\n' +
           '{"type":"user_message","content":"Real message"}'
       );
@@ -409,8 +425,8 @@ describe('ConversationSync', () => {
     });
 
     test('should skip malformed JSON lines', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('not json\n' + '{"type":"user_message","content":"Valid"}');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('not json\n' + '{"type":"user_message","content":"Valid"}');
 
       await sync.processFile('/path/to/session-123.jsonl', false);
 
@@ -418,8 +434,8 @@ describe('ConversationSync', () => {
     });
 
     test('should track processed lines to avoid duplicates', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('{"type":"user_message","content":"Message 1"}');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('{"type":"user_message","content":"Message 1"}');
 
       await sync.processFile('/path/to/session-123.jsonl', false);
       expect(mockDb.insertConversation).toHaveBeenCalledTimes(1);
@@ -430,7 +446,7 @@ describe('ConversationSync', () => {
       expect(mockDb.insertConversation).not.toHaveBeenCalled();
 
       // Process with new line added
-      fs.readFileSync.mockReturnValue(
+      mockReadFileSync.mockReturnValue(
         '{"type":"user_message","content":"Message 1"}\n' +
           '{"type":"user_message","content":"Message 2"}'
       );
@@ -439,8 +455,8 @@ describe('ConversationSync', () => {
     });
 
     test('should emit WebSocket event when conversations imported', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('{"type":"user_message","content":"Test"}');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('{"type":"user_message","content":"Test"}');
 
       await sync.processFile('/path/to/session-123.jsonl', false);
 
@@ -452,8 +468,8 @@ describe('ConversationSync', () => {
     });
 
     test('should not emit WebSocket when nothing imported', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('');
 
       await sync.processFile('/path/to/session-123.jsonl', false);
 
@@ -461,8 +477,8 @@ describe('ConversationSync', () => {
     });
 
     test('should update syncedCount', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue(
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
         '{"type":"user_message","content":"M1"}\n' + '{"type":"assistant_text","content":"M2"}'
       );
 
@@ -474,8 +490,8 @@ describe('ConversationSync', () => {
     });
 
     test('should update lastSyncTime', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('{"type":"user_message","content":"Test"}');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('{"type":"user_message","content":"Test"}');
 
       expect(sync.lastSyncTime).toBeNull();
 
@@ -485,8 +501,8 @@ describe('ConversationSync', () => {
     });
 
     test('should handle file read errors', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockImplementation(() => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockImplementation(() => {
         throw new Error('Read error');
       });
 
@@ -496,15 +512,15 @@ describe('ConversationSync', () => {
     test('should work without io', async () => {
       const noIoSync = new ConversationSync(mockDb, sessionId, null, projectPath);
 
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('{"type":"user_message","content":"Test"}');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('{"type":"user_message","content":"Test"}');
 
       await expect(noIoSync.processFile('/path/to/session-123.jsonl')).resolves.not.toThrow();
     });
 
     test('should handle default timestamp when missing', async () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('{"type":"user_message","content":"Test"}');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('{"type":"user_message","content":"Test"}');
 
       await sync.processFile('/path/to/session-123.jsonl', false);
 
@@ -540,14 +556,14 @@ describe('ConversationSync', () => {
   describe('Integration', () => {
     test('should complete full sync workflow', async () => {
       // Setup
-      fs.existsSync.mockReturnValue(true);
+      mockExistsSync.mockReturnValue(true);
       const mockWatcher = { close: jest.fn() };
-      fs.watch.mockReturnValue(mockWatcher);
+      mockWatch.mockReturnValue(mockWatcher);
 
-      fs.readdirSync.mockReturnValue(['session-123.jsonl']);
-      fs.statSync.mockReturnValue({ mtime: new Date() });
+      mockReaddirSync.mockReturnValue(['session-123.jsonl']);
+      mockStatSync.mockReturnValue({ mtime: new Date() });
 
-      fs.readFileSync.mockReturnValue(
+      mockReadFileSync.mockReturnValue(
         '{"type":"user_message","timestamp":"2025-01-01T12:00:00Z","content":"Hello"}\n' +
           '{"type":"assistant_text","timestamp":"2025-01-01T12:00:01Z","content":"Hi"}'
       );
