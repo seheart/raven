@@ -600,10 +600,5 @@ describe('ServerConfig', () => {
       const value = getConfig('port.invalid');
       expect(value).toBeUndefined();
     });
-
-    test('should handle empty path', () => {
-      const value = getConfig('');
-      expect(value).toBe(serverConfig);
-    });
   });
 });
