@@ -37,6 +37,12 @@
     slack: { enabled: false, events: [] }
   };
 
+  // Integration configuration forms
+  let githubConfig = { token: '', owner: '', repo: '' };
+  let discordConfig = { webhookUrl: '' };
+  let slackConfig = { webhookUrl: '' };
+  let configSaveStatus = '';
+
   // Lazy load data when tab changes
   $: if (activeTab && !loadedTabs.has(activeTab)) {
     loadTabData(activeTab);
@@ -241,6 +247,69 @@
       await loadGrowthData();
     } catch (err) {
       // Error handled silently - operation failed gracefully
+    }
+  }
+
+  async function saveGitHubConfig() {
+    try {
+      configSaveStatus = 'Saving GitHub configuration...';
+      const res = await fetch(`${API_BASE}/integrations/github/config?project=${project}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(githubConfig)
+      });
+      const data = await res.json();
+      if (data.success) {
+        configSaveStatus = 'GitHub configuration saved successfully!';
+        integrationStatus.github.enabled = true;
+        setTimeout(() => (configSaveStatus = ''), 3000);
+      } else {
+        configSaveStatus = `Error: ${data.error}`;
+      }
+    } catch (err) {
+      configSaveStatus = `Error saving GitHub config: ${err.message}`;
+    }
+  }
+
+  async function saveDiscordConfig() {
+    try {
+      configSaveStatus = 'Saving Discord configuration...';
+      const res = await fetch(`${API_BASE}/integrations/discord/config?project=${project}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(discordConfig)
+      });
+      const data = await res.json();
+      if (data.success) {
+        configSaveStatus = 'Discord configuration saved successfully!';
+        integrationStatus.discord.enabled = true;
+        setTimeout(() => (configSaveStatus = ''), 3000);
+      } else {
+        configSaveStatus = `Error: ${data.error}`;
+      }
+    } catch (err) {
+      configSaveStatus = `Error saving Discord config: ${err.message}`;
+    }
+  }
+
+  async function saveSlackConfig() {
+    try {
+      configSaveStatus = 'Saving Slack configuration...';
+      const res = await fetch(`${API_BASE}/integrations/slack/config?project=${project}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(slackConfig)
+      });
+      const data = await res.json();
+      if (data.success) {
+        configSaveStatus = 'Slack configuration saved successfully!';
+        integrationStatus.slack.enabled = true;
+        setTimeout(() => (configSaveStatus = ''), 3000);
+      } else {
+        configSaveStatus = `Error: ${data.error}`;
+      }
+    } catch (err) {
+      configSaveStatus = `Error saving Slack config: ${err.message}`;
     }
   }
 
@@ -671,52 +740,110 @@
       </div>
     {:else if activeTab === 'integrations'}
       <div class="integrations-tab">
-        <h3>External Integrations</h3>
+        <h3>External Integrations Configuration</h3>
 
-        <div class="integration-cards">
-          <div class="integration-card {integrationStatus.github.enabled ? 'enabled' : 'disabled'}">
-            <div class="integration-header">
-              <span class="integration-name">GitHub</span>
-              <span class="integration-status"
+        {#if configSaveStatus}
+          <div class="config-status">{configSaveStatus}</div>
+        {/if}
+
+        <div class="integration-config-cards">
+          <!-- GitHub Configuration -->
+          <div class="config-card">
+            <div class="config-header">
+              <h4>GitHub Integration</h4>
+              <span class="config-status-badge {integrationStatus.github.enabled ? 'enabled' : ''}"
                 >{integrationStatus.github.enabled ? 'Enabled' : 'Disabled'}</span
               >
             </div>
-            <div class="integration-info">
+            <div class="config-form">
+              <div class="form-group">
+                <label for="github-token">Personal Access Token</label>
+                <input
+                  id="github-token"
+                  type="password"
+                  bind:value={githubConfig.token}
+                  placeholder="ghp_xxxxxxxxxxxxx"
+                />
+              </div>
+              <div class="form-group">
+                <label for="github-owner">Repository Owner</label>
+                <input
+                  id="github-owner"
+                  type="text"
+                  bind:value={githubConfig.owner}
+                  placeholder="username or organization"
+                />
+              </div>
+              <div class="form-group">
+                <label for="github-repo">Repository Name</label>
+                <input
+                  id="github-repo"
+                  type="text"
+                  bind:value={githubConfig.repo}
+                  placeholder="repo-name"
+                />
+              </div>
+              <button class="save-button" on:click={saveGitHubConfig}>Save GitHub Config</button>
+            </div>
+            <div class="config-info">
               <p>Recent events: {integrationStatus.github.events.length}</p>
+              <p class="help-text">
+                Create issues for critical errors and post health reports to commits
+              </p>
             </div>
           </div>
 
-          <div
-            class="integration-card {integrationStatus.discord.enabled ? 'enabled' : 'disabled'}"
-          >
-            <div class="integration-header">
-              <span class="integration-name">Discord</span>
-              <span class="integration-status"
+          <!-- Discord Configuration -->
+          <div class="config-card">
+            <div class="config-header">
+              <h4>Discord Integration</h4>
+              <span class="config-status-badge {integrationStatus.discord.enabled ? 'enabled' : ''}"
                 >{integrationStatus.discord.enabled ? 'Enabled' : 'Disabled'}</span
               >
             </div>
-            <div class="integration-info">
+            <div class="config-form">
+              <div class="form-group">
+                <label for="discord-webhook">Webhook URL</label>
+                <input
+                  id="discord-webhook"
+                  type="url"
+                  bind:value={discordConfig.webhookUrl}
+                  placeholder="https://discord.com/api/webhooks/..."
+                />
+              </div>
+              <button class="save-button" on:click={saveDiscordConfig}>Save Discord Config</button>
+            </div>
+            <div class="config-info">
               <p>Recent events: {integrationStatus.discord.events.length}</p>
+              <p class="help-text">Send notifications to Discord channel for monitoring alerts</p>
             </div>
           </div>
 
-          <div class="integration-card {integrationStatus.slack.enabled ? 'enabled' : 'disabled'}">
-            <div class="integration-header">
-              <span class="integration-name">Slack</span>
-              <span class="integration-status"
+          <!-- Slack Configuration -->
+          <div class="config-card">
+            <div class="config-header">
+              <h4>Slack Integration</h4>
+              <span class="config-status-badge {integrationStatus.slack.enabled ? 'enabled' : ''}"
                 >{integrationStatus.slack.enabled ? 'Enabled' : 'Disabled'}</span
               >
             </div>
-            <div class="integration-info">
+            <div class="config-form">
+              <div class="form-group">
+                <label for="slack-webhook">Webhook URL</label>
+                <input
+                  id="slack-webhook"
+                  type="url"
+                  bind:value={slackConfig.webhookUrl}
+                  placeholder="https://hooks.slack.com/services/..."
+                />
+              </div>
+              <button class="save-button" on:click={saveSlackConfig}>Save Slack Config</button>
+            </div>
+            <div class="config-info">
               <p>Recent events: {integrationStatus.slack.events.length}</p>
+              <p class="help-text">Send notifications to Slack channel for team collaboration</p>
             </div>
           </div>
-        </div>
-
-        <div class="integration-note">
-          <p>
-            Configure integrations via API endpoints to enable notifications and external reporting.
-          </p>
         </div>
       </div>
     {/if}
@@ -1270,6 +1397,136 @@
     background: #1f1f1f;
     border-radius: 6px;
     color: #999;
+    font-size: 14px;
+  }
+
+  /* Integration Configuration Styles */
+  .integration-config-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 20px;
+  }
+
+  .config-card {
+    background: var(--bg-secondary, #222);
+    border-radius: 8px;
+    padding: 20px;
+    border: 2px solid var(--border-color, #333);
+  }
+
+  .config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color, #333);
+  }
+
+  .config-header h4 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-primary, #fff);
+  }
+
+  .config-status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #444;
+    color: #999;
+  }
+
+  .config-status-badge.enabled {
+    background: #51cf66;
+    color: #000;
+  }
+
+  .config-form {
+    margin: 16px 0;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary, #ccc);
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-primary, #1a1a1a);
+    border: 1px solid var(--border-color, #444);
+    border-radius: 6px;
+    color: var(--text-primary, #fff);
+    font-size: 14px;
+    font-family: inherit;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--accent-color, #51cf66);
+    box-shadow: 0 0 0 2px rgba(81, 207, 102, 0.1);
+  }
+
+  .form-group input::placeholder {
+    color: #666;
+  }
+
+  .save-button {
+    padding: 10px 20px;
+    background: var(--accent-color, #51cf66);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .save-button:hover {
+    background: #69db7c;
+    transform: translateY(-1px);
+  }
+
+  .save-button:active {
+    transform: translateY(0);
+  }
+
+  .config-info {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color, #333);
+  }
+
+  .config-info p {
+    margin: 4px 0;
+    font-size: 14px;
+    color: var(--text-secondary, #ccc);
+  }
+
+  .help-text {
+    color: #999 !important;
+    font-size: 13px !important;
+    font-style: italic;
+  }
+
+  .config-status {
+    padding: 12px;
+    margin-bottom: 16px;
+    background: #1f1f1f;
+    border-left: 3px solid #51cf66;
+    border-radius: 4px;
+    color: #ccc;
     font-size: 14px;
   }
 </style>
