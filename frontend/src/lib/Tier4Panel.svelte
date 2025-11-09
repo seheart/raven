@@ -566,27 +566,27 @@
             <div class="personality-metrics">
               <div class="metric-item">
                 <span class="metric-label">Communication Style</span>
-                <span class="metric-value">{personalityProfile.communication_style}</span>
+                <span class="metric-value">{insights.communication_style.style}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Risk Tolerance</span>
-                <span class="metric-value">{personalityProfile.risk_tolerance}</span>
+                <span class="metric-value">{insights.risk_profile.tolerance}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Creativity Score</span>
-                <span class="metric-value">{personalityProfile.creativity_score}/100</span>
+                <span class="metric-value">{insights.creativity_score.score}/100</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Consistency Score</span>
-                <span class="metric-value">{personalityProfile.consistency_score}/100</span>
+                <span class="metric-value">{insights.consistency_metrics.score}/100</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Problem Solving</span>
-                <span class="metric-value">{personalityProfile.problem_solving_approach}</span>
+                <span class="metric-value">{insights.problem_solving.approach}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Decision Speed</span>
-                <span class="metric-value">{personalityProfile.decision_speed}</span>
+                <span class="metric-value">{insights.decision_speed.speed}</span>
               </div>
             </div>
 
