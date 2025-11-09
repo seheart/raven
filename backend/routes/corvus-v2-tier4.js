@@ -615,7 +615,7 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
       const healthScore = await projectDb.healthScoring.calculateHealthScore();
       const result = await projectDb.discordIntegration.sendHealthScore(healthScore);
 
-      res.json({ result, project });
+      res.json({ success: true, result });
     } catch (error) {
       logger.error('Failed to send health score to Discord', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -630,9 +630,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
       const { project } = req.query;
       const projectDb = getProjectDb(project || 'raven');
 
-      const result = await projectDb.discordIntegration.disable();
+      await projectDb.discordIntegration.disable();
 
-      res.json({ result, project });
+      res.json({ success: true });
     } catch (error) {
       logger.error('Failed to disable Discord integration', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -650,7 +650,7 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
 
       const events = projectDb.discordIntegration.getRecentEvents(validHours);
 
-      res.json({ events, project });
+      res.json(events);
     } catch (error) {
       logger.error('Failed to get Discord events', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -731,7 +731,7 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
       const healthScore = await projectDb.healthScoring.calculateHealthScore();
       const result = await projectDb.slackIntegration.sendHealthScore(healthScore);
 
-      res.json({ result, project });
+      res.json({ success: true, result });
     } catch (error) {
       logger.error('Failed to send health score to Slack', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -746,9 +746,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
       const { project } = req.query;
       const projectDb = getProjectDb(project || 'raven');
 
-      const result = await projectDb.slackIntegration.disable();
+      await projectDb.slackIntegration.disable();
 
-      res.json({ result, project });
+      res.json({ success: true });
     } catch (error) {
       logger.error('Failed to disable Slack integration', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -766,7 +766,7 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
 
       const events = projectDb.slackIntegration.getRecentEvents(validHours);
 
-      res.json({ events, project });
+      res.json(events);
     } catch (error) {
       logger.error('Failed to get Slack events', { error: error.message });
       res.status(500).json({ error: error.message });
