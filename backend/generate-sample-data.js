@@ -10,6 +10,9 @@
  * - Growth snapshots
  * - User patterns
  * - Integration events
+ * - Gamification (achievements, user stats)
+ * - Easter eggs
+ * - Social features (shares, team members)
  */
 
 import Database from 'better-sqlite3';
@@ -46,6 +49,11 @@ try {
   db.prepare('DELETE FROM growth_snapshots WHERE project_name = ?').run(PROJECT);
   db.prepare('DELETE FROM user_patterns WHERE project_name = ?').run(PROJECT);
   db.prepare('DELETE FROM integration_events WHERE project_name = ?').run(PROJECT);
+  db.prepare('DELETE FROM achievements WHERE project_name = ?').run(PROJECT);
+  db.prepare('DELETE FROM user_stats WHERE project_name = ?').run(PROJECT);
+  db.prepare('DELETE FROM easter_eggs WHERE project_name = ?').run(PROJECT);
+  db.prepare('DELETE FROM social_shares WHERE project_name = ?').run(PROJECT);
+  db.prepare('DELETE FROM team_members WHERE project_name = ?').run(PROJECT);
   console.log(`${colors.green}✓ Cleared existing data${colors.reset}\n`);
 
   // ========================================
@@ -461,6 +469,218 @@ try {
   console.log(`  ${colors.green}✓ Created 20 integration events${colors.reset}`);
 
   // ========================================
+  // 8. GAMIFICATION (Achievements & User Stats)
+  // ========================================
+  console.log(`${colors.yellow}[8/10] Generating gamification data...${colors.reset}`);
+
+  // Create user stats
+  const userStatsStmt = db.prepare(`
+    INSERT INTO user_stats (
+      project_name, level, experience, total_points, streak_days,
+      last_active_date, badges_unlocked
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const level = 8;
+  const experience = 6400; // Based on level formula
+  const totalPoints = 1250;
+  const streakDays = 15;
+  const badgesUnlocked = 5;
+
+  userStatsStmt.run(
+    PROJECT,
+    level,
+    experience,
+    totalPoints,
+    streakDays,
+    new Date().toISOString().split('T')[0],
+    badgesUnlocked
+  );
+
+  console.log(`  ${colors.green}✓ Created user stats${colors.reset}`);
+
+  // Create sample achievements
+  const achievementStmt = db.prepare(`
+    INSERT INTO achievements (
+      project_name, achievement_type, achievement_id, title, description,
+      icon, rarity, points, unlocked_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const sampleAchievements = [
+    {
+      id: 'first_commit',
+      title: '🎉 First Steps',
+      desc: 'Made your first commit with Raven!',
+      rarity: 'common',
+      points: 10,
+      daysAgo: 30
+    },
+    {
+      id: 'commits_100',
+      title: '💯 Century',
+      desc: 'Reached 100 commits!',
+      rarity: 'rare',
+      points: 100,
+      daysAgo: 15
+    },
+    {
+      id: 'streak_7',
+      title: '🔥 Week Warrior',
+      desc: '7-day coding streak!',
+      rarity: 'uncommon',
+      points: 50,
+      daysAgo: 8
+    },
+    {
+      id: 'night_owl',
+      title: '🦉 Night Owl',
+      desc: 'Coding at 3 AM!',
+      rarity: 'common',
+      points: 20,
+      daysAgo: 5
+    },
+    {
+      id: 'early_bird',
+      title: '🐦 Early Bird',
+      desc: 'Coding before 6 AM!',
+      rarity: 'common',
+      points: 20,
+      daysAgo: 3
+    }
+  ];
+
+  for (const ach of sampleAchievements) {
+    const unlockedDate = new Date();
+    unlockedDate.setDate(unlockedDate.getDate() - ach.daysAgo);
+
+    achievementStmt.run(
+      PROJECT,
+      'standard',
+      ach.id,
+      ach.title,
+      ach.desc,
+      ach.title.split(' ')[0],
+      ach.rarity,
+      ach.points,
+      unlockedDate.toISOString()
+    );
+  }
+
+  console.log(
+    `  ${colors.green}✓ Created ${sampleAchievements.length} achievements${colors.reset}`
+  );
+
+  // ========================================
+  // 9. EASTER EGGS
+  // ========================================
+  console.log(`${colors.yellow}[9/10] Generating easter eggs...${colors.reset}`);
+
+  const easterEggStmt = db.prepare(`
+    INSERT INTO easter_eggs (
+      project_name, egg_id, title, message, trigger_type, discovered_at
+    ) VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  const sampleEggs = [
+    {
+      id: 'hello_raven',
+      title: '👋 Hello there!',
+      msg: 'Oh! You said hello! *happy caw* Hello to you too, friend! 🐦‍⬛💙',
+      type: 'code',
+      daysAgo: 20
+    },
+    {
+      id: 'raven_in_code',
+      title: '🔍 Found Me!',
+      msg: "You put 'raven' in your code? *excited caw* I'm famous! 🐦‍⬛",
+      type: 'code',
+      daysAgo: 12
+    },
+    {
+      id: 'good_bot',
+      title: '😊 Good bot!',
+      msg: "*proud caw* I'm a good Raven? You're making me blush! 🐦‍⬛❤️",
+      type: 'code',
+      daysAgo: 5
+    }
+  ];
+
+  for (const egg of sampleEggs) {
+    const discoveredDate = new Date();
+    discoveredDate.setDate(discoveredDate.getDate() - egg.daysAgo);
+
+    easterEggStmt.run(PROJECT, egg.id, egg.title, egg.msg, egg.type, discoveredDate.toISOString());
+  }
+
+  console.log(`  ${colors.green}✓ Created ${sampleEggs.length} easter eggs${colors.reset}`);
+
+  // ========================================
+  // 10. SOCIAL FEATURES
+  // ========================================
+  console.log(`${colors.yellow}[10/10] Generating social data...${colors.reset}`);
+
+  // Create sample share history
+  const shareStmt = db.prepare(`
+    INSERT INTO social_shares (
+      project_name, share_type, content, platform, shared_at
+    ) VALUES (?, ?, ?, ?, ?)
+  `);
+
+  const sampleShares = [
+    {
+      type: 'achievement',
+      content: { title: '🎉 First Steps', points: 10 },
+      platform: 'clipboard',
+      daysAgo: 25
+    },
+    {
+      type: 'milestone',
+      content: { value: 100, type: 'commits' },
+      platform: 'clipboard',
+      daysAgo: 15
+    },
+    { type: 'stats', content: { level: 8, points: 1250 }, platform: 'clipboard', daysAgo: 1 }
+  ];
+
+  for (const share of sampleShares) {
+    const sharedDate = new Date();
+    sharedDate.setDate(sharedDate.getDate() - share.daysAgo);
+
+    shareStmt.run(
+      PROJECT,
+      share.type,
+      JSON.stringify(share.content),
+      share.platform,
+      sharedDate.toISOString()
+    );
+  }
+
+  console.log(`  ${colors.green}✓ Created ${sampleShares.length} share events${colors.reset}`);
+
+  // Create sample team members
+  const teamStmt = db.prepare(`
+    INSERT INTO team_members (
+      project_name, member_name, role, joined_at
+    ) VALUES (?, ?, ?, ?)
+  `);
+
+  const sampleTeam = [
+    { name: 'Alice Developer', role: 'lead', daysAgo: 90 },
+    { name: 'Bob Coder', role: 'developer', daysAgo: 60 },
+    { name: 'Carol Tester', role: 'qa', daysAgo: 30 }
+  ];
+
+  for (const member of sampleTeam) {
+    const joinedDate = new Date();
+    joinedDate.setDate(joinedDate.getDate() - member.daysAgo);
+
+    teamStmt.run(PROJECT, member.name, member.role, joinedDate.toISOString());
+  }
+
+  console.log(`  ${colors.green}✓ Created ${sampleTeam.length} team members${colors.reset}`);
+
+  // ========================================
   // SUMMARY
   // ========================================
   console.log(`\n${colors.blue}========================================${colors.reset}`);
@@ -475,7 +695,12 @@ try {
     claude_personality: db.prepare('SELECT COUNT(*) as count FROM claude_personality').get().count,
     growth_snapshots: db.prepare('SELECT COUNT(*) as count FROM growth_snapshots').get().count,
     user_patterns: db.prepare('SELECT COUNT(*) as count FROM user_patterns').get().count,
-    integration_events: db.prepare('SELECT COUNT(*) as count FROM integration_events').get().count
+    integration_events: db.prepare('SELECT COUNT(*) as count FROM integration_events').get().count,
+    achievements: db.prepare('SELECT COUNT(*) as count FROM achievements').get().count,
+    user_stats: db.prepare('SELECT COUNT(*) as count FROM user_stats').get().count,
+    easter_eggs: db.prepare('SELECT COUNT(*) as count FROM easter_eggs').get().count,
+    social_shares: db.prepare('SELECT COUNT(*) as count FROM social_shares').get().count,
+    team_members: db.prepare('SELECT COUNT(*) as count FROM team_members').get().count
   };
 
   console.log(`Health Scores:         ${counts.health_scores}`);
@@ -485,6 +710,11 @@ try {
   console.log(`Growth Snapshots:      ${counts.growth_snapshots}`);
   console.log(`User Patterns:         ${counts.user_patterns}`);
   console.log(`Integration Events:    ${counts.integration_events}`);
+  console.log(`Achievements:          ${counts.achievements}`);
+  console.log(`User Stats:            ${counts.user_stats}`);
+  console.log(`Easter Eggs:           ${counts.easter_eggs}`);
+  console.log(`Social Shares:         ${counts.social_shares}`);
+  console.log(`Team Members:          ${counts.team_members}`);
 
   console.log(`\n${colors.green}✓ Sample data generation complete!${colors.reset}\n`);
 } catch (error) {

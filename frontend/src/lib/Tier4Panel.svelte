@@ -7,7 +7,7 @@
 
   $: project = $activeProject && $activeProject !== 'Loading...' ? $activeProject : 'raven';
 
-  let activeTab = 'health'; // health, drift, productivity, personality, growth, integrations
+  let activeTab = 'health'; // health, drift, productivity, personality, growth, integrations, gamification, easter-eggs, social
   let loading = false;
   let error = null;
   let loadedTabs = new Set(); // Track which tabs have been loaded
@@ -36,6 +36,20 @@
     discord: { enabled: false, events: [] },
     slack: { enabled: false, events: [] }
   };
+
+  // Gamification data
+  let userStats = null;
+  let achievements = [];
+  let recentAchievements = [];
+
+  // Easter Eggs data
+  let easterEggs = [];
+  let seasonalMessage = null;
+
+  // Social data
+  let shareHistory = [];
+  let teamMembers = [];
+  let exportFormat = 'json';
 
   // Integration configuration forms
   let githubConfig = { token: '', owner: '', repo: '' };
@@ -79,6 +93,15 @@
           break;
         case 'integrations':
           await loadIntegrationStatus();
+          break;
+        case 'gamification':
+          await loadGamificationData();
+          break;
+        case 'easter-eggs':
+          await loadEasterEggsData();
+          break;
+        case 'social':
+          await loadSocialData();
           break;
       }
     } catch (err) {
@@ -186,6 +209,60 @@
 
       integrationStatus.slack.events = slackData.events || [];
       integrationStatus.slack.enabled = slackData.events?.length > 0;
+    } catch (err) {
+      // Error handled silently - partial data load
+    }
+  }
+
+  async function loadGamificationData() {
+    try {
+      const [statsRes, achievementsRes, recentRes] = await Promise.all([
+        fetch(`${API_BASE}/gamification/stats?project=${project}`),
+        fetch(`${API_BASE}/gamification/achievements?project=${project}`),
+        fetch(`${API_BASE}/gamification/recent?project=${project}`)
+      ]);
+
+      const statsData = await statsRes.json();
+      const achievementsData = await achievementsRes.json();
+      const recentData = await recentRes.json();
+
+      userStats = statsData.stats;
+      achievements = achievementsData.achievements || [];
+      recentAchievements = recentData.achievements || [];
+    } catch (err) {
+      // Error handled silently - partial data load
+    }
+  }
+
+  async function loadEasterEggsData() {
+    try {
+      const [eggsRes, seasonalRes] = await Promise.all([
+        fetch(`${API_BASE}/easter-eggs?project=${project}`),
+        fetch(`${API_BASE}/easter-eggs/seasonal?project=${project}`)
+      ]);
+
+      const eggsData = await eggsRes.json();
+      const seasonalData = await seasonalRes.json();
+
+      easterEggs = eggsData.eggs || [];
+      seasonalMessage = seasonalData.messages?.[0] || null;
+    } catch (err) {
+      // Error handled silently - partial data load
+    }
+  }
+
+  async function loadSocialData() {
+    try {
+      const [historyRes, teamRes] = await Promise.all([
+        fetch(`${API_BASE}/social/share-history?project=${project}&limit=20`),
+        fetch(`${API_BASE}/social/team?project=${project}`)
+      ]);
+
+      const historyData = await historyRes.json();
+      const teamData = await teamRes.json();
+
+      shareHistory = historyData.history || [];
+      teamMembers = teamData.members || [];
     } catch (err) {
       // Error handled silently - partial data load
     }
@@ -549,6 +626,18 @@
       on:click={() => (activeTab = 'integrations')}
     >
       Integrations
+    </button>
+    <button
+      class:active={activeTab === 'gamification'}
+      on:click={() => (activeTab = 'gamification')}
+    >
+      Gamification
+    </button>
+    <button class:active={activeTab === 'easter-eggs'} on:click={() => (activeTab = 'easter-eggs')}>
+      Easter Eggs
+    </button>
+    <button class:active={activeTab === 'social'} on:click={() => (activeTab = 'social')}>
+      Social
     </button>
   </div>
 
@@ -1048,6 +1137,147 @@
               <p class="help-text">Send notifications to Slack channel for team collaboration</p>
             </div>
           </div>
+        </div>
+      </div>
+    {:else if activeTab === 'gamification'}
+      <div class="gamification-tab">
+        <h3>Gamification & Achievements</h3>
+
+        {#if userStats}
+          <div class="stats-card">
+            <h4>Your Stats</h4>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <div class="stat-label">Level</div>
+                <div class="stat-value">{userStats.level || 1}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Total Points</div>
+                <div class="stat-value">{userStats.total_points || 0}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Streak</div>
+                <div class="stat-value">{userStats.streak_days || 0} days</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Badges</div>
+                <div class="stat-value">{userStats.badges_unlocked || 0}</div>
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        <div class="achievements-section">
+          <h4>Unlocked Achievements ({achievements.length})</h4>
+          {#if achievements.length > 0}
+            <div class="achievements-grid">
+              {#each achievements as achievement (achievement.achievement_id || achievement.id)}
+                <div class="achievement-card {achievement.rarity}">
+                  <div class="achievement-icon">
+                    {achievement.icon || achievement.title.split(' ')[0]}
+                  </div>
+                  <div class="achievement-title">{achievement.title}</div>
+                  <div class="achievement-desc">{achievement.description}</div>
+                  <div class="achievement-points">+{achievement.points} pts</div>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="empty-state">No achievements unlocked yet. Keep coding!</p>
+          {/if}
+        </div>
+      </div>
+    {:else if activeTab === 'easter-eggs'}
+      <div class="easter-eggs-tab">
+        <h3>Easter Eggs & Seasonal Messages</h3>
+
+        {#if seasonalMessage}
+          <div class="seasonal-message">
+            <h4>{seasonalMessage.title}</h4>
+            <p>{seasonalMessage.message}</p>
+          </div>
+        {/if}
+
+        <div class="discovered-eggs">
+          <h4>Discovered Easter Eggs ({easterEggs.length})</h4>
+          {#if easterEggs.length > 0}
+            <div class="eggs-list">
+              {#each easterEggs as egg (egg.egg_id || egg.id)}
+                <div class="egg-card">
+                  <div class="egg-title">{egg.title}</div>
+                  <div class="egg-message">{egg.message}</div>
+                  <div class="egg-meta">
+                    <span class="egg-type">{egg.trigger_type}</span>
+                    <span class="egg-date">{new Date(egg.discovered_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="empty-state">
+              No easter eggs discovered yet. Try coding on special dates or using special patterns!
+            </p>
+          {/if}
+        </div>
+      </div>
+    {:else if activeTab === 'social'}
+      <div class="social-tab">
+        <h3>Social Features</h3>
+
+        <div class="export-section">
+          <h4>Export Your Stats</h4>
+          <div class="export-controls">
+            <select bind:value={exportFormat} class="format-select">
+              <option value="json">JSON</option>
+              <option value="markdown">Markdown</option>
+              <option value="text">Plain Text</option>
+            </select>
+            <button
+              class="action-button"
+              on:click={() => {
+                window.open(
+                  `${API_BASE}/social/export?project=${project}&format=${exportFormat}`,
+                  '_blank'
+                );
+              }}
+            >
+              Download Export
+            </button>
+          </div>
+        </div>
+
+        <div class="share-history-section">
+          <h4>Share History</h4>
+          {#if shareHistory.length > 0}
+            <div class="share-list">
+              {#each shareHistory as share (share.id)}
+                <div class="share-item">
+                  <div class="share-type">{share.share_type}</div>
+                  <div class="share-platform">{share.platform}</div>
+                  <div class="share-date">{new Date(share.shared_at).toLocaleString()}</div>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="empty-state">No shares yet. Share your achievements!</p>
+          {/if}
+        </div>
+
+        <div class="team-section">
+          <h4>Team Members ({teamMembers.length})</h4>
+          {#if teamMembers.length > 0}
+            <div class="team-list">
+              {#each teamMembers as member (member.id || member.member_name)}
+                <div class="team-member">
+                  <div class="member-name">{member.member_name}</div>
+                  <div class="member-role">{member.role}</div>
+                  <div class="member-joined">{new Date(member.joined_at).toLocaleDateString()}</div>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="empty-state">No team members yet.</p>
+          {/if}
         </div>
       </div>
     {/if}

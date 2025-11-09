@@ -21,6 +21,9 @@ import { GrowthTracker } from './services/growth-tracker.js';
 import { GitHubIntegration } from './services/integrations/github-integration.js';
 import { DiscordIntegration } from './services/integrations/discord-integration.js';
 import { SlackIntegration } from './services/integrations/slack-integration.js';
+import { GamificationEngine } from './services/gamification-engine.js';
+import { EasterEggDetector } from './services/easter-egg-detector.js';
+import { SocialManager } from './services/social-manager.js';
 
 /**
  * @typedef {Object} EventRecord
@@ -121,6 +124,11 @@ export class RavenDB {
     this.githubIntegration = new GitHubIntegration(this);
     this.discordIntegration = new DiscordIntegration(this);
     this.slackIntegration = new SlackIntegration(this);
+
+    // Initialize Tier 4 gamification and social features
+    this.gamificationEngine = new GamificationEngine(this);
+    this.easterEggDetector = new EasterEggDetector(this);
+    this.socialManager = new SocialManager(this);
 
     // Initialize integrations asynchronously
     Promise.all([

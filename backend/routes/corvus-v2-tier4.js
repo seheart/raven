@@ -773,5 +773,317 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     }
   });
 
+  // ==================== GAMIFICATION ROUTES ====================
+
+  /**
+   * Get user stats (level, XP, points, streak)
+   */
+  router.get('/gamification/stats', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const stats = projectDb.gamificationEngine.getUserStats();
+
+      res.json({ stats, project });
+    } catch (error) {
+      logger.error('Failed to get gamification stats', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Get all unlocked achievements
+   */
+  router.get('/gamification/achievements', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const achievements = projectDb.gamificationEngine.getUnlockedAchievements();
+
+      res.json({ achievements, project });
+    } catch (error) {
+      logger.error('Failed to get achievements', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Check for new achievements
+   */
+  router.post('/gamification/check', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { activity } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const achievements = await projectDb.gamificationEngine.checkAchievements(activity || {});
+
+      res.json({ achievements, count: achievements.length, project });
+    } catch (error) {
+      logger.error('Failed to check achievements', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Get recent uncelebrated achievements
+   */
+  router.get('/gamification/recent', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const achievements = projectDb.gamificationEngine.getRecentAchievements();
+
+      res.json({ achievements, project });
+    } catch (error) {
+      logger.error('Failed to get recent achievements', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Mark achievement as celebrated
+   */
+  router.post('/gamification/:achievementId/celebrate', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { achievementId } = req.params;
+      const projectDb = getProjectDb(project || 'raven');
+
+      projectDb.gamificationEngine.markAsCelebrated(achievementId);
+
+      res.json({ success: true, achievementId, project });
+    } catch (error) {
+      logger.error('Failed to mark achievement as celebrated', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Update streak
+   */
+  router.post('/gamification/streak', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const streak = await projectDb.gamificationEngine.updateStreak();
+
+      res.json({ streak, project });
+    } catch (error) {
+      logger.error('Failed to update streak', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== EASTER EGG ROUTES ====================
+
+  /**
+   * Get all discovered easter eggs
+   */
+  router.get('/easter-eggs', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const eggs = projectDb.easterEggDetector.getDiscoveredEggs();
+
+      res.json({ eggs, count: eggs.length, project });
+    } catch (error) {
+      logger.error('Failed to get easter eggs', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Check for easter eggs based on context
+   */
+  router.post('/easter-eggs/check', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { context } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const discoveries = await projectDb.easterEggDetector.checkEasterEggs(context || {});
+
+      res.json({ discoveries, count: discoveries.length, project });
+    } catch (error) {
+      logger.error('Failed to check easter eggs', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Check seasonal messages
+   */
+  router.get('/easter-eggs/seasonal', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const messages = await projectDb.easterEggDetector.checkSeasonalMessage();
+
+      res.json({ messages, count: messages.length, project });
+    } catch (error) {
+      logger.error('Failed to check seasonal messages', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== SOCIAL FEATURES ROUTES ====================
+
+  /**
+   * Get share history
+   */
+  router.get('/social/share-history', async (req, res) => {
+    try {
+      const { project, limit = 20 } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const history = projectDb.socialManager.getShareHistory(parseInt(limit));
+
+      res.json({ history, project });
+    } catch (error) {
+      logger.error('Failed to get share history', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Record a share event
+   */
+  router.post('/social/share', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { shareType, content, platform = 'clipboard' } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      projectDb.socialManager.recordShare(shareType, content, platform);
+
+      res.json({ success: true, project });
+    } catch (error) {
+      logger.error('Failed to record share', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Add team member
+   */
+  router.post('/social/team/member', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { memberName, role = 'developer' } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const result = projectDb.socialManager.addTeamMember(memberName, role);
+
+      res.json({ result, project });
+    } catch (error) {
+      logger.error('Failed to add team member', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Get team members
+   */
+  router.get('/social/team', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const members = projectDb.socialManager.getTeamMembers();
+
+      res.json({ members, project });
+    } catch (error) {
+      logger.error('Failed to get team members', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Export data
+   */
+  router.get('/social/export', async (req, res) => {
+    try {
+      const { project, format = 'json', dataType = 'all' } = req.query;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const exportData = projectDb.socialManager.exportData(format, dataType);
+
+      // Set content type based on format
+      if (format === 'json') {
+        res.setHeader('Content-Type', 'application/json');
+      } else if (format === 'markdown') {
+        res.setHeader('Content-Type', 'text/markdown');
+      } else {
+        res.setHeader('Content-Type', 'text/plain');
+      }
+
+      res.send(exportData);
+    } catch (error) {
+      logger.error('Failed to export data', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Generate achievement share card
+   */
+  router.post('/social/achievement-card', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { achievement } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const card = projectDb.socialManager.generateAchievementCard(achievement);
+
+      res.json({ card, project });
+    } catch (error) {
+      logger.error('Failed to generate achievement card', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Generate milestone share card
+   */
+  router.post('/social/milestone-card', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { milestone } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const card = projectDb.socialManager.generateMilestoneCard(milestone);
+
+      res.json({ card, project });
+    } catch (error) {
+      logger.error('Failed to generate milestone card', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Generate story share card
+   */
+  router.post('/social/story-card', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { story } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const card = projectDb.socialManager.generateStoryCard(story);
+
+      res.json({ card, project });
+    } catch (error) {
+      logger.error('Failed to generate story card', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return router;
 }
