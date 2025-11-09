@@ -476,8 +476,8 @@
           <button class="action-button" on:click={calculateProductivity}> Calculate Now </button>
         </div>
 
-        {#if productivityInsights && productivityInsights.insights}
-          {@const insights = productivityInsights.insights}
+        {#if productivityInsights}
+          {@const insights = productivityInsights}
           <div class="productivity-grid">
             {#if insights.peak_hours}
               <div class="insight-card">
@@ -546,8 +546,8 @@
           <button class="action-button" on:click={analyzePersonality}> Analyze Now </button>
         </div>
 
-        {#if personalityProfile && personalityProfile.insights}
-          {@const insights = personalityProfile.insights}
+        {#if personalityProfile}
+          {@const insights = personalityProfile}
           <div class="personality-card">
             <div class="personality-type">
               <h4>{insights.overall_profile.type}</h4>
