@@ -41,6 +41,8 @@ try {
   console.log(`${colors.yellow}Clearing existing sample data...${colors.reset}`);
   db.prepare('DELETE FROM health_scores WHERE project_name = ?').run(PROJECT);
   db.prepare('DELETE FROM drift_events WHERE project_name = ?').run(PROJECT);
+  db.prepare('DELETE FROM productivity_insights WHERE project_name = ?').run(PROJECT);
+  db.prepare('DELETE FROM claude_personality WHERE project_name = ?').run(PROJECT);
   db.prepare('DELETE FROM growth_snapshots WHERE project_name = ?').run(PROJECT);
   db.prepare('DELETE FROM user_patterns WHERE project_name = ?').run(PROJECT);
   db.prepare('DELETE FROM integration_events WHERE project_name = ?').run(PROJECT);
@@ -184,18 +186,132 @@ try {
   console.log(`  ${colors.green}✓ Created 15 drift events${colors.reset}`);
 
   // ========================================
-  // 3. PRODUCTIVITY INSIGHTS (Skipped - table doesn't exist)
+  // 3. PRODUCTIVITY INSIGHTS
   // ========================================
-  console.log(
-    `${colors.yellow}[3/7] Skipping productivity insights (table not found)${colors.reset}`
-  );
+  console.log(`${colors.yellow}[3/7] Generating productivity insights...${colors.reset}`);
+
+  const productivityStmt = db.prepare(`
+    INSERT INTO productivity_insights (
+      project_name, insights, period_start, period_end, calculated_at
+    ) VALUES (?, ?, ?, ?, ?)
+  `);
+
+  // Generate 4 weekly productivity insights
+  for (let i = 0; i < 4; i++) {
+    const weeksAgo = i;
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() - weeksAgo * 7);
+
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 7);
+
+    const insights = {
+      peak_hours: {
+        start: '14:00',
+        end: '17:00',
+        productivity_score: 85 + Math.floor(Math.random() * 10)
+      },
+      session_patterns: {
+        average_session_length_minutes: 45 + Math.floor(Math.random() * 30),
+        sessions_per_day: 6 + Math.floor(Math.random() * 3),
+        most_productive_day: ['Monday', 'Tuesday', 'Wednesday'][Math.floor(Math.random() * 3)]
+      },
+      code_velocity: {
+        lines_added: 500 + Math.floor(Math.random() * 300),
+        lines_removed: 200 + Math.floor(Math.random() * 150),
+        files_modified: 20 + Math.floor(Math.random() * 15),
+        commits: 15 + Math.floor(Math.random() * 10)
+      },
+      focus_areas: [
+        { category: 'feature_development', percentage: 60 },
+        { category: 'bug_fixes', percentage: 25 },
+        { category: 'refactoring', percentage: 15 }
+      ],
+      interruption_analysis: {
+        context_switches: 12 + Math.floor(Math.random() * 8),
+        average_focus_duration_minutes: 25 + Math.floor(Math.random() * 15)
+      }
+    };
+
+    productivityStmt.run(
+      PROJECT,
+      JSON.stringify(insights),
+      startDate.toISOString(),
+      endDate.toISOString(),
+      endDate.toISOString()
+    );
+  }
+
+  console.log(`  ${colors.green}✓ Created 4 productivity insight entries${colors.reset}`);
 
   // ========================================
-  // 4. PERSONALITY ANALYSIS (Skipped - table doesn't exist)
+  // 4. PERSONALITY ANALYSIS
   // ========================================
-  console.log(
-    `${colors.yellow}[4/7] Skipping personality analysis (table not found)${colors.reset}`
-  );
+  console.log(`${colors.yellow}[4/7] Generating personality analysis...${colors.reset}`);
+
+  const personalityStmt = db.prepare(`
+    INSERT INTO claude_personality (
+      project_name, agent_name, insights, period_start, period_end, analyzed_at
+    ) VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  // Generate 3 monthly personality analyses
+  for (let i = 0; i < 3; i++) {
+    const monthsAgo = i;
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() - monthsAgo);
+
+    const startDate = new Date(endDate);
+    startDate.setMonth(startDate.getMonth() - 1);
+
+    const insights = {
+      communication_style: {
+        style: 'concise',
+        formality: 0.6 + Math.random() * 0.2,
+        technical_depth: 0.8 + Math.random() * 0.15
+      },
+      risk_profile: {
+        tolerance: 'moderate',
+        innovation_score: 70 + Math.floor(Math.random() * 20),
+        experimentation_rate: 0.3 + Math.random() * 0.2
+      },
+      creativity_score: {
+        score: 75 + Math.floor(Math.random() * 15),
+        novel_solutions: 8 + Math.floor(Math.random() * 5),
+        pattern_breaks: 4 + Math.floor(Math.random() * 3)
+      },
+      consistency_metrics: {
+        score: 80 + Math.floor(Math.random() * 15),
+        code_style_variance: 0.1 + Math.random() * 0.1,
+        naming_consistency: 0.85 + Math.random() * 0.1
+      },
+      problem_solving: {
+        approach: 'analytical',
+        debugging_patterns: ['systematic', 'incremental'],
+        typical_steps: 5 + Math.floor(Math.random() * 3)
+      },
+      decision_speed: {
+        speed: 'moderate',
+        average_time_to_decision_minutes: 15 + Math.floor(Math.random() * 10)
+      },
+      collaboration_style: {
+        preference: 'structured',
+        feedback_frequency: 'high',
+        documentation_detail: 'comprehensive'
+      }
+    };
+
+    personalityStmt.run(
+      PROJECT,
+      'claude',
+      JSON.stringify(insights),
+      startDate.toISOString(),
+      endDate.toISOString(),
+      endDate.toISOString()
+    );
+  }
+
+  console.log(`  ${colors.green}✓ Created 3 personality analysis entries${colors.reset}`);
 
   // ========================================
   // 5. GROWTH SNAPSHOTS
@@ -354,6 +470,9 @@ try {
   const counts = {
     health_scores: db.prepare('SELECT COUNT(*) as count FROM health_scores').get().count,
     drift_events: db.prepare('SELECT COUNT(*) as count FROM drift_events').get().count,
+    productivity_insights: db.prepare('SELECT COUNT(*) as count FROM productivity_insights').get()
+      .count,
+    claude_personality: db.prepare('SELECT COUNT(*) as count FROM claude_personality').get().count,
     growth_snapshots: db.prepare('SELECT COUNT(*) as count FROM growth_snapshots').get().count,
     user_patterns: db.prepare('SELECT COUNT(*) as count FROM user_patterns').get().count,
     integration_events: db.prepare('SELECT COUNT(*) as count FROM integration_events').get().count
@@ -361,6 +480,8 @@ try {
 
   console.log(`Health Scores:         ${counts.health_scores}`);
   console.log(`Drift Events:          ${counts.drift_events}`);
+  console.log(`Productivity Insights: ${counts.productivity_insights}`);
+  console.log(`Personality Analyses:  ${counts.claude_personality}`);
   console.log(`Growth Snapshots:      ${counts.growth_snapshots}`);
   console.log(`User Patterns:         ${counts.user_patterns}`);
   console.log(`Integration Events:    ${counts.integration_events}`);
