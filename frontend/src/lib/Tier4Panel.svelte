@@ -327,6 +327,166 @@
     }
   }
 
+  // Integration action functions
+  async function testGitHubConnection() {
+    try {
+      configSaveStatus = 'Testing GitHub connection...';
+      const res = await fetch(`${API_BASE}/integrations/github/test?project=${project}`);
+      const data = await res.json();
+      if (data.result.success) {
+        configSaveStatus = `✓ GitHub connected: ${data.result.repo_name}`;
+      } else {
+        configSaveStatus = `✗ GitHub test failed: ${data.result.error}`;
+      }
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    }
+  }
+
+  async function testDiscordConnection() {
+    try {
+      configSaveStatus = 'Testing Discord connection...';
+      const res = await fetch(`${API_BASE}/integrations/discord/test?project=${project}`);
+      const data = await res.json();
+      if (data.result.success) {
+        configSaveStatus = '✓ Discord webhook is valid!';
+      } else {
+        configSaveStatus = `✗ Discord test failed: ${data.result.error}`;
+      }
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    }
+  }
+
+  async function testSlackConnection() {
+    try {
+      configSaveStatus = 'Testing Slack connection...';
+      const res = await fetch(`${API_BASE}/integrations/slack/test?project=${project}`);
+      const data = await res.json();
+      if (data.result.success) {
+        configSaveStatus = '✓ Slack webhook is valid!';
+      } else {
+        configSaveStatus = `✗ Slack test failed: ${data.result.error}`;
+      }
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    }
+  }
+
+  async function sendHealthToGitHub() {
+    try {
+      configSaveStatus = 'Posting health score to GitHub...';
+      const res = await fetch(`${API_BASE}/integrations/github/post-health?project=${project}`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        configSaveStatus = '✓ Health score posted to GitHub!';
+      } else {
+        configSaveStatus = '✗ Failed to post to GitHub';
+      }
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    }
+  }
+
+  async function sendHealthToDiscord() {
+    try {
+      configSaveStatus = 'Sending health score to Discord...';
+      const res = await fetch(`${API_BASE}/integrations/discord/send-health?project=${project}`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.result.success) {
+        configSaveStatus = '✓ Health score sent to Discord!';
+      } else {
+        configSaveStatus = '✗ Failed to send to Discord';
+      }
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    }
+  }
+
+  async function sendHealthToSlack() {
+    try {
+      configSaveStatus = 'Sending health score to Slack...';
+      const res = await fetch(`${API_BASE}/integrations/slack/send-health?project=${project}`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.result.success) {
+        configSaveStatus = '✓ Health score sent to Slack!';
+      } else {
+        configSaveStatus = '✗ Failed to send to Slack';
+      }
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 5000);
+    }
+  }
+
+  async function disableGitHub() {
+    try {
+      configSaveStatus = 'Disabling GitHub integration...';
+      const res = await fetch(`${API_BASE}/integrations/github/disable?project=${project}`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        configSaveStatus = 'GitHub integration disabled';
+        integrationStatus.github.enabled = false;
+        setTimeout(() => (configSaveStatus = ''), 3000);
+      }
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 3000);
+    }
+  }
+
+  async function disableDiscord() {
+    try {
+      configSaveStatus = 'Disabling Discord integration...';
+      const res = await fetch(`${API_BASE}/integrations/discord/disable?project=${project}`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        configSaveStatus = 'Discord integration disabled';
+        integrationStatus.discord.enabled = false;
+        setTimeout(() => (configSaveStatus = ''), 3000);
+      }
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 3000);
+    }
+  }
+
+  async function disableSlack() {
+    try {
+      configSaveStatus = 'Disabling Slack integration...';
+      const res = await fetch(`${API_BASE}/integrations/slack/disable?project=${project}`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        configSaveStatus = 'Slack integration disabled';
+        integrationStatus.slack.enabled = false;
+        setTimeout(() => (configSaveStatus = ''), 3000);
+      }
+    } catch (err) {
+      configSaveStatus = `✗ Error: ${err.message}`;
+      setTimeout(() => (configSaveStatus = ''), 3000);
+    }
+  }
+
   function getHealthScoreColor(score) {
     if (!score) return '#gray';
     if (score >= 80) return '#51cf66';
@@ -812,6 +972,11 @@
                 />
               </div>
               <button class="save-button" on:click={saveGitHubConfig}>Save GitHub Config</button>
+              <div class="action-buttons">
+                <button class="test-button" on:click={testGitHubConnection}>Test Connection</button>
+                <button class="send-button" on:click={sendHealthToGitHub}>Send Health</button>
+                <button class="disable-button" on:click={disableGitHub}>Disable</button>
+              </div>
             </div>
             <div class="config-info">
               <p>Recent events: {integrationStatus.github.events.length}</p>
@@ -840,6 +1005,12 @@
                 />
               </div>
               <button class="save-button" on:click={saveDiscordConfig}>Save Discord Config</button>
+              <div class="action-buttons">
+                <button class="test-button" on:click={testDiscordConnection}>Test Connection</button
+                >
+                <button class="send-button" on:click={sendHealthToDiscord}>Send Health</button>
+                <button class="disable-button" on:click={disableDiscord}>Disable</button>
+              </div>
             </div>
             <div class="config-info">
               <p>Recent events: {integrationStatus.discord.events.length}</p>
@@ -866,6 +1037,11 @@
                 />
               </div>
               <button class="save-button" on:click={saveSlackConfig}>Save Slack Config</button>
+              <div class="action-buttons">
+                <button class="test-button" on:click={testSlackConnection}>Test Connection</button>
+                <button class="send-button" on:click={sendHealthToSlack}>Send Health</button>
+                <button class="disable-button" on:click={disableSlack}>Disable</button>
+              </div>
             </div>
             <div class="config-info">
               <p>Recent events: {integrationStatus.slack.events.length}</p>
@@ -1559,6 +1735,50 @@
 
   .save-button:active {
     transform: translateY(0);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .action-buttons button {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .test-button {
+    background: #228be6;
+    color: white;
+  }
+
+  .test-button:hover {
+    background: #1c7ed6;
+  }
+
+  .send-button {
+    background: #40c057;
+    color: white;
+  }
+
+  .send-button:hover {
+    background: #37b24d;
+  }
+
+  .disable-button {
+    background: #fa5252;
+    color: white;
+  }
+
+  .disable-button:hover {
+    background: #e03131;
   }
 
   .config-info {
