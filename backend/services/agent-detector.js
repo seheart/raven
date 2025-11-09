@@ -11,13 +11,17 @@
  */
 
 import { execSync, execFileSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { homedir } from 'os';
 
 export class AgentDetector {
   constructor() {
     this.detectionCache = new Map();
     this.processPatterns = this.loadProcessPatterns();
+    this.activeAgents = new Set();
+    this.agentActivityLog = [];
+    this.lastScan = null;
   }
 
   loadProcessPatterns() {
@@ -71,23 +75,27 @@ export class AgentDetector {
 
     const signals = [];
 
-    // Signal 1: Process name detection
+    // Signal 1: Claude Code log analysis (HIGHEST PRIORITY - most reliable)
+    const logSignal = this.detectClaudeCodeFromLogs(change.filepath, change.timestamp);
+    if (logSignal) signals.push(logSignal);
+
+    // Signal 2: Process name detection
     const processSignal = this.detectFromProcess(context.processName);
     if (processSignal) signals.push(processSignal);
 
-    // Signal 2: Environment variables
+    // Signal 3: Environment variables
     const envSignal = this.detectFromEnv(context.env || process.env);
     if (envSignal) signals.push(envSignal);
 
-    // Signal 3: File markers (check project root)
+    // Signal 4: File markers (check project root)
     const markerSignal = this.detectFromFileMarkers(context.projectRoot);
     if (markerSignal) signals.push(markerSignal);
 
-    // Signal 4: Change pattern analysis
+    // Signal 5: Change pattern analysis
     const patternSignal = this.analyzeChangePattern(change);
     if (patternSignal) signals.push(patternSignal);
 
-    // Signal 5: Git commit info
+    // Signal 6: Git commit info
     const gitSignal = this.analyzeGitInfo(change.filepath);
     if (gitSignal) signals.push(gitSignal);
 
@@ -96,6 +104,9 @@ export class AgentDetector {
 
     // Cache the result
     this.detectionCache.set(cacheKey, result);
+
+    // Log detected agent for analytics
+    this.logAgentActivity(result.agent, change);
 
     return result;
   }
@@ -226,6 +237,61 @@ export class AgentDetector {
     return null;
   }
 
+  /**
+   * Check Claude Code session logs for recent activity
+   * This is the most reliable detection method for Claude Code
+   */
+  detectClaudeCodeFromLogs(filepath, timestamp) {
+    try {
+      const logPath = join(homedir(), '.config', 'Claude', 'logs', 'mcp-server-stdio.log');
+      if (!existsSync(logPath)) {
+        return null;
+      }
+
+      // Read recent log entries (last 10KB to avoid reading huge files)
+      const logData = readFileSync(logPath, { encoding: 'utf8', flag: 'r' });
+      const recentLogs = logData.slice(-10000); // Last 10KB
+
+      // Parse timestamp for time-based correlation
+      const changeTime = new Date(timestamp).getTime();
+      const fiveMinutesAgo = changeTime - 5 * 60 * 1000;
+
+      // Check if Claude Code was active around the time of the change
+      const lines = recentLogs.split('\n');
+      for (const line of lines) {
+        try {
+          // Look for Claude Code tool use patterns
+          if (
+            line.includes('"tool"') &&
+            (line.includes('Read') || line.includes('Write') || line.includes('Edit'))
+          ) {
+            // Try to extract timestamp from log line
+            const match = line.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+            if (match) {
+              const logTime = new Date(match[0]).getTime();
+              if (logTime >= fiveMinutesAgo && logTime <= changeTime + 60000) {
+                // Check if the filepath is mentioned in the log
+                if (line.includes(filepath) || filepath.includes(line.slice(-50))) {
+                  return {
+                    agent: 'claude-code',
+                    confidence: 95, // Very high confidence from log correlation
+                    signal: 'log_file_analysis',
+                    value: 'tool_use_correlation'
+                  };
+                }
+              }
+            }
+          }
+        } catch (_e) {
+          // Skip malformed log lines
+        }
+      }
+    } catch (_e) {
+      // Log file not accessible or doesn't exist
+    }
+    return null;
+  }
+
   aggregateSignals(signals) {
     if (signals.length === 0) {
       return { agent: 'manual', confidence: 80, signals: ['no_agent_detected'] };
@@ -270,11 +336,80 @@ export class AgentDetector {
   }
 
   /**
+   * Log agent activity for analytics
+   */
+  logAgentActivity(agent, change) {
+    this.agentActivityLog.push({
+      agent,
+      filepath: change.filepath,
+      timestamp: change.timestamp,
+      changeType: change.change_type
+    });
+
+    // Keep only last 1000 activities to prevent memory growth
+    if (this.agentActivityLog.length > 1000) {
+      this.agentActivityLog = this.agentActivityLog.slice(-1000);
+    }
+
+    this.activeAgents.add(agent);
+  }
+
+  /**
+   * Get agent activity statistics
+   */
+  getAgentStats(hours = 24) {
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
+    const recentActivity = this.agentActivityLog.filter(a => {
+      return new Date(a.timestamp).getTime() >= cutoff;
+    });
+
+    const stats = {};
+    for (const activity of recentActivity) {
+      if (!stats[activity.agent]) {
+        stats[activity.agent] = {
+          agent: activity.agent,
+          totalChanges: 0,
+          creates: 0,
+          edits: 0,
+          deletes: 0,
+          files: new Set()
+        };
+      }
+
+      stats[activity.agent].totalChanges++;
+      if (activity.changeType === 'create') stats[activity.agent].creates++;
+      else if (activity.changeType === 'edit') stats[activity.agent].edits++;
+      else if (activity.changeType === 'delete') stats[activity.agent].deletes++;
+      stats[activity.agent].files.add(activity.filepath);
+    }
+
+    // Convert file Sets to counts
+    return Object.values(stats).map(s => ({
+      ...s,
+      uniqueFiles: s.files.size,
+      files: undefined
+    }));
+  }
+
+  /**
+   * Get currently active agents
+   */
+  getActiveAgents() {
+    return Array.from(this.activeAgents);
+  }
+
+  /**
    * Get current running agent (if any)
    * Useful for real-time detection
    */
   getCurrentAgent() {
     try {
+      // Cache results for 5 seconds to avoid excessive process scanning
+      const now = Date.now();
+      if (this.lastScan && now - this.lastScan < 5000) {
+        return this.cachedCurrentAgent || { agent: 'none', confidence: 90, active: false };
+      }
+
       // Try to detect from current process tree
       // Use execFileSync for better security (no shell injection risk)
       const processes = execFileSync('ps', ['aux'], {
@@ -285,19 +420,58 @@ export class AgentDetector {
       for (const [agent, pattern] of Object.entries(this.processPatterns)) {
         for (const processName of pattern.processNames) {
           if (processes.toLowerCase().includes(processName)) {
-            return {
+            const result = {
               agent,
               confidence: pattern.confidence,
               active: true
             };
+            this.lastScan = now;
+            this.cachedCurrentAgent = result;
+            return result;
           }
         }
       }
+
+      this.lastScan = now;
+      this.cachedCurrentAgent = { agent: 'none', confidence: 90, active: false };
     } catch (_e) {
       // Process listing failed
+      this.cachedCurrentAgent = { agent: 'none', confidence: 50, active: false, error: true };
     }
 
-    return { agent: 'none', confidence: 90, active: false };
+    return this.cachedCurrentAgent;
+  }
+
+  /**
+   * Scan for all currently running agents
+   */
+  scanAllAgents() {
+    try {
+      const processes = execFileSync('ps', ['aux'], {
+        encoding: 'utf8',
+        shell: false
+      });
+
+      const running = [];
+      const processesLower = processes.toLowerCase();
+
+      for (const [agent, pattern] of Object.entries(this.processPatterns)) {
+        for (const processName of pattern.processNames) {
+          if (processesLower.includes(processName)) {
+            running.push({
+              agent,
+              processName,
+              confidence: pattern.confidence
+            });
+            break; // Only add each agent once
+          }
+        }
+      }
+
+      return running;
+    } catch (_e) {
+      return [];
+    }
   }
 
   /**

@@ -17,6 +17,8 @@ import { logger } from '../utils/logger.js';
 import { LIMITS } from '../config/constants.js';
 import { detectProjectFromPath } from '../utils/project-utils.js';
 import { AnomalyDetector } from './anomaly-detector.js';
+import { agentDetector } from './agent-detector.js';
+import { RiskCorrelator } from './risk-correlator.js';
 import {
   isBinaryFile,
   checkFileExists,
@@ -72,6 +74,10 @@ export class FileChangeHandler {
     // Initialize anomaly detectors for each project
     this.anomalyDetectors = new Map();
     this.initializeAnomalyDetectors();
+
+    // Initialize risk correlators for each project
+    this.riskCorrelators = new Map();
+    this.initializeRiskCorrelators();
   }
 
   /**
@@ -91,13 +97,34 @@ export class FileChangeHandler {
   }
 
   /**
-   * Cleanup anomaly detectors
+   * Initialize risk correlators for all projects
+   */
+  initializeRiskCorrelators() {
+    for (const [projectName, db] of this.projectDatabases.entries()) {
+      try {
+        const correlator = new RiskCorrelator(db);
+        correlator.startPeriodicUpdates();
+        this.riskCorrelators.set(projectName, correlator);
+        logger.info(`Risk correlator initialized for project: ${projectName}`);
+      } catch (error) {
+        logger.error(`Failed to initialize risk correlator for ${projectName}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Cleanup anomaly detectors and risk correlators
    */
   cleanup() {
     for (const detector of this.anomalyDetectors.values()) {
       detector.stopPeriodicUpdates();
     }
     this.anomalyDetectors.clear();
+
+    for (const correlator of this.riskCorrelators.values()) {
+      correlator.stopPeriodicUpdates();
+    }
+    this.riskCorrelators.clear();
   }
 
   /**
@@ -517,6 +544,71 @@ export class FileChangeHandler {
         }
       }
 
+      // Run agent detection
+      let agentResult = null;
+      try {
+        agentResult = agentDetector.detectAgent(
+          {
+            filepath: relPath,
+            timestamp,
+            change_type: eventType,
+            diff,
+            event_size: eventSize
+          },
+          {
+            projectRoot: projectPath,
+            env: process.env
+          }
+        );
+
+        if (agentResult.agent && agentResult.agent !== 'unknown') {
+          logger.info(`🤖 Agent detected [${projectName}]`, {
+            file: relPath,
+            agent: agentResult.agent,
+            confidence: agentResult.confidence,
+            signals: agentResult.signals
+          });
+        }
+      } catch (agentError) {
+        logger.error(`Agent detection failed for ${relPath}:`, agentError);
+      }
+
+      // Run risk correlation
+      let riskResult = null;
+      const correlator = this.riskCorrelators.get(projectName);
+      if (correlator) {
+        try {
+          riskResult = correlator.calculateRisk({
+            filepath: relPath,
+            change_type: eventType,
+            agent: agentResult?.agent,
+            is_anomaly: anomalyResult?.isAnomaly ? 1 : 0
+          });
+
+          if (riskResult.isHighRisk) {
+            logger.warn(`⚠️  High risk change detected [${projectName}]`, {
+              file: relPath,
+              riskScore: riskResult.score,
+              riskLevel: riskResult.riskLevel,
+              risks: riskResult.risks.map(r => r.message)
+            });
+
+            // Emit high-risk notification via WebSocket
+            this.io.emit('high-risk-change', {
+              project: projectName,
+              filepath: relPath,
+              timestamp,
+              riskScore: riskResult.score,
+              riskLevel: riskResult.riskLevel,
+              risks: riskResult.risks,
+              agent: agentResult?.agent
+            });
+          }
+        } catch (riskError) {
+          logger.error(`Risk correlation failed for ${relPath}:`, riskError);
+        }
+      }
+
       // Insert into database
       const eventData = {
         timestamp,
@@ -529,8 +621,9 @@ export class FileChangeHandler {
         eventSize,
         projectName,
         anomaly: anomalyResult,
-        agent: null, // Will be populated by agent detector (Feature 2)
-        agentConfidence: null
+        agent: agentResult?.agent || null,
+        agentConfidence: agentResult?.confidence || null,
+        risk: riskResult
       };
 
       const { success, eventId } = await this.insertEventToDatabase(db, eventData);

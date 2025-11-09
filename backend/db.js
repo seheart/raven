@@ -252,6 +252,20 @@ export class RavenDB {
       // Column already exists, ignore
     }
 
+    // Rollbacks table (for risk correlation)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS rollbacks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        timestamp TEXT NOT NULL,
+        reason TEXT,
+        automatic INTEGER DEFAULT 0,
+        rollback_type TEXT,
+        files_affected INTEGER DEFAULT 1,
+        FOREIGN KEY (event_id) REFERENCES events(id)
+      )
+    `);
+
     // Performance metrics table
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS raven_metrics (
@@ -416,6 +430,10 @@ export class RavenDB {
       CREATE INDEX IF NOT EXISTS idx_events_is_anomaly ON events(is_anomaly);
       CREATE INDEX IF NOT EXISTS idx_events_risk_level ON events(risk_level);
       CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent);
+
+      -- Rollbacks indexes
+      CREATE INDEX IF NOT EXISTS idx_rollbacks_timestamp ON rollbacks(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_rollbacks_event_id ON rollbacks(event_id);
 
       -- Agent events indexes
       CREATE INDEX IF NOT EXISTS idx_agent_events_timestamp ON agent_events(timestamp);

@@ -83,6 +83,7 @@ import { MonitoringService } from './services/monitoring.js';
 import { FileChangeHandler } from './services/file-change-handler.js';
 import { ConversationSync } from './services/conversation-sync.js';
 import { GitBackfillService } from './services/git-backfill.js';
+import { agentDetector } from './services/agent-detector.js';
 import { createDeveloperRoutes } from './routes/developer.js';
 
 // Utilities (Phase 3)
@@ -1113,6 +1114,283 @@ app.use('/api', createUtilityRoutes({ projectState, app }));
 
 // API Documentation (Phase 5A)
 app.use('/api-docs', createApiDocsRoutes());
+
+// ==================== Multi-Agent Monitoring API ====================
+
+// Get agent detection statistics
+app.get('/api/agents/stats', (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours) || 24;
+    const stats = agentDetector.getAgentStats(hours);
+
+    res.json({
+      stats,
+      hours,
+      total: stats.reduce((sum, s) => sum + s.totalChanges, 0)
+    });
+  } catch (error) {
+    logger.error('❌ Agent stats error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get currently active agents
+app.get('/api/agents/active', (req, res) => {
+  try {
+    const activeAgents = agentDetector.getActiveAgents();
+    const currentAgent = agentDetector.getCurrentAgent();
+    const runningAgents = agentDetector.scanAllAgents();
+
+    res.json({
+      activeAgents, // Agents that have made changes
+      currentAgent, // Currently running agent
+      runningAgents // All detected running agents
+    });
+  } catch (error) {
+    logger.error('❌ Active agents error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get events by agent (from database)
+app.get('/api/agents/events/:agent', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const agent = req.params.agent;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        id,
+        timestamp,
+        filepath,
+        change_type,
+        event_size,
+        agent,
+        agent_confidence,
+        is_anomaly,
+        risk_level
+      FROM events
+      WHERE agent = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+
+    const events = stmt.all(agent, limit);
+
+    res.json({
+      events,
+      agent,
+      count: events.length,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Agent events error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get agent activity timeline
+app.get('/api/agents/timeline', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const hours = parseInt(req.query.hours) || 24;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
+        agent,
+        COUNT(*) as count,
+        SUM(CASE WHEN change_type = 'create' THEN 1 ELSE 0 END) as creates,
+        SUM(CASE WHEN change_type = 'edit' THEN 1 ELSE 0 END) as edits,
+        SUM(CASE WHEN change_type = 'delete' THEN 1 ELSE 0 END) as deletes
+      FROM events
+      WHERE agent IS NOT NULL AND timestamp >= ?
+      GROUP BY hour, agent
+      ORDER BY hour ASC
+    `);
+
+    const timeline = stmt.all(cutoff);
+
+    res.json({
+      timeline,
+      hours,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Agent timeline error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Risk Correlation API ====================
+
+// Get high-risk files
+app.get('/api/risk/high-risk-files', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Get rollback counts by file
+    const stmt = db.prepareStatement(`
+      SELECT
+        e.filepath,
+        COUNT(r.id) as rollback_count,
+        MAX(r.timestamp) as last_rollback
+      FROM rollbacks r
+      JOIN events e ON r.event_id = e.id
+      GROUP BY e.filepath
+      ORDER BY rollback_count DESC
+      LIMIT ?
+    `);
+
+    const files = stmt.all(limit);
+
+    res.json({
+      files,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ High-risk files error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get rollback statistics
+app.get('/api/risk/rollback-stats', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        COUNT(*) as total_rollbacks,
+        SUM(automatic) as automatic_rollbacks,
+        MAX(timestamp) as last_rollback,
+        AVG(files_affected) as avg_files_affected
+      FROM rollbacks
+    `);
+
+    const stats = stmt.get();
+
+    res.json({
+      ...stats,
+      avg_files_affected: Math.round((stats.avg_files_affected || 0) * 10) / 10,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Rollback stats error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get recent rollbacks
+app.get('/api/risk/recent-rollbacks', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const limit = parseInt(req.query.limit) || 20;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        r.id,
+        r.timestamp,
+        r.reason,
+        r.rollback_type,
+        r.automatic,
+        r.files_affected,
+        e.filepath,
+        e.change_type,
+        e.agent
+      FROM rollbacks r
+      JOIN events e ON r.event_id = e.id
+      ORDER BY r.timestamp DESC
+      LIMIT ?
+    `);
+
+    const rollbacks = stmt.all(limit);
+
+    res.json({
+      rollbacks,
+      count: rollbacks.length,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Recent rollbacks error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Record a rollback
+app.post('/api/risk/record-rollback', (req, res) => {
+  try {
+    const projectName = req.body.project || activeProject;
+    const { eventId, reason, rollbackType, filesAffected } = req.body;
+
+    if (!eventId) {
+      return res.status(400).json({ error: 'Event ID is required' });
+    }
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      INSERT INTO rollbacks (event_id, timestamp, reason, automatic, rollback_type, files_affected)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      eventId,
+      new Date().toISOString(),
+      reason || 'Manual rollback',
+      0,
+      rollbackType || 'manual',
+      filesAffected || 1
+    );
+
+    logger.info('Rollback recorded via API', {
+      rollbackId: result.lastInsertRowid,
+      eventId,
+      project: projectName
+    });
+
+    res.json({
+      success: true,
+      rollbackId: result.lastInsertRowid,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Record rollback error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // ==================== Anomaly Detection API ====================
 
