@@ -567,6 +567,26 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     }
   });
 
+  // Alias for frontend compatibility
+  router.post('/integrations/discord/config', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { webhookUrl, username, avatarUrl } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const result = await projectDb.discordIntegration.configure({
+        webhookUrl,
+        username,
+        avatarUrl
+      });
+
+      res.json({ success: result.success, message: result.message, project });
+    } catch (error) {
+      logger.error('Failed to configure Discord integration', { error: error.message });
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   /**
    * Test Discord connection
    */
@@ -659,6 +679,27 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     } catch (error) {
       logger.error('Failed to configure Slack integration', { error: error.message });
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Alias for frontend compatibility
+  router.post('/integrations/slack/config', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { webhookUrl, channel, username, iconEmoji } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const result = await projectDb.slackIntegration.configure({
+        webhookUrl,
+        channel,
+        username,
+        iconEmoji
+      });
+
+      res.json({ success: result.success, message: result.message, project });
+    } catch (error) {
+      logger.error('Failed to configure Slack integration', { error: error.message });
+      res.status(500).json({ success: false, error: error.message });
     }
   });
 
