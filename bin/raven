@@ -59,7 +59,7 @@ start_raven() {
 
     echo -e "${CYAN}🚀 Starting Raven...${NC}"
     cd "$RAVEN_DIR"
-    ./start.sh
+    ./start-fast.sh
 }
 
 # Stop Raven

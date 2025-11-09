@@ -5,12 +5,7 @@
 
 import { logger } from '../utils/logger.js';
 import { runPreflightChecks } from '../utils/preflight.js';
-import {
-  withRetry,
-  waitFor,
-  sleep,
-  ProgressReporter
-} from '../utils/startup.js';
+import { withRetry, waitFor, sleep, ProgressReporter } from '../utils/startup.js';
 
 const TOTAL_BOOT_STEPS = 7;
 
@@ -118,16 +113,19 @@ export class StartupOrchestrator {
 
     // Initialize authentication service
     try {
-      await withRetry(async () => {
-        if (this.deps.initializeAuthService) {
-          await this.deps.initializeAuthService();
+      await withRetry(
+        async () => {
+          if (this.deps.initializeAuthService) {
+            await this.deps.initializeAuthService();
+          }
+        },
+        {
+          maxAttempts: 3,
+          onRetry: (attempt, max, error) => {
+            this.progress.substep(`Auth service retry ${attempt}/${max}: ${error.message}`);
+          }
         }
-      }, {
-        maxAttempts: 3,
-        onRetry: (attempt, max, error) => {
-          this.progress.substep(`Auth service retry ${attempt}/${max}: ${error.message}`);
-        }
-      });
+      );
       this.progress.substep('✓ Authentication service ready');
     } catch (error) {
       this.progress.substep('⚠ Authentication service failed (non-critical)');
@@ -136,16 +134,19 @@ export class StartupOrchestrator {
 
     // Initialize developer database
     try {
-      await withRetry(async () => {
-        if (this.deps.initializeDeveloperDB) {
-          await this.deps.initializeDeveloperDB();
+      await withRetry(
+        async () => {
+          if (this.deps.initializeDeveloperDB) {
+            await this.deps.initializeDeveloperDB();
+          }
+        },
+        {
+          maxAttempts: 3,
+          onRetry: (attempt, max, error) => {
+            this.progress.substep(`Developer DB retry ${attempt}/${max}: ${error.message}`);
+          }
         }
-      }, {
-        maxAttempts: 3,
-        onRetry: (attempt, max, error) => {
-          this.progress.substep(`Developer DB retry ${attempt}/${max}: ${error.message}`);
-        }
-      });
+      );
       this.progress.substep('✓ Developer database ready');
     } catch (error) {
       this.progress.substep('⚠ Developer database failed (non-critical)');
@@ -164,14 +165,17 @@ export class StartupOrchestrator {
   async phase3_DataLayer() {
     this.progress.step('Loading project databases');
 
-    const initResult = await withRetry(async () => {
-      return await this.deps.initializeAllProjects();
-    }, {
-      maxAttempts: 3,
-      onRetry: (attempt, max, error) => {
-        this.progress.substep(`Database initialization retry ${attempt}/${max}`);
+    const initResult = await withRetry(
+      async () => {
+        return await this.deps.initializeAllProjects();
+      },
+      {
+        maxAttempts: 3,
+        onRetry: (attempt, max, error) => {
+          this.progress.substep(`Database initialization retry ${attempt}/${max}`);
+        }
       }
-    });
+    );
 
     if (initResult.successCount === 0) {
       throw new Error('No project databases loaded successfully');
@@ -201,14 +205,17 @@ export class StartupOrchestrator {
     this.progress.step('Starting monitoring services');
 
     // Start metrics collection
-    const metricsStarted = await withRetry(async () => {
-      return await this.deps.startMetricsCollection();
-    }, {
-      maxAttempts: 3,
-      onRetry: (attempt, max, error) => {
-        this.progress.substep(`Metrics collection retry ${attempt}/${max}`);
+    const metricsStarted = await withRetry(
+      async () => {
+        return await this.deps.startMetricsCollection();
+      },
+      {
+        maxAttempts: 3,
+        onRetry: (attempt, max, error) => {
+          this.progress.substep(`Metrics collection retry ${attempt}/${max}`);
+        }
       }
-    });
+    );
 
     if (!metricsStarted) {
       throw new Error('Failed to start metrics collection');
@@ -219,14 +226,11 @@ export class StartupOrchestrator {
     // Wait for first metrics to be collected (verify it's actually working)
     this.progress.substep('Waiting for first metrics...');
 
-    const metricsWorking = await waitFor(
-      async () => await this.deps.verifyMetricsCollecting(),
-      {
-        timeout: 15000,
-        interval: 500,
-        timeoutMessage: 'Metrics collection verification timeout'
-      }
-    );
+    const metricsWorking = await waitFor(async () => await this.deps.verifyMetricsCollecting(), {
+      timeout: 5000,
+      interval: 200,
+      timeoutMessage: 'Metrics collection verification timeout'
+    });
 
     if (metricsWorking) {
       this.progress.substep('✓ Metrics collection verified');
@@ -272,16 +276,13 @@ export class StartupOrchestrator {
 
     // Telemetry bridge (with retry)
     try {
-      const bridgeStarted = await withRetry(
-        async () => await this.deps.startTelemetryBridge(),
-        {
-          maxAttempts: 3,
-          initialDelay: 2000,
-          onRetry: (attempt, max) => {
-            this.progress.substep(`Telemetry bridge retry ${attempt}/${max}`);
-          }
+      const bridgeStarted = await withRetry(async () => await this.deps.startTelemetryBridge(), {
+        maxAttempts: 3,
+        initialDelay: 500,
+        onRetry: (attempt, max) => {
+          this.progress.substep(`Telemetry bridge retry ${attempt}/${max}`);
         }
-      );
+      });
 
       if (bridgeStarted) {
         this.progress.substep('✓ Telemetry bridge active');
@@ -342,10 +343,10 @@ export class StartupOrchestrator {
    * Phase 7: Stabilization period
    */
   async phase7_Stabilization() {
-    this.progress.step('System stabilization (3s)');
+    this.progress.step('System stabilization');
 
-    // Wait 3 seconds for everything to settle
-    await sleep(3000);
+    // Brief wait for everything to settle (reduced for faster startup)
+    await sleep(500);
 
     // Re-run quick health check
     const finalHealth = await this.deps.runHealthChecks();

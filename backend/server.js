@@ -865,7 +865,7 @@ function initializeWatcher(projectName) {
     projectName,
     projectPath,
     LIMITS,
-    handleFileChange,
+    handleFileChange: fileChangeHandler.handleFileChange.bind(fileChangeHandler),
     logger,
     io,
     chokidar

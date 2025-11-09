@@ -140,44 +140,49 @@ echo -e "${YELLOW}[6/7]${NC} Claude Log Watcher enabled (built-in)..."
 # Note: ClaudeLogWatcher is now integrated directly into server.js
 # It automatically monitors ALL projects via Claude's log files
 
-# Step 7: Run comprehensive health checks
-echo -e "${YELLOW}[7/7]${NC} Running comprehensive health checks..."
-echo -e "  ${BLUE}ℹ${NC}  Validating all features are operational..."
+# Step 7: Run comprehensive health checks (skip if SKIP_HEALTH_CHECKS=1)
+if [ "${SKIP_HEALTH_CHECKS}" != "1" ]; then
+  echo -e "${YELLOW}[7/7]${NC} Running comprehensive health checks..."
+  echo -e "  ${BLUE}ℹ${NC}  Validating all features are operational..."
 
-# Run comprehensive startup validation and capture output
-cd backend
-HEALTH_OUTPUT=$(node scripts/run-startup-validation.js --wait=2 2>&1)
-HEALTH_EXIT_CODE=$?
-cd ..
+  # Run comprehensive startup validation and capture output
+  cd backend
+  HEALTH_OUTPUT=$(node scripts/run-startup-validation.js --wait=0 2>&1)
+  HEALTH_EXIT_CODE=$?
+  cd ..
 
-# Parse health check results
-if [ $HEALTH_EXIT_CODE -eq 0 ]; then
-  # All checks passed
-  PASSED_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Passed: [0-9]*/[0-9]*" | head -1 | cut -d' ' -f2)
-  echo -e "${GREEN}✓${NC} Health checks passed ($PASSED_COUNT)"
-elif [ $HEALTH_EXIT_CODE -eq 2 ]; then
-  # Warnings only (non-critical failures)
-  PASSED_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Passed: [0-9]*/[0-9]*" | head -1 | cut -d' ' -f2)
-  WARNING_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Warnings: [0-9]*" | head -1 | cut -d' ' -f2)
-  echo -e "${YELLOW}⚠${NC}  Health checks passed with warnings ($PASSED_COUNT, $WARNING_COUNT warnings)"
-  echo -e "  ${YELLOW}Note:${NC} Some non-critical features may not be working. Check logs for details."
+  # Parse health check results
+  if [ $HEALTH_EXIT_CODE -eq 0 ]; then
+    # All checks passed
+    PASSED_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Passed: [0-9]*/[0-9]*" | head -1 | cut -d' ' -f2)
+    echo -e "${GREEN}✓${NC} Health checks passed ($PASSED_COUNT)"
+  elif [ $HEALTH_EXIT_CODE -eq 2 ]; then
+    # Warnings only (non-critical failures)
+    PASSED_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Passed: [0-9]*/[0-9]*" | head -1 | cut -d' ' -f2)
+    WARNING_COUNT=$(echo "$HEALTH_OUTPUT" | grep -o "Warnings: [0-9]*" | head -1 | cut -d' ' -f2)
+    echo -e "${YELLOW}⚠${NC}  Health checks passed with warnings ($PASSED_COUNT, $WARNING_COUNT warnings)"
+    echo -e "  ${YELLOW}Note:${NC} Some non-critical features may not be working. Check logs for details."
+  else
+    # Critical failures
+    echo -e "${RED}✗${NC} Health checks FAILED - Critical features are broken!"
+    echo ""
+    echo -e "${RED}══════════════════════════════════════════════════${NC}"
+    echo -e "${RED}║  STARTUP ABORTED - FIX ERRORS BEFORE DEPLOYMENT${NC}"
+    echo -e "${RED}══════════════════════════════════════════════════${NC}"
+    echo ""
+    echo "$HEALTH_OUTPUT" | grep -E "❌|Error|Failed" | head -10
+    echo ""
+    echo -e "${YELLOW}Full health check report:${NC}"
+    echo -e "  curl http://localhost:3030/api/health-checks/comprehensive | jq"
+    echo ""
+    echo -e "${YELLOW}Backend logs:${NC}"
+    echo -e "  tail -50 /tmp/raven-backend.log"
+    echo ""
+    exit 1
+  fi
 else
-  # Critical failures
-  echo -e "${RED}✗${NC} Health checks FAILED - Critical features are broken!"
-  echo ""
-  echo -e "${RED}══════════════════════════════════════════════════${NC}"
-  echo -e "${RED}║  STARTUP ABORTED - FIX ERRORS BEFORE DEPLOYMENT${NC}"
-  echo -e "${RED}══════════════════════════════════════════════════${NC}"
-  echo ""
-  echo "$HEALTH_OUTPUT" | grep -E "❌|Error|Failed" | head -10
-  echo ""
-  echo -e "${YELLOW}Full health check report:${NC}"
-  echo -e "  curl http://localhost:3030/api/health-checks/comprehensive | jq"
-  echo ""
-  echo -e "${YELLOW}Backend logs:${NC}"
-  echo -e "  tail -50 /tmp/raven-backend.log"
-  echo ""
-  exit 1
+  echo -e "${YELLOW}[7/7]${NC} Skipping health checks (SKIP_HEALTH_CHECKS=1)"
+  echo -e "  ${BLUE}ℹ${NC}  Run health checks manually: ${YELLOW}curl http://localhost:3030/api/health/ready${NC}"
 fi
 
 # Get session info
