@@ -19,11 +19,54 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
   const router = express.Router();
 
   // Helper to get project database
-  const getProjectDb = (projectName) => {
+  const getProjectDb = projectName => {
     if (!projectDatabases.has(projectName)) {
       throw new Error(`Project database not found: ${projectName}`);
     }
     return projectDatabases.get(projectName);
+  };
+
+  // Input validation helpers
+  const validateDays = (days, min = 1, max = 365) => {
+    const parsed = parseInt(days);
+    if (isNaN(parsed) || parsed < min || parsed > max) {
+      throw new Error(`Invalid days parameter: must be between ${min} and ${max}`);
+    }
+    return parsed;
+  };
+
+  const validateHours = (hours, min = 1, max = 720) => {
+    const parsed = parseInt(hours);
+    if (isNaN(parsed) || parsed < min || parsed > max) {
+      throw new Error(`Invalid hours parameter: must be between ${min} and ${max}`);
+    }
+    return parsed;
+  };
+
+  const validateAgent = agent => {
+    // Basic sanitization - alphanumeric and hyphens only
+    if (!agent || !/^[a-zA-Z0-9-_]+$/.test(agent)) {
+      throw new Error('Invalid agent parameter: must be alphanumeric with hyphens/underscores');
+    }
+    return agent;
+  };
+
+  const validateMetric = metric => {
+    const validMetrics = ['all', 'activity', 'quality', 'health', 'velocity'];
+    if (!validMetrics.includes(metric)) {
+      throw new Error(`Invalid metric parameter: must be one of ${validMetrics.join(', ')}`);
+    }
+    return metric;
+  };
+
+  const validateSeverity = severity => {
+    if (severity) {
+      const validSeverities = ['critical', 'high', 'medium', 'low', 'info'];
+      if (!validSeverities.includes(severity)) {
+        throw new Error(`Invalid severity parameter: must be one of ${validSeverities.join(', ')}`);
+      }
+    }
+    return severity;
   };
 
   // ==================== HEALTH SCORING ROUTES ====================
@@ -52,10 +95,11 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, days = 30 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validDays = validateDays(days);
 
-      const history = projectDb.healthScoring.getHealthHistory(parseInt(days));
+      const history = projectDb.healthScoring.getHealthHistory(validDays);
 
-      res.json({ history, project, days: parseInt(days) });
+      res.json({ history, project, days: validDays });
     } catch (error) {
       logger.error('Failed to get health history', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -105,11 +149,10 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, hours = 24, severity } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validHours = validateHours(hours);
+      const validSeverity = validateSeverity(severity);
 
-      const drifts = projectDb.driftDetection.getRecentDrifts(
-        parseInt(hours),
-        severity || null
-      );
+      const drifts = projectDb.driftDetection.getRecentDrifts(validHours, validSeverity || null);
 
       res.json({ drifts, count: drifts.length, project });
     } catch (error) {
@@ -143,8 +186,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, days = 7 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validDays = validateDays(days);
 
-      const summary = projectDb.driftDetection.getDriftSummary(parseInt(days));
+      const summary = projectDb.driftDetection.getDriftSummary(validDays);
 
       res.json({ summary, project });
     } catch (error) {
@@ -162,8 +206,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, days = 30 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validDays = validateDays(days);
 
-      const insights = await projectDb.productivityInsights.calculateInsights(parseInt(days));
+      const insights = await projectDb.productivityInsights.calculateInsights(validDays);
 
       res.json({ insights, project });
     } catch (error) {
@@ -179,8 +224,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, days = 30 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validDays = validateDays(days);
 
-      const history = projectDb.productivityInsights.getProductivityHistory(parseInt(days));
+      const history = projectDb.productivityInsights.getProductivityHistory(validDays);
 
       res.json({ history, project });
     } catch (error) {
@@ -215,10 +261,12 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, agent = 'claude', days = 30 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validAgent = validateAgent(agent);
+      const validDays = validateDays(days);
 
       const personality = await projectDb.claudePersonalityAnalyzer.analyzePersonality(
-        agent,
-        parseInt(days)
+        validAgent,
+        validDays
       );
 
       res.json({ personality, project });
@@ -235,13 +283,15 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, agent = 'claude', days = 90 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validAgent = validateAgent(agent);
+      const validDays = validateDays(days);
 
       const history = projectDb.claudePersonalityAnalyzer.getPersonalityHistory(
-        agent,
-        parseInt(days)
+        validAgent,
+        validDays
       );
 
-      res.json({ history, agent, project });
+      res.json({ history, agent: validAgent, project });
     } catch (error) {
       logger.error('Failed to get personality history', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -255,10 +305,11 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, agent = 'claude' } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validAgent = validateAgent(agent);
 
-      const profile = projectDb.claudePersonalityAnalyzer.getLatestProfile(agent);
+      const profile = projectDb.claudePersonalityAnalyzer.getLatestProfile(validAgent);
 
-      res.json({ profile, agent, project });
+      res.json({ profile, agent: validAgent, project });
     } catch (error) {
       logger.error('Failed to get latest personality profile', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -291,13 +342,12 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, days = 30, metric = 'all' } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validDays = validateDays(days);
+      const validMetric = validateMetric(metric);
 
-      const timeSeries = projectDb.growthTracker.getGrowthTimeSeries(
-        parseInt(days),
-        metric
-      );
+      const timeSeries = projectDb.growthTracker.getGrowthTimeSeries(validDays, validMetric);
 
-      res.json({ timeSeries, project, days: parseInt(days), metric });
+      res.json({ timeSeries, project, days: validDays, metric: validMetric });
     } catch (error) {
       logger.error('Failed to get growth time series', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -311,11 +361,10 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, period1 = 7, period2 = 14 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validPeriod1 = validateDays(period1);
+      const validPeriod2 = validateDays(period2);
 
-      const comparison = projectDb.growthTracker.getGrowthComparison(
-        parseInt(period1),
-        parseInt(period2)
-      );
+      const comparison = projectDb.growthTracker.getGrowthComparison(validPeriod1, validPeriod2);
 
       res.json({ comparison, project });
     } catch (error) {
@@ -331,8 +380,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, days = 90 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validDays = validateDays(days);
 
-      const milestones = projectDb.growthTracker.getMilestones(parseInt(days));
+      const milestones = projectDb.growthTracker.getMilestones(validDays);
 
       res.json({ milestones, project });
     } catch (error) {
@@ -348,8 +398,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, days = 30 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validDays = validateDays(days);
 
-      const summary = projectDb.growthTracker.getGrowthSummary(parseInt(days));
+      const summary = projectDb.growthTracker.getGrowthSummary(validDays);
 
       res.json({ summary, project });
     } catch (error) {
@@ -365,8 +416,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, days = 30 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validDays = validateDays(days);
 
-      const history = projectDb.growthTracker.getSnapshotHistory(parseInt(days));
+      const history = projectDb.growthTracker.getSnapshotHistory(validDays);
 
       res.json({ history, project });
     } catch (error) {
@@ -459,8 +511,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, hours = 24 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validHours = validateHours(hours);
 
-      const events = projectDb.githubIntegration.getRecentEvents(parseInt(hours));
+      const events = projectDb.githubIntegration.getRecentEvents(validHours);
 
       res.json({ events, project });
     } catch (error) {
@@ -552,8 +605,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, hours = 24 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validHours = validateHours(hours);
 
-      const events = projectDb.discordIntegration.getRecentEvents(parseInt(hours));
+      const events = projectDb.discordIntegration.getRecentEvents(validHours);
 
       res.json({ events, project });
     } catch (error) {
@@ -646,8 +700,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     try {
       const { project, hours = 24 } = req.query;
       const projectDb = getProjectDb(project || 'raven');
+      const validHours = validateHours(hours);
 
-      const events = projectDb.slackIntegration.getRecentEvents(parseInt(hours));
+      const events = projectDb.slackIntegration.getRecentEvents(validHours);
 
       res.json({ events, project });
     } catch (error) {

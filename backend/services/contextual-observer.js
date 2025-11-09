@@ -92,7 +92,7 @@ export class ContextualObserver {
       if (recentChanges >= 15) {
         return {
           type: 'productivity_burst',
-          message: `🔥 ${recentChanges} changes in 30 minutes! You're on fire today! Caw Caw!`,
+          message: `${recentChanges} changes in 30 minutes! You're on fire today! Caw Caw!`,
           severity: 'positive',
           data: { changeCount: recentChanges }
         };
@@ -125,7 +125,7 @@ export class ContextualObserver {
         return {
           type: 'struggle_pattern',
           message:
-            "🔄 Fourth rollback today - something's not clicking. Need a fresh perspective? Caw?",
+            "Fourth rollback today - something's not clicking. Need a fresh perspective? Caw?",
           severity: 'medium',
           data: { rollbackCount }
         };
@@ -162,7 +162,7 @@ export class ContextualObserver {
       dayPatterns.forEach(p => {
         patterns.push({
           type: 'work_style',
-          message: `🎯 You ${p.pattern_value} on ${p.pattern_key}s - interesting pattern! Caw!`,
+          message: `You ${p.pattern_value} on ${p.pattern_key}s - interesting pattern! Caw!`,
           severity: 'info',
           data: p
         });
@@ -220,12 +220,12 @@ export class ContextualObserver {
    */
   getMotivationalMessage() {
     const messages = [
-      "☕ You've been at this for 4 hours straight. Break time? Caw!",
-      '💪 That rollback was smart - better to start fresh! Caw!',
-      '🎯 Zero syntax errors today! Clean flying! Caw Caw!',
-      "🤗 Rough session? Hey, bugs happen. You'll get 'em tomorrow! Caw caw.",
-      '💡 You think better after a break - saw that pattern! Caw!',
-      '🧪 You write tests BEFORE features now - nice evolution! Caw!'
+      "You've been at this for 4 hours straight. Break time? Caw!",
+      'That rollback was smart - better to start fresh! Caw!',
+      'Zero syntax errors today! Clean flying! Caw Caw!',
+      "Rough session? Hey, bugs happen. You'll get 'em tomorrow! Caw caw.",
+      'You think better after a break - saw that pattern! Caw!',
+      'You write tests BEFORE features now - nice evolution! Caw!'
     ];
 
     return messages[Math.floor(Math.random() * messages.length)];

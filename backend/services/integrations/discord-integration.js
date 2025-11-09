@@ -121,6 +121,37 @@ export class DiscordIntegration {
   }
 
   /**
+   * Retry helper with exponential backoff
+   */
+  async retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries;
+        const isRetryableError =
+          error.message.includes('5') ||
+          error.message.includes('429') ||
+          error.message.includes('ECONNREFUSED') ||
+          error.message.includes('ETIMEDOUT') ||
+          error.message.includes('fetch failed');
+
+        if (isLastAttempt || !isRetryableError) {
+          throw error;
+        }
+
+        const delay = baseDelay * Math.pow(2, attempt);
+        logger.warn(`Retrying after ${delay}ms (attempt ${attempt + 1}/${maxRetries})`, {
+          service: 'discord-integration',
+          error: error.message
+        });
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  /**
    * Send Discord webhook message
    */
   async sendWebhook(payload) {
@@ -128,7 +159,7 @@ export class DiscordIntegration {
       throw new Error('Discord integration not configured');
     }
 
-    try {
+    return this.retryWithBackoff(async () => {
       const response = await fetch(this.webhookUrl, {
         method: 'POST',
         headers: {
@@ -151,13 +182,7 @@ export class DiscordIntegration {
       });
 
       return { success: true };
-    } catch (error) {
-      logger.error('Failed to send Discord webhook', {
-        service: 'discord-integration',
-        error: error.message
-      });
-      throw error;
-    }
+    });
   }
 
   /**
@@ -281,7 +306,10 @@ export class DiscordIntegration {
       if (healthScore.recommendations && healthScore.recommendations.length > 0) {
         embed.fields.push({
           name: 'Recommendations',
-          value: healthScore.recommendations.slice(0, 3).map(r => `• ${r.message}`).join('\n'),
+          value: healthScore.recommendations
+            .slice(0, 3)
+            .map(r => `• ${r.message}`)
+            .join('\n'),
           inline: false
         });
       }
@@ -319,9 +347,9 @@ export class DiscordIntegration {
       if (criticalDrifts.length === 0) return null;
 
       const embed = {
-        title: '⚠️ Drift Detection Alert',
+        title: 'Drift Detection Alert',
         description: `**${criticalDrifts.length}** significant drift(s) detected`,
-        color: 0xFF6B6B,
+        color: 0xff6b6b,
         fields: criticalDrifts.slice(0, 5).map(d => ({
           name: `${d.drift_type.toUpperCase()} - ${d.severity}`,
           value: `${d.description}\n**Deviation:** ${d.deviation_percent}%`,
@@ -362,8 +390,8 @@ export class DiscordIntegration {
 
     try {
       const embed = {
-        title: '📊 Productivity Insights',
-        color: 0x4ECDC4,
+        title: 'Productivity Insights',
+        color: 0x4ecdc4,
         fields: [],
         timestamp: new Date().toISOString(),
         footer: {
@@ -373,7 +401,7 @@ export class DiscordIntegration {
 
       if (insights.peak_hours) {
         embed.fields.push({
-          name: '🌟 Peak Hour',
+          name: 'Peak Hour',
           value: `${insights.peak_hours.peak_hour}:00`,
           inline: true
         });
@@ -381,7 +409,7 @@ export class DiscordIntegration {
 
       if (insights.session_patterns) {
         embed.fields.push({
-          name: '⏱️ Optimal Session',
+          name: 'Optimal Session',
           value: `${insights.session_patterns.optimal_session_duration?.toFixed(1)} hours`,
           inline: true
         });
@@ -389,17 +417,21 @@ export class DiscordIntegration {
 
       if (insights.focus_metrics) {
         embed.fields.push({
-          name: '🎯 Focus Score',
+          name: 'Focus Score',
           value: `${insights.focus_metrics.avg_focus_score?.toFixed(1)}/10`,
           inline: true
         });
       }
 
       if (insights.productivity_trends) {
-        const trendEmoji = insights.productivity_trends.trend === 'improving' ? '📈' :
-                          insights.productivity_trends.trend === 'declining' ? '📉' : '➡️';
+        const trendIndicator =
+          insights.productivity_trends.trend === 'improving'
+            ? 'UP'
+            : insights.productivity_trends.trend === 'declining'
+              ? 'DOWN'
+              : 'STABLE';
         embed.fields.push({
-          name: `${trendEmoji} Trend`,
+          name: `Trend (${trendIndicator})`,
           value: insights.productivity_trends.trend,
           inline: true
         });
@@ -407,8 +439,11 @@ export class DiscordIntegration {
 
       if (insights.recommendations && insights.recommendations.length > 0) {
         embed.fields.push({
-          name: '💡 Recommendations',
-          value: insights.recommendations.slice(0, 3).map(r => `• ${r.message}`).join('\n'),
+          name: 'Recommendations',
+          value: insights.recommendations
+            .slice(0, 3)
+            .map(r => `• ${r.message}`)
+            .join('\n'),
           inline: false
         });
       }
@@ -441,7 +476,7 @@ export class DiscordIntegration {
       const embed = {
         title: '📅 Daily Summary',
         description: `**${summary.date}**`,
-        color: 0x95E1D3,
+        color: 0x95e1d3,
         fields: [
           {
             name: 'Activity',
@@ -499,11 +534,11 @@ export class DiscordIntegration {
    */
   getSeverityColor(severity) {
     const colors = {
-      critical: 0xFF0000,
-      high: 0xFF6B6B,
-      medium: 0xFFB347,
-      low: 0xFFE66D,
-      info: 0x4ECDC4
+      critical: 0xff0000,
+      high: 0xff6b6b,
+      medium: 0xffb347,
+      low: 0xffe66d,
+      info: 0x4ecdc4
     };
     return colors[severity] || colors.info;
   }
@@ -512,10 +547,10 @@ export class DiscordIntegration {
    * Get color for health score
    */
   getHealthScoreColor(score) {
-    if (score >= 80) return 0x51CF66; // Green
-    if (score >= 60) return 0xFFE66D; // Yellow
-    if (score >= 40) return 0xFFB347; // Orange
-    return 0xFF6B6B; // Red
+    if (score >= 80) return 0x51cf66; // Green
+    if (score >= 60) return 0xffe66d; // Yellow
+    if (score >= 40) return 0xffb347; // Orange
+    return 0xff6b6b; // Red
   }
 
   /**
@@ -591,13 +626,15 @@ export class DiscordIntegration {
 
     try {
       await this.sendWebhook({
-        content: '✅ Discord integration test successful!',
-        embeds: [{
-          title: 'Connection Test',
-          description: `Corvus is connected to this channel for project: **${this.projectName}**`,
-          color: 0x51CF66,
-          timestamp: new Date().toISOString()
-        }]
+        content: 'Discord integration test successful!',
+        embeds: [
+          {
+            title: 'Connection Test',
+            description: `Corvus is connected to this channel for project: **${this.projectName}**`,
+            color: 0x51cf66,
+            timestamp: new Date().toISOString()
+          }
+        ]
       });
 
       return { success: true, message: 'Test message sent successfully' };

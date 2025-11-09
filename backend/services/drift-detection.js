@@ -19,10 +19,10 @@ export class DriftDetection {
 
     // Drift thresholds (percentage change from baseline)
     this.thresholds = {
-      critical: 0.50,  // 50% deviation
-      high: 0.30,      // 30% deviation
-      medium: 0.20,    // 20% deviation
-      low: 0.10        // 10% deviation
+      critical: 0.5, // 50% deviation
+      high: 0.3, // 30% deviation
+      medium: 0.2, // 20% deviation
+      low: 0.1 // 10% deviation
     };
   }
 
@@ -34,11 +34,11 @@ export class DriftDetection {
       const drifts = [];
 
       // Check various drift types
-      drifts.push(...await this.detectVelocityDrift());
-      drifts.push(...await this.detectQualityDrift());
-      drifts.push(...await this.detectComplexityDrift());
-      drifts.push(...await this.detectStabilityDrift());
-      drifts.push(...await this.detectPatternDrift());
+      drifts.push(...(await this.detectVelocityDrift()));
+      drifts.push(...(await this.detectQualityDrift()));
+      drifts.push(...(await this.detectComplexityDrift()));
+      drifts.push(...(await this.detectStabilityDrift()));
+      drifts.push(...(await this.detectPatternDrift()));
 
       // Save significant drifts to database
       for (const drift of drifts) {
@@ -102,6 +102,12 @@ export class DriftDetection {
 
     const baselineVelocity = baseline.changes_per_day;
     const currentVelocity = current.changes_per_day;
+
+    // Prevent division by zero
+    if (!baselineVelocity || baselineVelocity === 0) {
+      return drifts;
+    }
+
     const deviation = (currentVelocity - baselineVelocity) / baselineVelocity;
 
     if (Math.abs(deviation) > this.thresholds.low) {
@@ -164,7 +170,17 @@ export class DriftDetection {
 
     const baselineRate = baseline.rollbacks / baseline.total_events;
     const currentRate = current.rollbacks / (current.total_events || 1);
-    const deviation = (currentRate - baselineRate) / (baselineRate || 0.01);
+
+    // Prevent division by zero - if baseline rate is 0, and current rate is also 0, no drift
+    if (baselineRate === 0 && currentRate === 0) {
+      return drifts;
+    }
+
+    // If baseline is 0 but current is not, that's infinite drift - treat as critical
+    const deviation =
+      baselineRate === 0
+        ? 10.0 // Large value to trigger critical alert
+        : (currentRate - baselineRate) / baselineRate;
 
     if (Math.abs(deviation) > this.thresholds.medium && currentRate > 0.05) {
       const severity = this.calculateSeverity(Math.abs(deviation));
@@ -221,11 +237,16 @@ export class DriftDetection {
 
     const current = currentStmt.get(this.projectName);
 
-    if (!baseline || !baseline.avg_change_size) {
+    if (!baseline || !baseline.avg_change_size || baseline.avg_change_size === 0) {
       return drifts;
     }
 
-    const deviation = (current.avg_change_size - baseline.avg_change_size) / baseline.avg_change_size;
+    if (!current || !current.avg_change_size) {
+      return drifts;
+    }
+
+    const deviation =
+      (current.avg_change_size - baseline.avg_change_size) / baseline.avg_change_size;
 
     if (Math.abs(deviation) > this.thresholds.medium) {
       const severity = this.calculateSeverity(Math.abs(deviation));
@@ -286,7 +307,17 @@ export class DriftDetection {
 
     const baselineRate = baseline.errors / baseline.total_events;
     const currentRate = current.errors / (current.total_events || 1);
-    const deviation = (currentRate - baselineRate) / (baselineRate || 0.01);
+
+    // Prevent division by zero - if baseline rate is 0, and current rate is also 0, no drift
+    if (baselineRate === 0 && currentRate === 0) {
+      return drifts;
+    }
+
+    // If baseline is 0 but current is not, that's infinite drift - treat as critical
+    const deviation =
+      baselineRate === 0
+        ? 10.0 // Large value to trigger critical alert
+        : (currentRate - baselineRate) / baselineRate;
 
     if (Math.abs(deviation) > this.thresholds.medium && currentRate > 0.05) {
       const severity = this.calculateSeverity(Math.abs(deviation));

@@ -1,13 +1,16 @@
 <script>
   import { onMount } from 'svelte';
+  import { activeProject } from './projectStore.js';
+  import { API_CONFIG } from '../config.js';
 
-  export let project = 'raven';
+  const API_BASE = API_CONFIG.API_BASE;
 
-  const API_BASE = 'http://localhost:3030/api';
+  $: project = $activeProject || 'raven';
 
   let activeTab = 'health'; // health, drift, productivity, personality, growth, integrations
   let loading = false;
   let error = null;
+  let loadedTabs = new Set(); // Track which tabs have been loaded
 
   // Health Scoring data
   let healthScore = null;
@@ -34,26 +37,47 @@
     slack: { enabled: false, events: [] }
   };
 
+  // Lazy load data when tab changes
+  $: if (activeTab && !loadedTabs.has(activeTab)) {
+    loadTabData(activeTab);
+  }
+
   onMount(() => {
-    loadTier4Data();
+    // Only load initial tab on mount
+    loadTabData(activeTab);
   });
 
-  async function loadTier4Data() {
+  async function loadTabData(tab) {
+    if (loadedTabs.has(tab)) return;
+
     loading = true;
     error = null;
+    loadedTabs.add(tab);
 
     try {
-      await Promise.all([
-        loadHealthData(),
-        loadDriftData(),
-        loadProductivityData(),
-        loadPersonalityData(),
-        loadGrowthData(),
-        loadIntegrationStatus()
-      ]);
+      switch (tab) {
+        case 'health':
+          await loadHealthData();
+          break;
+        case 'drift':
+          await loadDriftData();
+          break;
+        case 'productivity':
+          await loadProductivityData();
+          break;
+        case 'personality':
+          await loadPersonalityData();
+          break;
+        case 'growth':
+          await loadGrowthData();
+          break;
+        case 'integrations':
+          await loadIntegrationStatus();
+          break;
+      }
     } catch (err) {
       error = err.message;
-      console.error('Failed to load Tier 4 data:', err);
+      loadedTabs.delete(tab); // Allow retry on error
     } finally {
       loading = false;
     }
@@ -72,7 +96,7 @@
       healthScore = latestData.score;
       healthHistory = historyData.history || [];
     } catch (err) {
-      console.error('Failed to load health data:', err);
+      // Error handled silently - partial data load
     }
   }
 
@@ -89,7 +113,7 @@
       recentDrifts = recentData.drifts || [];
       driftSummary = summaryData.summary;
     } catch (err) {
-      console.error('Failed to load drift data:', err);
+      // Error handled silently - partial data load
     }
   }
 
@@ -99,7 +123,7 @@
       const data = await res.json();
       productivityInsights = data.metrics;
     } catch (err) {
-      console.error('Failed to load productivity data:', err);
+      // Error handled silently - partial data load
     }
   }
 
@@ -109,7 +133,7 @@
       const data = await res.json();
       personalityProfile = data.profile;
     } catch (err) {
-      console.error('Failed to load personality data:', err);
+      // Error handled silently - partial data load
     }
   }
 
@@ -126,16 +150,22 @@
       growthSummary = summaryData.summary;
       growthTimeSeries = timeSeriesData.timeSeries;
     } catch (err) {
-      console.error('Failed to load growth data:', err);
+      // Error handled silently - partial data load
     }
   }
 
   async function loadIntegrationStatus() {
     try {
       const [githubRes, discordRes, slackRes] = await Promise.all([
-        fetch(`${API_BASE}/integrations/github/events?project=${project}&hours=24`).catch(() => ({ json: () => ({ events: [] }) })),
-        fetch(`${API_BASE}/integrations/discord/events?project=${project}&hours=24`).catch(() => ({ json: () => ({ events: [] }) })),
-        fetch(`${API_BASE}/integrations/slack/events?project=${project}&hours=24`).catch(() => ({ json: () => ({ events: [] }) }))
+        fetch(`${API_BASE}/integrations/github/events?project=${project}&hours=24`).catch(() => ({
+          json: () => ({ events: [] })
+        })),
+        fetch(`${API_BASE}/integrations/discord/events?project=${project}&hours=24`).catch(() => ({
+          json: () => ({ events: [] })
+        })),
+        fetch(`${API_BASE}/integrations/slack/events?project=${project}&hours=24`).catch(() => ({
+          json: () => ({ events: [] })
+        }))
       ]);
 
       const githubData = await githubRes.json();
@@ -151,18 +181,20 @@
       integrationStatus.slack.events = slackData.events || [];
       integrationStatus.slack.enabled = slackData.events?.length > 0;
     } catch (err) {
-      console.error('Failed to load integration status:', err);
+      // Error handled silently - partial data load
     }
   }
 
   async function calculateHealthScore() {
     try {
-      const res = await fetch(`${API_BASE}/health/calculate?project=${project}`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/health/calculate?project=${project}`, {
+        method: 'POST'
+      });
       const data = await res.json();
       healthScore = data.healthScore;
       await loadHealthData();
     } catch (err) {
-      console.error('Failed to calculate health score:', err);
+      // Error handled silently - operation failed gracefully
     }
   }
 
@@ -173,27 +205,32 @@
       recentDrifts = data.drifts || [];
       await loadDriftData();
     } catch (err) {
-      console.error('Failed to detect drifts:', err);
+      // Error handled silently - operation failed gracefully
     }
   }
 
   async function calculateProductivity() {
     try {
-      const res = await fetch(`${API_BASE}/productivity/calculate?project=${project}&days=30`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/productivity/calculate?project=${project}&days=30`, {
+        method: 'POST'
+      });
       const data = await res.json();
       productivityInsights = data.insights;
     } catch (err) {
-      console.error('Failed to calculate productivity:', err);
+      // Error handled silently - operation failed gracefully
     }
   }
 
   async function analyzePersonality() {
     try {
-      const res = await fetch(`${API_BASE}/personality/analyze?project=${project}&agent=claude&days=30`, { method: 'POST' });
+      const res = await fetch(
+        `${API_BASE}/personality/analyze?project=${project}&agent=claude&days=30`,
+        { method: 'POST' }
+      );
       const data = await res.json();
       personalityProfile = data.personality;
     } catch (err) {
-      console.error('Failed to analyze personality:', err);
+      // Error handled silently - operation failed gracefully
     }
   }
 
@@ -203,7 +240,7 @@
       await res.json();
       await loadGrowthData();
     } catch (err) {
-      console.error('Failed to create growth snapshot:', err);
+      // Error handled silently - operation failed gracefully
     }
   }
 
@@ -240,22 +277,28 @@
   {/if}
 
   <div class="tabs">
-    <button class:active={activeTab === 'health'} on:click={() => activeTab = 'health'}>
+    <button class:active={activeTab === 'health'} on:click={() => (activeTab = 'health')}>
       Health Scoring
     </button>
-    <button class:active={activeTab === 'drift'} on:click={() => activeTab = 'drift'}>
+    <button class:active={activeTab === 'drift'} on:click={() => (activeTab = 'drift')}>
       Drift Detection
     </button>
-    <button class:active={activeTab === 'productivity'} on:click={() => activeTab = 'productivity'}>
+    <button
+      class:active={activeTab === 'productivity'}
+      on:click={() => (activeTab = 'productivity')}
+    >
       Productivity
     </button>
-    <button class:active={activeTab === 'personality'} on:click={() => activeTab = 'personality'}>
+    <button class:active={activeTab === 'personality'} on:click={() => (activeTab = 'personality')}>
       Personality
     </button>
-    <button class:active={activeTab === 'growth'} on:click={() => activeTab = 'growth'}>
+    <button class:active={activeTab === 'growth'} on:click={() => (activeTab = 'growth')}>
       Growth Tracking
     </button>
-    <button class:active={activeTab === 'integrations'} on:click={() => activeTab = 'integrations'}>
+    <button
+      class:active={activeTab === 'integrations'}
+      on:click={() => (activeTab = 'integrations')}
+    >
       Integrations
     </button>
   </div>
@@ -265,15 +308,19 @@
       <div class="health-tab">
         <div class="tab-header">
           <h3>Project Health Score</h3>
-          <button class="action-button" on:click={calculateHealthScore}>
-            Calculate Now
-          </button>
+          <button class="action-button" on:click={calculateHealthScore}> Calculate Now </button>
         </div>
 
         {#if healthScore}
           <div class="health-score-card">
-            <div class="score-display" style="border-color: {getHealthScoreColor(healthScore.overall_score)}">
-              <div class="score-value" style="color: {getHealthScoreColor(healthScore.overall_score)}">
+            <div
+              class="score-display"
+              style="border-color: {getHealthScoreColor(healthScore.overall_score)}"
+            >
+              <div
+                class="score-value"
+                style="color: {getHealthScoreColor(healthScore.overall_score)}"
+              >
                 {healthScore.overall_score}
               </div>
               <div class="score-label">Overall Score</div>
@@ -283,42 +330,72 @@
               <div class="score-item">
                 <span class="score-name">Code Quality</span>
                 <div class="score-bar">
-                  <div class="score-fill" style="width: {healthScore.code_quality_score}%; background: {getHealthScoreColor(healthScore.code_quality_score)}"></div>
+                  <div
+                    class="score-fill"
+                    style="width: {healthScore.code_quality_score}%; background: {getHealthScoreColor(
+                      healthScore.code_quality_score
+                    )}"
+                  ></div>
                 </div>
                 <span class="score-number">{healthScore.code_quality_score}</span>
               </div>
               <div class="score-item">
                 <span class="score-name">Test Coverage</span>
                 <div class="score-bar">
-                  <div class="score-fill" style="width: {healthScore.test_coverage_score}%; background: {getHealthScoreColor(healthScore.test_coverage_score)}"></div>
+                  <div
+                    class="score-fill"
+                    style="width: {healthScore.test_coverage_score}%; background: {getHealthScoreColor(
+                      healthScore.test_coverage_score
+                    )}"
+                  ></div>
                 </div>
                 <span class="score-number">{healthScore.test_coverage_score}</span>
               </div>
               <div class="score-item">
                 <span class="score-name">Documentation</span>
                 <div class="score-bar">
-                  <div class="score-fill" style="width: {healthScore.documentation_score}%; background: {getHealthScoreColor(healthScore.documentation_score)}"></div>
+                  <div
+                    class="score-fill"
+                    style="width: {healthScore.documentation_score}%; background: {getHealthScoreColor(
+                      healthScore.documentation_score
+                    )}"
+                  ></div>
                 </div>
                 <span class="score-number">{healthScore.documentation_score}</span>
               </div>
               <div class="score-item">
                 <span class="score-name">Velocity</span>
                 <div class="score-bar">
-                  <div class="score-fill" style="width: {healthScore.velocity_score}%; background: {getHealthScoreColor(healthScore.velocity_score)}"></div>
+                  <div
+                    class="score-fill"
+                    style="width: {healthScore.velocity_score}%; background: {getHealthScoreColor(
+                      healthScore.velocity_score
+                    )}"
+                  ></div>
                 </div>
                 <span class="score-number">{healthScore.velocity_score}</span>
               </div>
               <div class="score-item">
                 <span class="score-name">Stability</span>
                 <div class="score-bar">
-                  <div class="score-fill" style="width: {healthScore.stability_score}%; background: {getHealthScoreColor(healthScore.stability_score)}"></div>
+                  <div
+                    class="score-fill"
+                    style="width: {healthScore.stability_score}%; background: {getHealthScoreColor(
+                      healthScore.stability_score
+                    )}"
+                  ></div>
                 </div>
                 <span class="score-number">{healthScore.stability_score}</span>
               </div>
               <div class="score-item">
                 <span class="score-name">Security</span>
                 <div class="score-bar">
-                  <div class="score-fill" style="width: {healthScore.security_score}%; background: {getHealthScoreColor(healthScore.security_score)}"></div>
+                  <div
+                    class="score-fill"
+                    style="width: {healthScore.security_score}%; background: {getHealthScoreColor(
+                      healthScore.security_score
+                    )}"
+                  ></div>
                 </div>
                 <span class="score-number">{healthScore.security_score}</span>
               </div>
@@ -329,7 +406,13 @@
                 <h4>Recommendations</h4>
                 {#each JSON.parse(healthScore.recommendations) as rec (rec.message)}
                   <div class="recommendation-item {rec.severity}">
-                    <span class="rec-icon">{rec.severity === 'high' ? '⚠️' : rec.severity === 'medium' ? '💡' : 'ℹ️'}</span>
+                    <span class="rec-icon"
+                      >{rec.severity === 'high'
+                        ? '⚠️'
+                        : rec.severity === 'medium'
+                          ? '💡'
+                          : 'ℹ️'}</span
+                    >
                     <span class="rec-message">{rec.message}</span>
                   </div>
                 {/each}
@@ -337,17 +420,16 @@
             {/if}
           </div>
         {:else}
-          <div class="empty-state">No health score data available. Click "Calculate Now" to generate.</div>
+          <div class="empty-state">
+            No health score data available. Click "Calculate Now" to generate.
+          </div>
         {/if}
       </div>
-
     {:else if activeTab === 'drift'}
       <div class="drift-tab">
         <div class="tab-header">
           <h3>Drift Detection</h3>
-          <button class="action-button" on:click={detectDrifts}>
-            Detect Now
-          </button>
+          <button class="action-button" on:click={detectDrifts}> Detect Now </button>
         </div>
 
         {#if driftSummary}
@@ -381,14 +463,11 @@
           <div class="empty-state">No recent drift events detected.</div>
         {/if}
       </div>
-
     {:else if activeTab === 'productivity'}
       <div class="productivity-tab">
         <div class="tab-header">
           <h3>Productivity Insights</h3>
-          <button class="action-button" on:click={calculateProductivity}>
-            Calculate Now
-          </button>
+          <button class="action-button" on:click={calculateProductivity}> Calculate Now </button>
         </div>
 
         {#if productivityInsights}
@@ -406,7 +485,9 @@
               <div class="insight-card">
                 <div class="card-icon">⏱️</div>
                 <div class="card-title">Optimal Session</div>
-                <div class="card-value">{insights.session_patterns.optimal_session_duration?.toFixed(1)}h</div>
+                <div class="card-value">
+                  {insights.session_patterns.optimal_session_duration?.toFixed(1)}h
+                </div>
               </div>
             {/if}
 
@@ -414,13 +495,21 @@
               <div class="insight-card">
                 <div class="card-icon">🎯</div>
                 <div class="card-title">Focus Score</div>
-                <div class="card-value">{insights.focus_metrics.avg_focus_score?.toFixed(1)}/10</div>
+                <div class="card-value">
+                  {insights.focus_metrics.avg_focus_score?.toFixed(1)}/10
+                </div>
               </div>
             {/if}
 
             {#if insights.productivity_trends}
               <div class="insight-card">
-                <div class="card-icon">{insights.productivity_trends.trend === 'improving' ? '📈' : insights.productivity_trends.trend === 'declining' ? '📉' : '➡️'}</div>
+                <div class="card-icon">
+                  {insights.productivity_trends.trend === 'improving'
+                    ? '📈'
+                    : insights.productivity_trends.trend === 'declining'
+                      ? '📉'
+                      : '➡️'}
+                </div>
                 <div class="card-title">Trend</div>
                 <div class="card-value">{insights.productivity_trends.trend}</div>
               </div>
@@ -439,17 +528,16 @@
             </div>
           {/if}
         {:else}
-          <div class="empty-state">No productivity insights available. Click "Calculate Now" to generate.</div>
+          <div class="empty-state">
+            No productivity insights available. Click "Calculate Now" to generate.
+          </div>
         {/if}
       </div>
-
     {:else if activeTab === 'personality'}
       <div class="personality-tab">
         <div class="tab-header">
           <h3>Claude Personality Analysis</h3>
-          <button class="action-button" on:click={analyzePersonality}>
-            Analyze Now
-          </button>
+          <button class="action-button" on:click={analyzePersonality}> Analyze Now </button>
         </div>
 
         {#if personalityProfile}
@@ -506,17 +594,16 @@
             {/if}
           </div>
         {:else}
-          <div class="empty-state">No personality analysis available. Click "Analyze Now" to generate.</div>
+          <div class="empty-state">
+            No personality analysis available. Click "Analyze Now" to generate.
+          </div>
         {/if}
       </div>
-
     {:else if activeTab === 'growth'}
       <div class="growth-tab">
         <div class="tab-header">
           <h3>Growth Tracking</h3>
-          <button class="action-button" on:click={createGrowthSnapshot}>
-            Create Snapshot
-          </button>
+          <button class="action-button" on:click={createGrowthSnapshot}> Create Snapshot </button>
         </div>
 
         {#if growthSummary}
@@ -545,7 +632,11 @@
               {#each growthSummary.milestones as milestone (milestone.date + milestone.type)}
                 <div class="milestone-item">
                   <span class="milestone-icon">
-                    {milestone.type === 'peak_activity' ? '🔥' : milestone.type === 'best_quality' ? '⭐' : '📈'}
+                    {milestone.type === 'peak_activity'
+                      ? '🔥'
+                      : milestone.type === 'best_quality'
+                        ? '⭐'
+                        : '📈'}
                   </span>
                   <span class="milestone-message">{milestone.message}</span>
                   <span class="milestone-date">{milestone.date}</span>
@@ -561,7 +652,8 @@
                 <div class="trend-item">
                   <span class="trend-metric">{trend.metric}</span>
                   <span class="trend-direction {trend.direction}">
-                    {trend.direction === 'increasing' ? '↗️' : '↘️'} {Math.abs(trend.change_percent)}%
+                    {trend.direction === 'increasing' ? '↗️' : '↘️'}
+                    {Math.abs(trend.change_percent)}%
                   </span>
                 </div>
               {/each}
@@ -571,7 +663,6 @@
           <div class="empty-state">No growth data available.</div>
         {/if}
       </div>
-
     {:else if activeTab === 'integrations'}
       <div class="integrations-tab">
         <h3>External Integrations</h3>
@@ -580,17 +671,23 @@
           <div class="integration-card {integrationStatus.github.enabled ? 'enabled' : 'disabled'}">
             <div class="integration-header">
               <span class="integration-name">GitHub</span>
-              <span class="integration-status">{integrationStatus.github.enabled ? 'Enabled' : 'Disabled'}</span>
+              <span class="integration-status"
+                >{integrationStatus.github.enabled ? 'Enabled' : 'Disabled'}</span
+              >
             </div>
             <div class="integration-info">
               <p>Recent events: {integrationStatus.github.events.length}</p>
             </div>
           </div>
 
-          <div class="integration-card {integrationStatus.discord.enabled ? 'enabled' : 'disabled'}">
+          <div
+            class="integration-card {integrationStatus.discord.enabled ? 'enabled' : 'disabled'}"
+          >
             <div class="integration-header">
               <span class="integration-name">Discord</span>
-              <span class="integration-status">{integrationStatus.discord.enabled ? 'Enabled' : 'Disabled'}</span>
+              <span class="integration-status"
+                >{integrationStatus.discord.enabled ? 'Enabled' : 'Disabled'}</span
+              >
             </div>
             <div class="integration-info">
               <p>Recent events: {integrationStatus.discord.events.length}</p>
@@ -600,7 +697,9 @@
           <div class="integration-card {integrationStatus.slack.enabled ? 'enabled' : 'disabled'}">
             <div class="integration-header">
               <span class="integration-name">Slack</span>
-              <span class="integration-status">{integrationStatus.slack.enabled ? 'Enabled' : 'Disabled'}</span>
+              <span class="integration-status"
+                >{integrationStatus.slack.enabled ? 'Enabled' : 'Disabled'}</span
+              >
             </div>
             <div class="integration-info">
               <p>Recent events: {integrationStatus.slack.events.length}</p>
@@ -609,7 +708,9 @@
         </div>
 
         <div class="integration-note">
-          <p>Configure integrations via API endpoints to enable notifications and external reporting.</p>
+          <p>
+            Configure integrations via API endpoints to enable notifications and external reporting.
+          </p>
         </div>
       </div>
     {/if}
@@ -637,7 +738,8 @@
     font-size: 24px;
   }
 
-  .refresh-button, .action-button {
+  .refresh-button,
+  .action-button {
     padding: 8px 16px;
     background: #4a9eff;
     color: white;
@@ -647,7 +749,8 @@
     font-size: 14px;
   }
 
-  .refresh-button:hover, .action-button:hover {
+  .refresh-button:hover,
+  .action-button:hover {
     background: #3a8eef;
   }
 
@@ -863,10 +966,22 @@
     text-transform: uppercase;
   }
 
-  .drift-severity.critical { background: #ff6b6b; color: white; }
-  .drift-severity.high { background: #ff922b; color: white; }
-  .drift-severity.medium { background: #ffd43b; color: black; }
-  .drift-severity.low { background: #74c0fc; color: black; }
+  .drift-severity.critical {
+    background: #ff6b6b;
+    color: white;
+  }
+  .drift-severity.high {
+    background: #ff922b;
+    color: white;
+  }
+  .drift-severity.medium {
+    background: #ffd43b;
+    color: black;
+  }
+  .drift-severity.low {
+    background: #74c0fc;
+    color: black;
+  }
 
   .drift-description {
     margin-bottom: 8px;
@@ -1025,14 +1140,16 @@
     color: #4a9eff;
   }
 
-  .milestones, .trends {
+  .milestones,
+  .trends {
     background: #252525;
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 16px;
   }
 
-  .milestones h4, .trends h4 {
+  .milestones h4,
+  .trends h4 {
     margin-bottom: 12px;
   }
 

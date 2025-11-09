@@ -971,7 +971,7 @@
               {/await}
             {:else if currentSubView === 'tier4'}
               {#await import('./lib/Tier4Panel.svelte') then M}
-                <svelte:component this={M.default} project={$selectedProject} />
+                <svelte:component this={M.default} />
               {:catch _}
                 <div style="min-height:200px" role="status">Loading…</div>
               {/await}

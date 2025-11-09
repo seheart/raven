@@ -97,16 +97,11 @@ export class GrowthTracker {
 
     const metrics = stmt.get(this.projectName);
 
-    const rollbackRate = metrics.total_changes > 0 ?
-      (metrics.rollbacks / metrics.total_changes) : 0;
+    const rollbackRate = metrics.total_changes > 0 ? metrics.rollbacks / metrics.total_changes : 0;
 
-    const errorRate = metrics.total_changes > 0 ?
-      (metrics.errors / metrics.total_changes) : 0;
+    const errorRate = metrics.total_changes > 0 ? metrics.errors / metrics.total_changes : 0;
 
-    const qualityScore = Math.round(
-      (1 - rollbackRate) * 50 +
-      (1 - errorRate) * 50
-    );
+    const qualityScore = Math.round((1 - rollbackRate) * 50 + (1 - errorRate) * 50);
 
     return {
       total_changes: metrics.total_changes || 0,
@@ -142,14 +137,16 @@ export class GrowthTracker {
       changes: a.changes,
       total_lines: a.total_lines,
       rollbacks: a.rollbacks,
-      efficiency_score: Math.round((1 - (a.rollbacks / a.changes)) * 100)
+      efficiency_score: Math.round((1 - a.rollbacks / a.changes) * 100)
     }));
 
     return {
       total_agents: agents.length,
       agents: agentMetrics,
-      most_active_agent: agentMetrics.length > 0 ?
-        agentMetrics.reduce((max, a) => a.changes > max.changes ? a : max).agent : null
+      most_active_agent:
+        agentMetrics.length > 0
+          ? agentMetrics.reduce((max, a) => (a.changes > max.changes ? a : max)).agent
+          : null
     };
   }
 
@@ -174,15 +171,17 @@ export class GrowthTracker {
 
     const health = stmt.get(this.projectName);
 
-    return health || {
-      overall_score: null,
-      code_quality_score: null,
-      test_coverage_score: null,
-      documentation_score: null,
-      velocity_score: null,
-      stability_score: null,
-      security_score: null
-    };
+    return (
+      health || {
+        overall_score: null,
+        code_quality_score: null,
+        test_coverage_score: null,
+        documentation_score: null,
+        velocity_score: null,
+        stability_score: null,
+        security_score: null
+      }
+    );
   }
 
   /**
@@ -204,8 +203,8 @@ export class GrowthTracker {
     return {
       changes_per_day: metrics.changes_last_24h || 0,
       sessions_per_day: metrics.sessions_last_24h || 0,
-      changes_per_session: metrics.sessions_last_24h > 0 ?
-        metrics.changes_last_24h / metrics.sessions_last_24h : 0
+      changes_per_session:
+        metrics.sessions_last_24h > 0 ? metrics.changes_last_24h / metrics.sessions_last_24h : 0
     };
   }
 
@@ -428,10 +427,10 @@ export class GrowthTracker {
    */
   calculateChange(oldValue, newValue) {
     if (!oldValue || oldValue === 0) return { percent: 0, direction: 'stable' };
+    if (newValue === null || newValue === undefined) return { percent: 0, direction: 'stable' };
 
     const percentChange = ((newValue - oldValue) / oldValue) * 100;
-    const direction = percentChange > 5 ? 'up' :
-                     percentChange < -5 ? 'down' : 'stable';
+    const direction = percentChange > 5 ? 'up' : percentChange < -5 ? 'down' : 'stable';
 
     return {
       percent: Math.round(percentChange),
@@ -461,7 +460,8 @@ export class GrowthTracker {
 
       // Find peak activity
       const peakActivity = snapshots.reduce((max, s) =>
-        s.total_events > max.total_events ? s : max);
+        s.total_events > max.total_events ? s : max
+      );
 
       if (peakActivity.total_events > 50) {
         milestones.push({
@@ -474,7 +474,8 @@ export class GrowthTracker {
 
       // Find best quality day
       const bestQuality = snapshots.reduce((max, s) =>
-        s.quality_score > max.quality_score ? s : max);
+        s.quality_score > max.quality_score ? s : max
+      );
 
       if (bestQuality.quality_score > 80) {
         milestones.push({
@@ -490,8 +491,7 @@ export class GrowthTracker {
         const prev = snapshots[i - 1];
         const curr = snapshots[i];
 
-        if (curr.health_score && prev.health_score &&
-            curr.health_score > prev.health_score + 10) {
+        if (curr.health_score && prev.health_score && curr.health_score > prev.health_score + 10) {
           milestones.push({
             type: 'health_improvement',
             date: curr.snapshot_date,

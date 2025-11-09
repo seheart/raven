@@ -123,6 +123,37 @@ export class SlackIntegration {
   }
 
   /**
+   * Retry helper with exponential backoff
+   */
+  async retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries;
+        const isRetryableError =
+          error.message.includes('5') ||
+          error.message.includes('429') ||
+          error.message.includes('ECONNREFUSED') ||
+          error.message.includes('ETIMEDOUT') ||
+          error.message.includes('fetch failed');
+
+        if (isLastAttempt || !isRetryableError) {
+          throw error;
+        }
+
+        const delay = baseDelay * Math.pow(2, attempt);
+        logger.warn(`Retrying after ${delay}ms (attempt ${attempt + 1}/${maxRetries})`, {
+          service: 'slack-integration',
+          error: error.message
+        });
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  /**
    * Send Slack webhook message
    */
   async sendWebhook(payload) {
@@ -130,7 +161,7 @@ export class SlackIntegration {
       throw new Error('Slack integration not configured');
     }
 
-    try {
+    return this.retryWithBackoff(async () => {
       const message = {
         username: this.username,
         icon_emoji: this.iconEmoji,
@@ -160,13 +191,7 @@ export class SlackIntegration {
       });
 
       return { success: true };
-    } catch (error) {
-      logger.error('Failed to send Slack webhook', {
-        service: 'slack-integration',
-        error: error.message
-      });
-      throw error;
-    }
+    });
   }
 
   /**
@@ -239,10 +264,12 @@ export class SlackIntegration {
 
       await this.sendWebhook({
         blocks,
-        attachments: [{
-          color: severityColor,
-          fallback: `${errorEvent.severity} error: ${errorEvent.message}`
-        }]
+        attachments: [
+          {
+            color: severityColor,
+            fallback: `${errorEvent.severity} error: ${errorEvent.message}`
+          }
+        ]
       });
 
       this.recordEvent('error_alert_sent', {
@@ -326,7 +353,10 @@ export class SlackIntegration {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*Recommendations:*\n${healthScore.recommendations.slice(0, 3).map(r => `• ${r.message}`).join('\n')}`
+            text: `*Recommendations:*\n${healthScore.recommendations
+              .slice(0, 3)
+              .map(r => `• ${r.message}`)
+              .join('\n')}`
           }
         });
       }
@@ -343,10 +373,12 @@ export class SlackIntegration {
 
       await this.sendWebhook({
         blocks,
-        attachments: [{
-          color,
-          fallback: `Project health score: ${healthScore.overallScore}/100`
-        }]
+        attachments: [
+          {
+            color,
+            fallback: `Project health score: ${healthScore.overallScore}/100`
+          }
+        ]
       });
 
       this.recordEvent('health_score_sent', {
@@ -384,7 +416,7 @@ export class SlackIntegration {
           type: 'header',
           text: {
             type: 'plain_text',
-            text: '⚠️ Drift Detection Alert'
+            text: 'Drift Detection Alert'
           }
         },
         {
@@ -419,10 +451,12 @@ export class SlackIntegration {
 
       await this.sendWebhook({
         blocks,
-        attachments: [{
-          color: '#ff6b6b',
-          fallback: `${criticalDrifts.length} drift(s) detected`
-        }]
+        attachments: [
+          {
+            color: '#ff6b6b',
+            fallback: `${criticalDrifts.length} drift(s) detected`
+          }
+        ]
       });
 
       this.recordEvent('drift_alert_sent', {
@@ -456,7 +490,7 @@ export class SlackIntegration {
           type: 'header',
           text: {
             type: 'plain_text',
-            text: '📊 Productivity Insights'
+            text: 'Productivity Insights'
           }
         }
       ];
@@ -466,30 +500,34 @@ export class SlackIntegration {
       if (insights.peak_hours) {
         fields.push({
           type: 'mrkdwn',
-          text: `*🌟 Peak Hour:*\n${insights.peak_hours.peak_hour}:00`
+          text: `*Peak Hour:*\n${insights.peak_hours.peak_hour}:00`
         });
       }
 
       if (insights.session_patterns) {
         fields.push({
           type: 'mrkdwn',
-          text: `*⏱️ Optimal Session:*\n${insights.session_patterns.optimal_session_duration?.toFixed(1)} hours`
+          text: `*Optimal Session:*\n${insights.session_patterns.optimal_session_duration?.toFixed(1)} hours`
         });
       }
 
       if (insights.focus_metrics) {
         fields.push({
           type: 'mrkdwn',
-          text: `*🎯 Focus Score:*\n${insights.focus_metrics.avg_focus_score?.toFixed(1)}/10`
+          text: `*Focus Score:*\n${insights.focus_metrics.avg_focus_score?.toFixed(1)}/10`
         });
       }
 
       if (insights.productivity_trends) {
-        const trendEmoji = insights.productivity_trends.trend === 'improving' ? '📈' :
-                          insights.productivity_trends.trend === 'declining' ? '📉' : '➡️';
+        const trendIndicator =
+          insights.productivity_trends.trend === 'improving'
+            ? 'UP'
+            : insights.productivity_trends.trend === 'declining'
+              ? 'DOWN'
+              : 'STABLE';
         fields.push({
           type: 'mrkdwn',
-          text: `*${trendEmoji} Trend:*\n${insights.productivity_trends.trend}`
+          text: `*Trend (${trendIndicator}):*\n${insights.productivity_trends.trend}`
         });
       }
 
@@ -505,7 +543,10 @@ export class SlackIntegration {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*💡 Recommendations:*\n${insights.recommendations.slice(0, 3).map(r => `• ${r.message}`).join('\n')}`
+            text: `*Recommendations:*\n${insights.recommendations
+              .slice(0, 3)
+              .map(r => `• ${r.message}`)
+              .join('\n')}`
           }
         });
       }
@@ -522,10 +563,12 @@ export class SlackIntegration {
 
       await this.sendWebhook({
         blocks,
-        attachments: [{
-          color: '#4ecdc4',
-          fallback: 'Productivity insights available'
-        }]
+        attachments: [
+          {
+            color: '#4ecdc4',
+            fallback: 'Productivity insights available'
+          }
+        ]
       });
 
       this.recordEvent('productivity_insights_sent', {});
@@ -607,10 +650,12 @@ export class SlackIntegration {
 
       await this.sendWebhook({
         blocks,
-        attachments: [{
-          color: '#95e1d3',
-          fallback: `Daily summary for ${summary.date}`
-        }]
+        attachments: [
+          {
+            color: '#95e1d3',
+            fallback: `Daily summary for ${summary.date}`
+          }
+        ]
       });
 
       this.recordEvent('daily_summary_sent', {
@@ -747,7 +792,7 @@ export class SlackIntegration {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: '✅ *Slack integration test successful!*'
+              text: '*Slack integration test successful!*'
             }
           },
           {
@@ -758,10 +803,12 @@ export class SlackIntegration {
             }
           }
         ],
-        attachments: [{
-          color: 'good',
-          fallback: 'Connection test successful'
-        }]
+        attachments: [
+          {
+            color: 'good',
+            fallback: 'Connection test successful'
+          }
+        ]
       });
 
       return { success: true, message: 'Test message sent successfully' };

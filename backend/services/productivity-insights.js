@@ -79,7 +79,7 @@ export class ProductivityInsights {
       change_count: h.change_count,
       avg_change_size: h.avg_change_size,
       rollback_rate: h.rollbacks / h.change_count,
-      quality_score: h.change_count * (1 - (h.rollbacks / h.change_count))
+      quality_score: h.change_count * (1 - h.rollbacks / h.change_count)
     }));
 
     // Sort by quality score
@@ -92,7 +92,7 @@ export class ProductivityInsights {
       peak_hours: peakHours,
       low_productivity_hours: lowHours,
       hourly_breakdown: scoredHours,
-      peak_hour: scoredHours[0]?.hour || 12
+      peak_hour: scoredHours.length > 0 ? scoredHours[0].hour : null
     };
   }
 
@@ -141,13 +141,16 @@ export class ProductivityInsights {
     sessionMetrics.sort((a, b) => b.productivity_score - a.productivity_score);
 
     const topSessions = sessionMetrics.slice(0, Math.floor(sessionMetrics.length * 0.2));
-    const avgOptimalDuration = topSessions.reduce((sum, s) => sum + s.duration_hours, 0) / topSessions.length;
+    const avgOptimalDuration =
+      topSessions.reduce((sum, s) => sum + s.duration_hours, 0) / topSessions.length;
 
     return {
       total_sessions: sessions.length,
-      avg_session_duration: sessionMetrics.reduce((sum, s) => sum + s.duration_hours, 0) / sessionMetrics.length,
+      avg_session_duration:
+        sessionMetrics.reduce((sum, s) => sum + s.duration_hours, 0) / sessionMetrics.length,
       optimal_session_duration: avgOptimalDuration,
-      avg_changes_per_hour: sessionMetrics.reduce((sum, s) => sum + s.changes_per_hour, 0) / sessionMetrics.length,
+      avg_changes_per_hour:
+        sessionMetrics.reduce((sum, s) => sum + s.changes_per_hour, 0) / sessionMetrics.length,
       most_productive_sessions: topSessions.slice(0, 5),
       session_breakdown: sessionMetrics
     };
@@ -192,7 +195,7 @@ export class ProductivityInsights {
       avg_change_size: ft.avg_change_size,
       rollback_rate: ft.rollbacks / ft.change_count,
       sessions_worked: ft.sessions_worked,
-      productivity_score: ft.change_count * (1 - (ft.rollbacks / ft.change_count))
+      productivity_score: ft.change_count * (1 - ft.rollbacks / ft.change_count)
     }));
 
     scoredTypes.sort((a, b) => b.productivity_score - a.productivity_score);
@@ -225,9 +228,13 @@ export class ProductivityInsights {
     const dailyStats = stmt.all(this.projectName, days);
 
     const focusMetrics = dailyStats.map(d => {
-      const focusScore = d.total_changes / (d.files_touched || 1); // Higher = more focused
-      const sessionEfficiency = d.total_changes / (d.sessions || 1);
-      const rollbackRate = d.rollbacks / d.total_changes;
+      // Calculate focus score: changes per file (higher = more focused on fewer files)
+      const focusScore =
+        d.files_touched && d.files_touched > 0 ? d.total_changes / d.files_touched : null;
+      // Calculate session efficiency: changes per session
+      const sessionEfficiency = d.sessions && d.sessions > 0 ? d.total_changes / d.sessions : null;
+      const rollbackRate =
+        d.total_changes && d.total_changes > 0 ? d.rollbacks / d.total_changes : 0;
 
       return {
         date: d.date,
@@ -237,20 +244,32 @@ export class ProductivityInsights {
         focus_score: focusScore,
         session_efficiency: sessionEfficiency,
         rollback_rate: rollbackRate,
-        quality_score: focusScore * (1 - rollbackRate)
+        quality_score: focusScore !== null ? focusScore * (1 - rollbackRate) : null
       };
     });
 
     // Find patterns
-    const avgFocusScore = focusMetrics.reduce((sum, m) => sum + m.focus_score, 0) / focusMetrics.length;
-    const highFocusDays = focusMetrics.filter(m => m.focus_score > avgFocusScore * 1.2);
+    const validFocusMetrics = focusMetrics.filter(m => m.focus_score !== null);
+    const avgFocusScore =
+      validFocusMetrics.length > 0
+        ? validFocusMetrics.reduce((sum, m) => sum + m.focus_score, 0) / validFocusMetrics.length
+        : 0;
+    const highFocusDays = focusMetrics.filter(
+      m => m.focus_score !== null && m.focus_score > avgFocusScore * 1.2
+    );
 
     return {
       avg_focus_score: avgFocusScore,
-      avg_files_per_day: focusMetrics.reduce((sum, m) => sum + m.files_touched, 0) / focusMetrics.length,
+      avg_files_per_day:
+        focusMetrics.length > 0
+          ? focusMetrics.reduce((sum, m) => sum + m.files_touched, 0) / focusMetrics.length
+          : 0,
       high_focus_days: highFocusDays.length,
       focus_trend: focusMetrics,
-      recommendation: avgFocusScore < 3 ? 'Consider focusing on fewer files per session' : 'Good focus maintained'
+      recommendation:
+        avgFocusScore > 0 && avgFocusScore < 3
+          ? 'Consider focusing on fewer files per session'
+          : 'Good focus maintained'
     };
   }
 
@@ -275,7 +294,7 @@ export class ProductivityInsights {
 
     const dailyTrends = stmt.all(this.projectName, days);
 
-    if (dailyTrends.length < 7) {
+    if (dailyTrends.length < 14) {
       return { trend: 'insufficient_data', data: dailyTrends };
     }
 
@@ -283,11 +302,20 @@ export class ProductivityInsights {
     const recent = dailyTrends.slice(-7);
     const previous = dailyTrends.slice(-14, -7);
 
-    const recentAvg = recent.reduce((sum, d) => sum + d.changes, 0) / recent.length;
-    const previousAvg = previous.reduce((sum, d) => sum + d.changes, 0) / (previous.length || 1);
+    // Ensure we have valid data for both periods
+    if (recent.length === 0 || previous.length === 0) {
+      return { trend: 'insufficient_data', data: dailyTrends };
+    }
 
-    const trendDirection = recentAvg > previousAvg * 1.1 ? 'improving' :
-                          recentAvg < previousAvg * 0.9 ? 'declining' : 'stable';
+    const recentAvg = recent.reduce((sum, d) => sum + d.changes, 0) / recent.length;
+    const previousAvg = previous.reduce((sum, d) => sum + d.changes, 0) / previous.length;
+
+    const trendDirection =
+      recentAvg > previousAvg * 1.1
+        ? 'improving'
+        : recentAvg < previousAvg * 0.9
+          ? 'declining'
+          : 'stable';
 
     const trendStrength = Math.abs((recentAvg - previousAvg) / previousAvg);
 
@@ -342,7 +370,8 @@ export class ProductivityInsights {
       recommendations.push({
         category: 'focus',
         priority: 'high',
-        message: 'You\'re spreading attention across many files. Try focusing on 2-3 files per session.',
+        message:
+          "You're spreading attention across many files. Try focusing on 2-3 files per session.",
         data: { current_focus: insights.focus_metrics.avg_focus_score }
       });
     }
@@ -359,7 +388,7 @@ export class ProductivityInsights {
       recommendations.push({
         category: 'trends',
         priority: 'info',
-        message: '🚀 Productivity is trending up! Keep up the great work!',
+        message: 'Productivity is trending up! Keep up the great work!',
         data: { trend: 'improving', strength: insights.productivity_trends.trend_strength }
       });
     }
