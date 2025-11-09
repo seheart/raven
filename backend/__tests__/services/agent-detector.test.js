@@ -15,7 +15,8 @@ jest.unstable_mockModule('child_process', () => ({
 }));
 
 jest.unstable_mockModule('fs', () => ({
-  existsSync: mockExistsSync
+  existsSync: mockExistsSync,
+  readFileSync: jest.fn()
 }));
 
 // Now import the service (after mocks are set up)
