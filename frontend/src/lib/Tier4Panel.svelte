@@ -410,7 +410,7 @@
             {#if healthScore.recommendations}
               <div class="recommendations">
                 <h4>Recommendations</h4>
-                {#each JSON.parse(healthScore.recommendations) as rec (rec.message)}
+                {#each healthScore.recommendations as rec (rec.message)}
                   <div class="recommendation-item {rec.severity}">
                     <span class="rec-icon"
                       >{rec.severity === 'high'
@@ -477,7 +477,7 @@
         </div>
 
         {#if productivityInsights}
-          {@const insights = JSON.parse(productivityInsights.insights)}
+          {@const insights = productivityInsights.insights}
           <div class="productivity-grid">
             {#if insights.peak_hours}
               <div class="insight-card">
@@ -547,7 +547,7 @@
         </div>
 
         {#if personalityProfile}
-          {@const insights = JSON.parse(personalityProfile.insights)}
+          {@const insights = personalityProfile.insights}
           <div class="personality-card">
             <div class="personality-type">
               <h4>{insights.overall_profile.type}</h4>
