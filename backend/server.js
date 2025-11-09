@@ -76,6 +76,7 @@ import { createUtilityRoutes } from './routes/utility.js';
 import { createCorvusV2Routes } from './routes/corvus-v2.js';
 import { createCorvusV2Tier2Routes } from './routes/corvus-v2-tier2.js';
 import { createCorvusV2Tier3Routes } from './routes/corvus-v2-tier3.js';
+import { createCorvusV2Tier4Routes } from './routes/corvus-v2-tier4.js';
 
 // Monitoring services
 import { createRiskAnalyzer } from './services/risk-analyzer.js';
@@ -1105,6 +1106,9 @@ app.use('/api', createCorvusV2Tier2Routes({ projectDatabases }));
 
 // Corvus v2.0.1 Tier 3 routes (project memory, cross-agent intelligence)
 app.use('/api', createCorvusV2Tier3Routes({ projectDatabases }));
+
+// Corvus v2.0.1 Tier 4 routes (health scoring, drift detection, productivity insights, personality analysis, growth tracking, integrations)
+app.use('/api', createCorvusV2Tier4Routes({ projectDatabases }));
 
 // Snapshots routes (get snapshots, restore file)
 app.use('/api', createSnapshotsRoutes({ projectState }));

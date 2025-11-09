@@ -13,6 +13,14 @@ import { SessionIntelligence } from './services/session-intelligence.js';
 import { PatternMatcher } from './services/pattern-matcher.js';
 import { ProjectMemory } from './services/project-memory.js';
 import { CrossAgentIntelligence } from './services/cross-agent-intelligence.js';
+import { HealthScoring } from './services/health-scoring.js';
+import { DriftDetection } from './services/drift-detection.js';
+import { ProductivityInsights } from './services/productivity-insights.js';
+import { ClaudePersonalityAnalyzer } from './services/claude-personality-analyzer.js';
+import { GrowthTracker } from './services/growth-tracker.js';
+import { GitHubIntegration } from './services/integrations/github-integration.js';
+import { DiscordIntegration } from './services/integrations/discord-integration.js';
+import { SlackIntegration } from './services/integrations/slack-integration.js';
 
 /**
  * @typedef {Object} EventRecord
@@ -101,6 +109,25 @@ export class RavenDB {
     // Initialize Corvus v2.0.1 Tier 3 services (Features 10-11)
     this.projectMemory = new ProjectMemory(this);
     this.crossAgentIntelligence = new CrossAgentIntelligence(this);
+
+    // Initialize Corvus v2.0.1 Tier 4 services
+    this.healthScoring = new HealthScoring(this);
+    this.driftDetection = new DriftDetection(this);
+    this.productivityInsights = new ProductivityInsights(this);
+    this.claudePersonalityAnalyzer = new ClaudePersonalityAnalyzer(this);
+    this.growthTracker = new GrowthTracker(this);
+
+    // Initialize Tier 4 integrations
+    this.githubIntegration = new GitHubIntegration(this);
+    this.discordIntegration = new DiscordIntegration(this);
+    this.slackIntegration = new SlackIntegration(this);
+
+    // Initialize integrations asynchronously
+    Promise.all([
+      this.githubIntegration.initialize().catch(() => {}),
+      this.discordIntegration.initialize().catch(() => {}),
+      this.slackIntegration.initialize().catch(() => {})
+    ]);
 
     logger.info('Database initialized', { dbPath });
   }
@@ -407,6 +434,142 @@ export class RavenDB {
         metadata TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(project_name, snapshot_date)
+      )
+    `);
+
+    // Health scores table (Tier 4: Health Scoring)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS health_scores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        score_date TEXT NOT NULL,
+        overall_score INTEGER NOT NULL,
+        code_quality_score INTEGER,
+        test_coverage_score INTEGER,
+        documentation_score INTEGER,
+        velocity_score INTEGER,
+        stability_score INTEGER,
+        security_score INTEGER,
+        metrics TEXT,
+        recommendations TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(project_name, score_date)
+      )
+    `);
+
+    // Drift events table (Tier 4: Drift Detection)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS drift_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        drift_type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        description TEXT NOT NULL,
+        baseline_value REAL,
+        current_value REAL,
+        deviation_percent REAL,
+        affected_files TEXT,
+        detected_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        resolved_at TEXT,
+        metadata TEXT
+      )
+    `);
+
+    // Productivity metrics table (Tier 4: Productivity Insights)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS productivity_metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        metric_date TEXT NOT NULL,
+        session_id TEXT,
+        lines_per_hour REAL,
+        commits_per_day INTEGER,
+        focus_time_minutes INTEGER,
+        interruptions_count INTEGER,
+        peak_productivity_hour INTEGER,
+        code_quality_trend TEXT,
+        best_file_types TEXT,
+        optimal_session_length INTEGER,
+        metadata TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Claude personality insights table (Tier 4: Claude Personality Deep Analysis)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS claude_personality_insights (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        analysis_date TEXT NOT NULL,
+        agent TEXT NOT NULL,
+        communication_style TEXT,
+        decision_making_pattern TEXT,
+        risk_tolerance TEXT,
+        creativity_score INTEGER,
+        thoroughness_score INTEGER,
+        speed_score INTEGER,
+        collaboration_score INTEGER,
+        preferred_tasks TEXT,
+        strengths TEXT,
+        weaknesses TEXT,
+        personality_traits TEXT,
+        metadata TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(project_name, agent, analysis_date)
+      )
+    `);
+
+    // Growth snapshots table (Tier 4: Growth Tracking & Charts)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS growth_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        snapshot_date TEXT NOT NULL,
+        week_number INTEGER,
+        month_number INTEGER,
+        total_commits INTEGER,
+        total_lines_added INTEGER,
+        total_lines_deleted INTEGER,
+        files_created INTEGER,
+        bugs_fixed INTEGER,
+        features_completed INTEGER,
+        avg_session_duration INTEGER,
+        skill_improvements TEXT,
+        milestones TEXT,
+        metadata TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(project_name, snapshot_date)
+      )
+    `);
+
+    // Integration configs table (Tier 4: Integrations)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS integration_configs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        integration_type TEXT NOT NULL,
+        enabled INTEGER DEFAULT 1,
+        config TEXT NOT NULL,
+        webhook_url TEXT,
+        api_key TEXT,
+        last_sync TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(project_name, integration_type)
+      )
+    `);
+
+    // Integration events table (Tier 4: Integrations)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS integration_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        integration_type TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        event_data TEXT,
+        status TEXT,
+        error_message TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
