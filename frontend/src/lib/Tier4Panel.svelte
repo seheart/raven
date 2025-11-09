@@ -262,13 +262,19 @@
     };
     return colors[severity] || colors.info;
   }
+
+  function refreshCurrentTab() {
+    // Remove current tab from loaded set to force reload
+    loadedTabs.delete(activeTab);
+    loadTabData(activeTab);
+  }
 </script>
 
 <div class="tier4-panel">
   <div class="panel-header">
     <h2>🚀 Tier 4 Advanced Features</h2>
-    <button class="refresh-button" on:click={loadTier4Data} disabled={loading}>
-      {loading ? 'Loading...' : 'Refresh All'}
+    <button class="refresh-button" on:click={refreshCurrentTab} disabled={loading}>
+      {loading ? 'Loading...' : 'Refresh Tab'}
     </button>
   </div>
 
