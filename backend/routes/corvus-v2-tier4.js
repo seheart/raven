@@ -452,6 +452,27 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
     }
   });
 
+  // Alias for frontend compatibility
+  router.post('/integrations/github/config', async (req, res) => {
+    try {
+      const { project } = req.query;
+      const { token, owner, repo, apiUrl } = req.body;
+      const projectDb = getProjectDb(project || 'raven');
+
+      const result = await projectDb.githubIntegration.configure({
+        token,
+        owner,
+        repo,
+        apiUrl
+      });
+
+      res.json({ success: result.success, message: result.message, project });
+    } catch (error) {
+      logger.error('Failed to configure GitHub integration', { error: error.message });
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   /**
    * Test GitHub connection
    */
