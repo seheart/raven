@@ -445,7 +445,7 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
         apiUrl
       });
 
-      res.json({ result, project });
+      res.json({ success: result.success });
     } catch (error) {
       logger.error('Failed to configure GitHub integration', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -516,9 +516,9 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
       const { project } = req.query;
       const projectDb = getProjectDb(project || 'raven');
 
-      const result = await projectDb.githubIntegration.disable();
+      await projectDb.githubIntegration.disable();
 
-      res.json({ result, project });
+      res.json({ success: true });
     } catch (error) {
       logger.error('Failed to disable GitHub integration', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -536,7 +536,7 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
 
       const events = projectDb.githubIntegration.getRecentEvents(validHours);
 
-      res.json({ events, project });
+      res.json(events);
     } catch (error) {
       logger.error('Failed to get GitHub events', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -560,7 +560,7 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
         avatarUrl
       });
 
-      res.json({ result, project });
+      res.json({ success: result.success });
     } catch (error) {
       logger.error('Failed to configure Discord integration', { error: error.message });
       res.status(500).json({ error: error.message });
@@ -675,7 +675,7 @@ export function createCorvusV2Tier4Routes({ projectDatabases }) {
         iconEmoji
       });
 
-      res.json({ result, project });
+      res.json({ success: result.success });
     } catch (error) {
       logger.error('Failed to configure Slack integration', { error: error.message });
       res.status(500).json({ error: error.message });
