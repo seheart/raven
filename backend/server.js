@@ -1114,6 +1114,178 @@ app.use('/api', createUtilityRoutes({ projectState, app }));
 // API Documentation (Phase 5A)
 app.use('/api-docs', createApiDocsRoutes());
 
+// ==================== Anomaly Detection API ====================
+
+// Get recent anomalies
+app.get('/api/anomalies/recent', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const limit = parseInt(req.query.limit) || 20;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        id,
+        timestamp,
+        filepath,
+        change_type,
+        event_size,
+        anomaly_score,
+        anomaly_confidence,
+        anomaly_reasons,
+        risk_level,
+        agent,
+        agent_confidence
+      FROM events
+      WHERE is_anomaly = 1
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+
+    const anomalies = stmt.all(limit).map(a => ({
+      ...a,
+      anomaly_reasons: a.anomaly_reasons ? JSON.parse(a.anomaly_reasons) : []
+    }));
+
+    res.json({
+      anomalies,
+      count: anomalies.length,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Recent anomalies error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get anomaly statistics
+app.get('/api/anomalies/stats', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        COUNT(*) as total_anomalies,
+        AVG(anomaly_score) as avg_score,
+        SUM(CASE WHEN risk_level = 'high' THEN 1 ELSE 0 END) as high_risk,
+        SUM(CASE WHEN risk_level = 'medium' THEN 1 ELSE 0 END) as medium_risk,
+        SUM(CASE WHEN risk_level = 'low' THEN 1 ELSE 0 END) as low_risk,
+        MAX(timestamp) as last_anomaly
+      FROM events
+      WHERE is_anomaly = 1
+    `);
+
+    const stats = stmt.get();
+
+    res.json({
+      ...stats,
+      avg_score: Math.round(stats.avg_score || 0),
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Anomaly stats error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get anomalies by risk level
+app.get('/api/anomalies/by-risk', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const riskLevel = req.query.risk || 'high';
+    const limit = parseInt(req.query.limit) || 20;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        id,
+        timestamp,
+        filepath,
+        change_type,
+        event_size,
+        anomaly_score,
+        anomaly_confidence,
+        anomaly_reasons,
+        risk_level
+      FROM events
+      WHERE is_anomaly = 1 AND risk_level = ?
+      ORDER BY anomaly_score DESC, timestamp DESC
+      LIMIT ?
+    `);
+
+    const anomalies = stmt.all(riskLevel, limit).map(a => ({
+      ...a,
+      anomaly_reasons: a.anomaly_reasons ? JSON.parse(a.anomaly_reasons) : []
+    }));
+
+    res.json({
+      anomalies,
+      count: anomalies.length,
+      riskLevel,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Anomalies by risk error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get anomaly timeline
+app.get('/api/anomalies/timeline', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const hours = parseInt(req.query.hours) || 24;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
+        COUNT(*) as count,
+        AVG(anomaly_score) as avg_score,
+        SUM(CASE WHEN risk_level = 'high' THEN 1 ELSE 0 END) as high_risk_count,
+        SUM(CASE WHEN risk_level = 'medium' THEN 1 ELSE 0 END) as medium_risk_count,
+        SUM(CASE WHEN risk_level = 'low' THEN 1 ELSE 0 END) as low_risk_count
+      FROM events
+      WHERE is_anomaly = 1 AND timestamp >= ?
+      GROUP BY hour
+      ORDER BY hour ASC
+    `);
+
+    const timeline = stmt.all(cutoff).map(t => ({
+      ...t,
+      avg_score: Math.round(t.avg_score || 0)
+    }));
+
+    res.json({
+      timeline,
+      hours,
+      project: projectName
+    });
+  } catch (error) {
+    logger.error('❌ Anomaly timeline error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Test helper route for rate limit headers (only in test env)
 if (process.env.NODE_ENV === 'test') {
   app.get('/api/test', (req, res) => res.json({ ok: true }));

@@ -16,6 +16,7 @@ import * as si from 'systeminformation';
 import { logger } from '../utils/logger.js';
 import { LIMITS } from '../config/constants.js';
 import { detectProjectFromPath } from '../utils/project-utils.js';
+import { AnomalyDetector } from './anomaly-detector.js';
 import {
   isBinaryFile,
   checkFileExists,
@@ -67,6 +68,36 @@ export class FileChangeHandler {
     this.sessionTracker = options.sessionTracker;
     this.addToFileCache = options.addToFileCache;
     this.emitGitStatusUpdate = options.emitGitStatusUpdate;
+
+    // Initialize anomaly detectors for each project
+    this.anomalyDetectors = new Map();
+    this.initializeAnomalyDetectors();
+  }
+
+  /**
+   * Initialize anomaly detectors for all projects
+   */
+  initializeAnomalyDetectors() {
+    for (const [projectName, db] of this.projectDatabases.entries()) {
+      try {
+        const detector = new AnomalyDetector(db);
+        detector.startPeriodicUpdates();
+        this.anomalyDetectors.set(projectName, detector);
+        logger.info(`Anomaly detector initialized for project: ${projectName}`);
+      } catch (error) {
+        logger.error(`Failed to initialize anomaly detector for ${projectName}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Cleanup anomaly detectors
+   */
+  cleanup() {
+    for (const detector of this.anomalyDetectors.values()) {
+      detector.stopPeriodicUpdates();
+    }
+    this.anomalyDetectors.clear();
   }
 
   /**
@@ -207,8 +238,35 @@ export class FileChangeHandler {
         eventData.eventSize
       );
 
+      // Update with anomaly data if present
+      if (eventData.anomaly && eventId) {
+        const stmt = db.prepareStatement(`
+          UPDATE events
+          SET is_anomaly = ?,
+              anomaly_score = ?,
+              anomaly_confidence = ?,
+              anomaly_reasons = ?,
+              risk_level = ?,
+              agent = ?,
+              agent_confidence = ?
+          WHERE id = ?
+        `);
+
+        stmt.run(
+          eventData.anomaly.isAnomaly ? 1 : 0,
+          eventData.anomaly.score || null,
+          eventData.anomaly.confidence || null,
+          eventData.anomaly.reasons ? JSON.stringify(eventData.anomaly.reasons) : null,
+          eventData.anomaly.riskLevel || null,
+          eventData.agent || null,
+          eventData.agentConfidence || null,
+          eventId
+        );
+      }
+
+      const anomalyFlag = eventData.anomaly?.isAnomaly ? ' ⚠️  ANOMALY' : '';
       logger.info(
-        `📁 [${eventData.projectName}] File ${eventData.eventType}: ${eventData.relPath} (${eventData.eventSize} bytes)`
+        `📁 [${eventData.projectName}] File ${eventData.eventType}: ${eventData.relPath} (${eventData.eventSize} bytes)${anomalyFlag}`
       );
 
       return { success: true, eventId };
@@ -423,6 +481,42 @@ export class FileChangeHandler {
       // Collect system metrics
       const { cpuPercent, memPercent } = await this.collectSystemMetrics();
 
+      // Run anomaly detection
+      let anomalyResult = null;
+      const detector = this.anomalyDetectors.get(projectName);
+      if (detector) {
+        try {
+          anomalyResult = detector.analyzeEvent({
+            filepath: relPath,
+            change_type: eventType,
+            event_size: eventSize,
+            diff
+          });
+
+          if (anomalyResult.isAnomaly) {
+            logger.warn(`🚨 Anomaly detected [${projectName}]`, {
+              file: relPath,
+              score: anomalyResult.score,
+              riskLevel: anomalyResult.riskLevel,
+              reasons: anomalyResult.reasons.map(r => r.message)
+            });
+
+            // Emit anomaly notification via WebSocket
+            this.io.emit('anomaly-detected', {
+              project: projectName,
+              filepath: relPath,
+              timestamp,
+              score: anomalyResult.score,
+              confidence: anomalyResult.confidence,
+              riskLevel: anomalyResult.riskLevel,
+              reasons: anomalyResult.reasons
+            });
+          }
+        } catch (anomalyError) {
+          logger.error(`Anomaly detection failed for ${relPath}:`, anomalyError);
+        }
+      }
+
       // Insert into database
       const eventData = {
         timestamp,
@@ -433,7 +527,10 @@ export class FileChangeHandler {
         memPercent,
         fileHash,
         eventSize,
-        projectName
+        projectName,
+        anomaly: anomalyResult,
+        agent: null, // Will be populated by agent detector (Feature 2)
+        agentConfidence: null
       };
 
       const { success, eventId } = await this.insertEventToDatabase(db, eventData);

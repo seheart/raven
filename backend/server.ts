@@ -29,13 +29,7 @@ import { patternDetector } from './pattern-detector.js';
 import { pauseManager } from './pause-manager.js';
 import { getTestRunner } from './test-runner.js';
 import type { TestResult } from './test-runner.js';
-import {
-  EventBus,
-  FileWatcher,
-  GitMonitor,
-  getDiff,
-  getDiffStats
-} from './modules/index.js';
+import { EventBus, FileWatcher, GitMonitor, getDiff, getDiffStats } from './modules/index.js';
 import type { FileEvent, GitStatusEvent, TelemetryEvent, AgentEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
 
@@ -91,7 +85,7 @@ const generalLimiter = rateLimit({
   max: 100, // Limit each IP to 100 requests per windowMs
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  legacyHeaders: false // Disable the `X-RateLimit-*` headers
 });
 
 const strictLimiter = rateLimit({
@@ -99,7 +93,7 @@ const strictLimiter = rateLimit({
   max: 10, // Limit each IP to 10 requests per windowMs for expensive operations
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: false
 });
 
 // Apply general rate limiter to all API routes
@@ -282,7 +276,9 @@ EventBus.onFileEvent(async (event: FileEvent) => {
           );
 
           if (match.pattern.severity === 'critical') {
-            logger.warn(`🚨 Critical pattern in ${event.path}:${match.line}: ${match.pattern.name}`);
+            logger.warn(
+              `🚨 Critical pattern in ${event.path}:${match.line}: ${match.pattern.name}`
+            );
           }
         }
 
@@ -330,7 +326,7 @@ EventBus.onGitStatus((status: GitStatusEvent) => {
 /**
  * Handle trigger fired events
  */
-EventBus.onTriggerFired((trigger) => {
+EventBus.onTriggerFired(trigger => {
   logger.info(`🔔 Trigger fired: ${trigger.ruleName} - ${trigger.message}`);
 });
 
@@ -586,8 +582,8 @@ app.get('/api/metrics-stats', (req: Request, res: Response) => {
   try {
     const now = Date.now();
     const dayAgo = now - 24 * 60 * 60 * 1000;
-    const start_time = req.query.start_time as string || new Date(dayAgo).toISOString();
-    const end_time = req.query.end_time as string || new Date(now).toISOString();
+    const start_time = (req.query.start_time as string) || new Date(dayAgo).toISOString();
+    const end_time = (req.query.end_time as string) || new Date(now).toISOString();
     const stats = db.getMetricsStats(start_time, end_time);
     res.json(stats);
   } catch (error: any) {
@@ -771,7 +767,9 @@ app.post('/telemetry', (req: Request, res: Response) => {
 app.get('/api/health/projects', (req: Request, res: Response) => {
   try {
     // Query all distinct projects from events table
-    const projectsData = db.db.prepare(`
+    const projectsData = db.db
+      .prepare(
+        `
       SELECT
         project_name,
         COUNT(*) as total_events,
@@ -780,16 +778,22 @@ app.get('/api/health/projects', (req: Request, res: Response) => {
       FROM events
       WHERE project_name IS NOT NULL
       GROUP BY project_name
-    `).all() as any[];
+    `
+      )
+      .all() as any[];
 
     // Get error counts by project
-    const errorsByProject = db.db.prepare(`
+    const errorsByProject = db.db
+      .prepare(
+        `
       SELECT
         project_name,
         COUNT(*) as error_count
       FROM error_logs
       GROUP BY project_name
-    `).all() as any[];
+    `
+      )
+      .all() as any[];
 
     const errorMap = new Map(errorsByProject.map((e: any) => [e.project_name, e.error_count]));
 
@@ -806,7 +810,8 @@ app.get('/api/health/projects', (req: Request, res: Response) => {
       // Determine status based on last activity
       let status = 'inactive';
       if (proj.last_activity) {
-        const lastActivityHours = (Date.now() - new Date(proj.last_activity).getTime()) / (1000 * 60 * 60);
+        const lastActivityHours =
+          (Date.now() - new Date(proj.last_activity).getTime()) / (1000 * 60 * 60);
         if (lastActivityHours < 1) status = 'active';
         else if (lastActivityHours < 24) status = 'recent';
         else if (lastActivityHours < 168) status = 'idle';
@@ -854,19 +859,25 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
     const threshold = parseFloat(req.query.threshold as string) || 2.0;
 
     const now = Date.now();
-    const lookbackTime = new Date(now - (lookbackHours * 60 * 60 * 1000)).toISOString();
+    const lookbackTime = new Date(now - lookbackHours * 60 * 60 * 1000).toISOString();
 
     // Calculate baseline metrics
-    const baseline = db.db.prepare(`
+    const baseline = db.db
+      .prepare(
+        `
       SELECT
         COUNT(*) as total_events,
         COUNT(*) / ? as avg_per_hour
       FROM events
       WHERE timestamp >= ?
-    `).get(lookbackHours, lookbackTime) as any;
+    `
+      )
+      .get(lookbackHours, lookbackTime) as any;
 
     // Detect spikes - hourly event counts
-    const hourlyEvents = db.db.prepare(`
+    const hourlyEvents = db.db
+      .prepare(
+        `
       SELECT
         strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
         COUNT(*) as count
@@ -874,26 +885,30 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
       WHERE timestamp >= ?
       GROUP BY hour
       ORDER BY hour DESC
-    `).all(lookbackTime) as any[];
+    `
+      )
+      .all(lookbackTime) as any[];
 
     const counts = hourlyEvents.map((h: any) => h.count);
     const avgCount = counts.reduce((a: number, b: number) => a + b, 0) / counts.length || 1;
-    const stdDev = Math.sqrt(counts.reduce((sum: number, c: number) => sum + Math.pow(c - avgCount, 2), 0) / counts.length);
+    const stdDev = Math.sqrt(
+      counts.reduce((sum: number, c: number) => sum + Math.pow(c - avgCount, 2), 0) / counts.length
+    );
 
     const anomalies: any[] = [];
 
     // Detect event spikes
     hourlyEvents.forEach((hour: any) => {
-      if (hour.count > avgCount + (threshold * stdDev)) {
+      if (hour.count > avgCount + threshold * stdDev) {
         anomalies.push({
           timestamp: hour.hour,
           type: 'event_spike',
           severity: 'warning',
-          message: `Unusually high activity: ${hour.count} events (${Math.round((hour.count - avgCount) / stdDev * 100) / 100}σ above normal)`,
+          message: `Unusually high activity: ${hour.count} events (${Math.round(((hour.count - avgCount) / stdDev) * 100) / 100}σ above normal)`,
           details: {
             event_count: hour.count,
             baseline: Math.round(avgCount),
-            std_deviations: Math.round((hour.count - avgCount) / stdDev * 100) / 100
+            std_deviations: Math.round(((hour.count - avgCount) / stdDev) * 100) / 100
           },
           icon: '📈'
         });
@@ -901,7 +916,9 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
     });
 
     // Detect excessive deletions
-    const deletions = db.db.prepare(`
+    const deletions = db.db
+      .prepare(
+        `
       SELECT
         COUNT(*) as count,
         strftime('%Y-%m-%d %H:00:00', timestamp) as hour
@@ -910,7 +927,9 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
       GROUP BY hour
       HAVING count > 5
       ORDER BY hour DESC
-    `).all(lookbackTime) as any[];
+    `
+      )
+      .all(lookbackTime) as any[];
 
     deletions.forEach((del: any) => {
       anomalies.push({
@@ -924,7 +943,9 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
     });
 
     // Detect hot files (many rapid changes)
-    const hotFiles = db.db.prepare(`
+    const hotFiles = db.db
+      .prepare(
+        `
       SELECT
         filepath,
         COUNT(*) as count,
@@ -935,7 +956,9 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
       HAVING count > 10
       ORDER BY count DESC
       LIMIT 5
-    `).all() as any[];
+    `
+      )
+      .all() as any[];
 
     hotFiles.forEach((file: any) => {
       anomalies.push({
@@ -967,6 +990,173 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
   }
 });
 
+// New anomaly detection endpoints using AnomalyDetector service
+app.get('/api/anomalies/recent', (req: Request, res: Response) => {
+  try {
+    const projectName = (req.query.project as string) || projectManager.activeProject;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const db = projectManager.getProjectDatabase(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        id,
+        timestamp,
+        filepath,
+        change_type,
+        event_size,
+        anomaly_score,
+        anomaly_confidence,
+        anomaly_reasons,
+        risk_level,
+        agent,
+        agent_confidence
+      FROM events
+      WHERE is_anomaly = 1
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+
+    const anomalies = stmt.all(limit).map((a: any) => ({
+      ...a,
+      anomaly_reasons: a.anomaly_reasons ? JSON.parse(a.anomaly_reasons) : []
+    }));
+
+    res.json({
+      anomalies,
+      count: anomalies.length,
+      project: projectName
+    });
+  } catch (error: any) {
+    logger.error('❌ Recent anomalies error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/anomalies/stats', (req: Request, res: Response) => {
+  try {
+    const projectName = (req.query.project as string) || projectManager.activeProject;
+
+    const db = projectManager.getProjectDatabase(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        COUNT(*) as total_anomalies,
+        AVG(anomaly_score) as avg_score,
+        SUM(CASE WHEN risk_level = 'high' THEN 1 ELSE 0 END) as high_risk,
+        SUM(CASE WHEN risk_level = 'medium' THEN 1 ELSE 0 END) as medium_risk,
+        SUM(CASE WHEN risk_level = 'low' THEN 1 ELSE 0 END) as low_risk,
+        MAX(timestamp) as last_anomaly
+      FROM events
+      WHERE is_anomaly = 1
+    `);
+
+    const stats = stmt.get();
+
+    res.json({
+      ...stats,
+      avg_score: Math.round((stats as any).avg_score || 0),
+      project: projectName
+    });
+  } catch (error: any) {
+    logger.error('❌ Anomaly stats error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/anomalies/by-risk', (req: Request, res: Response) => {
+  try {
+    const projectName = (req.query.project as string) || projectManager.activeProject;
+    const riskLevel = (req.query.risk as string) || 'high';
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const db = projectManager.getProjectDatabase(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        id,
+        timestamp,
+        filepath,
+        change_type,
+        event_size,
+        anomaly_score,
+        anomaly_confidence,
+        anomaly_reasons,
+        risk_level
+      FROM events
+      WHERE is_anomaly = 1 AND risk_level = ?
+      ORDER BY anomaly_score DESC, timestamp DESC
+      LIMIT ?
+    `);
+
+    const anomalies = stmt.all(riskLevel, limit).map((a: any) => ({
+      ...a,
+      anomaly_reasons: a.anomaly_reasons ? JSON.parse(a.anomaly_reasons) : []
+    }));
+
+    res.json({
+      anomalies,
+      count: anomalies.length,
+      riskLevel,
+      project: projectName
+    });
+  } catch (error: any) {
+    logger.error('❌ Anomalies by risk error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/anomalies/timeline', (req: Request, res: Response) => {
+  try {
+    const projectName = (req.query.project as string) || projectManager.activeProject;
+    const hours = parseInt(req.query.hours as string) || 24;
+
+    const db = projectManager.getProjectDatabase(projectName);
+    if (!db) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
+        COUNT(*) as count,
+        AVG(anomaly_score) as avg_score,
+        SUM(CASE WHEN risk_level = 'high' THEN 1 ELSE 0 END) as high_risk_count,
+        SUM(CASE WHEN risk_level = 'medium' THEN 1 ELSE 0 END) as medium_risk_count,
+        SUM(CASE WHEN risk_level = 'low' THEN 1 ELSE 0 END) as low_risk_count
+      FROM events
+      WHERE is_anomaly = 1 AND timestamp >= ?
+      GROUP BY hour
+      ORDER BY hour ASC
+    `);
+
+    const timeline = stmt.all(cutoff).map((t: any) => ({
+      ...t,
+      avg_score: Math.round(t.avg_score || 0)
+    }));
+
+    res.json({
+      timeline,
+      hours,
+      project: projectName
+    });
+  } catch (error: any) {
+    logger.error('❌ Anomaly timeline error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== Custom Metrics Dashboard API ====================
 
 app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
@@ -975,27 +1165,39 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
     const totalEvents = db.db.prepare(`SELECT COUNT(*) as count FROM events`).get() as any;
 
     // Events by type
-    const eventsByType = db.db.prepare(`
+    const eventsByType = db.db
+      .prepare(
+        `
       SELECT change_type, COUNT(*) as count
       FROM events
       GROUP BY change_type
-    `).all() as any[];
+    `
+      )
+      .all() as any[];
 
     // Events in last 24h
-    const events24h = db.db.prepare(`
+    const events24h = db.db
+      .prepare(
+        `
       SELECT COUNT(*) as count
       FROM events
       WHERE timestamp >= datetime('now', '-24 hours')
-    `).get() as any;
+    `
+      )
+      .get() as any;
 
     // Active projects (check if project_name column exists)
     let activeProjects = { count: 1 };
     try {
-      activeProjects = db.db.prepare(`
+      activeProjects = db.db
+        .prepare(
+          `
         SELECT COUNT(DISTINCT project_name) as count
         FROM events
         WHERE project_name IS NOT NULL
-      `).get() as any;
+      `
+        )
+        .get() as any;
       if (activeProjects.count === 0) activeProjects.count = 1; // Default to 1 if no projects found
     } catch (err) {
       // Column doesn't exist in old databases, default to 1
@@ -1004,27 +1206,39 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
     }
 
     // Total files tracked
-    const totalFiles = db.db.prepare(`
+    const totalFiles = db.db
+      .prepare(
+        `
       SELECT COUNT(DISTINCT filepath) as count
       FROM events
-    `).get() as any;
+    `
+      )
+      .get() as any;
 
     // Most active file
-    const mostActiveFile = db.db.prepare(`
+    const mostActiveFile = db.db
+      .prepare(
+        `
       SELECT filepath, COUNT(*) as count
       FROM events
       GROUP BY filepath
       ORDER BY count DESC
       LIMIT 1
-    `).get() as any;
+    `
+      )
+      .get() as any;
 
     // Error count (table may not exist)
     let errorCount = { count: 0 };
     try {
-      errorCount = db.db.prepare(`
+      errorCount = db.db
+        .prepare(
+          `
         SELECT COUNT(*) as count
         FROM error_logs
-      `).get() as any;
+      `
+        )
+        .get() as any;
     } catch (err) {
       // Table doesn't exist, use default
       errorCount = { count: 0 };
@@ -1033,24 +1247,34 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
     // Conversation count (table may not exist)
     let conversationCount = { count: 0 };
     try {
-      conversationCount = db.db.prepare(`
+      conversationCount = db.db
+        .prepare(
+          `
         SELECT COUNT(*) as count
         FROM conversations
-      `).get() as any;
+      `
+        )
+        .get() as any;
     } catch (err) {
       // Table doesn't exist, use default
       conversationCount = { count: 0 };
     }
 
     // Average events per day (last 7 days)
-    const avgPerDay = db.db.prepare(`
+    const avgPerDay = db.db
+      .prepare(
+        `
       SELECT COUNT(*) / 7.0 as avg
       FROM events
       WHERE timestamp >= datetime('now', '-7 days')
-    `).get() as any;
+    `
+      )
+      .get() as any;
 
     // Busiest hour of day
-    const busiestHour = db.db.prepare(`
+    const busiestHour = db.db
+      .prepare(
+        `
       SELECT
         CAST(strftime('%H', timestamp) AS INTEGER) as hour,
         COUNT(*) as count
@@ -1058,7 +1282,9 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
       GROUP BY hour
       ORDER BY count DESC
       LIMIT 1
-    `).get() as any;
+    `
+      )
+      .get() as any;
 
     res.json({
       total_events: totalEvents.count || 0,
@@ -1147,7 +1373,10 @@ function validateIgnorePatterns(patterns: any): boolean {
 
 // Security: Sanitize project ID
 function sanitizeProjectId(id: string): string {
-  return id.toLowerCase().replace(/[^a-z0-9\-_]/g, '-').substring(0, 50);
+  return id
+    .toLowerCase()
+    .replace(/[^a-z0-9\-_]/g, '-')
+    .substring(0, 50);
 }
 
 // Load projects configuration
@@ -1179,7 +1408,7 @@ app.get('/api/projects', async (req: Request, res: Response) => {
 
     // Get database stats for each project
     const projectsWithStats = await Promise.all(
-      config.projects.map(async (project) => {
+      config.projects.map(async project => {
         const dbPath = join(RAVEN_DIR, 'db', `${project.id}.db`);
         let dbSize = 0;
         let eventCount = 0;
@@ -1191,7 +1420,9 @@ app.get('/api/projects', async (req: Request, res: Response) => {
           // Get event count from database
           const Database = (await import('better-sqlite3')).default;
           const dbConn = new Database(dbPath, { readonly: true });
-          const result = dbConn.prepare('SELECT COUNT(*) as count FROM events').get() as { count: number };
+          const result = dbConn.prepare('SELECT COUNT(*) as count FROM events').get() as {
+            count: number;
+          };
           eventCount = result.count;
           dbConn.close();
         } catch (err) {
@@ -1218,7 +1449,14 @@ app.get('/api/projects', async (req: Request, res: Response) => {
 // POST /api/projects - Add new project
 app.post('/api/projects', async (req: Request, res: Response) => {
   try {
-    const { name, path, enabled = true, ignorePatterns = [], maxFileSize, retentionDays } = req.body;
+    const {
+      name,
+      path,
+      enabled = true,
+      ignorePatterns = [],
+      maxFileSize,
+      retentionDays
+    } = req.body;
 
     // Validate required fields
     if (!name || !path) {
@@ -1227,7 +1465,12 @@ app.post('/api/projects', async (req: Request, res: Response) => {
 
     // Validate project name
     if (!validateProjectName(name)) {
-      return res.status(400).json({ error: 'Invalid project name. Use only alphanumeric characters, spaces, hyphens, and underscores (max 100 chars)' });
+      return res
+        .status(400)
+        .json({
+          error:
+            'Invalid project name. Use only alphanumeric characters, spaces, hyphens, and underscores (max 100 chars)'
+        });
     }
 
     // Validate optional fields
@@ -1236,11 +1479,19 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     }
 
     if (!validateMaxFileSize(maxFileSize)) {
-      return res.status(400).json({ error: `Max file size must be between ${MIN_FILE_SIZE} and ${MAX_FILE_SIZE} bytes` });
+      return res
+        .status(400)
+        .json({
+          error: `Max file size must be between ${MIN_FILE_SIZE} and ${MAX_FILE_SIZE} bytes`
+        });
     }
 
     if (!validateRetentionDays(retentionDays)) {
-      return res.status(400).json({ error: `Retention days must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}` });
+      return res
+        .status(400)
+        .json({
+          error: `Retention days must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}`
+        });
     }
 
     const config = await loadProjectsConfig();
@@ -1329,12 +1580,20 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
           sanitizedUpdates[field] = updates[field];
         } else if (field === 'maxFileSize') {
           if (!validateMaxFileSize(updates[field])) {
-            return res.status(400).json({ error: `Max file size must be between ${MIN_FILE_SIZE} and ${MAX_FILE_SIZE} bytes` });
+            return res
+              .status(400)
+              .json({
+                error: `Max file size must be between ${MIN_FILE_SIZE} and ${MAX_FILE_SIZE} bytes`
+              });
           }
           sanitizedUpdates[field] = Number(updates[field]);
         } else if (field === 'retentionDays') {
           if (!validateRetentionDays(updates[field])) {
-            return res.status(400).json({ error: `Retention days must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}` });
+            return res
+              .status(400)
+              .json({
+                error: `Retention days must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}`
+              });
           }
           sanitizedUpdates[field] = Number(updates[field]);
         }
@@ -1422,7 +1681,10 @@ app.post('/api/projects/discover', strictLimiter, async (req: Request, res: Resp
     // If user provides basePath, validate it
     if (requestedBasePath) {
       // Security: Validate requested path is within or equals config basePath
-      if (!isPathAllowed(requestedBasePath, config.basePath) && requestedBasePath !== config.basePath) {
+      if (
+        !isPathAllowed(requestedBasePath, config.basePath) &&
+        requestedBasePath !== config.basePath
+      ) {
         return res.status(403).json({ error: 'Base path outside allowed directory' });
       }
       basePath = requestedBasePath;
@@ -1450,8 +1712,14 @@ app.post('/api/projects/discover', strictLimiter, async (req: Request, res: Resp
           continue;
         }
 
-        const hasGit = await fs.access(join(projectPath, '.git')).then(() => true).catch(() => false);
-        const hasPackageJson = await fs.access(join(projectPath, 'package.json')).then(() => true).catch(() => false);
+        const hasGit = await fs
+          .access(join(projectPath, '.git'))
+          .then(() => true)
+          .catch(() => false);
+        const hasPackageJson = await fs
+          .access(join(projectPath, 'package.json'))
+          .then(() => true)
+          .catch(() => false);
 
         if (hasGit || hasPackageJson) {
           const id = sanitizeProjectId(entry.name);
@@ -1515,13 +1783,17 @@ app.get('/api/search/global', (req: Request, res: Response) => {
     const searchPattern = `%${query}%`;
 
     // Search file events
-    const fileEvents = db.db.prepare(`
+    const fileEvents = db.db
+      .prepare(
+        `
       SELECT id, timestamp, filepath as title, change_type as description, project_name
       FROM events
       WHERE filepath LIKE ?
       ORDER BY timestamp DESC
       LIMIT ?
-    `).all(searchPattern, limit) as any[];
+    `
+      )
+      .all(searchPattern, limit) as any[];
 
     fileEvents.forEach((e: any) => {
       results.push({
@@ -1536,13 +1808,17 @@ app.get('/api/search/global', (req: Request, res: Response) => {
     });
 
     // Search conversations
-    const conversations = db.db.prepare(`
+    const conversations = db.db
+      .prepare(
+        `
       SELECT id, timestamp, context as title, query as description
       FROM conversations
       WHERE context LIKE ? OR query LIKE ?
       ORDER BY timestamp DESC
       LIMIT ?
-    `).all(searchPattern, searchPattern, limit) as any[];
+    `
+      )
+      .all(searchPattern, searchPattern, limit) as any[];
 
     conversations.forEach((c: any) => {
       results.push({
@@ -1556,13 +1832,17 @@ app.get('/api/search/global', (req: Request, res: Response) => {
     });
 
     // Search errors
-    const errors = db.db.prepare(`
+    const errors = db.db
+      .prepare(
+        `
       SELECT id, timestamp, message as title, severity as description, project_name
       FROM error_logs
       WHERE message LIKE ?
       ORDER BY timestamp DESC
       LIMIT ?
-    `).all(searchPattern, limit) as any[];
+    `
+      )
+      .all(searchPattern, limit) as any[];
 
     errors.forEach((e: any) => {
       results.push({
@@ -1577,13 +1857,17 @@ app.get('/api/search/global', (req: Request, res: Response) => {
     });
 
     // Search notifications
-    const notifications = db.db.prepare(`
+    const notifications = db.db
+      .prepare(
+        `
       SELECT id, timestamp, message as title, severity as description, project_name
       FROM notifications
       WHERE message LIKE ?
       ORDER BY timestamp DESC
       LIMIT ?
-    `).all(searchPattern, limit) as any[];
+    `
+      )
+      .all(searchPattern, limit) as any[];
 
     notifications.forEach((n: any) => {
       results.push({
@@ -1628,7 +1912,7 @@ app.get('/api/trends/historical', (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || 'hourly';
     const days = parseInt(req.query.days as string) || 7;
-    const startTime = new Date(Date.now() - (days * 24 * 60 * 60 * 1000)).toISOString();
+    const startTime = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     let groupBy = '';
     switch (period) {
@@ -1645,7 +1929,9 @@ app.get('/api/trends/historical', (req: Request, res: Response) => {
         groupBy = "strftime('%Y-%m-%d %H:00:00', timestamp)";
     }
 
-    const trends = db.db.prepare(`
+    const trends = db.db
+      .prepare(
+        `
       SELECT
         ${groupBy} as period,
         COUNT(*) as event_count,
@@ -1658,7 +1944,9 @@ app.get('/api/trends/historical', (req: Request, res: Response) => {
       WHERE timestamp >= ?
       GROUP BY period
       ORDER BY period ASC
-    `).all(startTime) as any[];
+    `
+      )
+      .all(startTime) as any[];
 
     res.json({
       trends,
@@ -1684,10 +1972,12 @@ app.get('/api/metrics/performance', async (req: Request, res: Response) => {
     else if (range === '24h') hours = 24;
     else if (range === '7d') hours = 168;
 
-    const startTime = new Date(Date.now() - (hours * 60 * 60 * 1000)).toISOString();
+    const startTime = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
     // Get metrics from database
-    const metrics = db.db.prepare(`
+    const metrics = db.db
+      .prepare(
+        `
       SELECT
         timestamp,
         cpu_percent,
@@ -1697,7 +1987,9 @@ app.get('/api/metrics/performance', async (req: Request, res: Response) => {
       FROM raven_metrics
       WHERE timestamp >= ?
       ORDER BY timestamp ASC
-    `).all(startTime) as any[];
+    `
+      )
+      .all(startTime) as any[];
 
     res.json({
       metrics,
@@ -1848,7 +2140,9 @@ app.post('/api/syntax-errors/:id/resolve', async (req: Request, res: Response) =
 app.get('/api/sessions', async (req: Request, res: Response) => {
   try {
     // Get all sessions with their events
-    const sessions = db.db.prepare(`
+    const sessions = db.db
+      .prepare(
+        `
       SELECT
         session_id,
         MIN(timestamp) as start_time,
@@ -1860,7 +2154,9 @@ app.get('/api/sessions', async (req: Request, res: Response) => {
       GROUP BY session_id
       ORDER BY MAX(timestamp) DESC
       LIMIT 20
-    `).all() as any[];
+    `
+      )
+      .all() as any[];
 
     res.json({ sessions, count: sessions.length });
   } catch (error: any) {
@@ -1875,12 +2171,16 @@ app.get('/api/sessions/:sessionId/preview', async (req: Request, res: Response) 
     const { sessionId } = req.params;
 
     // Get all files modified in this session
-    const files = db.db.prepare(`
+    const files = db.db
+      .prepare(
+        `
       SELECT DISTINCT filepath
       FROM events
       WHERE session_id = ?
       ORDER BY filepath
-    `).all(sessionId) as any[];
+    `
+      )
+      .all(sessionId) as any[];
 
     // For each file, find the snapshot before this session
     const changes = [];
@@ -1899,11 +2199,15 @@ app.get('/api/sessions/:sessionId/preview', async (req: Request, res: Response) 
         .sort((a, b) => b.timestamp - a.timestamp);
 
       // Find session start time
-      const sessionStart = db.db.prepare(`
+      const sessionStart = db.db
+        .prepare(
+          `
         SELECT MIN(timestamp) as start_time
         FROM events
         WHERE session_id = ?
-      `).get(sessionId) as any;
+      `
+        )
+        .get(sessionId) as any;
 
       const sessionStartMs = new Date(sessionStart.start_time).getTime();
 
@@ -1937,7 +2241,7 @@ app.post('/api/sessions/:sessionId/rollback', async (req: Request, res: Response
 
     // Get preview first
     const preview = await fetch(`http://localhost:${PORT}/api/sessions/${sessionId}/preview`);
-    const previewData = await preview.json() as any;
+    const previewData = (await preview.json()) as any;
 
     if (!previewData.canRollback) {
       return res.status(400).json({ error: 'No backups available for this session' });
@@ -2229,7 +2533,9 @@ app.get('/api/storage', async (req: Request, res: Response) => {
         const dbConn = new Database(dbPath, { readonly: true });
 
         // Get record counts for each table
-        const tables = dbConn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[];
+        const tables = dbConn
+          .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+          .all() as { name: string }[];
         let totalRecords = 0;
 
         for (const table of tables) {
@@ -2239,12 +2545,16 @@ app.get('/api/storage', async (req: Request, res: Response) => {
             continue;
           }
 
-          const count = dbConn.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get() as { count: number };
+          const count = dbConn.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get() as {
+            count: number;
+          };
           recordCounts[table.name] = count.count;
           totalRecords += count.count;
 
           // Get table size
-          const sizeQuery = dbConn.prepare('SELECT SUM(pgsize) as size FROM dbstat WHERE name = ?').get(table.name) as { size: number } | undefined;
+          const sizeQuery = dbConn
+            .prepare('SELECT SUM(pgsize) as size FROM dbstat WHERE name = ?')
+            .get(table.name) as { size: number } | undefined;
           tableStats.push({
             name: table.name,
             records: count.count,
@@ -2382,7 +2692,12 @@ app.get('/api/storage/export/:dbname', async (req: Request, res: Response) => {
     const { dbname } = req.params;
 
     // Validate database name to prevent path traversal
-    if (!dbname || dbname.includes('..') || dbname.includes('/') || !dbname.match(/^[a-zA-Z0-9_-]+$/)) {
+    if (
+      !dbname ||
+      dbname.includes('..') ||
+      dbname.includes('/') ||
+      !dbname.match(/^[a-zA-Z0-9_-]+$/)
+    ) {
       return res.status(400).json({ error: 'Invalid database name' });
     }
 
@@ -2395,7 +2710,7 @@ app.get('/api/storage/export/:dbname', async (req: Request, res: Response) => {
     }
 
     // Send the file for download
-    res.download(dbPath, `${dbname}_${Date.now()}.db`, (err) => {
+    res.download(dbPath, `${dbname}_${Date.now()}.db`, err => {
       if (err) {
         logger.error('❌ Error sending database file:', err);
         if (!res.headersSent) {
@@ -2414,7 +2729,12 @@ app.post('/api/storage/vacuum/:dbname', async (req: Request, res: Response) => {
     const { dbname } = req.params;
 
     // Validate database name
-    if (!dbname || dbname.includes('..') || dbname.includes('/') || !dbname.match(/^[a-zA-Z0-9_-]+$/)) {
+    if (
+      !dbname ||
+      dbname.includes('..') ||
+      dbname.includes('/') ||
+      !dbname.match(/^[a-zA-Z0-9_-]+$/)
+    ) {
       return res.status(400).json({ error: 'Invalid database name' });
     }
 
@@ -2462,7 +2782,12 @@ app.post('/api/storage/clean/:dbname', async (req: Request, res: Response) => {
     const { days } = req.body;
 
     // Validate database name
-    if (!dbname || dbname.includes('..') || dbname.includes('/') || !dbname.match(/^[a-zA-Z0-9_-]+$/)) {
+    if (
+      !dbname ||
+      dbname.includes('..') ||
+      dbname.includes('/') ||
+      !dbname.match(/^[a-zA-Z0-9_-]+$/)
+    ) {
       return res.status(400).json({ error: 'Invalid database name' });
     }
 
@@ -2492,7 +2817,9 @@ app.post('/api/storage/clean/:dbname', async (req: Request, res: Response) => {
     const deletedPerTable: Record<string, number> = {};
 
     // Get all tables
-    const tables = dbConn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[];
+    const tables = dbConn
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+      .all() as { name: string }[];
 
     // Delete old records from each table that has a timestamp column
     for (const table of tables) {
@@ -2503,10 +2830,14 @@ app.post('/api/storage/clean/:dbname', async (req: Request, res: Response) => {
       }
 
       const tableInfo = dbConn.prepare(`PRAGMA table_info(${table.name})`).all() as any[];
-      const hasTimestamp = tableInfo.some(col => col.name === 'timestamp' || col.name === 'created_at');
+      const hasTimestamp = tableInfo.some(
+        col => col.name === 'timestamp' || col.name === 'created_at'
+      );
 
       if (hasTimestamp) {
-        const timestampCol = tableInfo.find(col => col.name === 'timestamp' || col.name === 'created_at')!.name;
+        const timestampCol = tableInfo.find(
+          col => col.name === 'timestamp' || col.name === 'created_at'
+        )!.name;
 
         // Validate column name to prevent SQL injection
         if (!isValidTableName(timestampCol)) {
@@ -2599,7 +2930,7 @@ app.post('/api/storage/retention', async (req: Request, res: Response) => {
 
 // ==================== WebSocket ====================
 
-io.on('connection', (socket) => {
+io.on('connection', socket => {
   logger.info('🔌 WebSocket client connected:', socket.id);
 
   socket.on('disconnect', () => {

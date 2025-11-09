@@ -178,7 +178,14 @@ export class RavenDB {
         mem REAL,
         session_id TEXT,
         file_hash TEXT,
-        event_size INTEGER
+        event_size INTEGER,
+        is_anomaly INTEGER DEFAULT 0,
+        anomaly_score INTEGER,
+        anomaly_confidence INTEGER,
+        anomaly_reasons TEXT,
+        risk_level TEXT,
+        agent TEXT,
+        agent_confidence INTEGER
       )
     `);
 
@@ -202,6 +209,45 @@ export class RavenDB {
     // Add project_name column to existing agent_events tables (migration)
     try {
       this.db.exec('ALTER TABLE agent_events ADD COLUMN project_name TEXT');
+    } catch (err) {
+      // Column already exists, ignore
+    }
+
+    // Add anomaly detection columns to existing events tables (migration)
+    try {
+      this.db.exec('ALTER TABLE events ADD COLUMN is_anomaly INTEGER DEFAULT 0');
+    } catch (err) {
+      // Column already exists, ignore
+    }
+    try {
+      this.db.exec('ALTER TABLE events ADD COLUMN anomaly_score INTEGER');
+    } catch (err) {
+      // Column already exists, ignore
+    }
+    try {
+      this.db.exec('ALTER TABLE events ADD COLUMN anomaly_confidence INTEGER');
+    } catch (err) {
+      // Column already exists, ignore
+    }
+    try {
+      this.db.exec('ALTER TABLE events ADD COLUMN anomaly_reasons TEXT');
+    } catch (err) {
+      // Column already exists, ignore
+    }
+    try {
+      this.db.exec('ALTER TABLE events ADD COLUMN risk_level TEXT');
+    } catch (err) {
+      // Column already exists, ignore
+    }
+
+    // Add agent detection columns to existing events tables (migration)
+    try {
+      this.db.exec('ALTER TABLE events ADD COLUMN agent TEXT');
+    } catch (err) {
+      // Column already exists, ignore
+    }
+    try {
+      this.db.exec('ALTER TABLE events ADD COLUMN agent_confidence INTEGER');
     } catch (err) {
       // Column already exists, ignore
     }
@@ -367,6 +413,9 @@ export class RavenDB {
       CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
       CREATE INDEX IF NOT EXISTS idx_events_filepath ON events(filepath);
       CREATE INDEX IF NOT EXISTS idx_events_change_type ON events(change_type);
+      CREATE INDEX IF NOT EXISTS idx_events_is_anomaly ON events(is_anomaly);
+      CREATE INDEX IF NOT EXISTS idx_events_risk_level ON events(risk_level);
+      CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent);
 
       -- Agent events indexes
       CREATE INDEX IF NOT EXISTS idx_agent_events_timestamp ON agent_events(timestamp);
