@@ -63,7 +63,11 @@
       switch (tabId) {
         case 'agents':
           import(/* @vite-preload */ './lib/AgentsPanel.svelte');
+          import(/* @vite-preload */ './lib/AgentMonitoringPanel.svelte');
           import(/* @vite-preload */ './lib/ConversationsPanel.svelte');
+          break;
+        case 'safety':
+          import(/* @vite-preload */ './lib/RiskCorrelationPanel.svelte');
           break;
         case 'activity':
           import(/* @vite-preload */ './lib/LiveCodeFeed.svelte');
@@ -554,7 +558,7 @@
             {/if}
           </div>
         {:else if activeTab === 'safety'}
-          <!-- Safety: Overview + Syntax Errors + Session Rollback + Pattern Warnings + Test Results -->
+          <!-- Safety: Overview + Syntax Errors + Session Rollback + Risk Correlation + Pattern Warnings + Test Results -->
           <div class="tab-content">
             <div class="sub-navigation">
               <button
@@ -580,6 +584,13 @@
               </button>
               <button
                 class="sub-tab"
+                class:active={currentSubView === 'risk'}
+                on:click={() => router.navigate(activeTab, 'risk')}
+              >
+                ⚠️ Risk Correlation
+              </button>
+              <button
+                class="sub-tab"
                 class:active={currentSubView === 'patterns'}
                 on:click={() => router.navigate(activeTab, 'patterns')}
               >
@@ -599,6 +610,12 @@
               <SyntaxErrorPanel />
             {:else if currentSubView === 'rollback'}
               <SessionRollbackPanel />
+            {:else if currentSubView === 'risk'}
+              {#await import('./lib/RiskCorrelationPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
             {:else if currentSubView === 'patterns'}
               <PatternWarningsPanel />
             {:else if currentSubView === 'tests'}
@@ -606,7 +623,7 @@
             {/if}
           </div>
         {:else if activeTab === 'agents'}
-          <!-- Agents: Overview + Agent Stats + Conversations -->
+          <!-- Agents: Overview + Agent Stats + Monitoring + Conversations -->
           <div class="tab-content">
             <div class="sub-navigation">
               <button
@@ -625,6 +642,13 @@
               </button>
               <button
                 class="sub-tab"
+                class:active={currentSubView === 'monitoring'}
+                on:click={() => router.navigate(activeTab, 'monitoring')}
+              >
+                🤖 Monitoring
+              </button>
+              <button
+                class="sub-tab"
                 class:active={currentSubView === 'conversations'}
                 on:click={() => router.navigate(activeTab, 'conversations')}
               >
@@ -635,6 +659,12 @@
               <AgentsOverview />
             {:else if currentSubView === 'stats'}
               {#await import('./lib/AgentsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'monitoring'}
+              {#await import('./lib/AgentMonitoringPanel.svelte') then M}
                 <svelte:component this={M.default} />
               {:catch _}
                 <div style="min-height:200px" role="status">Loading…</div>
@@ -1247,6 +1277,7 @@
     min-height: calc(
       100vh - 70px
     ); /* Fill visible space: viewport - header (38px) - footer (~32px) */
+
     padding-bottom: 32px; /* Space for fixed footer */
     margin-bottom: 0;
   }

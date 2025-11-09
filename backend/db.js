@@ -4,6 +4,9 @@ import { dirname } from 'path';
 import { logger } from './utils/logger.js';
 import { LIMITS } from './config/constants.js';
 import { QueryBuilder, buildPaginatedTimeQuery } from './utils/query-builder.js';
+import { AnomalyDetector } from './services/anomaly-detector.js';
+import { AgentDetector } from './services/agent-detector.js';
+import { RiskCorrelator } from './services/risk-correlator.js';
 
 /**
  * @typedef {Object} EventRecord
@@ -77,6 +80,12 @@ export class RavenDB {
     this.activeStatements = new Set();
 
     this.initializeSchema();
+
+    // Initialize Corvus v2.0.1 services
+    this.anomalyDetector = new AnomalyDetector(this);
+    this.agentDetector = new AgentDetector(this);
+    this.riskCorrelator = new RiskCorrelator(this);
+
     logger.info('Database initialized', { dbPath });
   }
 
@@ -636,9 +645,22 @@ export class RavenDB {
       file_hash = event.file_hash ?? null;
       event_size = event.event_size ?? event.lines_changed ?? 0;
     }
+
+    // Run anomaly detection
+    const anomalyAnalysis = this.anomalyDetector.analyzeEvent({
+      timestamp,
+      filepath,
+      change_type,
+      event_size,
+      diff
+    });
+
     const stmt = this.prepareStatement(`
-      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (
+        timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size,
+        is_anomaly, anomaly_score, anomaly_confidence, anomaly_reasons, risk_level
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -650,7 +672,12 @@ export class RavenDB {
       mem ?? null,
       session_id ?? null,
       file_hash ?? null,
-      event_size ?? 0
+      event_size ?? 0,
+      anomalyAnalysis.isAnomaly ? 1 : 0,
+      anomalyAnalysis.score,
+      anomalyAnalysis.confidence,
+      JSON.stringify(anomalyAnalysis.reasons),
+      anomalyAnalysis.riskLevel
     );
     return result.lastInsertRowid;
   }

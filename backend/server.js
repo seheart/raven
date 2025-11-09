@@ -73,6 +73,7 @@ import { createSearchRoutes } from './routes/search.js';
 import { createChangelogRoutes } from './routes/changelog.js';
 import { createDocumentationRoutes } from './routes/documentation.js';
 import { createUtilityRoutes } from './routes/utility.js';
+import { createCorvusV2Routes } from './routes/corvus-v2.js';
 
 // Monitoring services
 import { createRiskAnalyzer } from './services/risk-analyzer.js';
@@ -1093,6 +1094,9 @@ app.use('/api', createErrorsRoutes({ projectState, projectDatabases }));
 // Rollback routes (services added after initialization)
 rollbackDeps.projectDatabases = projectDatabases;
 app.use('/api', createRollbackRoutes(rollbackDeps));
+
+// Corvus v2.0.1 routes (anomaly detection, agent monitoring, risk correlation)
+app.use('/api', createCorvusV2Routes({ projectDatabases }));
 
 // Snapshots routes (get snapshots, restore file)
 app.use('/api', createSnapshotsRoutes({ projectState }));

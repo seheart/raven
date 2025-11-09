@@ -6,46 +6,34 @@
   import { websocketService } from './websocket.js';
   import { API_CONFIG } from '../config.js';
   import { formatDateTime, getTimeAgo } from './timeFormat.js';
+  import { activeProject } from './projectStore.js';
 
   let anomalies = [];
-  let baseline = {};
+  let stats = null;
   let loading = true;
   let error = null;
-  let lookbackHours = 24;
-  let threshold = 2.0;
+  let limit = 20;
   let lastUpdate = new Date();
-  let filterSeverity = 'all'; // all, critical, warning, info
+  let filterRiskLevel = 'all'; // all, high, medium, low
 
   const API_BASE = API_CONFIG.API_BASE;
 
-  // Optimized: compute filtered anomalies and counts in a single pass
-  $: anomalyStats = (() => {
-    let criticalCount = 0;
-    let warningCount = 0;
-    let infoCount = 0;
-    const filtered = [];
+  // Computed stats with filtering
+  $: filteredAnomalies =
+    filterRiskLevel === 'all' ? anomalies : anomalies.filter(a => a.risk_level === filterRiskLevel);
 
-    for (const a of anomalies) {
-      // Count by severity
-      if (a.severity === 'critical') criticalCount++;
-      else if (a.severity === 'warning') warningCount++;
-      else if (a.severity === 'info') infoCount++;
+  $: highCount = stats?.high_risk || 0;
+  $: mediumCount = stats?.medium_risk || 0;
+  $: lowCount = stats?.low_risk || 0;
+  $: totalCount = stats?.total_anomalies || 0;
+  $: avgScore = stats?.avg_score || 0;
 
-      // Filter for display
-      if (filterSeverity === 'all' || a.severity === filterSeverity) {
-        filtered.push(a);
-      }
-    }
+  // WebSocket event handlers
+  const handleAnomalyDetected = async event => {
+    logger.info('New anomaly detected:', event);
+    await loadAnomalies();
+  };
 
-    return { filtered, criticalCount, warningCount, infoCount };
-  })();
-
-  $: filteredAnomalies = anomalyStats.filtered;
-  $: criticalCount = anomalyStats.criticalCount;
-  $: warningCount = anomalyStats.warningCount;
-  $: infoCount = anomalyStats.infoCount;
-
-  // WebSocket event handlers (event-driven, no polling!)
   const handleFileChanged = async () => {
     await loadAnomalies();
   };
@@ -59,12 +47,13 @@
 
     // Connect to WebSocket for real-time updates
     websocketService.connect();
+    websocketService.on('anomaly-detected', handleAnomalyDetected);
     websocketService.on('file-changed', handleFileChanged);
     websocketService.on('project-switched', handleProjectSwitched);
   });
 
   onDestroy(() => {
-    // Clean up WebSocket listeners
+    websocketService.off('anomaly-detected', handleAnomalyDetected);
     websocketService.off('file-changed', handleFileChanged);
     websocketService.off('project-switched', handleProjectSwitched);
   });
@@ -72,12 +61,22 @@
   async function loadAnomalies() {
     try {
       loading = true;
-      const response = await fetch(`${API_BASE}/anomalies/detect?hours=${lookbackHours}&threshold=${threshold}`);
-      if (!response.ok) throw new Error('Failed to fetch anomalies');
+      const project = $activeProject || 'raven';
 
-      const data = await response.json();
-      anomalies = data.anomalies || [];
-      baseline = data.baseline || {};
+      // Load both stats and recent anomalies
+      const [statsRes, anomaliesRes] = await Promise.all([
+        fetch(`${API_BASE}/anomalies/stats?project=${project}`),
+        fetch(`${API_BASE}/anomalies/recent?project=${project}&limit=${limit}`)
+      ]);
+
+      if (!statsRes.ok || !anomaliesRes.ok) {
+        throw new Error('Failed to fetch anomalies');
+      }
+
+      stats = await statsRes.json();
+      const anomaliesData = await anomaliesRes.json();
+      anomalies = anomaliesData.anomalies || [];
+
       lastUpdate = new Date();
       error = null;
     } catch (err) {
@@ -88,145 +87,180 @@
     }
   }
 
-  function getSeverityIcon(severity) {
-    return {
-      critical: '🔴',
-      warning: '⚠️',
-      info: '🔵'
-    }[severity] || '📊';
+  function getRiskIcon(riskLevel) {
+    return (
+      {
+        high: '🔴',
+        medium: '⚠️',
+        low: '🔵'
+      }[riskLevel] || '📊'
+    );
   }
 
-  function getSeverityClass(severity) {
-    return `severity-${severity}`;
+  function getRiskClass(riskLevel) {
+    return `risk-${riskLevel}`;
   }
 
   function formatTimestamp(timestamp) {
     return formatDateTime(timestamp);
   }
 
-  // Reactive "time since update" - updates when lastUpdate changes (no polling!)
   $: timeSinceUpdate = getTimeAgo(lastUpdate);
 
   function handleExportCSV() {
     const data = anomalies.map(a => ({
       Timestamp: a.timestamp,
-      Type: a.type,
-      Severity: a.severity,
-      Message: a.message
+      File: a.filepath,
+      ChangeType: a.change_type,
+      Score: a.anomaly_score,
+      RiskLevel: a.risk_level,
+      Agent: a.agent || 'unknown',
+      Confidence: a.anomaly_confidence
     }));
-    exportCSV(data, 'anomaly-alerts');
+    exportCSV(data, 'anomalies-v2');
   }
 
   function handleExportJSON() {
     const data = {
-      lookback_hours: lookbackHours,
-      threshold,
-      baseline,
+      stats,
       anomalies,
       exported_at: new Date().toISOString()
     };
-    exportJSON(data, 'anomaly-alerts');
+    exportJSON(data, 'anomalies-v2');
   }
 </script>
 
-<div class="anomaly-alerts-panel" role="region" aria-label="Anomaly detection alerts">
+<div class="anomaly-alerts-panel" role="region" aria-label="Anomaly detection v2">
   <div class="panel-header">
     <div class="header-left">
       <h2 id="anomaly-heading"><span aria-hidden="true">🚨</span> Anomaly Detection</h2>
-      <p class="subtitle">Smart alerts for unusual patterns</p>
+      <p class="subtitle">Statistical analysis • Pattern recognition • Risk scoring</p>
     </div>
     <div class="header-right" role="toolbar" aria-label="Anomaly panel actions">
       <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
-      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export anomalies as CSV">Export CSV</button>
-      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export anomalies as JSON">Export JSON</button>
-      <button class="btn-primary" on:click={loadAnomalies} aria-label="Refresh anomaly detection"><span aria-hidden="true">↻</span> Refresh</button>
+      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export as CSV"
+        >CSV</button
+      >
+      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export as JSON"
+        >JSON</button
+      >
+      <button class="btn-primary" on:click={loadAnomalies} aria-label="Refresh"
+        ><span aria-hidden="true">↻</span> Refresh</button
+      >
     </div>
   </div>
 
-  <div class="controls" role="group" aria-labelledby="anomaly-heading">
+  <div class="controls">
     <div class="control-group">
-      <label for="hours-select">Lookback:</label>
-      <select id="hours-select" bind:value={lookbackHours} on:change={loadAnomalies} aria-label="Select lookback period">
-        <option value="6">6 hours</option>
-        <option value="12">12 hours</option>
-        <option value="24">24 hours</option>
-        <option value="48">48 hours</option>
-        <option value="168">7 days</option>
+      <label for="limit-select">Show:</label>
+      <select id="limit-select" bind:value={limit} on:change={loadAnomalies}>
+        <option value="10">10 anomalies</option>
+        <option value="20">20 anomalies</option>
+        <option value="50">50 anomalies</option>
+        <option value="100">100 anomalies</option>
       </select>
     </div>
     <div class="control-group">
-      <label for="threshold-select">Sensitivity:</label>
-      <select id="threshold-select" bind:value={threshold} on:change={loadAnomalies} aria-label="Select anomaly detection sensitivity">
-        <option value="1.0">High (1σ)</option>
-        <option value="2.0">Medium (2σ)</option>
-        <option value="3.0">Low (3σ)</option>
-      </select>
-    </div>
-    <div class="control-group">
-      <label for="severity-filter">Filter:</label>
-      <select id="severity-filter" bind:value={filterSeverity}>
-        <option value="all">All Severities</option>
-        <option value="critical">Critical Only</option>
-        <option value="warning">Warnings Only</option>
-        <option value="info">Info Only</option>
+      <label for="risk-filter">Filter by risk:</label>
+      <select id="risk-filter" bind:value={filterRiskLevel}>
+        <option value="all">All Levels</option>
+        <option value="high">High Risk Only</option>
+        <option value="medium">Medium Risk Only</option>
+        <option value="low">Low Risk Only</option>
       </select>
     </div>
   </div>
 
-  <div class="stats-row" role="group" aria-label="Anomaly statistics">
-    <div class="stat-badge critical" role="status">
-      <span class="badge-icon" aria-hidden="true">🔴</span>
-      <span class="badge-count">{criticalCount}</span>
-      <span class="badge-label">Critical</span>
+  <div class="stats-row">
+    <div class="stat-badge total">
+      <span class="badge-icon">📊</span>
+      <span class="badge-count">{totalCount}</span>
+      <span class="badge-label">Total</span>
     </div>
-    <div class="stat-badge warning" role="status">
-      <span class="badge-icon" aria-hidden="true">⚠️</span>
-      <span class="badge-count">{warningCount}</span>
-      <span class="badge-label">Warnings</span>
+    <div class="stat-badge high">
+      <span class="badge-icon">🔴</span>
+      <span class="badge-count">{highCount}</span>
+      <span class="badge-label">High Risk</span>
     </div>
-    <div class="stat-badge info" role="status">
-      <span class="badge-icon" aria-hidden="true">🔵</span>
-      <span class="badge-count">{infoCount}</span>
-      <span class="badge-label">Info</span>
+    <div class="stat-badge medium">
+      <span class="badge-icon">⚠️</span>
+      <span class="badge-count">{mediumCount}</span>
+      <span class="badge-label">Medium</span>
     </div>
-    <div class="stat-badge baseline" role="status">
-      <span class="badge-icon" aria-hidden="true">📊</span>
-      <span class="badge-count">{baseline.avg_per_hour || 0}</span>
-      <span class="badge-label">Avg/Hour</span>
+    <div class="stat-badge low">
+      <span class="badge-icon">🔵</span>
+      <span class="badge-count">{lowCount}</span>
+      <span class="badge-label">Low</span>
+    </div>
+    <div class="stat-badge score">
+      <span class="badge-icon">⭐</span>
+      <span class="badge-count">{avgScore}</span>
+      <span class="badge-label">Avg Score</span>
     </div>
   </div>
 
   {#if loading}
-    <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton /></div>
+    <LoadingSkeleton />
   {:else if error}
     <div class="error-state" role="alert">
-      <p>❌ Error loading anomalies: {error}</p>
-      <button on:click={loadAnomalies} aria-label="Retry loading anomalies">Try Again</button>
+      <p>❌ Error: {error}</p>
+      <button on:click={loadAnomalies}>Retry</button>
     </div>
   {:else if filteredAnomalies.length === 0}
-    <div class="empty-state" role="status">
+    <div class="empty-state">
       <p>✅ No anomalies detected</p>
-      <p class="hint">All activity patterns look normal for the selected period</p>
+      <p class="hint">All patterns look normal</p>
     </div>
   {:else}
-    <div class="anomalies-list" role="feed" aria-label="Anomaly alerts">
-      {#each filteredAnomalies as anomaly (anomaly.message)}
-        <article class="anomaly-card {getSeverityClass(anomaly.severity)}">
+    <div class="anomalies-list">
+      {#each filteredAnomalies as anomaly (anomaly.id)}
+        <article class="anomaly-card {getRiskClass(anomaly.risk_level)}">
           <div class="anomaly-header">
-            <span class="anomaly-icon" aria-hidden="true">{getSeverityIcon(anomaly.severity)}</span>
-            <time class="anomaly-timestamp" datetime="{anomaly.timestamp}">{formatTimestamp(anomaly.timestamp)}</time>
-            <span class="anomaly-type">{anomaly.type.replace(/_/g, ' ')}</span>
+            <span class="risk-icon">{getRiskIcon(anomaly.risk_level)}</span>
+            <div class="header-info">
+              <div class="file-path">{anomaly.filepath}</div>
+              <div class="meta">
+                <time datetime={anomaly.timestamp}>{formatTimestamp(anomaly.timestamp)}</time>
+                <span class="change-type">{anomaly.change_type}</span>
+                {#if anomaly.agent}
+                  <span class="agent">🤖 {anomaly.agent}</span>
+                {/if}
+              </div>
+            </div>
+            <div class="score-badge">
+              <div class="score-value">{anomaly.anomaly_score}</div>
+              <div class="score-label">score</div>
+            </div>
           </div>
-          <div class="anomaly-message">{anomaly.message}</div>
-          {#if anomaly.details}
-            <div class="anomaly-details">
-              {#each Object.entries(anomaly.details) as [key, value] (key)}
-                <span class="detail-item">
-                  <strong>{key.replace(/_/g, ' ')}:</strong> {value}
-                </span>
+
+          {#if anomaly.anomaly_reasons && anomaly.anomaly_reasons.length > 0}
+            <div class="reasons">
+              <div class="reasons-title">Detection Reasons:</div>
+              {#each anomaly.anomaly_reasons as reason (reason.type + reason.message)}
+                <div class="reason-item">
+                  <span class="reason-type">{reason.type.replace(/_/g, ' ')}</span>
+                  <span class="reason-message">{reason.message}</span>
+                  {#if reason.zScore}
+                    <span class="reason-detail">{reason.zScore}σ</span>
+                  {/if}
+                  {#if reason.rarity}
+                    <span class="reason-detail">{reason.rarity}% rare</span>
+                  {/if}
+                  {#if reason.score}
+                    <span class="reason-detail">+{reason.score}</span>
+                  {/if}
+                </div>
               {/each}
             </div>
           {/if}
+
+          <div class="anomaly-footer">
+            <span class="confidence">Confidence: {anomaly.anomaly_confidence}%</span>
+            <span class="risk-level">Risk: {anomaly.risk_level}</span>
+            {#if anomaly.event_size}
+              <span class="event-size">{(anomaly.event_size / 1024).toFixed(1)} KB</span>
+            {/if}
+          </div>
         </article>
       {/each}
     </div>
@@ -249,32 +283,33 @@
 
   .header-left h2 {
     margin: 0 0 var(--space-sm) 0;
-    font-size: 11px;
+    font-size: 24px;
     color: var(--text);
   }
 
   .subtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .header-right {
     display: flex;
-    gap: var(--space-xl);
+    gap: var(--space-md);
     align-items: center;
   }
 
   .last-update {
     font-size: 12px;
     color: var(--muted);
+    font-family: var(--mono);
   }
 
   .controls {
     display: flex;
     gap: var(--space-lg);
     margin-bottom: var(--space-lg);
-    padding: var(--space-2xl);
+    padding: var(--space-md);
     background: var(--surface);
     border-radius: var(--radius);
     border: 1px solid var(--border);
@@ -283,86 +318,86 @@
   .control-group {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
+    gap: var(--space-sm);
   }
 
   .control-group label {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     font-weight: 500;
   }
 
   .control-group select {
-    padding: var(--space-md) var(--space-xl);
+    padding: 6px 12px;
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     font-family: var(--mono);
     font-size: 13px;
-    cursor: pointer;
   }
 
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: var(--space-lg);
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-md);
     margin-bottom: var(--space-lg);
   }
 
   .stat-badge {
-    padding: var(--space-2xl);
+    padding: var(--space-md);
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: var(--radius);
     display: flex;
     align-items: center;
-    gap: var(--space-xl);
-    transition: all var(--duration-base) var(--ease-smooth);
+    gap: var(--space-sm);
   }
 
-  .stat-badge.critical {
-    border-color: var(--error, var(--error));
+  .stat-badge.high {
+    border-color: #ef4444;
   }
-
-  .stat-badge.warning {
-    border-color: var(--warning, var(--warning));
+  .stat-badge.medium {
+    border-color: #f59e0b;
   }
-
-  .stat-badge.info {
-    border-color: var(--accent, var(--info));
+  .stat-badge.low {
+    border-color: #3b82f6;
+  }
+  .stat-badge.total {
+    border-color: var(--accent);
   }
 
   .badge-icon {
-    font-size: 11px;
+    font-size: 20px;
   }
 
   .badge-count {
-    font-size: var(--icon-lg);
+    font-size: 24px;
     font-weight: 700;
     font-family: var(--mono);
     color: var(--text);
   }
 
   .badge-label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
+    margin-left: auto;
   }
 
   .anomalies-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xl);
+    gap: var(--space-md);
   }
 
   .anomaly-card {
-    padding: var(--space-2xl);
+    padding: var(--space-md);
     background: var(--surface);
     border: 1px solid var(--border);
     border-left: 4px solid;
     border-radius: var(--radius);
-    transition: all var(--duration-base) var(--ease-smooth);
+    transition: all 0.2s;
   }
 
   .anomaly-card:hover {
@@ -370,79 +405,137 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
-  .anomaly-card.severity-critical {
-    border-left-color: var(--error, var(--error));
+  .anomaly-card.risk-high {
+    border-left-color: #ef4444;
   }
-
-  .anomaly-card.severity-warning {
-    border-left-color: var(--warning, var(--warning));
+  .anomaly-card.risk-medium {
+    border-left-color: #f59e0b;
   }
-
-  .anomaly-card.severity-info {
-    border-left-color: var(--accent, var(--info));
+  .anomaly-card.risk-low {
+    border-left-color: #3b82f6;
   }
 
   .anomaly-header {
     display: flex;
-    align-items: center;
-    gap: var(--space-xl);
-    margin-bottom: var(--space-lg);
+    align-items: flex-start;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
   }
 
-  .anomaly-icon {
-    font-size: 13px;
+  .risk-icon {
+    font-size: 20px;
+    margin-top: 2px;
   }
 
-  .anomaly-timestamp {
+  .header-info {
+    flex: 1;
+  }
+
+  .file-path {
+    font-size: 14px;
+    font-family: var(--mono);
+    color: var(--text);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .meta {
+    display: flex;
+    gap: var(--space-sm);
     font-size: 12px;
     color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .change-type,
+  .agent {
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
     font-family: var(--mono);
   }
 
-  .anomaly-type {
+  .score-badge {
+    text-align: center;
+    padding: 4px 12px;
+    background: var(--bg);
+    border-radius: var(--radius);
+  }
+
+  .score-value {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text);
+  }
+
+  .score-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .reasons {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--bg);
+    border-radius: var(--radius);
+  }
+
+  .reasons-title {
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: var(--bg);
-    padding: var(--space-xs) var(--space-lg);
-    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-xs);
+    font-weight: 600;
   }
 
-  .anomaly-message {
-    font-size: 11px;
-    color: var(--text);
-    margin-bottom: var(--space-lg);
-    line-height: 1.5;
-  }
-
-  .anomaly-details {
+  .reason-item {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xl);
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
+    gap: var(--space-sm);
+    align-items: center;
+    padding: 4px 0;
+    font-size: 12px;
   }
 
-  .detail-item {
-    font-size: 12px;
+  .reason-type {
+    color: var(--accent);
+    text-transform: capitalize;
+    font-weight: 500;
+  }
+
+  .reason-message {
+    color: var(--text);
+    flex: 1;
+  }
+
+  .reason-detail {
     color: var(--muted);
     font-family: var(--mono);
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 4px;
   }
 
-  .detail-item strong {
-    color: var(--text);
-    text-transform: capitalize;
+  .anomaly-footer {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
   }
 
-  .btn-primary, .btn-secondary {
-    padding: var(--space-lg) var(--space-2xl);
+  .btn-primary,
+  .btn-secondary {
+    padding: 8px 16px;
     border-radius: var(--radius);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all var(--duration-base) var(--ease-smooth);
     border: 1px solid var(--border);
+    transition: all 0.2s;
   }
 
   .btn-primary {
@@ -461,26 +554,22 @@
   }
 
   .btn-secondary:hover {
-    background: var(--surface-2);
+    background: var(--bg);
     border-color: var(--accent);
   }
 
-  .btn-primary:focus,
-  .btn-secondary:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .empty-state, .error-state {
+  .empty-state,
+  .error-state {
     text-align: center;
-    padding: var(--space-lg) var(--space-xl);
+    padding: var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
 
-  .empty-state p, .error-state p {
-    margin: var(--space-lg) 0;
+  .empty-state p,
+  .error-state p {
+    margin: var(--space-sm) 0;
     color: var(--text);
   }
 
