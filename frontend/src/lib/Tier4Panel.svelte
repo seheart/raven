@@ -215,6 +215,20 @@
     }
   }
 
+  async function resolveDrift(driftId) {
+    try {
+      const res = await fetch(`${API_BASE}/drift/${driftId}/resolve?project=${project}`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        // Reload drift data after resolution
+        await loadDriftData();
+      }
+    } catch (err) {
+      // Error handled silently - operation failed gracefully
+    }
+  }
+
   async function calculateProductivity() {
     try {
       const res = await fetch(`${API_BASE}/productivity/calculate?project=${project}&days=30`, {
@@ -523,6 +537,13 @@
                 <div class="drift-header">
                   <span class="drift-type">{drift.drift_type.toUpperCase()}</span>
                   <span class="drift-severity {drift.severity}">{drift.severity}</span>
+                  {#if !drift.resolved_at}
+                    <button class="resolve-button" on:click={() => resolveDrift(drift.id)}>
+                      Mark Resolved
+                    </button>
+                  {:else}
+                    <span class="resolved-badge">Resolved</span>
+                  {/if}
                 </div>
                 <div class="drift-description">{drift.description}</div>
                 <div class="drift-details">
@@ -530,7 +551,14 @@
                   <span>Current: {drift.current_value?.toFixed(2)}</span>
                   <span>Deviation: {drift.deviation_percent}%</span>
                 </div>
-                <div class="drift-time">{new Date(drift.detected_at).toLocaleString()}</div>
+                <div class="drift-time">
+                  Detected: {new Date(drift.detected_at).toLocaleString()}
+                  {#if drift.resolved_at}
+                    <span class="resolved-time">
+                      | Resolved: {new Date(drift.resolved_at).toLocaleString()}
+                    </span>
+                  {/if}
+                </div>
               </div>
             {/each}
           </div>
@@ -1132,6 +1160,37 @@
   .drift-time {
     font-size: 12px;
     color: #666;
+  }
+
+  .drift-time .resolved-time {
+    color: #51cf66;
+    font-weight: 500;
+  }
+
+  .resolve-button {
+    padding: 4px 12px;
+    background: #228be6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: auto;
+  }
+
+  .resolve-button:hover {
+    background: #1c7ed6;
+  }
+
+  .resolved-badge {
+    padding: 4px 12px;
+    background: #51cf66;
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: auto;
   }
 
   /* Productivity Styles */
