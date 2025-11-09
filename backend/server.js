@@ -1108,7 +1108,7 @@ app.use('/api', createCorvusV2Tier2Routes({ projectDatabases }));
 app.use('/api', createCorvusV2Tier3Routes({ projectDatabases }));
 
 // Corvus v2.0.1 Tier 4 routes (health scoring, drift detection, productivity insights, personality analysis, growth tracking, integrations)
-app.use('/api', createCorvusV2Tier4Routes({ projectDatabases }));
+app.use('/api/corvus/v2/tier4', createCorvusV2Tier4Routes({ projectDatabases }));
 
 // Snapshots routes (get snapshots, restore file)
 app.use('/api', createSnapshotsRoutes({ projectState }));
