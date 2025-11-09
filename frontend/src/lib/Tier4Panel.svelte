@@ -5,7 +5,7 @@
 
   const API_BASE = API_CONFIG.API_BASE;
 
-  $: project = $activeProject || 'raven';
+  $: project = $activeProject && $activeProject !== 'Loading...' ? $activeProject : 'raven';
 
   let activeTab = 'health'; // health, drift, productivity, personality, growth, integrations
   let loading = false;
