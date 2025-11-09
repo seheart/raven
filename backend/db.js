@@ -11,6 +11,8 @@ import { AgentBehaviorProfiler } from './services/agent-behavior-profiler.js';
 import { ContextualObserver } from './services/contextual-observer.js';
 import { SessionIntelligence } from './services/session-intelligence.js';
 import { PatternMatcher } from './services/pattern-matcher.js';
+import { ProjectMemory } from './services/project-memory.js';
+import { CrossAgentIntelligence } from './services/cross-agent-intelligence.js';
 
 /**
  * @typedef {Object} EventRecord
@@ -95,6 +97,10 @@ export class RavenDB {
     this.contextualObserver = new ContextualObserver(this);
     this.sessionIntelligence = new SessionIntelligence(this);
     this.patternMatcher = new PatternMatcher({ raven: this });
+
+    // Initialize Corvus v2.0.1 Tier 3 services (Features 10-11)
+    this.projectMemory = new ProjectMemory(this);
+    this.crossAgentIntelligence = new CrossAgentIntelligence(this);
 
     logger.info('Database initialized', { dbPath });
   }
@@ -364,6 +370,43 @@ export class RavenDB {
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (current_event_id) REFERENCES events(id),
         FOREIGN KEY (matched_event_id) REFERENCES events(id)
+      )
+    `);
+
+    // Project memory table (Feature 10: Project Memory & Context)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS project_memories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        memory_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        context TEXT,
+        importance TEXT DEFAULT 'medium',
+        tags TEXT,
+        event_id INTEGER,
+        session_id TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (event_id) REFERENCES events(id)
+      )
+    `);
+
+    // Project context snapshots table (Feature 10: Project Memory & Context)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS project_context_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        snapshot_date TEXT NOT NULL,
+        active_files TEXT,
+        key_agents TEXT,
+        main_focus TEXT,
+        challenges TEXT,
+        achievements TEXT,
+        next_steps TEXT,
+        metadata TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(project_name, snapshot_date)
       )
     `);
 

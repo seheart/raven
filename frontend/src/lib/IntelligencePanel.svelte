@@ -13,10 +13,13 @@
   let observations = [];
   let sessionStories = [];
   let patternMatches = [];
+  let projectMemories = [];
+  let agentSummary = null;
+  let contextSnapshot = null;
   let loading = true;
   let error = null;
   let lastUpdate = new Date();
-  let activeTab = 'profiles'; // profiles, observations, stories, patterns
+  let activeTab = 'profiles'; // profiles, observations, stories, patterns, memory, agents
 
   // WebSocket handlers
   const handleDataUpdate = async () => {
@@ -41,14 +44,32 @@
       loading = true;
       const project = $activeProject || 'raven';
 
-      const [profilesRes, observationsRes, storiesRes, patternsRes] = await Promise.all([
+      const [
+        profilesRes,
+        observationsRes,
+        storiesRes,
+        patternsRes,
+        memoriesRes,
+        agentSummaryRes,
+        snapshotRes
+      ] = await Promise.all([
         fetch(`${API_BASE}/agent-profiles?project=${project}`),
         fetch(`${API_BASE}/observations?project=${project}`),
         fetch(`${API_BASE}/session/stories?project=${project}&limit=5`),
-        fetch(`${API_BASE}/patterns/matches?project=${project}&limit=5`)
+        fetch(`${API_BASE}/patterns/matches?project=${project}&limit=5`),
+        fetch(`${API_BASE}/memory/important?project=${project}&limit=10`),
+        fetch(`${API_BASE}/agents/summary?project=${project}&hours=24`),
+        fetch(`${API_BASE}/context/snapshot?project=${project}`)
       ]);
 
-      if (!profilesRes.ok || !observationsRes.ok || !storiesRes.ok || !patternsRes.ok) {
+      if (
+        !profilesRes.ok ||
+        !observationsRes.ok ||
+        !storiesRes.ok ||
+        !patternsRes.ok ||
+        !memoriesRes.ok ||
+        !agentSummaryRes.ok
+      ) {
         throw new Error('Failed to fetch intelligence data');
       }
 
@@ -56,11 +77,17 @@
       const observationsData = await observationsRes.json();
       const storiesData = await storiesRes.json();
       const patternsData = await patternsRes.json();
+      const memoriesData = await memoriesRes.json();
+      const agentSummaryData = await agentSummaryRes.json();
+      const snapshotData = await snapshotRes.json();
 
       agentProfiles = profilesData.profiles || [];
       observations = observationsData.observations || [];
       sessionStories = storiesData.stories || [];
       patternMatches = patternsData.matches || [];
+      projectMemories = memoriesData.memories || [];
+      agentSummary = agentSummaryData.summary;
+      contextSnapshot = snapshotData.snapshot;
 
       lastUpdate = new Date();
       error = null;
@@ -101,7 +128,10 @@
   <div class="panel-header">
     <div class="header-left">
       <h2>🧠 Intelligence Dashboard</h2>
-      <p class="subtitle">AI behavior • Patterns • Session insights • Observations</p>
+      <p class="subtitle">
+        AI behavior • Patterns • Session insights • Observations • Project memory • Cross-agent
+        intel
+      </p>
     </div>
     <div class="header-right">
       <span class="last-update">Updated: {timeSinceUpdate}</span>
@@ -138,6 +168,20 @@
       on:click={() => (activeTab = 'patterns')}
     >
       🔍 Pattern Matches
+    </button>
+    <button
+      class="tab-button"
+      class:active={activeTab === 'memory'}
+      on:click={() => (activeTab = 'memory')}
+    >
+      💾 Project Memory
+    </button>
+    <button
+      class="tab-button"
+      class:active={activeTab === 'agents'}
+      on:click={() => (activeTab = 'agents')}
+    >
+      🤝 Cross-Agent Intel
     </button>
   </div>
 
@@ -331,6 +375,203 @@
       </div>
     {/if}
 
+    <!-- Project Memory Tab -->
+    {#if activeTab === 'memory'}
+      <div class="section">
+        <h3>Project Memory</h3>
+        {#if projectMemories.length === 0}
+          <div class="empty-box">
+            <p>No memories recorded yet</p>
+            <p class="hint">Important decisions and milestones will appear here</p>
+          </div>
+        {:else}
+          <div class="memories-list">
+            {#each projectMemories as memory (memory.id)}
+              <div class="memory-card">
+                <div class="memory-header">
+                  <div class="memory-type-badge" class:high={memory.importance === 'high'}>
+                    {memory.memory_type}
+                  </div>
+                  <div class="memory-time">{formatDateTime(memory.created_at)}</div>
+                </div>
+                <h4 class="memory-title">{memory.title}</h4>
+                {#if memory.description}
+                  <p class="memory-description">{memory.description}</p>
+                {/if}
+                {#if memory.tags && memory.tags.length > 0}
+                  <div class="memory-tags">
+                    {#each memory.tags as tag (tag)}
+                      <span class="tag">{tag}</span>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        {#if contextSnapshot}
+          <div class="context-snapshot">
+            <h4>📸 Today's Context Snapshot</h4>
+            {#if contextSnapshot.main_focus}
+              <div class="snapshot-item">
+                <strong>Main Focus:</strong>
+                {contextSnapshot.main_focus}
+              </div>
+            {/if}
+            {#if contextSnapshot.active_files && contextSnapshot.active_files.length > 0}
+              <div class="snapshot-item">
+                <strong>Active Files:</strong>
+                <div class="file-list">
+                  {#each contextSnapshot.active_files.slice(0, 5) as file (file)}
+                    <span class="file-name">{file.split('/').pop()}</span>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+            {#if contextSnapshot.achievements && contextSnapshot.achievements.length > 0}
+              <div class="snapshot-item">
+                <strong>🏆 Achievements:</strong>
+                <ul>
+                  {#each contextSnapshot.achievements as achievement (achievement)}
+                    <li>{achievement}</li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
+            {#if contextSnapshot.challenges && contextSnapshot.challenges.length > 0}
+              <div class="snapshot-item">
+                <strong>⚠️ Challenges:</strong>
+                <ul>
+                  {#each contextSnapshot.challenges as challenge (challenge)}
+                    <li>{challenge}</li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Cross-Agent Intelligence Tab -->
+    {#if activeTab === 'agents'}
+      <div class="section">
+        <h3>Cross-Agent Intelligence</h3>
+        {#if agentSummary}
+          <div class="agent-summary-card">
+            <div class="summary-header">
+              <h4>Collaboration Health Score</h4>
+              <div
+                class="health-score"
+                class:good={agentSummary.collaboration_health >= 70}
+                class:medium={agentSummary.collaboration_health >= 40 &&
+                  agentSummary.collaboration_health < 70}
+                class:poor={agentSummary.collaboration_health < 40}
+              >
+                {agentSummary.collaboration_health}/100
+              </div>
+            </div>
+
+            <div class="summary-stats">
+              <div class="stat-item">
+                <div class="stat-value">{agentSummary.active_agents_count}</div>
+                <div class="stat-label">Active Agents</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{agentSummary.handoffs_count}</div>
+                <div class="stat-label">Handoffs</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{agentSummary.file_conflicts_count}</div>
+                <div class="stat-label">File Conflicts</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{agentSummary.agent_conflicts_count}</div>
+                <div class="stat-label">Agent Conflicts</div>
+              </div>
+            </div>
+          </div>
+
+          {#if agentSummary.active_agents && agentSummary.active_agents.length > 0}
+            <div class="active-agents-section">
+              <h4>Active Agents (Last 24h)</h4>
+              <div class="agents-grid">
+                {#each agentSummary.active_agents as agent (agent.agent)}
+                  <div class="agent-activity-card">
+                    <div class="agent-name">{agent.agent}</div>
+                    <div class="agent-stats">
+                      <span>{agent.activity_count} changes</span>
+                    </div>
+                    <div class="agent-times">
+                      <div class="time-label">Last active:</div>
+                      <div class="time-value">{getTimeAgo(new Date(agent.last_activity))}</div>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
+          {#if agentSummary.recent_handoffs && agentSummary.recent_handoffs.length > 0}
+            <div class="handoffs-section">
+              <h4>Recent Agent Handoffs</h4>
+              <div class="handoffs-list">
+                {#each agentSummary.recent_handoffs as handoff (handoff.filepath + handoff.first_activity_to)}
+                  <div class="handoff-card">
+                    <div class="handoff-agents">
+                      <span class="from-agent">{handoff.from_agent}</span>
+                      <span class="arrow">→</span>
+                      <span class="to-agent">{handoff.to_agent}</span>
+                    </div>
+                    <div class="handoff-file">{handoff.filepath.split('/').pop()}</div>
+                    <div
+                      class="handoff-type"
+                      class:immediate={handoff.handoff_type === 'immediate'}
+                    >
+                      {handoff.handoff_type} ({handoff.gap_minutes}m gap)
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
+          {#if agentSummary.critical_files && agentSummary.critical_files.length > 0}
+            <div class="conflicts-section">
+              <h4>Files with Multiple Agents</h4>
+              <div class="conflicts-list">
+                {#each agentSummary.critical_files as conflict (conflict.filepath)}
+                  <div class="conflict-card">
+                    <div class="conflict-file">{conflict.filepath.split('/').pop()}</div>
+                    <div class="conflict-agents">
+                      <strong>{conflict.agent_count} agents:</strong>
+                      {conflict.agents.join(', ')}
+                    </div>
+                    <div class="conflict-stats">
+                      <span
+                        class="severity"
+                        class:high={conflict.conflict_severity === 'high'}
+                        class:medium={conflict.conflict_severity === 'medium'}
+                      >
+                        {conflict.conflict_severity} severity
+                      </span>
+                      <span>{conflict.total_changes} total changes</span>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        {:else}
+          <div class="empty-box">
+            <p>No cross-agent activity detected</p>
+            <p class="hint">Agent collaboration data will appear here</p>
+          </div>
+        {/if}
+      </div>
+    {/if}
+
     <!-- Info Box -->
     <div class="info-box">
       <h4>🧠 About Intelligence Dashboard</h4>
@@ -346,6 +587,12 @@
         </li>
         <li>
           <strong>Pattern Matches:</strong> Similar past changes that predict potential outcomes
+        </li>
+        <li>
+          <strong>Project Memory:</strong> Important decisions, milestones, and context snapshots
+        </li>
+        <li>
+          <strong>Cross-Agent Intel:</strong> Collaboration analysis and agent interaction patterns
         </li>
       </ul>
     </div>
