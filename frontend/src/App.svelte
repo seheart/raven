@@ -88,6 +88,7 @@
         case 'system':
           import(/* @vite-preload */ './lib/StatusPanel.svelte');
           import(/* @vite-preload */ './lib/AnomalyAlertsPanel.svelte');
+          import(/* @vite-preload */ './lib/IntelligencePanel.svelte');
           import(/* @vite-preload */ './lib/StoragePanel.svelte');
           import(/* @vite-preload */ './lib/ProjectsConfigPanel.svelte');
           import(/* @vite-preload */ './lib/ServerSyncPanel.svelte');
@@ -892,6 +893,13 @@
               </button>
               <button
                 class="sub-tab"
+                class:active={currentSubView === 'intelligence'}
+                on:click={() => router.navigate(activeTab, 'intelligence')}
+              >
+                🧠 Intelligence
+              </button>
+              <button
+                class="sub-tab"
                 class:active={currentSubView === 'storage'}
                 on:click={() => router.navigate(activeTab, 'storage')}
               >
@@ -943,6 +951,12 @@
               {/await}
             {:else if currentSubView === 'anomalies'}
               {#await import('./lib/AnomalyAlertsPanel.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'intelligence'}
+              {#await import('./lib/IntelligencePanel.svelte') then M}
                 <svelte:component this={M.default} />
               {:catch _}
                 <div style="min-height:200px" role="status">Loading…</div>

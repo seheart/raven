@@ -7,6 +7,10 @@ import { QueryBuilder, buildPaginatedTimeQuery } from './utils/query-builder.js'
 import { AnomalyDetector } from './services/anomaly-detector.js';
 import { AgentDetector } from './services/agent-detector.js';
 import { RiskCorrelator } from './services/risk-correlator.js';
+import { AgentBehaviorProfiler } from './services/agent-behavior-profiler.js';
+import { ContextualObserver } from './services/contextual-observer.js';
+import { SessionIntelligence } from './services/session-intelligence.js';
+import { PatternMatcher } from './services/pattern-matcher.js';
 
 /**
  * @typedef {Object} EventRecord
@@ -81,10 +85,16 @@ export class RavenDB {
 
     this.initializeSchema();
 
-    // Initialize Corvus v2.0.1 services
+    // Initialize Corvus v2.0.1 services (Features 1-3)
     this.anomalyDetector = new AnomalyDetector(this);
     this.agentDetector = new AgentDetector(this);
     this.riskCorrelator = new RiskCorrelator(this);
+
+    // Initialize Corvus v2.0.1 services (Features 5-8)
+    this.agentBehaviorProfiler = new AgentBehaviorProfiler(this);
+    this.contextualObserver = new ContextualObserver(this);
+    this.sessionIntelligence = new SessionIntelligence(this);
+    this.patternMatcher = new PatternMatcher({ raven: this });
 
     logger.info('Database initialized', { dbPath });
   }
@@ -272,6 +282,88 @@ export class RavenDB {
         rollback_type TEXT,
         files_affected INTEGER DEFAULT 1,
         FOREIGN KEY (event_id) REFERENCES events(id)
+      )
+    `);
+
+    // Agent statistics table (Feature 5: Agent Behavior Profiling)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS agent_stats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        agent TEXT NOT NULL,
+        date TEXT NOT NULL,
+        changes_count INTEGER DEFAULT 0,
+        rollbacks_count INTEGER DEFAULT 0,
+        avg_change_size INTEGER DEFAULT 0,
+        avg_confidence INTEGER DEFAULT 0,
+        total_lines_added INTEGER DEFAULT 0,
+        total_lines_deleted INTEGER DEFAULT 0,
+        files_modified INTEGER DEFAULT 0,
+        UNIQUE(project_name, agent, date)
+      )
+    `);
+
+    // User patterns table (Feature 6: Contextual Observations)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS user_patterns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT NOT NULL,
+        pattern_type TEXT NOT NULL,
+        pattern_key TEXT NOT NULL,
+        pattern_value TEXT,
+        frequency INTEGER DEFAULT 1,
+        last_seen TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(project_name, pattern_type, pattern_key)
+      )
+    `);
+
+    // Session stories table (Feature 7: Session Intelligence)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_stories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        project_name TEXT NOT NULL,
+        narrative TEXT,
+        timeline TEXT,
+        stats TEXT,
+        mood TEXT,
+        achievements TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_id)
+      )
+    `);
+
+    // Session context table (Feature 7: Session Intelligence)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_context (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        project_name TEXT NOT NULL,
+        last_file TEXT,
+        last_line INTEGER,
+        working_on TEXT,
+        todos TEXT,
+        notes TEXT,
+        duration_seconds INTEGER DEFAULT 0,
+        focus_score INTEGER,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_id)
+      )
+    `);
+
+    // Pattern matches table (Feature 8: Pattern Recognition)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS pattern_matches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        current_event_id INTEGER NOT NULL,
+        matched_event_id INTEGER NOT NULL,
+        similarity_score REAL NOT NULL,
+        match_reasons TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (current_event_id) REFERENCES events(id),
+        FOREIGN KEY (matched_event_id) REFERENCES events(id)
       )
     `);
 
