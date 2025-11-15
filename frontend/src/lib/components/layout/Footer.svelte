@@ -7,7 +7,9 @@
   let {
     theme = 'tokyo-night',
     version = '2.0.1',
+    sessionId = 'Loading...',
     onThemeChange = () => {},
+    onSessionClick = () => {},
     onAboutClick = () => {},
     onChangelogClick = () => {},
     onDocsClick = () => {}
@@ -21,6 +23,17 @@
     <!-- Left Section -->
     <div class="flex items-center gap-4">
       <span class="font-semibold text-[var(--accent)]">Raven v{version}</span>
+      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+
+      <!-- Session ID -->
+      <button
+        class="bg-transparent border-0 p-0 cursor-pointer text-[var(--muted)] hover:text-[var(--accent)] transition-colors text-xs flex items-center gap-2"
+        onclick={onSessionClick}
+        title="Session ID: {sessionId} (Click for details)"
+        aria-label="View session details"
+      >
+        Session: <span class="text-[var(--text)] font-semibold">{sessionId}</span>
+      </button>
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
 
       <!-- Theme Selector -->

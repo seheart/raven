@@ -13,32 +13,36 @@
   import AnalysisPage from './lib/pages/AnalysisPage.svelte';
   import SystemPage from './lib/pages/SystemPage.svelte';
   import SettingsPage from './lib/pages/SettingsPage.svelte';
+  import AboutPage from './lib/pages/AboutPage.svelte';
+  import ChangelogPage from './lib/pages/ChangelogPage.svelte';
+  import DocsPage from './lib/pages/DocsPage.svelte';
+  import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
+  import NotificationPanel from './lib/components/ui/NotificationPanel.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
+  import { unreadCount } from './lib/stores/notificationHistory.js';
 
   // State
   let theme = $state('tokyo-night');
   let username = $state('Seth');
   let role = $state('admin');
   let todayStats = $state({ modified: 12, added: 3, deleted: 1 });
-  let unreadCount = $state(2);
   let showNotifications = $state(false);
+  let sessionId = $state('Loading...');
 
   // Get current path from router
   const currentPath = $derived(getPath());
 
-  // Map paths to tab IDs
-  const pathToTab = {
-    '/': 'overview',
-    '/overview': 'overview',
-    '/safety': 'safety',
-    '/agents': 'agents',
-    '/activity': 'activity',
-    '/analysis': 'analysis',
-    '/system': 'system',
-    '/settings': 'settings'
-  };
+  // Parse path to extract tab and subTab
+  const pathParts = $derived(() => {
+    const parts = currentPath.split('/').filter(Boolean);
+    return {
+      tab: parts[0] || 'overview',
+      subTab: parts[1] || ''
+    };
+  });
 
-  const activeTab = $derived(pathToTab[currentPath] || 'overview');
+  const activeTab = $derived(pathParts().tab);
+  const activeSubTab = $derived(pathParts().subTab);
 
   // Initialize route on mount
   $effect(() => {
@@ -52,6 +56,22 @@
   $effect(() => {
     handleThemeChange(theme);
   });
+
+  // Load session ID on mount
+  $effect(() => {
+    loadSessionId();
+  });
+
+  async function loadSessionId() {
+    try {
+      const response = await fetch('http://localhost:3030/api/session-id');
+      const data = await response.json();
+      sessionId = data.session_id || 'Unknown';
+    } catch (error) {
+      sessionId = 'Offline';
+      console.error('Failed to load session ID:', error);
+    }
+  }
 
   function handleThemeChange(newTheme) {
     theme = newTheme;
@@ -92,15 +112,15 @@
   }
 
   function handleAboutClick() {
-    console.log('About clicked');
+    navigate('/about');
   }
 
   function handleChangelogClick() {
-    console.log('Changelog clicked');
+    navigate('/changelog');
   }
 
   function handleDocsClick() {
-    console.log('Docs clicked');
+    navigate('/docs');
   }
 
   function handleSettingsClick() {
@@ -111,16 +131,22 @@
     console.log('Logout clicked');
     // TODO: Implement logout logic
   }
+
+  function handleSessionClick() {
+    console.log('Session clicked:', sessionId);
+    // TODO: Navigate to session details page or show modal
+  }
 </script>
 
 <div class="min-h-screen bg-[var(--bg)]">
   <!-- Header -->
   <Header
     {activeTab}
+    {activeSubTab}
     {username}
     {role}
     {todayStats}
-    {unreadCount}
+    unreadCount={$unreadCount}
     onNotificationsClick={handleNotificationsClick}
     onSettingsClick={handleSettingsClick}
     onLogoutClick={handleLogoutClick}
@@ -129,23 +155,56 @@
   <!-- Main Content -->
   <main class="pb-16">
     {#if activeTab === 'overview'}
-      <OverviewPage />
+      {#if !activeSubTab}
+        <OverviewPage />
+      {:else}
+        <PlaceholderPage
+          title={activeSubTab === 'projects' ? 'Projects Comparison' : 'Project Health'}
+          description="This page is coming soon"
+        />
+      {/if}
     {:else if activeTab === 'safety'}
-      <SafetyPage />
+      {#if !activeSubTab}
+        <SafetyPage />
+      {:else}
+        <PlaceholderPage title="Safety - {activeSubTab}" description="This page is coming soon" />
+      {/if}
     {:else if activeTab === 'agents'}
-      <AgentsPage />
+      {#if !activeSubTab}
+        <AgentsPage />
+      {:else}
+        <PlaceholderPage title="Agents - {activeSubTab}" description="This page is coming soon" />
+      {/if}
     {:else if activeTab === 'activity'}
-      <ActivityPage />
+      {#if !activeSubTab}
+        <ActivityPage />
+      {:else}
+        <PlaceholderPage title="Activity - {activeSubTab}" description="This page is coming soon" />
+      {/if}
     {:else if activeTab === 'analysis'}
-      <AnalysisPage />
+      {#if !activeSubTab}
+        <AnalysisPage />
+      {:else}
+        <PlaceholderPage title="Analysis - {activeSubTab}" description="This page is coming soon" />
+      {/if}
     {:else if activeTab === 'system'}
-      <SystemPage />
+      {#if !activeSubTab}
+        <SystemPage />
+      {:else}
+        <PlaceholderPage title="System - {activeSubTab}" description="This page is coming soon" />
+      {/if}
     {:else if activeTab === 'settings'}
       <SettingsPage />
+    {:else if activeTab === 'about'}
+      <AboutPage />
+    {:else if activeTab === 'changelog'}
+      <ChangelogPage />
+    {:else if activeTab === 'docs'}
+      <DocsPage />
     {:else}
       <div class="p-6 text-center">
-        <h1 class="text-2xl font-bold text-gray-900">Page Not Found</h1>
-        <p class="text-gray-600 mt-2">Unknown tab: {activeTab}</p>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)]">Page Not Found</h1>
+        <p class="text-[var(--text)] mt-2">Unknown tab: {activeTab}</p>
       </div>
     {/if}
   </main>
@@ -153,35 +212,15 @@
   <!-- Footer -->
   <Footer
     {theme}
+    {sessionId}
     version="2.0.1-corvus"
     onThemeChange={handleThemeChange}
+    onSessionClick={handleSessionClick}
     onAboutClick={handleAboutClick}
     onChangelogClick={handleChangelogClick}
     onDocsClick={handleDocsClick}
   />
 
-  <!-- Notifications Panel (if needed) -->
-  {#if showNotifications}
-    <div
-      class="fixed top-12 right-4 w-80 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg p-4 z-50"
-    >
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold text-[var(--text-heading)] text-sm">Notifications</h3>
-        <button
-          onclick={() => (showNotifications = false)}
-          class="text-[var(--muted)] hover:text-[var(--text)] border-0 bg-transparent cursor-pointer text-lg leading-none p-1"
-        >
-          ✕
-        </button>
-      </div>
-      <div class="space-y-2 text-sm text-[var(--text)]">
-        <div class="p-2 bg-[var(--accent-subtle)] text-[var(--accent)] rounded">
-          System health check passed
-        </div>
-        <div class="p-2 bg-[var(--success-subtle)] text-[var(--success)] rounded">
-          Build completed successfully
-        </div>
-      </div>
-    </div>
-  {/if}
+  <!-- Notification Panel Sidebar -->
+  <NotificationPanel visible={showNotifications} onClose={() => (showNotifications = false)} />
 </div>
