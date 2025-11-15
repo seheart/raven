@@ -1,8 +1,10 @@
-/* Raven Brand Theme System */
-/* Three themes: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night) */
+/* Tailwind CSS directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Import standardized spacing system */
-@import './styles/spacing.css';
+/* Raven Brand Theme System - Tailwind Edition */
+/* Three themes: Day (Gruvbox), Dusk (Ristretto), Night (Tokyo Night) */
 
 :root {
   /* Spacing Scale - Compact monitoring tool */

@@ -1,0 +1,93 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{svelte,js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // Tokyo Night theme (default/night)
+        night: {
+          bg: '#1a1b26',
+          surface: '#16161e',
+          'surface-2': '#24283b',
+          text: '#c0caf5',
+          heading: '#c0caf5',
+          muted: '#565f89',
+          border: '#292e42',
+          accent: '#7aa2f7',
+          'accent-2': '#7dcfff',
+          success: '#9ece6a',
+          error: '#f7768e',
+          warning: '#e0af68',
+          info: '#7aa2f7',
+        },
+        // Gruvbox Light theme (day)
+        day: {
+          bg: '#fbf1c7',
+          surface: '#f9f5d7',
+          'surface-2': '#ebdbb2',
+          text: '#3c3836',
+          heading: '#282828',
+          muted: '#665c54',
+          border: '#d5c4a1',
+          accent: '#98971a',
+          'accent-2': '#79740e',
+          success: '#98971a',
+          error: '#cc241d',
+          warning: '#d65d0e',
+          info: '#458588',
+        },
+        // Ristretto theme (dusk)
+        dusk: {
+          bg: '#2c2421',
+          surface: '#352f2c',
+          'surface-2': '#403934',
+          text: '#e6dcc8',
+          heading: '#f5ede1',
+          muted: '#b5a99a',
+          border: '#4d4338',
+          accent: '#f79a3e',
+          'accent-2': '#d67c2a',
+          success: '#b9ca79',
+          error: '#d16969',
+          warning: '#e8b878',
+          info: '#78b4c8',
+        },
+      },
+      fontFamily: {
+        mono: ['"JetBrainsMono Nerd Font"', '"FiraCode Nerd Font"', '"Hack Nerd Font"', 'ui-monospace', 'monospace'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+      },
+      fontSize: {
+        'xs': '10px',
+        'sm': '11px',
+        'base': '12px',
+        'lg': '13px',
+        'xl': '14px',
+        '2xl': '15px',
+        '3xl': '16px',
+        '4xl': '18px',
+        '5xl': '20px',
+      },
+      borderRadius: {
+        'sm': '3px',
+        DEFAULT: '4px',
+        'lg': '6px',
+        'xl': '8px',
+      },
+      spacing: {
+        'xs': '2px',
+        'sm': '4px',
+        'md': '6px',
+        'lg': '8px',
+        'xl': '12px',
+        '2xl': '16px',
+        '3xl': '24px',
+        '4xl': '32px',
+      },
+    },
+  },
+  plugins: [],
+}
