@@ -1,10 +1,9 @@
 import { mount } from 'svelte';
 import './app.css';
 import './styles/accessibility.css';
-// import App from './App.svelte';
-import ComponentShowcase from './ComponentShowcase.svelte'; // Temporary: showcasing Tailwind components
+import App from './NewApp.svelte'; // New Tailwind-based application
 
-const app = mount(ComponentShowcase, {
+const app = mount(App, {
   target: document.getElementById('app')
 });
 
