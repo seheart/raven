@@ -13,24 +13,78 @@
   import AnalysisPage from './lib/pages/AnalysisPage.svelte';
   import SystemPage from './lib/pages/SystemPage.svelte';
   import SettingsPage from './lib/pages/SettingsPage.svelte';
+  import { getPath, navigate } from './lib/utils/router.svelte.js';
 
   // State
-  let activeTab = $state('overview');
-  let theme = $state('light');
+  let theme = $state('tokyo-night');
   let username = $state('Seth');
   let role = $state('admin');
   let todayStats = $state({ modified: 12, added: 3, deleted: 1 });
   let unreadCount = $state(2);
   let showNotifications = $state(false);
 
-  // Handlers
-  function handleTabChange(newTab) {
-    activeTab = newTab;
-  }
+  // Get current path from router
+  const currentPath = $derived(getPath());
+
+  // Map paths to tab IDs
+  const pathToTab = {
+    '/': 'overview',
+    '/overview': 'overview',
+    '/safety': 'safety',
+    '/agents': 'agents',
+    '/activity': 'activity',
+    '/analysis': 'analysis',
+    '/system': 'system',
+    '/settings': 'settings'
+  };
+
+  const activeTab = $derived(pathToTab[currentPath] || 'overview');
+
+  // Initialize route on mount
+  $effect(() => {
+    // If on root path, redirect to /overview
+    if (currentPath === '/') {
+      navigate('/overview');
+    }
+  });
+
+  // Apply initial theme on mount
+  $effect(() => {
+    handleThemeChange(theme);
+  });
 
   function handleThemeChange(newTheme) {
     theme = newTheme;
-    // TODO: Apply theme to document
+
+    // Map theme IDs to CSS class names
+    const themeClassMap = {
+      'tokyo-night': 'theme--night',
+      catppuccin: 'theme--catppuccin',
+      everforest: 'theme--everforest',
+      gruvbox: 'theme--gruvbox',
+      'gruvbox-light': 'theme--day',
+      'osaka-jade': 'theme--osaka',
+      kanagawa: 'theme--kanagawa',
+      nord: 'theme--nord',
+      'matte-black': 'theme--matte',
+      ristretto: 'theme--dusk',
+      'flexoki-light': 'theme--flexoki',
+      'rose-pine': 'theme--rose',
+      'catppuccin-latte': 'theme--latte'
+    };
+
+    // Remove all theme classes
+    const classesToRemove = Array.from(document.body.classList).filter(className =>
+      className.startsWith('theme--')
+    );
+    classesToRemove.forEach(className => {
+      document.body.classList.remove(className);
+    });
+
+    // Add new theme class
+    const themeClass = themeClassMap[newTheme] || 'theme--night';
+    document.body.classList.add(themeClass);
+    console.log('Theme changed to:', newTheme, 'CSS class:', themeClass);
   }
 
   function handleNotificationsClick() {
@@ -50,7 +104,7 @@
   }
 
   function handleSettingsClick() {
-    activeTab = 'settings';
+    navigate('/settings');
   }
 
   function handleLogoutClick() {
@@ -59,11 +113,10 @@
   }
 </script>
 
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-[var(--bg)]">
   <!-- Header -->
   <Header
     {activeTab}
-    onTabChange={handleTabChange}
     {username}
     {role}
     {todayStats}
@@ -110,20 +163,24 @@
   <!-- Notifications Panel (if needed) -->
   {#if showNotifications}
     <div
-      class="fixed top-12 right-4 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50"
+      class="fixed top-12 right-4 w-80 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg p-4 z-50"
     >
       <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold text-gray-900">Notifications</h3>
+        <h3 class="font-semibold text-[var(--text-heading)] text-sm">Notifications</h3>
         <button
           onclick={() => (showNotifications = false)}
-          class="text-gray-500 hover:text-gray-700"
+          class="text-[var(--muted)] hover:text-[var(--text)] border-0 bg-transparent cursor-pointer text-lg leading-none p-1"
         >
           ✕
         </button>
       </div>
-      <div class="space-y-2 text-sm text-gray-600">
-        <div class="p-2 bg-blue-50 rounded">System health check passed</div>
-        <div class="p-2 bg-green-50 rounded">Build completed successfully</div>
+      <div class="space-y-2 text-sm text-[var(--text)]">
+        <div class="p-2 bg-[var(--accent-subtle)] text-[var(--accent)] rounded">
+          System health check passed
+        </div>
+        <div class="p-2 bg-[var(--success-subtle)] text-[var(--success)] rounded">
+          Build completed successfully
+        </div>
       </div>
     </div>
   {/if}

@@ -51,61 +51,63 @@
 <div class="user-menu-container relative">
   <button
     onclick={toggleMenu}
-    class="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 transition-colors font-sans"
+    class="flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--surface-2)] transition-colors font-sans"
     aria-label="User menu for {username}"
     aria-expanded={showMenu}
     aria-haspopup="menu"
   >
     <span
-      class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-xs"
+      class="w-6 h-6 rounded-full bg-[var(--accent)] text-[#ffffff] flex items-center justify-center font-semibold text-xs"
     >
       {userInitial}
     </span>
-    <span class="text-xs font-medium text-gray-700">{username}</span>
-    <span class="text-[10px] text-gray-400">{showMenu ? '▲' : '▼'}</span>
+    <span class="text-sm font-medium text-[var(--text)]">{username}</span>
+    <span class="text-xs text-[var(--muted)]">{showMenu ? '▲' : '▼'}</span>
   </button>
 
   {#if showMenu}
     <div
-      class="absolute top-full right-0 mt-2 min-w-[240px] bg-white border border-gray-200 rounded-lg shadow-lg z-[10000] animate-slideDown"
+      class="absolute top-full right-0 mt-2 min-w-[240px] bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg z-[10000] animate-slideDown"
       role="menu"
       aria-label="User account menu"
     >
       <!-- User Info Section -->
       <div class="flex items-center gap-3 p-4">
         <div
-          class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm"
+          class="w-10 h-10 rounded-full bg-[var(--accent)] text-[#ffffff] flex items-center justify-center font-semibold text-sm"
         >
           {userInitial}
         </div>
         <div class="flex-1">
-          <div class="text-xs font-semibold text-gray-900 font-mono mb-1">{username}</div>
-          <div class="flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded w-fit">
+          <div class="text-sm font-semibold text-[var(--text-heading)] font-mono mb-1">
+            {username}
+          </div>
+          <div class="flex items-center gap-1 px-2 py-0.5 bg-[var(--surface-2)] rounded w-fit">
             <span class="text-xs">{roleBadge.emoji}</span>
-            <span class="text-xs font-medium text-gray-600 font-mono">{roleBadge.label}</span>
+            <span class="text-xs font-medium text-[var(--muted)] font-mono">{roleBadge.label}</span>
           </div>
         </div>
       </div>
 
-      <div class="h-px bg-gray-200 mx-3"></div>
+      <div class="h-px bg-[var(--border)] mx-3"></div>
 
       <!-- Menu Items -->
       <button
         onclick={handleSettings}
-        class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+        class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-[var(--surface-2)] transition-colors border-0 cursor-pointer bg-transparent"
         role="menuitem"
       >
         <span class="text-sm">⚙️</span>
-        <span class="text-xs font-medium text-gray-700">Settings</span>
+        <span class="text-sm font-medium text-[var(--text)]">Settings</span>
       </button>
 
       <button
         onclick={handleLogout}
-        class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+        class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-[var(--surface-2)] transition-colors border-0 cursor-pointer bg-transparent"
         role="menuitem"
       >
         <span class="text-sm">🚪</span>
-        <span class="text-xs font-medium text-gray-700">Logout</span>
+        <span class="text-sm font-medium text-[var(--text)]">Logout</span>
       </button>
     </div>
   {/if}
