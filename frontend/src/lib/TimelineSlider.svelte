@@ -3,7 +3,7 @@
   import { formatShortDateTime } from './timeFormat.js';
 
   export let events = [];
-  export let onTimeRangeChange = (start, end) => {};
+  export let onTimeRangeChange = (_start, _end) => {};
 
   let sliderRef;
   let isDragging = false;
@@ -21,16 +21,22 @@
   $: {
     if (events !== cachedEvents) {
       cachedEvents = events;
-      cachedSortedEvents = [...(events || [])].sort((a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      cachedSortedEvents = [...(events || [])].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
     }
   }
 
   $: sortedEvents = cachedSortedEvents;
 
-  $: minTime = sortedEvents.length > 0 && sortedEvents[0]?.timestamp ? new Date(sortedEvents[0].timestamp).getTime() : Date.now();
-  $: maxTime = sortedEvents.length > 0 ? new Date(sortedEvents[sortedEvents.length - 1]?.timestamp).getTime() : Date.now();
+  $: minTime =
+    sortedEvents.length > 0 && sortedEvents[0]?.timestamp
+      ? new Date(sortedEvents[0].timestamp).getTime()
+      : Date.now();
+  $: maxTime =
+    sortedEvents.length > 0
+      ? new Date(sortedEvents[sortedEvents.length - 1]?.timestamp).getTime()
+      : Date.now();
   $: timeRange = maxTime - minTime || 1;
 
   $: startTime = minTime + (startHandle / 100) * timeRange;
@@ -50,7 +56,11 @@
   // Calculate event density for visualization (memoized)
   $: {
     // Only recalculate if events, minTime, or timeRange changed
-    if (sortedEvents !== cachedDensityEvents || minTime !== cachedMinTime || timeRange !== cachedTimeRange) {
+    if (
+      sortedEvents !== cachedDensityEvents ||
+      minTime !== cachedMinTime ||
+      timeRange !== cachedTimeRange
+    ) {
       cachedDensityEvents = sortedEvents;
       cachedMinTime = minTime;
       cachedTimeRange = timeRange;
@@ -136,12 +146,21 @@
 <div class="timeline-slider" role="region" aria-label="Timeline filter">
   <div class="timeline-header">
     <span class="timeline-label" id="timeline-label">Timeline</span>
-    <button class="reset-btn" on:click={resetRange} aria-label="Reset timeline range to show all events">
+    <button
+      class="reset-btn"
+      on:click={resetRange}
+      aria-label="Reset timeline range to show all events"
+    >
       <span aria-hidden="true">🔄</span> Reset
     </button>
   </div>
 
-  <div class="slider-container" bind:this={sliderRef} aria-labelledby="timeline-label" aria-describedby="timeline-info">
+  <div
+    class="slider-container"
+    bind:this={sliderRef}
+    aria-labelledby="timeline-label"
+    aria-describedby="timeline-info"
+  >
     <!-- Event density visualization -->
     <div class="density-bars" aria-hidden="true">
       {#each eventDensity || [] as density, i (i)}
@@ -166,7 +185,7 @@
     <div
       class="slider-handle start-handle"
       style="left: {startHandle}%"
-      on:mousedown={(e) => handleMouseDown(e, 'start')}
+      on:mousedown={e => handleMouseDown(e, 'start')}
       role="slider"
       aria-label="Timeline start"
       aria-valuemin="0"
@@ -182,7 +201,7 @@
     <div
       class="slider-handle end-handle"
       style="left: {endHandle}%"
-      on:mousedown={(e) => handleMouseDown(e, 'end')}
+      on:mousedown={e => handleMouseDown(e, 'end')}
       role="slider"
       aria-label="Timeline end"
       aria-valuemin="0"

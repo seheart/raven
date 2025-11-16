@@ -20,7 +20,7 @@
    */
   async function fetchProjects() {
     try {
-      const res = await fetch(`${API_BASE}/projects/list`);
+      const response = await fetch(`${API_BASE}/projects/list`);
 
       const data = await response.json();
       availableProjects.set(data?.projects || []);
@@ -39,7 +39,7 @@
     projectStatus.set({ loading: true, error: null });
 
     try {
-      const res = await fetch(`${API_BASE}/projects/refresh`, {
+      const response = await fetch(`${API_BASE}/projects/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -81,8 +81,6 @@
         const errorData = await res.json();
         throw new Error(errorData.error || 'Failed to switch project');
       }
-
-      const data = await res.json();
 
       // Update store
       activeProject.set(newProject);

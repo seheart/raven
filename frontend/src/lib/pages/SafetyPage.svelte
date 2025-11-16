@@ -94,13 +94,13 @@
           testResults.passed = testData.results.filter(t => t.status === 'passed').length;
           testResults.failed = testData.results.filter(t => t.status === 'failed').length;
         }
-      } catch (err) {
+      } catch {
         // Tests not available yet
       }
 
       lastUpdated = new Date();
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load safety data:', err);
       error = err.message;
       loading = false;

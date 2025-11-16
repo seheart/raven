@@ -62,7 +62,7 @@
         search: searchQuery
       });
 
-      const res = await fetch(`${API_BASE}/activity-log?${params}`);
+      const response = await fetch(`${API_BASE}/activity-log?${params}`);
       const data = await response.json();
 
       if (offset === 0) {
@@ -361,7 +361,7 @@
 
   async function exportLog() {
     try {
-      const res = await fetch(`${API_BASE}/activity-log?limit=10000`);
+      const response = await fetch(`${API_BASE}/activity-log?limit=10000`);
       const data = await response.json();
 
       // Build export with session metadata
@@ -398,7 +398,7 @@
 
   async function exportToCSV() {
     try {
-      const res = await fetch(`${API_BASE}/activity-log?limit=10000`);
+      const response = await fetch(`${API_BASE}/activity-log?limit=10000`);
       const data = await response.json();
 
       // CSV headers

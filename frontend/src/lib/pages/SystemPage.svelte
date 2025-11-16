@@ -67,23 +67,29 @@
 
       const [healthData, projectsData, errorsData, notifData, apiHealthData, dashboardData] =
         await Promise.all([
-          api.get('/health')
-            
+          api
+            .get('/health')
+
             .catch(() => ({})),
-          api.get('/health/projects')
-            
+          api
+            .get('/health/projects')
+
             .catch(() => ({ projects: [] })),
-          api.get('/errors/stats')
-            
+          api
+            .get('/errors/stats')
+
             .catch(() => ({ total: 0 })),
-          api.get('/notifications/stats')
-            
+          api
+            .get('/notifications/stats')
+
             .catch(() => ({ unread: 0 })),
-          api.get('/health-checks')
-            
+          api
+            .get('/health-checks')
+
             .catch(() => null),
-          api.get('/dashboard-stats')
-            
+          api
+            .get('/dashboard-stats')
+
             .catch(() => ({ total_events: 0 }))
         ]);
 
@@ -107,7 +113,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load system data:', err);
       error = err.message;
       loading = false;

@@ -111,7 +111,7 @@
       totalErrors = data.total || errors.length;
       hasMore = data.hasMore || false;
       lastUpdated = new Date();
-    } catch (err) {
+    } catch {
       error = err.message;
       logger.error('Failed to load errors:', err);
     } finally {
@@ -139,7 +139,7 @@
           severityStats[s.severity] = s.count;
         }
       });
-    } catch (err) {
+    } catch {
       logger.error('Failed to load error stats:', err);
     }
   }
@@ -179,7 +179,7 @@
       alert(result.message || 'All errors cleared');
       await loadErrors();
       await loadStats();
-    } catch (err) {
+    } catch {
       alert('Failed to clear error logs: ' + err.message);
     }
   }
@@ -199,7 +199,7 @@
       alert(result.message || `Errors older than ${parsedDays} days cleared`);
       await loadErrors();
       await loadStats();
-    } catch (err) {
+    } catch {
       alert('Failed to clear old error logs: ' + err.message);
     }
   }
@@ -276,7 +276,7 @@
         loadErrors();
         loadStats();
       }, 200);
-    } catch (err) {
+    } catch {
       alert('Failed to log test error: ' + err.message);
     }
   }
@@ -295,7 +295,7 @@
       a.click();
 
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
       alert('Export failed: ' + err.message);
     }
   }

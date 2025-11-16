@@ -4,14 +4,12 @@
   import { formatShortDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { projectFilter, availableProjects } from './projectFilterStore.js';
-  import { API_CONFIG } from '../config.js';
+
   import { logger } from './logger.js';
   import { formatNumber } from './numberFormat.js';
   import { dataService } from './dataService.js';
   import { api } from './apiClient.js';
   import { notifications } from './notificationService.js';
-
-  const API_BASE = API_CONFIG.BASE_URL;
 
   let backendStatus = {
     connected: false,
@@ -76,7 +74,7 @@
       lastUpdated = new Date();
       loading = false;
       isManualRefresh = false;
-    } catch (error) {
+    } catch {
       logger.error('Backend health check failed:', error);
       backendStatus.connected = false;
       loading = false;
@@ -103,7 +101,7 @@
         branches: branchesData.branches || [],
         commits: historyData.commits || []
       };
-    } catch (error) {
+    } catch {
       // Silently fail for git - it's optional
       gitStatus.available = false;
     }
@@ -171,7 +169,7 @@
         logger.error('Bridge restart failed:', result.error);
         notifications.error(`Failed to restart bridge: ${result.error}`);
       }
-    } catch (error) {
+    } catch {
       logger.error('Error restarting bridge:', error);
       notifications.error(`Error restarting bridge: ${error.message}`);
     } finally {
@@ -180,7 +178,7 @@
   }
 
   // WebSocket event handlers
-  const handleProjectSwitched = async data => {
+  const handleProjectSwitched = async _data => {
     await checkBackendHealth();
     await checkGitStatus();
   };

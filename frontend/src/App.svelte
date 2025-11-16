@@ -24,7 +24,6 @@
   // Section overview landing pages
   import SafetyOverview from './lib/SafetyOverview.svelte';
   import AgentsOverview from './lib/AgentsOverview.svelte';
-  import ActivityOverview from './lib/ActivityOverview.svelte';
   import AnalysisOverview from './lib/AnalysisOverview.svelte';
   import SystemOverview from './lib/SystemOverview.svelte';
 

@@ -188,14 +188,14 @@
             total_errors: 0,
             last_activity: eventsData.events?.[0]?.timestamp || null
           };
-        } catch (error) {
+        } catch {
           logger.error(`Failed to load stats for project ${project.name}:`, error);
           return { ...project, total_events: 0, total_errors: 0, last_activity: null };
         }
       });
 
       projects = await Promise.all(statsPromises);
-    } catch (error) {
+    } catch {
       logger.error('Failed to load projects:', error);
     } finally {
       loading = false;

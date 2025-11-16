@@ -64,12 +64,16 @@
   const enhancedStats = $derived({
     totalActivities: activities.length,
     uniqueSessions: sessions.length,
-    averageSessionDuration: sessions.length > 0
-      ? Math.floor(sessions.reduce((sum, s) => sum + s.duration, 0) / sessions.length)
-      : 0,
-    activitiesPerHour: activities.length > 0 && sessions.length > 0
-      ? (activities.length / Math.max(1, sessions.reduce((sum, s) => sum + s.duration, 0) / 3600)).toFixed(2)
-      : 0
+    averageSessionDuration:
+      sessions.length > 0
+        ? Math.floor(sessions.reduce((sum, s) => sum + s.duration, 0) / sessions.length)
+        : 0,
+    activitiesPerHour:
+      activities.length > 0 && sessions.length > 0
+        ? (
+            activities.length / Math.max(1, sessions.reduce((sum, s) => sum + s.duration, 0) / 3600)
+          ).toFixed(2)
+        : 0
   });
 
   async function loadActivities(manual = false) {
@@ -130,10 +134,11 @@
       }
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        filtered = filtered.filter(a =>
-          a.description.toLowerCase().includes(query) ||
-          a.type.toLowerCase().includes(query) ||
-          (a.target && a.target.toLowerCase().includes(query))
+        filtered = filtered.filter(
+          a =>
+            a.description.toLowerCase().includes(query) ||
+            a.type.toLowerCase().includes(query) ||
+            (a.target && a.target.toLowerCase().includes(query))
         );
       }
 
@@ -159,7 +164,7 @@
       lastUpdated = new Date();
       loading = false;
       isManualRefresh = false;
-    } catch (error) {
+    } catch {
       logger.error('Failed to load activity log:', error);
       loading = false;
       isManualRefresh = false;
@@ -182,7 +187,7 @@
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       recentActivity = combined.slice(0, 30);
-    } catch (error) {
+    } catch {
       logger.error('Failed to load recent activity:', error);
     }
   }
@@ -246,16 +251,16 @@
 
   function applySorting(sessionsArray) {
     switch (sortBy) {
-    case 'time_asc':
-      return sessionsArray.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-    case 'time_desc':
-      return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-    case 'duration_desc':
-      return sessionsArray.sort((a, b) => b.duration - a.duration);
-    case 'events_desc':
-      return sessionsArray.sort((a, b) => b.totalEvents - a.totalEvents);
-    default:
-      return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+      case 'time_asc':
+        return sessionsArray.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+      case 'time_desc':
+        return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+      case 'duration_desc':
+        return sessionsArray.sort((a, b) => b.duration - a.duration);
+      case 'events_desc':
+        return sessionsArray.sort((a, b) => b.totalEvents - a.totalEvents);
+      default:
+        return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
     }
   }
 
@@ -297,7 +302,7 @@
       const endpoint = isPaused ? '/resume' : '/pause';
       await api.post(endpoint);
       isPaused = !isPaused;
-    } catch (err) {
+    } catch {
       logger.error('Failed to toggle tracking:', err);
     }
   }
@@ -336,7 +341,7 @@
       a.click();
 
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       logger.error('Export failed:', error);
     }
   }
@@ -355,12 +360,16 @@
 
       const csv = [
         headers.join(','),
-        ...rows.map(row => row.map(cell => {
-          const escaped = String(cell).replace(/"/g, '""');
-          return escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')
-            ? `"${escaped}"`
-            : escaped;
-        }).join(','))
+        ...rows.map(row =>
+          row
+            .map(cell => {
+              const escaped = String(cell).replace(/"/g, '""');
+              return escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')
+                ? `"${escaped}"`
+                : escaped;
+            })
+            .join(',')
+        )
       ].join('\n');
 
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -372,56 +381,72 @@
       a.click();
 
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       logger.error('CSV export failed:', error);
     }
   }
 
   function getChangeTypeIcon(changeType) {
     switch (changeType) {
-    case 'add':
-    case 'create':
-    case 'created': return '➕';
-    case 'change':
-    case 'edit':
-    case 'modified': return '✏️';
-    case 'unlink':
-    case 'delete':
-    case 'deleted': return '🗑️';
-    default: return '📝';
+      case 'add':
+      case 'create':
+      case 'created':
+        return '➕';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return '✏️';
+      case 'unlink':
+      case 'delete':
+      case 'deleted':
+        return '🗑️';
+      default:
+        return '📝';
     }
   }
 
   function getChangeTypeColor(changeType) {
     switch (changeType) {
-    case 'add':
-    case 'create':
-    case 'created': return 'var(--success)';
-    case 'change':
-    case 'edit':
-    case 'modified': return 'var(--warning)';
-    case 'unlink':
-    case 'delete':
-    case 'deleted': return 'var(--error)';
-    default: return 'var(--info)';
+      case 'add':
+      case 'create':
+      case 'created':
+        return 'var(--success)';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return 'var(--warning)';
+      case 'unlink':
+      case 'delete':
+      case 'deleted':
+        return 'var(--error)';
+      default:
+        return 'var(--info)';
     }
   }
 
   function getCategoryIcon(category) {
     switch (category) {
-    case 'file': return '📁';
-    case 'agent': return '🤖';
-    case 'system': return '⚙️';
-    default: return '📝';
+      case 'file':
+        return '📁';
+      case 'agent':
+        return '🤖';
+      case 'system':
+        return '⚙️';
+      default:
+        return '📝';
     }
   }
 
   function getCategoryColor(category) {
     switch (category) {
-    case 'file': return 'var(--info)';
-    case 'agent': return 'var(--accent)';
-    case 'system': return 'var(--warning)';
-    default: return 'var(--muted)';
+      case 'file':
+        return 'var(--info)';
+      case 'agent':
+        return 'var(--accent)';
+      case 'system':
+        return 'var(--warning)';
+      default:
+        return 'var(--muted)';
     }
   }
 
@@ -464,7 +489,7 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     const textColor = getColor('--text', '#c0caf5');
@@ -485,10 +510,12 @@
         type: 'pie',
         data: {
           labels: ['File', 'Agent', 'System'],
-          datasets: [{
-            data: [stats.file, stats.agent, stats.system],
-            backgroundColor: [themeColors.accent, themeColors.success, themeColors.warning]
-          }]
+          datasets: [
+            {
+              data: [stats.file, stats.agent, stats.system],
+              backgroundColor: [themeColors.accent, themeColors.success, themeColors.warning]
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -524,11 +551,13 @@
         type: 'bar',
         data: {
           labels: sessionLabels,
-          datasets: [{
-            label: 'Events',
-            data: sessionData,
-            backgroundColor: themeColors.accent
-          }]
+          datasets: [
+            {
+              label: 'Events',
+              data: sessionData,
+              backgroundColor: themeColors.accent
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -572,19 +601,21 @@
         type: 'bar',
         data: {
           labels: hourLabels,
-          datasets: [{
-            label: 'Activities',
-            data: hourCounts,
-            backgroundColor: hourCounts.map(count => {
-              const max = Math.max(...hourCounts);
-              const intensity = max > 0 ? count / max : 0;
-              const accentColor = themeColors.accent;
-              const r = parseInt(accentColor.slice(1, 3), 16);
-              const g = parseInt(accentColor.slice(3, 5), 16);
-              const b = parseInt(accentColor.slice(5, 7), 16);
-              return `rgba(${r}, ${g}, ${b}, ${0.3 + intensity * 0.7})`;
-            })
-          }]
+          datasets: [
+            {
+              label: 'Activities',
+              data: hourCounts,
+              backgroundColor: hourCounts.map(count => {
+                const max = Math.max(...hourCounts);
+                const intensity = max > 0 ? count / max : 0;
+                const accentColor = themeColors.accent;
+                const r = parseInt(accentColor.slice(1, 3), 16);
+                const g = parseInt(accentColor.slice(3, 5), 16);
+                const b = parseInt(accentColor.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${0.3 + intensity * 0.7})`;
+              })
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -621,8 +652,8 @@
     // 4. Cumulative activities line chart
     const lineCanvas = document.getElementById('chart-cumulative-activities');
     if (lineCanvas) {
-      const sortedActivities = [...activities].sort((a, b) =>
-        new Date(a.timestamp) - new Date(b.timestamp)
+      const sortedActivities = [...activities].sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
       );
 
       const cumulativeData = sortedActivities.map((_, index) => index + 1);
@@ -632,14 +663,16 @@
         type: 'line',
         data: {
           labels: timeLabels,
-          datasets: [{
-            label: 'Cumulative Activities',
-            data: cumulativeData,
-            borderColor: themeColors.success,
-            backgroundColor: `${themeColors.success}1a`,
-            fill: true,
-            tension: 0.4
-          }]
+          datasets: [
+            {
+              label: 'Cumulative Activities',
+              data: cumulativeData,
+              borderColor: themeColors.success,
+              backgroundColor: `${themeColors.success}1a`,
+              fill: true,
+              tension: 0.4
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -679,22 +712,22 @@
     }
 
     switch (event.key) {
-    case '1':
-      setFilter('all');
-      break;
-    case '2':
-      setFilter('file');
-      break;
-    case '3':
-      setFilter('agent');
-      break;
-    case '4':
-      setFilter('system');
-      break;
-    case 'r':
-    case 'R':
-      loadActivities(true);
-      break;
+      case '1':
+        setFilter('all');
+        break;
+      case '2':
+        setFilter('file');
+        break;
+      case '3':
+        setFilter('agent');
+        break;
+      case '4':
+        setFilter('system');
+        break;
+      case 'r':
+      case 'R':
+        loadActivities(true);
+        break;
     }
   }
 
@@ -735,8 +768,8 @@
 
     window.addEventListener('keydown', handleKeydown);
 
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
           setTimeout(createCharts, 100);
         }
@@ -766,7 +799,9 @@
     <div class="flex justify-between items-start mb-6 pb-6 border-b-2 border-[var(--border)]">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-2">📜 Activity Log</h1>
-        <p class="text-sm text-[var(--muted)]">Complete audit trail • All files • Build artifacts • System events</p>
+        <p class="text-sm text-[var(--muted)]">
+          Complete audit trail • All files • Build artifacts • System events
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <span class="text-sm text-[var(--muted)] font-mono">Updated: {timeAgo}</span>
@@ -807,7 +842,7 @@
             type="text"
             placeholder="Search activities..."
             bind:value={searchQuery}
-            onkeydown={(e) => e.key === 'Enter' && search()}
+            onkeydown={e => e.key === 'Enter' && search()}
             class="flex-1 px-4 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           />
           <button
@@ -820,8 +855,13 @@
 
         <div class="flex gap-3 items-center">
           <button
-            onclick={() => { groupBySession = !groupBySession; groupActivitiesBySession(); }}
-            class="px-4 py-2 text-sm font-semibold rounded transition-all border {groupBySession ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+            onclick={() => {
+              groupBySession = !groupBySession;
+              groupActivitiesBySession();
+            }}
+            class="px-4 py-2 text-sm font-semibold rounded transition-all border {groupBySession
+              ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+              : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
           >
             📦 Session View
           </button>
@@ -842,25 +882,36 @@
       <div class="flex gap-3">
         <button
           onclick={() => setFilter('all')}
-          class="px-6 py-3 text-sm font-medium rounded transition-all border {selectedType === 'all' ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+          class="px-6 py-3 text-sm font-medium rounded transition-all border {selectedType === 'all'
+            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+            : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
         >
           All ({total})
         </button>
         <button
           onclick={() => setFilter('file')}
-          class="px-6 py-3 text-sm font-medium rounded transition-all border {selectedType === 'file' ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+          class="px-6 py-3 text-sm font-medium rounded transition-all border {selectedType ===
+          'file'
+            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+            : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
         >
           📁 Files ({stats.file})
         </button>
         <button
           onclick={() => setFilter('agent')}
-          class="px-6 py-3 text-sm font-medium rounded transition-all border {selectedType === 'agent' ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+          class="px-6 py-3 text-sm font-medium rounded transition-all border {selectedType ===
+          'agent'
+            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+            : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
         >
           🤖 Agents ({stats.agent})
         </button>
         <button
           onclick={() => setFilter('system')}
-          class="px-6 py-3 text-sm font-medium rounded transition-all border {selectedType === 'system' ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+          class="px-6 py-3 text-sm font-medium rounded transition-all border {selectedType ===
+          'system'
+            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+            : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
         >
           ⚙️ System ({stats.system})
         </button>
@@ -871,35 +922,59 @@
     {#if !loading && activities.length > 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5">
+          <div
+            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
+          >
             <div class="text-3xl">📈</div>
             <div>
-              <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">Total Activities</div>
-              <div class="text-2xl font-bold text-[var(--text)] font-mono">{enhancedStats.totalActivities}</div>
+              <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
+                Total Activities
+              </div>
+              <div class="text-2xl font-bold text-[var(--text)] font-mono">
+                {enhancedStats.totalActivities}
+              </div>
             </div>
           </div>
 
-          <div class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5">
+          <div
+            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
+          >
             <div class="text-3xl">🔖</div>
             <div>
-              <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">Unique Sessions</div>
-              <div class="text-2xl font-bold text-[var(--text)] font-mono">{enhancedStats.uniqueSessions}</div>
+              <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
+                Unique Sessions
+              </div>
+              <div class="text-2xl font-bold text-[var(--text)] font-mono">
+                {enhancedStats.uniqueSessions}
+              </div>
             </div>
           </div>
 
-          <div class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5">
+          <div
+            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
+          >
             <div class="text-3xl">⏱️</div>
             <div>
-              <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">Avg Session Duration</div>
-              <div class="text-2xl font-bold text-[var(--text)] font-mono">{formatDuration(enhancedStats.averageSessionDuration)}</div>
+              <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
+                Avg Session Duration
+              </div>
+              <div class="text-2xl font-bold text-[var(--text)] font-mono">
+                {formatDuration(enhancedStats.averageSessionDuration)}
+              </div>
             </div>
           </div>
 
-          <div class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5">
+          <div
+            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
+          >
             <div class="text-3xl">⚡</div>
             <div>
-              <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">Activities Per Hour</div>
-              <div class="text-2xl font-bold text-[var(--text)] font-mono">{enhancedStats.activitiesPerHour}</div>
+              <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
+                Activities Per Hour
+              </div>
+              <div class="text-2xl font-bold text-[var(--text)] font-mono">
+                {enhancedStats.activitiesPerHour}
+              </div>
             </div>
           </div>
         </div>
@@ -909,33 +984,52 @@
       {#if showCharts}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
           <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-semibold text-[var(--text-heading)]">📊 Analytics Visualizations</h3>
+            <h3 class="text-lg font-semibold text-[var(--text-heading)]">
+              📊 Analytics Visualizations
+            </h3>
             <button
-              onclick={() => showCharts = false}
+              onclick={() => (showCharts = false)}
               class="px-3 py-2 text-sm bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)]"
             >
               Hide Charts
             </button>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4" style="height: 250px;">
+            <div
+              class="bg-[var(--bg)] border border-[var(--border)] rounded p-4"
+              style="height: 250px;"
+            >
               <canvas id="chart-activity-types"></canvas>
             </div>
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4" style="height: 250px;">
+            <div
+              class="bg-[var(--bg)] border border-[var(--border)] rounded p-4"
+              style="height: 250px;"
+            >
               <canvas id="chart-activities-per-session"></canvas>
             </div>
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 md:col-span-2" style="height: 320px;">
+            <div
+              class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 md:col-span-2"
+              style="height: 320px;"
+            >
               <canvas id="chart-activities-by-hour"></canvas>
             </div>
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 md:col-span-2" style="height: 280px;">
+            <div
+              class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 md:col-span-2"
+              style="height: 280px;"
+            >
               <canvas id="chart-cumulative-activities"></canvas>
             </div>
           </div>
         </div>
       {:else}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 text-center">
+        <div
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 text-center"
+        >
           <button
-            onclick={() => { showCharts = true; setTimeout(createCharts, 100); }}
+            onclick={() => {
+              showCharts = true;
+              setTimeout(createCharts, 100);
+            }}
             class="px-4 py-2 text-sm bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)]"
           >
             Show Charts
@@ -955,14 +1049,24 @@
           <div class="text-6xl mb-4">📭</div>
           <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-2">No Activities Found</h2>
           {#if selectedType !== 'all'}
-            <p class="text-[var(--muted)] mb-4">No <strong>{selectedType}</strong> activities found. Try changing filters or search query.</p>
+            <p class="text-[var(--muted)] mb-4">
+              No <strong>{selectedType}</strong> activities found. Try changing filters or search query.
+            </p>
           {:else if searchQuery}
-            <p class="text-[var(--muted)] mb-4">No activities match "<strong>{searchQuery}</strong>". Try a different search term.</p>
+            <p class="text-[var(--muted)] mb-4">
+              No activities match "<strong>{searchQuery}</strong>". Try a different search term.
+            </p>
           {:else}
-            <p class="text-[var(--muted)] mb-4">No activity has been logged yet. Start coding and Raven will track all changes!</p>
+            <p class="text-[var(--muted)] mb-4">
+              No activity has been logged yet. Start coding and Raven will track all changes!
+            </p>
           {/if}
           <button
-            onclick={() => { selectedType = 'all'; searchQuery = ''; loadActivities(); }}
+            onclick={() => {
+              selectedType = 'all';
+              searchQuery = '';
+              loadActivities();
+            }}
             class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90"
           >
             Clear Filters
@@ -974,14 +1078,22 @@
           <div class="bg-[var(--bg)] border-2 border-[var(--border)] rounded-lg overflow-hidden">
             <button
               onclick={() => toggleSession(session.id)}
-              class="w-full flex justify-between items-center p-5 bg-[var(--surface)] hover:bg-[var(--surface-2)] transition-colors {collapsedSessions.has(session.id) ? '' : 'border-b-2 border-[var(--border)]'}"
+              class="w-full flex justify-between items-center p-5 bg-[var(--surface)] hover:bg-[var(--surface-2)] transition-colors {collapsedSessions.has(
+                session.id
+              )
+                ? ''
+                : 'border-b-2 border-[var(--border)]'}"
             >
               <div class="flex items-center gap-4 flex-1">
-                <span class="text-[var(--muted)]">{collapsedSessions.has(session.id) ? '▶' : '▼'}</span>
+                <span class="text-[var(--muted)]"
+                  >{collapsedSessions.has(session.id) ? '▶' : '▼'}</span
+                >
                 <div class="flex-1 text-left">
                   <div class="flex items-center gap-3 mb-2">
                     <span class="text-xl">🔖</span>
-                    <span class="text-sm font-bold text-[var(--text)] font-mono">Session: {session.id.substring(0, 12)}</span>
+                    <span class="text-sm font-bold text-[var(--text)] font-mono"
+                      >Session: {session.id.substring(0, 12)}</span
+                    >
                   </div>
                   <div class="flex items-center gap-3 text-xs text-[var(--muted)] font-mono">
                     <span>⏱️ {formatDuration(session.duration)}</span>
@@ -996,14 +1108,20 @@
                   </div>
                 </div>
               </div>
-              <time class="text-sm text-[var(--muted)] font-mono">{formatTimestamp(session.startTime)}</time>
+              <time class="text-sm text-[var(--muted)] font-mono"
+                >{formatTimestamp(session.startTime)}</time
+              >
             </button>
 
             {#if !collapsedSessions.has(session.id)}
               <div class="p-6 bg-[var(--bg)] space-y-3">
                 {#each session.activities as activity (activity.id + activity.category)}
                   {@const isExpanded = expandedActivity?.id === activity.id}
-                  <div class="bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden hover:border-[var(--accent)] transition-colors {isExpanded ? 'border-[var(--accent)]' : ''}">
+                  <div
+                    class="bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden hover:border-[var(--accent)] transition-colors {isExpanded
+                      ? 'border-[var(--accent)]'
+                      : ''}"
+                  >
                     <button
                       onclick={() => toggleActivity(activity)}
                       class="w-full flex justify-between items-center p-4"
@@ -1014,8 +1132,12 @@
                           {getCategoryIcon(activity.category)}
                         </span>
                         <div class="flex-1 min-w-0 text-left">
-                          <div class="text-sm font-medium text-[var(--text)] truncate">{activity.description}</div>
-                          <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mt-1">
+                          <div class="text-sm font-medium text-[var(--text)] truncate">
+                            {activity.description}
+                          </div>
+                          <div
+                            class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mt-1"
+                          >
                             <span>{activity.type}</span>
                             <span>•</span>
                             <span>{formatTimestamp(activity.timestamp)}</span>
@@ -1023,8 +1145,12 @@
                         </div>
                       </div>
                       <div class="flex items-center gap-3">
-                        <span class="text-sm text-[var(--muted)] font-mono">{formatTimestamp(activity.timestamp)}</span>
-                        <span class="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-bold uppercase text-[var(--muted)]">
+                        <span class="text-sm text-[var(--muted)] font-mono"
+                          >{formatTimestamp(activity.timestamp)}</span
+                        >
+                        <span
+                          class="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-bold uppercase text-[var(--muted)]"
+                        >
                           {activity.category}
                         </span>
                       </div>
@@ -1034,33 +1160,57 @@
                       <div class="p-4 border-t border-[var(--border)]">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div class="flex gap-3">
-                            <span class="text-xs text-[var(--muted)] font-semibold uppercase">ID:</span>
+                            <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                              >ID:</span
+                            >
                             <span class="text-sm text-[var(--text)] font-mono">{activity.id}</span>
                           </div>
                           <div class="flex gap-3">
-                            <span class="text-xs text-[var(--muted)] font-semibold uppercase">Type:</span>
-                            <span class="text-sm text-[var(--text)] font-mono">{activity.type}</span>
+                            <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                              >Type:</span
+                            >
+                            <span class="text-sm text-[var(--text)] font-mono">{activity.type}</span
+                            >
                           </div>
                           <div class="flex gap-3">
-                            <span class="text-xs text-[var(--muted)] font-semibold uppercase">Category:</span>
-                            <span class="text-sm text-[var(--text)] font-mono">{activity.category}</span>
+                            <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                              >Category:</span
+                            >
+                            <span class="text-sm text-[var(--text)] font-mono"
+                              >{activity.category}</span
+                            >
                           </div>
                           <div class="flex gap-3">
-                            <span class="text-xs text-[var(--muted)] font-semibold uppercase">Timestamp:</span>
-                            <span class="text-sm text-[var(--text)] font-mono">{activity.timestamp}</span>
+                            <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                              >Timestamp:</span
+                            >
+                            <span class="text-sm text-[var(--text)] font-mono"
+                              >{activity.timestamp}</span
+                            >
                           </div>
                           {#if activity.target}
                             <div class="flex gap-3 md:col-span-2">
-                              <span class="text-xs text-[var(--muted)] font-semibold uppercase">Target:</span>
-                              <span class="text-sm text-[var(--text)] font-mono">{activity.target}</span>
+                              <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                                >Target:</span
+                              >
+                              <span class="text-sm text-[var(--text)] font-mono"
+                                >{activity.target}</span
+                              >
                             </div>
                           {/if}
                         </div>
 
                         {#if activity.metadata && Object.keys(activity.metadata).length > 0}
                           <div class="mt-4">
-                            <h4 class="text-xs text-[var(--muted)] uppercase font-semibold mb-2">Metadata</h4>
-                            <pre class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(activity.metadata, null, 2)}</pre>
+                            <h4 class="text-xs text-[var(--muted)] uppercase font-semibold mb-2">
+                              Metadata
+                            </h4>
+                            <pre
+                              class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                                activity.metadata,
+                                null,
+                                2
+                              )}</pre>
                           </div>
                         {/if}
                       </div>
@@ -1075,7 +1225,11 @@
         <!-- Flat List View -->
         {#each activities as activity (activity.id + activity.category)}
           {@const isExpanded = expandedActivity?.id === activity.id}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden hover:border-[var(--accent)] transition-colors {isExpanded ? 'border-[var(--accent)]' : ''}">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden hover:border-[var(--accent)] transition-colors {isExpanded
+              ? 'border-[var(--accent)]'
+              : ''}"
+          >
             <button
               onclick={() => toggleActivity(activity)}
               class="w-full flex justify-between items-center p-4"
@@ -1086,21 +1240,29 @@
                   {getCategoryIcon(activity.category)}
                 </span>
                 <div class="flex-1 min-w-0 text-left">
-                  <div class="text-sm font-medium text-[var(--text)] truncate">{activity.description}</div>
+                  <div class="text-sm font-medium text-[var(--text)] truncate">
+                    {activity.description}
+                  </div>
                   <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mt-1">
                     <span>{activity.type}</span>
                     <span>•</span>
                     <span>{formatTimestamp(activity.timestamp)}</span>
                     {#if activity.session_id}
                       <span>•</span>
-                      <span class="text-[var(--accent)] font-semibold">{activity.session_id.substring(0, 8)}</span>
+                      <span class="text-[var(--accent)] font-semibold"
+                        >{activity.session_id.substring(0, 8)}</span
+                      >
                     {/if}
                   </div>
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <span class="text-sm text-[var(--muted)] font-mono">{formatTimestamp(activity.timestamp)}</span>
-                <span class="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-bold uppercase text-[var(--muted)]">
+                <span class="text-sm text-[var(--muted)] font-mono"
+                  >{formatTimestamp(activity.timestamp)}</span
+                >
+                <span
+                  class="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-bold uppercase text-[var(--muted)]"
+                >
                   {activity.category}
                 </span>
               </div>
@@ -1118,16 +1280,22 @@
                     <span class="text-sm text-[var(--text)] font-mono">{activity.type}</span>
                   </div>
                   <div class="flex gap-3">
-                    <span class="text-xs text-[var(--muted)] font-semibold uppercase">Category:</span>
+                    <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                      >Category:</span
+                    >
                     <span class="text-sm text-[var(--text)] font-mono">{activity.category}</span>
                   </div>
                   <div class="flex gap-3">
-                    <span class="text-xs text-[var(--muted)] font-semibold uppercase">Timestamp:</span>
+                    <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                      >Timestamp:</span
+                    >
                     <span class="text-sm text-[var(--text)] font-mono">{activity.timestamp}</span>
                   </div>
                   {#if activity.target}
                     <div class="flex gap-3 md:col-span-2">
-                      <span class="text-xs text-[var(--muted)] font-semibold uppercase">Target:</span>
+                      <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                        >Target:</span
+                      >
                       <span class="text-sm text-[var(--text)] font-mono">{activity.target}</span>
                     </div>
                   {/if}
@@ -1135,8 +1303,15 @@
 
                 {#if activity.metadata && Object.keys(activity.metadata).length > 0}
                   <div class="mt-4">
-                    <h4 class="text-xs text-[var(--muted)] uppercase font-semibold mb-2">Metadata</h4>
-                    <pre class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(activity.metadata, null, 2)}</pre>
+                    <h4 class="text-xs text-[var(--muted)] uppercase font-semibold mb-2">
+                      Metadata
+                    </h4>
+                    <pre
+                      class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                        activity.metadata,
+                        null,
+                        2
+                      )}</pre>
                   </div>
                 {/if}
               </div>
@@ -1159,7 +1334,9 @@
     </div>
 
     <!-- Recent Activity Sidebar (Right side on desktop) -->
-    <aside class="fixed right-0 top-0 h-screen w-80 bg-[var(--surface)] border-l border-[var(--border)] overflow-hidden hidden xl:flex flex-col">
+    <aside
+      class="fixed right-0 top-0 h-screen w-80 bg-[var(--surface)] border-l border-[var(--border)] overflow-hidden hidden xl:flex flex-col"
+    >
       <div class="p-5 bg-[var(--bg)] border-b border-[var(--border)]">
         <h3 class="text-sm font-semibold text-[var(--text)]">⚡ Recent Activity</h3>
       </div>
@@ -1171,7 +1348,9 @@
         {:else}
           <div class="space-y-2">
             {#each recentActivity as activity, index (`${activity.id || activity.type}-${activity.timestamp}-${index}`)}
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 hover:border-[var(--accent)] transition-colors">
+              <div
+                class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 hover:border-[var(--accent)] transition-colors"
+              >
                 <div class="text-lg flex-shrink-0">
                   {#if activity.type === 'file'}
                     <span style="color: {getChangeTypeColor(activity.change_type)}">
@@ -1184,18 +1363,26 @@
 
                 <div class="flex-1 min-w-0">
                   {#if activity.type === 'file'}
-                    <div class="text-xs font-medium text-[var(--text)] font-mono truncate">{truncatePath(activity.filepath)}</div>
+                    <div class="text-xs font-medium text-[var(--text)] font-mono truncate">
+                      {truncatePath(activity.filepath)}
+                    </div>
                     <div class="flex items-center gap-2 text-[10px] text-[var(--muted)] mt-1">
-                      <span class="px-1.5 py-0.5 bg-[var(--surface)] rounded uppercase">{activity.change_type}</span>
+                      <span class="px-1.5 py-0.5 bg-[var(--surface)] rounded uppercase"
+                        >{activity.change_type}</span
+                      >
                       {#if activity.project_name}
                         <ProjectBadge project={activity.project_name} size="small" />
                       {/if}
                       <span>{formatTimestamp(activity.timestamp)}</span>
                     </div>
                   {:else}
-                    <div class="text-xs font-medium text-[var(--text)] truncate">{activity.agent || 'Agent'}</div>
+                    <div class="text-xs font-medium text-[var(--text)] truncate">
+                      {activity.agent || 'Agent'}
+                    </div>
                     <div class="flex items-center gap-2 text-[10px] text-[var(--muted)] mt-1">
-                      <span class="px-1.5 py-0.5 bg-[var(--surface)] rounded uppercase">{activity.event_type}</span>
+                      <span class="px-1.5 py-0.5 bg-[var(--surface)] rounded uppercase"
+                        >{activity.event_type}</span
+                      >
                       {#if activity.project_name}
                         <ProjectBadge project={activity.project_name} size="small" />
                       {/if}

@@ -1,26 +1,19 @@
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
   import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
 
-  const dispatch = createEventDispatcher();
-
   const API_BASE = API_CONFIG.API_BASE;
 
   let docs = [];
   let selectedDoc = null;
-  let markdown = '';
   let html = '';
   let loading = false;
   let error = null;
   let searchTerm = '';
-
-  function close() {
-    dispatch('close');
-  }
 
   // Configure marked for better rendering
   marked.setOptions({
@@ -109,10 +102,8 @@
       }
 
       // Find the doc in our list to verify it exists
-      const doc = docs.find(d =>
-        d.path === docPath ||
-        d.name === docPath ||
-        d.path.endsWith('/' + docPath)
+      const doc = docs.find(
+        d => d.path === docPath || d.name === docPath || d.path.endsWith('/' + docPath)
       );
 
       if (doc) {
@@ -140,9 +131,10 @@
       cachedSearchTerm = searchTerm;
 
       const lowerSearch = searchTerm.toLowerCase();
-      cachedFilteredDocs = docs.filter(doc =>
-        doc.name.toLowerCase().includes(lowerSearch) ||
-        doc.title.toLowerCase().includes(lowerSearch)
+      cachedFilteredDocs = docs.filter(
+        doc =>
+          doc.name.toLowerCase().includes(lowerSearch) ||
+          doc.title.toLowerCase().includes(lowerSearch)
       );
     }
   }
@@ -170,7 +162,12 @@
   $: organizedDocs = cachedOrganizedResult;
 </script>
 
-<div class="docs-viewer" transition:fade={{ duration: 300 }} role="main" aria-label="Documentation viewer">
+<div
+  class="docs-viewer"
+  transition:fade={{ duration: 300 }}
+  role="main"
+  aria-label="Documentation viewer"
+>
   <nav class="docs-sidebar" aria-label="Documentation navigation">
     <div class="sidebar-header">
       <h2 id="docs-heading"><span aria-hidden="true">📚</span> Documentation</h2>
@@ -186,7 +183,9 @@
     <div class="docs-list" role="region" aria-labelledby="docs-heading">
       {#each Object.entries(organizedDocs) as [category, categoryDocs] (category)}
         <div class="docs-category">
-          <h3 class="category-title">{category === 'root' ? 'Getting Started' : category.toUpperCase()}</h3>
+          <h3 class="category-title">
+            {category === 'root' ? 'Getting Started' : category.toUpperCase()}
+          </h3>
           {#each categoryDocs as doc (doc.id || doc.name || doc)}
             <button
               class="doc-item"
@@ -222,7 +221,14 @@
         <p>{error}</p>
       </div>
     {:else if html}
-      <div class="markdown-content" on:click={handleMarkdownClick} role="button" tabindex="0" on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleMarkdownClick(e)} aria-label="Activate links in document">
+      <div
+        class="markdown-content"
+        on:click={handleMarkdownClick}
+        role="button"
+        tabindex="0"
+        on:keydown={e => (e.key === 'Enter' || e.key === ' ') && handleMarkdownClick(e)}
+        aria-label="Activate links in document"
+      >
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html html}
       </div>

@@ -142,7 +142,7 @@
       stats = statsData;
 
       lastUpdated = new Date();
-    } catch (e) {
+    } catch {
       error = `Failed to load triggers data: ${e.message}`;
       logger.error(error);
     } finally {
@@ -158,7 +158,7 @@
       const timeout = setTimeout(() => (successMessage = null), 3000);
       successMessageTimeouts.push(timeout);
       await loadAllData();
-    } catch (e) {
+    } catch {
       error = `Failed to reload config: ${e.message}`;
       logger.error(error);
     }
@@ -170,7 +170,7 @@
       successMessage = data.message;
       const timeout = setTimeout(() => (successMessage = null), 3000);
       successMessageTimeouts.push(timeout);
-    } catch (e) {
+    } catch {
       error = `Failed to clear cooldowns: ${e.message}`;
       logger.error(error);
     }

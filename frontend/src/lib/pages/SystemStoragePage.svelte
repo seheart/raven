@@ -6,7 +6,12 @@
   import { formatDateTime, getTimeAgo } from '../timeFormat.js';
   import { onMount } from 'svelte';
   import { Chart, registerables } from 'chart.js';
-  import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
 
   Chart.register(...registerables);
 
@@ -114,7 +119,7 @@
       storageData = data;
       lastUpdated = new Date();
       error = null;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load storage data:', err);
       error = err.message;
     } finally {
@@ -144,7 +149,9 @@
   // Export database file
   async function exportDatabase(dbName) {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3030'}/api/storage/export/${dbName}`);
+      await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3030'}/api/storage/export/${dbName}`
+      );
       if (!response.ok) throw new Error('Export failed');
 
       const blob = await response.blob();
@@ -158,7 +165,7 @@
       window.URL.revokeObjectURL(url);
 
       alert(`Database ${dbName} exported successfully!`);
-    } catch (err) {
+    } catch {
       logger.error('Failed to export database:', err);
       alert(`Failed to export database: ${err.message}`);
     }
@@ -174,12 +181,14 @@
       const result = await api.post(`/storage/vacuum/${dbName}`);
 
       if (result.success) {
-        alert(`Database optimized!\n\nBefore: ${formatBytes(result.sizeBefore)}\nAfter: ${formatBytes(result.sizeAfter)}\nSpace saved: ${formatBytes(result.spaceSaved)} (${result.percentSaved}%)`);
+        alert(
+          `Database optimized!\n\nBefore: ${formatBytes(result.sizeBefore)}\nAfter: ${formatBytes(result.sizeAfter)}\nSpace saved: ${formatBytes(result.spaceSaved)} (${result.percentSaved}%)`
+        );
         await loadStorageData(); // Refresh to show new size
       } else {
         alert(`Optimization failed: ${result.error}`);
       }
-    } catch (err) {
+    } catch {
       logger.error('Failed to optimize database:', err);
       alert(`Failed to optimize database: ${err.message}`);
     }
@@ -196,7 +205,11 @@
       return;
     }
 
-    if (!confirm(`Delete all records older than ${daysNum} days from ${dbName}?\n\nThis cannot be undone!`)) {
+    if (
+      !confirm(
+        `Delete all records older than ${daysNum} days from ${dbName}?\n\nThis cannot be undone!`
+      )
+    ) {
       return;
     }
 
@@ -213,7 +226,7 @@
       } else {
         alert(`Cleanup failed: ${result.error}`);
       }
-    } catch (err) {
+    } catch {
       logger.error('Failed to clean database:', err);
       alert(`Failed to clean database: ${err.message}`);
     }
@@ -223,7 +236,7 @@
     try {
       const data = await api.get('/storage/retention');
       retentionPolicy = data;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load retention policy:', err);
     }
   }
@@ -238,7 +251,7 @@
       } else {
         alert(`Failed to save policy: ${result.error}`);
       }
-    } catch (err) {
+    } catch {
       logger.error('Failed to save retention policy:', err);
       alert(`Failed to save policy: ${err.message}`);
     }
@@ -282,12 +295,14 @@
         type: 'pie',
         data: {
           labels: dbData.map(db => db.name),
-          datasets: [{
-            data: dbData.map(db => db.size),
-            backgroundColor: dbData.map((_, i) => colorPalette[i % colorPalette.length]),
-            borderColor: colors.border,
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: dbData.map(db => db.size),
+              backgroundColor: dbData.map((_, i) => colorPalette[i % colorPalette.length]),
+              borderColor: colors.border,
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -302,7 +317,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   const label = context.label || '';
                   const value = context.parsed || 0;
                   return `${label}: ${formatBytes(value)}`;
@@ -331,23 +346,23 @@
       });
 
       // Sort by record count and take top 10
-      const topTables = allTables
-        .sort((a, b) => b.records - a.records)
-        .slice(0, 10);
+      const topTables = allTables.sort((a, b) => b.records - a.records).slice(0, 10);
 
       if (topTables.length > 0) {
         charts.largestTablesChart = createChart('chart-largest-tables', {
           type: 'bar',
           data: {
             labels: topTables.map(t => t.name),
-            datasets: [{
-              label: 'Row Count',
-              data: topTables.map(t => t.records),
-              backgroundColor: colors.primary,
-              borderColor: colors.primary,
-              borderWidth: 2,
-              borderRadius: 4
-            }]
+            datasets: [
+              {
+                label: 'Row Count',
+                data: topTables.map(t => t.records),
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+                borderWidth: 2,
+                borderRadius: 4
+              }
+            ]
           },
           options: {
             indexAxis: 'y',
@@ -359,7 +374,7 @@
               },
               tooltip: {
                 callbacks: {
-                  label: function(context) {
+                  label: function (context) {
                     return `Rows: ${formatNumber(context.parsed.x)}`;
                   }
                 }
@@ -371,7 +386,7 @@
                 ticks: {
                   color: colors.muted,
                   font: { size: 10, family: 'monospace' },
-                  callback: function(value) {
+                  callback: function (value) {
                     return formatNumber(value);
                   }
                 },
@@ -417,12 +432,14 @@
         type: 'doughnut',
         data: {
           labels: dbSizes.map(db => db.name),
-          datasets: [{
-            data: dbSizes.map(db => db.size),
-            backgroundColor: dbSizes.map((_, i) => colorPalette[i % colorPalette.length]),
-            borderColor: colors.border,
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: dbSizes.map(db => db.size),
+              backgroundColor: dbSizes.map((_, i) => colorPalette[i % colorPalette.length]),
+              borderColor: colors.border,
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -437,7 +454,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   const label = context.label || '';
                   const value = context.parsed || 0;
                   const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -459,7 +476,9 @@
       <!-- Loading skeleton -->
       <div class="space-y-6">
         {#each Array(8) as _, i (i)}
-          <div class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else if error}
@@ -479,7 +498,9 @@
       <div class="flex justify-between items-start mb-6">
         <div>
           <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">💾 Storage Overview</h1>
-          <p class="text-base text-[var(--muted)] font-sans">Database and snapshot storage management</p>
+          <p class="text-base text-[var(--muted)] font-sans">
+            Database and snapshot storage management
+          </p>
         </div>
         <div class="flex items-center gap-4">
           <span class="text-sm text-[var(--muted)] font-mono">Updated: {timeAgo}</span>
@@ -497,34 +518,52 @@
       <!-- Overview Section -->
       <section class="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <div class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-6 text-center">
+          <div
+            class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-6 text-center"
+          >
             <div class="text-xl font-bold text-[var(--accent)] font-mono mb-2">
               {formatBytes(storageData.totalSize)}
             </div>
-            <div class="text-sm text-[var(--muted)] uppercase tracking-wider font-sans">Total Size</div>
+            <div class="text-sm text-[var(--muted)] uppercase tracking-wider font-sans">
+              Total Size
+            </div>
           </div>
-          <div class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-6 text-center">
+          <div
+            class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-6 text-center"
+          >
             <div class="text-xl font-bold text-[var(--accent)] font-mono mb-2">
               {storageData.databases.length}
             </div>
-            <div class="text-sm text-[var(--muted)] uppercase tracking-wider font-sans">Databases</div>
+            <div class="text-sm text-[var(--muted)] uppercase tracking-wider font-sans">
+              Databases
+            </div>
           </div>
-          <div class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-6 text-center">
+          <div
+            class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-6 text-center"
+          >
             <div class="text-xl font-bold text-[var(--accent)] font-mono mb-2">
               {formatBytes(totalDatabaseSize)}
             </div>
-            <div class="text-sm text-[var(--muted)] uppercase tracking-wider font-sans">Database Storage</div>
+            <div class="text-sm text-[var(--muted)] uppercase tracking-wider font-sans">
+              Database Storage
+            </div>
           </div>
-          <div class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-6 text-center">
+          <div
+            class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-6 text-center"
+          >
             <div class="text-xl font-bold text-[var(--accent)] font-mono mb-2">
               {formatBytes(totalSnapshotsSize)}
             </div>
-            <div class="text-sm text-[var(--muted)] uppercase tracking-wider font-sans">Snapshots Storage</div>
+            <div class="text-sm text-[var(--muted)] uppercase tracking-wider font-sans">
+              Snapshots Storage
+            </div>
           </div>
         </div>
         <div class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
           <strong class="text-[var(--text)] font-sans">Storage Location:</strong>
-          <code class="ml-2 text-[var(--text)] font-mono bg-[var(--bg)] px-2 py-1 rounded">{storageData.ravenDir}</code>
+          <code class="ml-2 text-[var(--text)] font-mono bg-[var(--bg)] px-2 py-1 rounded"
+            >{storageData.ravenDir}</code
+          >
         </div>
       </section>
 
@@ -534,7 +573,7 @@
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-lg font-bold text-[var(--text)] font-sans">Storage Analytics</h2>
             <button
-              onclick={() => showCharts = !showCharts}
+              onclick={() => (showCharts = !showCharts)}
               class="px-3 py-1.5 bg-transparent border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
             >
               {showCharts ? 'Hide Charts' : 'Show Charts'}
@@ -543,22 +582,34 @@
 
           {#if showCharts}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
-                <h3 class="text-base font-bold text-[var(--text)] mb-4 font-sans">Storage Distribution by Database</h3>
+              <div
+                class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+              >
+                <h3 class="text-base font-bold text-[var(--text)] mb-4 font-sans">
+                  Storage Distribution by Database
+                </h3>
                 <div class="h-64">
                   <canvas id="chart-db-distribution"></canvas>
                 </div>
               </div>
 
-              <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
-                <h3 class="text-base font-bold text-[var(--text)] mb-4 font-sans">Database Size Breakdown</h3>
+              <div
+                class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+              >
+                <h3 class="text-base font-bold text-[var(--text)] mb-4 font-sans">
+                  Database Size Breakdown
+                </h3>
                 <div class="h-64">
                   <canvas id="chart-db-size-breakdown"></canvas>
                 </div>
               </div>
 
-              <div class="md:col-span-2 bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
-                <h3 class="text-base font-bold text-[var(--text)] mb-4 font-sans">Largest Tables by Row Count</h3>
+              <div
+                class="md:col-span-2 bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+              >
+                <h3 class="text-base font-bold text-[var(--text)] mb-4 font-sans">
+                  Largest Tables by Row Count
+                </h3>
                 <div class="h-80">
                   <canvas id="chart-largest-tables"></canvas>
                 </div>
@@ -575,34 +626,71 @@
           <table class="w-full text-sm">
             <thead class="bg-[var(--surface-2)]">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Database</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Size</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Records</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Tables</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Last Modified</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Actions</th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                  >Database</th
+                >
+                <th
+                  class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                  >Size</th
+                >
+                <th
+                  class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                  >Records</th
+                >
+                <th
+                  class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                  >Tables</th
+                >
+                <th
+                  class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                  >Status</th
+                >
+                <th
+                  class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                  >Last Modified</th
+                >
+                <th
+                  class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                  >Actions</th
+                >
               </tr>
             </thead>
             <tbody>
               {#each storageData?.databases || [] as db (db.name)}
                 {@const isActive = db.isActive}
                 {@const isExpanded = expandedDatabase === db.name}
-                <tr class="hover:bg-[var(--surface-2)] transition-colors border-b border-[var(--border)]" class:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]={isActive}>
+                <tr
+                  class="hover:bg-[var(--surface-2)] transition-colors border-b border-[var(--border)]"
+                  class:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]={isActive}
+                >
                   <td class="px-4 py-4">
                     <strong class="font-mono text-[var(--text)]">{db.filename}</strong>
                     {#if isActive}
-                      <span class="ml-2 inline-block px-2 py-0.5 text-xs bg-[var(--accent)] text-[var(--bg)] rounded font-sans">Active</span>
+                      <span
+                        class="ml-2 inline-block px-2 py-0.5 text-xs bg-[var(--accent)] text-[var(--bg)] rounded font-sans"
+                        >Active</span
+                      >
                     {/if}
                   </td>
                   <td class="px-4 py-4 font-mono text-[var(--text)]">{formatBytes(db.size)}</td>
-                  <td class="px-4 py-4 font-mono text-[var(--text)]">{formatNumber(db.totalRecords)}</td>
-                  <td class="px-4 py-4 font-mono text-[var(--text)]">{Object.keys(db.recordCounts).length}</td>
+                  <td class="px-4 py-4 font-mono text-[var(--text)]"
+                    >{formatNumber(db.totalRecords)}</td
+                  >
+                  <td class="px-4 py-4 font-mono text-[var(--text)]"
+                    >{Object.keys(db.recordCounts).length}</td
+                  >
                   <td class="px-4 py-4">
                     {#if db.error}
-                      <span class="inline-block px-3 py-1 text-xs font-bold bg-[color-mix(in_srgb,var(--error)_20%,transparent)] text-[var(--error)] rounded font-sans">Error</span>
+                      <span
+                        class="inline-block px-3 py-1 text-xs font-bold bg-[color-mix(in_srgb,var(--error)_20%,transparent)] text-[var(--error)] rounded font-sans"
+                        >Error</span
+                      >
                     {:else}
-                      <span class="inline-block px-3 py-1 text-xs font-bold bg-[color-mix(in_srgb,var(--success)_20%,transparent)] text-[var(--success)] rounded font-sans">OK</span>
+                      <span
+                        class="inline-block px-3 py-1 text-xs font-bold bg-[color-mix(in_srgb,var(--success)_20%,transparent)] text-[var(--success)] rounded font-sans"
+                        >OK</span
+                      >
                     {/if}
                   </td>
                   <td class="px-4 py-4 font-mono text-[var(--text)]">{formatDate(db.modified)}</td>
@@ -641,15 +729,31 @@
                 {#if isExpanded && db.tableStats?.length > 0}
                   <tr class="bg-[var(--bg)]">
                     <td colspan="7" class="px-4 py-4">
-                      <div class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
-                        <h4 class="text-sm text-[var(--muted)] mb-4 font-sans">Table Breakdown - {db.filename}</h4>
+                      <div
+                        class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4"
+                      >
+                        <h4 class="text-sm text-[var(--muted)] mb-4 font-sans">
+                          Table Breakdown - {db.filename}
+                        </h4>
                         <table class="w-full text-sm bg-[var(--surface)]">
                           <thead class="bg-[var(--bg)]">
                             <tr>
-                              <th class="px-4 py-2 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Table</th>
-                              <th class="px-4 py-2 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Records</th>
-                              <th class="px-4 py-2 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Size</th>
-                              <th class="px-4 py-2 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">% of Database</th>
+                              <th
+                                class="px-4 py-2 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                                >Table</th
+                              >
+                              <th
+                                class="px-4 py-2 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                                >Records</th
+                              >
+                              <th
+                                class="px-4 py-2 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                                >Size</th
+                              >
+                              <th
+                                class="px-4 py-2 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                                >% of Database</th
+                              >
                             </tr>
                           </thead>
                           <tbody>
@@ -657,17 +761,27 @@
                               {@const percent = getPercentage(table.size, db.size)}
                               <tr class="border-b border-[var(--border)]">
                                 <td class="px-4 py-3">
-                                  <code class="text-[var(--text)] font-mono text-xs">{table.name}</code>
+                                  <code class="text-[var(--text)] font-mono text-xs"
+                                    >{table.name}</code
+                                  >
                                 </td>
-                                <td class="px-4 py-3 font-mono text-[var(--text)]">{formatNumber(table.records)}</td>
-                                <td class="px-4 py-3 font-mono text-[var(--text)]">{formatBytes(table.size)}</td>
+                                <td class="px-4 py-3 font-mono text-[var(--text)]"
+                                  >{formatNumber(table.records)}</td
+                                >
+                                <td class="px-4 py-3 font-mono text-[var(--text)]"
+                                  >{formatBytes(table.size)}</td
+                                >
                                 <td class="px-4 py-3">
-                                  <div class="relative w-full h-6 bg-[var(--bg)] rounded overflow-hidden">
+                                  <div
+                                    class="relative w-full h-6 bg-[var(--bg)] rounded overflow-hidden"
+                                  >
                                     <div
                                       class="h-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)] transition-all duration-500"
                                       style="width: {percent}%"
                                     ></div>
-                                    <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-[var(--text)] [text-shadow:0_0_4px_var(--bg)]">
+                                    <span
+                                      class="absolute inset-0 flex items-center justify-center text-xs font-bold text-[var(--text)] [text-shadow:0_0_4px_var(--bg)]"
+                                    >
                                       {percent}%
                                     </span>
                                   </div>
@@ -694,23 +808,48 @@
             <table class="w-full text-sm">
               <thead class="bg-[var(--surface-2)]">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Project</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Files</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Size</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Oldest</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]">Newest</th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                    >Project</th
+                  >
+                  <th
+                    class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                    >Files</th
+                  >
+                  <th
+                    class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                    >Size</th
+                  >
+                  <th
+                    class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                    >Oldest</th
+                  >
+                  <th
+                    class="px-4 py-3 text-left text-xs font-bold text-[var(--muted)] uppercase tracking-wider border-b-2 border-[var(--border)]"
+                    >Newest</th
+                  >
                 </tr>
               </thead>
               <tbody>
                 {#each storageData.snapshots as snapshot (snapshot.project)}
-                  <tr class="hover:bg-[var(--surface-2)] transition-colors border-b border-[var(--border)]">
+                  <tr
+                    class="hover:bg-[var(--surface-2)] transition-colors border-b border-[var(--border)]"
+                  >
                     <td class="px-4 py-4">
                       <strong class="font-mono text-[var(--text)]">{snapshot.project}</strong>
                     </td>
-                    <td class="px-4 py-4 font-mono text-[var(--text)]">{formatNumber(snapshot.files)}</td>
-                    <td class="px-4 py-4 font-mono text-[var(--text)]">{formatBytes(snapshot.size)}</td>
-                    <td class="px-4 py-4 font-mono text-[var(--text)]">{formatDate(snapshot.oldest)}</td>
-                    <td class="px-4 py-4 font-mono text-[var(--text)]">{formatDate(snapshot.newest)}</td>
+                    <td class="px-4 py-4 font-mono text-[var(--text)]"
+                      >{formatNumber(snapshot.files)}</td
+                    >
+                    <td class="px-4 py-4 font-mono text-[var(--text)]"
+                      >{formatBytes(snapshot.size)}</td
+                    >
+                    <td class="px-4 py-4 font-mono text-[var(--text)]"
+                      >{formatDate(snapshot.oldest)}</td
+                    >
+                    <td class="px-4 py-4 font-mono text-[var(--text)]"
+                      >{formatDate(snapshot.newest)}</td
+                    >
                   </tr>
                 {/each}
               </tbody>
@@ -725,13 +864,21 @@
       <section class="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
         <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">📄 Other Files</h2>
         <div class="space-y-4">
-          <div class="flex justify-between items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
+          <div
+            class="flex justify-between items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4"
+          >
             <span class="font-mono text-[var(--text)]">config.toml</span>
-            <span class="text-[var(--muted)] font-mono">{formatBytes(storageData.otherFiles.config)}</span>
+            <span class="text-[var(--muted)] font-mono"
+              >{formatBytes(storageData.otherFiles.config)}</span
+            >
           </div>
-          <div class="flex justify-between items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
+          <div
+            class="flex justify-between items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4"
+          >
             <span class="font-mono text-[var(--text)]">triggers.log</span>
-            <span class="text-[var(--muted)] font-mono">{formatBytes(storageData.otherFiles.triggersLog)}</span>
+            <span class="text-[var(--muted)] font-mono"
+              >{formatBytes(storageData.otherFiles.triggersLog)}</span
+            >
           </div>
         </div>
       </section>
@@ -739,7 +886,9 @@
       <!-- Actions Section -->
       <section class="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
         <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">⚙️ Actions</h2>
-        <p class="text-sm text-[var(--muted)] mb-4 font-sans">Use per-database action buttons in the table above, or configure retention policy below.</p>
+        <p class="text-sm text-[var(--muted)] mb-4 font-sans">
+          Use per-database action buttons in the table above, or configure retention policy below.
+        </p>
         <div class="flex gap-4 flex-wrap">
           <button
             onclick={openRetentionConfig}
@@ -765,25 +914,27 @@
     role="dialog"
     aria-modal="true"
     tabindex="-1"
-    onclick={(e) => {
+    onclick={e => {
       if (e.target === e.currentTarget) showRetentionModal = false;
     }}
-    onkeydown={(e) => {
+    onkeydown={e => {
       if (e.key === 'Escape') showRetentionModal = false;
     }}
   >
     <div
       class="bg-[var(--surface)] border border-[var(--border)] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
+      onclick={e => e.stopPropagation()}
+      onkeydown={e => e.stopPropagation()}
       role="dialog"
       tabindex="-1"
     >
       <!-- Modal Header -->
       <div class="flex justify-between items-center p-6 border-b border-[var(--border)]">
-        <h2 class="text-xl font-bold text-[var(--text)] font-sans">⚙️ Configure Retention Policy</h2>
+        <h2 class="text-xl font-bold text-[var(--text)] font-sans">
+          ⚙️ Configure Retention Policy
+        </h2>
         <button
-          onclick={() => showRetentionModal = false}
+          onclick={() => (showRetentionModal = false)}
           class="px-2 py-1 text-xl bg-transparent border border-transparent rounded hover:bg-[var(--surface-2)] transition-colors"
         >
           ✕
@@ -794,20 +945,22 @@
       <div class="p-6 space-y-6">
         <div>
           <label class="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              bind:checked={retentionPolicy.enabled}
-              class="mt-1 w-4 h-4"
-            />
+            <input type="checkbox" bind:checked={retentionPolicy.enabled} class="mt-1 w-4 h-4" />
             <div>
-              <span class="text-[var(--text)] font-medium font-sans">Enable automatic data retention</span>
-              <p class="text-sm text-[var(--muted)] mt-1 font-sans">When enabled, data older than the retention period will be flagged for cleanup.</p>
+              <span class="text-[var(--text)] font-medium font-sans"
+                >Enable automatic data retention</span
+              >
+              <p class="text-sm text-[var(--muted)] mt-1 font-sans">
+                When enabled, data older than the retention period will be flagged for cleanup.
+              </p>
             </div>
           </label>
         </div>
 
         <div>
-          <label for="retention-days" class="block mb-2 text-[var(--text)] font-medium font-sans">Retention Period (days)</label>
+          <label for="retention-days" class="block mb-2 text-[var(--text)] font-medium font-sans"
+            >Retention Period (days)</label
+          >
           <input
             id="retention-days"
             type="number"
@@ -817,7 +970,9 @@
             disabled={!retentionPolicy.enabled}
             class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono disabled:opacity-50"
           />
-          <p class="text-sm text-[var(--muted)] mt-2 font-sans">Data older than this will be considered for deletion.</p>
+          <p class="text-sm text-[var(--muted)] mt-2 font-sans">
+            Data older than this will be considered for deletion.
+          </p>
         </div>
 
         <div>
@@ -830,13 +985,17 @@
             />
             <div>
               <span class="text-[var(--text)] font-medium font-sans">Enable automatic cleanup</span>
-              <p class="text-sm text-[var(--muted)] mt-1 font-sans">Automatically delete old data on schedule (requires backend restart to take effect).</p>
+              <p class="text-sm text-[var(--muted)] mt-1 font-sans">
+                Automatically delete old data on schedule (requires backend restart to take effect).
+              </p>
             </div>
           </label>
         </div>
 
         <div>
-          <label for="cleanup-interval" class="block mb-2 text-[var(--text)] font-medium font-sans">Cleanup Interval</label>
+          <label for="cleanup-interval" class="block mb-2 text-[var(--text)] font-medium font-sans"
+            >Cleanup Interval</label
+          >
           <select
             id="cleanup-interval"
             bind:value={retentionPolicy.cleanupInterval}
@@ -847,14 +1006,16 @@
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
           </select>
-          <p class="text-sm text-[var(--muted)] mt-2 font-sans">How often automatic cleanup should run.</p>
+          <p class="text-sm text-[var(--muted)] mt-2 font-sans">
+            How often automatic cleanup should run.
+          </p>
         </div>
       </div>
 
       <!-- Modal Footer -->
       <div class="flex justify-end gap-4 p-6 border-t border-[var(--border)]">
         <button
-          onclick={() => showRetentionModal = false}
+          onclick={() => (showRetentionModal = false)}
           class="px-4 py-2 bg-transparent border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors font-sans"
         >
           Cancel

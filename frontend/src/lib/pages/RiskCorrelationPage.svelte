@@ -51,7 +51,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load risk data:', err);
       error = err.message;
       loading = false;
@@ -103,10 +103,14 @@
       <div class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           {#each Array(4) as _, i (i)}
-            <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+            <div
+              class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            ></div>
           {/each}
         </div>
-        <div class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+        <div
+          class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+        ></div>
       </div>
     {:else}
       <!-- Stats Overview -->
@@ -135,7 +139,9 @@
           High-Risk Files (Most Rollbacks)
         </h2>
         {#if highRiskFiles.length === 0}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+          >
             <div class="text-5xl mb-4">✅</div>
             <div class="text-xl font-semibold text-[var(--text-heading)] mb-2 font-sans">
               No high-risk files detected
@@ -179,7 +185,9 @@
           Recent Rollbacks
         </h2>
         {#if recentRollbacks.length === 0}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+          >
             <div class="text-5xl mb-4">📋</div>
             <div class="text-xl font-semibold text-[var(--text-heading)] mb-2 font-sans">
               No rollbacks recorded yet
@@ -214,12 +222,16 @@
                       {/if}
                     </div>
                   </div>
-                  <div class="px-3 py-1 bg-[var(--bg)] rounded text-sm font-mono text-[var(--muted)]">
+                  <div
+                    class="px-3 py-1 bg-[var(--bg)] rounded text-sm font-mono text-[var(--muted)]"
+                  >
                     {rollback.rollback_type || 'manual'}
                   </div>
                 </div>
                 {#if rollback.reason}
-                  <div class="mt-3 px-3 py-2 bg-[var(--bg)] rounded text-sm text-[var(--text)] font-sans">
+                  <div
+                    class="mt-3 px-3 py-2 bg-[var(--bg)] rounded text-sm text-[var(--text)] font-sans"
+                  >
                     Reason: {rollback.reason}
                   </div>
                 {/if}
@@ -258,8 +270,8 @@
           <li class="flex gap-2">
             <span class="text-[var(--text)]">•</span>
             <span
-              ><strong class="text-[var(--text)]">Predictive Scoring:</strong> Calculates risk score for
-              every change (0-100)</span
+              ><strong class="text-[var(--text)]">Predictive Scoring:</strong> Calculates risk score
+              for every change (0-100)</span
             >
           </li>
           <li class="flex gap-2">

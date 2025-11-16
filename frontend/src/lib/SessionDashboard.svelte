@@ -2,7 +2,7 @@
   import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { api } from './apiClient.js';
-  import { formatDateTime } from './timeFormat.js';
+
   import { formatDurationMinutes } from './formatUtils.js';
   import { websocketService } from './websocket.js';
 
@@ -101,13 +101,6 @@
     if (urgency === 'warning') return '⚠️';
     if (urgency === 'info') return 'ℹ️';
     return '✅';
-  }
-
-  function getUrgencyColor(urgency) {
-    if (urgency === 'critical') return 'var(--error)';
-    if (urgency === 'warning') return 'var(--warning)';
-    if (urgency === 'info') return 'var(--info)';
-    return 'var(--success)';
   }
 
   function formatTimeAgo(timestamp) {

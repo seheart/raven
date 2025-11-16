@@ -7,7 +7,6 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
   import { Chart, registerables } from 'chart.js';
-  import { settings } from './settingsStore.js';
   import { logger } from './logger.js';
 
   Chart.register(...registerables);
@@ -26,7 +25,6 @@
   let eventsLimit = 30;
   let loadingMoreEvents = false;
   let totalEvents = 0;
-  let showSetupGuide = true;
 
   // Filtering & Sorting
   let selectedEventTypes = []; // Empty = all types
@@ -69,7 +67,7 @@
     }
   };
 
-  const handleProjectSwitched = async data => {
+  const handleProjectSwitched = async _data => {
     await loadAllData();
   };
 
@@ -404,14 +402,6 @@
       if (lowerName.includes(key)) return color;
     }
     return AGENT_COLORS.default;
-  }
-
-  function getStatusIcon(isRunning) {
-    return isRunning ? '🟢' : '⚫';
-  }
-
-  function getStatusText(isRunning) {
-    return isRunning ? 'Active' : 'Idle';
   }
 
   function formatTimestamp(timestamp) {

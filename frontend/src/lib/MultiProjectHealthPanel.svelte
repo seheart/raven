@@ -5,7 +5,7 @@
   import { exportCSV, exportJSON } from './exportUtils.js';
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
-  import { router } from './router.js';
+
   import { API_CONFIG } from '../config.js';
 
   let projects = [];
@@ -57,20 +57,20 @@
   $: sortedProjects = [...filteredProjects].sort((a, b) => {
     let result;
     switch (sortBy) {
-    case 'health':
-      result = b.health_score - a.health_score;
-      break;
-    case 'name':
-      result = a.name.localeCompare(b.name);
-      break;
-    case 'activity':
-      result = b.recent_events - a.recent_events;
-      break;
-    case 'errors':
-      result = b.error_count - a.error_count;
-      break;
-    default:
-      result = 0;
+      case 'health':
+        result = b.health_score - a.health_score;
+        break;
+      case 'name':
+        result = a.name.localeCompare(b.name);
+        break;
+      case 'activity':
+        result = b.recent_events - a.recent_events;
+        break;
+      case 'errors':
+        result = b.error_count - a.error_count;
+        break;
+      default:
+        result = 0;
     }
     return sortDesc ? result : -result;
   });
@@ -124,19 +124,14 @@
   }
 
   function getStatusLabel(status) {
-    return {
-      active: 'Active',
-      recent: 'Recent',
-      idle: 'Idle',
-      inactive: 'Inactive'
-    }[status] || 'Unknown';
-  }
-
-  function getHealthColor(score) {
-    if (score >= 75) return 'health-excellent';
-    if (score >= 50) return 'health-good';
-    if (score >= 25) return 'health-fair';
-    return 'health-poor';
+    return (
+      {
+        active: 'Active',
+        recent: 'Recent',
+        idle: 'Idle',
+        inactive: 'Inactive'
+      }[status] || 'Unknown'
+    );
   }
 
   function getHealthLabel(score) {
@@ -179,11 +174,6 @@
     notifications.success(`Copied "${name}" to clipboard!`);
   }
 
-  function navigateToProject(projectName) {
-    router.navigate('overview');
-    notifications.info(`Filtering by project: ${projectName}`);
-  }
-
   function handleSort(newSortBy) {
     if (sortBy === newSortBy) {
       sortDesc = !sortDesc;
@@ -195,17 +185,17 @@
 
   function filterByStatsCard(type) {
     switch (type) {
-    case 'active':
-      filterStatus = 'active';
-      break;
-    case 'recent':
-      filterStatus = 'recent';
-      break;
-    case 'idle':
-      filterStatus = filterStatus === 'idle' ? 'all' : 'idle';
-      break;
-    default:
-      filterStatus = 'all';
+      case 'active':
+        filterStatus = 'active';
+        break;
+      case 'recent':
+        filterStatus = 'recent';
+        break;
+      case 'idle':
+        filterStatus = filterStatus === 'idle' ? 'all' : 'idle';
+        break;
+      default:
+        filterStatus = 'all';
     }
   }
 
@@ -259,26 +249,56 @@
         Auto-refresh
       </label>
       <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
-      <button class="btn btn-secondary btn-sm" on:click={handleExportCSV} aria-label="Export project health data as CSV"><span aria-hidden="true">📤</span> CSV</button>
-      <button class="btn btn-secondary btn-sm" on:click={handleExportJSON} aria-label="Export project health data as JSON"><span aria-hidden="true">📦</span> JSON</button>
-      <button class="btn btn-primary btn-sm" on:click={loadHealthData} aria-label="Refresh project health data"><span aria-hidden="true">🔄</span> Refresh</button>
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={handleExportCSV}
+        aria-label="Export project health data as CSV"
+        ><span aria-hidden="true">📤</span> CSV</button
+      >
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={handleExportJSON}
+        aria-label="Export project health data as JSON"
+        ><span aria-hidden="true">📦</span> JSON</button
+      >
+      <button
+        class="btn btn-primary btn-sm"
+        on:click={loadHealthData}
+        aria-label="Refresh project health data"><span aria-hidden="true">🔄</span> Refresh</button
+      >
     </div>
   </div>
 
   <div class="stats-row" role="group" aria-label="Project statistics summary">
-    <button class="stat-card clickable" on:click={() => filterByStatsCard('all')} title="Show all projects">
+    <button
+      class="stat-card clickable"
+      on:click={() => filterByStatsCard('all')}
+      title="Show all projects"
+    >
       <div class="stat-value" role="status">{totalProjects}</div>
       <div class="stat-label">Total Projects</div>
     </button>
-    <button class="stat-card active clickable" on:click={() => filterByStatsCard('active')} title="Filter by active projects">
+    <button
+      class="stat-card active clickable"
+      on:click={() => filterByStatsCard('active')}
+      title="Filter by active projects"
+    >
       <div class="stat-value" role="status">{activeProjects}</div>
       <div class="stat-label">Active Now</div>
     </button>
-    <button class="stat-card recent clickable" on:click={() => filterByStatsCard('recent')} title="Filter by recently active projects">
+    <button
+      class="stat-card recent clickable"
+      on:click={() => filterByStatsCard('recent')}
+      title="Filter by recently active projects"
+    >
       <div class="stat-value" role="status">{recentProjects}</div>
       <div class="stat-label">Recently Active</div>
     </button>
-    <button class="stat-card idle clickable" on:click={() => filterByStatsCard('idle')} title="Filter by idle/inactive projects">
+    <button
+      class="stat-card idle clickable"
+      on:click={() => filterByStatsCard('idle')}
+      title="Filter by idle/inactive projects"
+    >
       <div class="stat-value" role="status">{totalProjects - activeProjects - recentProjects}</div>
       <div class="stat-label">Idle/Inactive</div>
     </button>
@@ -313,16 +333,40 @@
 
     <div class="control-group" role="radiogroup" aria-labelledby="sort-label">
       <span id="sort-label">Sort by:</span>
-      <button class="btn btn-ghost btn-sm" class:active={sortBy === 'health'} on:click={() => handleSort('health')} role="radio" aria-checked={sortBy === 'health'}>
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={sortBy === 'health'}
+        on:click={() => handleSort('health')}
+        role="radio"
+        aria-checked={sortBy === 'health'}
+      >
         Health {sortBy === 'health' ? (sortDesc ? '▼' : '▲') : ''}
       </button>
-      <button class="btn btn-ghost btn-sm" class:active={sortBy === 'name'} on:click={() => handleSort('name')} role="radio" aria-checked={sortBy === 'name'}>
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={sortBy === 'name'}
+        on:click={() => handleSort('name')}
+        role="radio"
+        aria-checked={sortBy === 'name'}
+      >
         Name {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}
       </button>
-      <button class="btn btn-ghost btn-sm" class:active={sortBy === 'activity'} on:click={() => handleSort('activity')} role="radio" aria-checked={sortBy === 'activity'}>
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={sortBy === 'activity'}
+        on:click={() => handleSort('activity')}
+        role="radio"
+        aria-checked={sortBy === 'activity'}
+      >
         Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}
       </button>
-      <button class="btn btn-ghost btn-sm" class:active={sortBy === 'errors'} on:click={() => handleSort('errors')} role="radio" aria-checked={sortBy === 'errors'}>
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={sortBy === 'errors'}
+        on:click={() => handleSort('errors')}
+        role="radio"
+        aria-checked={sortBy === 'errors'}
+      >
         Errors {sortBy === 'errors' ? (sortDesc ? '▼' : '▲') : ''}
       </button>
     </div>
@@ -333,7 +377,11 @@
   {:else if error}
     <div class="error-state" role="alert">
       <p><span aria-hidden="true">❌</span> Error loading project health: {error}</p>
-      <button class="btn btn-primary btn-sm" on:click={loadHealthData} aria-label="Retry loading project health">Try Again</button>
+      <button
+        class="btn btn-primary btn-sm"
+        on:click={loadHealthData}
+        aria-label="Retry loading project health">Try Again</button
+      >
     </div>
   {:else if projects.length === 0}
     <div class="empty-state" role="status">
@@ -366,7 +414,8 @@
               <span
                 class="copy-btn"
                 on:click|stopPropagation={() => copyProjectName(project.name)}
-                on:keydown={(e) => e.key === 'Enter' && (e.stopPropagation(), copyProjectName(project.name))}
+                on:keydown={e =>
+                  e.key === 'Enter' && (e.stopPropagation(), copyProjectName(project.name))}
                 role="button"
                 tabindex="0"
                 title="Copy project name"
@@ -379,7 +428,7 @@
                   class:status-active={project.status === 'active'}
                   class:status-recent={project.status === 'recent'}
                   class:status-idle={project.status === 'idle' || project.status === 'inactive'}
-                  aria-label="{getStatusLabel(project.status)}"
+                  aria-label={getStatusLabel(project.status)}
                   role="img"
                 ></span>
                 <span class="status-label">{getStatusLabel(project.status)}</span>
@@ -387,10 +436,18 @@
             </div>
           </div>
 
-          <div class="health-bar-container" role="img" aria-label="Health score: {project.health_score}% - {getHealthLabel(project.health_score)}">
+          <div
+            class="health-bar-container"
+            role="img"
+            aria-label="Health score: {project.health_score}% - {getHealthLabel(
+              project.health_score
+            )}"
+          >
             <div
               class="health-bar"
-              style="width: {project.health_score}%; background: {getHealthBarColor(project.health_score)};"
+              style="width: {project.health_score}%; background: {getHealthBarColor(
+                project.health_score
+              )};"
               role="progressbar"
               aria-valuenow={project.health_score}
               aria-valuemin="0"
@@ -417,7 +474,11 @@
           </div>
 
           <div class="project-footer">
-            <span class="last-activity"><time datetime="{project.last_activity}">Last: {formatLastActivity(project.last_activity)}</time></span>
+            <span class="last-activity"
+              ><time datetime={project.last_activity}
+                >Last: {formatLastActivity(project.last_activity)}</time
+              ></span
+            >
           </div>
         </div>
       {/each}
@@ -701,7 +762,9 @@
 
   .health-bar {
     height: 100%;
-    transition: width var(--duration-slow) var(--ease-smooth), background var(--duration-slow) var(--ease-smooth);
+    transition:
+      width var(--duration-slow) var(--ease-smooth),
+      background var(--duration-slow) var(--ease-smooth);
   }
 
   .health-score {
@@ -772,8 +835,8 @@
     font-family: var(--mono);
   }
 
-
-  .empty-state, .error-state {
+  .empty-state,
+  .error-state {
     text-align: center;
     padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
@@ -781,7 +844,8 @@
     border-radius: var(--radius);
   }
 
-  .empty-state p, .error-state p {
+  .empty-state p,
+  .error-state p {
     margin: var(--space-lg) 0;
     color: var(--text);
   }

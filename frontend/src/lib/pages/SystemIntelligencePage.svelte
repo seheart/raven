@@ -80,7 +80,7 @@
 
       lastUpdate = new Date();
       error = null;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load intelligence data:', err);
       error = err.message;
     } finally {
@@ -113,9 +113,12 @@
     <!-- Panel Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">🧠 Intelligence Dashboard</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">
+          🧠 Intelligence Dashboard
+        </h1>
         <p class="text-sm text-[var(--muted)] font-sans">
-          AI behavior • Patterns • Session insights • Observations • Project memory • Cross-agent intel
+          AI behavior • Patterns • Session insights • Observations • Project memory • Cross-agent
+          intel
         </p>
       </div>
       <div class="flex items-center gap-4">
@@ -133,7 +136,8 @@
     <div class="flex gap-2 mb-6 border-b-2 border-[var(--border)]">
       <button
         onclick={() => (activeTab = 'profiles')}
-        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab === 'profiles'
+        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab ===
+        'profiles'
           ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)]'}"
       >
@@ -141,7 +145,8 @@
       </button>
       <button
         onclick={() => (activeTab = 'observations')}
-        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab === 'observations'
+        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab ===
+        'observations'
           ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)]'}"
       >
@@ -149,7 +154,8 @@
       </button>
       <button
         onclick={() => (activeTab = 'stories')}
-        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab === 'stories'
+        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab ===
+        'stories'
           ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)]'}"
       >
@@ -157,7 +163,8 @@
       </button>
       <button
         onclick={() => (activeTab = 'patterns')}
-        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab === 'patterns'
+        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab ===
+        'patterns'
           ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)]'}"
       >
@@ -165,7 +172,8 @@
       </button>
       <button
         onclick={() => (activeTab = 'memory')}
-        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab === 'memory'
+        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab ===
+        'memory'
           ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)]'}"
       >
@@ -173,7 +181,8 @@
       </button>
       <button
         onclick={() => (activeTab = 'agents')}
-        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab === 'agents'
+        class="px-4 py-2 bg-transparent border-b-2 text-sm font-medium transition-all -mb-0.5 {activeTab ===
+        'agents'
           ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)]'}"
       >
@@ -204,7 +213,9 @@
         <div class="mb-8">
           <h3 class="text-lg font-semibold text-[var(--text)] mb-4">Agent Behavior Profiles</h3>
           {#if agentProfiles.length === 0}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
               <p class="text-[var(--text)] font-sans mb-2">No agent activity detected yet</p>
               <p class="text-sm text-[var(--muted)] font-sans">
                 Profiles will appear as AI agents make changes
@@ -272,7 +283,9 @@
         <div class="mb-8">
           <h3 class="text-lg font-semibold text-[var(--text)] mb-4">Contextual Observations</h3>
           {#if observations.length === 0}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
               <p class="text-[var(--text)] font-sans mb-2">✅ Everything looks normal!</p>
               <p class="text-sm text-[var(--muted)] font-sans">
                 Raven will notice patterns and offer insights as you work
@@ -290,17 +303,23 @@
                   {#if obs.data}
                     <div class="flex gap-2 flex-wrap">
                       {#if obs.data.editCount}
-                        <span class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs font-mono text-[var(--muted)]">
+                        <span
+                          class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs font-mono text-[var(--muted)]"
+                        >
                           Edits: {obs.data.editCount}
                         </span>
                       {/if}
                       {#if obs.data.changeCount}
-                        <span class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs font-mono text-[var(--muted)]">
+                        <span
+                          class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs font-mono text-[var(--muted)]"
+                        >
                           Changes: {obs.data.changeCount}
                         </span>
                       {/if}
                       {#if obs.data.rollbackCount}
-                        <span class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs font-mono text-[var(--muted)]">
+                        <span
+                          class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs font-mono text-[var(--muted)]"
+                        >
                           Rollbacks: {obs.data.rollbackCount}
                         </span>
                       {/if}
@@ -318,7 +337,9 @@
         <div class="mb-8">
           <h3 class="text-lg font-semibold text-[var(--text)] mb-4">Session Stories</h3>
           {#if sessionStories.length === 0}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
               <p class="text-[var(--text)] font-sans mb-2">No session stories yet</p>
               <p class="text-sm text-[var(--muted)] font-sans">
                 Stories are generated as you complete coding sessions
@@ -332,7 +353,9 @@
                     <span class="text-2xl">{getMoodEmoji(story.mood)}</span>
                     <div class="flex-1">
                       <div class="text-sm font-semibold text-[var(--text)]">Session Story</div>
-                      <div class="text-xs text-[var(--muted)]">{formatDateTime(story.created_at)}</div>
+                      <div class="text-xs text-[var(--muted)]">
+                        {formatDateTime(story.created_at)}
+                      </div>
                     </div>
                   </div>
 
@@ -347,7 +370,9 @@
                       </div>
                       <div class="flex gap-1 flex-wrap">
                         {#each story.achievements as achievement (achievement)}
-                          <span class="px-2 py-1 bg-[var(--accent)] text-white rounded text-[11px] font-medium">
+                          <span
+                            class="px-2 py-1 bg-[var(--accent)] text-white rounded text-[11px] font-medium"
+                          >
                             {achievement}
                           </span>
                         {/each}
@@ -356,7 +381,9 @@
                   {/if}
 
                   {#if story.stats}
-                    <div class="flex gap-4 mt-2 pt-2 border-t border-[var(--border)] text-xs text-[var(--muted)] font-mono">
+                    <div
+                      class="flex gap-4 mt-2 pt-2 border-t border-[var(--border)] text-xs text-[var(--muted)] font-mono"
+                    >
                       <span>⏱️ {story.stats.durationHours}h</span>
                       <span>✏️ {story.stats.totalChanges} changes</span>
                       <span>🎯 Focus: {story.stats.focusScore}/100</span>
@@ -374,7 +401,9 @@
         <div class="mb-8">
           <h3 class="text-lg font-semibold text-[var(--text)] mb-4">Pattern Matches</h3>
           {#if patternMatches.length === 0}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
               <p class="text-[var(--text)] font-sans mb-2">No pattern matches found</p>
               <p class="text-sm text-[var(--muted)] font-sans">
                 Raven learns from history to predict outcomes
@@ -385,7 +414,9 @@
               {#each patternMatches as match (match.id)}
                 <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
                   <div class="flex items-start gap-4 mb-2">
-                    <span class="px-3 py-1 bg-[var(--accent)] text-white rounded text-xs font-semibold font-mono">
+                    <span
+                      class="px-3 py-1 bg-[var(--accent)] text-white rounded text-xs font-semibold font-mono"
+                    >
                       {Math.round(match.similarity_score)}% match
                     </span>
                     <div class="flex-1">
@@ -409,7 +440,9 @@
                   {#if match.match_reasons}
                     <div class="flex gap-1 flex-wrap">
                       {#each JSON.parse(match.match_reasons) as reason (reason)}
-                        <span class="px-2 py-0.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[11px] text-[var(--muted)]">
+                        <span
+                          class="px-2 py-0.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[11px] text-[var(--muted)]"
+                        >
                           {reason}
                         </span>
                       {/each}
@@ -427,7 +460,9 @@
         <div class="mb-8">
           <h3 class="text-lg font-semibold text-[var(--text)] mb-4">Project Memory</h3>
           {#if projectMemories.length === 0}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
               <p class="text-[var(--text)] font-sans mb-2">No memories recorded yet</p>
               <p class="text-sm text-[var(--muted)] font-sans">
                 Important decisions and milestones will appear here
@@ -456,7 +491,9 @@
                   {#if memory.tags && memory.tags.length > 0}
                     <div class="flex gap-1 flex-wrap">
                       {#each memory.tags as tag (tag)}
-                        <span class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs text-[var(--muted)]">
+                        <span
+                          class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs text-[var(--muted)]"
+                        >
                           {tag}
                         </span>
                       {/each}
@@ -469,7 +506,9 @@
 
           {#if contextSnapshot}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-              <h4 class="text-sm font-semibold text-[var(--text)] mb-3">📸 Today's Context Snapshot</h4>
+              <h4 class="text-sm font-semibold text-[var(--text)] mb-3">
+                📸 Today's Context Snapshot
+              </h4>
               {#if contextSnapshot.main_focus}
                 <div class="mb-3">
                   <strong class="text-sm text-[var(--text)]">Main Focus:</strong>
@@ -482,7 +521,9 @@
                   <div class="flex gap-2 flex-wrap mt-1">
                     {#each contextSnapshot.active_files.slice(0, 5) as file (file)}
                       {@const fileName = file.split('/').pop()}
-                      <span class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs font-mono text-[var(--text)]">
+                      <span
+                        class="px-2 py-0.5 bg-[var(--bg)] rounded text-xs font-mono text-[var(--text)]"
+                      >
                         {fileName}
                       </span>
                     {/each}
@@ -596,7 +637,9 @@
                           {handoff.from_agent}
                         </span>
                         <span class="text-[var(--muted)]">→</span>
-                        <span class="text-sm font-medium text-[var(--text)]">{handoff.to_agent}</span>
+                        <span class="text-sm font-medium text-[var(--text)]"
+                          >{handoff.to_agent}</span
+                        >
                       </div>
                       <div class="text-xs font-mono text-[var(--muted)] mb-1">{fileName}</div>
                       <div
@@ -644,7 +687,9 @@
               </div>
             {/if}
           {:else}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
               <p class="text-[var(--text)] font-sans mb-2">No cross-agent activity detected</p>
               <p class="text-sm text-[var(--muted)] font-sans">
                 Agent collaboration data will appear here
@@ -656,7 +701,9 @@
 
       <!-- Info Box -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <h4 class="text-sm font-semibold text-[var(--text)] mb-2">🧠 About Intelligence Dashboard</h4>
+        <h4 class="text-sm font-semibold text-[var(--text)] mb-2">
+          🧠 About Intelligence Dashboard
+        </h4>
         <ul class="list-disc list-inside text-sm text-[var(--muted)] leading-relaxed space-y-1">
           <li>
             <strong class="text-[var(--text)]">Agent Profiles:</strong> Tracks each AI agent's behavior
@@ -667,16 +714,16 @@
             work patterns and flow states
           </li>
           <li>
-            <strong class="text-[var(--text)]">Session Stories:</strong> Narratives of your coding
-            sessions with achievements
+            <strong class="text-[var(--text)]">Session Stories:</strong> Narratives of your coding sessions
+            with achievements
           </li>
           <li>
-            <strong class="text-[var(--text)]">Pattern Matches:</strong> Similar past changes that
-            predict potential outcomes
+            <strong class="text-[var(--text)]">Pattern Matches:</strong> Similar past changes that predict
+            potential outcomes
           </li>
           <li>
-            <strong class="text-[var(--text)]">Project Memory:</strong> Important decisions,
-            milestones, and context snapshots
+            <strong class="text-[var(--text)]">Project Memory:</strong> Important decisions, milestones,
+            and context snapshots
           </li>
           <li>
             <strong class="text-[var(--text)]">Cross-Agent Intel:</strong> Collaboration analysis and

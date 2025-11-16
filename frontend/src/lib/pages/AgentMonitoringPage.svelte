@@ -319,7 +319,7 @@
     setTimeout(createCharts, 100);
   };
 
-  const handleAgentStatus = status => {
+  const handleAgentStatus = _status => {
     // Update agent status in real-time
     loadMonitoringData();
   };
@@ -343,7 +343,7 @@
 
       // Create charts after data loads
       setTimeout(createCharts, 100);
-    } catch (err) {
+    } catch {
       logger.error('Failed to load monitoring data:', err);
       error = err.message;
       loading = false;

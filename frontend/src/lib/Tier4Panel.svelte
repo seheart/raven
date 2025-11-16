@@ -14,7 +14,6 @@
 
   // Health Scoring data
   let healthScore = null;
-  let healthHistory = [];
 
   // Drift Detection data
   let recentDrifts = [];
@@ -28,7 +27,6 @@
 
   // Growth Tracking data
   let growthSummary = null;
-  let growthTimeSeries = null;
 
   // Integration status
   let integrationStatus = {
@@ -40,7 +38,6 @@
   // Gamification data
   let userStats = null;
   let achievements = [];
-  let recentAchievements = [];
 
   // Easter Eggs data
   let easterEggs = [];
@@ -104,7 +101,7 @@
           await loadSocialData();
           break;
       }
-    } catch (err) {
+    } catch {
       error = err.message;
       loadedTabs.delete(tab); // Allow retry on error
     } finally {
@@ -124,7 +121,7 @@
 
       healthScore = latestData.score;
       healthHistory = historyData.history || [];
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
@@ -141,27 +138,27 @@
 
       recentDrifts = recentData.drifts || [];
       driftSummary = summaryData.summary;
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
 
   async function loadProductivityData() {
     try {
-      const res = await fetch(`${API_BASE}/productivity/latest?project=${project}`);
+      await fetch(`${API_BASE}/productivity/latest?project=${project}`);
       const data = await response.json();
       productivityInsights = data.metrics;
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
 
   async function loadPersonalityData() {
     try {
-      const res = await fetch(`${API_BASE}/personality/latest?project=${project}&agent=claude`);
+      await fetch(`${API_BASE}/personality/latest?project=${project}&agent=claude`);
       const data = await response.json();
       personalityProfile = data.profile;
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
@@ -178,7 +175,7 @@
 
       growthSummary = summaryData.summary;
       growthTimeSeries = timeSeriesData.timeSeries;
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
@@ -209,7 +206,7 @@
 
       integrationStatus.slack.events = slackData.events || [];
       integrationStatus.slack.enabled = slackData.events?.length > 0;
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
@@ -229,7 +226,7 @@
       userStats = statsData.stats;
       achievements = achievementsData.achievements || [];
       recentAchievements = recentData.achievements || [];
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
@@ -246,7 +243,7 @@
 
       easterEggs = eggsData.eggs || [];
       seasonalMessage = seasonalData.messages?.[0] || null;
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
@@ -263,80 +260,79 @@
 
       shareHistory = historyData.history || [];
       teamMembers = teamData.members || [];
-    } catch (err) {
+    } catch {
       // Error handled silently - partial data load
     }
   }
 
   async function calculateHealthScore() {
     try {
-      const res = await fetch(`${API_BASE}/health/calculate?project=${project}`, {
+      await fetch(`${API_BASE}/health/calculate?project=${project}`, {
         method: 'POST'
       });
       const data = await response.json();
       healthScore = data.healthScore;
       await loadHealthData();
-    } catch (err) {
+    } catch {
       // Error handled silently - operation failed gracefully
     }
   }
 
   async function detectDrifts() {
     try {
-      const res = await fetch(`${API_BASE}/drift/detect?project=${project}`, { method: 'POST' });
+      await fetch(`${API_BASE}/drift/detect?project=${project}`, { method: 'POST' });
       const data = await response.json();
       recentDrifts = data.drifts || [];
       await loadDriftData();
-    } catch (err) {
+    } catch {
       // Error handled silently - operation failed gracefully
     }
   }
 
   async function resolveDrift(driftId) {
     try {
-      const res = await fetch(`${API_BASE}/drift/${driftId}/resolve?project=${project}`, {
+      await fetch(`${API_BASE}/drift/${driftId}/resolve?project=${project}`, {
         method: 'POST'
       });
       if (res.ok) {
         // Reload drift data after resolution
         await loadDriftData();
       }
-    } catch (err) {
+    } catch {
       // Error handled silently - operation failed gracefully
     }
   }
 
   async function calculateProductivity() {
     try {
-      const res = await fetch(`${API_BASE}/productivity/calculate?project=${project}&days=30`, {
+      await fetch(`${API_BASE}/productivity/calculate?project=${project}&days=30`, {
         method: 'POST'
       });
       const data = await response.json();
       productivityInsights = data.insights;
-    } catch (err) {
+    } catch {
       // Error handled silently - operation failed gracefully
     }
   }
 
   async function analyzePersonality() {
     try {
-      const res = await fetch(
-        `${API_BASE}/personality/analyze?project=${project}&agent=claude&days=30`,
-        { method: 'POST' }
-      );
+      await fetch(`${API_BASE}/personality/analyze?project=${project}&agent=claude&days=30`, {
+        method: 'POST'
+      });
       const data = await response.json();
       personalityProfile = data.personality;
-    } catch (err) {
+    } catch {
       // Error handled silently - operation failed gracefully
     }
   }
 
   async function createGrowthSnapshot() {
     try {
-      const res = await fetch(`${API_BASE}/growth/snapshot?project=${project}`, { method: 'POST' });
+      await fetch(`${API_BASE}/growth/snapshot?project=${project}`, { method: 'POST' });
       // removed - api already returns JSON
       await loadGrowthData();
-    } catch (err) {
+    } catch {
       // Error handled silently - operation failed gracefully
     }
   }
@@ -344,7 +340,7 @@
   async function saveGitHubConfig() {
     try {
       configSaveStatus = 'Saving GitHub configuration...';
-      const res = await fetch(`${API_BASE}/integrations/github/config?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/github/config?project=${project}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(githubConfig)
@@ -357,7 +353,7 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch (err) {
+    } catch {
       configSaveStatus = `Error saving GitHub config: ${err.message}`;
     }
   }
@@ -365,7 +361,7 @@
   async function saveDiscordConfig() {
     try {
       configSaveStatus = 'Saving Discord configuration...';
-      const res = await fetch(`${API_BASE}/integrations/discord/config?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/discord/config?project=${project}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(discordConfig)
@@ -378,7 +374,7 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch (err) {
+    } catch {
       configSaveStatus = `Error saving Discord config: ${err.message}`;
     }
   }
@@ -386,7 +382,7 @@
   async function saveSlackConfig() {
     try {
       configSaveStatus = 'Saving Slack configuration...';
-      const res = await fetch(`${API_BASE}/integrations/slack/config?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/slack/config?project=${project}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(slackConfig)
@@ -399,7 +395,7 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch (err) {
+    } catch {
       configSaveStatus = `Error saving Slack config: ${err.message}`;
     }
   }
@@ -408,7 +404,7 @@
   async function testGitHubConnection() {
     try {
       configSaveStatus = 'Testing GitHub connection...';
-      const res = await fetch(`${API_BASE}/integrations/github/test?project=${project}`);
+      await fetch(`${API_BASE}/integrations/github/test?project=${project}`);
       const data = await response.json();
       if (data.result.success) {
         configSaveStatus = `✓ GitHub connected: ${data.result.repo_name}`;
@@ -416,7 +412,7 @@
         configSaveStatus = `✗ GitHub test failed: ${data.result.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
@@ -425,7 +421,7 @@
   async function testDiscordConnection() {
     try {
       configSaveStatus = 'Testing Discord connection...';
-      const res = await fetch(`${API_BASE}/integrations/discord/test?project=${project}`);
+      await fetch(`${API_BASE}/integrations/discord/test?project=${project}`);
       const data = await response.json();
       if (data.result.success) {
         configSaveStatus = '✓ Discord webhook is valid!';
@@ -433,7 +429,7 @@
         configSaveStatus = `✗ Discord test failed: ${data.result.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
@@ -442,7 +438,7 @@
   async function testSlackConnection() {
     try {
       configSaveStatus = 'Testing Slack connection...';
-      const res = await fetch(`${API_BASE}/integrations/slack/test?project=${project}`);
+      await fetch(`${API_BASE}/integrations/slack/test?project=${project}`);
       const data = await response.json();
       if (data.result.success) {
         configSaveStatus = '✓ Slack webhook is valid!';
@@ -450,7 +446,7 @@
         configSaveStatus = `✗ Slack test failed: ${data.result.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
@@ -459,7 +455,7 @@
   async function sendHealthToGitHub() {
     try {
       configSaveStatus = 'Posting health score to GitHub...';
-      const res = await fetch(`${API_BASE}/integrations/github/post-health?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/github/post-health?project=${project}`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -469,7 +465,7 @@
         configSaveStatus = '✗ Failed to post to GitHub';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
@@ -478,7 +474,7 @@
   async function sendHealthToDiscord() {
     try {
       configSaveStatus = 'Sending health score to Discord...';
-      const res = await fetch(`${API_BASE}/integrations/discord/send-health?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/discord/send-health?project=${project}`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -488,7 +484,7 @@
         configSaveStatus = '✗ Failed to send to Discord';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
@@ -497,7 +493,7 @@
   async function sendHealthToSlack() {
     try {
       configSaveStatus = 'Sending health score to Slack...';
-      const res = await fetch(`${API_BASE}/integrations/slack/send-health?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/slack/send-health?project=${project}`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -507,7 +503,7 @@
         configSaveStatus = '✗ Failed to send to Slack';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
@@ -516,7 +512,7 @@
   async function disableGitHub() {
     try {
       configSaveStatus = 'Disabling GitHub integration...';
-      const res = await fetch(`${API_BASE}/integrations/github/disable?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/github/disable?project=${project}`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -524,7 +520,7 @@
         integrationStatus.github.enabled = false;
         setTimeout(() => (configSaveStatus = ''), 3000);
       }
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }
@@ -533,7 +529,7 @@
   async function disableDiscord() {
     try {
       configSaveStatus = 'Disabling Discord integration...';
-      const res = await fetch(`${API_BASE}/integrations/discord/disable?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/discord/disable?project=${project}`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -541,7 +537,7 @@
         integrationStatus.discord.enabled = false;
         setTimeout(() => (configSaveStatus = ''), 3000);
       }
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }
@@ -550,7 +546,7 @@
   async function disableSlack() {
     try {
       configSaveStatus = 'Disabling Slack integration...';
-      const res = await fetch(`${API_BASE}/integrations/slack/disable?project=${project}`, {
+      await fetch(`${API_BASE}/integrations/slack/disable?project=${project}`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -558,7 +554,7 @@
         integrationStatus.slack.enabled = false;
         setTimeout(() => (configSaveStatus = ''), 3000);
       }
-    } catch (err) {
+    } catch {
       configSaveStatus = `✗ Error: ${err.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }

@@ -65,13 +65,12 @@
       const startTime = performance.now();
 
       // Search across multiple endpoints
-      const [eventsResp, filesResp] = await Promise.all([
+      const [eventsResp] = await Promise.all([
         api.get('/all-agent-events?limit=1000').catch(() => ({ json: async () => [] })),
         api.get('/tracked-files').catch(() => ({ json: async () => ({ files: [] }) }))
       ]);
 
       const eventsData = await eventsResp.json();
-      const filesData = await filesResp.json();
 
       const allEvents = Array.isArray(eventsData) ? eventsData : [];
       const query = searchQuery.toLowerCase();
@@ -92,7 +91,7 @@
       const endTime = performance.now();
       searchTime = Math.round(endTime - startTime);
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Search failed:', err);
       results = [];
       loading = false;

@@ -138,7 +138,7 @@
           ? `http://localhost:3030/api/pattern-warnings?limit=${limit}`
           : `http://localhost:3030/api/pattern-warnings/category/${categoryFilter}?limit=${limit}`;
 
-      const response = await fetch(url);
+      await fetch(url);
 
       const data = await response.json();
       warnings = data.warnings || [];
@@ -146,7 +146,7 @@
       lastUpdated = new Date();
       loading = false;
       loadingMore = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load pattern warnings:', err);
       error = err.message;
       loading = false;
@@ -163,15 +163,12 @@
   // Resolve warning
   async function resolveWarning(warningId) {
     try {
-      const response = await fetch(
-        `http://localhost:3030/api/pattern-warnings/${warningId}/resolve`,
-        {
-          method: 'POST'
-        }
-      );
+      await fetch(`http://localhost:3030/api/pattern-warnings/${warningId}/resolve`, {
+        method: 'POST'
+      });
 
       await loadWarnings;
-    } catch (err) {
+    } catch {
       logger.error('Failed to resolve warning:', err);
       alert(`Failed to resolve warning: ${err.message}`);
     }
@@ -190,10 +187,10 @@
           ? 'http://localhost:3030/api/pattern-warnings/resolve-all'
           : `http://localhost:3030/api/pattern-warnings/resolve-all?category=${categoryFilter}`;
 
-      const response = await fetch(url, { method: 'POST' });
+      await fetch(url, { method: 'POST' });
 
       await loadWarnings;
-    } catch (err) {
+    } catch {
       logger.error('Failed to resolve all warnings:', err);
       alert(`Failed to resolve all warnings: ${err.message}`);
     }

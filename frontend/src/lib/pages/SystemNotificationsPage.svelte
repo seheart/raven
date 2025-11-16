@@ -122,7 +122,7 @@
 
       hasMore = data.hasMore;
       lastUpdated = new Date();
-    } catch (error) {
+    } catch {
       logger.error('Failed to load notifications:', error);
     } finally {
       loading = false;
@@ -134,7 +134,7 @@
     try {
       const res = await fetch(`${API_BASE}/notifications/stats`);
       stats = await res.json();
-    } catch (error) {
+    } catch {
       logger.error('Failed to load notification stats:', error);
     }
   }
@@ -144,7 +144,7 @@
       await fetch(`${API_BASE}/notifications/${id}/read`, { method: 'POST' });
       notifications = notifications.map(n => (n.id === id ? { ...n, read: true } : n));
       stats.unread = Math.max(0, stats.unread - 1);
-    } catch (error) {
+    } catch {
       logger.error('Failed to mark notification as read:', error);
     }
   }
@@ -160,7 +160,7 @@
       await fetch(`${API_BASE}/notifications/mark-all-read`, { method: 'POST' });
       notifications = notifications.map(n => ({ ...n, read: true }));
       stats.unread = 0;
-    } catch (error) {
+    } catch {
       logger.error('Failed to mark all as read:', error);
     }
   }
@@ -168,7 +168,7 @@
   async function exportNotifications() {
     try {
       exportJSON(notifications, 'raven-notifications');
-    } catch (error) {
+    } catch {
       logger.error('Failed to export notifications:', error);
       alert('Failed to export notifications: ' + error.message);
     }
@@ -224,7 +224,7 @@
       notifications = notifications.filter(n => n.id !== id);
       stats.total = Math.max(0, stats.total - 1);
       await loadStats();
-    } catch (error) {
+    } catch {
       logger.error('Failed to clear notification:', error);
     }
   }
@@ -236,7 +236,7 @@
       await fetch(`${API_BASE}/notifications`, { method: 'DELETE' });
       notifications = [];
       stats = { total: 0, unread: 0, by_type: {}, by_severity: {} };
-    } catch (error) {
+    } catch {
       logger.error('Failed to clear all notifications:', error);
     }
   }
@@ -277,12 +277,6 @@
       metadata: data
     };
     handleNewNotification(notification);
-  }
-
-  async function handleProjectSwitched(data) {
-    offset = 0;
-    await loadNotifications();
-    await loadStats();
   }
 
   function toggleExpand(notification) {
@@ -856,11 +850,11 @@
                     <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
                       Details
                     </div>
-                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                     <pre
-                      class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs text-[var(--text)] overflow-x-auto font-mono">{@html DOMPurify.sanitize(
-                        JSON.stringify(notification.metadata, null, 2)
-                      )}</pre>
+                      class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs text-[var(--text)] overflow-x-auto font-mono">
+                      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                      {@html DOMPurify.sanitize(JSON.stringify(notification.metadata, null, 2))}
+                    </pre>
                   </div>
                 {/if}
               </div>

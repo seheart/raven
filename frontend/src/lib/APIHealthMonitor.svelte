@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { notifications } from './notificationService.js';
-  import { formatTime as formatTimeString, getTimeAgo } from './timeFormat.js';
+
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { API_CONFIG } from '../config.js';
   import { TimeoutManager } from './utils/TimeoutManager.js';
@@ -17,7 +17,6 @@
   let healthStatus = {};
   let healthHistory = {}; // Track history for success rate and sparklines
   let loading = true;
-  let lastCheck = null;
   let refreshInterval;
   let checkingAll = false;
   let realtimeActive = false;
@@ -147,7 +146,6 @@
     checkingAll = true;
     loading = true;
     isManualRefresh = manual;
-    const startTime = Date.now();
 
     // Check endpoints in larger batches with progressive rendering
     const BATCH_SIZE = 20; // Increased from 10
@@ -160,7 +158,6 @@
       healthStatus = { ...healthStatus };
     }
 
-    lastCheck = new Date();
     lastUpdated = new Date();
     loading = false;
     checkingAll = false;
@@ -276,11 +273,6 @@
       grouped[cat].push(endpoint);
     }
     return grouped;
-  }
-
-  function formatTime(date) {
-    if (!date) return 'Never';
-    return formatTimeString(date);
   }
 
   // Reactive "time ago" - updates when lastUpdated changes (no polling!)

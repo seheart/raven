@@ -22,14 +22,12 @@
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((test) =>
-        test.name?.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(test => test.name?.toLowerCase().includes(query));
     }
 
     // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter((test) => test.status === statusFilter);
+      filtered = filtered.filter(test => test.status === statusFilter);
     }
 
     return filtered;
@@ -37,9 +35,9 @@
 
   const testStats = $derived.by(() => {
     const total = testResults.length;
-    const passed = testResults.filter((t) => t.status === 'passed').length;
-    const failed = testResults.filter((t) => t.status === 'failed').length;
-    const skipped = testResults.filter((t) => t.status === 'skipped').length;
+    const passed = testResults.filter(t => t.status === 'passed').length;
+    const failed = testResults.filter(t => t.status === 'failed').length;
+    const skipped = testResults.filter(t => t.status === 'skipped').length;
     const passRate = total > 0 ? Math.round((passed / total) * 100) : 0;
 
     return { total, passed, failed, skipped, passRate };
@@ -52,7 +50,7 @@
 
   // Time since last update
   const timeSinceUpdate = $derived.by(() => {
-    return Math.floor((new Date - lastUpdated) / 1000);
+    return Math.floor((new Date() - lastUpdated) / 1000);
   });
 
   // Format duration
@@ -73,7 +71,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load test results:', err);
       error = err.message;
       loading = false;
@@ -88,12 +86,12 @@
       running = true;
       error = null;
 
-      const result = await api.post('/tests/run');
+      await api.post('/tests/run');
       running = false;
 
       // Reload results after tests complete
       await loadTests();
-    } catch (err) {
+    } catch {
       logger.error('Failed to run tests:', err);
       error = err.message;
       running = false;
@@ -103,7 +101,7 @@
   // Export to CSV
   function exportToCSV() {
     const headers = ['Test Name', 'Status', 'Duration (ms)', 'Error Message'];
-    const rows = filteredTests.map((test) => [
+    const rows = filteredTests.map(test => [
       test.name || '',
       test.status || '',
       test.duration || '',
@@ -112,7 +110,7 @@
 
     const csv = [
       headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -148,9 +146,7 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Test Results</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
-          View test suite results and status
-        </p>
+        <p class="text-base text-[var(--muted)] font-sans">View test suite results and status</p>
       </div>
       <div class="flex items-center gap-3">
         <span class="text-sm text-[var(--muted)] font-sans">Updated {timeSinceUpdate}s ago</span>
@@ -175,7 +171,9 @@
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
       >
-        <span class="text-sm text-[var(--error)] font-sans">Failed to load test results: {error}</span>
+        <span class="text-sm text-[var(--error)] font-sans"
+          >Failed to load test results: {error}</span
+        >
         <button
           onclick={loadTests}
           class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
@@ -188,10 +186,14 @@
       <div class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           {#each Array(4) as _, i (i)}
-            <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+            <div
+              class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            ></div>
           {/each}
         </div>
-        <div class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+        <div
+          class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+        ></div>
       </div>
     {:else}
       <!-- Stats Cards -->
@@ -305,16 +307,20 @@
             <table class="w-full">
               <thead class="bg-[var(--surface-2)] border-b border-[var(--border)]">
                 <tr>
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Status</th
                   >
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Test Name</th
                   >
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Duration</th
                   >
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Error Message</th
                   >
                 </tr>

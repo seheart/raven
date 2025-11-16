@@ -17,8 +17,6 @@
 
   const API_BASE = API_CONFIG.API_BASE;
 
-  $: maxEventCount = Math.max(...trends.map(t => t.event_count || 0), 1);
-
   // Chart.js visualizations
   let showCharts = true;
   let charts = {};
@@ -47,8 +45,8 @@
     websocketService.on('project-switched', handleProjectSwitched);
 
     // Watch for theme changes on body element
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
           logger.info('[HistoricalTrends] Theme changed, recreating charts');
           setTimeout(createCharts, 100);
@@ -106,18 +104,6 @@
     }
   }
 
-  // Get the height of a bar segment as a percentage of that period's total
-  function getSegmentHeight(value, total) {
-    if (total === 0) return 0;
-    return (value / total) * 100;
-  }
-
-  // Get the overall bar height for a period (in pixels)
-  function getPeriodBarHeight(eventCount) {
-    const maxHeight = 280; // Max height in pixels (chart is 300px, leave some padding)
-    return (eventCount / maxEventCount) * maxHeight;
-  }
-
   function formatPeriod(periodStr) {
     if (period === 'hourly' || period === 'daily') {
       // Show just date (no time)
@@ -164,7 +150,7 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     // Get theme-aware colors from body element
@@ -182,16 +168,18 @@
         type: 'line',
         data: {
           labels: labels,
-          datasets: [{
-            label: 'Total Events',
-            data: eventCounts,
-            borderColor: 'var(--info)',
-            backgroundColor: 'rgba(122, 162, 247, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6
-          }]
+          datasets: [
+            {
+              label: 'Total Events',
+              data: eventCounts,
+              borderColor: 'var(--info)',
+              backgroundColor: 'rgba(122, 162, 247, 0.1)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -369,16 +357,31 @@
     </div>
     <div class="header-right" role="toolbar" aria-label="Historical trends actions">
       <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
-      <button class="btn btn-secondary btn-sm" on:click={handleExportCSV} aria-label="Export trends data as CSV">Export CSV</button>
-      <button class="btn btn-secondary btn-sm" on:click={handleExportJSON} aria-label="Export trends data as JSON">Export JSON</button>
-      <button class="btn btn-primary btn-sm" on:click={loadTrends} aria-label="Refresh trends data"><span aria-hidden="true">↻</span> Refresh</button>
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={handleExportCSV}
+        aria-label="Export trends data as CSV">Export CSV</button
+      >
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={handleExportJSON}
+        aria-label="Export trends data as JSON">Export JSON</button
+      >
+      <button class="btn btn-primary btn-sm" on:click={loadTrends} aria-label="Refresh trends data"
+        ><span aria-hidden="true">↻</span> Refresh</button
+      >
     </div>
   </div>
 
   <div class="controls">
     <div class="control-group">
       <label for="period-select">Period:</label>
-      <select id="period-select" bind:value={period} on:change={() => handlePeriodChange(period)} aria-label="Select time period granularity">
+      <select
+        id="period-select"
+        bind:value={period}
+        on:change={() => handlePeriodChange(period)}
+        aria-label="Select time period granularity"
+      >
         <option value="hourly">Hourly</option>
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
@@ -386,7 +389,12 @@
     </div>
     <div class="control-group">
       <label for="days-select">Last:</label>
-      <select id="days-select" bind:value={days} on:change={() => handleDaysChange(days)} aria-label="Select time range">
+      <select
+        id="days-select"
+        bind:value={days}
+        on:change={() => handleDaysChange(days)}
+        aria-label="Select time range"
+      >
         <option value="1">24 hours</option>
         <option value="7">7 days</option>
         <option value="14">14 days</option>
@@ -415,7 +423,7 @@
         <h3>Analytics Visualizations</h3>
         <button
           class="btn btn-ghost btn-sm"
-          on:click={() => showCharts = !showCharts}
+          on:click={() => (showCharts = !showCharts)}
           aria-label="{showCharts ? 'Hide' : 'Show'} charts"
           aria-expanded={showCharts}
         >
@@ -441,19 +449,27 @@
 
     <div class="stats-grid" role="list" aria-label="Trends summary statistics">
       <article class="stat-card" role="listitem">
-        <div class="stat-value" role="status">{trends.reduce((sum, t) => sum + t.event_count, 0).toLocaleString()}</div>
+        <div class="stat-value" role="status">
+          {trends.reduce((sum, t) => sum + t.event_count, 0).toLocaleString()}
+        </div>
         <div class="stat-label">Total Events</div>
       </article>
       <article class="stat-card" role="listitem">
-        <div class="stat-value" role="status">{trends.reduce((sum, t) => sum + t.modifications, 0).toLocaleString()}</div>
+        <div class="stat-value" role="status">
+          {trends.reduce((sum, t) => sum + t.modifications, 0).toLocaleString()}
+        </div>
         <div class="stat-label">Modifications</div>
       </article>
       <article class="stat-card" role="listitem">
-        <div class="stat-value" role="status">{trends.reduce((sum, t) => sum + t.creations, 0).toLocaleString()}</div>
+        <div class="stat-value" role="status">
+          {trends.reduce((sum, t) => sum + t.creations, 0).toLocaleString()}
+        </div>
         <div class="stat-label">Creations</div>
       </article>
       <article class="stat-card" role="listitem">
-        <div class="stat-value" role="status">{trends.reduce((sum, t) => sum + t.deletions, 0).toLocaleString()}</div>
+        <div class="stat-value" role="status">
+          {trends.reduce((sum, t) => sum + t.deletions, 0).toLocaleString()}
+        </div>
         <div class="stat-label">Deletions</div>
       </article>
     </div>
@@ -577,7 +593,6 @@
     font-weight: 700;
   }
 
-
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -645,8 +660,8 @@
     border-radius: var(--radius-sm);
   }
 
-
-  .empty-state, .error-state {
+  .empty-state,
+  .error-state {
     text-align: center;
     padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
@@ -654,7 +669,8 @@
     border-radius: var(--radius);
   }
 
-  .empty-state p, .error-state p {
+  .empty-state p,
+  .error-state p {
     margin: var(--space-lg) 0;
     color: var(--muted);
   }

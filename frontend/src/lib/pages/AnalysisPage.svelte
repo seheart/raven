@@ -32,9 +32,15 @@
     performanceMetrics.cpu > 80 ? 'critical' : performanceMetrics.cpu > 60 ? 'warning' : 'good'
   );
   const memHealth = $derived(
-    performanceMetrics.memory > 80 ? 'critical' : performanceMetrics.memory > 60 ? 'warning' : 'good'
+    performanceMetrics.memory > 80
+      ? 'critical'
+      : performanceMetrics.memory > 60
+        ? 'warning'
+        : 'good'
   );
-  const timeSinceUpdate = $derived.by(() => Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000));
+  const timeSinceUpdate = $derived.by(() =>
+    Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000)
+  );
 
   // Load analysis data
   async function loadAnalysisData() {
@@ -72,7 +78,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load analysis data:', err);
       error = err.message;
       loading = false;
@@ -83,18 +89,27 @@
   function createCpuChart() {
     if (!cpuChartCanvas || metricsHistory.length === 0) return;
 
-    const labels = metricsHistory.slice().reverse().map(m => {
-      const date = new Date(m.timestamp);
-      return date.toLocaleTimeString();
-    });
+    const labels = metricsHistory
+      .slice()
+      .reverse()
+      .map(m => {
+        const date = new Date(m.timestamp);
+        return date.toLocaleTimeString();
+      });
 
-    const cpuData = metricsHistory.slice().reverse().map(m => m.cpu_percent || 0);
-    const memData = metricsHistory.slice().reverse().map(m => m.memory_percent || 0);
+    const cpuData = metricsHistory
+      .slice()
+      .reverse()
+      .map(m => m.cpu_percent || 0);
+    const memData = metricsHistory
+      .slice()
+      .reverse()
+      .map(m => m.memory_percent || 0);
 
     // Get theme-aware colors
     const getColor = (varName, fallback) => {
       const value = getComputedStyle(document.body).getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     const textColor = getColor('--text', '#c0caf5');
@@ -167,8 +182,8 @@
     });
 
     // Theme observer
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class') {
           setTimeout(createCpuChart, 100);
         }
@@ -197,7 +212,9 @@
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">📊 Analysis Overview</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Performance metrics, trends, and insights</p>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Performance metrics, trends, and insights
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <span class="text-sm text-[var(--muted)] font-mono">Updated {timeSinceUpdate}s ago</span>
@@ -212,54 +229,97 @@
     </div>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center">
-        <span class="text-sm text-[var(--error)] font-sans">⚠️ Failed to load analysis data: {error}</span>
-        <button onclick={() => loadAnalysisData()} class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans">
+      <div
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
+      >
+        <span class="text-sm text-[var(--error)] font-sans"
+          >⚠️ Failed to load analysis data: {error}</span
+        >
+        <button
+          onclick={() => loadAnalysisData()}
+          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+        >
           Retry
         </button>
       </div>
     {:else if loading}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {#each Array(4) as _, i (i)}
-          <div class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else}
       <!-- Performance Metrics Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <!-- CPU Usage -->
-        <div class="bg-[var(--surface)] border-2 rounded-lg p-5 transition-all" style="border-color: {cpuHealth === 'critical' ? 'var(--error)' : cpuHealth === 'warning' ? 'var(--warning)' : 'var(--border)'}">
+        <div
+          class="bg-[var(--surface)] border-2 rounded-lg p-5 transition-all"
+          style="border-color: {cpuHealth === 'critical'
+            ? 'var(--error)'
+            : cpuHealth === 'warning'
+              ? 'var(--warning)'
+              : 'var(--border)'}"
+        >
           <div class="flex items-center gap-3 mb-3">
             <span class="text-2xl">🖥️</span>
             <span class="font-semibold text-[var(--text-heading)] font-sans">CPU Usage</span>
           </div>
-          <div class="text-4xl font-bold text-[var(--text-heading)] mb-3">{performanceMetrics.cpu}%</div>
+          <div class="text-4xl font-bold text-[var(--text-heading)] mb-3">
+            {performanceMetrics.cpu}%
+          </div>
           <div class="h-2 bg-[var(--bg)] rounded overflow-hidden mb-2">
             <div
               class="h-full transition-all duration-500"
-              style="width: {performanceMetrics.cpu}%; background: {cpuHealth === 'critical' ? 'var(--error)' : cpuHealth === 'warning' ? 'var(--warning)' : 'var(--success)'}"
+              style="width: {performanceMetrics.cpu}%; background: {cpuHealth === 'critical'
+                ? 'var(--error)'
+                : cpuHealth === 'warning'
+                  ? 'var(--warning)'
+                  : 'var(--success)'}"
             ></div>
           </div>
           <div class="text-sm text-[var(--muted)] font-sans">
-            {cpuHealth === 'good' ? '✓ Normal' : cpuHealth === 'warning' ? '⚠ Elevated' : '🔴 High'}
+            {cpuHealth === 'good'
+              ? '✓ Normal'
+              : cpuHealth === 'warning'
+                ? '⚠ Elevated'
+                : '🔴 High'}
           </div>
         </div>
 
         <!-- Memory Usage -->
-        <div class="bg-[var(--surface)] border-2 rounded-lg p-5 transition-all" style="border-color: {memHealth === 'critical' ? 'var(--error)' : memHealth === 'warning' ? 'var(--warning)' : 'var(--border)'}">
+        <div
+          class="bg-[var(--surface)] border-2 rounded-lg p-5 transition-all"
+          style="border-color: {memHealth === 'critical'
+            ? 'var(--error)'
+            : memHealth === 'warning'
+              ? 'var(--warning)'
+              : 'var(--border)'}"
+        >
           <div class="flex items-center gap-3 mb-3">
             <span class="text-2xl">💾</span>
             <span class="font-semibold text-[var(--text-heading)] font-sans">Memory Usage</span>
           </div>
-          <div class="text-4xl font-bold text-[var(--text-heading)] mb-3">{performanceMetrics.memory}%</div>
+          <div class="text-4xl font-bold text-[var(--text-heading)] mb-3">
+            {performanceMetrics.memory}%
+          </div>
           <div class="h-2 bg-[var(--bg)] rounded overflow-hidden mb-2">
             <div
               class="h-full transition-all duration-500"
-              style="width: {performanceMetrics.memory}%; background: {memHealth === 'critical' ? 'var(--error)' : memHealth === 'warning' ? 'var(--warning)' : 'var(--success)'}"
+              style="width: {performanceMetrics.memory}%; background: {memHealth === 'critical'
+                ? 'var(--error)'
+                : memHealth === 'warning'
+                  ? 'var(--warning)'
+                  : 'var(--success)'}"
             ></div>
           </div>
           <div class="text-sm text-[var(--muted)] font-sans">
-            {memHealth === 'good' ? '✓ Normal' : memHealth === 'warning' ? '⚠ Elevated' : '🔴 High'}
+            {memHealth === 'good'
+              ? '✓ Normal'
+              : memHealth === 'warning'
+                ? '⚠ Elevated'
+                : '🔴 High'}
           </div>
         </div>
       </div>
@@ -267,7 +327,9 @@
       <!-- CPU/Memory Chart -->
       {#if metricsHistory.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">📈 Performance Trends</h2>
+          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+            📈 Performance Trends
+          </h2>
           <div style="height: 300px;">
             <canvas bind:this={cpuChartCanvas}></canvas>
           </div>
@@ -328,15 +390,23 @@
       <!-- Recent Triggered Events -->
       {#if triggeredEvents.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">🔔 Recent Triggered Events</h2>
+          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+            🔔 Recent Triggered Events
+          </h2>
           <div class="space-y-2">
             {#each triggeredEvents.slice(0, 5) as event, i (event.id || `${event.timestamp}-${i}`)}
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex items-start gap-3 hover:border-[var(--accent)] transition-colors">
+              <div
+                class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex items-start gap-3 hover:border-[var(--accent)] transition-colors"
+              >
                 <span class="text-xl flex-shrink-0">⚡</span>
                 <div class="flex-1">
-                  <div class="font-medium text-[var(--text-heading)] font-sans">{event.trigger_name || 'Trigger Fired'}</div>
+                  <div class="font-medium text-[var(--text-heading)] font-sans">
+                    {event.trigger_name || 'Trigger Fired'}
+                  </div>
                   <div class="text-sm text-[var(--muted)] font-sans mt-0.5">
-                    {event.message || event.event_type} · {new Date(event.timestamp || Date.now()).toLocaleString()}
+                    {event.message || event.event_type} · {new Date(
+                      event.timestamp || Date.now()
+                    ).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -347,7 +417,9 @@
 
       <!-- Quick Actions Grid -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">🚀 Quick Actions</h2>
+        <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          🚀 Quick Actions
+        </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <button
             onclick={() => navigate('/analysis/performance')}
@@ -355,7 +427,9 @@
           >
             <span class="text-2xl">📊</span>
             <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">Performance Metrics</div>
+              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
+                Performance Metrics
+              </div>
               <div class="text-xs text-[var(--muted)] font-sans">CPU, memory, correlations</div>
             </div>
           </button>
@@ -366,7 +440,9 @@
           >
             <span class="text-2xl">📈</span>
             <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">Custom Metrics</div>
+              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
+                Custom Metrics
+              </div>
               <div class="text-xs text-[var(--muted)] font-sans">User-defined dashboards</div>
             </div>
           </button>
@@ -377,7 +453,9 @@
           >
             <span class="text-2xl">📉</span>
             <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">Historical Trends</div>
+              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
+                Historical Trends
+              </div>
               <div class="text-xs text-[var(--muted)] font-sans">Time-series analysis</div>
             </div>
           </button>
@@ -388,7 +466,9 @@
           >
             <span class="text-2xl">⚡</span>
             <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">Configure Triggers</div>
+              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
+                Configure Triggers
+              </div>
               <div class="text-xs text-[var(--muted)] font-sans">Automated monitoring</div>
             </div>
           </button>
@@ -399,7 +479,9 @@
           >
             <span class="text-2xl">🎬</span>
             <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">Session Replay</div>
+              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
+                Session Replay
+              </div>
               <div class="text-xs text-[var(--muted)] font-sans">Review coding sessions</div>
             </div>
           </button>
@@ -410,7 +492,9 @@
           >
             <span class="text-2xl">👨‍💻</span>
             <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">Developer Insights</div>
+              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
+                Developer Insights
+              </div>
               <div class="text-xs text-[var(--muted)] font-sans">Productivity analytics</div>
             </div>
           </button>

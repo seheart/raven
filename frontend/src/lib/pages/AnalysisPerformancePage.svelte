@@ -6,7 +6,6 @@
    * Svelte 5 + Tailwind CSS implementation
    */
 
-  import { tick } from 'svelte';
   import { api } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
 
@@ -24,8 +23,6 @@
   let chartTimeRange = $state('1h'); // '15m', '1h', '6h', '24h'
 
   // Chart instances (no Chart.js for now - using CSS-based charts like reference)
-  let cpuChart = $state(null);
-  let memoryChart = $state(null);
 
   // Performance thresholds
   let thresholds = $state({
@@ -109,7 +106,7 @@
       lastUpdated = new Date();
       loading = false;
       isManualRefresh = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load performance data:', err);
       error = err.message || 'Failed to load performance data';
       loading = false;
@@ -122,7 +119,7 @@
     systemMetrics = [metrics, ...systemMetrics].slice(0, 20);
   }
 
-  function handleProjectSwitched(data) {
+  function handleProjectSwitched(_data) {
     fetchAllData();
   }
 

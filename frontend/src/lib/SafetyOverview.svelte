@@ -1,9 +1,8 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
-  import { dataService } from './dataService.js';
+
   import { logger } from './logger.js';
-  import { router } from './router.js';
 
   // Safety metrics
   let syntaxErrorCount = 0;
@@ -84,7 +83,7 @@
           testResults.passed = testData.results.filter(t => t.status === 'passed').length;
           testResults.failed = testData.results.filter(t => t.status === 'failed').length;
         }
-      } catch (err) {
+      } catch {
         // Tests not available yet
       }
 

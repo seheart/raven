@@ -22,7 +22,7 @@
   let dateRange = $state('all'); // all, today, week, month
   let sortBy = $state('newest'); // newest, oldest, filepath, agent
   let eventsLimit = $state(50);
-  let totalEvents = $state(0);
+
   let agents = $state([]);
 
   // Chart instances
@@ -275,7 +275,7 @@
       agents = Array.from(uniqueAgents).sort();
 
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load events:', err);
       error = err.message;
       loading = false;
@@ -288,18 +288,18 @@
       setTimeout(() => {
         try {
           createCharts();
-        } catch (err) {
+        } catch {
           logger.error('Failed to create charts:', err);
         }
       }, 200);
     }
   });
 
-  function formatTimestamp(timestamp) {
-    if (!timestamp) return 'N/A';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  }
+  // function formatTimestamp(timestamp) {
+  //   if (!timestamp) return 'N/A';
+  //   const date = new Date(timestamp);
+  //   return date.toLocaleString();
+  // }
 
   function formatDate(timestamp) {
     if (!timestamp) return 'N/A';

@@ -7,7 +7,12 @@
   import { onMount } from 'svelte';
   import { api } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
-  import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
 
   let stats = $state({
     total_events: 0,
@@ -146,12 +151,14 @@
       type: 'doughnut',
       data: {
         labels: ['Creates', 'Edits', 'Deletes'],
-        datasets: [{
-          data: [stats.creates || 0, stats.edits || 0, stats.deletes || 0],
-          backgroundColor: [colors.success, colors.primary, colors.error],
-          borderColor: colors.border,
-          borderWidth: 1
-        }]
+        datasets: [
+          {
+            data: [stats.creates || 0, stats.edits || 0, stats.deletes || 0],
+            backgroundColor: [colors.success, colors.primary, colors.error],
+            borderColor: colors.border,
+            borderWidth: 1
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -183,13 +190,15 @@
       type: 'bar',
       data: {
         labels: projectNames,
-        datasets: [{
-          label: 'Recent Changes',
-          data: projectChanges,
-          backgroundColor: colors.primary,
-          borderColor: colors.primary,
-          borderWidth: 1
-        }]
+        datasets: [
+          {
+            label: 'Recent Changes',
+            data: projectChanges,
+            backgroundColor: colors.primary,
+            borderColor: colors.primary,
+            borderWidth: 1
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -243,16 +252,18 @@
       type: 'line',
       data: {
         labels,
-        datasets: [{
-          label: 'Activity',
-          data: hourlyActivity,
-          borderColor: colors.primary,
-          backgroundColor: `${colors.primary}33`,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 2,
-          pointHoverRadius: 4
-        }]
+        datasets: [
+          {
+            label: 'Activity',
+            data: hourlyActivity,
+            borderColor: colors.primary,
+            backgroundColor: `${colors.primary}33`,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 2,
+            pointHoverRadius: 4
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -303,14 +314,14 @@
       ]);
 
       stats = statsData;
-      systemMetrics = Array.isArray(metricsData) ? (metricsData[0] || {}) : metricsData;
-      recentActivity = Array.isArray(activityData) ? activityData : (activityData.events || []);
+      systemMetrics = Array.isArray(metricsData) ? metricsData[0] || {} : metricsData;
+      recentActivity = Array.isArray(activityData) ? activityData : activityData.events || [];
       topFiles = filesData.files || filesData || [];
       projects = projectsRes.projects || [];
 
       // Load project stats
       const projectEvents = await api.get('/all-file-events?limit=500');
-      const events = Array.isArray(projectEvents) ? projectEvents : (projectEvents.events || []);
+      const events = Array.isArray(projectEvents) ? projectEvents : projectEvents.events || [];
       events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       const projectStats = {};
@@ -343,13 +354,15 @@
       projectsData = projects
         .map(project => {
           const name = project.name || project;
-          return projectStats[name] || {
-            name,
-            status: 'idle',
-            lastActivity: null,
-            eventCount: 0,
-            recentChanges: 0
-          };
+          return (
+            projectStats[name] || {
+              name,
+              status: 'idle',
+              lastActivity: null,
+              eventCount: 0,
+              recentChanges: 0
+            }
+          );
         })
         .sort((a, b) => {
           if (!a.lastActivity) return 1;
@@ -392,7 +405,7 @@
 
       loading = false;
       lastUpdated = new Date();
-    } catch (error) {
+    } catch {
       logger.error('Failed to load overview data:', error);
       loading = false;
     }
@@ -405,7 +418,7 @@
       setTimeout(() => {
         try {
           createCharts();
-        } catch (err) {
+        } catch {
           logger.error('Failed to create charts:', err);
         }
       }, 200);
@@ -413,7 +426,7 @@
   });
 
   // WebSocket handlers for real-time updates
-  const handleMetricsUpdate = (data) => {
+  const handleMetricsUpdate = _data => {
     systemMetrics = data;
     lastUpdated = new Date();
   };
@@ -427,14 +440,14 @@
         api.get('/top-modified-files?limit=5')
       ]);
 
-      recentActivity = Array.isArray(activityData) ? activityData : (activityData.events || []);
+      recentActivity = Array.isArray(activityData) ? activityData : activityData.events || [];
       stats = statsData;
       topFiles = filesData.files || filesData || [];
       lastUpdated = new Date();
 
       // Update charts with new data
       createCharts();
-    } catch (error) {
+    } catch {
       logger.error('Failed to update activity:', error);
     }
   };
@@ -483,7 +496,10 @@
         </div>
         <div class="flex items-center gap-2 text-base text-[var(--muted)] font-mono">
           <span>📝</span>
-          <span>{stats.unique_files_modified} file{stats.unique_files_modified !== 1 ? 's' : ''} changed today</span>
+          <span
+            >{stats.unique_files_modified} file{stats.unique_files_modified !== 1 ? 's' : ''} changed
+            today</span
+          >
         </div>
       </div>
     </div>
@@ -497,7 +513,10 @@
         <div class="flex items-center gap-4">
           <span class="text-xl">{statusConfig.icon}</span>
           <h3 class="text-sm font-semibold text-[var(--text)] font-mono m-0">Project Health</h3>
-          <p class="text-sm font-semibold text-[var(--text)] m-0 font-mono" style="color: {statusConfig.color}">
+          <p
+            class="text-sm font-semibold text-[var(--text)] m-0 font-mono"
+            style="color: {statusConfig.color}"
+          >
             {statusConfig.message}
           </p>
         </div>
@@ -534,10 +553,14 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Activity Distribution Chart -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">Activity Distribution</h3>
+        <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">
+          Activity Distribution
+        </h3>
         <div class="h-[200px]">
           {#if loading}
-            <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">Loading...</div>
+            <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">
+              Loading...
+            </div>
           {:else}
             <canvas id="activityDistributionChart"></canvas>
           {/if}
@@ -549,7 +572,9 @@
         <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">Project Health</h3>
         <div class="h-[200px]">
           {#if loading}
-            <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">Loading...</div>
+            <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">
+              Loading...
+            </div>
           {:else}
             <canvas id="projectHealthChart"></canvas>
           {/if}
@@ -577,10 +602,14 @@
 
     <!-- Activity Trend Chart -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-      <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">Activity Trend (24h)</h3>
+      <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">
+        Activity Trend (24h)
+      </h3>
       <div class="h-[200px]">
         {#if loading}
-          <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">Loading...</div>
+          <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">
+            Loading...
+          </div>
         {:else}
           <canvas id="activityTrendChart"></canvas>
         {/if}
@@ -602,7 +631,9 @@
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {#each projectsData as project (project.name)}
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 hover:border-[var(--accent)] transition-all">
+            <div
+              class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 hover:border-[var(--accent)] transition-all"
+            >
               <div class="flex items-center justify-between mb-3">
                 <span class="text-sm font-semibold text-[var(--text)] font-mono truncate flex-1">
                   {project.name}
@@ -619,7 +650,9 @@
               <div class="flex gap-4">
                 <div class="flex flex-col gap-1">
                   <span class="text-sm text-[var(--muted)] uppercase tracking-wide">Recent</span>
-                  <span class="text-base font-semibold text-[var(--accent)] font-mono">{project.recentChanges}</span>
+                  <span class="text-base font-semibold text-[var(--accent)] font-mono"
+                    >{project.recentChanges}</span
+                  >
                 </div>
                 <div class="flex flex-col gap-1">
                   <span class="text-sm text-[var(--muted)] uppercase tracking-wide">Activity</span>
@@ -664,7 +697,9 @@
       {:else}
         <div class="space-y-2">
           {#each recentActivity as event (event.id || event.timestamp)}
-            <div class="flex items-center gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all">
+            <div
+              class="flex items-center gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all"
+            >
               <span class="text-base flex-shrink-0">
                 {#if event.change_type === 'create' || event.change_type === 'add'}
                   ➕
@@ -679,7 +714,9 @@
               <div class="flex-1 min-w-0">
                 <div class="text-base text-[var(--text)] font-mono mb-1">
                   {#if event.project}
-                    <span class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide">
+                    <span
+                      class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide"
+                    >
                       {event.project}
                     </span>
                   {/if}
@@ -727,7 +764,8 @@
             <div class="flex justify-between items-center">
               <span class="text-base text-[var(--muted)] font-mono">Current flow:</span>
               <span class="text-sm font-semibold font-mono" style="color: {flowState.color}">
-                {flowState.icon} {flowState.state}
+                {flowState.icon}
+                {flowState.state}
               </span>
             </div>
           </div>
@@ -749,7 +787,12 @@
               <div class="flex-1 h-2 bg-[var(--bg)] rounded overflow-hidden">
                 <div
                   class="h-full transition-all duration-300"
-                  style="width: {systemMetrics.cpu_percent}%; background: {systemMetrics.cpu_percent > 80 ? 'var(--error)' : systemMetrics.cpu_percent > 50 ? 'var(--warning)' : 'var(--success)'}"
+                  style="width: {systemMetrics.cpu_percent}%; background: {systemMetrics.cpu_percent >
+                  80
+                    ? 'var(--error)'
+                    : systemMetrics.cpu_percent > 50
+                      ? 'var(--warning)'
+                      : 'var(--success)'}"
                 ></div>
               </div>
               <div class="text-base text-[var(--text)] font-mono min-w-[50px] text-right">
@@ -761,11 +804,18 @@
               <div class="flex-1 h-2 bg-[var(--bg)] rounded overflow-hidden">
                 <div
                   class="h-full transition-all duration-300"
-                  style="width: {systemMetrics.memory_percent}%; background: {systemMetrics.memory_percent > 85 ? 'var(--error)' : systemMetrics.memory_percent > 60 ? 'var(--warning)' : 'var(--success)'}"
+                  style="width: {systemMetrics.memory_percent}%; background: {systemMetrics.memory_percent >
+                  85
+                    ? 'var(--error)'
+                    : systemMetrics.memory_percent > 60
+                      ? 'var(--warning)'
+                      : 'var(--success)'}"
                 ></div>
               </div>
               <div class="text-base text-[var(--text)] font-mono min-w-[100px] text-right">
-                {formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} / {formatNumber(systemMetrics.memory_total_mb?.toFixed(0))} MB
+                {formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} / {formatNumber(
+                  systemMetrics.memory_total_mb?.toFixed(0)
+                )} MB
               </div>
             </div>
           </div>
@@ -776,10 +826,14 @@
     <!-- Top Files -->
     {#if topFiles.length > 0}
       <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">Most Active Files</h3>
+        <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">
+          Most Active Files
+        </h3>
         <div class="space-y-2">
           {#each topFiles as file (file.id || file.filepath)}
-            <div class="flex justify-between items-center p-2 bg-[var(--bg)] rounded text-sm font-mono">
+            <div
+              class="flex justify-between items-center p-2 bg-[var(--bg)] rounded text-sm font-mono"
+            >
               <span class="text-[var(--text)] truncate flex-1">
                 {#if file.project}
                   <span class="text-[var(--info)] font-semibold">{file.project}/</span>

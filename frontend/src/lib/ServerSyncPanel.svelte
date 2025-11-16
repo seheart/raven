@@ -4,10 +4,7 @@
   import { notifications } from './notificationService.js';
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
-  import { API_CONFIG } from '../config.js';
   import { api } from './apiClient.js';
-
-  const API_BASE = API_CONFIG.API_BASE;
 
   // Server configuration
   let config = {
@@ -82,7 +79,7 @@
       });
 
       if (saveStatusTimeout) clearTimeout(saveStatusTimeout);
-      saveStatusTimeout = setTimeout(() => saveStatus = null, 3000);
+      saveStatusTimeout = setTimeout(() => (saveStatus = null), 3000);
     } catch (error) {
       logger.error('Failed to save config:', error);
       saveStatus = 'error';
@@ -270,19 +267,27 @@
 
   function getConnectionStatusIcon() {
     switch (connectionStatus) {
-    case 'success': return '✅';
-    case 'failed': return '❌';
-    case 'testing': return '⏳';
-    default: return '❓';
+      case 'success':
+        return '✅';
+      case 'failed':
+        return '❌';
+      case 'testing':
+        return '⏳';
+      default:
+        return '❓';
     }
   }
 
   function getConnectionStatusText() {
     switch (connectionStatus) {
-    case 'success': return `Connection successful${lastConnectionTest ? ` (tested ${formatRelativeTime(lastConnectionTest)})` : ''}`;
-    case 'failed': return 'Connection failed';
-    case 'testing': return 'Testing connection...';
-    default: return 'Not tested';
+      case 'success':
+        return `Connection successful${lastConnectionTest ? ` (tested ${formatRelativeTime(lastConnectionTest)})` : ''}`;
+      case 'failed':
+        return 'Connection failed';
+      case 'testing':
+        return 'Testing connection...';
+      default:
+        return 'Not tested';
     }
   }
 
@@ -554,7 +559,9 @@
       {#if config.autoSync}
         <div class="auto-sync-status">
           <span class="status-indicator active">●</span>
-          <span>Auto-sync active: Next sync in ~{Math.floor(config.autoSyncInterval / 60)} minutes</span>
+          <span
+            >Auto-sync active: Next sync in ~{Math.floor(config.autoSyncInterval / 60)} minutes</span
+          >
         </div>
       {/if}
     </section>
@@ -646,19 +653,39 @@
       <h3>📚 Documentation</h3>
       <p class="help-intro">Learn more about server sync and backup strategies:</p>
       <div class="help-links">
-        <a href="https://rsync.samba.org/" target="_blank" rel="noopener noreferrer" class="help-link">
+        <a
+          href="https://rsync.samba.org/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="help-link"
+        >
           <span class="link-icon">📖</span>
           <span class="link-text">Rsync Documentation</span>
         </a>
-        <a href="https://www.digitalocean.com/community/tutorials/how-to-use-rsync-to-sync-local-and-remote-directories" target="_blank" rel="noopener noreferrer" class="help-link">
+        <a
+          href="https://www.digitalocean.com/community/tutorials/how-to-use-rsync-to-sync-local-and-remote-directories"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="help-link"
+        >
           <span class="link-icon">🔧</span>
           <span class="link-text">Server Setup Guide</span>
         </a>
-        <a href="https://www.ssh.com/academy/ssh/keygen" target="_blank" rel="noopener noreferrer" class="help-link">
+        <a
+          href="https://www.ssh.com/academy/ssh/keygen"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="help-link"
+        >
           <span class="link-icon">🔐</span>
           <span class="link-text">SSH Key Configuration</span>
         </a>
-        <a href="https://www.digitalocean.com/community/tutorials/ssh-essentials-working-with-ssh-servers-clients-and-keys" target="_blank" rel="noopener noreferrer" class="help-link">
+        <a
+          href="https://www.digitalocean.com/community/tutorials/ssh-essentials-working-with-ssh-servers-clients-and-keys"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="help-link"
+        >
           <span class="link-icon">❓</span>
           <span class="link-text">SSH Troubleshooting</span>
         </a>
@@ -786,7 +813,7 @@
   .input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent)33;
+    box-shadow: 0 0 0 3px var(--accent) 33;
   }
 
   .input::placeholder {
@@ -818,21 +845,21 @@
   }
 
   .status-success {
-    background: var(--success)22;
+    background: var(--success) 22;
     color: var(--success);
-    border: 1px solid var(--success)44;
+    border: 1px solid var(--success) 44;
   }
 
   .status-failed {
-    background: var(--error)22;
+    background: var(--error) 22;
     color: var(--error);
-    border: 1px solid var(--error)44;
+    border: 1px solid var(--error) 44;
   }
 
   .status-testing {
-    background: var(--warning)22;
+    background: var(--warning) 22;
     color: var(--warning);
-    border: 1px solid var(--warning)44;
+    border: 1px solid var(--warning) 44;
   }
 
   .status-icon {
@@ -860,7 +887,7 @@
     background: var(--surface-2);
   }
 
-  .checkbox-label input[type="checkbox"] {
+  .checkbox-label input[type='checkbox'] {
     margin-top: var(--space-xs);
     cursor: pointer;
     width: var(--icon-sm);
@@ -1134,8 +1161,8 @@
 
   .stats-error {
     padding: var(--space-2xl);
-    background: var(--error)22;
-    border: 1px solid var(--error)44;
+    background: var(--error) 22;
+    border: 1px solid var(--error) 44;
     border-radius: var(--radius-sm);
     color: var(--error);
     font-family: var(--mono);
@@ -1260,8 +1287,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   /* Help Section */

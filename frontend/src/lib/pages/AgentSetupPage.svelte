@@ -47,7 +47,7 @@
 
       testResult = 'Test event sent successfully!';
       testError = null;
-    } catch (err) {
+    } catch {
       logger.error('Test telemetry failed:', err);
       testError = `Connection failed: ${err.message}`;
       testResult = null;
@@ -61,8 +61,8 @@
     try {
       await navigator.clipboard.writeText('http://localhost:3030/telemetry');
       copiedEndpoint = true;
-      setTimeout(() => copiedEndpoint = false, 2000);
-    } catch (err) {
+      setTimeout(() => (copiedEndpoint = false), 2000);
+    } catch {
       logger.error('Failed to copy endpoint:', err);
     }
   }
@@ -72,8 +72,8 @@
     try {
       await navigator.clipboard.writeText(JSON.stringify(examplePayload, null, 2));
       copiedPayload = true;
-      setTimeout(() => copiedPayload = false, 2000);
-    } catch (err) {
+      setTimeout(() => (copiedPayload = false), 2000);
+    } catch {
       logger.error('Failed to copy payload:', err);
     }
   }
@@ -86,7 +86,8 @@
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Setup Guide</h1>
       <p class="text-base text-[var(--muted)] font-sans">
-        Configure your AI agents to send telemetry data to Raven for real-time monitoring and analytics
+        Configure your AI agents to send telemetry data to Raven for real-time monitoring and
+        analytics
       </p>
     </div>
 
@@ -133,8 +134,12 @@
       <p class="text-base text-[var(--muted)] font-sans mb-4">
         Configure your agents to POST telemetry data to:
       </p>
-      <div class="flex items-center gap-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4">
-        <code class="flex-1 text-base font-mono text-[var(--text)]">POST http://localhost:3030/telemetry</code>
+      <div
+        class="flex items-center gap-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4"
+      >
+        <code class="flex-1 text-base font-mono text-[var(--text)]"
+          >POST http://localhost:3030/telemetry</code
+        >
         <button
           onclick={copyEndpoint}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
@@ -154,8 +159,9 @@
       </p>
       <div class="relative">
         <pre
-          class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"
-        ><code>{JSON.stringify(examplePayload, null, 2)}</code></pre>
+          class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"><code
+            >{JSON.stringify(examplePayload, null, 2)}</code
+          ></pre>
         <button
           onclick={copyPayload}
           class="absolute top-3 right-3 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
@@ -292,8 +298,8 @@
           </summary>
           <div class="px-4 pb-4">
             <pre
-              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"
-            ><code>{`async function sendTelemetry(agent, eventType, message, file, linesChanged) {
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"><code
+                >{`async function sendTelemetry(agent, eventType, message, file, linesChanged) {
   await fetch('http://localhost:3030/telemetry', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -306,7 +312,8 @@
       duration_ms: Date.now() - startTime
     })
   });
-}`}</code></pre>
+}`}</code
+              ></pre>
           </div>
         </details>
 
@@ -319,8 +326,8 @@
           </summary>
           <div class="px-4 pb-4">
             <pre
-              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"
-            ><code>{`import requests
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"><code
+                >{`import requests
 
 def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     requests.post('http://localhost:3030/telemetry', json={
@@ -329,7 +336,8 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
         'message': message,
         'file': file,
         'lines_changed': lines_changed
-    })`}</code></pre>
+    })`}</code
+              ></pre>
           </div>
         </details>
 
@@ -342,8 +350,8 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
           </summary>
           <div class="px-4 pb-4">
             <pre
-              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"
-            ><code>{`curl -X POST http://localhost:3030/telemetry \\
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"><code
+                >{`curl -X POST http://localhost:3030/telemetry \\
   -H "Content-Type: application/json" \\
   -d '{
     "agent": "my-agent",
@@ -351,7 +359,8 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     "message": "Updated function",
     "file": "src/main.js",
     "lines_changed": 10
-  }'`}</code></pre>
+  }'`}</code
+              ></pre>
           </div>
         </details>
       </div>

@@ -36,7 +36,7 @@
   let sortBy = $state('total_events');
   let sortDesc = $state(true);
   let lastUpdated = $state(new Date());
-  let projectFilter = $state('all');
+
   let charts = $state({});
   let themeObserver = $state(null);
   let showNewEventAnimation = $state(false);
@@ -178,14 +178,14 @@
     return styles[style] || '❓';
   }
 
-  function handleSort(newSortBy) {
-    if (sortBy === newSortBy) {
-      sortDesc = !sortDesc;
-    } else {
-      sortBy = newSortBy;
-      sortDesc = true;
-    }
-  }
+  // function handleSort(newSortBy) {
+  //   if (sortBy === newSortBy) {
+  //     sortDesc = !sortDesc;
+  //   } else {
+  //     sortBy = newSortBy;
+  //     sortDesc = true;
+  //   }
+  // }
 
   function exportCSV() {
     const headers = [
@@ -404,7 +404,7 @@
 
       // Create charts after data loads
       setTimeout(createCharts, 100);
-    } catch (err) {
+    } catch {
       logger.error('Failed to load agent stats:', err);
       error = err.message;
       loading = false;

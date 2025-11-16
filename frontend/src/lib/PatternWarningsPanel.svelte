@@ -5,7 +5,6 @@
   import { notifications } from './notificationService.js';
   import { desktopNotifications } from './services/desktopNotifications.js';
   import { formatNumber } from './numberFormat.js';
-  import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import Chart from 'chart.js/auto';
   import {
@@ -84,19 +83,6 @@
   }
 
   // Resolve warning
-  async function resolveWarning(warningId) {
-    try {
-      const response = await fetch(`/api/pattern-warnings/${warningId}/resolve`, {
-        method: 'POST'
-      });
-
-      notifications.success('Warning marked as resolved');
-      await fetchWarnings();
-    } catch (error) {
-      logger.error('Failed to resolve warning:', error);
-      notifications.error('Failed to resolve warning');
-    }
-  }
 
   // Resolve all warnings
   async function resolveAllWarnings() {
@@ -246,12 +232,6 @@
       default:
         return 'var(--muted)';
     }
-  }
-
-  // Get category icon
-  function getCategoryIcon(category) {
-    const cat = categories.find(c => c.id === category);
-    return cat ? cat.icon : '📋';
   }
 
   // Get severity stats from filtered warnings

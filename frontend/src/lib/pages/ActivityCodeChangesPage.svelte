@@ -24,7 +24,6 @@
   let diffOldContent = $state('');
   let diffNewContent = $state('');
   let diffText = $state('');
-  let selectedFilePath = $state('');
 
   // Debounced timeout reference
   let debouncedTimeoutId;
@@ -117,7 +116,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load events:', err);
       error = err.message;
       loading = false;
@@ -154,39 +153,6 @@
         return 'var(--error)';
       default:
         return 'var(--text)';
-    }
-  }
-
-  async function viewDiff(event) {
-    try {
-      selectedFilePath = event.filepath;
-
-      // Try to fetch the diff from the API
-      const response = await api.get(`/file-diff/${event.id}`);
-
-      if (response.diff) {
-        diffText = response.diff;
-        diffOldContent = '';
-        diffNewContent = '';
-      } else if (response.oldContent !== undefined && response.newContent !== undefined) {
-        diffOldContent = response.oldContent || '';
-        diffNewContent = response.newContent || '';
-        diffText = '';
-      } else {
-        // Fallback: create a simple diff message
-        diffText = '';
-        diffOldContent = `File: ${event.filepath}\nChange Type: ${event.change_type}\nTimestamp: ${formatTime(event.timestamp)}`;
-        diffNewContent = `No diff available for this change.\n\nThis is a ${event.change_type} event.`;
-      }
-
-      showDiff = true;
-    } catch (err) {
-      logger.error('Failed to load diff:', err);
-      // Show error in diff viewer
-      diffOldContent = `Error loading diff for ${event.filepath}`;
-      diffNewContent = `Error: ${err.message}`;
-      diffText = '';
-      showDiff = true;
     }
   }
 

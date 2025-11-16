@@ -89,10 +89,7 @@
   // Resolve error
   async function resolveError(errorId) {
     try {
-      const response = await fetch(`/api/syntax-errors/${errorId}/resolve`, {
-        method: 'POST'
-      });
-
+      await fetch(`/api/syntax-errors/${errorId}/resolve`, { method: 'POST' });
       notifications.success('Error marked as resolved');
       await fetchErrors();
     } catch (error) {

@@ -75,21 +75,28 @@
       error = null;
 
       // Fetch all data in parallel
-      const [agentStatusData, agentStatsData, conversationStatsData, agentEventsData] = await Promise.all([
-        api.get('/agents-status').catch(() => ({ agents: [] })),
-        api.get('/agent-stats').catch(() => ({ stats: [] })),
-        api.get('/conversations/stats').catch(() => ({ total: 0 })),
-        api.get('/agent-events?limit=100').catch(() => ({ events: [] }))
-      ]);
+      const [agentStatusData, agentStatsData, conversationStatsData, agentEventsData] =
+        await Promise.all([
+          api.get('/agents-status').catch(() => ({ agents: [] })),
+          api.get('/agent-stats').catch(() => ({ stats: [] })),
+          api.get('/conversations/stats').catch(() => ({ total: 0 })),
+          api.get('/agent-events?limit=100').catch(() => ({ events: [] }))
+        ]);
 
       // Process agent status
-      const agents = Array.isArray(agentStatusData) ? agentStatusData : (agentStatusData.agents || []);
+      const agents = Array.isArray(agentStatusData)
+        ? agentStatusData
+        : agentStatusData.agents || [];
       stats.total_agents = agents.length;
       stats.active_agents = agents.filter(a => a.is_running || a.confidence > 0.7).length;
 
       // Process agent stats
-      const agentStats = Array.isArray(agentStatsData) ? agentStatsData : (agentStatsData.stats || []);
-      const sortedByEvents = [...agentStats].sort((a, b) => (b.total_events || 0) - (a.total_events || 0));
+      const agentStats = Array.isArray(agentStatsData)
+        ? agentStatsData
+        : agentStatsData.stats || [];
+      const sortedByEvents = [...agentStats].sort(
+        (a, b) => (b.total_events || 0) - (a.total_events || 0)
+      );
       topAgents = sortedByEvents.slice(0, 5);
 
       // Calculate total events
@@ -99,14 +106,16 @@
       stats.total_conversations = conversationStatsData.total || 0;
 
       // Process recent activity (last 10 events)
-      const events = Array.isArray(agentEventsData) ? agentEventsData : (agentEventsData.events || []);
+      const events = Array.isArray(agentEventsData)
+        ? agentEventsData
+        : agentEventsData.events || [];
       recentActivity = events.slice(0, 10);
 
       // Calculate insights
       if (agentStats.length > 0) {
         agentInsights.avg_events_per_agent = Math.round(stats.total_events / agentStats.length);
-        agentInsights.total_duration_hours = agentStats.reduce((sum, agent) =>
-          sum + (agent.total_duration_seconds || 0), 0) / 3600;
+        agentInsights.total_duration_hours =
+          agentStats.reduce((sum, agent) => sum + (agent.total_duration_seconds || 0), 0) / 3600;
 
         // Find most active today
         const today = new Date();
@@ -123,7 +132,7 @@
 
       loading = false;
       lastUpdated = new Date();
-    } catch (err) {
+    } catch {
       logger.error('Failed to load agents data:', err);
       error = err.message;
       loading = false;
@@ -143,7 +152,9 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">AI Agents Overview</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Monitor agent activity, conversations, and insights</p>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Monitor agent activity, conversations, and insights
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <span class="text-sm text-[var(--muted)] font-sans">Updated {timeAgo}</span>
@@ -158,9 +169,16 @@
     </div>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center">
-        <span class="text-base text-[var(--error)] font-sans">⚠️ Failed to load agents data: {error}</span>
-        <button onclick={() => loadAllData(true)} class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans">
+      <div
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
+      >
+        <span class="text-base text-[var(--error)] font-sans"
+          >⚠️ Failed to load agents data: {error}</span
+        >
+        <button
+          onclick={() => loadAllData(true)}
+          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+        >
           Retry
         </button>
       </div>
@@ -170,12 +188,16 @@
     {#if loading}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {#each Array(4) as _, i (i)}
-          <div class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4">
+        <div
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4"
+        >
           <div class="text-3xl flex-shrink-0">🤖</div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
@@ -185,7 +207,9 @@
           </div>
         </div>
 
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4">
+        <div
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4"
+        >
           <div class="text-3xl flex-shrink-0">✅</div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--success)] leading-none mb-1">
@@ -195,7 +219,9 @@
           </div>
         </div>
 
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4">
+        <div
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4"
+        >
           <div class="text-3xl flex-shrink-0">📊</div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
@@ -205,7 +231,9 @@
           </div>
         </div>
 
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4">
+        <div
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4"
+        >
           <div class="text-3xl flex-shrink-0">💬</div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
@@ -219,7 +247,9 @@
 
     <!-- Top 5 Most Active Agents -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">Top 5 Most Active Agents</h2>
+      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+        Top 5 Most Active Agents
+      </h2>
       {#if loading}
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading agents...</div>
       {:else if topAgents.length === 0}
@@ -230,11 +260,14 @@
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {#each topAgents as agent, i (i)}
-            {@const avgDurationMs = agent.total_events > 0
-              ? (agent.total_duration_seconds * 1000) / agent.total_events
-              : 0}
+            {@const avgDurationMs =
+              agent.total_events > 0
+                ? (agent.total_duration_seconds * 1000) / agent.total_events
+                : 0}
             {@const isSlow = avgDurationMs > 5000}
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-all relative">
+            <div
+              class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-all relative"
+            >
               {#if isSlow}
                 <span
                   class="absolute top-2 right-2 text-base animate-pulse"
@@ -264,7 +297,9 @@
                   </span>
                 </div>
                 {#if isSlow}
-                  <div class="mt-2 px-2 py-1 bg-[var(--warning-subtle)] border border-[var(--warning)] rounded text-xs text-[var(--warning)] font-sans">
+                  <div
+                    class="mt-2 px-2 py-1 bg-[var(--warning-subtle)] border border-[var(--warning)] rounded text-xs text-[var(--warning)] font-sans"
+                  >
                     Slow: {(avgDurationMs / 1000).toFixed(1)}s avg
                   </div>
                 {/if}
@@ -295,7 +330,9 @@
       {:else}
         <div class="space-y-2">
           {#each recentActivity as event (event.id || event.timestamp)}
-            <div class="flex items-start gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all">
+            <div
+              class="flex items-start gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all"
+            >
               <span class="text-base flex-shrink-0 mt-1">
                 {#if event.event_type === 'file_change'}
                   📝
@@ -310,7 +347,9 @@
               <div class="flex-1 min-w-0">
                 <div class="text-base text-[var(--text)] font-mono mb-1">
                   {#if event.agent_name}
-                    <span class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide">
+                    <span
+                      class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide"
+                    >
                       {event.agent_name}
                     </span>
                   {/if}
@@ -328,7 +367,9 @@
 
     <!-- Agent Insights -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">Agent Insights</h2>
+      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+        Agent Insights
+      </h2>
       {#if loading}
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading insights...</div>
       {:else}
@@ -365,7 +406,9 @@
         >
           <div class="text-2xl flex-shrink-0">📊</div>
           <div>
-            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">Agent Stats</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+              Agent Stats
+            </div>
             <div class="text-sm text-[var(--muted)] font-sans">Detailed statistics</div>
           </div>
         </button>
@@ -376,7 +419,9 @@
         >
           <div class="text-2xl flex-shrink-0">📡</div>
           <div>
-            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">Live Monitoring</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+              Live Monitoring
+            </div>
             <div class="text-sm text-[var(--muted)] font-sans">Real-time tracking</div>
           </div>
         </button>
@@ -387,7 +432,9 @@
         >
           <div class="text-2xl flex-shrink-0">💬</div>
           <div>
-            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">Conversations</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+              Conversations
+            </div>
             <div class="text-sm text-[var(--muted)] font-sans">View interactions</div>
           </div>
         </button>
@@ -398,7 +445,9 @@
         >
           <div class="text-2xl flex-shrink-0">⚙️</div>
           <div>
-            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">Setup Guide</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+              Setup Guide
+            </div>
             <div class="text-sm text-[var(--muted)] font-sans">Integration help</div>
           </div>
         </button>

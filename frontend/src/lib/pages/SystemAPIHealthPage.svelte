@@ -16,7 +16,7 @@
   let healthStatus = $state({});
   let healthHistory = $state({});
   let loading = $state(true);
-  let lastCheck = $state(null);
+
   let lastUpdated = $state(null);
   let checkingAll = $state(false);
   let realtimeActive = $state(false);
@@ -55,7 +55,7 @@
 
         endpointsLoaded = true;
       }
-    } catch (error) {
+    } catch {
       logger.error('[APIHealth] Failed to load endpoints:', error);
       apiEndpoints = [];
       endpointsLoaded = true;
@@ -94,13 +94,10 @@
           : 5000; // 5 seconds for normal endpoints
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3030'}${endpoint.path}`,
-        {
-          method: endpoint.method,
-          signal: controller.signal
-        }
-      );
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3030'}${endpoint.path}`, {
+        method: endpoint.method,
+        signal: controller.signal
+      });
 
       clearTimeout(timeoutId);
 
@@ -133,7 +130,7 @@
         lastCheck: new Date(),
         history: healthHistory[key].checks.slice(-10) // Last 10 for sparkline
       };
-    } catch (error) {
+    } catch {
       // Update history with failure
       healthHistory[key].checks.push({
         timestamp: Date.now(),

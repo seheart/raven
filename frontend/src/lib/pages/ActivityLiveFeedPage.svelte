@@ -21,7 +21,7 @@
   let autoScroll = $state(true);
   let filter = $state('all');
   let maxEvents = $state(100);
-  let connected = $state(false);
+
   let error = $state(null);
   let loading = $state(true);
   let showCharts = $state(true);
@@ -89,7 +89,7 @@
       await loadRecentEvents();
       await updateMetrics();
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load data:', err);
       error = err.message || 'Failed to load data';
       loading = false;
@@ -133,7 +133,7 @@
           if (feed) feed.scrollTop = 0;
         }, 10);
       }
-    } catch (err) {
+    } catch {
       logger.error('Failed to load events:', err);
       throw err;
     }
@@ -157,7 +157,7 @@
           ? events.reduce((sum, e) => sum + (e.event_size || 0), 0) / events.length
           : 0;
       metricsHistory.fileSize = [...metricsHistory.fileSize, avgSize].slice(-50);
-    } catch (error) {
+    } catch {
       logger.error('Failed to update metrics:', error);
     }
   }

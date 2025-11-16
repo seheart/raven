@@ -25,20 +25,19 @@
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (err) =>
-          err.filepath?.toLowerCase().includes(query) ||
-          err.message?.toLowerCase().includes(query)
+        err =>
+          err.filepath?.toLowerCase().includes(query) || err.message?.toLowerCase().includes(query)
       );
     }
 
     // Apply severity filter
     if (severityFilter !== 'all') {
-      filtered = filtered.filter((err) => err.severity === severityFilter);
+      filtered = filtered.filter(err => err.severity === severityFilter);
     }
 
     // Apply project filter
     if (projectFilter !== 'all') {
-      filtered = filtered.filter((err) => err.project_name === projectFilter);
+      filtered = filtered.filter(err => err.project_name === projectFilter);
     }
 
     return filtered;
@@ -46,9 +45,9 @@
 
   const errorsBySeverity = $derived.by(() => {
     return {
-      error: errors.filter((e) => e.severity === 'error').length,
-      warning: errors.filter((e) => e.severity === 'warning').length,
-      info: errors.filter((e) => e.severity === 'info').length
+      error: errors.filter(e => e.severity === 'error').length,
+      warning: errors.filter(e => e.severity === 'warning').length,
+      info: errors.filter(e => e.severity === 'info').length
     };
   });
 
@@ -65,7 +64,7 @@
 
   // Extract unique projects
   const projects = $derived.by(() => {
-    const uniqueProjects = [...new Set(errors.map((e) => e.project_name).filter(Boolean))];
+    const uniqueProjects = [...new Set(errors.map(e => e.project_name).filter(Boolean))];
     return uniqueProjects.sort();
   });
 
@@ -104,7 +103,7 @@
       lastUpdated = new Date();
       loading = false;
       loadingMore = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load syntax errors:', err);
       error = err.message;
       loading = false;
@@ -130,14 +129,14 @@
       if (!result.success) {
         throw new Error(result.message || 'Failed to open file');
       }
-    } catch (err) {
+    } catch {
       logger.error('Failed to open file:', err);
       // Fallback: Copy file path to clipboard
       try {
         const fileLocation = `${filepath}:${lineNumber}`;
         await navigator.clipboard.writeText(fileLocation);
         alert(`Could not open editor. File path copied to clipboard:\n${fileLocation}`);
-      } catch (copyError) {
+      } catch {
         alert(`Failed to open file: ${err.message}\n\nFile: ${filepath}:${lineNumber}`);
       }
     }
@@ -146,17 +145,13 @@
   // Resolve error
   async function resolveError(errorId) {
     try {
-      const response = await fetch(
-        `http://localhost:3030/api/syntax-errors/${errorId}/resolve`,
-        {
-          method: 'POST'
-        }
-      );
-
+      await fetch(`http://localhost:3030/api/syntax-errors/${errorId}/resolve`, {
+        method: 'POST'
+      });
 
       // Reload errors
       await loadErrors();
-    } catch (err) {
+    } catch {
       logger.error('Failed to resolve error:', err);
       alert(`Failed to resolve error: ${err.message}`);
     }
@@ -177,7 +172,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
     try {
       await navigator.clipboard.writeText(errorText);
       alert('Error details copied to clipboard');
-    } catch (error) {
+    } catch {
       logger.error('Failed to copy to clipboard:', error);
       alert('Failed to copy to clipboard');
     }
@@ -186,7 +181,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
   // Export to CSV
   function exportToCSV() {
     const headers = ['Filepath', 'Line', 'Severity', 'Message', 'Timestamp'];
-    const rows = filteredErrors.map((err) => [
+    const rows = filteredErrors.map(err => [
       err.filepath || '',
       err.line_number || '',
       err.severity || '',
@@ -196,7 +191,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
 
     const csv = [
       headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -265,10 +260,14 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
       <div class="space-y-4">
         <div class="grid grid-cols-3 gap-4">
           {#each Array(3) as _, i (i)}
-            <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+            <div
+              class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            ></div>
           {/each}
         </div>
-        <div class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+        <div
+          class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+        ></div>
       </div>
     {:else}
       <!-- Stats Cards -->
@@ -331,9 +330,12 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
         <!-- Project Filter -->
         {#if projects.length > 0}
           <div class="mb-0" role="group" aria-labelledby="project-filter-label">
-            <div id="project-filter-label" class="text-sm font-semibold text-[var(--text)] uppercase mb-3 block"
-              >Project:</div
+            <div
+              id="project-filter-label"
+              class="text-sm font-semibold text-[var(--text)] uppercase mb-3 block"
             >
+              Project:
+            </div>
             <div class="flex gap-3 flex-wrap">
               <button
                 onclick={() => (projectFilter = 'all')}
@@ -380,7 +382,9 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
       {:else}
         <div class="space-y-4">
           {#each Object.entries(errorsByFile) as [filepath, fileErrors] (filepath)}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden"
+            >
               <!-- File Header -->
               <div
                 class="flex items-center justify-between gap-4 px-4 py-3 bg-[var(--surface-2)] border-b border-[var(--border)]"
@@ -402,7 +406,8 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
                   <span
                     class="px-2 py-1 bg-[var(--error-subtle)] text-[var(--error)] rounded text-xs font-semibold"
                   >
-                    {fileErrors.length} {fileErrors.length === 1 ? 'error' : 'errors'}
+                    {fileErrors.length}
+                    {fileErrors.length === 1 ? 'error' : 'errors'}
                   </span>
                 </div>
               </div>
@@ -452,8 +457,9 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
                     <!-- Code Snippet -->
                     {#if err.code_snippet}
                       <pre
-                        class="px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded text-xs font-mono overflow-x-auto mb-3"
-                      ><code>{err.code_snippet}</code></pre>
+                        class="px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded text-xs font-mono overflow-x-auto mb-3"><code
+                          >{err.code_snippet}</code
+                        ></pre>
                     {/if}
 
                     <!-- Action Buttons -->

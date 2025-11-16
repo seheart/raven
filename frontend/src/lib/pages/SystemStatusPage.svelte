@@ -73,7 +73,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (error) {
+    } catch {
       logger.error('Backend health check failed:', error);
       backendStatus.connected = false;
       loading = false;
@@ -112,7 +112,7 @@
         summary: data.summary || { total: 0, passed: 0, failed: 0, byCategory: {} },
         checks: data.checks || []
       };
-    } catch (error) {
+    } catch {
       logger.error('Failed to load health checks:', error);
       healthChecks.status = 'error';
     }
@@ -153,7 +153,7 @@
       if (result.success) {
         setTimeout(() => checkBackendHealth(), 1000);
       }
-    } catch (error) {
+    } catch {
       logger.error('Error restarting bridge:', error);
     } finally {
       restartingBridge = false;

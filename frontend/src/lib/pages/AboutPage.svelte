@@ -14,7 +14,7 @@
     try {
       const data = await api.get('/session-id');
       sessionId = data.session_id || 'Unknown';
-    } catch (error) {
+    } catch {
       sessionId = 'Offline';
       logger.error('Failed to load session ID:', error);
     }

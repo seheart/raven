@@ -107,7 +107,7 @@
         unread_only: showUnreadOnly.toString()
       });
 
-      const res = await fetch(`${API_BASE}/notifications?${params}`);
+      const response = await fetch(`${API_BASE}/notifications?${params}`);
       const data = await response.json();
 
       if (offset === 0) {
@@ -128,7 +128,7 @@
 
   async function loadStats() {
     try {
-      const res = await fetch(`${API_BASE}/notifications/stats`);
+      const response = await fetch(`${API_BASE}/notifications/stats`);
       stats = await response.json();
     } catch (error) {
       logger.error('Failed to load notification stats:', error);
@@ -280,7 +280,7 @@
     handleNewNotification(notification);
   }
 
-  async function handleProjectSwitched(data) {
+  async function handleProjectSwitched(_data) {
     offset = 0;
     await loadNotifications();
     await loadStats();

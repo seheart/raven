@@ -125,18 +125,15 @@
   })();
 
   // Get max count for scaling timeline bars
-  $: maxBucketCount = timelineBuckets.length > 0
-    ? Math.max(...timelineBuckets.map(b => b.count))
-    : 1;
+  $: maxBucketCount =
+    timelineBuckets.length > 0 ? Math.max(...timelineBuckets.map(b => b.count)) : 1;
 
   function selectTimeBucket(bucket) {
     selectedTimeBucket = bucket === selectedTimeBucket ? null : bucket;
   }
 
   // Filter events by selected time bucket
-  $: displayedEvents = selectedTimeBucket
-    ? selectedTimeBucket.events
-    : filteredEvents;
+  $: displayedEvents = selectedTimeBucket ? selectedTimeBucket.events : filteredEvents;
 
   onMount(async () => {
     await loadSessions();
@@ -216,7 +213,7 @@
   }
 
   // WebSocket event handler for project switches
-  const handleProjectSwitched = async (data) => {
+  const handleProjectSwitched = async _data => {
     await loadSessions();
     await loadEvents();
   };
@@ -227,11 +224,11 @@
 
   function getEventIcon(eventType) {
     const icons = {
-      'edit': '✏️',
-      'create': '➕',
-      'delete': '🗑️',
-      'read': '👁️',
-      'execute': '⚙️',
+      edit: '✏️',
+      create: '➕',
+      delete: '🗑️',
+      read: '👁️',
+      execute: '⚙️',
       'session-start': '▶️',
       'session-end': '⏹️'
     };
@@ -240,11 +237,11 @@
 
   function getEventColor(eventType) {
     const colors = {
-      'edit': 'var(--info)',
-      'create': 'var(--success)',
-      'delete': 'var(--error)',
-      'read': 'var(--muted)',
-      'execute': 'var(--warning)',
+      edit: 'var(--info)',
+      create: 'var(--success)',
+      delete: 'var(--error)',
+      read: 'var(--muted)',
+      execute: 'var(--warning)',
       'session-start': 'var(--accent)',
       'session-end': 'var(--accent)'
     };
@@ -271,7 +268,12 @@
           {/each}
         </select>
       </div>
-      <button on:click={() => loadEvents(true)} class="btn-refresh" disabled={loading} aria-label={loading ? 'Loading events' : 'Refresh events'}>
+      <button
+        on:click={() => loadEvents(true)}
+        class="btn-refresh"
+        disabled={loading}
+        aria-label={loading ? 'Loading events' : 'Refresh events'}
+      >
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         Refresh
       </button>
@@ -297,23 +299,43 @@
         <div class="filter-label">Event Types:</div>
         <div class="event-type-filters" role="group" aria-label="Filter by event type">
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.edit} aria-label="Filter edit events" />
+            <input
+              type="checkbox"
+              bind:checked={selectedEventTypes.edit}
+              aria-label="Filter edit events"
+            />
             <span class="filter-badge edit"><span aria-hidden="true">✏️</span> Edit</span>
           </label>
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.create} aria-label="Filter create events" />
+            <input
+              type="checkbox"
+              bind:checked={selectedEventTypes.create}
+              aria-label="Filter create events"
+            />
             <span class="filter-badge create"><span aria-hidden="true">➕</span> Create</span>
           </label>
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.delete} aria-label="Filter delete events" />
+            <input
+              type="checkbox"
+              bind:checked={selectedEventTypes.delete}
+              aria-label="Filter delete events"
+            />
             <span class="filter-badge delete"><span aria-hidden="true">🗑️</span> Delete</span>
           </label>
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.read} aria-label="Filter read events" />
+            <input
+              type="checkbox"
+              bind:checked={selectedEventTypes.read}
+              aria-label="Filter read events"
+            />
             <span class="filter-badge read"><span aria-hidden="true">👁️</span> Read</span>
           </label>
           <label class="filter-checkbox">
-            <input type="checkbox" bind:checked={selectedEventTypes.execute} aria-label="Filter execute events" />
+            <input
+              type="checkbox"
+              bind:checked={selectedEventTypes.execute}
+              aria-label="Filter execute events"
+            />
             <span class="filter-badge execute"><span aria-hidden="true">⚙️</span> Execute</span>
           </label>
         </div>
@@ -323,7 +345,11 @@
       {#if uniqueAgents.length > 1}
         <div class="filter-row">
           <div class="filter-label">Agent:</div>
-          <select class="agent-select" bind:value={selectedAgent} aria-label="Filter events by agent">
+          <select
+            class="agent-select"
+            bind:value={selectedAgent}
+            aria-label="Filter events by agent"
+          >
             <option value="all">All Agents ({uniqueAgents.length})</option>
             {#each uniqueAgents as agent (agent)}
               <option value={agent}>{agent}</option>
@@ -344,7 +370,9 @@
     <div class="timeline-viz" role="region" aria-labelledby="timeline-heading">
       <h3 id="timeline-heading"><span aria-hidden="true">⏱️</span> Activity Timeline</h3>
       <p class="timeline-hint" role="status" aria-live="polite">
-        {selectedTimeBucket ? `Showing ${selectedTimeBucket.count} events from ${selectedTimeBucket.label}` : 'Click a time bucket to filter events'}
+        {selectedTimeBucket
+          ? `Showing ${selectedTimeBucket.count} events from ${selectedTimeBucket.label}`
+          : 'Click a time bucket to filter events'}
       </p>
       <div class="timeline-buckets" role="group" aria-label="Activity timeline by hour">
         {#each timelineBuckets as bucket (bucket)}
@@ -366,7 +394,11 @@
         {/each}
       </div>
       {#if selectedTimeBucket}
-        <button class="btn-clear-filter" on:click={() => selectedTimeBucket = null} aria-label="Clear time filter">
+        <button
+          class="btn-clear-filter"
+          on:click={() => (selectedTimeBucket = null)}
+          aria-label="Clear time filter"
+        >
           <span aria-hidden="true">✕</span> Clear Time Filter
         </button>
       {/if}
@@ -387,15 +419,28 @@
     </div>
   {:else}
     <section class="timeline" aria-labelledby="recent-activity-heading">
-      <h3 id="recent-activity-heading"><span aria-hidden="true">📜</span> Recent Activity (<span role="status">{displayedEvents.length} events</span>)</h3>
+      <h3 id="recent-activity-heading">
+        <span aria-hidden="true">📜</span> Recent Activity (<span role="status"
+          >{displayedEvents.length} events</span
+        >)
+      </h3>
       <div class="events-list" role="feed" aria-label="Recent activity events">
         {#each displayedEvents || [] as event (event.id || event.timestamp)}
           <article class="event-item" style="border-left-color: {getEventColor(event.event_type)}">
             <div class="event-header">
-              <time class="timestamp" datetime="{event.timestamp}">{formatTimestamp(event.timestamp)}</time>
+              <time class="timestamp" datetime={event.timestamp}
+                >{formatTimestamp(event.timestamp)}</time
+              >
               <span class="agent">{event.agent}</span>
-              <span class="event-type" style="background: color-mix(in srgb, {getEventColor(event.event_type)} 20%, transparent); color: {getEventColor(event.event_type)}" role="status">
-                <span aria-hidden="true">{getEventIcon(event.event_type)}</span> {event.event_type}
+              <span
+                class="event-type"
+                style="background: color-mix(in srgb, {getEventColor(
+                  event.event_type
+                )} 20%, transparent); color: {getEventColor(event.event_type)}"
+                role="status"
+              >
+                <span aria-hidden="true">{getEventIcon(event.event_type)}</span>
+                {event.event_type}
               </span>
             </div>
             <div class="event-body">
@@ -607,7 +652,9 @@
     margin: 0;
   }
 
-  .file, .lines, .duration {
+  .file,
+  .lines,
+  .duration {
     color: var(--muted);
     font-size: 13px;
     margin: 0;
@@ -686,7 +733,7 @@
     user-select: none;
   }
 
-  .filter-checkbox input[type="checkbox"] {
+  .filter-checkbox input[type='checkbox'] {
     cursor: pointer;
     width: var(--icon-xs);
     height: var(--icon-xs);
@@ -732,7 +779,7 @@
     border-color: color-mix(in srgb, var(--warning) 30%, transparent);
   }
 
-  .filter-checkbox input[type="checkbox"]:not(:checked) + .filter-badge {
+  .filter-checkbox input[type='checkbox']:not(:checked) + .filter-badge {
     opacity: 0.4;
     filter: grayscale(0.7);
   }

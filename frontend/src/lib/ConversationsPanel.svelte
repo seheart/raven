@@ -6,7 +6,6 @@
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { formatTime } from './timeFormat.js';
   import { Chart, registerables } from 'chart.js';
-  import { settings } from './settingsStore.js';
   import { logger } from './logger.js';
 
   Chart.register(...registerables);
@@ -447,10 +446,6 @@
         });
       }
     }
-  }
-
-  function updateCharts() {
-    setTimeout(createCharts, 100);
   }
 
   // Watch for data changes to update charts

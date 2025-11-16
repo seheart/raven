@@ -34,17 +34,20 @@
   async function pause() {
     if (paused) return;
 
-    if (!confirm('⚠️ PAUSE MONITORING?\n\nThis will stop processing file changes until you resume.\n\nUse this if the AI is making unwanted changes.')) {
+    if (
+      !confirm(
+        '⚠️ PAUSE MONITORING?\n\nThis will stop processing file changes until you resume.\n\nUse this if the AI is making unwanted changes.'
+      )
+    ) {
       return;
     }
 
     try {
-      const response = await fetch('/api/pause', {
+      await fetch('/api/pause', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: 'User emergency stop' })
       });
-
 
       notifications.warning('Monitoring PAUSED - File changes will be ignored', {
         title: 'Monitoring Paused',
@@ -67,10 +70,9 @@
     }
 
     try {
-      const response = await fetch('/api/resume', {
+      await fetch('/api/resume', {
         method: 'POST'
       });
-
 
       notifications.success('Monitoring RESUMED - File changes are being tracked', {
         title: 'Monitoring Resumed'
@@ -100,15 +102,15 @@
 
   // Setup WebSocket for real-time updates
   function setupWebSocket() {
-    ws = websocketService.subscribe('monitoring-paused', (data) => {
+    ws = websocketService.subscribe('monitoring-paused', data => {
       logger.info('Monitoring paused:', data);
       fetchStatus();
       pulsing = true;
-      const timeout = setTimeout(() => pulsing = false, 1000);
+      const timeout = setTimeout(() => (pulsing = false), 1000);
       pulseTimeouts.push(timeout);
     });
 
-    websocketService.subscribe('monitoring-resumed', (data) => {
+    websocketService.subscribe('monitoring-resumed', data => {
       logger.info('Monitoring resumed:', data);
       fetchStatus();
     });
@@ -152,7 +154,11 @@
   </div>
 {:else}
   <!-- Active State: Emergency Stop Button -->
-  <button class="btn emergency-stop active" on:click={pause} aria-label="Emergency stop - Pause file monitoring">
+  <button
+    class="btn emergency-stop active"
+    on:click={pause}
+    aria-label="Emergency stop - Pause file monitoring"
+  >
     <span class="icon" aria-hidden="true">🛑</span>
     <div class="button-content">
       <span class="button-label">EMERGENCY STOP</span>
@@ -207,8 +213,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
   }
 
   .resume-btn {

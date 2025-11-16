@@ -1,25 +1,20 @@
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import RavenLogo from './components/ui/RavenLogo.svelte';
   import { API_CONFIG } from '../config.js';
   import { websocketService } from './websocket.js';
 
-  const dispatch = createEventDispatcher();
   const API_BASE = API_CONFIG.API_BASE;
   let sessionId = 'Loading...';
   let websocketConnected = false;
-
-  function close() {
-    dispatch('close');
-  }
 
   async function loadSessionId() {
     try {
       const response = await fetch(`${API_BASE}/session-id`);
       const data = await response.json();
       sessionId = data.session_id || 'Unknown';
-    } catch (error) {
+    } catch {
       sessionId = 'Offline';
     }
   }

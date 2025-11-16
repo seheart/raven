@@ -7,7 +7,6 @@
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
-  import { API_CONFIG } from '../config.js';
   import { TimeoutManager } from './utils/TimeoutManager.js';
   import { Chart, registerables } from 'chart.js';
   import {
@@ -103,7 +102,7 @@
   });
 
   // Handle error-logged WebSocket event
-  function handleErrorLogged(errorData) {
+  function handleErrorLogged(_errorData) {
     // Debounce to prevent race conditions from rapid events
     clearTimeout(loadErrorsTimeout);
     loadErrorsTimeout = setTimeout(() => {

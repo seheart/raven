@@ -120,7 +120,7 @@
         { id: 'all', label: 'All Sessions' },
         { id: currentSessionId, label: `Current Session (${currentSessionId?.slice(0, 8)}...)` }
       ];
-    } catch (e) {
+    } catch {
       logger.error('Failed to load sessions:', e);
       allSessions = [{ id: 'all', label: 'All Sessions' }];
     }
@@ -135,9 +135,9 @@
         url = `http://localhost:3030/api/events-by-session/${selectedSession}`;
       }
 
-      const response = await fetch(url);
+      await fetch(url);
       lastUpdated = new Date();
-    } catch (e) {
+    } catch {
       logger.error('Failed to load events:', e);
     } finally {
       loading = false;

@@ -7,7 +7,12 @@
    */
 
   import { websocketService } from '../services/websocket.js';
-  import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
 
   // State
   let trends = $state([]);
@@ -22,7 +27,6 @@
   let charts = $state({});
 
   // Derived calculations
-  const maxEventCount = $derived(Math.max(...trends.map(t => t.event_count || 0), 1));
 
   const totalEvents = $derived(trends.reduce((sum, t) => sum + (t.event_count || 0), 0));
   const totalModifications = $derived(trends.reduce((sum, t) => sum + (t.modifications || 0), 0));
@@ -56,7 +60,7 @@
       const data = await api.get(`/trends/historical?period=${period}&days=${days}`);
       trends = data.trends || [];
       lastUpdate = new Date();
-    } catch (err) {
+    } catch {
       logger.error('Failed to load trends:', err);
       error = err.message;
     } finally {
@@ -85,7 +89,14 @@
   }
 
   function exportToCSV() {
-    const headers = ['Period', 'Total Events', 'Modifications', 'Creations', 'Deletions', 'Unique Files'];
+    const headers = [
+      'Period',
+      'Total Events',
+      'Modifications',
+      'Creations',
+      'Deletions',
+      'Unique Files'
+    ];
     const rows = trends.map(t => [
       t.period,
       t.event_count || 0,
@@ -95,10 +106,7 @@
       t.unique_files || 0
     ]);
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -146,16 +154,18 @@
       type: 'line',
       data: {
         labels: labels,
-        datasets: [{
-          label: 'Total Events',
-          data: eventCounts,
-          borderColor: colors.primary,
-          backgroundColor: `${colors.primary}1A`, // Add transparency
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }]
+        datasets: [
+          {
+            label: 'Total Events',
+            data: eventCounts,
+            borderColor: colors.primary,
+            backgroundColor: `${colors.primary}1A`, // Add transparency
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -374,9 +384,13 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex gap-6 flex-wrap">
+    <div
+      class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex gap-6 flex-wrap"
+    >
       <div class="flex items-center gap-3">
-        <label for="period-select" class="text-sm text-[var(--muted)] font-sans font-medium">Period:</label>
+        <label for="period-select" class="text-sm text-[var(--muted)] font-sans font-medium"
+          >Period:</label
+        >
         <select
           id="period-select"
           value={period}
@@ -389,7 +403,9 @@
         </select>
       </div>
       <div class="flex items-center gap-3">
-        <label for="days-select" class="text-sm text-[var(--muted)] font-sans font-medium">Last:</label>
+        <label for="days-select" class="text-sm text-[var(--muted)] font-sans font-medium"
+          >Last:</label
+        >
         <select
           id="days-select"
           value={days}
@@ -408,38 +424,59 @@
     {#if loading}
       <div class="grid grid-cols-1 gap-4">
         {#each Array(3) as _, i (i)}
-          <div class="h-64 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-64 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center">
+      <div
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
+      >
         <span class="text-sm text-[var(--error)] font-sans">⚠️ Error loading trends: {error}</span>
-        <button onclick={loadTrends} class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans">
+        <button
+          onclick={loadTrends}
+          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+        >
           Try Again
         </button>
       </div>
     {:else if trends.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-        <p class="text-lg text-[var(--muted)] font-sans mb-2">📭 No activity data for the selected period</p>
+        <p class="text-lg text-[var(--muted)] font-sans mb-2">
+          📭 No activity data for the selected period
+        </p>
         <p class="text-sm text-[var(--muted)] font-sans">Try selecting a longer time range</p>
       </div>
     {:else}
       <!-- Summary Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-[var(--surface)] border-2 border-[var(--accent)] rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-[var(--accent)] font-mono mb-1">{totalEvents.toLocaleString()}</div>
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">Total Events</div>
+          <div class="text-3xl font-bold text-[var(--accent)] font-mono mb-1">
+            {totalEvents.toLocaleString()}
+          </div>
+          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">
+            Total Events
+          </div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-[var(--info)] font-mono mb-1">{totalModifications.toLocaleString()}</div>
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">Modifications</div>
+          <div class="text-3xl font-bold text-[var(--info)] font-mono mb-1">
+            {totalModifications.toLocaleString()}
+          </div>
+          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">
+            Modifications
+          </div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-[var(--success)] font-mono mb-1">{totalCreations.toLocaleString()}</div>
+          <div class="text-3xl font-bold text-[var(--success)] font-mono mb-1">
+            {totalCreations.toLocaleString()}
+          </div>
           <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">Creations</div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-[var(--error)] font-mono mb-1">{totalDeletions.toLocaleString()}</div>
+          <div class="text-3xl font-bold text-[var(--error)] font-mono mb-1">
+            {totalDeletions.toLocaleString()}
+          </div>
           <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">Deletions</div>
         </div>
       </div>
@@ -447,9 +484,11 @@
       <!-- Visualizations Section -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-semibold text-[var(--text-heading)] font-sans">Analytics Visualizations</h2>
+          <h2 class="text-lg font-semibold text-[var(--text-heading)] font-sans">
+            Analytics Visualizations
+          </h2>
           <button
-            onclick={() => showCharts = !showCharts}
+            onclick={() => (showCharts = !showCharts)}
             class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
           >
             {showCharts ? 'Hide Charts' : 'Show Charts'}

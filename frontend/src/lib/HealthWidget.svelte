@@ -254,11 +254,8 @@
   // Get status configuration
   $: config = statusConfig[health.status];
 
-  // Today's stats (lines added/deleted)
-  let todayStats = { added: 0, deleted: 0, files: 0 };
-
   // Format timestamp
-  function timeAgo(date) {
+  function formatTimestamp(date) {
     const seconds = Math.floor((new Date() - date) / 1000);
 
     if (seconds < 60) return `${seconds}s ago`;

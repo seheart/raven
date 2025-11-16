@@ -2,8 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import { notifications } from './notificationService.js';
   import { settings as settingsStore } from './settingsStore.js';
-  import LoadingSkeleton from './LoadingSkeleton.svelte';
-  import { API_CONFIG } from '../config.js';
   import { logger } from './logger.js';
   import { getTimeAgo } from './timeFormat.js';
 
@@ -23,13 +21,13 @@
   });
 
   // Settings are auto-saved via the store, no need for manual save
-  function saveSettings() {
-    // Settings are already saved automatically via the store
-    // This just shows a confirmation message
-    notifications.success('Settings saved successfully', {
-      title: 'Settings Updated'
-    });
-  }
+  // function saveSettings() {
+  //   // Settings are already saved automatically via the store
+  //   // This just shows a confirmation message
+  //   notifications.success('Settings saved successfully', {
+  //     title: 'Settings Updated'
+  //   });
+  // }
 
   // Reset to defaults
   function resetToDefaults() {
@@ -62,7 +60,7 @@
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       try {
         const success = settingsStore.import(e.target.result);
         if (success) {
@@ -72,7 +70,7 @@
         } else {
           throw new Error('Invalid settings format');
         }
-      } catch (err) {
+      } catch {
         notifications.error('Failed to import settings: Invalid file', {
           title: 'Import Error'
         });
@@ -125,9 +123,12 @@
     }
 
     if (Notification.permission === 'denied') {
-      notifications.warning('Desktop notifications were previously denied. Please enable them in your browser settings.', {
-        title: 'Permission Denied'
-      });
+      notifications.warning(
+        'Desktop notifications were previously denied. Please enable them in your browser settings.',
+        {
+          title: 'Permission Denied'
+        }
+      );
       return;
     }
 
@@ -149,7 +150,7 @@
           title: 'Permission Denied'
         });
       }
-    } catch (err) {
+    } catch {
       logger.error('Error requesting notification permission:', err);
       notifications.error('Failed to request notification permission:', {
         title: 'Error'
@@ -159,19 +160,27 @@
 
   function getPermissionStatusText() {
     switch (notificationPermission) {
-    case 'granted': return '✓ Granted';
-    case 'denied': return '✗ Denied';
-    case 'default': return '? Not requested';
-    default: return 'Unknown';
+      case 'granted':
+        return '✓ Granted';
+      case 'denied':
+        return '✗ Denied';
+      case 'default':
+        return '? Not requested';
+      default:
+        return 'Unknown';
     }
   }
 
   function getPermissionStatusClass() {
     switch (notificationPermission) {
-    case 'granted': return 'permission-granted';
-    case 'denied': return 'permission-denied';
-    case 'default': return 'permission-default';
-    default: return '';
+      case 'granted':
+        return 'permission-granted';
+      case 'denied':
+        return 'permission-denied';
+      case 'default':
+        return 'permission-default';
+      default:
+        return '';
     }
   }
 
@@ -187,14 +196,28 @@
     </div>
     <div class="header-actions" role="toolbar" aria-label="Settings actions">
       <span class="last-updated" role="status" aria-live="polite">Modified: {timeAgo}</span>
-      <button class="btn btn-secondary btn-sm" on:click={exportSettings} aria-label="Export settings">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={exportSettings}
+        aria-label="Export settings"
+      >
         <span aria-hidden="true">📤</span> Export
       </button>
       <label class="btn btn-secondary btn-sm">
         <span aria-hidden="true">📥</span> Import
-        <input type="file" accept=".json" on:change={importSettings} style="display: none;" aria-label="Import settings file" />
+        <input
+          type="file"
+          accept=".json"
+          on:change={importSettings}
+          style="display: none;"
+          aria-label="Import settings file"
+        />
       </label>
-      <button class="btn btn-secondary btn-sm" on:click={resetToDefaults} aria-label="Reset settings to defaults">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={resetToDefaults}
+        aria-label="Reset settings to defaults"
+      >
         <span aria-hidden="true">🔄</span> Reset
       </button>
     </div>
@@ -214,7 +237,9 @@
           />
           Enable notifications
         </label>
-        <span class="setting-description" id="notif-enabled-desc">Show notifications for events and alerts</span>
+        <span class="setting-description" id="notif-enabled-desc"
+          >Show notifications for events and alerts</span
+        >
       </div>
 
       <div class="setting-row" class:disabled={!settings.notifications.enabled}>
@@ -251,7 +276,12 @@
           Enable desktop notifications
         </label>
         <div class="permission-controls">
-          <span class="permission-status {getPermissionStatusClass()}" role="status" aria-live="polite" aria-label="Desktop notification permission status: {getPermissionStatusText()}">
+          <span
+            class="permission-status {getPermissionStatusClass()}"
+            role="status"
+            aria-live="polite"
+            aria-label="Desktop notification permission status: {getPermissionStatusText()}"
+          >
             {getPermissionStatusText()}
           </span>
           {#if notificationPermission !== 'granted'}
@@ -275,7 +305,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.errors}
-                disabled={!settings.notifications.enabled}
+              disabled={!settings.notifications.enabled}
             />
             Errors
           </label>
@@ -287,7 +317,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.warnings}
-                disabled={!settings.notifications.enabled}
+              disabled={!settings.notifications.enabled}
             />
             Warnings
           </label>
@@ -299,7 +329,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.triggers}
-                disabled={!settings.notifications.enabled}
+              disabled={!settings.notifications.enabled}
             />
             Triggers
           </label>
@@ -311,7 +341,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.performance}
-                disabled={!settings.notifications.enabled}
+              disabled={!settings.notifications.enabled}
             />
             Performance
           </label>
@@ -323,7 +353,7 @@
             <input
               type="checkbox"
               bind:checked={settings.notifications.types.info}
-                disabled={!settings.notifications.enabled}
+              disabled={!settings.notifications.enabled}
             />
             Info
           </label>
@@ -338,11 +368,7 @@
 
       <div class="setting-row">
         <label for="theme-select">Theme</label>
-        <select
-          id="theme-select"
-          bind:value={settings.ui.theme}
-          aria-describedby="theme-desc"
-        >
+        <select id="theme-select" bind:value={settings.ui.theme} aria-describedby="theme-desc">
           <option value="theme--day">Day (Gruvbox)</option>
           <option value="theme--dusk">Dusk (Ristretto)</option>
           <option value="theme--night">Night (Tokyo Night)</option>
@@ -360,15 +386,14 @@
           <option value="12h">12-hour (AM/PM)</option>
           <option value="24h">24-hour</option>
         </select>
-        <span class="setting-description" id="time-format-desc">Choose how times are displayed throughout the app</span>
+        <span class="setting-description" id="time-format-desc"
+          >Choose how times are displayed throughout the app</span
+        >
       </div>
 
       <div class="setting-row">
         <label>
-          <input
-            type="checkbox"
-            bind:checked={settings.ui.compactMode}
-          />
+          <input type="checkbox" bind:checked={settings.ui.compactMode} />
           Compact mode
         </label>
         <span class="setting-description">Use smaller spacing and font sizes</span>
@@ -376,10 +401,7 @@
 
       <div class="setting-row">
         <label>
-          <input
-            type="checkbox"
-            bind:checked={settings.ui.animationsEnabled}
-          />
+          <input type="checkbox" bind:checked={settings.ui.animationsEnabled} />
           Enable animations
         </label>
         <span class="setting-description">Show UI transitions and animations</span>
@@ -387,10 +409,7 @@
 
       <div class="setting-row">
         <label>
-          <input
-            type="checkbox"
-            bind:checked={settings.ui.autoRefresh}
-          />
+          <input type="checkbox" bind:checked={settings.ui.autoRefresh} />
           Auto-refresh data
         </label>
         <span class="setting-description">Automatically refresh panels</span>
@@ -407,7 +426,8 @@
           disabled={!settings.ui.autoRefresh}
           aria-describedby="refresh-interval-desc"
         />
-        <span id="refresh-interval-desc" class="setting-description">How often to refresh data</span>
+        <span id="refresh-interval-desc" class="setting-description">How often to refresh data</span
+        >
       </div>
     </section>
 
@@ -430,7 +450,9 @@
           <option value="vim">🟢 Vim</option>
           <option value="nvim">🟩 Neovim</option>
         </select>
-        <span class="setting-description" id="editor-desc">Choose which editor opens files from error panels</span>
+        <span class="setting-description" id="editor-desc"
+          >Choose which editor opens files from error panels</span
+        >
       </div>
     </section>
 
@@ -440,10 +462,7 @@
 
       <div class="setting-row">
         <label>
-          <input
-            type="checkbox"
-            bind:checked={settings.performance.enableMetrics}
-          />
+          <input type="checkbox" bind:checked={settings.performance.enableMetrics} />
           Enable metrics collection
         </label>
         <span class="setting-description">Collect system performance metrics</span>
@@ -464,10 +483,7 @@
 
       <div class="setting-row">
         <label>
-          <input
-            type="checkbox"
-            bind:checked={settings.performance.enableFileWatcher}
-          />
+          <input type="checkbox" bind:checked={settings.performance.enableFileWatcher} />
           Enable file watcher
         </label>
         <span class="setting-description">Monitor file changes in real-time</span>
@@ -484,7 +500,9 @@
           bind:value={settings.performance.maxEventsDisplay}
           aria-describedby="max-events-desc"
         />
-        <span id="max-events-desc" class="setting-description">Maximum number of events to show in lists</span>
+        <span id="max-events-desc" class="setting-description"
+          >Maximum number of events to show in lists</span
+        >
       </div>
     </section>
   </div>
@@ -615,13 +633,13 @@
     grid-column: 2;
   }
 
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     width: var(--icon-sm);
     height: var(--icon-sm);
     cursor: pointer;
   }
 
-  input[type="number"],
+  input[type='number'],
   select {
     padding: var(--space-sm) var(--space-lg);
     background: var(--surface);
@@ -632,13 +650,13 @@
     font-family: var(--mono);
   }
 
-  input[type="number"]:focus,
+  input[type='number']:focus,
   select:focus {
     outline: none;
     border-color: var(--accent);
   }
 
-  input[type="number"]:disabled,
+  input[type='number']:disabled,
   select:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -779,10 +797,12 @@
     font-size: 12px !important;
   }
 
-  :global(body.compact-mode input[type="text"],
-  body.compact-mode input[type="number"],
-  body.compact-mode select,
-  body.compact-mode textarea) {
+  :global(
+    body.compact-mode input[type='text'],
+    body.compact-mode input[type='number'],
+    body.compact-mode select,
+    body.compact-mode textarea
+  ) {
     padding: var(--space-md) var(--space-lg) !important;
     font-size: 12px !important;
   }

@@ -1,20 +1,14 @@
 <script>
   import { logger } from './logger.js';
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { API_CONFIG } from '../config.js';
-
-  const dispatch = createEventDispatcher();
 
   const API_BASE = API_CONFIG.API_BASE;
 
   let changelog = [];
   let loading = true;
   let error = null;
-
-  function close() {
-    dispatch('close');
-  }
 
   onMount(async () => {
     try {
@@ -31,30 +25,49 @@
 
   function getTypeIcon(type) {
     switch (type) {
-    case 'feature': return '✨';
-    case 'fix': return '🐛';
-    case 'improvement': return '⚡';
-    case 'breaking': return '💥';
-    case 'security': return '🔒';
-    case 'docs': return '📝';
-    default: return '•';
+      case 'feature':
+        return '✨';
+      case 'fix':
+        return '🐛';
+      case 'improvement':
+        return '⚡';
+      case 'breaking':
+        return '💥';
+      case 'security':
+        return '🔒';
+      case 'docs':
+        return '📝';
+      default:
+        return '•';
     }
   }
 
   function getTypeColor(type) {
     switch (type) {
-    case 'feature': return 'var(--success)';
-    case 'fix': return 'var(--error)';
-    case 'improvement': return 'var(--info)';
-    case 'breaking': return 'var(--warning)';
-    case 'security': return 'var(--accent-2)';
-    case 'docs': return 'var(--muted)';
-    default: return 'var(--muted)';
+      case 'feature':
+        return 'var(--success)';
+      case 'fix':
+        return 'var(--error)';
+      case 'improvement':
+        return 'var(--info)';
+      case 'breaking':
+        return 'var(--warning)';
+      case 'security':
+        return 'var(--accent-2)';
+      case 'docs':
+        return 'var(--muted)';
+      default:
+        return 'var(--muted)';
     }
   }
 </script>
 
-<div class="changelog-page" transition:fade={{ duration: 300 }} role="main" aria-label="Changelog page">
+<div
+  class="changelog-page"
+  transition:fade={{ duration: 300 }}
+  role="main"
+  aria-label="Changelog page"
+>
   <div class="changelog-container">
     <div class="changelog-header">
       <h1 id="changelog-heading"><span aria-hidden="true">📋</span> Changelog</h1>
@@ -77,32 +90,32 @@
         </div>
       {:else}
         {#each changelog as release (release.id || release.name || release)}
-        <article class="release-section" aria-labelledby="version-{release.version}">
-          <div class="release-header">
-            <div class="release-title">
-              <h2 id="version-{release.version}">Version {release.version}</h2>
-              {#if release.title}
-                <span class="release-subtitle">{release.title}</span>
-              {/if}
-            </div>
-            <div class="release-date"><time datetime={release.date}>{release.date}</time></div>
-          </div>
-
-          <div class="changes-list" role="list" aria-label="Changes in version {release.version}">
-            {#each release.changes as change (change.id || change.name || change)}
-              <div class="change-item" role="listitem">
-                <span
-                  class="change-icon"
-                  style="color: {getTypeColor(change.type)}"
-                  aria-hidden="true"
-                >
-                  {getTypeIcon(change.type)}
-                </span>
-                <span class="change-description">{change.description}</span>
+          <article class="release-section" aria-labelledby="version-{release.version}">
+            <div class="release-header">
+              <div class="release-title">
+                <h2 id="version-{release.version}">Version {release.version}</h2>
+                {#if release.title}
+                  <span class="release-subtitle">{release.title}</span>
+                {/if}
               </div>
-            {/each}
-          </div>
-        </article>
+              <div class="release-date"><time datetime={release.date}>{release.date}</time></div>
+            </div>
+
+            <div class="changes-list" role="list" aria-label="Changes in version {release.version}">
+              {#each release.changes as change (change.id || change.name || change)}
+                <div class="change-item" role="listitem">
+                  <span
+                    class="change-icon"
+                    style="color: {getTypeColor(change.type)}"
+                    aria-hidden="true"
+                  >
+                    {getTypeIcon(change.type)}
+                  </span>
+                  <span class="change-description">{change.description}</span>
+                </div>
+              {/each}
+            </div>
+          </article>
         {/each}
 
         <div class="changelog-footer" role="contentinfo">

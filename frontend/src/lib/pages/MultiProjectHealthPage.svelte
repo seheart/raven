@@ -31,7 +31,6 @@
 
     // Health filter
     if (filterHealth !== 'all') {
-      const healthLabel = getHealthLabel(filtered[0]?.health_score || 0).toLowerCase();
       filtered = filtered.filter(p => {
         const label = getHealthLabel(p.health_score).toLowerCase();
         if (filterHealth === 'excellent' && label !== 'excellent') return false;
@@ -217,7 +216,7 @@
       totalProjects = projects.length;
       activeProjects = projects.filter(p => p.status === 'active').length;
       recentProjects = projects.filter(p => p.status === 'recent').length;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load project health:', err);
       error = err.message;
     } finally {

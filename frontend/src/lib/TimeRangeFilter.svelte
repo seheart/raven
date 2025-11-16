@@ -10,7 +10,6 @@
   let showCustom = false;
   let customStart = '';
   let customEnd = '';
-  let initialized = false;
 
   const presetLabels = {
     '1h': 'Last Hour',
@@ -18,10 +17,10 @@
     '24h': 'Last 24 Hours',
     '7d': 'Last 7 Days',
     '30d': 'Last 30 Days',
-    'today': 'Today',
-    'yesterday': 'Yesterday',
-    'thisWeek': 'This Week',
-    'thisMonth': 'This Month'
+    today: 'Today',
+    yesterday: 'Yesterday',
+    thisWeek: 'This Week',
+    thisMonth: 'This Month'
   };
 
   function selectPreset(preset) {
@@ -31,51 +30,51 @@
     let start;
 
     switch (preset) {
-    case '1h':
-      start = new Date(now.getTime() - 60 * 60 * 1000);
-      break;
-    case '6h':
-      start = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-      break;
-    case '24h':
-      start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      break;
-    case '7d':
-      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      break;
-    case '30d':
-      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      break;
-    case 'today':
-      start = new Date(now);
-      start.setHours(0, 0, 0, 0);
-      break;
-    case 'yesterday':
-      start = new Date(now);
-      start.setDate(start.getDate() - 1);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(start);
-      end.setHours(23, 59, 59, 999);
-      // Create new object to avoid mutation
-      value = {
-        preset,
-        start: start.toISOString(),
-        end: end.toISOString()
-      };
-      dispatch('change', value);
-      return;
-    case 'thisWeek':
-      start = new Date(now);
-      const day = start.getDay();
-      const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Monday
-      start.setDate(diff);
-      start.setHours(0, 0, 0, 0);
-      break;
-    case 'thisMonth':
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-      break;
-    default:
-      start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      case '1h':
+        start = new Date(now.getTime() - 60 * 60 * 1000);
+        break;
+      case '6h':
+        start = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+        break;
+      case '24h':
+        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'today':
+        start = new Date(now);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'yesterday':
+        start = new Date(now);
+        start.setDate(start.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setHours(23, 59, 59, 999);
+        // Create new object to avoid mutation
+        value = {
+          preset,
+          start: start.toISOString(),
+          end: end.toISOString()
+        };
+        dispatch('change', value);
+        return;
+      case 'thisWeek':
+        start = new Date(now);
+        const day = start.getDay();
+        const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Monday
+        start.setDate(diff);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'thisMonth':
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      default:
+        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     }
 
     // Create new object to avoid mutation and trigger reactivity
@@ -154,7 +153,7 @@
     <button
       class="btn btn-ghost btn-sm custom-btn"
       class:active={showCustom}
-      on:click={() => showCustom = !showCustom}
+      on:click={() => (showCustom = !showCustom)}
       aria-pressed={showCustom}
       aria-label="Toggle custom time range"
       aria-expanded={showCustom}
@@ -168,25 +167,25 @@
       <div class="custom-inputs">
         <div class="input-group">
           <label for="start-time">From:</label>
-          <input
-            id="start-time"
-            type="datetime-local"
-            bind:value={customStart}
-          />
+          <input id="start-time" type="datetime-local" bind:value={customStart} />
         </div>
         <span class="arrow">→</span>
         <div class="input-group">
           <label for="end-time">To:</label>
-          <input
-            id="end-time"
-            type="datetime-local"
-            bind:value={customEnd}
-          />
+          <input id="end-time" type="datetime-local" bind:value={customEnd} />
         </div>
       </div>
       <div class="custom-actions" role="group" aria-label="Custom range actions">
-        <button class="btn btn-primary btn-sm" on:click={applyCustomRange} aria-label="Apply custom time range">Apply</button>
-        <button class="btn btn-secondary btn-sm" on:click={resetToDefault} aria-label="Reset to default time range">Reset</button>
+        <button
+          class="btn btn-primary btn-sm"
+          on:click={applyCustomRange}
+          aria-label="Apply custom time range">Apply</button
+        >
+        <button
+          class="btn btn-secondary btn-sm"
+          on:click={resetToDefault}
+          aria-label="Reset to default time range">Reset</button
+        >
       </div>
     </div>
   {/if}
@@ -251,7 +250,7 @@
     font-weight: 500;
   }
 
-  input[type="datetime-local"] {
+  input[type='datetime-local'] {
     padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
     border: 1px solid var(--border);
@@ -261,7 +260,7 @@
     font-family: var(--mono);
   }
 
-  input[type="datetime-local"]:focus {
+  input[type='datetime-local']:focus {
     outline: none;
     border-color: var(--accent);
   }

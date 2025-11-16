@@ -49,7 +49,7 @@
       const data = await api.get(`/projects?_t=${Date.now()}`);
       config = data;
       error = null;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load projects:', err);
       if (err instanceof TypeError && err.message.includes('fetch')) {
         error = 'Cannot connect to Raven backend. Is it running on http://localhost:3030?';
@@ -73,7 +73,7 @@
       } else {
         notifications.success('No new projects found');
       }
-    } catch (err) {
+    } catch {
       logger.error('Failed to discover projects:', err);
       if (err instanceof TypeError && err.message.includes('fetch')) {
         notifications.error('Cannot connect to backend. Check if Raven is running.');
@@ -91,7 +91,7 @@
       await loadConfig();
       discoveredProjects = discoveredProjects.filter(p => p.name !== project.name);
       notifications.success(`Project "${project.name}" added`);
-    } catch (err) {
+    } catch {
       notifications.error(`Failed to add project: ${err.message}`);
     }
   }
@@ -103,7 +103,7 @@
       showAddModal = false;
       resetForm();
       notifications.success(`Project "${formData.name}" added`);
-    } catch (err) {
+    } catch {
       notifications.error(`Failed to add project: ${err.message}`);
     }
   }
@@ -116,7 +116,7 @@
       selectedProject = null;
       resetForm();
       notifications.success(`Project "${formData.name}" updated`);
-    } catch (err) {
+    } catch {
       notifications.error(`Failed to update project: ${err.message}`);
     }
   }
@@ -128,7 +128,7 @@
         await api.delete(`/projects/${projectName}?deleteDb=${deleteDb}`);
         await loadConfig();
         notifications.success('Project removed successfully');
-      } catch (err) {
+      } catch {
         notifications.error(`Failed to delete project: ${err.message}`);
       } finally {
         showConfirmModal = false;
@@ -142,7 +142,7 @@
       await api.put(`/projects/${project.name}`, { enabled: !project.enabled });
       await loadConfig();
       notifications.success(`Project ${project.enabled ? 'disabled' : 'enabled'}`);
-    } catch (err) {
+    } catch {
       notifications.error(`Failed to toggle project: ${err.message}`);
     }
   }

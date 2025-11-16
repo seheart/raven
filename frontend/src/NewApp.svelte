@@ -123,7 +123,7 @@
     }
 
     // Add keyboard listener for ? key
-    const handleKeyPress = (e) => {
+    const handleKeyPress = e => {
       if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         // Only show if not typing in an input
         const target = e.target;
@@ -226,14 +226,14 @@
     navigate('/system');
   }
 
-  // ConfirmDialog functions
-  function showConfirmDialog(options) {
-    confirmTitle = options.title || 'Confirm Action';
-    confirmMessage = options.message || 'Are you sure?';
-    confirmType = options.type || 'warning';
-    confirmCallback = options.onConfirm || null;
-    showConfirm = true;
-  }
+  // ConfirmDialog functions (reserved for future use)
+  // function showConfirmDialog(options) {
+  //   confirmTitle = options.title || 'Confirm Action';
+  //   confirmMessage = options.message || 'Are you sure?';
+  //   confirmType = options.type || 'warning';
+  //   confirmCallback = options.onConfirm || null;
+  //   showConfirm = true;
+  // }
 
   function handleConfirmYes() {
     if (confirmCallback) confirmCallback();
@@ -439,7 +439,10 @@
   {/if}
 
   <!-- Keyboard Shortcuts Help -->
-  <KeyboardShortcuts visible={showKeyboardShortcuts} onClose={() => (showKeyboardShortcuts = false)} />
+  <KeyboardShortcuts
+    visible={showKeyboardShortcuts}
+    onClose={() => (showKeyboardShortcuts = false)}
+  />
 
   <!-- Confirm Dialog -->
   <ConfirmDialog

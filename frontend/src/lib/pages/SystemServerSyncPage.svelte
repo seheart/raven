@@ -112,7 +112,7 @@
       lastUpdated = new Date();
       loading = false;
       isManualRefresh = false;
-    } catch (error) {
+    } catch {
       logger.error('Failed to load sync config:', error);
       loading = false;
       isManualRefresh = false;
@@ -133,7 +133,7 @@
 
       if (saveStatusTimeout) clearTimeout(saveStatusTimeout);
       saveStatusTimeout = setTimeout(() => (saveStatus = null), 3000);
-    } catch (error) {
+    } catch {
       logger.error('Failed to save config:', error);
       saveStatus = 'error';
       notifications.error('Failed to save configuration', {
@@ -171,7 +171,7 @@
           title: 'Connection Failed'
         });
       }
-    } catch (error) {
+    } catch {
       logger.error('Connection test failed:', error);
       connectionStatus = 'failed';
       notifications.error('Connection test failed', {
@@ -199,7 +199,7 @@
       }
 
       loadingStats = false;
-    } catch (error) {
+    } catch {
       logger.error('Failed to load remote stats:', error);
       loadingStats = false;
       remoteStats = null;
@@ -265,7 +265,7 @@
         syncProgress = { stage: '', percent: 0, message: '' };
       }, 3000);
       syncProgressTimeouts.push(timeout1);
-    } catch (error) {
+    } catch {
       logger.error('Sync failed:', error);
       syncing = false;
       syncProgress = { stage: 'error', percent: 0, message: 'Sync failed' };

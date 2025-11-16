@@ -52,7 +52,7 @@
 
       lastUpdate = new Date();
       error = null;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load anomalies:', err);
       error = err.message;
     } finally {

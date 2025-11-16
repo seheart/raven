@@ -83,7 +83,6 @@
           class="btn {type === 'danger' ? 'btn-danger' : 'btn-primary'}"
           on:click={handleConfirm}
           tabindex="0"
-          autofocus
           aria-label="Confirm action"
         >
           {confirmText}

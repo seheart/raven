@@ -95,7 +95,7 @@
 
   async function addDiscoveredProject(project) {
     try {
-      const response = await fetch(`${API_BASE}/projects`, {
+      await fetch(`${API_BASE}/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(project)
@@ -111,7 +111,7 @@
 
   async function addProject() {
     try {
-      const response = await fetch(`${API_BASE}/projects`, {
+      await fetch(`${API_BASE}/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -128,7 +128,7 @@
 
   async function updateProject() {
     try {
-      const response = await fetch(`${API_BASE}/projects/${selectedProject.id}`, {
+      await fetch(`${API_BASE}/projects/${selectedProject.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -148,7 +148,7 @@
     confirmMessage = `Are you sure you want to remove this project?${deleteDb ? ' The database will be deleted.' : ''}`;
     confirmAction = async () => {
       try {
-        const response = await fetch(`${API_BASE}/projects/${projectName}?deleteDb=${deleteDb}`, {
+        await fetch(`${API_BASE}/projects/${projectName}?deleteDb=${deleteDb}`, {
           method: 'DELETE'
         });
 
@@ -165,7 +165,7 @@
 
   async function toggleProject(project) {
     try {
-      const response = await fetch(`${API_BASE}/projects/${project.name}`, {
+      await fetch(`${API_BASE}/projects/${project.name}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !project.enabled })

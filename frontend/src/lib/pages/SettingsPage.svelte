@@ -52,7 +52,7 @@
         if (!success) {
           throw new Error('Invalid settings format');
         }
-      } catch (err) {
+      } catch {
         logger.error('Failed to import settings:', err);
       }
     };
@@ -91,7 +91,7 @@
           icon: '/favicon.ico'
         });
       }
-    } catch (err) {
+    } catch {
       logger.error('Error requesting notification permission:', err);
     }
   }

@@ -40,9 +40,7 @@
   let recentActivity = [];
   let topFiles = [];
   let loading = true;
-  let metricsLoading = false;
   let lastUpdated = null;
-  let isManualRefresh = false;
 
   // Simplified greeting based on time of day
   function getGreeting() {
@@ -51,15 +49,6 @@
     if (hour < 17) return '☀️ Afternoon';
     if (hour < 21) return '🌆 Evening';
     return '🌙 Night';
-  }
-
-  // Get greeting emoji
-  function getGreetingEmoji() {
-    const hour = new Date().getHours();
-    if (hour < 12) return '🌅';
-    if (hour < 17) return '☀️';
-    if (hour < 21) return '🌆';
-    return '🌙';
   }
 
   // Format time ago - using controlled interval to prevent infinite reactive loop

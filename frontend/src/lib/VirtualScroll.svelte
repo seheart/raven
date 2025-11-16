@@ -1,6 +1,4 @@
 <script>
-  import { onMount, onDestroy, tick } from 'svelte';
-
   // Props
   export let items = [];
   export let itemHeight = 40;
@@ -16,10 +14,12 @@
 
   // Computed values
   $: totalHeight = items.length * itemHeight;
-  $: visibleCount = Math.ceil(containerHeight / itemHeight);
   $: {
     visibleStart = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-    visibleEnd = Math.min(items.length, Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan);
+    visibleEnd = Math.min(
+      items.length,
+      Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan
+    );
   }
   $: visibleItems = items.slice(visibleStart, visibleEnd);
   $: offsetY = visibleStart * itemHeight;
@@ -41,7 +41,10 @@
   // Public API to scroll to an item
   export async function scrollToItem(index) {
     if (!containerElement) return;
-    const targetScrollTop = Math.max(0, Math.min((items.length - 1) * itemHeight, index * itemHeight));
+    const targetScrollTop = Math.max(
+      0,
+      Math.min((items.length - 1) * itemHeight, index * itemHeight)
+    );
     containerElement.scrollTop = targetScrollTop;
     await tick();
   }
@@ -66,16 +69,9 @@
   tabindex="-1"
 >
   <div class="virtual-scroll-spacer" style="height: {totalHeight}px;">
-    <div
-      class="virtual-scroll-content"
-      style="transform: translateY({offsetY}px);"
-    >
+    <div class="virtual-scroll-content" style="transform: translateY({offsetY}px);">
       {#each visibleItems as item, i (getKey(item, visibleStart + i))}
-        <div
-          class="virtual-scroll-item"
-          style="height: {itemHeight}px;"
-          role="listitem"
-        >
+        <div class="virtual-scroll-item" style="height: {itemHeight}px;" role="listitem">
           <slot {item} index={visibleStart + i} />
         </div>
       {/each}

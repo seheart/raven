@@ -116,7 +116,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load activity data:', err);
       error = err.message;
       loading = false;
@@ -129,13 +129,13 @@
       const endpoint = isPaused ? '/resume' : '/pause';
       await api.post(endpoint, {});
       isPaused = !isPaused;
-    } catch (err) {
+    } catch {
       logger.error('Failed to toggle tracking:', err);
     }
   }
 
   // WebSocket handler for real-time updates
-  const handleFileChanged = (data) => {
+  const handleFileChanged = _data => {
     // Prepend new event to recent events
     recentEvents = [data, ...recentEvents].slice(0, 10);
     stats.totalChanges++;
@@ -172,8 +172,12 @@
     <!-- Header -->
     <div class="flex justify-between items-start flex-wrap gap-4 mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1 font-sans">Activity Dashboard</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Real-time code changes and file monitoring</p>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1 font-sans">
+          Activity Dashboard
+        </h1>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Real-time code changes and file monitoring
+        </p>
       </div>
       <div class="flex items-center gap-3 flex-wrap">
         <button
@@ -201,8 +205,12 @@
     </div>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center">
-        <span class="text-base text-[var(--error)] font-sans">⚠️ Failed to load activity data: {error}</span>
+      <div
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
+      >
+        <span class="text-base text-[var(--error)] font-sans"
+          >⚠️ Failed to load activity data: {error}</span
+        >
         <button
           onclick={() => loadActivityData()}
           class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
@@ -215,12 +223,16 @@
     {#if loading}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {#each Array(4) as _, i (i)}
-          <div class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else}
       {#if isPaused}
-        <div class="bg-[var(--warning-subtle)] border border-[var(--warning)] rounded-lg p-4 flex justify-between items-center">
+        <div
+          class="bg-[var(--warning-subtle)] border border-[var(--warning)] rounded-lg p-4 flex justify-between items-center"
+        >
           <span class="text-base font-sans">⏸️ Tracking is currently paused</span>
           <button
             onclick={togglePause}
@@ -239,7 +251,9 @@
         <div class="text-5xl flex-shrink-0">{activityIntensity.icon}</div>
         <div class="flex-1">
           <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-1 font-sans">
-            Activity Intensity: <span style="color: {activityIntensity.color}">{activityIntensity.level}</span>
+            Activity Intensity: <span style="color: {activityIntensity.color}"
+              >{activityIntensity.level}</span
+            >
           </h2>
           <p class="text-base text-[var(--muted)] mb-3 font-sans">
             {formatNumber(stats.totalChanges)} changes across {formatNumber(stats.filesModified)} files
@@ -247,7 +261,10 @@
           <div class="w-full h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
             <div
               class="h-full transition-all duration-500"
-              style="width: {Math.min(100, (stats.totalChanges / 100) * 100)}%; background: {activityIntensity.color}"
+              style="width: {Math.min(
+                100,
+                (stats.totalChanges / 100) * 100
+              )}%; background: {activityIntensity.color}"
             ></div>
           </div>
         </div>
@@ -265,7 +282,9 @@
               {formatNumber(stats.creates)}
             </div>
             <div class="text-sm text-[var(--muted)] font-sans mb-1">Files Created</div>
-            <div class="text-xs text-[var(--muted)] font-sans">{calculatePercentage(stats.creates)}% of changes</div>
+            <div class="text-xs text-[var(--muted)] font-sans">
+              {calculatePercentage(stats.creates)}% of changes
+            </div>
           </div>
         </button>
 
@@ -279,7 +298,9 @@
               {formatNumber(stats.edits)}
             </div>
             <div class="text-sm text-[var(--muted)] font-sans mb-1">Files Edited</div>
-            <div class="text-xs text-[var(--muted)] font-sans">{calculatePercentage(stats.edits)}% of changes</div>
+            <div class="text-xs text-[var(--muted)] font-sans">
+              {calculatePercentage(stats.edits)}% of changes
+            </div>
           </div>
         </button>
 
@@ -293,7 +314,9 @@
               {formatNumber(stats.deletes)}
             </div>
             <div class="text-sm text-[var(--muted)] font-sans mb-1">Files Deleted</div>
-            <div class="text-xs text-[var(--muted)] font-sans">{calculatePercentage(stats.deletes)}% of changes</div>
+            <div class="text-xs text-[var(--muted)] font-sans">
+              {calculatePercentage(stats.deletes)}% of changes
+            </div>
           </div>
         </button>
 
@@ -316,16 +339,23 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Top Modified Files -->
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2">
+          <h2
+            class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
+          >
             <span>🔥</span> Most Modified Files
           </h2>
           {#if topModifiedFiles.length > 0}
             <div class="space-y-2">
               {#each topModifiedFiles as file (file.filepath)}
-                <div class="flex items-center gap-3 p-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
+                <div
+                  class="flex items-center gap-3 p-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg"
+                >
                   <div class="text-xl flex-shrink-0">📄</div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold text-[var(--text)] font-mono truncate" title={file.filepath}>
+                    <div
+                      class="text-sm font-semibold text-[var(--text)] font-mono truncate"
+                      title={file.filepath}
+                    >
                       {file.filepath}
                     </div>
                     <div class="text-xs text-[var(--muted)] font-sans">
@@ -351,18 +381,25 @@
 
         <!-- Recent Changes -->
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2">
+          <h2
+            class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
+          >
             <span>🔄</span> Recent Changes
           </h2>
           {#if recentEvents.length > 0}
             <div class="space-y-2">
               {#each recentEvents as event (event.id || event.timestamp)}
-                <div class="flex items-start gap-3 p-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
+                <div
+                  class="flex items-start gap-3 p-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg"
+                >
                   <div class="text-lg flex-shrink-0 mt-0.5">
                     {getChangeIcon(event.change_type)}
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm text-[var(--text)] font-mono truncate" title={event.filepath}>
+                    <div
+                      class="text-sm text-[var(--text)] font-mono truncate"
+                      title={event.filepath}
+                    >
                       {event.filepath}
                     </div>
                     <div class="text-xs text-[var(--muted)] font-sans">
@@ -383,7 +420,9 @@
 
       <!-- Quick Actions -->
       <section>
-        <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2">
+        <h2
+          class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
+        >
           <span>🚀</span> Quick Actions
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -392,7 +431,9 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all text-left"
           >
             <div class="text-2xl mb-2">📝</div>
-            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">Code Changes</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">
+              Code Changes
+            </div>
             <div class="text-xs text-[var(--muted)] font-sans">View detailed change log</div>
           </button>
 
@@ -401,7 +442,9 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all text-left"
           >
             <div class="text-2xl mb-2">🔴</div>
-            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">Live Feed</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">
+              Live Feed
+            </div>
             <div class="text-xs text-[var(--muted)] font-sans">Real-time activity stream</div>
           </button>
 
@@ -410,7 +453,9 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all text-left"
           >
             <div class="text-2xl mb-2">📋</div>
-            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">Event Log</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">
+              Event Log
+            </div>
             <div class="text-xs text-[var(--muted)] font-sans">Complete event history</div>
           </button>
 
@@ -419,7 +464,9 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all text-left"
           >
             <div class="text-2xl mb-2">📁</div>
-            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">File Browser</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">
+              File Browser
+            </div>
             <div class="text-xs text-[var(--muted)] font-sans">Browse tracked files</div>
           </button>
 
@@ -428,7 +475,9 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all text-left"
           >
             <div class="text-2xl mb-2">📊</div>
-            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">Timeline</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">
+              Timeline
+            </div>
             <div class="text-xs text-[var(--muted)] font-sans">Activity timeline view</div>
           </button>
 
@@ -437,7 +486,9 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all text-left"
           >
             <div class="text-2xl mb-2">🔍</div>
-            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">Search</div>
+            <div class="text-base font-semibold text-[var(--text-heading)] mb-1 font-sans">
+              Search
+            </div>
             <div class="text-xs text-[var(--muted)] font-sans">Search all content</div>
           </button>
         </div>
