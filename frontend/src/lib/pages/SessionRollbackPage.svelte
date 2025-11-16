@@ -450,13 +450,17 @@
 {#if showRollbackConfirm}
   <div
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="rollback-confirm-title"
     onclick={cancelRollback}
+    onkeydown={(e) => e.key === 'Escape' && cancelRollback()}
   >
     <div
       class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 max-w-md w-full mx-4"
       onclick={(e) => e.stopPropagation()}
     >
-      <h2 class="text-xl font-bold text-[var(--text-heading)] mb-4 font-sans">
+      <h2 id="rollback-confirm-title" class="text-xl font-bold text-[var(--text-heading)] mb-4 font-sans">
         Final Confirmation Required
       </h2>
       <p class="text-base text-[var(--text)] font-sans mb-4">

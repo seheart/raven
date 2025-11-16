@@ -1,7 +1,7 @@
 <script>
   import { onMount, createEventDispatcher } from 'svelte';
   import { fade } from 'svelte/transition';
-  import RavenLogo from './RavenLogo.svelte';
+  import RavenLogo from './components/ui/RavenLogo.svelte';
   import { API_CONFIG } from '../config.js';
   import { websocketService } from './websocket.js';
 

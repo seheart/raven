@@ -299,50 +299,50 @@
       {/if}
     {:else if activeTab === 'activity'}
       {#if !activeSubTab}
-        {#await import('./lib/pages/ActivityDashboardPage.svelte') then M}
-          <svelte:component this={M.default} />
+        {#await import('./lib/pages/ActivityDashboardPage.svelte') then { default: Component }}
+          <Component />
         {:catch}
           <PlaceholderPage title="Activity Overview" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'activity-log'}
-        {#await import('./lib/pages/ActivityOverviewPage.svelte') then M}
-          <svelte:component this={M.default} />
+        {#await import('./lib/pages/ActivityOverviewPage.svelte') then { default: Component }}
+          <Component />
         {:catch}
           <PlaceholderPage title="Activity Log" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'code'}
-        {#await import('./lib/pages/ActivityCodeChangesPage.svelte') then M}
-          <svelte:component this={M.default} />
+        {#await import('./lib/pages/ActivityCodeChangesPage.svelte') then { default: Component }}
+          <Component />
         {:catch}
           <PlaceholderPage title="Activity - Code Changes" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'live'}
-        {#await import('./lib/pages/ActivityLiveFeedPage.svelte') then M}
-          <svelte:component this={M.default} />
+        {#await import('./lib/pages/ActivityLiveFeedPage.svelte') then { default: Component }}
+          <Component />
         {:catch}
           <PlaceholderPage title="Activity - Live Feed" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'events'}
-        {#await import('./lib/pages/ActivityEventLogPage.svelte') then M}
-          <svelte:component this={M.default} />
+        {#await import('./lib/pages/ActivityEventLogPage.svelte') then { default: Component }}
+          <Component />
         {:catch}
           <PlaceholderPage title="Activity - Event Log" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'files'}
-        {#await import('./lib/pages/ActivityFileBrowserPage.svelte') then M}
-          <svelte:component this={M.default} />
+        {#await import('./lib/pages/ActivityFileBrowserPage.svelte') then { default: Component }}
+          <Component />
         {:catch}
           <PlaceholderPage title="Activity - File Browser" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'timeline'}
-        {#await import('./lib/pages/ActivityTimelinePage.svelte') then M}
-          <svelte:component this={M.default} />
+        {#await import('./lib/pages/ActivityTimelinePage.svelte') then { default: Component }}
+          <Component />
         {:catch}
           <PlaceholderPage title="Activity - Timeline" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'search'}
-        {#await import('./lib/pages/ActivitySearchPage.svelte') then M}
-          <svelte:component this={M.default} />
+        {#await import('./lib/pages/ActivitySearchPage.svelte') then { default: Component }}
+          <Component />
         {:catch}
           <PlaceholderPage title="Activity - Search" description="Loading..." />
         {/await}

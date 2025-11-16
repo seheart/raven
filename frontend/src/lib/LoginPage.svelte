@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { authService, authLoading } from './authStore.js';
-  import RavenLogo from './RavenLogo.svelte';
+  import RavenLogo from './components/ui/RavenLogo.svelte';
 
   export let onLoginSuccess = () => {};
 

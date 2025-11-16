@@ -329,9 +329,9 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
 
         <!-- Project Filter -->
         {#if projects.length > 0}
-          <div class="mb-0">
-            <label class="text-sm font-semibold text-[var(--text)] uppercase mb-3 block"
-              >Project:</label
+          <div class="mb-0" role="group" aria-labelledby="project-filter-label">
+            <div id="project-filter-label" class="text-sm font-semibold text-[var(--text)] uppercase mb-3 block"
+              >Project:</div
             >
             <div class="flex gap-3 flex-wrap">
               <button

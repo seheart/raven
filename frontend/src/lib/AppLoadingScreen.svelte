@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import RavenLogo from './RavenLogo.svelte';
+  import RavenLogo from './components/ui/RavenLogo.svelte';
 
   export let progress = 0; // 0-100
   export let message = 'Initializing Raven...';

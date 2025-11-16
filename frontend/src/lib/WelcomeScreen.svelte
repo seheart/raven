@@ -1,7 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import RavenLogo from './RavenLogo.svelte';
+  import RavenLogo from './components/ui/RavenLogo.svelte';
 
   const dispatch = createEventDispatcher();
 
