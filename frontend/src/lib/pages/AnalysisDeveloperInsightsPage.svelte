@@ -6,6 +6,7 @@
    */
 
   import { onMount } from 'svelte';
+  import SimilarChangesPanel from '../SimilarChangesPanel.svelte';
 
   // State
   let stats = $state({
@@ -26,6 +27,10 @@
   let loading = $state(true);
   let lastUpdate = $state(null);
   let autoRefresh = $state(false);
+
+  // Similar changes state
+  let selectedEventId = $state(null);
+  let selectedInteraction = $state(null);
 
   // Derived
   const totalDataPoints = $derived(
@@ -95,6 +100,16 @@
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  function selectInteraction(interaction) {
+    selectedEventId = interaction.id;
+    selectedInteraction = interaction;
+  }
+
+  function clearSelection() {
+    selectedEventId = null;
+    selectedInteraction = null;
   }
 
   onMount(() => {
@@ -305,9 +320,14 @@
       {#if interactions.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
           <h2 class="text-lg font-semibold text-[var(--accent)] font-sans mb-4">🤖 Recent Agent Interactions</h2>
+          <p class="text-sm text-[var(--muted)] font-sans mb-4">Click on an interaction to see similar changes analysis</p>
           <div class="space-y-3">
             {#each interactions as interaction}
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3">
+              <div
+                class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--accent)] transition-colors"
+                class:border-accent={selectedEventId === interaction.id}
+                onclick={() => selectInteraction(interaction)}
+              >
                 <div class="flex items-start justify-between gap-3 mb-2">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-semibold text-[var(--accent)] font-mono">{interaction.project || 'Unknown'}</span>
@@ -337,7 +357,7 @@
 
       <!-- Recent Code Patterns -->
       {#if patterns.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
           <h2 class="text-lg font-semibold text-[var(--accent)] font-sans mb-4">💻 Recent Code Patterns</h2>
           <div class="space-y-3">
             {#each patterns as pattern}
@@ -364,6 +384,33 @@
               </div>
             {/each}
           </div>
+        </div>
+      {/if}
+
+      <!-- Similar Changes Analysis -->
+      {#if selectedEventId}
+        <div class="bg-[var(--surface)] border-2 border-[var(--accent)] rounded-lg p-5">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h2 class="text-lg font-semibold text-[var(--accent)] font-sans mb-1">🔍 Similar Changes Analysis</h2>
+              {#if selectedInteraction}
+                <p class="text-sm text-[var(--muted)] font-sans">
+                  Analyzing patterns for: <span class="font-mono text-[var(--text)]">{selectedInteraction.file_path || 'interaction'}</span>
+                </p>
+              {/if}
+            </div>
+            <button
+              onclick={clearSelection}
+              class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+            >
+              ✕ Close
+            </button>
+          </div>
+          <SimilarChangesPanel
+            eventId={selectedEventId}
+            project={selectedInteraction?.project || 'raven'}
+            limit={5}
+          />
         </div>
       {/if}
     {/if}

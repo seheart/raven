@@ -6,6 +6,7 @@
   import { websocketService } from '../services/websocket.js';
   import { api } from '../apiClient.js';
   import { isSourceCodeFile, debounce } from '../utils/helpers.js';
+  import DiffViewer from '../DiffViewer.svelte';
 
   // State
   let events = $state([]);
@@ -16,6 +17,13 @@
   let eventsLimit = $state(50);
   let lastUpdated = $state(new Date());
   let isPaused = $state(false);
+
+  // DiffViewer state
+  let showDiff = $state(false);
+  let diffOldContent = $state('');
+  let diffNewContent = $state('');
+  let diffText = $state('');
+  let selectedFilePath = $state('');
 
   // Debounced timeout reference
   let debouncedTimeoutId;
@@ -146,6 +154,39 @@
       case 'modified': return 'var(--accent)';
       case 'deleted': return 'var(--error)';
       default: return 'var(--text)';
+    }
+  }
+
+  async function viewDiff(event) {
+    try {
+      selectedFilePath = event.filepath;
+
+      // Try to fetch the diff from the API
+      const response = await api.get(`/file-diff/${event.id}`);
+
+      if (response.diff) {
+        diffText = response.diff;
+        diffOldContent = '';
+        diffNewContent = '';
+      } else if (response.oldContent !== undefined && response.newContent !== undefined) {
+        diffOldContent = response.oldContent || '';
+        diffNewContent = response.newContent || '';
+        diffText = '';
+      } else {
+        // Fallback: create a simple diff message
+        diffText = '';
+        diffOldContent = `File: ${event.filepath}\nChange Type: ${event.change_type}\nTimestamp: ${formatTime(event.timestamp)}`;
+        diffNewContent = `No diff available for this change.\n\nThis is a ${event.change_type} event.`;
+      }
+
+      showDiff = true;
+    } catch (err) {
+      console.error('Failed to load diff:', err);
+      // Show error in diff viewer
+      diffOldContent = `Error loading diff for ${event.filepath}`;
+      diffNewContent = `Error: ${err.message}`;
+      diffText = '';
+      showDiff = true;
     }
   }
 
@@ -299,7 +340,7 @@
             </thead>
             <tbody class="divide-y divide-[var(--border)]">
               {#each filteredEvents as event (event.id)}
-                <tr class="hover:bg-[var(--bg)] transition-colors">
+                <tr class="hover:bg-[var(--bg)] transition-colors cursor-pointer" onclick={() => viewDiff(event)}>
                   <td class="px-4 py-3">
                     <span
                       class="text-xs px-2 py-1 rounded font-semibold"
@@ -357,6 +398,16 @@
       {/if}
     {/if}
   </div>
+
+  <!-- DiffViewer Modal -->
+  {#if showDiff}
+    <DiffViewer
+      diff={diffText}
+      oldContent={diffOldContent}
+      newContent={diffNewContent}
+      onClose={() => showDiff = false}
+    />
+  {/if}
 </div>
 
 <style>
