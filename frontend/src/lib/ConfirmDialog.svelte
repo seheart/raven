@@ -28,11 +28,15 @@
   }
 
   function getIcon() {
-    switch(type) {
-    case 'danger': return '⚠️';
-    case 'warning': return '⚡';
-    case 'info': return 'ℹ️';
-    default: return '❓';
+    switch (type) {
+      case 'danger':
+        return '⚠️';
+      case 'warning':
+        return '⚡';
+      case 'info':
+        return 'ℹ️';
+      default:
+        return '❓';
     }
   }
 </script>
@@ -53,6 +57,7 @@
     <div
       class="dialog-content dialog-{type}"
       on:click|stopPropagation
+      on:keydown|stopPropagation
       transition:scale={{ duration: 200, start: 0.9 }}
       role="document"
     >
@@ -170,9 +175,15 @@
 
   /* Alive feeling - subtle animation */
   @keyframes dialogPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.01); }
-    100% { transform: scale(1); }
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.01);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
 
   .dialog-content {

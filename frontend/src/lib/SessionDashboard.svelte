@@ -50,7 +50,6 @@
         logger.warn('Session stats not available:', err);
         stats = null;
       }
-
     } catch (err) {
       logger.error('Failed to load session data:', err);
       error = err.message;
@@ -111,7 +110,6 @@
     return 'var(--success)';
   }
 
-
   function formatTimeAgo(timestamp) {
     const now = new Date();
     const then = new Date(timestamp);
@@ -124,9 +122,10 @@
   }
 
   // Reactive session duration - calculates from start time (no polling!)
-  $: sessionDuration = currentSession && sessionStartTime
-    ? (Date.now() - sessionStartTime.getTime()) / 1000 / 60  // minutes
-    : (currentSession?.durationMinutes || 0);
+  $: sessionDuration =
+    currentSession && sessionStartTime
+      ? (Date.now() - sessionStartTime.getTime()) / 1000 / 60 // minutes
+      : currentSession?.durationMinutes || 0;
 </script>
 
 <div class="card session-dashboard">
@@ -176,7 +175,10 @@
               <div class="metric-label">Changes</div>
             </div>
             <div class="metric-item">
-              <div class="metric-value" style="color: {getQualityColor(currentSession.qualityScore)}">
+              <div
+                class="metric-value"
+                style="color: {getQualityColor(currentSession.qualityScore)}"
+              >
                 {currentSession.qualityScore}
               </div>
               <div class="metric-label">Quality</div>
@@ -186,7 +188,12 @@
           {#if quality}
             <div class="quality-section">
               <div class="quality-header">
-                <span class="quality-badge" style="background: {getQualityColor(quality.score)}33; border-color: {getQualityColor(quality.score)};">
+                <span
+                  class="quality-badge"
+                  style="background: {getQualityColor(
+                    quality.score
+                  )}33; border-color: {getQualityColor(quality.score)};"
+                >
                   {quality.score}/100
                 </span>
                 <span class="quality-label" style="color: {getQualityColor(quality.score)}">
@@ -219,7 +226,11 @@
           {/if}
 
           {#if breakRecommendation && breakRecommendation.shouldTakeBreak}
-            <div class="break-recommendation" class:critical={breakRecommendation.urgency === 'critical'} class:warning={breakRecommendation.urgency === 'warning'}>
+            <div
+              class="break-recommendation"
+              class:critical={breakRecommendation.urgency === 'critical'}
+              class:warning={breakRecommendation.urgency === 'warning'}
+            >
               <div class="break-header">
                 <span class="break-icon">{getUrgencyIcon(breakRecommendation.urgency)}</span>
                 <span class="break-title">Break Recommendation</span>
@@ -297,7 +308,11 @@
                     <div class="peak-hour-bar">
                       <div
                         class="peak-hour-fill"
-                        style="width: {stats.peakHours && stats.peakHours.length > 0 && stats.peakHours[0].avgChanges ? (peak.avgChanges / stats.peakHours[0].avgChanges) * 100 : 100}%"
+                        style="width: {stats.peakHours &&
+                        stats.peakHours.length > 0 &&
+                        stats.peakHours[0].avgChanges
+                          ? (peak.avgChanges / stats.peakHours[0].avgChanges) * 100
+                          : 100}%"
                       ></div>
                     </div>
                     <div class="peak-hour-stats">
@@ -322,7 +337,10 @@
                       <span class="session-separator">•</span>
                       <span class="session-changes">{session.changes_count} changes</span>
                     </div>
-                    <div class="session-quality" style="color: {getQualityColor(session.quality_score)}">
+                    <div
+                      class="session-quality"
+                      style="color: {getQualityColor(session.quality_score)}"
+                    >
                       {session.quality_score}/100
                     </div>
                   </div>
@@ -384,7 +402,8 @@
   }
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
       transform: scale(1);
     }
@@ -394,20 +413,10 @@
     }
   }
 
-  .loading, .error-state {
+  .error-state {
     padding: var(--space-lg) var(--space-xl);
     text-align: center;
     color: var(--muted);
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto var(--space-2xl);
   }
 
   .error-detail {
@@ -695,7 +704,7 @@
   }
 
   .stat-card:active {
-    transform: translateY(-2px) scale(1.0);
+    transform: translateY(-2px) scale(1);
   }
 
   .stat-icon {

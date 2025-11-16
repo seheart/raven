@@ -93,7 +93,6 @@
         method: 'POST'
       });
 
-
       notifications.success('Error marked as resolved');
       await fetchErrors();
     } catch (error) {
@@ -153,9 +152,12 @@
 
       // Also show help for configuring editor
       setTimeout(() => {
-        notifications.info('Tip: Configure your default editor in Settings to use "Open File" feature', {
-          duration: 8000
-        });
+        notifications.info(
+          'Tip: Configure your default editor in Settings to use "Open File" feature',
+          {
+            duration: 8000
+          }
+        );
       }, 1000);
     }
   }
@@ -188,8 +190,9 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
       return;
     }
 
-    const allErrorsText = errors.map((error, index) => {
-      return `[${index + 1}/${errors.length}] Syntax Error in ${error.filepath}
+    const allErrorsText = errors
+      .map((error, index) => {
+        return `[${index + 1}/${errors.length}] Syntax Error in ${error.filepath}
 
 Project: ${error.project_name || 'N/A'}
 Language: ${error.language}
@@ -198,7 +201,8 @@ Severity: ${error.severity}
 Message: ${error.message}
 
 ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
-    }).join('\n\n' + '='.repeat(80) + '\n\n');
+      })
+      .join('\n\n' + '='.repeat(80) + '\n\n');
 
     const finalText = `Syntax Errors Report
 Generated: ${formatDateTime(new Date())}
@@ -224,7 +228,9 @@ ${allErrorsText}`;
       return;
     }
 
-    if (!confirm(`Are you sure you want to clear all ${formatNumber(errors.length)} syntax errors?`)) {
+    if (
+      !confirm(`Are you sure you want to clear all ${formatNumber(errors.length)} syntax errors?`)
+    ) {
       return;
     }
 
@@ -257,7 +263,7 @@ ${allErrorsText}`;
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     // Get theme-aware colors
@@ -281,20 +287,14 @@ ${allErrorsText}`;
         type: 'pie',
         data: {
           labels: Object.keys(severityCounts).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
-          datasets: [{
-            data: Object.values(severityCounts),
-            backgroundColor: [
-              errorColor,
-              warningColor,
-              infoColor
-            ],
-            borderColor: [
-              errorColor,
-              warningColor,
-              infoColor
-            ],
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: Object.values(severityCounts),
+              backgroundColor: [errorColor, warningColor, infoColor],
+              borderColor: [errorColor, warningColor, infoColor],
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -309,7 +309,7 @@ ${allErrorsText}`;
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   const total = context.dataset.data.reduce((a, b) => a + b, 0);
                   const percentage = ((context.parsed / total) * 100).toFixed(1);
                   return `${context.label}: ${context.parsed} (${percentage}%)`;
@@ -337,13 +337,15 @@ ${allErrorsText}`;
         type: 'bar',
         data: {
           labels: topFiles.map(([file]) => file),
-          datasets: [{
-            label: 'Errors',
-            data: topFiles.map(([, count]) => count),
-            backgroundColor: errorColor,
-            borderColor: errorColor,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Errors',
+              data: topFiles.map(([, count]) => count),
+              backgroundColor: errorColor,
+              borderColor: errorColor,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           indexAxis: 'y',
@@ -388,20 +390,21 @@ ${allErrorsText}`;
         return acc;
       }, {});
 
-      const projectData = Object.entries(projectErrorCounts)
-        .sort((a, b) => b[1] - a[1]);
+      const projectData = Object.entries(projectErrorCounts).sort((a, b) => b[1] - a[1]);
 
       charts.projects = new Chart(projectsChartCanvas, {
         type: 'bar',
         data: {
           labels: projectData.map(([project]) => project),
-          datasets: [{
-            label: 'Errors',
-            data: projectData.map(([, count]) => count),
-            backgroundColor: accentColor,
-            borderColor: accentColor,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Errors',
+              data: projectData.map(([, count]) => count),
+              backgroundColor: accentColor,
+              borderColor: accentColor,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -440,16 +443,13 @@ ${allErrorsText}`;
 
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
-    ws = websocketService.subscribe('syntax-error', (data) => {
+    ws = websocketService.subscribe('syntax-error', data => {
       logger.info('Syntax error detected:', data);
 
       // Show desktop notification for critical syntax errors
       if (data.errors && data.errors.length > 0) {
         const firstError = data.errors[0];
-        desktopNotifications.alertSyntaxError(
-          data.filepath,
-          firstError.message
-        );
+        desktopNotifications.alertSyntaxError(data.filepath, firstError.message);
       }
 
       // Refresh error list
@@ -467,8 +467,8 @@ ${allErrorsText}`;
     }
 
     // Watch for theme changes on body element
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
           setTimeout(createCharts, 100);
         }
@@ -492,9 +492,8 @@ ${allErrorsText}`;
   }
 
   // Filter errors by selected project
-  $: filteredErrors = selectedProject === 'all'
-    ? errors
-    : errors.filter(e => e.project_name === selectedProject);
+  $: filteredErrors =
+    selectedProject === 'all' ? errors : errors.filter(e => e.project_name === selectedProject);
 
   // Group filtered errors by file
   $: errorsByFile = filteredErrors.reduce((acc, error) => {
@@ -523,9 +522,12 @@ ${allErrorsText}`;
   // Get severity color
   function getSeverityColor(severity) {
     switch (severity) {
-    case 'error': return 'var(--error)';
-    case 'warning': return 'var(--warning)';
-    default: return 'var(--muted)';
+      case 'error':
+        return 'var(--error)';
+      case 'warning':
+        return 'var(--warning)';
+      default:
+        return 'var(--muted)';
     }
   }
 
@@ -551,7 +553,8 @@ ${allErrorsText}`;
       <h2 id="syntax-errors-heading">Syntax Errors</h2>
       {#if !loading}
         <span class="error-count" class:has-errors={filteredCount > 0} role="status">
-          {formatNumber(filteredCount)} {filteredCount === 1 ? 'error' : 'errors'}
+          {formatNumber(filteredCount)}
+          {filteredCount === 1 ? 'error' : 'errors'}
           {#if filteredCount !== errorCount}
             <span class="total-count">of {formatNumber(errorCount)}</span>
           {/if}
@@ -559,14 +562,26 @@ ${allErrorsText}`;
       {/if}
       <div class="header-actions">
         {#if filteredCount > 0}
-          <button class="btn btn-secondary btn-sm" on:click={copyAllErrors} aria-label="Copy all errors">
+          <button
+            class="btn btn-secondary btn-sm"
+            on:click={copyAllErrors}
+            aria-label="Copy all errors"
+          >
             <span aria-hidden="true">📋</span> Copy All
           </button>
-          <button class="btn btn-danger btn-sm" on:click={clearAllErrors} aria-label="Clear all errors">
+          <button
+            class="btn btn-danger btn-sm"
+            on:click={clearAllErrors}
+            aria-label="Clear all errors"
+          >
             <span aria-hidden="true">🗑️</span> Clear All
           </button>
         {/if}
-        <button class="btn btn-primary btn-icon" on:click={fetchErrors} aria-label="Refresh syntax errors">
+        <button
+          class="btn btn-primary btn-icon"
+          on:click={fetchErrors}
+          aria-label="Refresh syntax errors"
+        >
           <span aria-hidden="true">↻</span>
         </button>
       </div>
@@ -575,12 +590,12 @@ ${allErrorsText}`;
     <!-- Project Filter -->
     {#if projects.length > 0}
       <div class="filter-section">
-        <label class="filter-label">Project:</label>
+        <span class="filter-label">Project:</span>
         <div class="project-filter">
           <button
             class="btn btn-ghost btn-sm"
             class:active={selectedProject === 'all'}
-            on:click={() => selectedProject = 'all'}
+            on:click={() => (selectedProject = 'all')}
           >
             All Projects
           </button>
@@ -588,7 +603,7 @@ ${allErrorsText}`;
             <button
               class="btn btn-ghost btn-sm"
               class:active={selectedProject === project}
-              on:click={() => selectedProject = project}
+              on:click={() => (selectedProject = project)}
             >
               {project}
             </button>
@@ -618,7 +633,11 @@ ${allErrorsText}`;
   {#if error}
     <div class="error-state" role="alert">
       <p>Error: {error}</p>
-      <button class="btn btn-primary btn-sm" on:click={fetchErrors} aria-label="Retry loading syntax errors">
+      <button
+        class="btn btn-primary btn-sm"
+        on:click={fetchErrors}
+        aria-label="Retry loading syntax errors"
+      >
         Retry
       </button>
     </div>
@@ -639,13 +658,18 @@ ${allErrorsText}`;
       </p>
     </div>
   {:else}
-    <div class="errors-list" role="region" aria-label="Syntax errors grouped by file" aria-labelledby="syntax-errors-heading">
+    <div
+      class="errors-list"
+      role="region"
+      aria-label="Syntax errors grouped by file"
+      aria-labelledby="syntax-errors-heading"
+    >
       {#each Object.entries(errorsByFile) as [filepath, fileErrors] (filepath)}
         <section class="file-group" role="group" aria-label="Errors in {filepath}">
           <div class="file-header">
             <div class="file-header-left">
               <span class="file-icon" aria-hidden="true">📄</span>
-              <span class="file-path" title="{filepath}">{shortenPath(filepath)}</span>
+              <span class="file-path" title={filepath}>{shortenPath(filepath)}</span>
             </div>
             <div class="file-badges">
               {#if fileErrors[0]?.project_name}
@@ -657,10 +681,16 @@ ${allErrorsText}`;
 
           <div class="errors" role="list" aria-label="Syntax errors in {filepath}">
             {#each fileErrors as error (error.id || error.name || error)}
-              <article class="error-item" style="--severity-color: {getSeverityColor(error.severity)}" role="listitem">
+              <article
+                class="error-item"
+                style="--severity-color: {getSeverityColor(error.severity)}"
+                role="listitem"
+              >
                 <div class="error-header">
                   <div class="error-title-group">
-                    <span class="language-icon" aria-hidden="true">{getLanguageIcon(error.language)}</span>
+                    <span class="language-icon" aria-hidden="true"
+                      >{getLanguageIcon(error.language)}</span
+                    >
                     <span class="severity-badge" role="status">{error.severity}</span>
                   </div>
                   <span class="error-location">
@@ -672,14 +702,24 @@ ${allErrorsText}`;
                 <div class="error-message">{error.message}</div>
 
                 {#if error.code_snippet}
-                  <pre class="code-snippet" aria-label="Code snippet showing error context"><code>{error.code_snippet}</code></pre>
+                  <pre class="code-snippet" aria-label="Code snippet showing error context"><code
+                      >{error.code_snippet}</code
+                    ></pre>
                 {/if}
 
                 <div class="error-actions">
-                  <button class="btn btn-primary btn-sm" on:click={() => openFile(error.filepath, error.line_number)} aria-label="Open {error.filepath} at line {error.line_number}">
+                  <button
+                    class="btn btn-primary btn-sm"
+                    on:click={() => openFile(error.filepath, error.line_number)}
+                    aria-label="Open {error.filepath} at line {error.line_number}"
+                  >
                     📂 Open File
                   </button>
-                  <button class="btn btn-secondary btn-sm" on:click={() => copyError(error)} aria-label="Copy error details">
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    on:click={() => copyError(error)}
+                    aria-label="Copy error details"
+                  >
                     📋 Copy
                   </button>
                 </div>
@@ -699,7 +739,9 @@ ${allErrorsText}`;
               Load More ({formatNumber(Math.min(30, errorCount - filteredCount))} more)
             {/if}
           </button>
-          <span class="load-more-info">Showing {formatNumber(filteredCount)} of {formatNumber(errorCount)}</span>
+          <span class="load-more-info"
+            >Showing {formatNumber(filteredCount)} of {formatNumber(errorCount)}</span
+          >
         </div>
       {/if}
     </div>
@@ -789,24 +831,6 @@ ${allErrorsText}`;
     background: var(--accent);
     border-color: var(--accent);
     color: white;
-  }
-
-  .loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-lg) var(--space-xl);
-    gap: var(--space-lg);
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
   }
 
   .empty-state {
@@ -998,7 +1022,6 @@ ${allErrorsText}`;
     margin-top: var(--space-xl);
   }
 
-
   /* Load More */
   .load-more-container {
     display: flex;
@@ -1071,7 +1094,6 @@ ${allErrorsText}`;
     font-size: 13px;
     font-weight: 500;
   }
-
 
   /* Charts Section */
   .charts-section {

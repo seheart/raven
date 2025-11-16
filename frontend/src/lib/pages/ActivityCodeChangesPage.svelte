@@ -45,10 +45,11 @@
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(e =>
-        e.filepath?.toLowerCase().includes(query) ||
-        e.agent?.toLowerCase().includes(query) ||
-        e.project?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        e =>
+          e.filepath?.toLowerCase().includes(query) ||
+          e.agent?.toLowerCase().includes(query) ||
+          e.project?.toLowerCase().includes(query)
       );
     }
 
@@ -75,7 +76,7 @@
   }, 300);
 
   // WebSocket event handlers
-  const handleFileChanged = (data) => {
+  const handleFileChanged = data => {
     if (isPaused) return;
     logger.debug('📡 File change detected:', data);
     debouncedLoadEvents();
@@ -86,7 +87,7 @@
     debouncedLoadEvents();
   };
 
-  const handleProjectSwitched = (data) => {
+  const handleProjectSwitched = data => {
     logger.debug('📡 Project switched, reloading data:', data?.project);
     loadEvents();
   };
@@ -145,10 +146,14 @@
 
   function getChangeTypeColor(changeType) {
     switch (changeType) {
-      case 'created': return 'var(--success)';
-      case 'modified': return 'var(--accent)';
-      case 'deleted': return 'var(--error)';
-      default: return 'var(--text)';
+      case 'created':
+        return 'var(--success)';
+      case 'modified':
+        return 'var(--accent)';
+      case 'deleted':
+        return 'var(--error)';
+      default:
+        return 'var(--text)';
     }
   }
 
@@ -217,7 +222,9 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Code Changes</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Detailed file change history • Source code only</p>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Detailed file change history • Source code only
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-2">
@@ -226,7 +233,12 @@
             class="flex items-center gap-1 text-sm font-sans"
             style="color: {websocketService.isConnected() ? 'var(--success)' : 'var(--error)'}"
           >
-            <span class="w-2 h-2 rounded-full" style="background: {websocketService.isConnected() ? 'var(--success)' : 'var(--error)'}"></span>
+            <span
+              class="w-2 h-2 rounded-full"
+              style="background: {websocketService.isConnected()
+                ? 'var(--success)'
+                : 'var(--error)'}"
+            ></span>
             {websocketService.isConnected() ? 'Live' : 'Offline'}
           </span>
         </div>
@@ -255,8 +267,12 @@
     {/if}
 
     {#if isPaused}
-      <div class="bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] rounded-lg p-4 mb-6 text-center">
-        <span class="text-sm text-[var(--warning)] font-sans font-semibold">⏸️ Live updates paused - Click Resume to continue</span>
+      <div
+        class="bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] rounded-lg p-4 mb-6 text-center"
+      >
+        <span class="text-sm text-[var(--warning)] font-sans font-semibold"
+          >⏸️ Live updates paused - Click Resume to continue</span
+        >
       </div>
     {/if}
 
@@ -315,7 +331,9 @@
         <div class="text-5xl mb-4">📝</div>
         <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">No changes found</div>
         <div class="text-base text-[var(--muted)] font-sans">
-          {searchQuery || selectedType !== 'all' ? 'Try adjusting your filters' : 'Waiting for code changes to be detected'}
+          {searchQuery || selectedType !== 'all'
+            ? 'Try adjusting your filters'
+            : 'Waiting for code changes to be detected'}
         </div>
       </div>
     {:else}
@@ -324,22 +342,41 @@
           <table class="w-full">
             <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
               <tr>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Type</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">File</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Project</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Agent</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Time</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Size</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Hash</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Type</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >File</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Project</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Agent</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Time</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Size</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Hash</th
+                >
               </tr>
             </thead>
             <tbody class="divide-y divide-[var(--border)]">
               {#each filteredEvents as event (event.id)}
-                <tr class="hover:bg-[var(--bg)] transition-colors cursor-pointer" onclick={() => viewDiff(event)}>
+                <tr
+                  class="hover:bg-[var(--bg)] transition-colors cursor-pointer"
+                  onclick={() => viewDiff(event)}
+                >
                   <td class="px-4 py-3">
                     <span
                       class="text-xs px-2 py-1 rounded font-semibold"
-                      style="background: {getChangeTypeColor(event.change_type)}20; color: {getChangeTypeColor(event.change_type)}"
+                      style="background: {getChangeTypeColor(
+                        event.change_type
+                      )}20; color: {getChangeTypeColor(event.change_type)}"
                     >
                       {event.change_type?.toUpperCase() || 'UNKNOWN'}
                     </span>
@@ -351,7 +388,9 @@
                   </td>
                   <td class="px-4 py-3 text-sm font-mono text-[var(--muted)]">
                     {#if event.project}
-                      <span class="text-xs px-2 py-1 rounded bg-[var(--accent)] bg-opacity-20 text-[var(--accent)]">
+                      <span
+                        class="text-xs px-2 py-1 rounded bg-[var(--accent)] bg-opacity-20 text-[var(--accent)]"
+                      >
                         {event.project}
                       </span>
                     {:else}
@@ -400,22 +439,16 @@
       diff={diffText}
       oldContent={diffOldContent}
       newContent={diffNewContent}
-      onClose={() => showDiff = false}
+      onClose={() => (showDiff = false)}
     />
   {/if}
 </div>
 
 <style>
-  .bg-warning { background: var(--warning); }
-  .text-warning { color: var(--warning); }
-  .bg-success { background: var(--success); }
-  .text-success { color: var(--success); }
-  .bg-accent { background: var(--accent); }
-  .text-accent { color: var(--accent); }
-  .bg-error { background: var(--error); }
-  .text-error { color: var(--error); }
-  .bg-bg { background: var(--bg); }
-  .border { border-width: 1px; }
-  .border-border { border-color: var(--border); }
-  .text-white { color: white; }
+  .border {
+    border-width: 1px;
+  }
+  .text-white {
+    color: white;
+  }
 </style>

@@ -23,9 +23,15 @@
 
       // Parallel data fetching
       const [eventsData, topFiles, trackingStatus] = await Promise.all([
-        fetch('/api/file-events?limit=100').then(r => r.json()).catch(() => ({ events: [] })),
-        fetch('/api/top-modified-files?limit=10').then(r => r.json()).catch(() => ({ files: [] })),
-        fetch('/api/status').then(r => r.json()).catch(() => ({ paused: false }))
+        fetch('/api/file-events?limit=100')
+          .then(r => r.json())
+          .catch(() => ({ events: [] })),
+        fetch('/api/top-modified-files?limit=10')
+          .then(r => r.json())
+          .catch(() => ({ files: [] })),
+        fetch('/api/status')
+          .then(r => r.json())
+          .catch(() => ({ paused: false }))
       ]);
 
       const events = eventsData.events || [];
@@ -75,7 +81,7 @@
     loadActivityData();
 
     unsubscribers.push(
-      websocketService.subscribe('file-changed', (data) => {
+      websocketService.subscribe('file-changed', data => {
         // Prepend new event to recent events
         recentEvents = [data, ...recentEvents].slice(0, 10);
         totalChanges++;
@@ -92,7 +98,12 @@
 
   // Calculate activity intensity
   $: activityIntensity = totalChanges > 100 ? 'high' : totalChanges > 50 ? 'medium' : 'low';
-  $: intensityColor = activityIntensity === 'high' ? 'var(--error)' : activityIntensity === 'medium' ? 'var(--warning)' : 'var(--success)';
+  $: intensityColor =
+    activityIntensity === 'high'
+      ? 'var(--error)'
+      : activityIntensity === 'medium'
+        ? 'var(--warning)'
+        : 'var(--success)';
 </script>
 
 <div class="activity-overview">
@@ -136,10 +147,15 @@
     <div class="intensity-card" style="--intensity-color: {intensityColor}">
       <div class="intensity-icon">📊</div>
       <div class="intensity-content">
-        <h2>Activity Intensity: <span class="intensity-label">{activityIntensity.toUpperCase()}</span></h2>
+        <h2>
+          Activity Intensity: <span class="intensity-label">{activityIntensity.toUpperCase()}</span>
+        </h2>
         <p>{totalChanges} changes across {filesModified} files</p>
         <div class="intensity-bar">
-          <div class="intensity-fill" style="width: {Math.min(100, (totalChanges / 100) * 100)}%"></div>
+          <div
+            class="intensity-fill"
+            style="width: {Math.min(100, (totalChanges / 100) * 100)}%"
+          ></div>
         </div>
       </div>
     </div>
@@ -151,7 +167,10 @@
         <div class="stat-content">
           <div class="stat-value">{activityByType.create || 0}</div>
           <div class="stat-label">Files Created</div>
-          <div class="stat-percentage">{totalChanges > 0 ? Math.round((activityByType.create / totalChanges) * 100) : 0}% of changes</div>
+          <div class="stat-percentage">
+            {totalChanges > 0 ? Math.round((activityByType.create / totalChanges) * 100) : 0}% of
+            changes
+          </div>
         </div>
       </a>
 
@@ -160,7 +179,10 @@
         <div class="stat-content">
           <div class="stat-value">{activityByType.edit || 0}</div>
           <div class="stat-label">Files Edited</div>
-          <div class="stat-percentage">{totalChanges > 0 ? Math.round((activityByType.edit / totalChanges) * 100) : 0}% of changes</div>
+          <div class="stat-percentage">
+            {totalChanges > 0 ? Math.round((activityByType.edit / totalChanges) * 100) : 0}% of
+            changes
+          </div>
         </div>
       </a>
 
@@ -169,7 +191,10 @@
         <div class="stat-content">
           <div class="stat-value">{activityByType.delete || 0}</div>
           <div class="stat-label">Files Deleted</div>
-          <div class="stat-percentage">{totalChanges > 0 ? Math.round((activityByType.delete / totalChanges) * 100) : 0}% of changes</div>
+          <div class="stat-percentage">
+            {totalChanges > 0 ? Math.round((activityByType.delete / totalChanges) * 100) : 0}% of
+            changes
+          </div>
         </div>
       </a>
 
@@ -189,7 +214,7 @@
         <h2>🔥 Most Modified Files</h2>
         {#if topModifiedFiles.length > 0}
           <div class="files-list">
-            {#each topModifiedFiles as file}
+            {#each topModifiedFiles as file (file.filepath)}
               <div class="file-item">
                 <div class="file-icon">📄</div>
                 <div class="file-info">
@@ -210,10 +235,14 @@
         <h2>🔄 Recent Changes</h2>
         {#if recentEvents.length > 0}
           <div class="events-list">
-            {#each recentEvents as event}
+            {#each recentEvents as event (event.id || event.timestamp)}
               <div class="event-item">
                 <div class="event-icon">
-                  {event.change_type === 'create' ? '➕' : event.change_type === 'edit' ? '✏️' : '🗑️'}
+                  {event.change_type === 'create'
+                    ? '➕'
+                    : event.change_type === 'edit'
+                      ? '✏️'
+                      : '🗑️'}
                 </div>
                 <div class="event-content">
                   <div class="event-file">{event.filepath}</div>
@@ -684,15 +713,24 @@
 
   .skeleton-card {
     height: 150px;
-    background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--bg-secondary) 25%,
+      var(--bg-tertiary) 50%,
+      var(--bg-secondary) 75%
+    );
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: var(--radius-xl);
   }
 
   @keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
 
   .error-banner {

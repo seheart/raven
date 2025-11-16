@@ -120,25 +120,37 @@
     }
   }
 
-  $: allExpanded = expandedConversations.length === filteredConversations.length && filteredConversations.length > 0;
+  $: allExpanded =
+    expandedConversations.length === filteredConversations.length &&
+    filteredConversations.length > 0;
 
   function getEventIcon(eventType) {
     switch (eventType) {
-    case 'user_message': return '👤';
-    case 'assistant_text': return '🤖';
-    case 'tool_call': return '🔧';
-    case 'tool_result': return '✅';
-    default: return '📝';
+      case 'user_message':
+        return '👤';
+      case 'assistant_text':
+        return '🤖';
+      case 'tool_call':
+        return '🔧';
+      case 'tool_result':
+        return '✅';
+      default:
+        return '📝';
     }
   }
 
   function getEventClass(eventType) {
     switch (eventType) {
-    case 'user_message': return 'user';
-    case 'assistant_text': return 'assistant';
-    case 'tool_call': return 'tool-call';
-    case 'tool_result': return 'tool-result';
-    default: return 'default';
+      case 'user_message':
+        return 'user';
+      case 'assistant_text':
+        return 'assistant';
+      case 'tool_call':
+        return 'tool-call';
+      case 'tool_result':
+        return 'tool-result';
+      default:
+        return 'default';
     }
   }
 
@@ -279,7 +291,9 @@
     const typeData = Object.entries(stats.by_type || {});
     if (typeData.length === 0) return 'Event type breakdown chart: No data available';
     const topTypes = typeData.slice(0, 3);
-    const summary = topTypes.map(([type, count]) => `${type.replace('_', ' ')}: ${count}`).join(', ');
+    const summary = topTypes
+      .map(([type, count]) => `${type.replace('_', ' ')}: ${count}`)
+      .join(', ');
     return `Event type breakdown chart showing ${stats.total} total events. ${summary}`;
   })();
 
@@ -287,7 +301,9 @@
     const projectData = Object.entries(stats.by_project || {}).slice(0, 10);
     if (projectData.length === 0) return 'Project distribution chart: No project data available';
     const topProjects = projectData.slice(0, 3);
-    const summary = topProjects.map(([name, count]) => `${name}: ${count} conversations`).join(', ');
+    const summary = topProjects
+      .map(([name, count]) => `${name}: ${count} conversations`)
+      .join(', ');
     return `Top 10 projects distribution chart. ${summary}`;
   })();
 
@@ -303,7 +319,7 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     // Get theme-aware colors from body element (where theme classes are applied)
@@ -327,26 +343,28 @@
           type: 'doughnut',
           data: {
             labels: typeData.map(([type]) => type.replace('_', ' ')),
-            datasets: [{
-              data: typeData.map(([, count]) => count),
-              backgroundColor: [
-                accentColor,
-                successColor,
-                warningColor,
-                infoColor,
-                errorColor,
-                mutedColor
-              ],
-              borderColor: [
-                accentColor,
-                successColor,
-                warningColor,
-                infoColor,
-                errorColor,
-                mutedColor
-              ],
-              borderWidth: 2
-            }]
+            datasets: [
+              {
+                data: typeData.map(([, count]) => count),
+                backgroundColor: [
+                  accentColor,
+                  successColor,
+                  warningColor,
+                  infoColor,
+                  errorColor,
+                  mutedColor
+                ],
+                borderColor: [
+                  accentColor,
+                  successColor,
+                  warningColor,
+                  infoColor,
+                  errorColor,
+                  mutedColor
+                ],
+                borderWidth: 2
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -378,14 +396,16 @@
           type: 'bar',
           data: {
             labels: projectData.map(([project]) => project),
-            datasets: [{
-              label: 'Conversations',
-              data: projectData.map(([, count]) => count),
-              backgroundColor: accentColor,
-              borderColor: accentColor,
-              borderWidth: 2,
-              borderRadius: 4
-            }]
+            datasets: [
+              {
+                label: 'Conversations',
+                data: projectData.map(([, count]) => count),
+                backgroundColor: accentColor,
+                borderColor: accentColor,
+                borderWidth: 2,
+                borderRadius: 4
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -489,9 +509,7 @@
       }
 
       if (typeof aVal === 'string') {
-        return sortOrder === 'asc'
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
+        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       } else {
         return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
       }
@@ -542,8 +560,8 @@
     }
 
     // Watch for theme changes on body element
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
           logger.debug('[ConversationsPanel] Theme changed, recreating charts');
           setTimeout(createCharts, 100);
@@ -610,7 +628,11 @@
     <div class="charts-section">
       <div class="charts-header">
         <h3>📊 Analytics</h3>
-        <button class="btn-toggle-charts" on:click={() => showCharts = false} aria-label="Hide charts">
+        <button
+          class="btn-toggle-charts"
+          on:click={() => (showCharts = false)}
+          aria-label="Hide charts"
+        >
           Hide Charts
         </button>
       </div>
@@ -635,7 +657,7 @@
     </div>
   {:else if !showCharts && !loading}
     <div class="charts-toggle">
-      <button class="btn-show-charts" on:click={() => showCharts = true} aria-label="Show charts">
+      <button class="btn-show-charts" on:click={() => (showCharts = true)} aria-label="Show charts">
         📊 Show Analytics Charts
       </button>
     </div>
@@ -653,7 +675,13 @@
       />
 
       <label for="filter-type" class="visually-hidden">Filter by event type</label>
-      <select id="filter-type" class="filter-select" bind:value={filterType} on:change={loadConversations} aria-label="Filter by event type">
+      <select
+        id="filter-type"
+        class="filter-select"
+        bind:value={filterType}
+        on:change={loadConversations}
+        aria-label="Filter by event type"
+      >
         <option value="all">All Types</option>
         <option value="user_message">User Messages</option>
         <option value="assistant_text">Assistant</option>
@@ -662,7 +690,13 @@
       </select>
 
       <label for="filter-project" class="visually-hidden">Filter by project</label>
-      <select id="filter-project" class="filter-select" bind:value={filterProject} on:change={loadConversations} aria-label="Filter by project">
+      <select
+        id="filter-project"
+        class="filter-select"
+        bind:value={filterProject}
+        on:change={loadConversations}
+        aria-label="Filter by project"
+      >
         <option value="all">All Projects</option>
         {#each Object.keys(stats?.by_project || {}) as project (project)}
           <option value={project}>{project} ({stats?.by_project?.[project] || 0})</option>
@@ -678,17 +712,19 @@
         {#if loading}⏳{:else}🔄{/if} Refresh
       </button>
 
-      <button class="btn-expand-all" on:click={toggleExpandAll} disabled={filteredConversations.length === 0} aria-label={allExpanded ? 'Collapse all conversations' : 'Expand all conversations'}>
-        {#if allExpanded}📕{:else}📖{/if} {allExpanded ? 'Collapse All' : 'Expand All'}
+      <button
+        class="btn-expand-all"
+        on:click={toggleExpandAll}
+        disabled={filteredConversations.length === 0}
+        aria-label={allExpanded ? 'Collapse all conversations' : 'Expand all conversations'}
+      >
+        {#if allExpanded}📕{:else}📖{/if}
+        {allExpanded ? 'Collapse All' : 'Expand All'}
       </button>
 
-      <button class="btn-import" on:click={() => showImportDialog = true}>
-        📥 Import
-      </button>
+      <button class="btn-import" on:click={() => (showImportDialog = true)}> 📥 Import </button>
 
-      <button class="btn-export" on:click={exportConversations}>
-        📤 Export
-      </button>
+      <button class="btn-export" on:click={exportConversations}> 📤 Export </button>
     </div>
 
     <!-- Secondary Controls Row -->
@@ -698,28 +734,28 @@
         <button
           class="filter-btn"
           class:active={dateRange === 'all'}
-          on:click={() => dateRange = 'all'}
+          on:click={() => (dateRange = 'all')}
         >
           All Time
         </button>
         <button
           class="filter-btn"
           class:active={dateRange === 'today'}
-          on:click={() => dateRange = 'today'}
+          on:click={() => (dateRange = 'today')}
         >
           Today
         </button>
         <button
           class="filter-btn"
           class:active={dateRange === '7d'}
-          on:click={() => dateRange = '7d'}
+          on:click={() => (dateRange = '7d')}
         >
           7 Days
         </button>
         <button
           class="filter-btn"
           class:active={dateRange === '30d'}
-          on:click={() => dateRange = '30d'}
+          on:click={() => (dateRange = '30d')}
         >
           30 Days
         </button>
@@ -755,14 +791,14 @@
         <button
           class="view-btn"
           class:active={viewMode === 'compact'}
-          on:click={() => viewMode = 'compact'}
+          on:click={() => (viewMode = 'compact')}
         >
           Compact
         </button>
         <button
           class="view-btn"
           class:active={viewMode === 'detailed'}
-          on:click={() => viewMode = 'detailed'}
+          on:click={() => (viewMode = 'detailed')}
         >
           Detailed
         </button>
@@ -773,28 +809,28 @@
         <button
           class="group-btn"
           class:active={groupBy === 'none'}
-          on:click={() => groupBy = 'none'}
+          on:click={() => (groupBy = 'none')}
         >
           None
         </button>
         <button
           class="group-btn"
           class:active={groupBy === 'session'}
-          on:click={() => groupBy = 'session'}
+          on:click={() => (groupBy = 'session')}
         >
           Session
         </button>
         <button
           class="group-btn"
           class:active={groupBy === 'project'}
-          on:click={() => groupBy = 'project'}
+          on:click={() => (groupBy = 'project')}
         >
           Project
         </button>
         <button
           class="group-btn"
           class:active={groupBy === 'date'}
-          on:click={() => groupBy = 'date'}
+          on:click={() => (groupBy = 'date')}
         >
           Date
         </button>
@@ -812,16 +848,22 @@
   {#if error}
     <div class="error-state" role="alert">
       <p>Error: {error}</p>
-      <button class="btn-retry" on:click={loadConversations} aria-label="Retry loading conversations">
+      <button
+        class="btn-retry"
+        on:click={loadConversations}
+        aria-label="Retry loading conversations"
+      >
         Retry
       </button>
     </div>
   {:else if loading}
-    <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton count={5} height="120px" /></div>
+    <div role="status" aria-live="polite" aria-busy="true">
+      <LoadingSkeleton count={5} height="120px" />
+    </div>
   {:else if filteredConversations.length === 0}
     <div class="empty" role="status">
       <p>No conversations found</p>
-      <button class="btn-import" on:click={() => showImportDialog = true}>
+      <button class="btn-import" on:click={() => (showImportDialog = true)}>
         📥 Import Claude Sessions
       </button>
     </div>
@@ -831,7 +873,7 @@
         Showing {filteredConversations.length} of {stats.total} conversations
       </div>
 
-      {#each Object.entries(groupedConversations) as [groupName, groupConvs]}
+      {#each Object.entries(groupedConversations) as [groupName, groupConvs] (groupName)}
         {#if groupBy !== 'none'}
           <div class="group-header">
             <h3>{groupName}</h3>
@@ -840,124 +882,141 @@
         {/if}
 
         {#each groupConvs as conv (conv.id)}
-        <article class="conversation-item {getEventClass(conv.event_type)}" aria-labelledby="conv-type-{conv.id}">
-          <button
-            class="conv-header"
-            on:click={() => toggleExpanded(conv.id)}
-            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleExpanded(conv.id))}
-            aria-expanded={expandedConversations.includes(conv.id)}
-            aria-controls="conv-details-{conv.id}"
-            aria-label="{conv.event_type} at {formatTime(conv.timestamp)}"
+          <article
+            class="conversation-item {getEventClass(conv.event_type)}"
+            aria-labelledby="conv-type-{conv.id}"
           >
-            <div class="conv-icon" aria-hidden="true">{getEventIcon(conv.event_type)}</div>
-            <div class="conv-info">
-              <div class="conv-type-row">
-                <span class="conv-type" id="conv-type-{conv.id}">{conv.event_type}</span>
-                {#if conv.tool_name}
-                  <span class="tool-badge">{conv.tool_name}</span>
-                {/if}
-                {#if conv.project}
-                  <span class="project-badge">{conv.project}</span>
-                {/if}
-              </div>
-              {#if viewMode === 'detailed'}
-                <div class="conv-preview">
-                  {#if conv.content}
-                    {truncateContent(conv.content)}
-                  {:else if conv.tool_name}
-                    Tool: {conv.tool_name}
-                  {:else if conv.tool_output}
-                    {truncateContent(conv.tool_output)}
+            <button
+              class="conv-header"
+              on:click={() => toggleExpanded(conv.id)}
+              on:keydown={e =>
+                (e.key === 'Enter' || e.key === ' ') &&
+                (e.preventDefault(), toggleExpanded(conv.id))}
+              aria-expanded={expandedConversations.includes(conv.id)}
+              aria-controls="conv-details-{conv.id}"
+              aria-label="{conv.event_type} at {formatTime(conv.timestamp)}"
+            >
+              <div class="conv-icon" aria-hidden="true">{getEventIcon(conv.event_type)}</div>
+              <div class="conv-info">
+                <div class="conv-type-row">
+                  <span class="conv-type" id="conv-type-{conv.id}">{conv.event_type}</span>
+                  {#if conv.tool_name}
+                    <span class="tool-badge">{conv.tool_name}</span>
+                  {/if}
+                  {#if conv.project}
+                    <span class="project-badge">{conv.project}</span>
                   {/if}
                 </div>
-              {/if}
-            </div>
-            <div class="conv-meta">
-              <time class="conv-time" datetime="{conv.timestamp}">{formatTime(conv.timestamp)}</time>
-              <div class="conv-id">#{conv.id}</div>
-            </div>
-            <span class="expand-btn" aria-hidden="true">
-              {expandedConversations.includes(conv.id) ? '▼' : '▶'}
-            </span>
-          </button>
-
-          {#if expandedConversations.includes(conv.id)}
-            <div class="conv-details" id="conv-details-{conv.id}" role="region" aria-label="Conversation details">
-              {#if conv.content}
-                <div class="detail-section">
-                  <div class="detail-header">
-                    <div class="detail-label">Content:</div>
-                    <button
-                      class="btn-copy-content"
-                      on:click={() => copyToClipboard(conv.content, 'Content')}
-                      aria-label="Copy content to clipboard"
-                    >
-                      📋 Copy
-                    </button>
-                  </div>
-                  <pre class="detail-content">{conv.content}</pre>
-                </div>
-              {/if}
-
-              {#if conv.tool_input}
-                <div class="detail-section">
-                  <div class="detail-header">
-                    <div class="detail-label">Tool Input:</div>
-                    <button
-                      class="btn-copy-content"
-                      on:click={() => copyToClipboard(formatToolInput(conv.tool_input), 'Tool Input')}
-                      aria-label="Copy tool input to clipboard"
-                    >
-                      📋 Copy
-                    </button>
-                  </div>
-                  <pre class="detail-content">{formatToolInput(conv.tool_input)}</pre>
-                </div>
-              {/if}
-
-              {#if conv.tool_output}
-                <div class="detail-section">
-                  <div class="detail-header">
-                    <div class="detail-label">Tool Output:</div>
-                    <button
-                      class="btn-copy-content"
-                      on:click={() => copyToClipboard(conv.tool_output, 'Tool Output')}
-                      aria-label="Copy tool output to clipboard"
-                    >
-                      📋 Copy
-                    </button>
-                  </div>
-                  <pre class="detail-content tool-output">{conv.tool_output}</pre>
-                </div>
-              {/if}
-
-              <div class="detail-metadata">
-                <div class="meta-item">
-                  <span class="meta-label">Session ID:</span>
-                  <span class="meta-value">{conv.claude_session_id}</span>
-                </div>
-                {#if conv.parent_uuid}
-                  <div class="meta-item">
-                    <span class="meta-label">Parent UUID:</span>
-                    <span class="meta-value">{conv.parent_uuid}</span>
-                  </div>
-                {/if}
-                {#if conv.metadata}
-                  <div class="meta-item">
-                    <span class="meta-label">Metadata:</span>
-                    <span class="meta-value">{JSON.stringify(conv.metadata)}</span>
+                {#if viewMode === 'detailed'}
+                  <div class="conv-preview">
+                    {#if conv.content}
+                      {truncateContent(conv.content)}
+                    {:else if conv.tool_name}
+                      Tool: {conv.tool_name}
+                    {:else if conv.tool_output}
+                      {truncateContent(conv.tool_output)}
+                    {/if}
                   </div>
                 {/if}
               </div>
-            </div>
-          {/if}
-        </article>
+              <div class="conv-meta">
+                <time class="conv-time" datetime={conv.timestamp}>{formatTime(conv.timestamp)}</time
+                >
+                <div class="conv-id">#{conv.id}</div>
+              </div>
+              <span class="expand-btn" aria-hidden="true">
+                {expandedConversations.includes(conv.id) ? '▼' : '▶'}
+              </span>
+            </button>
+
+            {#if expandedConversations.includes(conv.id)}
+              <div
+                class="conv-details"
+                id="conv-details-{conv.id}"
+                role="region"
+                aria-label="Conversation details"
+              >
+                {#if conv.content}
+                  <div class="detail-section">
+                    <div class="detail-header">
+                      <div class="detail-label">Content:</div>
+                      <button
+                        class="btn-copy-content"
+                        on:click={() => copyToClipboard(conv.content, 'Content')}
+                        aria-label="Copy content to clipboard"
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+                    <pre class="detail-content">{conv.content}</pre>
+                  </div>
+                {/if}
+
+                {#if conv.tool_input}
+                  <div class="detail-section">
+                    <div class="detail-header">
+                      <div class="detail-label">Tool Input:</div>
+                      <button
+                        class="btn-copy-content"
+                        on:click={() =>
+                          copyToClipboard(formatToolInput(conv.tool_input), 'Tool Input')}
+                        aria-label="Copy tool input to clipboard"
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+                    <pre class="detail-content">{formatToolInput(conv.tool_input)}</pre>
+                  </div>
+                {/if}
+
+                {#if conv.tool_output}
+                  <div class="detail-section">
+                    <div class="detail-header">
+                      <div class="detail-label">Tool Output:</div>
+                      <button
+                        class="btn-copy-content"
+                        on:click={() => copyToClipboard(conv.tool_output, 'Tool Output')}
+                        aria-label="Copy tool output to clipboard"
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+                    <pre class="detail-content tool-output">{conv.tool_output}</pre>
+                  </div>
+                {/if}
+
+                <div class="detail-metadata">
+                  <div class="meta-item">
+                    <span class="meta-label">Session ID:</span>
+                    <span class="meta-value">{conv.claude_session_id}</span>
+                  </div>
+                  {#if conv.parent_uuid}
+                    <div class="meta-item">
+                      <span class="meta-label">Parent UUID:</span>
+                      <span class="meta-value">{conv.parent_uuid}</span>
+                    </div>
+                  {/if}
+                  {#if conv.metadata}
+                    <div class="meta-item">
+                      <span class="meta-label">Metadata:</span>
+                      <span class="meta-value">{JSON.stringify(conv.metadata)}</span>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/if}
+          </article>
         {/each}
       {/each}
 
       {#if hasMore}
         <div class="load-more">
-          <button class="btn-load-more" on:click={loadMore} disabled={loadingMore} aria-label="Load more conversations">
+          <button
+            class="btn-load-more"
+            on:click={loadMore}
+            disabled={loadingMore}
+            aria-label="Load more conversations"
+          >
             {#if loadingMore}
               <span aria-hidden="true">⏳</span> Loading...
             {:else}
@@ -981,6 +1040,7 @@
     aria-labelledby="import-dialog-title"
     tabindex="-1"
   >
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="modal-content"
       on:click|stopPropagation
@@ -1023,7 +1083,12 @@
         <button class="btn-cancel" on:click={closeImportDialog} aria-label="Cancel import">
           Cancel
         </button>
-        <button class="btn-primary" on:click={importConversations} disabled={importing} aria-label="Import conversations">
+        <button
+          class="btn-primary"
+          on:click={importConversations}
+          disabled={importing}
+          aria-label="Import conversations"
+        >
           {#if importing}
             <span aria-hidden="true">⏳</span> Importing...
           {:else}
@@ -1136,7 +1201,10 @@
     cursor: pointer;
   }
 
-  .btn-refresh, .btn-import, .btn-export, .btn-expand-all {
+  .btn-refresh,
+  .btn-import,
+  .btn-export,
+  .btn-expand-all {
     padding: var(--space-lg) var(--space-2xl);
     background: var(--accent);
     color: white;
@@ -1148,11 +1216,15 @@
     transition: all var(--duration-base) var(--ease-smooth);
   }
 
-  .btn-refresh:hover, .btn-import:hover, .btn-export:hover, .btn-expand-all:hover {
+  .btn-refresh:hover,
+  .btn-import:hover,
+  .btn-export:hover,
+  .btn-expand-all:hover {
     filter: brightness(1.2);
   }
 
-  .btn-refresh:disabled, .btn-expand-all:disabled {
+  .btn-refresh:disabled,
+  .btn-expand-all:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -1191,11 +1263,11 @@
   }
 
   .conversation-item.tool-call {
-    border-left: 4px solid #FFA500;
+    border-left: 4px solid #ffa500;
   }
 
   .conversation-item.tool-result {
-    border-left: 4px solid #00C853;
+    border-left: 4px solid #00c853;
   }
 
   .conv-header {
@@ -1247,7 +1319,8 @@
     color: var(--accent);
   }
 
-  .tool-badge, .project-badge {
+  .tool-badge,
+  .project-badge {
     font-size: 11px;
     padding: var(--space-xs) var(--space-lg);
     border-radius: var(--radius-sm);
@@ -1465,7 +1538,8 @@
     margin-top: var(--space-4xl);
   }
 
-  .btn-cancel, .btn-primary {
+  .btn-cancel,
+  .btn-primary {
     padding: var(--space-md) var(--space-xl);
     border: none;
     border-radius: var(--radius-sm);

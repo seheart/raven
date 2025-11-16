@@ -33,11 +33,13 @@
   function handleRealtimeUpdate() {
     // Quick health check when events occur
     realtimeActive = true;
-    timeouts.add(() => { realtimeActive = false; }, 1000);
+    timeouts.add(() => {
+      realtimeActive = false;
+    }, 1000);
 
     // Re-check critical endpoints on events
-    const criticalEndpoints = (apiEndpoints || []).filter(e =>
-      e?.category === 'Core' || e?.category === 'Dashboard'
+    const criticalEndpoints = (apiEndpoints || []).filter(
+      e => e?.category === 'Core' || e?.category === 'Dashboard'
     );
 
     criticalEndpoints.forEach(endpoint => {
@@ -54,9 +56,7 @@
       if (data.endpoints) {
         // Filter to only GET endpoints without path parameters for health checking
         // Skip endpoints with :param, :id, etc. as they need actual values
-        apiEndpoints = data.endpoints.filter(e =>
-          e.method === 'GET' && !e.path.includes(':')
-        );
+        apiEndpoints = data.endpoints.filter(e => e.method === 'GET' && !e.path.includes(':'));
         endpointsLoaded = true;
       }
     } catch (error) {
@@ -179,9 +179,10 @@
     try {
       const controller = new AbortController();
       // Use longer timeout for known-slow endpoints (comprehensive health checks, etc.)
-      const timeout = endpoint.path.includes('comprehensive') || endpoint.path.includes('snapshots')
-        ? 25000 // 25 seconds for slow endpoints (comprehensive checks can take 18+ seconds)
-        : 5000;  // 5 seconds for normal endpoints
+      const timeout =
+        endpoint.path.includes('comprehensive') || endpoint.path.includes('snapshots')
+          ? 25000 // 25 seconds for slow endpoints (comprehensive checks can take 18+ seconds)
+          : 5000; // 5 seconds for normal endpoints
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const response = await fetch(`${API_BASE}${endpoint.path}`, {
@@ -207,9 +208,10 @@
 
       // Calculate success rate
       const recentChecks = healthHistory[key].checks.slice(-20);
-      const successRate = recentChecks.length > 0
-        ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
-        : 100;
+      const successRate =
+        recentChecks.length > 0
+          ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
+          : 100;
 
       healthStatus[key] = {
         status: response.ok ? 'healthy' : 'error',
@@ -237,9 +239,10 @@
       healthHistory[key].totalCount++;
 
       const recentChecks = healthHistory[key].checks.slice(-20);
-      const successRate = recentChecks.length > 0
-        ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
-        : 0;
+      const successRate =
+        recentChecks.length > 0
+          ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
+          : 0;
 
       healthStatus[key] = {
         status: 'error',
@@ -292,7 +295,9 @@
       <h2 id="api-health-heading"><span aria-hidden="true">🔌</span> API Health Monitor</h2>
       <div class="status-indicators">
         {#if realtimeActive}
-          <span class="realtime-badge" role="status" aria-live="polite"><span aria-hidden="true">⚡</span> Checking...</span>
+          <span class="realtime-badge" role="status" aria-live="polite"
+            ><span aria-hidden="true">⚡</span> Checking...</span
+          >
         {/if}
       </div>
     </div>
@@ -312,10 +317,21 @@
         <input type="checkbox" bind:checked={alertsEnabled} aria-label="Enable health alerts" />
         <span>Alerts</span>
       </label>
-      <button on:click={clearHistory} disabled={checkingAll} class="btn btn-danger btn-sm" aria-label="Clear history and reset success rates" title="Clear history to reset success rates">
+      <button
+        on:click={clearHistory}
+        disabled={checkingAll}
+        class="btn btn-danger btn-sm"
+        aria-label="Clear history and reset success rates"
+        title="Clear history to reset success rates"
+      >
         Clear History
       </button>
-      <button on:click={() => checkAllEndpoints(true)} disabled={checkingAll} class="btn btn-secondary btn-sm" aria-label={checkingAll ? 'Checking all endpoints' : 'Check all endpoints'}>
+      <button
+        on:click={() => checkAllEndpoints(true)}
+        disabled={checkingAll}
+        class="btn btn-secondary btn-sm"
+        aria-label={checkingAll ? 'Checking all endpoints' : 'Check all endpoints'}
+      >
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">↻</span>
         {checkingAll ? 'Checking...' : 'Check All'}
       </button>
@@ -327,7 +343,11 @@
   {:else if apiEndpoints.length === 0}
     <div class="empty-state" role="status">
       <p><span aria-hidden="true">❌</span> No API endpoints found</p>
-      <button class="btn btn-secondary btn-sm" on:click={() => loadEndpoints()} aria-label="Retry loading endpoints">Retry</button>
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={() => loadEndpoints()}
+        aria-label="Retry loading endpoints">Retry</button
+      >
     </div>
   {:else}
     <div class="categories" role="list" aria-labelledby="api-health-heading">
@@ -337,7 +357,12 @@
           <div class="endpoints-list" role="list" aria-label="{category} endpoints">
             {#each endpoints || [] as endpoint (endpoint.path)}
               {@const status = healthStatus[endpoint.path]}
-              <div class="endpoint-row" class:healthy={status?.status === 'healthy'} class:error={status?.status === 'error'} role="listitem">
+              <div
+                class="endpoint-row"
+                class:healthy={status?.status === 'healthy'}
+                class:error={status?.status === 'error'}
+                role="listitem"
+              >
                 <div class="endpoint-status">
                   {#if status?.status === 'healthy'}
                     <span class="status-icon" aria-label="Healthy" role="img">🟢</span>
@@ -349,7 +374,11 @@
                 </div>
 
                 <div class="endpoint-method">
-                  <span class="method-badge" class:get={endpoint.method === 'GET'} class:post={endpoint.method === 'POST'}>
+                  <span
+                    class="method-badge"
+                    class:get={endpoint.method === 'GET'}
+                    class:post={endpoint.method === 'POST'}
+                  >
                     {endpoint.method}
                   </span>
                 </div>
@@ -361,25 +390,47 @@
 
                 <div class="endpoint-metrics">
                   {#if status?.successRate}
-                    <span class="success-rate" class:excellent={parseFloat(status.successRate) >= 99} class:good={parseFloat(status.successRate) >= 90 && parseFloat(status.successRate) < 99} class:poor={parseFloat(status.successRate) < 90} role="status">
+                    <span
+                      class="success-rate"
+                      class:excellent={parseFloat(status.successRate) >= 99}
+                      class:good={parseFloat(status.successRate) >= 90 &&
+                        parseFloat(status.successRate) < 99}
+                      class:poor={parseFloat(status.successRate) < 90}
+                      role="status"
+                    >
                       {status.successRate}%
                     </span>
                   {/if}
                   {#if status?.responseTime !== null && status?.responseTime !== undefined}
-                    <span class="response-time" class:fast={status.responseTime < 50} class:medium={status.responseTime >= 50 && status.responseTime < 200} class:slow={status.responseTime >= 200} role="status">
+                    <span
+                      class="response-time"
+                      class:fast={status.responseTime < 50}
+                      class:medium={status.responseTime >= 50 && status.responseTime < 200}
+                      class:slow={status.responseTime >= 200}
+                      role="status"
+                    >
                       {status.responseTime}ms
                     </span>
                   {/if}
                   {#if status?.history && status.history.length > 0}
-                    <div class="sparkline" title="Response time history (last 10 checks)" role="img" aria-label="Response time sparkline showing last 10 checks">
+                    <div
+                      class="sparkline"
+                      title="Response time history (last 10 checks)"
+                      role="img"
+                      aria-label="Response time sparkline showing last 10 checks"
+                    >
                       {#each status.history as check, i (i)}
                         <div
                           class="spark-bar"
                           class:bar-fast={check.success && check.responseTime < 50}
-                          class:bar-medium={check.success && check.responseTime >= 50 && check.responseTime < 200}
+                          class:bar-medium={check.success &&
+                            check.responseTime >= 50 &&
+                            check.responseTime < 200}
                           class:bar-slow={check.success && check.responseTime >= 200}
                           class:bar-failure={!check.success}
-                          style="height: {check.success && check.responseTime ? Math.min((check.responseTime / 500) * 100, 100) : 10}%"
+                          style="height: {check.success && check.responseTime
+                            ? Math.min((check.responseTime / 500) * 100, 100)
+                            : 10}%"
                           title="{check.responseTime || 'failed'}ms"
                           aria-hidden="true"
                         ></div>
@@ -387,14 +438,23 @@
                     </div>
                   {/if}
                   {#if status?.statusCode}
-                    <span class="status-code" class:success={status.statusCode >= 200 && status.statusCode < 300} class:error-code={status.statusCode >= 400} role="status">
+                    <span
+                      class="status-code"
+                      class:success={status.statusCode >= 200 && status.statusCode < 300}
+                      class:error-code={status.statusCode >= 400}
+                      role="status"
+                    >
                       {status.statusCode}
                     </span>
                   {/if}
                 </div>
 
                 <div class="endpoint-actions">
-                  <button on:click={() => checkEndpoint(endpoint)} class="btn btn-ghost btn-icon" aria-label="Test {endpoint.path} endpoint">
+                  <button
+                    on:click={() => checkEndpoint(endpoint)}
+                    class="btn btn-ghost btn-icon"
+                    aria-label="Test {endpoint.path} endpoint"
+                  >
                     <span aria-hidden="true">⚡</span>
                   </button>
                 </div>
@@ -451,8 +511,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
   }
 
   .header-controls {
@@ -467,14 +532,22 @@
     font-family: var(--mono);
   }
 
-
   .refresh-icon {
     display: inline-block;
     font-size: 11px;
   }
 
   .refresh-icon.spinning {
-    /* Animation defined in global app.css */
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   /* (removed unused .loading) */
@@ -636,7 +709,6 @@
     color: var(--error);
   }
 
-
   /* Header Controls */
   .header-controls {
     display: flex;
@@ -662,7 +734,7 @@
     cursor: pointer;
   }
 
-  .control-label input[type="checkbox"] {
+  .control-label input[type='checkbox'] {
     cursor: pointer;
   }
 
@@ -720,12 +792,20 @@
 
   /* Color-coded by response time (like btop) */
   .spark-bar.bar-fast {
-    background: linear-gradient(to top, var(--success), color-mix(in srgb, var(--success) 80%, white));
+    background: linear-gradient(
+      to top,
+      var(--success),
+      color-mix(in srgb, var(--success) 80%, white)
+    );
     box-shadow: 0 0 6px color-mix(in srgb, var(--success) 40%, transparent);
   }
 
   .spark-bar.bar-medium {
-    background: linear-gradient(to top, var(--warning), color-mix(in srgb, var(--warning) 80%, white));
+    background: linear-gradient(
+      to top,
+      var(--warning),
+      color-mix(in srgb, var(--warning) 80%, white)
+    );
     box-shadow: 0 0 6px color-mix(in srgb, var(--warning) 40%, transparent);
   }
 
@@ -735,7 +815,11 @@
   }
 
   .spark-bar.bar-failure {
-    background: linear-gradient(to top, var(--accent), color-mix(in srgb, var(--accent) 80%, white));
+    background: linear-gradient(
+      to top,
+      var(--accent),
+      color-mix(in srgb, var(--accent) 80%, white)
+    );
     height: 100% !important;
     box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 40%, transparent);
   }

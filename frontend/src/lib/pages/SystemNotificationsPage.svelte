@@ -9,7 +9,11 @@
   import { formatDateTime, formatRelativeTime, getTimeAgo } from '../timeFormat.js';
   import { formatNumber } from '../numberFormat.js';
   import { exportJSON } from '../exportUtils.js';
-  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from '../utils/chartHelpers.js';
+  import {
+    initializeCharts,
+    setupChartThemeObserver,
+    getChartThemeColors
+  } from '../utils/chartHelpers.js';
   import { API_CONFIG } from '../../config.js';
   import DOMPurify from 'dompurify';
   import { Chart, registerables } from 'chart.js';
@@ -138,9 +142,7 @@
   async function markAsRead(id) {
     try {
       await fetch(`${API_BASE}/notifications/${id}/read`, { method: 'POST' });
-      notifications = notifications.map(n =>
-        n.id === id ? { ...n, read: true } : n
-      );
+      notifications = notifications.map(n => (n.id === id ? { ...n, read: true } : n));
       stats.unread = Math.max(0, stats.unread - 1);
     } catch (error) {
       logger.error('Failed to mark notification as read:', error);
@@ -295,24 +297,36 @@
   }
 
   function getNotificationIcon(type) {
-    switch(type) {
-    case 'error': return '⚠️';
-    case 'trigger': return '🔔';
-    case 'performance': return '⚡';
-    case 'git': return '🌳';
-    case 'agent': return '🤖';
-    case 'file': return '📁';
-    case 'system': return '⚙️';
-    default: return '📝';
+    switch (type) {
+      case 'error':
+        return '⚠️';
+      case 'trigger':
+        return '🔔';
+      case 'performance':
+        return '⚡';
+      case 'git':
+        return '🌳';
+      case 'agent':
+        return '🤖';
+      case 'file':
+        return '📁';
+      case 'system':
+        return '⚙️';
+      default:
+        return '📝';
     }
   }
 
   function getSeverityBorderClass(severity) {
-    switch(severity) {
-    case 'critical': return 'border-l-[var(--error)]';
-    case 'warning': return 'border-l-[var(--warning)]';
-    case 'info': return 'border-l-[var(--info)]';
-    default: return 'border-l-[var(--border)]';
+    switch (severity) {
+      case 'critical':
+        return 'border-l-[var(--error)]';
+      case 'warning':
+        return 'border-l-[var(--warning)]';
+      case 'info':
+        return 'border-l-[var(--info)]';
+      default:
+        return 'border-l-[var(--border)]';
     }
   }
 
@@ -359,12 +373,18 @@
         type: 'pie',
         data: {
           labels: Object.keys(typeData),
-          datasets: [{
-            data: Object.values(typeData),
-            backgroundColor: Object.keys(typeData).map(type => typeColors[type] || typeColors.default),
-            borderColor: Object.keys(typeData).map(type => typeColors[type] || typeColors.default),
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: Object.values(typeData),
+              backgroundColor: Object.keys(typeData).map(
+                type => typeColors[type] || typeColors.default
+              ),
+              borderColor: Object.keys(typeData).map(
+                type => typeColors[type] || typeColors.default
+              ),
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -400,12 +420,18 @@
         type: 'doughnut',
         data: {
           labels: Object.keys(severityData),
-          datasets: [{
-            data: Object.values(severityData),
-            backgroundColor: Object.keys(severityData).map(sev => severityColors[sev] || colors.muted),
-            borderColor: Object.keys(severityData).map(sev => severityColors[sev] || colors.muted),
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: Object.values(severityData),
+              backgroundColor: Object.keys(severityData).map(
+                sev => severityColors[sev] || colors.muted
+              ),
+              borderColor: Object.keys(severityData).map(
+                sev => severityColors[sev] || colors.muted
+              ),
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -449,14 +475,16 @@
         type: 'bar',
         data: {
           labels: sortedKeys,
-          datasets: [{
-            label: 'Notifications',
-            data: sortedKeys.map(key => timeData[key]),
-            backgroundColor: colors.accent,
-            borderColor: colors.accent,
-            borderWidth: 2,
-            borderRadius: 4
-          }]
+          datasets: [
+            {
+              label: 'Notifications',
+              data: sortedKeys.map(key => timeData[key]),
+              backgroundColor: colors.accent,
+              borderColor: colors.accent,
+              borderWidth: 2,
+              borderRadius: 4
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -518,23 +546,28 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 gap-6">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">
-          📬 Notifications
-        </h1>
-        <p class="text-base text-[var(--muted)] font-sans">
-          System alerts and activity updates
-        </p>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">📬 Notifications</h1>
+        <p class="text-base text-[var(--muted)] font-sans">System alerts and activity updates</p>
       </div>
       <div class="flex gap-3 items-center flex-wrap justify-end">
         <span class="text-sm text-[var(--muted)] font-mono">
           Updated: {timeAgo}
         </span>
-        <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all">
+        <label
+          class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all"
+        >
           <input type="checkbox" bind:checked={groupDuplicates} class="cursor-pointer w-4 h-4" />
           Group Duplicates
         </label>
-        <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all">
-          <input type="checkbox" bind:checked={showCharts} onchange={updateCharts} class="cursor-pointer w-4 h-4" />
+        <label
+          class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all"
+        >
+          <input
+            type="checkbox"
+            bind:checked={showCharts}
+            onchange={updateCharts}
+            class="cursor-pointer w-4 h-4"
+          />
           Show Charts
         </label>
         <button
@@ -560,7 +593,11 @@
         </button>
         <button
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          onclick={() => { offset = 0; loadNotifications(true); loadStats(); }}
+          onclick={() => {
+            offset = 0;
+            loadNotifications(true);
+            loadStats();
+          }}
           disabled={loading}
         >
           <span class={isManualRefresh ? 'inline-block animate-spin' : ''}>🔄</span>
@@ -571,25 +608,45 @@
 
     <!-- Stats Bar -->
     <div class="grid grid-cols-5 gap-4 mb-6">
-      <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--border)] rounded-lg p-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--border)] rounded-lg p-4"
+      >
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Total</div>
-        <div class="text-sm text-[var(--text)] font-mono font-bold">{formatNumber(stats.total)}</div>
+        <div class="text-sm text-[var(--text)] font-mono font-bold">
+          {formatNumber(stats.total)}
+        </div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+      >
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Unread</div>
-        <div class="text-sm text-[var(--text)] font-mono font-bold">{formatNumber(stats.unread)}</div>
+        <div class="text-sm text-[var(--text)] font-mono font-bold">
+          {formatNumber(stats.unread)}
+        </div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--border)] rounded-lg p-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--border)] rounded-lg p-4"
+      >
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Errors</div>
-        <div class="text-sm text-[var(--text)] font-mono font-bold">{formatNumber(stats.by_type?.error || 0)}</div>
+        <div class="text-sm text-[var(--text)] font-mono font-bold">
+          {formatNumber(stats.by_type?.error || 0)}
+        </div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--border)] rounded-lg p-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--border)] rounded-lg p-4"
+      >
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Triggers</div>
-        <div class="text-sm text-[var(--text)] font-mono font-bold">{formatNumber(stats.by_type?.trigger || 0)}</div>
+        <div class="text-sm text-[var(--text)] font-mono font-bold">
+          {formatNumber(stats.by_type?.trigger || 0)}
+        </div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--border)] rounded-lg p-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--border)] rounded-lg p-4"
+      >
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Performance</div>
-        <div class="text-sm text-[var(--text)] font-mono font-bold">{formatNumber(stats.by_type?.performance || 0)}</div>
+        <div class="text-sm text-[var(--text)] font-mono font-bold">
+          {formatNumber(stats.by_type?.performance || 0)}
+        </div>
       </div>
     </div>
 
@@ -597,7 +654,9 @@
     {#if showCharts && notifications.length > 0}
       <div class="mb-6">
         <div class="grid grid-cols-2 gap-4">
-          <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+          >
             <h3 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide mb-4">
               Notifications by Type
             </h3>
@@ -606,7 +665,9 @@
             </div>
           </div>
 
-          <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+          >
             <h3 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide mb-4">
               Severity Distribution
             </h3>
@@ -615,7 +676,9 @@
             </div>
           </div>
 
-          <div class="col-span-2 bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
+          <div
+            class="col-span-2 bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+          >
             <h3 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide mb-4">
               Notifications Over Time
             </h3>
@@ -628,7 +691,9 @@
     {/if}
 
     <!-- Filters -->
-    <div class="flex gap-6 items-center p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg mb-6 flex-wrap">
+    <div
+      class="flex gap-6 items-center p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg mb-6 flex-wrap"
+    >
       <div class="flex items-center gap-3">
         <label for="filter-type" class="text-sm text-[var(--muted)] font-semibold">Type:</label>
         <select
@@ -649,7 +714,9 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <label for="filter-severity" class="text-sm text-[var(--muted)] font-semibold">Severity:</label>
+        <label for="filter-severity" class="text-sm text-[var(--muted)] font-semibold"
+          >Severity:</label
+        >
         <select
           id="filter-severity"
           bind:value={filterSeverity}
@@ -664,7 +731,12 @@
       </div>
 
       <label class="flex items-center gap-3 cursor-pointer">
-        <input type="checkbox" bind:checked={showUnreadOnly} onchange={applyFilters} class="cursor-pointer w-4 h-4" />
+        <input
+          type="checkbox"
+          bind:checked={showUnreadOnly}
+          onchange={applyFilters}
+          class="cursor-pointer w-4 h-4"
+        />
         <span class="text-sm text-[var(--text)]">Unread Only</span>
       </label>
 
@@ -677,10 +749,14 @@
     <div class="space-y-4">
       {#if loading && offset === 0}
         {#each Array(8) as _, i (i)}
-          <div class="h-20 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-20 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       {:else if notifications.length === 0}
-        <div class="bg-[var(--surface)] border border-dashed border-[var(--border)] rounded-lg p-12 text-center">
+        <div
+          class="bg-[var(--surface)] border border-dashed border-[var(--border)] rounded-lg p-12 text-center"
+        >
           <div class="text-4xl mb-4">📭</div>
           <div class="text-sm font-semibold text-[var(--text)] mb-2">No notifications</div>
           <div class="text-sm text-[var(--muted)]">
@@ -694,9 +770,15 @@
       {:else}
         {#each groupedNotifications as notification (notification.id)}
           <div
-            class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] {getSeverityBorderClass(notification.severity)} rounded-lg p-4 cursor-pointer transition-all hover:border-[var(--accent)] hover:shadow-lg focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 {!notification.read ? 'bg-[color-mix(in_srgb,var(--accent)_5%,var(--surface))]' : ''}"
+            class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] {getSeverityBorderClass(
+              notification.severity
+            )} rounded-lg p-4 cursor-pointer transition-all hover:border-[var(--accent)] hover:shadow-lg focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 {!notification.read
+              ? 'bg-[color-mix(in_srgb,var(--accent)_5%,var(--surface))]'
+              : ''}"
             onclick={() => toggleExpand(notification)}
-            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleExpand(notification))}
+            onkeydown={e =>
+              (e.key === 'Enter' || e.key === ' ') &&
+              (e.preventDefault(), toggleExpand(notification))}
             role="button"
             tabindex="0"
           >
@@ -707,7 +789,9 @@
                   <div class="text-sm font-semibold text-[var(--text)] mb-1">
                     {notification.title}
                     {#if notification.count > 1}
-                      <span class="inline-block bg-[var(--accent)] text-white text-xs font-bold px-2 py-1 rounded ml-2">
+                      <span
+                        class="inline-block bg-[var(--accent)] text-white text-xs font-bold px-2 py-1 rounded ml-2"
+                      >
                         {formatNumber(notification.count)}×
                       </span>
                     {/if}
@@ -716,7 +800,9 @@
                     <span class="uppercase font-semibold">{notification.type}</span>
                     <span>{formatRelativeTime(notification.timestamp)}</span>
                     {#if !notification.read}
-                      <span class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-bold">
+                      <span
+                        class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-bold"
+                      >
                         NEW
                       </span>
                     {/if}
@@ -726,14 +812,20 @@
               <div class="flex gap-2" role="group">
                 <button
                   class="px-2 py-1 text-[var(--text)] hover:bg-[var(--bg)] rounded transition-all"
-                  onclick={(e) => { e.stopPropagation(); clearNotification(notification.id); }}
+                  onclick={e => {
+                    e.stopPropagation();
+                    clearNotification(notification.id);
+                  }}
                 >
                   🗑️
                 </button>
                 {#if !notification.read}
                   <button
                     class="px-2 py-1 text-[var(--text)] hover:bg-[var(--bg)] rounded transition-all"
-                    onclick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                    onclick={e => {
+                      e.stopPropagation();
+                      markAsRead(notification.id);
+                    }}
                   >
                     ✓
                   </button>
@@ -744,19 +836,31 @@
             {#if expandedNotification?.id === notification.id}
               <div class="mt-4 pt-4 border-t border-[var(--border)]">
                 <div class="mb-4">
-                  <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Message</div>
+                  <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
+                    Message
+                  </div>
                   <div class="text-sm text-[var(--text)]">{notification.message}</div>
                 </div>
                 <div class="mb-4">
-                  <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Timestamp</div>
+                  <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
+                    Timestamp
+                  </div>
                   <div class="text-sm text-[var(--text)]">
-                    <time datetime={notification.timestamp}>{formatDateTime(notification.timestamp)}</time>
+                    <time datetime={notification.timestamp}
+                      >{formatDateTime(notification.timestamp)}</time
+                    >
                   </div>
                 </div>
                 {#if notification.metadata}
                   <div>
-                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Details</div>
-                    <pre class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs text-[var(--text)] overflow-x-auto font-mono">{@html DOMPurify.sanitize(JSON.stringify(notification.metadata, null, 2))}</pre>
+                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
+                      Details
+                    </div>
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                    <pre
+                      class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs text-[var(--text)] overflow-x-auto font-mono">{@html DOMPurify.sanitize(
+                        JSON.stringify(notification.metadata, null, 2)
+                      )}</pre>
                   </div>
                 {/if}
               </div>

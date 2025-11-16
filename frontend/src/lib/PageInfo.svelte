@@ -22,10 +22,10 @@
   // Simple markdown parser for basic formatting with XSS protection
   function parseMarkdown(text) {
     const dirty = text
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // **bold**
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')              // *italic*
-      .replace(/`(.+?)`/g, '<code>$1</code>')             // `code`
-      .replace(/\n/g, '<br>');                            // newlines
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') // **bold**
+      .replace(/\*(.+?)\*/g, '<em>$1</em>') // *italic*
+      .replace(/`(.+?)`/g, '<code>$1</code>') // `code`
+      .replace(/\n/g, '<br>'); // newlines
 
     // Sanitize to prevent XSS attacks
     return DOMPurify.sanitize(dirty);
@@ -35,17 +35,33 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <div class="info-button-container">
-  <button class="info-button" on:click={toggleModal} aria-label="Show page information" aria-haspopup="dialog">
+  <button
+    class="info-button"
+    on:click={toggleModal}
+    aria-label="Show page information"
+    aria-haspopup="dialog"
+  >
     <span aria-hidden="true">ℹ️</span>
   </button>
 </div>
 
 {#if showModal}
-  <div class="modal-overlay" on:click={toggleModal} role="dialog" aria-modal="true" aria-labelledby="info-title">
-    <div class="modal-content" on:click|stopPropagation role="document">
+  <div
+    class="modal-overlay"
+    on:click={toggleModal}
+    on:keydown={e => e.key === 'Enter' && toggleModal()}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="info-title"
+    tabindex="-1"
+  >
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div class="modal-content" on:click|stopPropagation on:keydown|stopPropagation role="document">
       <div class="modal-header">
         <h2 id="info-title">{title}</h2>
-        <button class="close-button" on:click={toggleModal} aria-label="Close information dialog">×</button>
+        <button class="close-button" on:click={toggleModal} aria-label="Close information dialog"
+          >×</button
+        >
       </div>
 
       <div class="modal-body">
@@ -232,20 +248,6 @@
 
   .info-section li:last-child {
     margin-bottom: 0;
-  }
-
-  .info-section strong {
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .info-section code {
-    background: var(--surface-2);
-    padding: var(--space-xs) var(--space-md);
-    border-radius: var(--radius-sm);
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--accent);
   }
 
   .info-section.warning {

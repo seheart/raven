@@ -91,12 +91,14 @@
   }
 
   function getStatusLabel(status) {
-    return {
-      active: 'Active',
-      recent: 'Recent',
-      idle: 'Idle',
-      inactive: 'Inactive'
-    }[status] || 'Unknown';
+    return (
+      {
+        active: 'Active',
+        recent: 'Recent',
+        idle: 'Idle',
+        inactive: 'Inactive'
+      }[status] || 'Unknown'
+    );
   }
 
   function formatLastActivity(timestamp) {
@@ -307,7 +309,9 @@
           <option value="inactive">Inactive</option>
         </select>
 
-        <label class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm cursor-pointer">
+        <label
+          class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm cursor-pointer"
+        >
           <input type="checkbox" bind:checked={autoRefresh} />
           <span class="font-mono">Auto-refresh</span>
         </label>
@@ -382,7 +386,9 @@
 
     {#if loading}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"></div>
+        <div
+          class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
+        ></div>
         <p class="text-base text-[var(--muted)] font-sans">Loading health data...</p>
       </div>
     {:else if error}
@@ -405,7 +411,9 @@
     {:else if filteredProjects.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
         <p class="text-base text-[var(--muted)] mb-2">🔍 No projects match your filters</p>
-        <p class="text-xs text-[var(--muted)] opacity-80">Try adjusting your search or filter criteria.</p>
+        <p class="text-xs text-[var(--muted)] opacity-80">
+          Try adjusting your search or filter criteria.
+        </p>
       </div>
     {:else}
       <div class="text-sm text-[var(--muted)] mb-3 font-mono">
@@ -446,14 +454,19 @@
             <div class="h-2 bg-[var(--bg)] rounded overflow-hidden mb-3">
               <div
                 class="h-full transition-all duration-300"
-                style="width: {project.health_score}%; background: {getHealthBarColor(project.health_score)}"
+                style="width: {project.health_score}%; background: {getHealthBarColor(
+                  project.health_score
+                )}"
               ></div>
             </div>
 
             <!-- Health Score -->
             <div class="flex items-baseline gap-2 mb-4">
-              <span class="text-xl font-bold text-[var(--text)] font-mono">{project.health_score}</span>
-              <span class="text-sm text-[var(--muted)]">{getHealthLabel(project.health_score)}</span>
+              <span class="text-xl font-bold text-[var(--text)] font-mono"
+                >{project.health_score}</span
+              >
+              <span class="text-sm text-[var(--muted)]">{getHealthLabel(project.health_score)}</span
+              >
             </div>
 
             <!-- Metrics -->
@@ -465,7 +478,9 @@
                 <div class="text-xs text-[var(--muted)] uppercase tracking-wide">Events (24h)</div>
               </div>
               <div class="text-center">
-                <div class="text-lg font-semibold text-[var(--text)] font-mono">{project.error_count}</div>
+                <div class="text-lg font-semibold text-[var(--text)] font-mono">
+                  {project.error_count}
+                </div>
                 <div class="text-xs text-[var(--muted)] uppercase tracking-wide">Errors</div>
               </div>
             </div>

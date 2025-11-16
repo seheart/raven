@@ -7,9 +7,12 @@
   import { logger } from './logger.js';
   import { formatNumber } from './numberFormat.js';
   import { exportJSON } from './exportUtils.js';
-  import DOMPurify from 'dompurify';
   import { Chart, registerables } from 'chart.js';
-  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+  import {
+    initializeCharts,
+    setupChartThemeObserver,
+    getChartThemeColors
+  } from './utils/chartHelpers.js';
 
   Chart.register(...registerables);
 
@@ -105,7 +108,7 @@
       });
 
       const res = await fetch(`${API_BASE}/notifications?${params}`);
-      const data = await response.json()
+      const data = await response.json();
 
       if (offset === 0) {
         notifications = data.notifications;
@@ -126,7 +129,7 @@
   async function loadStats() {
     try {
       const res = await fetch(`${API_BASE}/notifications/stats`);
-      stats = await response.json()
+      stats = await response.json();
     } catch (error) {
       logger.error('Failed to load notification stats:', error);
     }
@@ -135,9 +138,7 @@
   async function markAsRead(id) {
     try {
       await fetch(`${API_BASE}/notifications/${id}/read`, { method: 'POST' });
-      notifications = notifications.map(n =>
-        n.id === id ? { ...n, read: true } : n
-      );
+      notifications = notifications.map(n => (n.id === id ? { ...n, read: true } : n));
       stats.unread = Math.max(0, stats.unread - 1);
     } catch (error) {
       logger.error('Failed to mark notification as read:', error);
@@ -297,24 +298,36 @@
   }
 
   function getNotificationIcon(type) {
-    switch(type) {
-    case 'error': return '⚠️';
-    case 'trigger': return '🔔';
-    case 'performance': return '⚡';
-    case 'git': return '🌳';
-    case 'agent': return '🤖';
-    case 'file': return '📁';
-    case 'system': return '⚙️';
-    default: return '📝';
+    switch (type) {
+      case 'error':
+        return '⚠️';
+      case 'trigger':
+        return '🔔';
+      case 'performance':
+        return '⚡';
+      case 'git':
+        return '🌳';
+      case 'agent':
+        return '🤖';
+      case 'file':
+        return '📁';
+      case 'system':
+        return '⚙️';
+      default:
+        return '📝';
     }
   }
 
   function getSeverityClass(severity) {
-    switch(severity) {
-    case 'critical': return 'severity-critical';
-    case 'warning': return 'severity-warning';
-    case 'info': return 'severity-info';
-    default: return '';
+    switch (severity) {
+      case 'critical':
+        return 'severity-critical';
+      case 'warning':
+        return 'severity-warning';
+      case 'info':
+        return 'severity-info';
+      default:
+        return '';
     }
   }
 
@@ -361,12 +374,18 @@
         type: 'pie',
         data: {
           labels: Object.keys(typeData),
-          datasets: [{
-            data: Object.values(typeData),
-            backgroundColor: Object.keys(typeData).map(type => typeColors[type] || typeColors.default),
-            borderColor: Object.keys(typeData).map(type => typeColors[type] || typeColors.default),
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: Object.values(typeData),
+              backgroundColor: Object.keys(typeData).map(
+                type => typeColors[type] || typeColors.default
+              ),
+              borderColor: Object.keys(typeData).map(
+                type => typeColors[type] || typeColors.default
+              ),
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -402,12 +421,18 @@
         type: 'doughnut',
         data: {
           labels: Object.keys(severityData),
-          datasets: [{
-            data: Object.values(severityData),
-            backgroundColor: Object.keys(severityData).map(sev => severityColors[sev] || colors.muted),
-            borderColor: Object.keys(severityData).map(sev => severityColors[sev] || colors.muted),
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: Object.values(severityData),
+              backgroundColor: Object.keys(severityData).map(
+                sev => severityColors[sev] || colors.muted
+              ),
+              borderColor: Object.keys(severityData).map(
+                sev => severityColors[sev] || colors.muted
+              ),
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -455,14 +480,16 @@
         type: 'bar',
         data: {
           labels: sortedKeys,
-          datasets: [{
-            label: 'Notifications',
-            data: sortedKeys.map(key => timeData[key]),
-            backgroundColor: colors.accent,
-            borderColor: colors.accent,
-            borderWidth: 2,
-            borderRadius: 4
-          }]
+          datasets: [
+            {
+              label: 'Notifications',
+              data: sortedKeys.map(key => timeData[key]),
+              backgroundColor: colors.accent,
+              borderColor: colors.accent,
+              borderWidth: 2,
+              borderRadius: 4
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -527,23 +554,56 @@
     <div class="header-actions" role="toolbar" aria-label="Notification actions">
       <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
       <label class="toggle-label">
-        <input type="checkbox" bind:checked={groupDuplicates} aria-label="Group duplicate notifications" />
+        <input
+          type="checkbox"
+          bind:checked={groupDuplicates}
+          aria-label="Group duplicate notifications"
+        />
         Group Duplicates
       </label>
       <label class="toggle-label">
-        <input type="checkbox" bind:checked={showCharts} on:change={updateCharts} aria-label="Show charts" />
+        <input
+          type="checkbox"
+          bind:checked={showCharts}
+          on:change={updateCharts}
+          aria-label="Show charts"
+        />
         Show Charts
       </label>
-      <button class="btn btn-primary btn-sm" on:click={exportNotifications} disabled={notifications.length === 0} aria-label="Export notifications to JSON">
+      <button
+        class="btn btn-primary btn-sm"
+        on:click={exportNotifications}
+        disabled={notifications.length === 0}
+        aria-label="Export notifications to JSON"
+      >
         <span aria-hidden="true">📤</span> Export
       </button>
-      <button class="btn btn-secondary btn-sm" on:click={markAllAsRead} disabled={stats.unread === 0} aria-label="Mark all {stats.unread} notifications as read">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={markAllAsRead}
+        disabled={stats.unread === 0}
+        aria-label="Mark all {stats.unread} notifications as read"
+      >
         Mark All Read
       </button>
-      <button class="btn btn-danger btn-sm" on:click={clearAll} disabled={stats.total === 0} aria-label="Clear all {stats.total} notifications">
+      <button
+        class="btn btn-danger btn-sm"
+        on:click={clearAll}
+        disabled={stats.total === 0}
+        aria-label="Clear all {stats.total} notifications"
+      >
         Clear All
       </button>
-      <button class="btn btn-secondary btn-sm" on:click={() => { offset = 0; loadNotifications(true); loadStats(); }} disabled={loading} aria-label="Refresh notifications">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={() => {
+          offset = 0;
+          loadNotifications(true);
+          loadStats();
+        }}
+        disabled={loading}
+        aria-label="Refresh notifications"
+      >
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
         Refresh
       </button>
@@ -556,19 +616,35 @@
       <div class="stat-label">Total</div>
       <div class="stat-value">{formatNumber(stats.total)}</div>
     </div>
-    <div class="stat-card unread-stat" role="status" aria-label="Unread notifications: {stats.unread}">
+    <div
+      class="stat-card unread-stat"
+      role="status"
+      aria-label="Unread notifications: {stats.unread}"
+    >
       <div class="stat-label">Unread</div>
       <div class="stat-value">{formatNumber(stats.unread)}</div>
     </div>
-    <div class="stat-card" role="status" aria-label="Error notifications: {stats.by_type?.error || 0}">
+    <div
+      class="stat-card"
+      role="status"
+      aria-label="Error notifications: {stats.by_type?.error || 0}"
+    >
       <div class="stat-label">Errors</div>
       <div class="stat-value">{formatNumber(stats.by_type?.error || 0)}</div>
     </div>
-    <div class="stat-card" role="status" aria-label="Trigger notifications: {stats.by_type?.trigger || 0}">
+    <div
+      class="stat-card"
+      role="status"
+      aria-label="Trigger notifications: {stats.by_type?.trigger || 0}"
+    >
       <div class="stat-label">Triggers</div>
       <div class="stat-value">{formatNumber(stats.by_type?.trigger || 0)}</div>
     </div>
-    <div class="stat-card" role="status" aria-label="Performance notifications: {stats.by_type?.performance || 0}">
+    <div
+      class="stat-card"
+      role="status"
+      aria-label="Performance notifications: {stats.by_type?.performance || 0}"
+    >
       <div class="stat-label">Performance</div>
       <div class="stat-value">{formatNumber(stats.by_type?.performance || 0)}</div>
     </div>
@@ -612,7 +688,12 @@
   <div class="filters" role="region" aria-label="Notification filters">
     <div class="filter-group">
       <label for="filter-type">Type:</label>
-      <select id="filter-type" bind:value={filterType} on:change={applyFilters} aria-label="Filter notifications by type">
+      <select
+        id="filter-type"
+        bind:value={filterType}
+        on:change={applyFilters}
+        aria-label="Filter notifications by type"
+      >
         <option value="all">All Types</option>
         <option value="error">Errors</option>
         <option value="trigger">Triggers</option>
@@ -626,7 +707,12 @@
 
     <div class="filter-group">
       <label for="filter-severity">Severity:</label>
-      <select id="filter-severity" bind:value={filterSeverity} on:change={applyFilters} aria-label="Filter notifications by severity">
+      <select
+        id="filter-severity"
+        bind:value={filterSeverity}
+        on:change={applyFilters}
+        aria-label="Filter notifications by severity"
+      >
         <option value="all">All Severities</option>
         <option value="critical">Critical</option>
         <option value="warning">Warning</option>
@@ -636,7 +722,12 @@
 
     <div class="filter-group">
       <label class="checkbox-label">
-        <input type="checkbox" bind:checked={showUnreadOnly} on:change={applyFilters} aria-label="Show only unread notifications" />
+        <input
+          type="checkbox"
+          bind:checked={showUnreadOnly}
+          on:change={applyFilters}
+          aria-label="Show only unread notifications"
+        />
         <span>Unread Only</span>
       </label>
     </div>
@@ -669,7 +760,9 @@
           class:unread={!notification.read}
           class:expanded={expandedNotification?.id === notification.id}
           on:click={() => toggleExpand(notification)}
-          on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleExpand(notification))}
+          on:keydown={e =>
+            (e.key === 'Enter' || e.key === ' ') &&
+            (e.preventDefault(), toggleExpand(notification))}
           role="button"
           aria-expanded={expandedNotification?.id === notification.id}
           aria-controls="notification-details-{notification.id}"
@@ -678,19 +771,27 @@
         >
           <div class="notification-header">
             <div class="notification-left">
-              <span class="notification-icon" aria-hidden="true">{getNotificationIcon(notification.type)}</span>
+              <span class="notification-icon" aria-hidden="true"
+                >{getNotificationIcon(notification.type)}</span
+              >
               <div class="notification-info">
                 <div class="notification-title">
                   {notification.title}
                   {#if notification.count > 1}
-                    <span class="count-badge" title="{notification.count} duplicate notifications" role="status">{formatNumber(notification.count)}×</span>
+                    <span
+                      class="count-badge"
+                      title="{notification.count} duplicate notifications"
+                      role="status">{formatNumber(notification.count)}×</span
+                    >
                   {/if}
                 </div>
                 <div class="notification-meta">
                   <span class="notification-type">{notification.type}</span>
-                  <span class="notification-time">{formatRelativeTime(notification.timestamp)}</span>
+                  <span class="notification-time">{formatRelativeTime(notification.timestamp)}</span
+                  >
                   {#if !notification.read}
-                    <span class="unread-badge" role="status" aria-label="New notification">NEW</span>
+                    <span class="unread-badge" role="status" aria-label="New notification">NEW</span
+                    >
                   {/if}
                 </div>
               </div>
@@ -716,19 +817,32 @@
           </div>
 
           {#if expandedNotification?.id === notification.id}
-            <div class="notification-details" id="notification-details-{notification.id}" role="region" aria-label="Notification details">
+            <div
+              class="notification-details"
+              id="notification-details-{notification.id}"
+              role="region"
+              aria-label="Notification details"
+            >
               <div class="detail-section">
                 <div class="detail-label">Message</div>
                 <div class="detail-value">{notification.message}</div>
               </div>
               <div class="detail-section">
                 <div class="detail-label">Timestamp</div>
-                <div class="detail-value"><time datetime={notification.timestamp}>{formatDateTime(notification.timestamp)}</time></div>
+                <div class="detail-value">
+                  <time datetime={notification.timestamp}
+                    >{formatDateTime(notification.timestamp)}</time
+                  >
+                </div>
               </div>
               {#if notification.metadata}
                 <div class="detail-section">
                   <div class="detail-label">Details</div>
-                  <pre class="detail-metadata" role="code">{@html DOMPurify.sanitize(JSON.stringify(notification.metadata, null, 2))}</pre>
+                  <pre class="detail-metadata" role="code">{JSON.stringify(
+                      notification.metadata,
+                      null,
+                      2
+                    )}</pre>
                 </div>
               {/if}
             </div>
@@ -738,7 +852,12 @@
 
       {#if hasMore}
         <div class="load-more">
-          <button class="btn btn-secondary btn-sm" on:click={loadMore} disabled={loading} aria-label="Load more notifications">
+          <button
+            class="btn btn-secondary btn-sm"
+            on:click={loadMore}
+            disabled={loading}
+            aria-label="Load more notifications"
+          >
             {loading ? 'Loading...' : 'Load More'}
           </button>
         </div>
@@ -798,9 +917,17 @@
   }
 
   .refresh-icon.spinning {
-    /* Animation defined in global app.css */
+    animation: spin 0.6s linear infinite;
   }
 
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
   .stats-bar {
     display: grid;
@@ -883,7 +1010,7 @@
     cursor: pointer;
   }
 
-  .checkbox-label input[type="checkbox"] {
+  .checkbox-label input[type='checkbox'] {
     cursor: pointer;
   }
 
@@ -992,7 +1119,6 @@
     gap: var(--space-lg);
   }
 
-
   .notification-details {
     margin-top: 1rem;
     padding-top: 1rem;
@@ -1031,7 +1157,8 @@
     font-family: var(--mono);
   }
 
-  .loading, .empty-state {
+  .loading,
+  .empty-state {
     text-align: center;
     padding: 3rem;
     color: var(--muted);
@@ -1098,7 +1225,7 @@
     border-color: var(--accent);
   }
 
-  .toggle-label input[type="checkbox"] {
+  .toggle-label input[type='checkbox'] {
     cursor: pointer;
     width: var(--icon-xs);
     height: var(--icon-xs);

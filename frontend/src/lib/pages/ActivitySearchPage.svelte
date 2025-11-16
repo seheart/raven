@@ -113,23 +113,35 @@
 
   function getEventIcon(changeType) {
     switch (changeType) {
-      case 'create': return '➕';
-      case 'edit': return '✏️';
-      case 'delete': return '🗑️';
-      case 'read': return '👁️';
-      case 'execute': return '⚡';
-      default: return '📝';
+      case 'create':
+        return '➕';
+      case 'edit':
+        return '✏️';
+      case 'delete':
+        return '🗑️';
+      case 'read':
+        return '👁️';
+      case 'execute':
+        return '⚡';
+      default:
+        return '📝';
     }
   }
 
   function getEventColor(changeType) {
     switch (changeType) {
-      case 'create': return 'var(--success)';
-      case 'edit': return 'var(--accent)';
-      case 'delete': return 'var(--error)';
-      case 'read': return 'var(--muted)';
-      case 'execute': return 'var(--warning)';
-      default: return 'var(--text)';
+      case 'create':
+        return 'var(--success)';
+      case 'edit':
+        return 'var(--accent)';
+      case 'delete':
+        return 'var(--error)';
+      case 'read':
+        return 'var(--muted)';
+      case 'execute':
+        return 'var(--warning)';
+      default:
+        return 'var(--text)';
     }
   }
 
@@ -144,7 +156,9 @@
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Global Search</h1>
-      <p class="text-base text-[var(--muted)] font-sans">Search across all files, events, and activity</p>
+      <p class="text-base text-[var(--muted)] font-sans">
+        Search across all files, events, and activity
+      </p>
     </div>
 
     <!-- Search Bar -->
@@ -172,7 +186,7 @@
       <!-- Search Type Filter -->
       <div class="flex flex-wrap gap-2">
         <button
-          onclick={() => searchType = 'all'}
+          onclick={() => (searchType = 'all')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
           class:bg-accent={searchType === 'all'}
           class:text-white={searchType === 'all'}
@@ -183,7 +197,7 @@
           All Results
         </button>
         <button
-          onclick={() => searchType = 'files'}
+          onclick={() => (searchType = 'files')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
           class:bg-accent={searchType === 'files'}
           class:text-white={searchType === 'files'}
@@ -194,7 +208,7 @@
           Files Only
         </button>
         <button
-          onclick={() => searchType = 'messages'}
+          onclick={() => (searchType = 'messages')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
           class:bg-accent={searchType === 'messages'}
           class:text-white={searchType === 'messages'}
@@ -205,7 +219,7 @@
           Messages Only
         </button>
         <button
-          onclick={() => searchType = 'agents'}
+          onclick={() => (searchType = 'agents')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
           class:bg-accent={searchType === 'agents'}
           class:text-white={searchType === 'agents'}
@@ -292,14 +306,20 @@
       <!-- Results List -->
       <div class="space-y-3">
         {#each filteredResults as result (result.id || result.timestamp)}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
+          >
             <div class="flex items-start gap-3">
-              <span class="text-2xl flex-shrink-0">{getEventIcon(result.change_type || result.event_type)}</span>
+              <span class="text-2xl flex-shrink-0"
+                >{getEventIcon(result.change_type || result.event_type)}</span
+              >
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline gap-3 mb-2">
                   <span
                     class="text-xs px-2 py-1 rounded font-semibold"
-                    style="background: {getEventColor(result.change_type || result.event_type)}20; color: {getEventColor(result.change_type || result.event_type)}"
+                    style="background: {getEventColor(
+                      result.change_type || result.event_type
+                    )}20; color: {getEventColor(result.change_type || result.event_type)}"
                   >
                     {(result.change_type || result.event_type)?.toUpperCase() || 'UNKNOWN'}
                   </span>
@@ -310,19 +330,24 @@
 
                 {#if result.filepath || result.file}
                   <div class="text-base font-medium text-[var(--text)] font-mono mb-1">
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                     {@html highlightMatch(result.filepath || result.file, searchQuery)}
                   </div>
                 {/if}
 
                 {#if result.message}
                   <div class="text-sm text-[var(--muted)] font-sans mb-2">
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                     {@html highlightMatch(result.message, searchQuery)}
                   </div>
                 {/if}
 
                 <div class="flex flex-wrap gap-3 text-xs text-[var(--muted)]">
                   {#if result.agent}
-                    <span class="font-mono">🤖 {@html highlightMatch(result.agent, searchQuery)}</span>
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                    <span class="font-mono"
+                      >🤖 {@html highlightMatch(result.agent, searchQuery)}</span
+                    >
                   {/if}
                   {#if result.event_size}
                     <span class="font-mono">📦 {result.event_size}B</span>
@@ -341,11 +366,21 @@
 </div>
 
 <style>
-  .bg-accent { background: var(--accent); }
-  .text-white { color: white; }
-  .bg-bg { background: var(--bg); }
-  .border { border-width: 1px; }
-  .border-border { border-color: var(--border); }
+  .bg-accent {
+    background: var(--accent);
+  }
+  .text-white {
+    color: white;
+  }
+  .bg-bg {
+    background: var(--bg);
+  }
+  .border {
+    border-width: 1px;
+  }
+  .border-border {
+    border-color: var(--border);
+  }
 
   :global(mark) {
     background: rgba(99, 102, 241, 0.3);

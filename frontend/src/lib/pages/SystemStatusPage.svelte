@@ -512,7 +512,7 @@
           role="button"
           tabindex="0"
           onclick={() => (healthExpanded = !healthExpanded)}
-          onkeydown={(e) => e.key === 'Enter' && (healthExpanded = !healthExpanded)}
+          onkeydown={e => e.key === 'Enter' && (healthExpanded = !healthExpanded)}
         >
           <h3 class="text-base font-semibold text-[var(--text)] font-sans">
             {getStatusIcon(healthChecks.status)} Health Checks
@@ -536,9 +536,9 @@
           {:else}
             <div
               class="px-3 py-2 rounded text-sm font-mono text-center"
-              style="background-color: {getStatusColor(healthChecks.status)}20; color: {getStatusColor(
+              style="background-color: {getStatusColor(
                 healthChecks.status
-              )}"
+              )}20; color: {getStatusColor(healthChecks.status)}"
             >
               {#if healthChecks.status === 'healthy'}
                 All Systems Operational
@@ -554,9 +554,7 @@
             {#if healthExpanded && healthChecks.checks.length > 0}
               <div class="mt-4 space-y-4">
                 {#each Object.entries(healthChecks.summary.byCategory || {}) as [category, stats] (category)}
-                  {@const categoryChecks = healthChecks.checks.filter(
-                    (c) => c.category === category
-                  )}
+                  {@const categoryChecks = healthChecks.checks.filter(c => c.category === category)}
                   <div class="border border-[var(--border)] rounded-lg overflow-hidden">
                     <div
                       class="bg-[var(--bg)] border-b border-[var(--border)] px-3 py-2 flex items-center justify-between"
@@ -633,7 +631,9 @@
               >⏳ Loading...</span
             >
           {:else}
-            <span class="px-3 py-1 rounded text-xs font-mono bg-[var(--success-subtle)] text-[var(--success)]">
+            <span
+              class="px-3 py-1 rounded text-xs font-mono bg-[var(--success-subtle)] text-[var(--success)]"
+            >
               🟢 {$availableProjects.length} Active
             </span>
           {/if}
@@ -822,15 +822,7 @@
         </div>
         <div class="p-4">
           <div class="space-y-2">
-            {#each [
-              { method: 'GET', path: '/health', description: 'Health check', color: 'info' },
-              { method: 'POST', path: '/telemetry', description: 'Agent telemetry', color: 'success' },
-              { method: 'GET', path: '/api/dashboard-stats', description: 'Dashboard statistics', color: 'info' },
-              { method: 'GET', path: '/api/agent-events', description: 'Agent events', color: 'info' },
-              { method: 'GET', path: '/api/agents-status', description: 'Agents status', color: 'info' },
-              { method: 'GET', path: '/api/triggers-config', description: 'Trigger rules', color: 'info' },
-              { method: 'WS', path: 'WebSocket', description: 'Real-time events', color: 'warning' }
-            ] as endpoint (endpoint.path)}
+            {#each [{ method: 'GET', path: '/health', description: 'Health check', color: 'info' }, { method: 'POST', path: '/telemetry', description: 'Agent telemetry', color: 'success' }, { method: 'GET', path: '/api/dashboard-stats', description: 'Dashboard statistics', color: 'info' }, { method: 'GET', path: '/api/agent-events', description: 'Agent events', color: 'info' }, { method: 'GET', path: '/api/agents-status', description: 'Agents status', color: 'info' }, { method: 'GET', path: '/api/triggers-config', description: 'Trigger rules', color: 'info' }, { method: 'WS', path: 'WebSocket', description: 'Real-time events', color: 'warning' }] as endpoint (endpoint.path)}
               {@const methodBgClass =
                 endpoint.color === 'info'
                   ? 'bg-[var(--info-subtle)] text-[var(--info)]'

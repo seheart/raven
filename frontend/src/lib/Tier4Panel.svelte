@@ -149,7 +149,7 @@
   async function loadProductivityData() {
     try {
       const res = await fetch(`${API_BASE}/productivity/latest?project=${project}`);
-      const data = await response.json()
+      const data = await response.json();
       productivityInsights = data.metrics;
     } catch (err) {
       // Error handled silently - partial data load
@@ -159,7 +159,7 @@
   async function loadPersonalityData() {
     try {
       const res = await fetch(`${API_BASE}/personality/latest?project=${project}&agent=claude`);
-      const data = await response.json()
+      const data = await response.json();
       personalityProfile = data.profile;
     } catch (err) {
       // Error handled silently - partial data load
@@ -273,7 +273,7 @@
       const res = await fetch(`${API_BASE}/health/calculate?project=${project}`, {
         method: 'POST'
       });
-      const data = await response.json()
+      const data = await response.json();
       healthScore = data.healthScore;
       await loadHealthData();
     } catch (err) {
@@ -284,7 +284,7 @@
   async function detectDrifts() {
     try {
       const res = await fetch(`${API_BASE}/drift/detect?project=${project}`, { method: 'POST' });
-      const data = await response.json()
+      const data = await response.json();
       recentDrifts = data.drifts || [];
       await loadDriftData();
     } catch (err) {
@@ -311,7 +311,7 @@
       const res = await fetch(`${API_BASE}/productivity/calculate?project=${project}&days=30`, {
         method: 'POST'
       });
-      const data = await response.json()
+      const data = await response.json();
       productivityInsights = data.insights;
     } catch (err) {
       // Error handled silently - operation failed gracefully
@@ -324,7 +324,7 @@
         `${API_BASE}/personality/analyze?project=${project}&agent=claude&days=30`,
         { method: 'POST' }
       );
-      const data = await response.json()
+      const data = await response.json();
       personalityProfile = data.personality;
     } catch (err) {
       // Error handled silently - operation failed gracefully
@@ -349,7 +349,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(githubConfig)
       });
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
         configSaveStatus = 'GitHub configuration saved successfully!';
         integrationStatus.github.enabled = true;
@@ -370,7 +370,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(discordConfig)
       });
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
         configSaveStatus = 'Discord configuration saved successfully!';
         integrationStatus.discord.enabled = true;
@@ -391,7 +391,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(slackConfig)
       });
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
         configSaveStatus = 'Slack configuration saved successfully!';
         integrationStatus.slack.enabled = true;
@@ -409,7 +409,7 @@
     try {
       configSaveStatus = 'Testing GitHub connection...';
       const res = await fetch(`${API_BASE}/integrations/github/test?project=${project}`);
-      const data = await response.json()
+      const data = await response.json();
       if (data.result.success) {
         configSaveStatus = `✓ GitHub connected: ${data.result.repo_name}`;
       } else {
@@ -426,7 +426,7 @@
     try {
       configSaveStatus = 'Testing Discord connection...';
       const res = await fetch(`${API_BASE}/integrations/discord/test?project=${project}`);
-      const data = await response.json()
+      const data = await response.json();
       if (data.result.success) {
         configSaveStatus = '✓ Discord webhook is valid!';
       } else {
@@ -443,7 +443,7 @@
     try {
       configSaveStatus = 'Testing Slack connection...';
       const res = await fetch(`${API_BASE}/integrations/slack/test?project=${project}`);
-      const data = await response.json()
+      const data = await response.json();
       if (data.result.success) {
         configSaveStatus = '✓ Slack webhook is valid!';
       } else {
@@ -462,7 +462,7 @@
       const res = await fetch(`${API_BASE}/integrations/github/post-health?project=${project}`, {
         method: 'POST'
       });
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
         configSaveStatus = '✓ Health score posted to GitHub!';
       } else {
@@ -481,7 +481,7 @@
       const res = await fetch(`${API_BASE}/integrations/discord/send-health?project=${project}`, {
         method: 'POST'
       });
-      const data = await response.json()
+      const data = await response.json();
       if (data.result.success) {
         configSaveStatus = '✓ Health score sent to Discord!';
       } else {
@@ -500,7 +500,7 @@
       const res = await fetch(`${API_BASE}/integrations/slack/send-health?project=${project}`, {
         method: 'POST'
       });
-      const data = await response.json()
+      const data = await response.json();
       if (data.result.success) {
         configSaveStatus = '✓ Health score sent to Slack!';
       } else {
@@ -1839,22 +1839,6 @@
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 12px;
-  }
-
-  .integration-card.enabled .integration-status {
-    background: #51cf66;
-    color: black;
-  }
-
-  .integration-card.disabled .integration-status {
-    background: #666;
-    color: white;
-  }
-
-  .integration-info p {
-    margin: 4px 0;
-    font-size: 14px;
-    color: #999;
   }
 
   .integration-note {

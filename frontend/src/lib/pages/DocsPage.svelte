@@ -39,7 +39,7 @@
   async function loadDocsList() {
     try {
       const response = await api.get('/docs/list');
-      const data = await response.json()
+      const data = await response.json();
       docs = data.all || [];
 
       // Load README.md by default
@@ -64,7 +64,7 @@
 
     try {
       const response = await api.get(`/docs/${filepath}`);
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.error) {
         throw new Error(data.error);

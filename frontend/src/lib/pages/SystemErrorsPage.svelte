@@ -228,19 +228,27 @@
 
   function getSeverityColor(severity) {
     switch (severity) {
-      case 'error': return 'var(--error)';
-      case 'warning': return 'var(--warning)';
-      case 'info': return 'var(--info)';
-      default: return 'var(--muted)';
+      case 'error':
+        return 'var(--error)';
+      case 'warning':
+        return 'var(--warning)';
+      case 'info':
+        return 'var(--info)';
+      default:
+        return 'var(--muted)';
     }
   }
 
   function getSeverityIcon(severity) {
     switch (severity) {
-      case 'error': return '❌';
-      case 'warning': return '⚠️';
-      case 'info': return 'ℹ️';
-      default: return '📝';
+      case 'error':
+        return '❌';
+      case 'warning':
+        return '⚠️';
+      case 'info':
+        return 'ℹ️';
+      default:
+        return '📝';
     }
   }
 
@@ -356,15 +364,17 @@
         type: 'line',
         data: {
           labels: last24Hours.map(h => h.getHours() + ':00'),
-          datasets: [{
-            label: 'Errors',
-            data: hourlyData,
-            borderColor: colors.error,
-            backgroundColor: `${colors.error}33`,
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4
-          }]
+          datasets: [
+            {
+              label: 'Errors',
+              data: hourlyData,
+              borderColor: colors.error,
+              backgroundColor: `${colors.error}33`,
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -416,12 +426,14 @@
         type: 'pie',
         data: {
           labels: ['Errors', 'Warnings', 'Info'],
-          datasets: [{
-            data: severityData,
-            backgroundColor: [colors.error, colors.warning, colors.info],
-            borderColor: [colors.error, colors.warning, colors.info],
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: severityData,
+              backgroundColor: [colors.error, colors.warning, colors.info],
+              borderColor: [colors.error, colors.warning, colors.info],
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -458,13 +470,15 @@
         type: 'bar',
         data: {
           labels: sortedTypes.map(([type]) => type),
-          datasets: [{
-            label: 'Count',
-            data: sortedTypes.map(([, count]) => count),
-            backgroundColor: colors.accent,
-            borderColor: colors.accent,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Count',
+              data: sortedTypes.map(([, count]) => count),
+              backgroundColor: colors.accent,
+              borderColor: colors.accent,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -521,9 +535,7 @@
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">
           <span aria-hidden="true">⚠️</span> Error Log
         </h1>
-        <p class="text-base text-[var(--muted)] font-sans">
-          Application errors and warnings
-        </p>
+        <p class="text-base text-[var(--muted)] font-sans">Application errors and warnings</p>
       </div>
       <div class="flex items-center gap-3 flex-wrap justify-end">
         <span class="text-sm text-[var(--muted)] font-mono" role="status" aria-live="polite">
@@ -531,10 +543,11 @@
         </span>
         <button
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all"
-          onclick={() => showCharts = !showCharts}
+          onclick={() => (showCharts = !showCharts)}
           aria-label="Toggle charts visibility"
         >
-          <span aria-hidden="true">📊</span> {showCharts ? 'Hide' : 'Show'} Charts
+          <span aria-hidden="true">📊</span>
+          {showCharts ? 'Hide' : 'Show'} Charts
         </button>
         <button
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all"
@@ -552,7 +565,11 @@
         </button>
         <button
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          onclick={() => { currentPage = 0; loadErrors(true); loadStats(); }}
+          onclick={() => {
+            currentPage = 0;
+            loadErrors(true);
+            loadStats();
+          }}
           disabled={loading}
           aria-label="Refresh error log"
         >
@@ -572,15 +589,21 @@
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Last Hour</div>
         <div class="text-2xl text-[var(--text)] font-mono font-bold">{stats.recent_count}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--error)] rounded-lg p-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--error)] rounded-lg p-4"
+      >
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Errors</div>
         <div class="text-2xl text-[var(--text)] font-mono font-bold">{severityStats.error}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--warning)] rounded-lg p-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--warning)] rounded-lg p-4"
+      >
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Warnings</div>
         <div class="text-2xl text-[var(--text)] font-mono font-bold">{severityStats.warning}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--info)] rounded-lg p-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--info)] rounded-lg p-4"
+      >
         <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Info</div>
         <div class="text-2xl text-[var(--text)] font-mono font-bold">{severityStats.info}</div>
       </div>
@@ -590,7 +613,9 @@
     {#if showCharts && errors.length > 0}
       <div class="mb-6" role="region" aria-label="Error charts">
         <div class="grid grid-cols-2 gap-4">
-          <div class="col-span-2 bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
+          <div
+            class="col-span-2 bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+          >
             <h3 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide mb-4">
               Error Rate Over Time (Last 24 Hours)
             </h3>
@@ -599,7 +624,9 @@
             </div>
           </div>
 
-          <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+          >
             <h3 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide mb-4">
               Errors by Severity
             </h3>
@@ -608,7 +635,9 @@
             </div>
           </div>
 
-          <div class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] border-l-[var(--accent)] rounded-lg p-4"
+          >
             <h3 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide mb-4">
               Most Common Error Types
             </h3>
@@ -634,25 +663,34 @@
 
       <div class="flex gap-3 mb-4 flex-wrap">
         <button
-          class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter === 'all' ? 'bg-[var(--accent)] text-white border border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
+          class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter === 'all'
+            ? 'bg-[var(--accent)] text-white border border-[var(--accent)]'
+            : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
           onclick={() => handleSeverityFilter('all')}
         >
           All ({stats.total})
         </button>
         <button
-          class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter === 'error' ? 'bg-[var(--accent)] text-white border border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
+          class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter === 'error'
+            ? 'bg-[var(--accent)] text-white border border-[var(--accent)]'
+            : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
           onclick={() => handleSeverityFilter('error')}
         >
           ❌ Errors ({severityStats.error})
         </button>
         <button
-          class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter === 'warning' ? 'bg-[var(--accent)] text-white border border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
+          class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter ===
+          'warning'
+            ? 'bg-[var(--accent)] text-white border border-[var(--accent)]'
+            : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
           onclick={() => handleSeverityFilter('warning')}
         >
           ⚠️ Warnings ({severityStats.warning})
         </button>
         <button
-          class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter === 'info' ? 'bg-[var(--accent)] text-white border border-[var(--accent)]' : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
+          class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter === 'info'
+            ? 'bg-[var(--accent)] text-white border border-[var(--accent)]'
+            : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
           onclick={() => handleSeverityFilter('info')}
         >
           ℹ️ Info ({severityStats.info})
@@ -680,7 +718,9 @@
       {#if loading && errors.length === 0}
         <div class="space-y-4">
           {#each Array(8) as _, i (i)}
-            <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+            <div
+              class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            ></div>
           {/each}
         </div>
       {:else if error}
@@ -705,17 +745,24 @@
           getKey={err => err.id}
           let:item
         >
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden transition-all hover:border-[var(--accent)] hover:shadow-lg {selectedError?.id === item.id ? 'border-[var(--accent)]' : ''}">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden transition-all hover:border-[var(--accent)] hover:shadow-lg {selectedError?.id ===
+            item.id
+              ? 'border-[var(--accent)]'
+              : ''}"
+          >
             <button
               class="w-full text-left p-4 flex justify-between items-center cursor-pointer focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2"
               onclick={() => toggleError(item)}
-              onkeydown={(e) => e.key === 'Enter' && toggleError(item)}
+              onkeydown={e => e.key === 'Enter' && toggleError(item)}
               aria-expanded={selectedError?.id === item.id}
               aria-label="Toggle error details for {item.message}"
               tabindex="0"
             >
               <div class="flex items-center gap-3 flex-1 min-w-0">
-                <span class="text-sm text-[var(--muted)]">{selectedError?.id === item.id ? '▼' : '▶'}</span>
+                <span class="text-sm text-[var(--muted)]"
+                  >{selectedError?.id === item.id ? '▼' : '▶'}</span
+                >
                 <span class="text-lg" style="color: {getSeverityColor(item.severity)}">
                   {getSeverityIcon(item.severity)}
                 </span>
@@ -733,10 +780,14 @@
                 </div>
               </div>
               <div class="flex items-center gap-3 flex-shrink-0">
-                <span class="text-xs text-[var(--muted)] font-mono">{formatDateTime(item.timestamp)}</span>
+                <span class="text-xs text-[var(--muted)] font-mono"
+                  >{formatDateTime(item.timestamp)}</span
+                >
                 <span
                   class="px-3 py-1 bg-[var(--bg)] border text-xs font-bold uppercase rounded"
-                  style="border-color: {getSeverityColor(item.severity)}; color: {getSeverityColor(item.severity)}"
+                  style="border-color: {getSeverityColor(item.severity)}; color: {getSeverityColor(
+                    item.severity
+                  )}"
                 >
                   {item.severity}
                 </span>
@@ -755,20 +806,32 @@
                     <div class="text-sm text-[var(--text)] font-mono">{item.error_type}</div>
                   </div>
                   <div>
-                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-1">Severity</div>
-                    <div class="text-sm font-mono" style="color: {getSeverityColor(item.severity)}">{item.severity}</div>
+                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-1">
+                      Severity
+                    </div>
+                    <div class="text-sm font-mono" style="color: {getSeverityColor(item.severity)}">
+                      {item.severity}
+                    </div>
                   </div>
                   <div>
-                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-1">Component</div>
-                    <div class="text-sm text-[var(--text)] font-mono">{item.component || 'Unknown'}</div>
+                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-1">
+                      Component
+                    </div>
+                    <div class="text-sm text-[var(--text)] font-mono">
+                      {item.component || 'Unknown'}
+                    </div>
                   </div>
                   <div class="md:col-span-2">
-                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-1">Timestamp</div>
+                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-1">
+                      Timestamp
+                    </div>
                     <div class="text-sm text-[var(--text)] font-mono">{item.timestamp}</div>
                   </div>
                   {#if item.url}
                     <div class="md:col-span-2">
-                      <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-1">URL</div>
+                      <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-1">
+                        URL
+                      </div>
                       <div class="text-sm text-[var(--text)] font-mono break-all">{item.url}</div>
                     </div>
                   {/if}
@@ -776,22 +839,35 @@
 
                 {#if item.stack}
                   <div class="mt-4">
-                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Stack Trace</div>
-                    <pre class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-72 overflow-y-auto">{item.stack}</pre>
+                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
+                      Stack Trace
+                    </div>
+                    <pre
+                      class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-72 overflow-y-auto">{item.stack}</pre>
                   </div>
                 {/if}
 
                 {#if item.metadata}
                   <div class="mt-4">
-                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">Metadata</div>
-                    <pre class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-72 overflow-y-auto">{JSON.stringify(item.metadata, null, 2)}</pre>
+                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
+                      Metadata
+                    </div>
+                    <pre
+                      class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-72 overflow-y-auto">{JSON.stringify(
+                        item.metadata,
+                        null,
+                        2
+                      )}</pre>
                   </div>
                 {/if}
 
                 {#if item.user_agent}
                   <div class="mt-4">
-                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">User Agent</div>
-                    <pre class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs font-mono text-[var(--text)] overflow-x-auto">{item.user_agent}</pre>
+                    <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
+                      User Agent
+                    </div>
+                    <pre
+                      class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs font-mono text-[var(--text)] overflow-x-auto">{item.user_agent}</pre>
                   </div>
                 {/if}
               </div>
@@ -800,7 +876,9 @@
         </VirtualScroll>
 
         <!-- Pagination -->
-        <div class="flex justify-center items-center gap-4 mt-6 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+        <div
+          class="flex justify-center items-center gap-4 mt-6 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg"
+        >
           <button
             class="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             onclick={prevPage}
@@ -809,7 +887,10 @@
             ← Previous
           </button>
           <span class="text-sm text-[var(--muted)] font-mono">
-            Page {currentPage + 1} • {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalErrors)} of {totalErrors}
+            Page {currentPage + 1} • {currentPage * pageSize + 1}-{Math.min(
+              (currentPage + 1) * pageSize,
+              totalErrors
+            )} of {totalErrors}
           </span>
           <button
             class="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"

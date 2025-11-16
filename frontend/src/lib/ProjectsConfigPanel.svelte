@@ -71,9 +71,6 @@
         body: JSON.stringify({ basePath: config.basePath })
       });
 
-        const errorData = await response.json().catch(() => ({}));
-      }
-
       const data = await response.json();
       discoveredProjects = data.discovered;
 
@@ -104,10 +101,6 @@
         body: JSON.stringify(project)
       });
 
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to add project');
-      }
-
       await loadConfig();
       discoveredProjects = discoveredProjects.filter(p => p.name !== project.name);
       showSuccess(`Project "${project.name}" added`);
@@ -123,10 +116,6 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to add project');
-      }
 
       await loadConfig();
       showAddModal = false;
@@ -144,10 +133,6 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update project');
-      }
 
       await loadConfig();
       showEditModal = false;
@@ -167,10 +152,6 @@
           method: 'DELETE'
         });
 
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to delete project');
-        }
-
         await loadConfig();
         showSuccess('Project removed successfully');
       } catch (err) {
@@ -189,7 +170,6 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !project.enabled })
       });
-
 
       await loadConfig();
       showSuccess(`Project ${project.enabled ? 'disabled' : 'enabled'}`);
@@ -217,7 +197,9 @@
       // Construct absolute path using basePath from config
       if (config.basePath && directoryName) {
         // Remove trailing slash from basePath if present
-        const cleanBasePath = config.basePath.endsWith('/') ? config.basePath.slice(0, -1) : config.basePath;
+        const cleanBasePath = config.basePath.endsWith('/')
+          ? config.basePath.slice(0, -1)
+          : config.basePath;
         formData.path = `${cleanBasePath}/${directoryName}`;
       } else {
         // Fallback: just show the directory name if basePath not available
@@ -263,7 +245,7 @@
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
   function formatNumber(num) {
@@ -278,10 +260,18 @@
       <p class="subtitle">Manage which projects Raven monitors</p>
     </div>
     <div class="header-right" role="toolbar" aria-label="Project configuration actions">
-      <button class="btn btn-secondary btn-sm" on:click={discoverProjects} disabled={discovering} aria-label={discovering ? 'Discovering projects' : 'Discover projects automatically'}>
-        <span aria-hidden="true">{discovering ? '🔍' : '🔍'}</span> {discovering ? 'Discovering...' : 'Discover Projects'}
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={discoverProjects}
+        disabled={discovering}
+        aria-label={discovering ? 'Discovering projects' : 'Discover projects automatically'}
+      >
+        <span aria-hidden="true">{discovering ? '🔍' : '🔍'}</span>
+        {discovering ? 'Discovering...' : 'Discover Projects'}
       </button>
-      <button class="btn btn-primary btn-sm" on:click={openAddModal} aria-label="Add new project">+ Add Project</button>
+      <button class="btn btn-primary btn-sm" on:click={openAddModal} aria-label="Add new project"
+        >+ Add Project</button
+      >
     </div>
   </div>
 
@@ -292,72 +282,103 @@
       <p><span aria-hidden="true">❌</span> Error: {error}</p>
       <button on:click={loadConfig} aria-label="Retry loading configuration">Try Again</button>
     </div>
+  {:else if config.projects.length === 0}
+    <div class="empty-state" role="status">
+      <p><span aria-hidden="true">📭</span> No projects configured</p>
+      <p class="hint">Add a project or discover projects automatically</p>
+      <button
+        class="btn btn-primary btn-sm"
+        on:click={discoverProjects}
+        aria-label="Discover projects automatically"
+        ><span aria-hidden="true">🔍</span> Discover Projects</button
+      >
+    </div>
   {:else}
-    {#if config.projects.length === 0}
-      <div class="empty-state" role="status">
-        <p><span aria-hidden="true">📭</span> No projects configured</p>
-        <p class="hint">Add a project or discover projects automatically</p>
-        <button class="btn btn-primary btn-sm" on:click={discoverProjects} aria-label="Discover projects automatically"><span aria-hidden="true">🔍</span> Discover Projects</button>
-      </div>
-    {:else}
-      <div class="projects-grid" role="list" aria-labelledby="projects-config-heading">
-        {#each config.projects as project (project.name)}
-          <div class="project-card" class:disabled={!project.enabled}>
-            <div class="project-header">
-              <div class="project-info">
-                <h3>{project.name}</h3>
-                <span class="project-id">{project.name}</span>
-              </div>
-              <div class="project-actions">
-                <button
-                  class="btn-toggle"
-                  class:active={project.enabled}
-                  on:click={() => toggleProject(project)}
-                  title={project.enabled ? 'Disable monitoring' : 'Enable monitoring'}
-                >
-                  {project.enabled ? '✓ Enabled' : '○ Disabled'}
-                </button>
-              </div>
+    <div class="projects-grid" role="list" aria-labelledby="projects-config-heading">
+      {#each config.projects as project (project.name)}
+        <div class="project-card" class:disabled={!project.enabled}>
+          <div class="project-header">
+            <div class="project-info">
+              <h3>{project.name}</h3>
+              <span class="project-id">{project.name}</span>
             </div>
-
-            <div class="project-details">
-              <div class="detail-row">
-                <span class="label">Path:</span>
-                <span class="value mono">{project.path}</span>
-              </div>
-              <div class="detail-row">
-                <span class="label">Database:</span>
-                <span class="value mono">
-                  {formatBytes(project.dbSize)} ({formatNumber(project.eventCount)} events)
-                </span>
-              </div>
-              {#if project.ignorePatterns && project.ignorePatterns.length > 0}
-                <div class="detail-row">
-                  <span class="label">Ignore Patterns:</span>
-                  <span class="value">{project.ignorePatterns.join(', ')}</span>
-                </div>
-              {/if}
-            </div>
-
-            <div class="project-footer">
-              <button class="btn btn-secondary btn-sm" on:click={() => openEditModal(project)}>✏️ Edit</button>
-              <button class="btn btn-ghost btn-sm" on:click={() => deleteProject(project.name, false)}>🗑️ Remove</button>
-              <button class="btn btn-danger btn-sm" on:click={() => deleteProject(project.name, true)}>🗑️ Delete DB</button>
+            <div class="project-actions">
+              <button
+                class="btn-toggle"
+                class:active={project.enabled}
+                on:click={() => toggleProject(project)}
+                title={project.enabled ? 'Disable monitoring' : 'Enable monitoring'}
+              >
+                {project.enabled ? '✓ Enabled' : '○ Disabled'}
+              </button>
             </div>
           </div>
-        {/each}
-      </div>
-    {/if}
+
+          <div class="project-details">
+            <div class="detail-row">
+              <span class="label">Path:</span>
+              <span class="value mono">{project.path}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Database:</span>
+              <span class="value mono">
+                {formatBytes(project.dbSize)} ({formatNumber(project.eventCount)} events)
+              </span>
+            </div>
+            {#if project.ignorePatterns && project.ignorePatterns.length > 0}
+              <div class="detail-row">
+                <span class="label">Ignore Patterns:</span>
+                <span class="value">{project.ignorePatterns.join(', ')}</span>
+              </div>
+            {/if}
+          </div>
+
+          <div class="project-footer">
+            <button class="btn btn-secondary btn-sm" on:click={() => openEditModal(project)}
+              >✏️ Edit</button
+            >
+            <button class="btn btn-ghost btn-sm" on:click={() => deleteProject(project.name, false)}
+              >🗑️ Remove</button
+            >
+            <button class="btn btn-danger btn-sm" on:click={() => deleteProject(project.name, true)}
+              >🗑️ Delete DB</button
+            >
+          </div>
+        </div>
+      {/each}
+    </div>
   {/if}
 </div>
 
 <!-- Add/Edit Project Modal -->
 {#if showAddModal || showEditModal}
-  <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => { showAddModal = false; showEditModal = false; }} on:keydown={(e) => e.key === 'Escape' && (showAddModal = false, showEditModal = false)}>
-    <div class="modal" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()}>
+  <div
+    class="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    on:click={() => {
+      showAddModal = false;
+      showEditModal = false;
+    }}
+    on:keydown={e => e.key === 'Escape' && ((showAddModal = false), (showEditModal = false))}
+  >
+    <div
+      class="modal"
+      role="dialog"
+      tabindex="-1"
+      on:click|stopPropagation
+      on:keydown={e => e.stopPropagation()}
+    >
       <div class="modal-header">
         <h3>{showAddModal ? 'Add New Project' : 'Edit Project'}</h3>
-        <button class="modal-close" on:click={() => { showAddModal = false; showEditModal = false; }}>×</button>
+        <button
+          class="modal-close"
+          on:click={() => {
+            showAddModal = false;
+            showEditModal = false;
+          }}>×</button
+        >
       </div>
 
       <div class="modal-body">
@@ -382,7 +403,12 @@
               disabled={showEditModal}
             />
             {#if !showEditModal}
-              <button type="button" class="browse-btn" on:click={browseDirectory} title="Browse for directory">
+              <button
+                type="button"
+                class="browse-btn"
+                on:click={browseDirectory}
+                title="Browse for directory"
+              >
                 📁 Browse
               </button>
             {/if}
@@ -411,7 +437,8 @@
           <textarea
             id="ignore-patterns"
             value={formData.ignorePatterns.join('\n')}
-            on:input={(e) => formData.ignorePatterns = e.target.value.split('\n').filter(p => p.trim())}
+            on:input={e =>
+              (formData.ignorePatterns = e.target.value.split('\n').filter(p => p.trim()))}
             placeholder="node_modules/**&#10;dist/**&#10;.git/**"
             rows="4"
           ></textarea>
@@ -420,11 +447,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="max-file-size">Max File Size (bytes)</label>
-            <input
-              id="max-file-size"
-              type="number"
-              bind:value={formData.maxFileSize}
-            />
+            <input id="max-file-size" type="number" bind:value={formData.maxFileSize} />
           </div>
 
           <div class="form-group">
@@ -441,7 +464,13 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" on:click={() => { showAddModal = false; showEditModal = false; }}>
+        <button
+          class="btn btn-secondary btn-sm"
+          on:click={() => {
+            showAddModal = false;
+            showEditModal = false;
+          }}
+        >
           Cancel
         </button>
         <button class="btn btn-primary btn-sm" on:click={showAddModal ? addProject : updateProject}>
@@ -454,11 +483,24 @@
 
 <!-- Discover Projects Modal -->
 {#if showDiscoverModal}
-  <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => showDiscoverModal = false} on:keydown={(e) => e.key === 'Escape' && (showDiscoverModal = false)}>
-    <div class="modal" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()}>
+  <div
+    class="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    on:click={() => (showDiscoverModal = false)}
+    on:keydown={e => e.key === 'Escape' && (showDiscoverModal = false)}
+  >
+    <div
+      class="modal"
+      role="dialog"
+      tabindex="-1"
+      on:click|stopPropagation
+      on:keydown={e => e.stopPropagation()}
+    >
       <div class="modal-header">
         <h3>🔍 Discovered Projects</h3>
-        <button class="modal-close" on:click={() => showDiscoverModal = false}>×</button>
+        <button class="modal-close" on:click={() => (showDiscoverModal = false)}>×</button>
       </div>
 
       <div class="modal-body">
@@ -485,7 +527,9 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" on:click={() => showDiscoverModal = false}>Close</button>
+        <button class="btn btn-secondary btn-sm" on:click={() => (showDiscoverModal = false)}
+          >Close</button
+        >
       </div>
     </div>
   </div>
@@ -493,11 +537,24 @@
 
 <!-- Confirmation Modal -->
 {#if showConfirmModal}
-  <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => showConfirmModal = false} on:keydown={(e) => e.key === 'Escape' && (showConfirmModal = false)}>
-    <div class="modal modal-confirm" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()}>
+  <div
+    class="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    on:click={() => (showConfirmModal = false)}
+    on:keydown={e => e.key === 'Escape' && (showConfirmModal = false)}
+  >
+    <div
+      class="modal modal-confirm"
+      role="dialog"
+      tabindex="-1"
+      on:click|stopPropagation
+      on:keydown={e => e.stopPropagation()}
+    >
       <div class="modal-header">
         <h3>⚠️ Confirm Action</h3>
-        <button class="modal-close" on:click={() => showConfirmModal = false}>×</button>
+        <button class="modal-close" on:click={() => (showConfirmModal = false)}>×</button>
       </div>
 
       <div class="modal-body">
@@ -505,12 +562,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" on:click={() => showConfirmModal = false}>
+        <button class="btn btn-secondary btn-sm" on:click={() => (showConfirmModal = false)}>
           Cancel
         </button>
-        <button class="btn btn-danger btn-sm" on:click={confirmAction}>
-          Confirm
-        </button>
+        <button class="btn btn-danger btn-sm" on:click={confirmAction}> Confirm </button>
       </div>
     </div>
   </div>
@@ -567,7 +622,7 @@
 
   .project-card:hover {
     border-color: var(--accent);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .project-header {
@@ -640,7 +695,8 @@
 
   /* Button styles removed - using global .btn classes */
 
-  .empty-state, .error-state {
+  .empty-state,
+  .error-state {
     text-align: center;
     padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
@@ -648,7 +704,8 @@
     border-radius: var(--radius);
   }
 
-  .empty-state p, .error-state p {
+  .empty-state p,
+  .error-state p {
     margin: var(--space-lg) 0;
     color: var(--text);
   }
@@ -738,8 +795,8 @@
     margin-bottom: var(--space-md);
   }
 
-  .form-group input[type="text"],
-  .form-group input[type="number"],
+  .form-group input[type='text'],
+  .form-group input[type='number'],
   .form-group textarea {
     width: 100%;
     padding: var(--space-lg) var(--space-xl);

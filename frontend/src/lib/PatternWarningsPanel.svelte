@@ -8,7 +8,11 @@
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import Chart from 'chart.js/auto';
-  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+  import {
+    initializeCharts,
+    setupChartThemeObserver,
+    getChartThemeColors
+  } from './utils/chartHelpers.js';
 
   let warnings = [];
   let loading = true;
@@ -47,9 +51,10 @@
         limit = 30; // Reset limit when fetching fresh
       }
 
-      const url = selectedCategory === 'all'
-        ? `/api/pattern-warnings?limit=${limit}`
-        : `/api/pattern-warnings/category/${selectedCategory}?limit=${limit}`;
+      const url =
+        selectedCategory === 'all'
+          ? `/api/pattern-warnings?limit=${limit}`
+          : `/api/pattern-warnings/category/${selectedCategory}?limit=${limit}`;
 
       const response = await fetch(url);
 
@@ -85,7 +90,6 @@
         method: 'POST'
       });
 
-
       notifications.success('Warning marked as resolved');
       await fetchWarnings();
     } catch (error) {
@@ -101,9 +105,10 @@
     }
 
     try {
-      const url = selectedCategory === 'all'
-        ? '/api/pattern-warnings/resolve-all'
-        : `/api/pattern-warnings/resolve-all?category=${selectedCategory}`;
+      const url =
+        selectedCategory === 'all'
+          ? '/api/pattern-warnings/resolve-all'
+          : `/api/pattern-warnings/resolve-all?category=${selectedCategory}`;
 
       const response = await fetch(url, { method: 'POST' });
 
@@ -157,7 +162,7 @@
 
   // Subscribe to WebSocket for real-time updates
   function setupWebSocket() {
-    ws = websocketService.subscribe('pattern-warning', (data) => {
+    ws = websocketService.subscribe('pattern-warning', data => {
       logger.info('Pattern warning detected:', data);
 
       // Show desktop notification for critical patterns
@@ -202,9 +207,8 @@
   }
 
   // Filter warnings by selected project
-  $: filteredWarnings = selectedProject === 'all'
-    ? warnings
-    : warnings.filter(w => w.project_name === selectedProject);
+  $: filteredWarnings =
+    selectedProject === 'all' ? warnings : warnings.filter(w => w.project_name === selectedProject);
 
   // Group filtered warnings by file
   $: warningsByFile = filteredWarnings.reduce((acc, warning) => {
@@ -233,10 +237,14 @@
   // Get severity color
   function getSeverityColor(severity) {
     switch (severity) {
-    case 'critical': return 'var(--error)';
-    case 'warning': return 'var(--warning)';
-    case 'info': return 'var(--info)';
-    default: return 'var(--muted)';
+      case 'critical':
+        return 'var(--error)';
+      case 'warning':
+        return 'var(--warning)';
+      case 'info':
+        return 'var(--info)';
+      default:
+        return 'var(--muted)';
     }
   }
 
@@ -286,19 +294,23 @@
       categoryChart = new Chart(categoryCanvas, {
         type: 'pie',
         data: {
-          labels: Object.keys(categoryData).map(c => categories.find(cat => cat.id === c)?.label || c),
-          datasets: [{
-            data: Object.values(categoryData),
-            backgroundColor: [
-              colors.error,
-              colors.warning,
-              colors.info,
-              colors.success,
-              colors.accent
-            ],
-            borderWidth: 2,
-            borderColor: colors.grid
-          }]
+          labels: Object.keys(categoryData).map(
+            c => categories.find(cat => cat.id === c)?.label || c
+          ),
+          datasets: [
+            {
+              data: Object.values(categoryData),
+              backgroundColor: [
+                colors.error,
+                colors.warning,
+                colors.info,
+                colors.success,
+                colors.accent
+              ],
+              borderWidth: 2,
+              borderColor: colors.grid
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -314,7 +326,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   const label = context.label || '';
                   const value = context.parsed || 0;
                   const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -340,16 +352,14 @@
         type: 'doughnut',
         data: {
           labels: Object.keys(severityData).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
-          datasets: [{
-            data: Object.values(severityData),
-            backgroundColor: [
-              colors.error,
-              colors.warning,
-              colors.info
-            ],
-            borderWidth: 2,
-            borderColor: colors.grid
-          }]
+          datasets: [
+            {
+              data: Object.values(severityData),
+              backgroundColor: [colors.error, colors.warning, colors.info],
+              borderWidth: 2,
+              borderColor: colors.grid
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -365,7 +375,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   const label = context.label || '';
                   const value = context.parsed || 0;
                   const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -396,13 +406,15 @@
         type: 'bar',
         data: {
           labels: topFiles.map(f => f[0]),
-          datasets: [{
-            label: 'Warnings',
-            data: topFiles.map(f => f[1]),
-            backgroundColor: colors.warning,
-            borderColor: colors.warning,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Warnings',
+              data: topFiles.map(f => f[1]),
+              backgroundColor: colors.warning,
+              borderColor: colors.warning,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           indexAxis: 'y',
@@ -414,7 +426,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   return `Warnings: ${context.parsed.x}`;
                 }
               }
@@ -460,13 +472,15 @@
         type: 'bar',
         data: {
           labels: Object.keys(projectData),
-          datasets: [{
-            label: 'Warnings',
-            data: Object.values(projectData),
-            backgroundColor: colors.accent,
-            borderColor: colors.accent,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Warnings',
+              data: Object.values(projectData),
+              backgroundColor: colors.accent,
+              borderColor: colors.accent,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -477,7 +491,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   return `Warnings: ${context.parsed.y}`;
                 }
               }
@@ -521,7 +535,12 @@
     <div class="header-top">
       <h2 id="pattern-warnings-heading">Code Pattern Warnings</h2>
       <div class="header-actions">
-        <button class="action-btn" on:click={fetchWarnings} aria-label="Refresh pattern warnings" title="Refresh">
+        <button
+          class="action-btn"
+          on:click={fetchWarnings}
+          aria-label="Refresh pattern warnings"
+          title="Refresh"
+        >
           <span aria-hidden="true">↻</span>
         </button>
         {#if warningCount > 0}
@@ -529,7 +548,7 @@
             <button
               class="action-btn export-btn"
               on:click={toggleExportDropdown}
-              on:keydown={(e) => {
+              on:keydown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   toggleExportDropdown();
@@ -549,7 +568,7 @@
               <div class="dropdown-menu" role="menu">
                 <button
                   on:click={() => exportWarnings('csv')}
-                  on:keydown={(e) => {
+                  on:keydown={e => {
                     if (e.key === 'Escape') {
                       showExportDropdown = false;
                     }
@@ -561,7 +580,7 @@
                 </button>
                 <button
                   on:click={() => exportWarnings('json')}
-                  on:keydown={(e) => {
+                  on:keydown={e => {
                     if (e.key === 'Escape') {
                       showExportDropdown = false;
                     }
@@ -574,7 +593,12 @@
               </div>
             {/if}
           </div>
-          <button class="action-btn resolve-all-btn" on:click={resolveAllWarnings} aria-label="Resolve all warnings" title="Resolve All">
+          <button
+            class="action-btn resolve-all-btn"
+            on:click={resolveAllWarnings}
+            aria-label="Resolve all warnings"
+            title="Resolve All"
+          >
             <span aria-hidden="true">✓</span>
             <span class="btn-label">Resolve All</span>
           </button>
@@ -582,7 +606,8 @@
       </div>
     </div>
     <p class="panel-description">
-      Automatic detection of problematic patterns: hardcoded secrets, debug statements, and code quality issues
+      Automatic detection of problematic patterns: hardcoded secrets, debug statements, and code
+      quality issues
     </p>
   </div>
 
@@ -590,13 +615,13 @@
   <div class="filters-container">
     <!-- Category Filter -->
     <div class="filter-group">
-      <label class="filter-label">Category:</label>
+      <span class="filter-label">Category:</span>
       <div class="category-filter" role="radiogroup" aria-label="Filter warnings by category">
         {#each categories as category (category)}
           <button
             class="category-btn"
             class:active={selectedCategory === category.id}
-            on:click={() => selectedCategory = category.id}
+            on:click={() => (selectedCategory = category.id)}
             role="radio"
             aria-checked={selectedCategory === category.id}
             aria-label="{category.label} warnings filter"
@@ -611,12 +636,12 @@
     <!-- Project Filter -->
     {#if projects.length > 0}
       <div class="filter-group">
-        <label class="filter-label">Project:</label>
+        <span class="filter-label">Project:</span>
         <div class="project-filter">
           <button
             class="project-btn"
             class:active={selectedProject === 'all'}
-            on:click={() => selectedProject = 'all'}
+            on:click={() => (selectedProject = 'all')}
           >
             All Projects
           </button>
@@ -624,7 +649,7 @@
             <button
               class="project-btn"
               class:active={selectedProject === project}
-              on:click={() => selectedProject = project}
+              on:click={() => (selectedProject = project)}
             >
               {project}
             </button>
@@ -734,7 +759,7 @@
           <div class="file-header">
             <div class="file-header-left">
               <span class="file-icon" aria-hidden="true">📄</span>
-              <span class="file-path" title="{filepath}">{shortenPath(filepath)}</span>
+              <span class="file-path" title={filepath}>{shortenPath(filepath)}</span>
             </div>
             <div class="file-badges">
               {#if fileWarnings[0]?.project_name}
@@ -749,11 +774,19 @@
 
           <div class="warnings" role="list" aria-label="Warnings in {filepath}">
             {#each fileWarnings as warning (warning.id || warning.name || warning)}
-              <article class="warning-item" style="--severity-color: {getSeverityColor(warning.severity)}" role="listitem">
+              <article
+                class="warning-item"
+                style="--severity-color: {getSeverityColor(warning.severity)}"
+                role="listitem"
+              >
                 <div class="warning-header">
                   <div class="warning-title-group">
                     <span class="warning-name">{warning.pattern_name}</span>
-                    <span class="severity-badge" style="background: {getSeverityColor(warning.severity)}" role="status">
+                    <span
+                      class="severity-badge"
+                      style="background: {getSeverityColor(warning.severity)}"
+                      role="status"
+                    >
                       {warning.severity}
                     </span>
                   </div>
@@ -790,7 +823,9 @@
               Load More ({formatNumber(Math.min(30, warningCount - filteredCount))} more)
             {/if}
           </button>
-          <span class="load-more-info">Showing {formatNumber(filteredCount)} of {formatNumber(warningCount)}</span>
+          <span class="load-more-info"
+            >Showing {formatNumber(filteredCount)} of {formatNumber(warningCount)}</span
+          >
         </div>
       {/if}
     </div>
@@ -1130,8 +1165,8 @@
     height: 300px;
   }
 
-  /* Loading & Empty States */
-  .loading, .empty-state {
+  /* Empty State */
+  .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1139,15 +1174,6 @@
     padding: var(--space-lg) var(--space-xl);
     gap: var(--space-lg);
     text-align: center;
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
   }
 
   .empty-icon {

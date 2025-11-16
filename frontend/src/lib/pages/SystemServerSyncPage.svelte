@@ -48,28 +48,40 @@
   // Derived state for connection status
   const connectionStatusIcon = $derived(() => {
     switch (connectionStatus) {
-      case 'success': return '✅';
-      case 'failed': return '❌';
-      case 'testing': return '⏳';
-      default: return '❓';
+      case 'success':
+        return '✅';
+      case 'failed':
+        return '❌';
+      case 'testing':
+        return '⏳';
+      default:
+        return '❓';
     }
   });
 
   const connectionStatusText = $derived(() => {
     switch (connectionStatus) {
-      case 'success': return `Connection successful${lastConnectionTest ? ` (tested ${formatRelativeTime(lastConnectionTest)})` : ''}`;
-      case 'failed': return 'Connection failed';
-      case 'testing': return 'Testing connection...';
-      default: return 'Not tested';
+      case 'success':
+        return `Connection successful${lastConnectionTest ? ` (tested ${formatRelativeTime(lastConnectionTest)})` : ''}`;
+      case 'failed':
+        return 'Connection failed';
+      case 'testing':
+        return 'Testing connection...';
+      default:
+        return 'Not tested';
     }
   });
 
   const connectionStatusClass = $derived(() => {
     switch (connectionStatus) {
-      case 'success': return 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/30';
-      case 'failed': return 'bg-[var(--error)]/10 text-[var(--error)] border-[var(--error)]/30';
-      case 'testing': return 'bg-[var(--warning)]/10 text-[var(--warning)] border-[var(--warning)]/30';
-      default: return '';
+      case 'success':
+        return 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/30';
+      case 'failed':
+        return 'bg-[var(--error)]/10 text-[var(--error)] border-[var(--error)]/30';
+      case 'testing':
+        return 'bg-[var(--warning)]/10 text-[var(--warning)] border-[var(--warning)]/30';
+      default:
+        return '';
     }
   });
 
@@ -120,7 +132,7 @@
       });
 
       if (saveStatusTimeout) clearTimeout(saveStatusTimeout);
-      saveStatusTimeout = setTimeout(() => saveStatus = null, 3000);
+      saveStatusTimeout = setTimeout(() => (saveStatus = null), 3000);
     } catch (error) {
       logger.error('Failed to save config:', error);
       saveStatus = 'error';
@@ -349,7 +361,9 @@
     <div class="flex justify-between items-start mb-6 gap-4">
       <div class="flex-1">
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1 font-sans">🌐 Server Sync</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Backup Raven data to your own server via SSH</p>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Backup Raven data to your own server via SSH
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <span class="text-xs text-[var(--muted)] font-mono">Updated: {timeAgo}</span>
@@ -358,24 +372,28 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors font-sans disabled:opacity-50"
         >
-          <span class="inline-block transition-transform" class:animate-spin={isManualRefresh}>🔄</span>
+          <span class="inline-block transition-transform" class:animate-spin={isManualRefresh}
+            >🔄</span
+          >
           Refresh
         </button>
       </div>
     </div>
 
     {#if loading && !config.host}
-      <div class="text-center py-12 text-[var(--muted)] font-mono">
-        Loading configuration...
-      </div>
+      <div class="text-center py-12 text-[var(--muted)] font-mono">Loading configuration...</div>
     {:else}
       <!-- Server Configuration -->
       <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-4">
-        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">Server Configuration</h3>
+        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          Server Configuration
+        </h3>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div class="col-span-2">
-            <label for="host" class="block text-xs font-semibold text-[var(--text)] mb-2 font-sans">Host / IP Address</label>
+            <label for="host" class="block text-xs font-semibold text-[var(--text)] mb-2 font-sans"
+              >Host / IP Address</label
+            >
             <input
               id="host"
               type="text"
@@ -386,7 +404,9 @@
           </div>
 
           <div>
-            <label for="port" class="block text-xs font-semibold text-[var(--text)] mb-2 font-sans">Port</label>
+            <label for="port" class="block text-xs font-semibold text-[var(--text)] mb-2 font-sans"
+              >Port</label
+            >
             <input
               id="port"
               type="number"
@@ -399,7 +419,9 @@
           </div>
 
           <div>
-            <label for="user" class="block text-xs font-semibold text-[var(--text)] mb-2 font-sans">SSH User</label>
+            <label for="user" class="block text-xs font-semibold text-[var(--text)] mb-2 font-sans"
+              >SSH User</label
+            >
             <input
               id="user"
               type="text"
@@ -410,7 +432,9 @@
           </div>
 
           <div class="col-span-2">
-            <label for="path" class="block text-xs font-semibold text-[var(--text)] mb-2 font-sans">Remote Path</label>
+            <label for="path" class="block text-xs font-semibold text-[var(--text)] mb-2 font-sans"
+              >Remote Path</label
+            >
             <input
               id="path"
               type="text"
@@ -418,7 +442,9 @@
               placeholder="/home/you/raven-backups"
               class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text)] font-mono placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
-            <small class="block mt-1 text-xs text-[var(--muted)] font-mono">Directory on your server where backups will be stored</small>
+            <small class="block mt-1 text-xs text-[var(--muted)] font-mono"
+              >Directory on your server where backups will be stored</small
+            >
           </div>
         </div>
 
@@ -441,7 +467,9 @@
         </div>
 
         {#if connectionStatus !== 'unknown'}
-          <div class="flex items-center gap-3 px-4 py-3 rounded border {connectionStatusClass} font-mono text-sm">
+          <div
+            class="flex items-center gap-3 px-4 py-3 rounded border {connectionStatusClass} font-mono text-sm"
+          >
             <span class="text-base">{connectionStatusIcon()}</span>
             <span>{connectionStatusText()}</span>
           </div>
@@ -450,30 +478,58 @@
 
       <!-- Sync Options -->
       <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-4">
-        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">What to Sync</h3>
+        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          What to Sync
+        </h3>
 
         <div class="space-y-3">
-          <label class="flex items-start gap-3 p-3 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
-            <input type="checkbox" bind:checked={config.syncDatabases} class="mt-0.5 cursor-pointer" />
+          <label
+            class="flex items-start gap-3 p-3 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              bind:checked={config.syncDatabases}
+              class="mt-0.5 cursor-pointer"
+            />
             <div class="flex-1">
-              <span class="block text-sm font-medium text-[var(--text)] font-sans">Databases (.raven/db/*.db)</span>
-              <small class="block text-xs text-[var(--muted)] font-mono mt-0.5">Main data storage with events, metrics, and logs</small>
+              <span class="block text-sm font-medium text-[var(--text)] font-sans"
+                >Databases (.raven/db/*.db)</span
+              >
+              <small class="block text-xs text-[var(--muted)] font-mono mt-0.5"
+                >Main data storage with events, metrics, and logs</small
+              >
             </div>
           </label>
 
-          <label class="flex items-start gap-3 p-3 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
-            <input type="checkbox" bind:checked={config.syncSnapshots} class="mt-0.5 cursor-pointer" />
+          <label
+            class="flex items-start gap-3 p-3 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              bind:checked={config.syncSnapshots}
+              class="mt-0.5 cursor-pointer"
+            />
             <div class="flex-1">
-              <span class="block text-sm font-medium text-[var(--text)] font-sans">Snapshots (.raven/snapshots/)</span>
-              <small class="block text-xs text-[var(--muted)] font-mono mt-0.5">Point-in-time backups of project state</small>
+              <span class="block text-sm font-medium text-[var(--text)] font-sans"
+                >Snapshots (.raven/snapshots/)</span
+              >
+              <small class="block text-xs text-[var(--muted)] font-mono mt-0.5"
+                >Point-in-time backups of project state</small
+              >
             </div>
           </label>
 
-          <label class="flex items-start gap-3 p-3 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
+          <label
+            class="flex items-start gap-3 p-3 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+          >
             <input type="checkbox" bind:checked={config.syncConfig} class="mt-0.5 cursor-pointer" />
             <div class="flex-1">
-              <span class="block text-sm font-medium text-[var(--text)] font-sans">Configuration (.raven/config/)</span>
-              <small class="block text-xs text-[var(--muted)] font-mono mt-0.5">Settings and preferences (optional)</small>
+              <span class="block text-sm font-medium text-[var(--text)] font-sans"
+                >Configuration (.raven/config/)</span
+              >
+              <small class="block text-xs text-[var(--muted)] font-mono mt-0.5"
+                >Settings and preferences (optional)</small
+              >
             </div>
           </label>
         </div>
@@ -481,37 +537,59 @@
 
       <!-- Sync Control -->
       <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-4">
-        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">Sync Control</h3>
+        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          Sync Control
+        </h3>
 
         {#if lastSync}
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-[var(--bg)] rounded mb-4">
             <div class="flex flex-col gap-1">
-              <span class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider">Last Sync</span>
-              <span class="text-sm text-[var(--text)] font-mono font-semibold">{formatDateTime(lastSync.timestamp)}</span>
+              <span class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider"
+                >Last Sync</span
+              >
+              <span class="text-sm text-[var(--text)] font-mono font-semibold"
+                >{formatDateTime(lastSync.timestamp)}</span
+              >
             </div>
             <div class="flex flex-col gap-1">
-              <span class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider">Status</span>
-              <span class="text-sm font-mono font-semibold" class:text-[var(--success)]={lastSync.status === 'success'} class:text-[var(--error)]={lastSync.status !== 'success'}>
+              <span class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider"
+                >Status</span
+              >
+              <span
+                class="text-sm font-mono font-semibold"
+                class:text-[var(--success)]={lastSync.status === 'success'}
+                class:text-[var(--error)]={lastSync.status !== 'success'}
+              >
                 {lastSync.status === 'success' ? '✅ Success' : '❌ Failed'}
               </span>
             </div>
             {#if lastSync.size}
               <div class="flex flex-col gap-1">
-                <span class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider">Size</span>
-                <span class="text-sm text-[var(--text)] font-mono font-semibold">{formatSize(lastSync.size)}</span>
+                <span class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider"
+                  >Size</span
+                >
+                <span class="text-sm text-[var(--text)] font-mono font-semibold"
+                  >{formatSize(lastSync.size)}</span
+                >
               </div>
             {/if}
             {#if lastSync.files}
               <div class="flex flex-col gap-1">
-                <span class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider">Files</span>
-                <span class="text-sm text-[var(--text)] font-mono font-semibold">{lastSync.files}</span>
+                <span class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider"
+                  >Files</span
+                >
+                <span class="text-sm text-[var(--text)] font-mono font-semibold"
+                  >{lastSync.files}</span
+                >
               </div>
             {/if}
           </div>
         {:else}
           <div class="text-center py-8 text-[var(--muted)]">
             <span class="block text-3xl mb-2">📦</span>
-            <p class="text-sm font-sans">No syncs yet. Click "Sync Now" to start your first backup.</p>
+            <p class="text-sm font-sans">
+              No syncs yet. Click "Sync Now" to start your first backup.
+            </p>
           </div>
         {/if}
 
@@ -538,26 +616,45 @@
         {/if}
 
         {#if connectionStatus !== 'success' && !syncing}
-          <p class="text-center text-sm text-[var(--muted)] font-sans">💡 Test connection first before syncing</p>
+          <p class="text-center text-sm text-[var(--muted)] font-sans">
+            💡 Test connection first before syncing
+          </p>
         {/if}
       </section>
 
       <!-- Auto-Sync Scheduler -->
       <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-4">
-        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">⏰ Auto-Sync Scheduler</h3>
+        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          ⏰ Auto-Sync Scheduler
+        </h3>
 
         <div class="space-y-4">
-          <label class="flex items-start gap-3 p-3 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
-            <input type="checkbox" bind:checked={config.autoSync} onchange={handleAutoSyncToggle} class="mt-0.5 cursor-pointer" />
+          <label
+            class="flex items-start gap-3 p-3 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              bind:checked={config.autoSync}
+              onchange={handleAutoSyncToggle}
+              class="mt-0.5 cursor-pointer"
+            />
             <div class="flex-1">
-              <span class="block text-sm font-medium text-[var(--text)] font-sans">Enable automatic sync</span>
-              <small class="block text-xs text-[var(--muted)] font-mono mt-0.5">Automatically sync at regular intervals</small>
+              <span class="block text-sm font-medium text-[var(--text)] font-sans"
+                >Enable automatic sync</span
+              >
+              <small class="block text-xs text-[var(--muted)] font-mono mt-0.5"
+                >Automatically sync at regular intervals</small
+              >
             </div>
           </label>
 
           {#if config.autoSync}
             <div class="ml-7 space-y-2">
-              <label for="sync-interval" class="block text-xs font-semibold text-[var(--text)] font-sans">Sync Interval:</label>
+              <label
+                for="sync-interval"
+                class="block text-xs font-semibold text-[var(--text)] font-sans"
+                >Sync Interval:</label
+              >
               <select
                 id="sync-interval"
                 bind:value={config.autoSyncInterval}
@@ -574,16 +671,24 @@
               </select>
               <small class="block text-xs font-mono">
                 {#if config.autoSyncInterval < 3600}
-                  <span class="text-[var(--warning)]">⚠️ Frequent syncs may increase server load</span>
+                  <span class="text-[var(--warning)]"
+                    >⚠️ Frequent syncs may increase server load</span
+                  >
                 {:else}
-                  <span class="text-[var(--success)]">✓ Good balance between freshness and performance</span>
+                  <span class="text-[var(--success)]"
+                    >✓ Good balance between freshness and performance</span
+                  >
                 {/if}
               </small>
             </div>
 
-            <div class="flex items-center gap-3 p-3 bg-[var(--surface-2)] rounded border border-[var(--accent)]">
+            <div
+              class="flex items-center gap-3 p-3 bg-[var(--surface-2)] rounded border border-[var(--accent)]"
+            >
               <span class="text-[var(--success)] text-base animate-pulse">●</span>
-              <span class="text-sm text-[var(--text)] font-sans">Auto-sync active: Next sync in ~{Math.floor(config.autoSyncInterval / 60)} minutes</span>
+              <span class="text-sm text-[var(--text)] font-sans"
+                >Auto-sync active: Next sync in ~{Math.floor(config.autoSyncInterval / 60)} minutes</span
+              >
             </div>
           {/if}
         </div>
@@ -593,7 +698,9 @@
       {#if connectionStatus === 'success' && config.host}
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-4">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-sm font-semibold text-[var(--text-heading)] font-sans">☁️ Cloud Storage</h3>
+            <h3 class="text-sm font-semibold text-[var(--text-heading)] font-sans">
+              ☁️ Cloud Storage
+            </h3>
             <button
               onclick={loadRemoteStats}
               disabled={loadingStats}
@@ -604,31 +711,53 @@
           </div>
 
           {#if loadingStats}
-            <div class="text-center py-6 text-[var(--muted)] font-mono text-sm">Loading storage stats...</div>
+            <div class="text-center py-6 text-[var(--muted)] font-mono text-sm">
+              Loading storage stats...
+            </div>
           {:else if remoteStats && remoteStats.success}
             <div class="grid grid-cols-3 gap-4 mb-4">
               <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-center">
-                <div class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider mb-2">Total Size</div>
-                <div class="text-lg text-[var(--accent)] font-mono font-bold">{formatSize(remoteStats.totalSize)}</div>
+                <div class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider mb-2">
+                  Total Size
+                </div>
+                <div class="text-lg text-[var(--accent)] font-mono font-bold">
+                  {formatSize(remoteStats.totalSize)}
+                </div>
               </div>
               <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-center">
-                <div class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider mb-2">Projects</div>
-                <div class="text-lg text-[var(--accent)] font-mono font-bold">{remoteStats.projects?.length || 0}</div>
+                <div class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider mb-2">
+                  Projects
+                </div>
+                <div class="text-lg text-[var(--accent)] font-mono font-bold">
+                  {remoteStats.projects?.length || 0}
+                </div>
               </div>
               <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-center">
-                <div class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider mb-2">Location</div>
-                <div class="text-xs text-[var(--text)] font-mono break-all">{remoteStats.remotePath}</div>
+                <div class="text-xs text-[var(--muted)] font-mono uppercase tracking-wider mb-2">
+                  Location
+                </div>
+                <div class="text-xs text-[var(--text)] font-mono break-all">
+                  {remoteStats.remotePath}
+                </div>
               </div>
             </div>
 
             {#if remoteStats.projects && remoteStats.projects.length > 0}
               <div>
-                <h4 class="text-sm font-semibold text-[var(--text)] mb-3 font-sans">Backed Up Projects</h4>
+                <h4 class="text-sm font-semibold text-[var(--text)] mb-3 font-sans">
+                  Backed Up Projects
+                </h4>
                 {#each remoteStats.projects as project (project.name || project)}
-                  <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 mb-3 hover:border-[var(--accent)] transition-colors">
-                    <div class="text-sm font-semibold text-[var(--text)] font-mono mb-2">{project.name}</div>
+                  <div
+                    class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 mb-3 hover:border-[var(--accent)] transition-colors"
+                  >
+                    <div class="text-sm font-semibold text-[var(--text)] font-mono mb-2">
+                      {project.name}
+                    </div>
                     <div class="flex flex-wrap gap-3 text-xs font-mono text-[var(--muted)]">
-                      <span class="text-[var(--accent)] font-semibold">{formatSize(project.size)}</span>
+                      <span class="text-[var(--accent)] font-semibold"
+                        >{formatSize(project.size)}</span
+                      >
                       <span>{project.files} files</span>
                       {#if project.lastModified}
                         <span>{formatDateTime(project.lastModified)}</span>
@@ -640,11 +769,15 @@
             {:else}
               <div class="text-center py-8 text-[var(--muted)]">
                 <span class="block text-3xl mb-2">📦</span>
-                <p class="text-sm font-sans">No projects backed up yet. Run your first sync to start backing up!</p>
+                <p class="text-sm font-sans">
+                  No projects backed up yet. Run your first sync to start backing up!
+                </p>
               </div>
             {/if}
           {:else if remoteStats && !remoteStats.success}
-            <div class="p-4 bg-[var(--error)]/10 border border-[var(--error)]/30 rounded text-[var(--error)] text-sm font-mono text-center">
+            <div
+              class="p-4 bg-[var(--error)]/10 border border-[var(--error)]/30 rounded text-[var(--error)] text-sm font-mono text-center"
+            >
               ⚠️ {remoteStats.error || 'Failed to load storage stats'}
             </div>
           {/if}
@@ -654,12 +787,20 @@
       <!-- Sync History -->
       {#if syncHistory.length > 0}
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-4">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">Recent Syncs</h3>
+          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-4 font-sans">
+            Recent Syncs
+          </h3>
           <div class="space-y-2">
             {#each syncHistory as sync (sync.timestamp)}
-              <div class="flex items-center gap-3 px-4 py-3 bg-[var(--bg)] rounded font-mono text-xs">
+              <div
+                class="flex items-center gap-3 px-4 py-3 bg-[var(--bg)] rounded font-mono text-xs"
+              >
                 <div class="flex-1 text-[var(--text)]">{formatDateTime(sync.timestamp)}</div>
-                <div class="text-base" class:text-[var(--success)]={sync.status === 'success'} class:text-[var(--error)]={sync.status !== 'success'}>
+                <div
+                  class="text-base"
+                  class:text-[var(--success)]={sync.status === 'success'}
+                  class:text-[var(--error)]={sync.status !== 'success'}
+                >
                   {sync.status === 'success' ? '✅' : '❌'}
                 </div>
                 {#if sync.size}
@@ -673,8 +814,12 @@
 
       <!-- Help Section -->
       <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-2 font-sans">📚 Documentation</h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">Learn more about server sync and backup strategies:</p>
+        <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-2 font-sans">
+          📚 Documentation
+        </h3>
+        <p class="text-sm text-[var(--muted)] font-sans mb-4">
+          Learn more about server sync and backup strategies:
+        </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <a
             href="https://rsync.samba.org/"

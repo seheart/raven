@@ -100,9 +100,7 @@
     timelineBuckets.length > 0 ? Math.max(...timelineBuckets.map(b => b.count)) : 1
   );
 
-  const displayedEvents = $derived(
-    selectedTimeBucket ? selectedTimeBucket.events : filteredEvents
-  );
+  const displayedEvents = $derived(selectedTimeBucket ? selectedTimeBucket.events : filteredEvents);
 
   const timeAgo = $derived.by(() => {
     if (!lastUpdated) return 'Just now';
@@ -166,11 +164,11 @@
 
   function getEventIcon(eventType) {
     const icons = {
-      'edit': '✏️',
-      'create': '➕',
-      'delete': '🗑️',
-      'read': '👁️',
-      'execute': '⚙️',
+      edit: '✏️',
+      create: '➕',
+      delete: '🗑️',
+      read: '👁️',
+      execute: '⚙️',
       'session-start': '▶️',
       'session-end': '⏹️'
     };
@@ -179,11 +177,11 @@
 
   function getEventColor(eventType) {
     const colors = {
-      'edit': 'var(--info)',
-      'create': 'var(--success)',
-      'delete': 'var(--error)',
-      'read': 'var(--muted)',
-      'execute': 'var(--warning)',
+      edit: 'var(--info)',
+      create: 'var(--success)',
+      delete: 'var(--error)',
+      read: 'var(--muted)',
+      execute: 'var(--warning)',
       'session-start': 'var(--accent)',
       'session-end': 'var(--accent)'
     };
@@ -202,7 +200,9 @@
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">🎬 Session Replay</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Review coding sessions and event timelines</p>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Review coding sessions and event timelines
+        </p>
       </div>
       <div class="flex items-center gap-3 flex-wrap">
         <span class="text-sm text-[var(--muted)] font-mono">Updated: {timeAgo}</span>
@@ -214,7 +214,7 @@
             onchange={onSessionChange}
             class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] hover:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           >
-            {#each allSessions as session}
+            {#each allSessions as session (session.id)}
               <option value={session.id}>{session.label}</option>
             {/each}
           </select>
@@ -244,23 +244,33 @@
         <div>
           <div class="text-sm text-[var(--muted)] font-sans mb-2">Event Types:</div>
           <div class="flex flex-wrap gap-2">
-            <label class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--info)] transition-colors">
+            <label
+              class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--info)] transition-colors"
+            >
               <input type="checkbox" bind:checked={selectedEventTypes.edit} class="w-4 h-4" />
               <span class="text-sm font-mono">✏️ Edit</span>
             </label>
-            <label class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--success)] transition-colors">
+            <label
+              class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--success)] transition-colors"
+            >
               <input type="checkbox" bind:checked={selectedEventTypes.create} class="w-4 h-4" />
               <span class="text-sm font-mono">➕ Create</span>
             </label>
-            <label class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--error)] transition-colors">
+            <label
+              class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--error)] transition-colors"
+            >
               <input type="checkbox" bind:checked={selectedEventTypes.delete} class="w-4 h-4" />
               <span class="text-sm font-mono">🗑️ Delete</span>
             </label>
-            <label class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--muted)] transition-colors">
+            <label
+              class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--muted)] transition-colors"
+            >
               <input type="checkbox" bind:checked={selectedEventTypes.read} class="w-4 h-4" />
               <span class="text-sm font-mono">👁️ Read</span>
             </label>
-            <label class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--warning)] transition-colors">
+            <label
+              class="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer hover:border-[var(--warning)] transition-colors"
+            >
               <input type="checkbox" bind:checked={selectedEventTypes.execute} class="w-4 h-4" />
               <span class="text-sm font-mono">⚙️ Execute</span>
             </label>
@@ -277,7 +287,7 @@
               class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] hover:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             >
               <option value="all">All Agents ({uniqueAgents.length})</option>
-              {#each uniqueAgents as agent}
+              {#each uniqueAgents as agent (agent)}
                 <option value={agent}>{agent}</option>
               {/each}
             </select>
@@ -294,18 +304,28 @@
     <!-- Timeline Visualization -->
     {#if !loading && filteredEvents.length > 0 && timelineBuckets.length > 1}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-        <h3 class="text-lg font-semibold text-[var(--text-heading)] font-sans mb-2">⏱️ Activity Timeline</h3>
+        <h3 class="text-lg font-semibold text-[var(--text-heading)] font-sans mb-2">
+          ⏱️ Activity Timeline
+        </h3>
         <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          {selectedTimeBucket ? `Showing ${selectedTimeBucket.count} events from ${selectedTimeBucket.label}` : 'Click a time bucket to filter events'}
+          {selectedTimeBucket
+            ? `Showing ${selectedTimeBucket.count} events from ${selectedTimeBucket.label}`
+            : 'Click a time bucket to filter events'}
         </p>
         <div class="flex items-end gap-1 h-32 mb-4">
-          {#each timelineBuckets as bucket}
+          {#each timelineBuckets as bucket (bucket.startTime)}
             <button
               onclick={() => selectTimeBucket(bucket)}
-              class="flex-1 flex flex-col items-center gap-1 group transition-all {bucket === selectedTimeBucket ? 'opacity-100' : 'opacity-70 hover:opacity-100'}"
+              class="flex-1 flex flex-col items-center gap-1 group transition-all {bucket ===
+              selectedTimeBucket
+                ? 'opacity-100'
+                : 'opacity-70 hover:opacity-100'}"
             >
               <div
-                class="w-full bg-[var(--accent)] rounded-t transition-all {bucket === selectedTimeBucket ? 'ring-2 ring-[var(--accent)]' : 'group-hover:bg-[var(--warning)]'}"
+                class="w-full bg-[var(--accent)] rounded-t transition-all {bucket ===
+                selectedTimeBucket
+                  ? 'ring-2 ring-[var(--accent)]'
+                  : 'group-hover:bg-[var(--warning)]'}"
                 style="height: {(bucket.count / maxBucketCount) * 100}%"
               ></div>
               <div class="text-xs text-[var(--muted)] font-mono">{bucket.label}</div>
@@ -315,7 +335,7 @@
         </div>
         {#if selectedTimeBucket}
           <button
-            onclick={() => selectedTimeBucket = null}
+            onclick={() => (selectedTimeBucket = null)}
             class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--error)] hover:text-[var(--error)] transition-colors"
           >
             ✕ Clear Time Filter
@@ -328,20 +348,26 @@
     {#if loading}
       <div class="space-y-3">
         {#each Array(5) as _, i (i)}
-          <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else if filteredEvents.length === 0 && events.length > 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
         <div class="text-4xl mb-3">🔍</div>
         <p class="text-lg text-[var(--text)] font-sans mb-2">No events match your filters</p>
-        <p class="text-sm text-[var(--muted)] font-sans">Try adjusting your search or event type filters.</p>
+        <p class="text-sm text-[var(--muted)] font-sans">
+          Try adjusting your search or event type filters.
+        </p>
       </div>
     {:else if events.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
         <div class="text-4xl mb-3">📭</div>
         <p class="text-lg text-[var(--text)] font-sans mb-2">No events recorded yet</p>
-        <p class="text-sm text-[var(--muted)] font-sans">Events will appear here as AI agents make changes.</p>
+        <p class="text-sm text-[var(--muted)] font-sans">
+          Events will appear here as AI agents make changes.
+        </p>
       </div>
     {:else}
       <div>
@@ -356,14 +382,19 @@
             >
               <div class="flex items-start justify-between gap-3 mb-2">
                 <div class="flex items-center gap-2">
-                  <time class="text-sm text-[var(--muted)] font-mono">{formatTimestamp(event.timestamp)}</time>
+                  <time class="text-sm text-[var(--muted)] font-mono"
+                    >{formatTimestamp(event.timestamp)}</time
+                  >
                   <span class="text-sm text-[var(--text)] font-mono">{event.agent}</span>
                 </div>
                 <span
                   class="px-2 py-1 rounded text-xs font-mono capitalize"
-                  style="background: {getEventColor(event.event_type)}15; color: {getEventColor(event.event_type)}"
+                  style="background: {getEventColor(event.event_type)}15; color: {getEventColor(
+                    event.event_type
+                  )}"
                 >
-                  {getEventIcon(event.event_type)} {event.event_type}
+                  {getEventIcon(event.event_type)}
+                  {event.event_type}
                 </span>
               </div>
               <p class="text-sm text-[var(--text)] font-mono mb-2">{event.message}</p>
@@ -371,7 +402,9 @@
                 <p class="text-xs text-[var(--muted)] font-mono">📄 {event.file}</p>
               {/if}
               {#if event.lines_changed}
-                <p class="text-xs text-[var(--muted)] font-mono">Lines changed: {event.lines_changed}</p>
+                <p class="text-xs text-[var(--muted)] font-mono">
+                  Lines changed: {event.lines_changed}
+                </p>
               {/if}
               {#if event.duration_ms}
                 <p class="text-xs text-[var(--muted)] font-mono">Duration: {event.duration_ms}ms</p>

@@ -24,9 +24,7 @@
     if (!searchQuery.trim()) return sessions;
 
     const query = searchQuery.toLowerCase();
-    return sessions.filter((session) =>
-      session.session_id?.toLowerCase().includes(query)
-    );
+    return sessions.filter(session => session.session_id?.toLowerCase().includes(query));
   });
 
   // Time since last update
@@ -150,7 +148,7 @@
   // Export to CSV
   function exportToCSV() {
     const headers = ['Session ID', 'Start Time', 'End Time', 'Duration', 'Total Events'];
-    const rows = filteredSessions.map((session) => [
+    const rows = filteredSessions.map(session => [
       session.session_id || '',
       formatDate(session.start_time),
       formatDate(session.end_time),
@@ -160,7 +158,7 @@
 
     const csv = [
       headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -227,8 +225,12 @@
     {:else if loading}
       <!-- Loading skeleton -->
       <div class="space-y-4">
-        <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
-        <div class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+        <div
+          class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+        ></div>
+        <div
+          class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+        ></div>
       </div>
     {:else}
       <!-- Stats Card -->
@@ -285,22 +287,28 @@
             <table class="w-full">
               <thead class="bg-[var(--surface-2)] border-b border-[var(--border)]">
                 <tr>
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Session ID</th
                   >
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Start Time</th
                   >
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >End Time</th
                   >
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Duration</th
                   >
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Events</th
                   >
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  <th
+                    class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
                     >Actions</th
                   >
                 </tr>
@@ -399,7 +407,9 @@
               </h3>
               <div class="max-h-64 overflow-y-auto space-y-2">
                 {#each previewData.files as file (file)}
-                  <div class="px-3 py-2 bg-[var(--bg)] rounded text-sm font-mono text-[var(--text)]">
+                  <div
+                    class="px-3 py-2 bg-[var(--bg)] rounded text-sm font-mono text-[var(--text)]"
+                  >
                     📄 {file}
                   </div>
                 {/each}
@@ -414,9 +424,7 @@
             <div class="flex items-start gap-3">
               <span class="text-2xl">⚠️</span>
               <div class="flex-1">
-                <h4 class="text-sm font-semibold text-[var(--warning)] mb-1 font-sans">
-                  Warning
-                </h4>
+                <h4 class="text-sm font-semibold text-[var(--warning)] mb-1 font-sans">Warning</h4>
                 <p class="text-sm text-[var(--text)] font-sans">
                   This action will restore all files to their state at the end of this session. Any
                   changes made after this session will be lost. Make sure you have committed or
@@ -454,14 +462,21 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="rollback-confirm-title"
+    tabindex="-1"
     onclick={cancelRollback}
-    onkeydown={(e) => e.key === 'Escape' && cancelRollback()}
+    onkeydown={e => e.key === 'Escape' && cancelRollback()}
   >
     <div
       class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 max-w-md w-full mx-4"
-      onclick={(e) => e.stopPropagation()}
+      onclick={e => e.stopPropagation()}
+      onkeydown={e => e.stopPropagation()}
+      role="button"
+      tabindex="0"
     >
-      <h2 id="rollback-confirm-title" class="text-xl font-bold text-[var(--text-heading)] mb-4 font-sans">
+      <h2
+        id="rollback-confirm-title"
+        class="text-xl font-bold text-[var(--text-heading)] mb-4 font-sans"
+      >
         Final Confirmation Required
       </h2>
       <p class="text-base text-[var(--text)] font-sans mb-4">
@@ -470,9 +485,7 @@
       </p>
 
       <!-- Warning Box -->
-      <div
-        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-4"
-      >
+      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-4">
         <div class="flex items-start gap-2">
           <span class="text-lg">⚠️</span>
           <div class="flex-1">

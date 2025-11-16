@@ -43,9 +43,7 @@
 
       if (data.endpoints) {
         // Filter to only GET endpoints without path parameters for health checking
-        const filtered = data.endpoints.filter(e =>
-          e.method === 'GET' && !e.path.includes(':')
-        );
+        const filtered = data.endpoints.filter(e => e.method === 'GET' && !e.path.includes(':'));
 
         // Deduplicate by path (keep first occurrence)
         const seen = new Set();
@@ -90,15 +88,19 @@
     try {
       const controller = new AbortController();
       // Use longer timeout for known-slow endpoints
-      const timeout = endpoint.path.includes('comprehensive') || endpoint.path.includes('snapshots')
-        ? 25000 // 25 seconds for slow endpoints
-        : 5000;  // 5 seconds for normal endpoints
+      const timeout =
+        endpoint.path.includes('comprehensive') || endpoint.path.includes('snapshots')
+          ? 25000 // 25 seconds for slow endpoints
+          : 5000; // 5 seconds for normal endpoints
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3030'}${endpoint.path}`, {
-        method: endpoint.method,
-        signal: controller.signal
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3030'}${endpoint.path}`,
+        {
+          method: endpoint.method,
+          signal: controller.signal
+        }
+      );
 
       clearTimeout(timeoutId);
 
@@ -118,9 +120,10 @@
 
       // Calculate success rate from last 20 checks
       const recentChecks = healthHistory[key].checks.slice(-20);
-      const successRate = recentChecks.length > 0
-        ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
-        : 100;
+      const successRate =
+        recentChecks.length > 0
+          ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
+          : 100;
 
       healthStatus[key] = {
         status: response.ok ? 'healthy' : 'error',
@@ -141,9 +144,10 @@
       healthHistory[key].totalCount++;
 
       const recentChecks = healthHistory[key].checks.slice(-20);
-      const successRate = recentChecks.length > 0
-        ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
-        : 0;
+      const successRate =
+        recentChecks.length > 0
+          ? (recentChecks.filter(c => c.success).length / recentChecks.length) * 100
+          : 0;
 
       healthStatus[key] = {
         status: 'error',
@@ -187,11 +191,13 @@
   function handleRealtimeUpdate() {
     // Quick health check when events occur
     realtimeActive = true;
-    timeouts.add(() => { realtimeActive = false; }, 1000);
+    timeouts.add(() => {
+      realtimeActive = false;
+    }, 1000);
 
     // Re-check critical endpoints on events
-    const criticalEndpoints = (apiEndpoints || []).filter(e =>
-      e?.category === 'Core' || e?.category === 'Dashboard'
+    const criticalEndpoints = (apiEndpoints || []).filter(
+      e => e?.category === 'Core' || e?.category === 'Dashboard'
     );
 
     criticalEndpoints.forEach(endpoint => {
@@ -332,7 +338,12 @@
         </label>
 
         <label class="flex items-center gap-2 text-sm text-[var(--text)] font-sans cursor-pointer">
-          <input type="checkbox" bind:checked={alertsEnabled} aria-label="Enable health alerts" class="w-4 h-4" />
+          <input
+            type="checkbox"
+            bind:checked={alertsEnabled}
+            aria-label="Enable health alerts"
+            class="w-4 h-4"
+          />
           <span>Alerts</span>
         </label>
 
@@ -363,7 +374,9 @@
       <!-- Loading skeleton -->
       <div class="space-y-4">
         {#each Array(10) as _, i (i)}
-          <div class="h-16 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-16 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else if apiEndpoints.length === 0}
@@ -383,18 +396,32 @@
       <!-- Categories -->
       <div class="flex flex-col gap-6" role="list" aria-label="API endpoints by category">
         {#each Object.entries(grouped) as [category, endpoints] (category)}
-          <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden" role="listitem">
-            <h2 class="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-[var(--text)] bg-[var(--bg)] border-b border-[var(--border)]">
+          <section
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden"
+            role="listitem"
+          >
+            <h2
+              class="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-[var(--text)] bg-[var(--bg)] border-b border-[var(--border)]"
+            >
               {category} ({endpoints.length})
             </h2>
 
-            <div class="divide-y divide-[var(--border)]" role="list" aria-label="{category} endpoints">
+            <div
+              class="divide-y divide-[var(--border)]"
+              role="list"
+              aria-label="{category} endpoints"
+            >
               {#each endpoints || [] as endpoint (endpoint.path)}
                 {@const status = healthStatus[endpoint.path]}
                 {@const isHealthy = status?.status === 'healthy'}
                 {@const isError = status?.status === 'error'}
-                {@const successRateClass = status?.successRate ? getSuccessRateClass(status.successRate) : ''}
-                {@const responseTimeClass = status?.responseTime !== null && status?.responseTime !== undefined ? getResponseTimeClass(status.responseTime) : ''}
+                {@const successRateClass = status?.successRate
+                  ? getSuccessRateClass(status.successRate)
+                  : ''}
+                {@const responseTimeClass =
+                  status?.responseTime !== null && status?.responseTime !== undefined
+                    ? getResponseTimeClass(status.responseTime)
+                    : ''}
 
                 <div
                   class="grid grid-cols-[40px_80px_1fr_auto_60px] gap-4 px-6 py-4 items-center transition-all hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]"
@@ -418,9 +445,11 @@
                   <div>
                     <span
                       class="inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-wide"
-                      class:bg-[color-mix(in_srgb,var(--info)_20%,transparent)]={endpoint.method === 'GET'}
+                      class:bg-[color-mix(in_srgb,var(--info)_20%,transparent)]={endpoint.method ===
+                        'GET'}
                       class:text-[var(--info)]={endpoint.method === 'GET'}
-                      class:bg-[color-mix(in_srgb,var(--success)_20%,transparent)]={endpoint.method === 'POST'}
+                      class:bg-[color-mix(in_srgb,var(--success)_20%,transparent)]={endpoint.method ===
+                        'POST'}
                       class:text-[var(--success)]={endpoint.method === 'POST'}
                     >
                       {endpoint.method}
@@ -429,7 +458,9 @@
 
                   <!-- Endpoint Path & Description -->
                   <div class="flex flex-col gap-1 min-w-0">
-                    <code class="text-xs text-[var(--accent)] font-medium truncate">{endpoint.path}</code>
+                    <code class="text-xs text-[var(--accent)] font-medium truncate"
+                      >{endpoint.path}</code
+                    >
                     <span class="text-xs text-[var(--muted)]">{endpoint.description}</span>
                   </div>
 
@@ -452,11 +483,14 @@
                     {#if status?.responseTime !== null && status?.responseTime !== undefined}
                       <span
                         class="px-3 py-1 rounded text-xs font-semibold font-mono"
-                        class:bg-[color-mix(in_srgb,var(--success)_20%,transparent)]={responseTimeClass === 'fast'}
+                        class:bg-[color-mix(in_srgb,var(--success)_20%,transparent)]={responseTimeClass ===
+                          'fast'}
                         class:text-[var(--success)]={responseTimeClass === 'fast'}
-                        class:bg-[color-mix(in_srgb,var(--warning)_20%,transparent)]={responseTimeClass === 'medium'}
+                        class:bg-[color-mix(in_srgb,var(--warning)_20%,transparent)]={responseTimeClass ===
+                          'medium'}
                         class:text-[var(--warning)]={responseTimeClass === 'medium'}
-                        class:bg-[color-mix(in_srgb,var(--error)_20%,transparent)]={responseTimeClass === 'slow'}
+                        class:bg-[color-mix(in_srgb,var(--error)_20%,transparent)]={responseTimeClass ===
+                          'slow'}
                         class:text-[var(--error)]={responseTimeClass === 'slow'}
                         role="status"
                       >
@@ -473,9 +507,13 @@
                         aria-label="Response time sparkline showing last 10 checks"
                       >
                         {#each status.history as check, i (i)}
-                          {@const barHeight = check.success && check.responseTime ? Math.min((check.responseTime / 500) * 100, 100) : 10}
+                          {@const barHeight =
+                            check.success && check.responseTime
+                              ? Math.min((check.responseTime / 500) * 100, 100)
+                              : 10}
                           {@const isFast = check.success && check.responseTime < 50}
-                          {@const isMedium = check.success && check.responseTime >= 50 && check.responseTime < 200}
+                          {@const isMedium =
+                            check.success && check.responseTime >= 50 && check.responseTime < 200}
                           {@const isSlow = check.success && check.responseTime >= 200}
                           {@const isFailure = !check.success}
 
@@ -483,8 +521,20 @@
                             class="flex-1 min-w-[5px] max-w-[10px] rounded-t transition-all hover:scale-y-110 hover:brightness-125"
                             style="
                               height: {barHeight}%;
-                              background: {isFailure ? `linear-gradient(to top, var(--accent), color-mix(in srgb, var(--accent) 80%, white))` : isFast ? `linear-gradient(to top, var(--success), color-mix(in srgb, var(--success) 80%, white))` : isMedium ? `linear-gradient(to top, var(--warning), color-mix(in srgb, var(--warning) 80%, white))` : `linear-gradient(to top, var(--error), color-mix(in srgb, var(--error) 80%, white))`};
-                              box-shadow: 0 0 6px {isFailure ? 'color-mix(in srgb, var(--accent) 40%, transparent)' : isFast ? 'color-mix(in srgb, var(--success) 40%, transparent)' : isMedium ? 'color-mix(in srgb, var(--warning) 40%, transparent)' : 'color-mix(in srgb, var(--error) 40%, transparent)'};
+                              background: {isFailure
+                              ? 'linear-gradient(to top, var(--accent), color-mix(in srgb, var(--accent) 80%, white))'
+                              : isFast
+                                ? 'linear-gradient(to top, var(--success), color-mix(in srgb, var(--success) 80%, white))'
+                                : isMedium
+                                  ? 'linear-gradient(to top, var(--warning), color-mix(in srgb, var(--warning) 80%, white))'
+                                  : 'linear-gradient(to top, var(--error), color-mix(in srgb, var(--error) 80%, white))'};
+                              box-shadow: 0 0 6px {isFailure
+                              ? 'color-mix(in srgb, var(--accent) 40%, transparent)'
+                              : isFast
+                                ? 'color-mix(in srgb, var(--success) 40%, transparent)'
+                                : isMedium
+                                  ? 'color-mix(in srgb, var(--warning) 40%, transparent)'
+                                  : 'color-mix(in srgb, var(--error) 40%, transparent)'};
                             "
                             title="{check.responseTime || 'failed'}ms"
                             aria-hidden="true"
@@ -497,9 +547,12 @@
                     {#if status?.statusCode}
                       <span
                         class="px-3 py-1 rounded text-xs font-semibold font-mono"
-                        class:bg-[color-mix(in_srgb,var(--success)_20%,transparent)]={status.statusCode >= 200 && status.statusCode < 300}
-                        class:text-[var(--success)]={status.statusCode >= 200 && status.statusCode < 300}
-                        class:bg-[color-mix(in_srgb,var(--error)_20%,transparent)]={status.statusCode >= 400}
+                        class:bg-[color-mix(in_srgb,var(--success)_20%,transparent)]={status.statusCode >=
+                          200 && status.statusCode < 300}
+                        class:text-[var(--success)]={status.statusCode >= 200 &&
+                          status.statusCode < 300}
+                        class:bg-[color-mix(in_srgb,var(--error)_20%,transparent)]={status.statusCode >=
+                          400}
                         class:text-[var(--error)]={status.statusCode >= 400}
                         role="status"
                       >
@@ -531,7 +584,12 @@
 
 <style>
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
   }
 </style>

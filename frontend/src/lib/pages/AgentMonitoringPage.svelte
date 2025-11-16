@@ -7,7 +7,12 @@
    */
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
-  import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
   import AgentsNav from '../components/layout/AgentsNav.svelte';
 
   let agentsStatus = $state([]);
@@ -48,9 +53,7 @@
 
     // Filter by event types
     if (selectedEventTypes.length > 0) {
-      filtered = filtered.filter(event =>
-        selectedEventTypes.includes(event.event_type)
-      );
+      filtered = filtered.filter(event => selectedEventTypes.includes(event.event_type));
     }
 
     // Filter by date range
@@ -76,9 +79,7 @@
   });
 
   // Check if any filters are active
-  const hasActiveFilters = $derived(
-    selectedEventTypes.length > 0 || dateRange !== 'all'
-  );
+  const hasActiveFilters = $derived(selectedEventTypes.length > 0 || dateRange !== 'all');
 
   const timeAgo = $derived.by(() => {
     if (!lastUpdated) return 'Just now';
@@ -127,14 +128,14 @@
 
   function getEventIcon(eventType) {
     const icons = {
-      'file_change': '📝',
-      'edit': '✏️',
-      'create': '➕',
-      'delete': '🗑️',
-      'read': '👁️',
-      'execute': '⚙️',
-      'command': '⚡',
-      'conversation': '💬'
+      file_change: '📝',
+      edit: '✏️',
+      create: '➕',
+      delete: '🗑️',
+      read: '👁️',
+      execute: '⚙️',
+      command: '⚡',
+      conversation: '💬'
     };
     return icons[eventType?.toLowerCase()] || '🔔';
   }
@@ -184,23 +185,29 @@
         }
       });
 
-      const labels = Object.keys(hourlyData).sort((a, b) => a - b).map(h => `${h}:00`);
-      const data = Object.keys(hourlyData).sort((a, b) => a - b).map(h => hourlyData[h]);
+      const labels = Object.keys(hourlyData)
+        .sort((a, b) => a - b)
+        .map(h => `${h}:00`);
+      const data = Object.keys(hourlyData)
+        .sort((a, b) => a - b)
+        .map(h => hourlyData[h]);
 
       charts['utilization'] = createChart('agent-utilization-chart', {
         type: 'line',
         data: {
           labels,
-          datasets: [{
-            label: 'Agent Activity',
-            data,
-            borderColor: colors.primary,
-            backgroundColor: `${colors.primary}20`,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 3,
-            pointHoverRadius: 5
-          }]
+          datasets: [
+            {
+              label: 'Agent Activity',
+              data,
+              borderColor: colors.primary,
+              backgroundColor: `${colors.primary}20`,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointHoverRadius: 5
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -211,7 +218,7 @@
             },
             tooltip: {
               callbacks: {
-                label: (context) => `Events: ${context.parsed.y}`
+                label: context => `Events: ${context.parsed.y}`
               }
             }
           },
@@ -258,12 +265,14 @@
         type: 'doughnut',
         data: {
           labels: agentNames,
-          datasets: [{
-            data: agentValues,
-            backgroundColor: agentColors,
-            borderColor: agentColors,
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: agentValues,
+              backgroundColor: agentColors,
+              borderColor: agentColors,
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -281,7 +290,7 @@
             },
             tooltip: {
               callbacks: {
-                label: (context) => {
+                label: context => {
                   const label = context.label || '';
                   const value = context.parsed || 0;
                   const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -297,10 +306,10 @@
   }
 
   // WebSocket event handlers
-  const handleAgentEvent = (event) => {
+  const handleAgentEvent = event => {
     // Show animation
     showNewEventAnimation = true;
-    setTimeout(() => showNewEventAnimation = false, 2000);
+    setTimeout(() => (showNewEventAnimation = false), 2000);
 
     // Add to events list
     recentEvents = [event, ...recentEvents].slice(0, eventsLimit);
@@ -310,7 +319,7 @@
     setTimeout(createCharts, 100);
   };
 
-  const handleAgentStatus = (status) => {
+  const handleAgentStatus = status => {
     // Update agent status in real-time
     loadMonitoringData();
   };
@@ -326,8 +335,8 @@
         api.get(`/agent-events?limit=${eventsLimit}`).catch(() => ({ events: [] }))
       ]);
 
-      agentsStatus = Array.isArray(statusData) ? statusData : (statusData.agents || []);
-      recentEvents = Array.isArray(eventsData) ? eventsData : (eventsData.events || []);
+      agentsStatus = Array.isArray(statusData) ? statusData : statusData.agents || [];
+      recentEvents = Array.isArray(eventsData) ? eventsData : eventsData.events || [];
 
       loading = false;
       lastUpdated = new Date();
@@ -405,14 +414,23 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Monitoring</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Real-time agent status and activity tracking</p>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Real-time agent status and activity tracking
+        </p>
       </div>
       <div class="flex items-center gap-3">
-        <label class="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm cursor-pointer">
+        <label
+          class="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm cursor-pointer"
+        >
           <input type="checkbox" bind:checked={autoRefresh} />
           <span class="font-sans">Auto-refresh</span>
         </label>
-        <span class="text-sm font-sans" class:text-[var(--muted)]={!showNewEventAnimation} class:text-[var(--warning)]={showNewEventAnimation} class:font-bold={showNewEventAnimation}>
+        <span
+          class="text-sm font-sans"
+          class:text-[var(--muted)]={!showNewEventAnimation}
+          class:text-[var(--warning)]={showNewEventAnimation}
+          class:font-bold={showNewEventAnimation}
+        >
           {#if showNewEventAnimation}
             ✨ New Event!
           {:else}
@@ -430,9 +448,16 @@
     </div>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center">
-        <span class="text-base text-[var(--error)] font-sans">⚠️ Failed to load monitoring data: {error}</span>
-        <button onclick={loadMonitoringData} class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans">
+      <div
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
+      >
+        <span class="text-base text-[var(--error)] font-sans"
+          >⚠️ Failed to load monitoring data: {error}</span
+        >
+        <button
+          onclick={loadMonitoringData}
+          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+        >
           Retry
         </button>
       </div>
@@ -442,7 +467,9 @@
     {#if loading}
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         {#each Array(3) as _, i (i)}
-          <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else}
@@ -490,7 +517,9 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Agent Activity Over Time -->
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h2 class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2">
+          <h2
+            class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
+          >
             <span>📊</span>
             Agent Activity (Last 24h)
           </h2>
@@ -501,7 +530,9 @@
 
         <!-- Agent Distribution -->
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h2 class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2">
+          <h2
+            class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
+          >
             <span>🥧</span>
             Event Distribution by Agent
           </h2>
@@ -515,7 +546,9 @@
     <!-- Currently Running Agents -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-[var(--text-heading)] font-sans">Currently Running Agents</h2>
+        <h2 class="text-xl font-semibold text-[var(--text-heading)] font-sans">
+          Currently Running Agents
+        </h2>
         {#if autoRefresh}
           <span class="flex items-center gap-2 text-sm text-[var(--success)] font-mono">
             <span class="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse"></span>
@@ -545,7 +578,8 @@
                     {agent.agent_name || 'Unknown'}
                   </span>
                 </div>
-                <span class="flex-shrink-0 w-2 h-2 bg-[var(--success)] rounded-full animate-pulse"></span>
+                <span class="flex-shrink-0 w-2 h-2 bg-[var(--success)] rounded-full animate-pulse"
+                ></span>
               </div>
 
               <div class="space-y-2">
@@ -557,7 +591,10 @@
                 </div>
                 <div class="flex justify-between text-sm">
                   <span class="text-[var(--muted)]">Confidence:</span>
-                  <span class="font-semibold font-mono" style="color: {getConfidenceColor(agent.confidence)}">
+                  <span
+                    class="font-semibold font-mono"
+                    style="color: {getConfidenceColor(agent.confidence)}"
+                  >
                     {(agent.confidence * 100).toFixed(0)}% ({getConfidenceLabel(agent.confidence)})
                   </span>
                 </div>
@@ -578,7 +615,9 @@
 
     <!-- All Agents Status -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">All Agents Status</h2>
+      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+        All Agents Status
+      </h2>
 
       {#if loading}
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading agents...</div>
@@ -592,16 +631,24 @@
           <table class="w-full">
             <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
               <tr class="text-left">
-                <th class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+                <th
+                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                >
                   Agent
                 </th>
-                <th class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+                <th
+                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                >
                   Status
                 </th>
-                <th class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+                <th
+                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                >
                   Confidence
                 </th>
-                <th class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+                <th
+                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                >
                   Last Seen
                 </th>
               </tr>
@@ -627,10 +674,15 @@
                       <div class="flex-1 h-2 bg-[var(--bg)] rounded overflow-hidden">
                         <div
                           class="h-full transition-all duration-300"
-                          style="width: {agent.confidence * 100}%; background: {getConfidenceColor(agent.confidence)}"
+                          style="width: {agent.confidence * 100}%; background: {getConfidenceColor(
+                            agent.confidence
+                          )}"
                         ></div>
                       </div>
-                      <span class="text-sm font-semibold font-mono" style="color: {getConfidenceColor(agent.confidence)}">
+                      <span
+                        class="text-sm font-semibold font-mono"
+                        style="color: {getConfidenceColor(agent.confidence)}"
+                      >
                         {(agent.confidence * 100).toFixed(0)}%
                       </span>
                     </div>
@@ -648,33 +700,47 @@
 
     <!-- Detection Info Box -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-3 font-sans flex items-center gap-2">
+      <h3
+        class="text-lg font-semibold text-[var(--text-heading)] mb-3 font-sans flex items-center gap-2"
+      >
         <span>🔍</span>
         How Agent Detection Works
       </h3>
       <ul class="space-y-2 text-base text-[var(--muted)] font-sans">
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
-          <span><strong class="text-[var(--text)]">Process Scanning:</strong> Detects running AI coding tools</span>
+          <span
+            ><strong class="text-[var(--text)]">Process Scanning:</strong> Detects running AI coding
+            tools</span
+          >
         </li>
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
-          <span><strong class="text-[var(--text)]">Log Analysis:</strong> Correlates Claude Code session logs</span>
+          <span
+            ><strong class="text-[var(--text)]">Log Analysis:</strong> Correlates Claude Code session
+            logs</span
+          >
         </li>
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
-          <span><strong class="text-[var(--text)]">Pattern Matching:</strong> Identifies editing patterns</span>
+          <span
+            ><strong class="text-[var(--text)]">Pattern Matching:</strong> Identifies editing patterns</span
+          >
         </li>
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
-          <span><strong class="text-[var(--text)]">Git Attribution:</strong> Analyzes commit authors</span>
+          <span
+            ><strong class="text-[var(--text)]">Git Attribution:</strong> Analyzes commit authors</span
+          >
         </li>
       </ul>
     </section>
 
     <!-- Activity Timeline -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">Recent Activity Timeline</h2>
+      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+        Recent Activity Timeline
+      </h2>
 
       <!-- Event Filters -->
       {#if !loading && recentEvents.length > 0}
@@ -682,7 +748,7 @@
           <!-- Event Type Filters -->
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-sm text-[var(--muted)] font-sans font-semibold">Event Type:</span>
-            {#each availableEventTypes as type}
+            {#each availableEventTypes as type (type)}
               <button
                 class="px-3 py-1.5 rounded text-sm font-sans transition-colors border"
                 class:bg-[var(--accent)]={selectedEventTypes.includes(type)}
@@ -693,7 +759,8 @@
                 class:text-[var(--text)]={!selectedEventTypes.includes(type)}
                 onclick={() => toggleEventType(type)}
               >
-                {getEventIcon(type)} {type}
+                {getEventIcon(type)}
+                {type}
                 {#if selectedEventTypes.includes(type)}✓{/if}
               </button>
             {/each}
@@ -702,7 +769,7 @@
           <!-- Date Range Filters -->
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-sm text-[var(--muted)] font-sans font-semibold">Date Range:</span>
-            {#each ['all', 'today', '7d', '30d'] as range}
+            {#each ['all', 'today', '7d', '30d'] as range (range)}
               <button
                 class="px-3 py-1.5 rounded text-sm font-sans transition-colors border"
                 class:bg-[var(--accent)]={dateRange === range}
@@ -711,9 +778,15 @@
                 class:bg-[var(--bg)]={dateRange !== range}
                 class:border-[var(--border)]={dateRange !== range}
                 class:text-[var(--text)]={dateRange !== range}
-                onclick={() => dateRange = range}
+                onclick={() => (dateRange = range)}
               >
-                {range === 'all' ? 'All Time' : range === 'today' ? 'Today' : range === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                {range === 'all'
+                  ? 'All Time'
+                  : range === 'today'
+                    ? 'Today'
+                    : range === '7d'
+                      ? 'Last 7 Days'
+                      : 'Last 30 Days'}
                 {#if dateRange === range}✓{/if}
               </button>
             {/each}
@@ -721,9 +794,13 @@
 
           <!-- Active Filters Display -->
           {#if hasActiveFilters}
-            <div class="flex flex-wrap items-center gap-2 p-3 bg-[var(--bg)] rounded border border-[var(--border)]">
-              <span class="text-sm text-[var(--muted)] font-sans font-semibold">Active Filters:</span>
-              {#each selectedEventTypes as type}
+            <div
+              class="flex flex-wrap items-center gap-2 p-3 bg-[var(--bg)] rounded border border-[var(--border)]"
+            >
+              <span class="text-sm text-[var(--muted)] font-sans font-semibold"
+                >Active Filters:</span
+              >
+              {#each selectedEventTypes as type (type)}
                 <button
                   class="inline-flex items-center gap-1 px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-sans font-semibold"
                   onclick={() => toggleEventType(type)}
@@ -734,7 +811,7 @@
               {#if dateRange !== 'all'}
                 <button
                   class="inline-flex items-center gap-1 px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-sans font-semibold"
-                  onclick={() => dateRange = 'all'}
+                  onclick={() => (dateRange = 'all')}
                 >
                   Range: {dateRange} ✕
                 </button>
@@ -770,14 +847,18 @@
       {:else}
         <div class="space-y-2">
           {#each filteredEvents as event (event.id || event.timestamp)}
-            <div class="flex items-start gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all">
+            <div
+              class="flex items-start gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all"
+            >
               <span class="text-base flex-shrink-0 mt-1">
                 {getEventIcon(event.event_type)}
               </span>
               <div class="flex-1 min-w-0">
                 <div class="text-base text-[var(--text)] font-mono mb-1">
                   {#if event.agent_name}
-                    <span class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide">
+                    <span
+                      class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide"
+                    >
                       {event.agent_name}
                     </span>
                   {/if}
@@ -801,7 +882,9 @@
             >
               {#if loadingMore}
                 <span class="inline-flex items-center gap-2">
-                  <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span
+                    class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+                  ></span>
                   Loading...
                 </span>
               {:else}

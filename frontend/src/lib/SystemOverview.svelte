@@ -23,14 +23,27 @@
       error = null;
 
       // Parallel data fetching
-      const [healthData, projectsData, errorsData, notifData, apiHealthData, dashboardData] = await Promise.all([
-        fetch('/api/health').then(r => r.json()).catch(() => ({})),
-        fetch('/api/health/projects').then(r => r.json()).catch(() => ({ projects: [] })),
-        fetch('/api/errors/stats').then(r => r.json()).catch(() => ({ total: 0 })),
-        fetch('/api/notifications/stats').then(r => r.json()).catch(() => ({ unread: 0 })),
-        fetch('/api/health-checks').then(r => r.json()).catch(() => null),
-        fetch('/api/dashboard-stats').then(r => r.json()).catch(() => ({ total_events: 0 }))
-      ]);
+      const [healthData, projectsData, errorsData, notifData, apiHealthData, dashboardData] =
+        await Promise.all([
+          fetch('/api/health')
+            .then(r => r.json())
+            .catch(() => ({})),
+          fetch('/api/health/projects')
+            .then(r => r.json())
+            .catch(() => ({ projects: [] })),
+          fetch('/api/errors/stats')
+            .then(r => r.json())
+            .catch(() => ({ total: 0 })),
+          fetch('/api/notifications/stats')
+            .then(r => r.json())
+            .catch(() => ({ unread: 0 })),
+          fetch('/api/health-checks')
+            .then(r => r.json())
+            .catch(() => null),
+          fetch('/api/dashboard-stats')
+            .then(r => r.json())
+            .catch(() => ({ total_events: 0 }))
+        ]);
 
       backendHealth = {
         status: healthData.status || 'unknown',
@@ -66,7 +79,7 @@
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
   // Format uptime
@@ -86,9 +99,7 @@
   onMount(() => {
     loadSystemData();
 
-    unsubscribers.push(
-      websocketService.subscribe('health-check-failed', loadSystemData)
-    );
+    unsubscribers.push(websocketService.subscribe('health-check-failed', loadSystemData));
 
     // Check WebSocket status every few seconds
     const wsCheckInterval = setInterval(() => {
@@ -102,17 +113,21 @@
     unsubscribers.forEach(unsub => unsub());
   });
 
-  $: healthyProjects = projectHealth.filter(p =>
-    p.status === 'active' ||
-    p.status === 'recent' ||
-    p.status === 'idle' ||
-    (p.health_score && p.health_score >= 60)
+  $: healthyProjects = projectHealth.filter(
+    p =>
+      p.status === 'active' ||
+      p.status === 'recent' ||
+      p.status === 'idle' ||
+      (p.health_score && p.health_score >= 60)
   ).length;
   $: totalProjects = projectHealth.length;
   // System is healthy if backend is operational (healthy or warning) and at least 50% of projects are healthy
-  $: systemStatus = (backendHealth.status === 'healthy' || backendHealth.status === 'warning') &&
-                    projectHealth.length > 0 &&
-                    healthyProjects >= (totalProjects * 0.5) ? 'healthy' : 'degraded';
+  $: systemStatus =
+    (backendHealth.status === 'healthy' || backendHealth.status === 'warning') &&
+    projectHealth.length > 0 &&
+    healthyProjects >= totalProjects * 0.5
+      ? 'healthy'
+      : 'degraded';
   $: statusColor = systemStatus === 'healthy' ? 'var(--success)' : 'var(--warning)';
 </script>
 
@@ -177,7 +192,11 @@
         <div class="stat-content">
           <div class="stat-value">{totalProjects}</div>
           <div class="stat-label">Projects Monitored</div>
-          <div class="stat-status" class:ok={healthyProjects === totalProjects} class:warning={healthyProjects < totalProjects}>
+          <div
+            class="stat-status"
+            class:ok={healthyProjects === totalProjects}
+            class:warning={healthyProjects < totalProjects}
+          >
             {healthyProjects} healthy
           </div>
         </div>
@@ -218,8 +237,13 @@
       <div class="section-card">
         <h2>📊 Project Health Status</h2>
         <div class="projects-grid">
-          {#each projectHealth.slice(0, 6) as project}
-            <div class="project-item" class:healthy={project.status === 'active' || project.status === 'recent' || project.status === 'idle'}>
+          {#each projectHealth.slice(0, 6) as project (project.name)}
+            <div
+              class="project-item"
+              class:healthy={project.status === 'active' ||
+                project.status === 'recent' ||
+                project.status === 'idle'}
+            >
               <div class="project-status">
                 {#if project.status === 'active' || project.status === 'recent'}
                   ✅
@@ -482,7 +506,11 @@
 
   .stat-card.alert {
     border-color: var(--error);
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, color-mix(in srgb, var(--error) 5%, transparent) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--bg-secondary) 0%,
+      color-mix(in srgb, var(--error) 5%, transparent) 100%
+    );
   }
 
   .stat-icon {
@@ -721,15 +749,24 @@
 
   .skeleton-card {
     height: 150px;
-    background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--bg-secondary) 25%,
+      var(--bg-tertiary) 50%,
+      var(--bg-secondary) 75%
+    );
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: var(--radius-xl);
   }
 
   @keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
 
   .error-banner {

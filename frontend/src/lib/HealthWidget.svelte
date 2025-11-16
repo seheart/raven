@@ -652,10 +652,6 @@
       gap: var(--space-xl);
     }
 
-    .today-stats {
-      margin-left: 0;
-    }
-
     .health-checks {
       flex-wrap: wrap;
     }

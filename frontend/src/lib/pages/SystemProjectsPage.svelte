@@ -207,7 +207,7 @@
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
   function formatNumber(num) {
@@ -263,7 +263,9 @@
       <!-- Loading skeleton -->
       <div class="space-y-4">
         {#each Array(3) as _, i (i)}
-          <div class="h-48 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-48 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else if error}
@@ -281,7 +283,9 @@
       <!-- Empty state -->
       <div class="text-center p-12 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
         <p class="text-[var(--text)] text-lg mb-2">No projects configured</p>
-        <p class="text-[var(--muted)] text-sm mb-6">Add a project or discover projects automatically</p>
+        <p class="text-[var(--muted)] text-sm mb-6">
+          Add a project or discover projects automatically
+        </p>
         <button
           class="px-4 py-2 bg-[var(--accent)] border border-[var(--accent)] rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity duration-200"
           onclick={discoverProjects}
@@ -334,7 +338,8 @@
               </div>
               {#if project.ignorePatterns && project.ignorePatterns.length > 0}
                 <div class="flex gap-4 text-sm">
-                  <span class="text-[var(--muted)] min-w-[100px] font-medium">Ignore Patterns:</span>
+                  <span class="text-[var(--muted)] min-w-[100px] font-medium">Ignore Patterns:</span
+                  >
                   <span class="text-[var(--text)]">{project.ignorePatterns.join(', ')}</span>
                 </div>
               {/if}
@@ -373,12 +378,17 @@
   <div
     class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
     onclick={closeAllModals}
+    onkeydown={e => e.key === 'Escape' && closeAllModals()}
     role="dialog"
     aria-modal="true"
+    tabindex="-1"
   >
     <div
       class="bg-[var(--bg)] border border-[var(--border)] rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl"
-      onclick={(e) => e.stopPropagation()}
+      onclick={e => e.stopPropagation()}
+      onkeydown={e => e.stopPropagation()}
+      role="button"
+      tabindex="0"
     >
       <!-- Modal header -->
       <div class="flex justify-between items-center p-6 border-b border-[var(--border)]">
@@ -466,7 +476,8 @@
           <textarea
             id="ignore-patterns"
             value={formData.ignorePatterns.join('\n')}
-            oninput={(e) => formData.ignorePatterns = e.target.value.split('\n').filter(p => p.trim())}
+            oninput={e =>
+              (formData.ignorePatterns = e.target.value.split('\n').filter(p => p.trim()))}
             placeholder="node_modules/**&#10;dist/**&#10;.git/**"
             rows="4"
             class="w-full px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text)] text-sm font-mono focus:outline-none focus:border-[var(--accent)]"
@@ -525,20 +536,25 @@
 {#if showDiscoverModal}
   <div
     class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
-    onclick={() => showDiscoverModal = false}
+    onclick={() => (showDiscoverModal = false)}
+    onkeydown={e => e.key === 'Escape' && (showDiscoverModal = false)}
     role="dialog"
     aria-modal="true"
+    tabindex="-1"
   >
     <div
       class="bg-[var(--bg)] border border-[var(--border)] rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl"
-      onclick={(e) => e.stopPropagation()}
+      onclick={e => e.stopPropagation()}
+      onkeydown={e => e.stopPropagation()}
+      role="button"
+      tabindex="0"
     >
       <!-- Modal header -->
       <div class="flex justify-between items-center p-6 border-b border-[var(--border)]">
         <h3 class="text-xl font-semibold text-[var(--text)]">Discovered Projects</h3>
         <button
           class="text-[var(--muted)] hover:text-[var(--text)] text-3xl w-8 h-8 flex items-center justify-center"
-          onclick={() => showDiscoverModal = false}
+          onclick={() => (showDiscoverModal = false)}
         >
           ×
         </button>
@@ -553,7 +569,9 @@
         {:else}
           <div class="space-y-3">
             {#each discoveredProjects as project (project.name)}
-              <div class="flex justify-between items-center p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+              <div
+                class="flex justify-between items-center p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg"
+              >
                 <div class="flex-1">
                   <div class="font-semibold text-[var(--text)]">{project.name}</div>
                   <div class="text-sm text-[var(--muted)] font-mono">{project.path}</div>
@@ -574,7 +592,7 @@
       <div class="flex justify-end p-6 border-t border-[var(--border)]">
         <button
           class="px-4 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-sm font-medium text-[var(--text)] hover:bg-[var(--muted)] hover:border-[var(--muted)] transition-all duration-200"
-          onclick={() => showDiscoverModal = false}
+          onclick={() => (showDiscoverModal = false)}
         >
           Close
         </button>
@@ -587,20 +605,25 @@
 {#if showConfirmModal}
   <div
     class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
-    onclick={() => showConfirmModal = false}
+    onclick={() => (showConfirmModal = false)}
+    onkeydown={e => e.key === 'Escape' && (showConfirmModal = false)}
     role="dialog"
     aria-modal="true"
+    tabindex="-1"
   >
     <div
       class="bg-[var(--bg)] border border-[var(--border)] rounded-lg max-w-md w-full mx-4 shadow-2xl"
-      onclick={(e) => e.stopPropagation()}
+      onclick={e => e.stopPropagation()}
+      onkeydown={e => e.stopPropagation()}
+      role="button"
+      tabindex="0"
     >
       <!-- Modal header -->
       <div class="flex justify-between items-center p-6 border-b border-[var(--border)]">
         <h3 class="text-xl font-semibold text-[var(--text)]">Confirm Action</h3>
         <button
           class="text-[var(--muted)] hover:text-[var(--text)] text-3xl w-8 h-8 flex items-center justify-center"
-          onclick={() => showConfirmModal = false}
+          onclick={() => (showConfirmModal = false)}
         >
           ×
         </button>
@@ -615,7 +638,7 @@
       <div class="flex justify-end gap-3 p-6 border-t border-[var(--border)]">
         <button
           class="px-4 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-sm font-medium text-[var(--text)] hover:bg-[var(--muted)] hover:border-[var(--muted)] transition-all duration-200"
-          onclick={() => showConfirmModal = false}
+          onclick={() => (showConfirmModal = false)}
         >
           Cancel
         </button>

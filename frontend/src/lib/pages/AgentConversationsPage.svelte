@@ -7,7 +7,12 @@
 
   import { onMount } from 'svelte';
   import AgentsNav from '../components/layout/AgentsNav.svelte';
-  import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
   import { websocketService } from '../services/websocket.js';
   import { logger } from '../logger.js';
 
@@ -48,7 +53,7 @@
   let importSessionFile = $state('');
   let importProject = $state('');
   let importing = $state(false);
-  let importModalElement = null;
+  let importModalElement = $state();
 
   // Derived values using Svelte 5 $derived
   const filteredConversations = $derived.by(() => {
@@ -102,9 +107,7 @@
       }
 
       if (typeof aVal === 'string') {
-        return sortOrder === 'asc'
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
+        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       } else {
         return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
       }
@@ -142,7 +145,10 @@
     return groups;
   });
 
-  const allExpanded = $derived(expandedConversations.length === filteredConversations.length && filteredConversations.length > 0);
+  const allExpanded = $derived(
+    expandedConversations.length === filteredConversations.length &&
+      filteredConversations.length > 0
+  );
 
   // Load conversations from API
   async function loadConversations() {
@@ -219,21 +225,31 @@
 
   function getEventIcon(eventType) {
     switch (eventType) {
-      case 'user_message': return '👤';
-      case 'assistant_text': return '🤖';
-      case 'tool_call': return '🔧';
-      case 'tool_result': return '✅';
-      default: return '📝';
+      case 'user_message':
+        return '👤';
+      case 'assistant_text':
+        return '🤖';
+      case 'tool_call':
+        return '🔧';
+      case 'tool_result':
+        return '✅';
+      default:
+        return '📝';
     }
   }
 
   function getEventClass(eventType) {
     switch (eventType) {
-      case 'user_message': return 'user';
-      case 'assistant_text': return 'assistant';
-      case 'tool_call': return 'tool-call';
-      case 'tool_result': return 'tool-result';
-      default: return 'default';
+      case 'user_message':
+        return 'user';
+      case 'assistant_text':
+        return 'assistant';
+      case 'tool_call':
+        return 'tool-call';
+      case 'tool_result':
+        return 'tool-result';
+      default:
+        return 'default';
     }
   }
 
@@ -304,7 +320,10 @@
         project: importProject || 'raven'
       });
 
-      logger.info('Imported conversations', { total: result.imported.total, sessionFile: result.sessionFile });
+      logger.info('Imported conversations', {
+        total: result.imported.total,
+        sessionFile: result.sessionFile
+      });
 
       showImportDialog = false;
       importSessionFile = '';
@@ -399,26 +418,28 @@
           type: 'doughnut',
           data: {
             labels: typeData.map(([type]) => type.replace('_', ' ')),
-            datasets: [{
-              data: typeData.map(([, count]) => count),
-              backgroundColor: [
-                colors.primary,
-                colors.success,
-                colors.warning,
-                colors.error,
-                colors.muted,
-                colors.text
-              ],
-              borderColor: [
-                colors.primary,
-                colors.success,
-                colors.warning,
-                colors.error,
-                colors.muted,
-                colors.text
-              ],
-              borderWidth: 2
-            }]
+            datasets: [
+              {
+                data: typeData.map(([, count]) => count),
+                backgroundColor: [
+                  colors.primary,
+                  colors.success,
+                  colors.warning,
+                  colors.error,
+                  colors.muted,
+                  colors.text
+                ],
+                borderColor: [
+                  colors.primary,
+                  colors.success,
+                  colors.warning,
+                  colors.error,
+                  colors.muted,
+                  colors.text
+                ],
+                borderWidth: 2
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -450,14 +471,16 @@
           type: 'bar',
           data: {
             labels: projectData.map(([project]) => project),
-            datasets: [{
-              label: 'Conversations',
-              data: projectData.map(([, count]) => count),
-              backgroundColor: colors.primary,
-              borderColor: colors.primary,
-              borderWidth: 2,
-              borderRadius: 4
-            }]
+            datasets: [
+              {
+                label: 'Conversations',
+                data: projectData.map(([, count]) => count),
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+                borderWidth: 2,
+                borderRadius: 4
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -586,7 +609,7 @@
       <div class="charts-section">
         <div class="charts-header">
           <h3>📊 Analytics</h3>
-          <button class="btn-toggle-charts" onclick={() => showCharts = false}>
+          <button class="btn-toggle-charts" onclick={() => (showCharts = false)}>
             Hide Charts
           </button>
         </div>
@@ -607,7 +630,7 @@
       </div>
     {:else if !showCharts && !loading}
       <div class="charts-toggle">
-        <button class="btn-show-charts" onclick={() => showCharts = true}>
+        <button class="btn-show-charts" onclick={() => (showCharts = true)}>
           📊 Show Analytics Charts
         </button>
       </div>
@@ -647,17 +670,18 @@
           {#if loading}⏳{:else}🔄{/if} Refresh
         </button>
 
-        <button class="btn-expand-all" onclick={toggleExpandAll} disabled={filteredConversations.length === 0}>
-          {#if allExpanded}📕{:else}📖{/if} {allExpanded ? 'Collapse All' : 'Expand All'}
+        <button
+          class="btn-expand-all"
+          onclick={toggleExpandAll}
+          disabled={filteredConversations.length === 0}
+        >
+          {#if allExpanded}📕{:else}📖{/if}
+          {allExpanded ? 'Collapse All' : 'Expand All'}
         </button>
 
-        <button class="btn-import" onclick={() => showImportDialog = true}>
-          📥 Import
-        </button>
+        <button class="btn-import" onclick={() => (showImportDialog = true)}> 📥 Import </button>
 
-        <button class="btn-export" onclick={exportConversations}>
-          📤 Export
-        </button>
+        <button class="btn-export" onclick={exportConversations}> 📤 Export </button>
       </div>
 
       <!-- Secondary Controls Row -->
@@ -667,28 +691,28 @@
           <button
             class="filter-btn"
             class:active={dateRange === 'all'}
-            onclick={() => dateRange = 'all'}
+            onclick={() => (dateRange = 'all')}
           >
             All Time
           </button>
           <button
             class="filter-btn"
             class:active={dateRange === 'today'}
-            onclick={() => dateRange = 'today'}
+            onclick={() => (dateRange = 'today')}
           >
             Today
           </button>
           <button
             class="filter-btn"
             class:active={dateRange === '7d'}
-            onclick={() => dateRange = '7d'}
+            onclick={() => (dateRange = '7d')}
           >
             7 Days
           </button>
           <button
             class="filter-btn"
             class:active={dateRange === '30d'}
-            onclick={() => dateRange = '30d'}
+            onclick={() => (dateRange = '30d')}
           >
             30 Days
           </button>
@@ -724,14 +748,14 @@
           <button
             class="view-btn"
             class:active={viewMode === 'compact'}
-            onclick={() => viewMode = 'compact'}
+            onclick={() => (viewMode = 'compact')}
           >
             Compact
           </button>
           <button
             class="view-btn"
             class:active={viewMode === 'detailed'}
-            onclick={() => viewMode = 'detailed'}
+            onclick={() => (viewMode = 'detailed')}
           >
             Detailed
           </button>
@@ -742,28 +766,28 @@
           <button
             class="group-btn"
             class:active={groupBy === 'none'}
-            onclick={() => groupBy = 'none'}
+            onclick={() => (groupBy = 'none')}
           >
             None
           </button>
           <button
             class="group-btn"
             class:active={groupBy === 'session'}
-            onclick={() => groupBy = 'session'}
+            onclick={() => (groupBy = 'session')}
           >
             Session
           </button>
           <button
             class="group-btn"
             class:active={groupBy === 'project'}
-            onclick={() => groupBy = 'project'}
+            onclick={() => (groupBy = 'project')}
           >
             Project
           </button>
           <button
             class="group-btn"
             class:active={groupBy === 'date'}
-            onclick={() => groupBy = 'date'}
+            onclick={() => (groupBy = 'date')}
           >
             Date
           </button>
@@ -781,9 +805,7 @@
     {#if error}
       <div class="error-state">
         <p>Error: {error}</p>
-        <button class="btn-retry" onclick={loadConversations}>
-          Retry
-        </button>
+        <button class="btn-retry" onclick={loadConversations}> Retry </button>
       </div>
     {:else if loading}
       <div class="loading-state">
@@ -793,7 +815,7 @@
     {:else if filteredConversations.length === 0}
       <div class="empty">
         <p>No conversations found</p>
-        <button class="btn-import" onclick={() => showImportDialog = true}>
+        <button class="btn-import" onclick={() => (showImportDialog = true)}>
           📥 Import Claude Sessions
         </button>
       </div>
@@ -803,7 +825,7 @@
           Showing {filteredConversations.length} of {stats.total} conversations
         </div>
 
-        {#each Object.entries(groupedConversations) as [groupName, groupConvs]}
+        {#each Object.entries(groupedConversations) as [groupName, groupConvs] (groupName)}
           {#if groupBy !== 'none'}
             <div class="group-header">
               <h3>{groupName}</h3>
@@ -812,111 +834,111 @@
           {/if}
 
           {#each groupConvs as conv (conv.id)}
-          <article class="conversation-item {getEventClass(conv.event_type)}">
-            <button
-              class="conv-header"
-              onclick={() => toggleExpanded(conv.id)}
-            >
-              <div class="conv-icon">{getEventIcon(conv.event_type)}</div>
-              <div class="conv-info">
-                <div class="conv-type-row">
-                  <span class="conv-type">{conv.event_type}</span>
-                  {#if conv.tool_name}
-                    <span class="tool-badge">{conv.tool_name}</span>
-                  {/if}
-                  {#if conv.project}
-                    <span class="project-badge">{conv.project}</span>
-                  {/if}
-                </div>
-                {#if viewMode === 'detailed'}
-                  <div class="conv-preview">
-                    {#if conv.content}
-                      {truncateContent(conv.content)}
-                    {:else if conv.tool_name}
-                      Tool: {conv.tool_name}
-                    {:else if conv.tool_output}
-                      {truncateContent(conv.tool_output)}
+            <article class="conversation-item {getEventClass(conv.event_type)}">
+              <button class="conv-header" onclick={() => toggleExpanded(conv.id)}>
+                <div class="conv-icon">{getEventIcon(conv.event_type)}</div>
+                <div class="conv-info">
+                  <div class="conv-type-row">
+                    <span class="conv-type">{conv.event_type}</span>
+                    {#if conv.tool_name}
+                      <span class="tool-badge">{conv.tool_name}</span>
+                    {/if}
+                    {#if conv.project}
+                      <span class="project-badge">{conv.project}</span>
                     {/if}
                   </div>
-                {/if}
-              </div>
-              <div class="conv-meta">
-                <time class="conv-time" datetime="{conv.timestamp}">{formatTime(conv.timestamp)}</time>
-                <div class="conv-id">#{conv.id}</div>
-              </div>
-              <span class="expand-btn">
-                {expandedConversations.includes(conv.id) ? '▼' : '▶'}
-              </span>
-            </button>
-
-            {#if expandedConversations.includes(conv.id)}
-              <div class="conv-details">
-                {#if conv.content}
-                  <div class="detail-section">
-                    <div class="detail-header">
-                      <div class="detail-label">Content:</div>
-                      <button
-                        class="btn-copy-content"
-                        onclick={() => copyToClipboard(conv.content, 'Content')}
-                      >
-                        📋 Copy
-                      </button>
-                    </div>
-                    <pre class="detail-content">{conv.content}</pre>
-                  </div>
-                {/if}
-
-                {#if conv.tool_input}
-                  <div class="detail-section">
-                    <div class="detail-header">
-                      <div class="detail-label">Tool Input:</div>
-                      <button
-                        class="btn-copy-content"
-                        onclick={() => copyToClipboard(formatToolInput(conv.tool_input), 'Tool Input')}
-                      >
-                        📋 Copy
-                      </button>
-                    </div>
-                    <pre class="detail-content">{formatToolInput(conv.tool_input)}</pre>
-                  </div>
-                {/if}
-
-                {#if conv.tool_output}
-                  <div class="detail-section">
-                    <div class="detail-header">
-                      <div class="detail-label">Tool Output:</div>
-                      <button
-                        class="btn-copy-content"
-                        onclick={() => copyToClipboard(conv.tool_output, 'Tool Output')}
-                      >
-                        📋 Copy
-                      </button>
-                    </div>
-                    <pre class="detail-content tool-output">{conv.tool_output}</pre>
-                  </div>
-                {/if}
-
-                <div class="detail-metadata">
-                  <div class="meta-item">
-                    <span class="meta-label">Session ID:</span>
-                    <span class="meta-value">{conv.claude_session_id}</span>
-                  </div>
-                  {#if conv.parent_uuid}
-                    <div class="meta-item">
-                      <span class="meta-label">Parent UUID:</span>
-                      <span class="meta-value">{conv.parent_uuid}</span>
-                    </div>
-                  {/if}
-                  {#if conv.metadata}
-                    <div class="meta-item">
-                      <span class="meta-label">Metadata:</span>
-                      <span class="meta-value">{JSON.stringify(conv.metadata)}</span>
+                  {#if viewMode === 'detailed'}
+                    <div class="conv-preview">
+                      {#if conv.content}
+                        {truncateContent(conv.content)}
+                      {:else if conv.tool_name}
+                        Tool: {conv.tool_name}
+                      {:else if conv.tool_output}
+                        {truncateContent(conv.tool_output)}
+                      {/if}
                     </div>
                   {/if}
                 </div>
-              </div>
-            {/if}
-          </article>
+                <div class="conv-meta">
+                  <time class="conv-time" datetime={conv.timestamp}
+                    >{formatTime(conv.timestamp)}</time
+                  >
+                  <div class="conv-id">#{conv.id}</div>
+                </div>
+                <span class="expand-btn">
+                  {expandedConversations.includes(conv.id) ? '▼' : '▶'}
+                </span>
+              </button>
+
+              {#if expandedConversations.includes(conv.id)}
+                <div class="conv-details">
+                  {#if conv.content}
+                    <div class="detail-section">
+                      <div class="detail-header">
+                        <div class="detail-label">Content:</div>
+                        <button
+                          class="btn-copy-content"
+                          onclick={() => copyToClipboard(conv.content, 'Content')}
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                      <pre class="detail-content">{conv.content}</pre>
+                    </div>
+                  {/if}
+
+                  {#if conv.tool_input}
+                    <div class="detail-section">
+                      <div class="detail-header">
+                        <div class="detail-label">Tool Input:</div>
+                        <button
+                          class="btn-copy-content"
+                          onclick={() =>
+                            copyToClipboard(formatToolInput(conv.tool_input), 'Tool Input')}
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                      <pre class="detail-content">{formatToolInput(conv.tool_input)}</pre>
+                    </div>
+                  {/if}
+
+                  {#if conv.tool_output}
+                    <div class="detail-section">
+                      <div class="detail-header">
+                        <div class="detail-label">Tool Output:</div>
+                        <button
+                          class="btn-copy-content"
+                          onclick={() => copyToClipboard(conv.tool_output, 'Tool Output')}
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                      <pre class="detail-content tool-output">{conv.tool_output}</pre>
+                    </div>
+                  {/if}
+
+                  <div class="detail-metadata">
+                    <div class="meta-item">
+                      <span class="meta-label">Session ID:</span>
+                      <span class="meta-value">{conv.claude_session_id}</span>
+                    </div>
+                    {#if conv.parent_uuid}
+                      <div class="meta-item">
+                        <span class="meta-label">Parent UUID:</span>
+                        <span class="meta-value">{conv.parent_uuid}</span>
+                      </div>
+                    {/if}
+                    {#if conv.metadata}
+                      <div class="meta-item">
+                        <span class="meta-label">Metadata:</span>
+                        <span class="meta-value">{JSON.stringify(conv.metadata)}</span>
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+            </article>
           {/each}
         {/each}
 
@@ -946,13 +968,16 @@
     aria-modal="true"
     tabindex="-1"
   >
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="modal-content"
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={handleImportModalKeydown}
+      onclick={e => e.stopPropagation()}
+      onkeydown={e => {
+        e.stopPropagation();
+        handleImportModalKeydown(e);
+      }}
       bind:this={importModalElement}
       role="document"
-      tabindex="-1"
     >
       <h2>Import Claude Conversations</h2>
       <p>Import conversation history from Claude Code .jsonl session files.</p>
@@ -983,9 +1008,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn-cancel" onclick={closeImportDialog}>
-          Cancel
-        </button>
+        <button class="btn-cancel" onclick={closeImportDialog}> Cancel </button>
         <button class="btn-primary" onclick={importConversations} disabled={importing}>
           {#if importing}
             <span>⏳</span> Importing...
@@ -1099,7 +1122,10 @@
     cursor: pointer;
   }
 
-  .btn-refresh, .btn-import, .btn-export, .btn-expand-all {
+  .btn-refresh,
+  .btn-import,
+  .btn-export,
+  .btn-expand-all {
     padding: var(--space-lg) var(--space-2xl);
     background: var(--accent);
     color: white;
@@ -1111,11 +1137,15 @@
     transition: all var(--duration-base) var(--ease-smooth);
   }
 
-  .btn-refresh:hover, .btn-import:hover, .btn-export:hover, .btn-expand-all:hover {
+  .btn-refresh:hover,
+  .btn-import:hover,
+  .btn-export:hover,
+  .btn-expand-all:hover {
     filter: brightness(1.2);
   }
 
-  .btn-refresh:disabled, .btn-expand-all:disabled {
+  .btn-refresh:disabled,
+  .btn-expand-all:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -1154,11 +1184,11 @@
   }
 
   .conversation-item.tool-call {
-    border-left: 4px solid #FFA500;
+    border-left: 4px solid #ffa500;
   }
 
   .conversation-item.tool-result {
-    border-left: 4px solid #00C853;
+    border-left: 4px solid #00c853;
   }
 
   .conv-header {
@@ -1210,7 +1240,8 @@
     color: var(--accent);
   }
 
-  .tool-badge, .project-badge {
+  .tool-badge,
+  .project-badge {
     font-size: 11px;
     padding: var(--space-xs) var(--space-lg);
     border-radius: var(--radius-sm);
@@ -1380,7 +1411,9 @@
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   /* Modal Styles */
@@ -1454,7 +1487,8 @@
     margin-top: var(--space-4xl);
   }
 
-  .btn-cancel, .btn-primary {
+  .btn-cancel,
+  .btn-primary {
     padding: var(--space-md) var(--space-xl);
     border: none;
     border-radius: var(--radius-sm);

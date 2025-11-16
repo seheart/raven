@@ -9,7 +9,7 @@
   let warnings = $state([]);
   let loading = $state(true);
   let error = $state(null);
-  let lastUpdated = $state(new Date);
+  let lastUpdated = $state(new Date());
   let searchQuery = $state('');
   let categoryFilter = $state('all');
   let projectFilter = $state('all');
@@ -28,7 +28,7 @@
 
   // Derived values - Extract unique projects
   const projects = $derived.by(() => {
-    const uniqueProjects = new Set(warnings.map((w) => w.project_name).filter(Boolean));
+    const uniqueProjects = new Set(warnings.map(w => w.project_name).filter(Boolean));
     return Array.from(uniqueProjects).sort;
   });
 
@@ -40,7 +40,7 @@
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (warning) =>
+        warning =>
           warning.filepath?.toLowerCase().includes(query) ||
           warning.message?.toLowerCase().includes(query) ||
           warning.pattern_name?.toLowerCase().includes(query)
@@ -49,17 +49,17 @@
 
     // Apply category filter
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter((warning) => warning.category === categoryFilter);
+      filtered = filtered.filter(warning => warning.category === categoryFilter);
     }
 
     // Apply project filter
     if (projectFilter !== 'all') {
-      filtered = filtered.filter((warning) => warning.project_name === projectFilter);
+      filtered = filtered.filter(warning => warning.project_name === projectFilter);
     }
 
     // Apply severity filter
     if (severityFilter !== 'all') {
-      filtered = filtered.filter((warning) => warning.severity === severityFilter);
+      filtered = filtered.filter(warning => warning.severity === severityFilter);
     }
 
     return filtered;
@@ -81,16 +81,16 @@
     return {
       total: warnings.length,
       filtered: filteredWarnings.length,
-      critical: warnings.filter((w) => w.severity === 'critical').length,
-      error: warnings.filter((w) => w.severity === 'error').length,
-      warning: warnings.filter((w) => w.severity === 'warning').length,
-      info: warnings.filter((w) => w.severity === 'info').length
+      critical: warnings.filter(w => w.severity === 'critical').length,
+      error: warnings.filter(w => w.severity === 'error').length,
+      warning: warnings.filter(w => w.severity === 'warning').length,
+      info: warnings.filter(w => w.severity === 'info').length
     };
   });
 
   // Time since last update
   const timeSinceUpdate = $derived.by(() => {
-    return Math.floor((new Date - lastUpdated) / 1000);
+    return Math.floor((new Date() - lastUpdated) / 1000);
   });
 
   // Shorten file path
@@ -140,7 +140,7 @@
 
       const response = await fetch(url);
 
-      const data = await response.json()
+      const data = await response.json();
       warnings = data.warnings || [];
 
       lastUpdated = new Date();
@@ -169,7 +169,6 @@
           method: 'POST'
         }
       );
-
 
       await loadWarnings;
     } catch (err) {
@@ -203,7 +202,7 @@
   // Export to CSV
   function exportToCSV() {
     const headers = ['Filepath', 'Line', 'Category', 'Severity', 'Pattern', 'Message'];
-    const rows = filteredWarnings.map((warning) => [
+    const rows = filteredWarnings.map(warning => [
       warning.filepath || '',
       warning.line_number || '',
       warning.category || '',
@@ -214,7 +213,7 @@
 
     const csv = [
       headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -303,15 +302,19 @@
       <div class="space-y-4">
         <div class="grid grid-cols-4 gap-4">
           {#each Array(4) as _, i (i)}
-            <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+            <div
+              class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            ></div>
           {/each}
         </div>
-        <div class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+        <div
+          class="h-96 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+        ></div>
       </div>
     {:else}
       <!-- Category Filter -->
       <div class="mb-6">
-        <label class="text-sm font-semibold text-[var(--text)] uppercase mb-3 block">Category:</label>
+        <span class="text-sm font-semibold text-[var(--text)] uppercase mb-3 block">Category:</span>
         <div class="flex gap-3 flex-wrap">
           {#each categories as category (category.id)}
             <button
@@ -415,12 +418,18 @@
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
           <div class="text-5xl mb-4">✅</div>
           <div class="text-xl font-semibold text-[var(--text-heading)] mb-2 font-sans">
-            {searchQuery || projectFilter !== 'all' || categoryFilter !== 'all' || severityFilter !== 'all'
+            {searchQuery ||
+            projectFilter !== 'all' ||
+            categoryFilter !== 'all' ||
+            severityFilter !== 'all'
               ? 'No matching warnings'
               : 'No pattern warnings!'}
           </div>
           <div class="text-base text-[var(--muted)] font-sans">
-            {searchQuery || projectFilter !== 'all' || categoryFilter !== 'all' || severityFilter !== 'all'
+            {searchQuery ||
+            projectFilter !== 'all' ||
+            categoryFilter !== 'all' ||
+            severityFilter !== 'all'
               ? 'Try adjusting your filters'
               : 'No problematic patterns detected in your code'}
           </div>
@@ -428,7 +437,9 @@
       {:else}
         <div class="space-y-4">
           {#each Object.entries(warningsByFile) as [filepath, fileWarnings] (filepath)}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden"
+            >
               <!-- File Header -->
               <div
                 class="flex items-center justify-between gap-4 px-4 py-3 bg-[var(--surface-2)] border-b border-[var(--border)]"
@@ -450,8 +461,10 @@
                       {fileWarnings[0].project_name}
                     </span>
                   {/if}
-                  {#if fileWarnings.some((w) => w.severity === 'critical' || w.severity === 'error')}
-                    <span class="px-2 py-1 bg-[var(--error)] text-white rounded text-xs font-bold uppercase">
+                  {#if fileWarnings.some(w => w.severity === 'critical' || w.severity === 'error')}
+                    <span
+                      class="px-2 py-1 bg-[var(--error)] text-white rounded text-xs font-bold uppercase"
+                    >
                       CRITICAL
                     </span>
                   {/if}

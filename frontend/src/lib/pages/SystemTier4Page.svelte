@@ -168,7 +168,9 @@
 
   async function loadProductivityData() {
     try {
-      const data = await api.get(`/productivity/latest?project=${project}`).catch(() => ({ metrics: null }));
+      const data = await api
+        .get(`/productivity/latest?project=${project}`)
+        .catch(() => ({ metrics: null }));
       productivityInsights = data.metrics;
     } catch (err) {
       logger.error('Error loading productivity data:', err);
@@ -177,7 +179,9 @@
 
   async function loadPersonalityData() {
     try {
-      const data = await api.get(`/personality/latest?project=${project}&agent=claude`).catch(() => ({ profile: null }));
+      const data = await api
+        .get(`/personality/latest?project=${project}&agent=claude`)
+        .catch(() => ({ profile: null }));
       personalityProfile = data.profile;
     } catch (err) {
       logger.error('Error loading personality data:', err);
@@ -188,7 +192,9 @@
     try {
       const [summaryData, timeSeriesData] = await Promise.all([
         api.get(`/growth/summary?project=${project}&days=30`).catch(() => ({ summary: null })),
-        api.get(`/growth/timeseries?project=${project}&days=30&metric=all`).catch(() => ({ timeSeries: null }))
+        api
+          .get(`/growth/timeseries?project=${project}&days=30&metric=all`)
+          .catch(() => ({ timeSeries: null }))
       ]);
 
       growthSummary = summaryData.summary;
@@ -201,9 +207,15 @@
   async function loadIntegrationStatus() {
     try {
       const [githubData, discordData, slackData] = await Promise.all([
-        api.get(`/integrations/github/events?project=${project}&hours=24`).catch(() => ({ events: [] })),
-        api.get(`/integrations/discord/events?project=${project}&hours=24`).catch(() => ({ events: [] })),
-        api.get(`/integrations/slack/events?project=${project}&hours=24`).catch(() => ({ events: [] }))
+        api
+          .get(`/integrations/github/events?project=${project}&hours=24`)
+          .catch(() => ({ events: [] })),
+        api
+          .get(`/integrations/discord/events?project=${project}&hours=24`)
+          .catch(() => ({ events: [] })),
+        api
+          .get(`/integrations/slack/events?project=${project}&hours=24`)
+          .catch(() => ({ events: [] }))
       ]);
 
       integrationStatus.github.events = githubData.events || [];
@@ -223,7 +235,9 @@
     try {
       const [statsData, achievementsData, recentData] = await Promise.all([
         api.get(`/gamification/stats?project=${project}`).catch(() => ({ stats: null })),
-        api.get(`/gamification/achievements?project=${project}`).catch(() => ({ achievements: [] })),
+        api
+          .get(`/gamification/achievements?project=${project}`)
+          .catch(() => ({ achievements: [] })),
         api.get(`/gamification/recent?project=${project}`).catch(() => ({ achievements: [] }))
       ]);
 
@@ -314,7 +328,10 @@
   async function analyzePersonality() {
     try {
       loading = true;
-      const data = await api.post(`/personality/analyze?project=${project}&agent=claude&days=30`, {});
+      const data = await api.post(
+        `/personality/analyze?project=${project}&agent=claude&days=30`,
+        {}
+      );
       personalityProfile = data.personality;
     } catch (err) {
       logger.error('Error analyzing personality:', err);
@@ -669,8 +686,14 @@
           {#if healthScore}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
               <!-- Overall Score Display -->
-              <div class="text-center mb-8 p-6 border-4 rounded-xl" style="border-color: {getHealthScoreColor(healthScore.overall_score)}">
-                <div class="text-6xl font-bold mb-2" style="color: {getHealthScoreColor(healthScore.overall_score)}">
+              <div
+                class="text-center mb-8 p-6 border-4 rounded-xl"
+                style="border-color: {getHealthScoreColor(healthScore.overall_score)}"
+              >
+                <div
+                  class="text-6xl font-bold mb-2"
+                  style="color: {getHealthScoreColor(healthScore.overall_score)}"
+                >
                   {healthScore.overall_score}
                 </div>
                 <div class="text-lg text-[var(--muted)]">Overall Score</div>
@@ -678,14 +701,7 @@
 
               <!-- Score Breakdown -->
               <div class="space-y-4 mb-6">
-                {#each [
-                  { name: 'Code Quality', score: healthScore.code_quality_score },
-                  { name: 'Test Coverage', score: healthScore.test_coverage_score },
-                  { name: 'Documentation', score: healthScore.documentation_score },
-                  { name: 'Velocity', score: healthScore.velocity_score },
-                  { name: 'Stability', score: healthScore.stability_score },
-                  { name: 'Security', score: healthScore.security_score }
-                ] as item}
+                {#each [{ name: 'Code Quality', score: healthScore.code_quality_score }, { name: 'Test Coverage', score: healthScore.test_coverage_score }, { name: 'Documentation', score: healthScore.documentation_score }, { name: 'Velocity', score: healthScore.velocity_score }, { name: 'Stability', score: healthScore.stability_score }, { name: 'Security', score: healthScore.security_score }] as item (item.name)}
                   <div class="grid grid-cols-[150px_1fr_50px] gap-3 items-center">
                     <span class="text-sm text-[var(--text)]">{item.name}</span>
                     <div class="h-6 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -694,7 +710,8 @@
                         style="width: {item.score}%; background: {getHealthScoreColor(item.score)}"
                       ></div>
                     </div>
-                    <span class="text-sm font-bold text-right text-[var(--text)]">{item.score}</span>
+                    <span class="text-sm font-bold text-right text-[var(--text)]">{item.score}</span
+                    >
                   </div>
                 {/each}
               </div>
@@ -704,7 +721,7 @@
                 <div class="mt-6">
                   <h4 class="text-lg font-semibold text-[var(--text)] mb-3">Recommendations</h4>
                   <div class="space-y-2">
-                    {#each healthScore.recommendations as rec}
+                    {#each healthScore.recommendations as rec (rec.message)}
                       {@const severity = rec.severity}
                       <div class="flex gap-3 p-3 bg-[var(--bg)] rounded-lg">
                         <span class="text-xl">
@@ -718,12 +735,15 @@
               {/if}
             </div>
           {:else}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-              <p class="text-[var(--muted)]">No health score data available. Click "Calculate Now" to generate.</p>
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
+              <p class="text-[var(--muted)]">
+                No health score data available. Click "Calculate Now" to generate.
+              </p>
             </div>
           {/if}
         </div>
-
       {:else if activeTab === 'drift'}
         <!-- Drift Detection Tab -->
         <div class="space-y-6">
@@ -738,20 +758,36 @@
           </div>
 
           {#if driftSummary}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
-              <div class="text-4xl font-bold text-[var(--accent)]">{driftSummary.total_active_drifts}</div>
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+            >
+              <div class="text-4xl font-bold text-[var(--accent)]">
+                {driftSummary.total_active_drifts}
+              </div>
               <div class="text-sm text-[var(--muted)] mt-2">Active Drifts</div>
             </div>
           {/if}
 
           {#if recentDrifts.length > 0}
             <div class="space-y-3">
-              {#each recentDrifts as drift}
-                <div class="bg-[var(--surface)] border-l-4 rounded-lg p-4" style="border-left-color: {getSeverityColor(drift.severity)}">
+              {#each recentDrifts as drift (drift.id)}
+                <div
+                  class="bg-[var(--surface)] border-l-4 rounded-lg p-4"
+                  style="border-left-color: {getSeverityColor(drift.severity)}"
+                >
                   <div class="flex justify-between items-start mb-2">
-                    <span class="font-bold text-sm text-[var(--text)]">{drift.drift_type.toUpperCase()}</span>
+                    <span class="font-bold text-sm text-[var(--text)]"
+                      >{drift.drift_type.toUpperCase()}</span
+                    >
                     <div class="flex items-center gap-2">
-                      <span class="px-2 py-1 rounded text-xs font-bold uppercase" style="background: {getSeverityColor(drift.severity)}; color: {drift.severity === 'medium' || drift.severity === 'low' ? 'black' : 'white'}">
+                      <span
+                        class="px-2 py-1 rounded text-xs font-bold uppercase"
+                        style="background: {getSeverityColor(
+                          drift.severity
+                        )}; color: {drift.severity === 'medium' || drift.severity === 'low'
+                          ? 'black'
+                          : 'white'}"
+                      >
                         {drift.severity}
                       </span>
                       {#if !drift.resolved_at}
@@ -762,7 +798,10 @@
                           Mark Resolved
                         </button>
                       {:else}
-                        <span class="px-3 py-1 bg-green-600 text-white rounded text-xs font-semibold">Resolved</span>
+                        <span
+                          class="px-3 py-1 bg-green-600 text-white rounded text-xs font-semibold"
+                          >Resolved</span
+                        >
                       {/if}
                     </div>
                   </div>
@@ -784,12 +823,13 @@
               {/each}
             </div>
           {:else}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
               <p class="text-[var(--muted)]">No recent drift events detected.</p>
             </div>
           {/if}
         </div>
-
       {:else if activeTab === 'productivity'}
         <!-- Productivity Insights Tab -->
         <div class="space-y-6">
@@ -807,15 +847,21 @@
             {@const insights = productivityInsights}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {#if insights.peak_hours}
-                <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+                <div
+                  class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+                >
                   <div class="text-3xl mb-3">🌟</div>
                   <div class="text-sm text-[var(--muted)] mb-2">Peak Hour</div>
-                  <div class="text-2xl font-bold text-[var(--accent)]">{insights.peak_hours.peak_hour}:00</div>
+                  <div class="text-2xl font-bold text-[var(--accent)]">
+                    {insights.peak_hours.peak_hour}:00
+                  </div>
                 </div>
               {/if}
 
               {#if insights.session_patterns}
-                <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+                <div
+                  class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+                >
                   <div class="text-3xl mb-3">⏱️</div>
                   <div class="text-sm text-[var(--muted)] mb-2">Optimal Session</div>
                   <div class="text-2xl font-bold text-[var(--accent)]">
@@ -825,7 +871,9 @@
               {/if}
 
               {#if insights.focus_metrics}
-                <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+                <div
+                  class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+                >
                   <div class="text-3xl mb-3">🎯</div>
                   <div class="text-sm text-[var(--muted)] mb-2">Focus Score</div>
                   <div class="text-2xl font-bold text-[var(--accent)]">
@@ -835,12 +883,20 @@
               {/if}
 
               {#if insights.productivity_trends}
-                <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+                <div
+                  class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+                >
                   <div class="text-3xl mb-3">
-                    {insights.productivity_trends.trend === 'improving' ? '📈' : insights.productivity_trends.trend === 'declining' ? '📉' : '➡️'}
+                    {insights.productivity_trends.trend === 'improving'
+                      ? '📈'
+                      : insights.productivity_trends.trend === 'declining'
+                        ? '📉'
+                        : '➡️'}
                   </div>
                   <div class="text-sm text-[var(--muted)] mb-2">Trend</div>
-                  <div class="text-2xl font-bold text-[var(--accent)] capitalize">{insights.productivity_trends.trend}</div>
+                  <div class="text-2xl font-bold text-[var(--accent)] capitalize">
+                    {insights.productivity_trends.trend}
+                  </div>
                 </div>
               {/if}
             </div>
@@ -849,7 +905,7 @@
               <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
                 <h4 class="text-lg font-semibold text-[var(--text)] mb-3">Recommendations</h4>
                 <div class="space-y-2">
-                  {#each insights.recommendations as rec}
+                  {#each insights.recommendations as rec (rec.message)}
                     <div class="flex gap-3 p-3 bg-[var(--bg)] rounded-lg">
                       <span class="text-xl">💡</span>
                       <span class="flex-1 text-sm text-[var(--text)]">{rec.message}</span>
@@ -859,12 +915,15 @@
               </div>
             {/if}
           {:else}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-              <p class="text-[var(--muted)]">No productivity insights available. Click "Calculate Now" to generate.</p>
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
+              <p class="text-[var(--muted)]">
+                No productivity insights available. Click "Calculate Now" to generate.
+              </p>
             </div>
           {/if}
         </div>
-
       {:else if activeTab === 'personality'}
         <!-- Personality Tab -->
         <div class="space-y-6">
@@ -882,15 +941,21 @@
             {@const insights = personalityProfile}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
               <div class="mb-6">
-                <h4 class="text-2xl font-bold text-[var(--accent)] mb-3">{insights.overall_profile.type}</h4>
-                <p class="text-[var(--text-secondary)] leading-relaxed">{insights.overall_profile.summary}</p>
+                <h4 class="text-2xl font-bold text-[var(--accent)] mb-3">
+                  {insights.overall_profile.type}
+                </h4>
+                <p class="text-[var(--text-secondary)] leading-relaxed">
+                  {insights.overall_profile.summary}
+                </p>
               </div>
 
               <div class="mb-6">
                 <h5 class="text-lg font-semibold text-[var(--text)] mb-3">Traits</h5>
                 <div class="flex flex-wrap gap-2">
-                  {#each insights.overall_profile.traits as trait}
-                    <span class="px-3 py-1 bg-[var(--bg)] border border-[var(--accent)] rounded-full text-sm text-[var(--accent)]">
+                  {#each insights.overall_profile.traits as trait (trait)}
+                    <span
+                      class="px-3 py-1 bg-[var(--bg)] border border-[var(--accent)] rounded-full text-sm text-[var(--accent)]"
+                    >
                       {trait}
                     </span>
                   {/each}
@@ -900,27 +965,39 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
                   <span class="text-sm text-[var(--muted)]">Communication Style</span>
-                  <span class="text-sm font-bold text-[var(--accent)]">{insights.communication_style.style}</span>
+                  <span class="text-sm font-bold text-[var(--accent)]"
+                    >{insights.communication_style.style}</span
+                  >
                 </div>
                 <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
                   <span class="text-sm text-[var(--muted)]">Risk Tolerance</span>
-                  <span class="text-sm font-bold text-[var(--accent)]">{insights.risk_profile.tolerance}</span>
+                  <span class="text-sm font-bold text-[var(--accent)]"
+                    >{insights.risk_profile.tolerance}</span
+                  >
                 </div>
                 <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
                   <span class="text-sm text-[var(--muted)]">Creativity Score</span>
-                  <span class="text-sm font-bold text-[var(--accent)]">{insights.creativity_score.score}/100</span>
+                  <span class="text-sm font-bold text-[var(--accent)]"
+                    >{insights.creativity_score.score}/100</span
+                  >
                 </div>
                 <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
                   <span class="text-sm text-[var(--muted)]">Consistency Score</span>
-                  <span class="text-sm font-bold text-[var(--accent)]">{insights.consistency_metrics.score}/100</span>
+                  <span class="text-sm font-bold text-[var(--accent)]"
+                    >{insights.consistency_metrics.score}/100</span
+                  >
                 </div>
                 <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
                   <span class="text-sm text-[var(--muted)]">Problem Solving</span>
-                  <span class="text-sm font-bold text-[var(--accent)]">{insights.problem_solving.approach}</span>
+                  <span class="text-sm font-bold text-[var(--accent)]"
+                    >{insights.problem_solving.approach}</span
+                  >
                 </div>
                 <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
                   <span class="text-sm text-[var(--muted)]">Decision Speed</span>
-                  <span class="text-sm font-bold text-[var(--accent)]">{insights.decision_speed.speed}</span>
+                  <span class="text-sm font-bold text-[var(--accent)]"
+                    >{insights.decision_speed.speed}</span
+                  >
                 </div>
               </div>
 
@@ -928,7 +1005,7 @@
                 <div>
                   <h5 class="text-lg font-semibold text-[var(--text)] mb-3">Strengths</h5>
                   <div class="space-y-2">
-                    {#each insights.overall_profile.strengths as strength}
+                    {#each insights.overall_profile.strengths as strength (strength)}
                       <div class="p-2 bg-[var(--bg)] rounded-lg text-sm text-[var(--text)]">
                         ✅ {strength}
                       </div>
@@ -938,12 +1015,15 @@
               {/if}
             </div>
           {:else}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-              <p class="text-[var(--muted)]">No personality analysis available. Click "Analyze Now" to generate.</p>
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
+              <p class="text-[var(--muted)]">
+                No personality analysis available. Click "Analyze Now" to generate.
+              </p>
             </div>
           {/if}
         </div>
-
       {:else if activeTab === 'growth'}
         <!-- Growth Tracking Tab -->
         <div class="space-y-6">
@@ -959,21 +1039,37 @@
 
           {#if growthSummary}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+              <div
+                class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+              >
                 <div class="text-sm text-[var(--muted)] mb-2">Avg Daily Events</div>
-                <div class="text-3xl font-bold text-[var(--accent)]">{growthSummary.statistics.avg_daily_events?.toFixed(0)}</div>
+                <div class="text-3xl font-bold text-[var(--accent)]">
+                  {growthSummary.statistics.avg_daily_events?.toFixed(0)}
+                </div>
               </div>
-              <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+              <div
+                class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+              >
                 <div class="text-sm text-[var(--muted)] mb-2">Avg Quality Score</div>
-                <div class="text-3xl font-bold text-[var(--accent)]">{growthSummary.statistics.avg_quality_score?.toFixed(0)}</div>
+                <div class="text-3xl font-bold text-[var(--accent)]">
+                  {growthSummary.statistics.avg_quality_score?.toFixed(0)}
+                </div>
               </div>
-              <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+              <div
+                class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+              >
                 <div class="text-sm text-[var(--muted)] mb-2">Avg Health Score</div>
-                <div class="text-3xl font-bold text-[var(--accent)]">{growthSummary.statistics.avg_health_score?.toFixed(0)}</div>
+                <div class="text-3xl font-bold text-[var(--accent)]">
+                  {growthSummary.statistics.avg_health_score?.toFixed(0)}
+                </div>
               </div>
-              <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+              <div
+                class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
+              >
                 <div class="text-sm text-[var(--muted)] mb-2">Peak Events</div>
-                <div class="text-3xl font-bold text-[var(--accent)]">{growthSummary.statistics.peak_events}</div>
+                <div class="text-3xl font-bold text-[var(--accent)]">
+                  {growthSummary.statistics.peak_events}
+                </div>
               </div>
             </div>
 
@@ -981,10 +1077,14 @@
               <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
                 <h4 class="text-lg font-semibold text-[var(--text)] mb-3">Milestones</h4>
                 <div class="space-y-2">
-                  {#each growthSummary.milestones as milestone}
+                  {#each growthSummary.milestones as milestone (milestone.date + milestone.message)}
                     <div class="flex items-center gap-3 p-3 bg-[var(--bg)] rounded-lg">
                       <span class="text-xl">
-                        {milestone.type === 'peak_activity' ? '🔥' : milestone.type === 'best_quality' ? '⭐' : '📈'}
+                        {milestone.type === 'peak_activity'
+                          ? '🔥'
+                          : milestone.type === 'best_quality'
+                            ? '⭐'
+                            : '📈'}
                       </span>
                       <span class="flex-1 text-sm text-[var(--text)]">{milestone.message}</span>
                       <span class="text-xs text-[var(--muted)]">{milestone.date}</span>
@@ -998,10 +1098,16 @@
               <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
                 <h4 class="text-lg font-semibold text-[var(--text)] mb-3">Trends</h4>
                 <div class="space-y-2">
-                  {#each growthSummary.trends as trend}
+                  {#each growthSummary.trends as trend (trend.metric)}
                     <div class="flex justify-between items-center p-3 bg-[var(--bg)] rounded-lg">
-                      <span class="text-sm font-bold text-[var(--text)] capitalize">{trend.metric}</span>
-                      <span class="text-sm font-medium" class:text-green-400={trend.direction === 'increasing'} class:text-red-400={trend.direction === 'decreasing'}>
+                      <span class="text-sm font-bold text-[var(--text)] capitalize"
+                        >{trend.metric}</span
+                      >
+                      <span
+                        class="text-sm font-medium"
+                        class:text-green-400={trend.direction === 'increasing'}
+                        class:text-red-400={trend.direction === 'decreasing'}
+                      >
                         {trend.direction === 'increasing' ? '↗️' : '↘️'}
                         {Math.abs(trend.change_percent)}%
                       </span>
@@ -1011,16 +1117,19 @@
               </div>
             {/if}
           {:else}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+            >
               <p class="text-[var(--muted)]">No growth data available.</p>
             </div>
           {/if}
         </div>
-
       {:else if activeTab === 'integrations'}
         <!-- Integrations Tab -->
         <div class="space-y-6">
-          <h3 class="text-xl font-semibold text-[var(--text)]">External Integrations Configuration</h3>
+          <h3 class="text-xl font-semibold text-[var(--text)]">
+            External Integrations Configuration
+          </h3>
 
           {#if configSaveStatus}
             <div class="p-3 bg-[var(--bg)] border-l-4 border-green-500 text-[var(--text)]">
@@ -1031,16 +1140,28 @@
           <div class="space-y-6">
             <!-- GitHub Integration -->
             <div class="bg-[var(--surface)] border-2 border-[var(--border)] rounded-lg p-6">
-              <div class="flex justify-between items-center pb-3 mb-4 border-b border-[var(--border)]">
+              <div
+                class="flex justify-between items-center pb-3 mb-4 border-b border-[var(--border)]"
+              >
                 <h4 class="text-lg font-semibold text-[var(--text)]">GitHub Integration</h4>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold" class:bg-green-500={integrationStatus.github.enabled} class:text-black={integrationStatus.github.enabled} class:bg-gray-600={!integrationStatus.github.enabled} class:text-gray-300={!integrationStatus.github.enabled}>
+                <span
+                  class="px-3 py-1 rounded-full text-xs font-semibold"
+                  class:bg-green-500={integrationStatus.github.enabled}
+                  class:text-black={integrationStatus.github.enabled}
+                  class:bg-gray-600={!integrationStatus.github.enabled}
+                  class:text-gray-300={!integrationStatus.github.enabled}
+                >
                   {integrationStatus.github.enabled ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
 
               <div class="space-y-4 mb-4">
                 <div>
-                  <label for="github-token" class="block text-sm font-medium text-[var(--text-secondary)] mb-2">Personal Access Token</label>
+                  <label
+                    for="github-token"
+                    class="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+                    >Personal Access Token</label
+                  >
                   <input
                     id="github-token"
                     type="password"
@@ -1050,7 +1171,11 @@
                   />
                 </div>
                 <div>
-                  <label for="github-owner" class="block text-sm font-medium text-[var(--text-secondary)] mb-2">Repository Owner</label>
+                  <label
+                    for="github-owner"
+                    class="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+                    >Repository Owner</label
+                  >
                   <input
                     id="github-owner"
                     type="text"
@@ -1060,7 +1185,11 @@
                   />
                 </div>
                 <div>
-                  <label for="github-repo" class="block text-sm font-medium text-[var(--text-secondary)] mb-2">Repository Name</label>
+                  <label
+                    for="github-repo"
+                    class="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+                    >Repository Name</label
+                  >
                   <input
                     id="github-repo"
                     type="text"
@@ -1078,36 +1207,61 @@
                 </button>
 
                 <div class="flex gap-2">
-                  <button onclick={testGitHubConnection} class="flex-1 px-3 py-2 bg-blue-600 text-white rounded font-medium text-sm hover:bg-blue-700 transition-colors">
+                  <button
+                    onclick={testGitHubConnection}
+                    class="flex-1 px-3 py-2 bg-blue-600 text-white rounded font-medium text-sm hover:bg-blue-700 transition-colors"
+                  >
                     Test Connection
                   </button>
-                  <button onclick={sendHealthToGitHub} class="flex-1 px-3 py-2 bg-green-600 text-white rounded font-medium text-sm hover:bg-green-700 transition-colors">
+                  <button
+                    onclick={sendHealthToGitHub}
+                    class="flex-1 px-3 py-2 bg-green-600 text-white rounded font-medium text-sm hover:bg-green-700 transition-colors"
+                  >
                     Send Health
                   </button>
-                  <button onclick={disableGitHub} class="flex-1 px-3 py-2 bg-red-600 text-white rounded font-medium text-sm hover:bg-red-700 transition-colors">
+                  <button
+                    onclick={disableGitHub}
+                    class="flex-1 px-3 py-2 bg-red-600 text-white rounded font-medium text-sm hover:bg-red-700 transition-colors"
+                  >
                     Disable
                   </button>
                 </div>
               </div>
 
               <div class="pt-3 border-t border-[var(--border)]">
-                <p class="text-sm text-[var(--text-secondary)]">Recent events: {integrationStatus.github.events.length}</p>
-                <p class="text-xs text-[var(--muted)] italic mt-1">Create issues for critical errors and post health reports to commits</p>
+                <p class="text-sm text-[var(--text-secondary)]">
+                  Recent events: {integrationStatus.github.events.length}
+                </p>
+                <p class="text-xs text-[var(--muted)] italic mt-1">
+                  Create issues for critical errors and post health reports to commits
+                </p>
               </div>
             </div>
 
             <!-- Discord Integration -->
             <div class="bg-[var(--surface)] border-2 border-[var(--border)] rounded-lg p-6">
-              <div class="flex justify-between items-center pb-3 mb-4 border-b border-[var(--border)]">
+              <div
+                class="flex justify-between items-center pb-3 mb-4 border-b border-[var(--border)]"
+              >
                 <h4 class="text-lg font-semibold text-[var(--text)]">Discord Integration</h4>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold" class:bg-green-500={integrationStatus.discord.enabled} class:text-black={integrationStatus.discord.enabled} class:bg-gray-600={!integrationStatus.discord.enabled} class:text-gray-300={!integrationStatus.discord.enabled}>
+                <span
+                  class="px-3 py-1 rounded-full text-xs font-semibold"
+                  class:bg-green-500={integrationStatus.discord.enabled}
+                  class:text-black={integrationStatus.discord.enabled}
+                  class:bg-gray-600={!integrationStatus.discord.enabled}
+                  class:text-gray-300={!integrationStatus.discord.enabled}
+                >
                   {integrationStatus.discord.enabled ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
 
               <div class="space-y-4 mb-4">
                 <div>
-                  <label for="discord-webhook" class="block text-sm font-medium text-[var(--text-secondary)] mb-2">Webhook URL</label>
+                  <label
+                    for="discord-webhook"
+                    class="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+                    >Webhook URL</label
+                  >
                   <input
                     id="discord-webhook"
                     type="url"
@@ -1125,36 +1279,61 @@
                 </button>
 
                 <div class="flex gap-2">
-                  <button onclick={testDiscordConnection} class="flex-1 px-3 py-2 bg-blue-600 text-white rounded font-medium text-sm hover:bg-blue-700 transition-colors">
+                  <button
+                    onclick={testDiscordConnection}
+                    class="flex-1 px-3 py-2 bg-blue-600 text-white rounded font-medium text-sm hover:bg-blue-700 transition-colors"
+                  >
                     Test Connection
                   </button>
-                  <button onclick={sendHealthToDiscord} class="flex-1 px-3 py-2 bg-green-600 text-white rounded font-medium text-sm hover:bg-green-700 transition-colors">
+                  <button
+                    onclick={sendHealthToDiscord}
+                    class="flex-1 px-3 py-2 bg-green-600 text-white rounded font-medium text-sm hover:bg-green-700 transition-colors"
+                  >
                     Send Health
                   </button>
-                  <button onclick={disableDiscord} class="flex-1 px-3 py-2 bg-red-600 text-white rounded font-medium text-sm hover:bg-red-700 transition-colors">
+                  <button
+                    onclick={disableDiscord}
+                    class="flex-1 px-3 py-2 bg-red-600 text-white rounded font-medium text-sm hover:bg-red-700 transition-colors"
+                  >
                     Disable
                   </button>
                 </div>
               </div>
 
               <div class="pt-3 border-t border-[var(--border)]">
-                <p class="text-sm text-[var(--text-secondary)]">Recent events: {integrationStatus.discord.events.length}</p>
-                <p class="text-xs text-[var(--muted)] italic mt-1">Send notifications to Discord channel for monitoring alerts</p>
+                <p class="text-sm text-[var(--text-secondary)]">
+                  Recent events: {integrationStatus.discord.events.length}
+                </p>
+                <p class="text-xs text-[var(--muted)] italic mt-1">
+                  Send notifications to Discord channel for monitoring alerts
+                </p>
               </div>
             </div>
 
             <!-- Slack Integration -->
             <div class="bg-[var(--surface)] border-2 border-[var(--border)] rounded-lg p-6">
-              <div class="flex justify-between items-center pb-3 mb-4 border-b border-[var(--border)]">
+              <div
+                class="flex justify-between items-center pb-3 mb-4 border-b border-[var(--border)]"
+              >
                 <h4 class="text-lg font-semibold text-[var(--text)]">Slack Integration</h4>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold" class:bg-green-500={integrationStatus.slack.enabled} class:text-black={integrationStatus.slack.enabled} class:bg-gray-600={!integrationStatus.slack.enabled} class:text-gray-300={!integrationStatus.slack.enabled}>
+                <span
+                  class="px-3 py-1 rounded-full text-xs font-semibold"
+                  class:bg-green-500={integrationStatus.slack.enabled}
+                  class:text-black={integrationStatus.slack.enabled}
+                  class:bg-gray-600={!integrationStatus.slack.enabled}
+                  class:text-gray-300={!integrationStatus.slack.enabled}
+                >
                   {integrationStatus.slack.enabled ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
 
               <div class="space-y-4 mb-4">
                 <div>
-                  <label for="slack-webhook" class="block text-sm font-medium text-[var(--text-secondary)] mb-2">Webhook URL</label>
+                  <label
+                    for="slack-webhook"
+                    class="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+                    >Webhook URL</label
+                  >
                   <input
                     id="slack-webhook"
                     type="url"
@@ -1172,26 +1351,38 @@
                 </button>
 
                 <div class="flex gap-2">
-                  <button onclick={testSlackConnection} class="flex-1 px-3 py-2 bg-blue-600 text-white rounded font-medium text-sm hover:bg-blue-700 transition-colors">
+                  <button
+                    onclick={testSlackConnection}
+                    class="flex-1 px-3 py-2 bg-blue-600 text-white rounded font-medium text-sm hover:bg-blue-700 transition-colors"
+                  >
                     Test Connection
                   </button>
-                  <button onclick={sendHealthToSlack} class="flex-1 px-3 py-2 bg-green-600 text-white rounded font-medium text-sm hover:bg-green-700 transition-colors">
+                  <button
+                    onclick={sendHealthToSlack}
+                    class="flex-1 px-3 py-2 bg-green-600 text-white rounded font-medium text-sm hover:bg-green-700 transition-colors"
+                  >
                     Send Health
                   </button>
-                  <button onclick={disableSlack} class="flex-1 px-3 py-2 bg-red-600 text-white rounded font-medium text-sm hover:bg-red-700 transition-colors">
+                  <button
+                    onclick={disableSlack}
+                    class="flex-1 px-3 py-2 bg-red-600 text-white rounded font-medium text-sm hover:bg-red-700 transition-colors"
+                  >
                     Disable
                   </button>
                 </div>
               </div>
 
               <div class="pt-3 border-t border-[var(--border)]">
-                <p class="text-sm text-[var(--text-secondary)]">Recent events: {integrationStatus.slack.events.length}</p>
-                <p class="text-xs text-[var(--muted)] italic mt-1">Send notifications to Slack channel for team collaboration</p>
+                <p class="text-sm text-[var(--text-secondary)]">
+                  Recent events: {integrationStatus.slack.events.length}
+                </p>
+                <p class="text-xs text-[var(--muted)] italic mt-1">
+                  Send notifications to Slack channel for team collaboration
+                </p>
               </div>
             </div>
           </div>
         </div>
-
       {:else if activeTab === 'gamification'}
         <!-- Gamification Tab -->
         <div class="space-y-6">
@@ -1207,43 +1398,63 @@
                 </div>
                 <div class="text-center">
                   <div class="text-sm text-[var(--muted)] mb-1">Total Points</div>
-                  <div class="text-2xl font-bold text-[var(--accent)]">{userStats.total_points || 0}</div>
+                  <div class="text-2xl font-bold text-[var(--accent)]">
+                    {userStats.total_points || 0}
+                  </div>
                 </div>
                 <div class="text-center">
                   <div class="text-sm text-[var(--muted)] mb-1">Streak</div>
-                  <div class="text-2xl font-bold text-[var(--accent)]">{userStats.streak_days || 0} days</div>
+                  <div class="text-2xl font-bold text-[var(--accent)]">
+                    {userStats.streak_days || 0} days
+                  </div>
                 </div>
                 <div class="text-center">
                   <div class="text-sm text-[var(--muted)] mb-1">Badges</div>
-                  <div class="text-2xl font-bold text-[var(--accent)]">{userStats.badges_unlocked || 0}</div>
+                  <div class="text-2xl font-bold text-[var(--accent)]">
+                    {userStats.badges_unlocked || 0}
+                  </div>
                 </div>
               </div>
             </div>
           {/if}
 
           <div>
-            <h4 class="text-lg font-semibold text-[var(--text)] mb-4">Unlocked Achievements ({achievements.length})</h4>
+            <h4 class="text-lg font-semibold text-[var(--text)] mb-4">
+              Unlocked Achievements ({achievements.length})
+            </h4>
             {#if achievements.length > 0}
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {#each achievements as achievement}
-                  <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4" class:border-yellow-500={achievement.rarity === 'legendary'} class:border-purple-500={achievement.rarity === 'epic'} class:border-blue-500={achievement.rarity === 'rare'}>
+                {#each achievements as achievement (achievement.title)}
+                  <div
+                    class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4"
+                    class:border-yellow-500={achievement.rarity === 'legendary'}
+                    class:border-purple-500={achievement.rarity === 'epic'}
+                    class:border-blue-500={achievement.rarity === 'rare'}
+                  >
                     <div class="text-3xl text-center mb-2">
                       {achievement.icon || achievement.title.split(' ')[0]}
                     </div>
-                    <div class="text-center font-bold text-[var(--text)] mb-1">{achievement.title}</div>
-                    <div class="text-xs text-center text-[var(--muted)] mb-2">{achievement.description}</div>
-                    <div class="text-center text-sm font-semibold text-[var(--accent)]">+{achievement.points} pts</div>
+                    <div class="text-center font-bold text-[var(--text)] mb-1">
+                      {achievement.title}
+                    </div>
+                    <div class="text-xs text-center text-[var(--muted)] mb-2">
+                      {achievement.description}
+                    </div>
+                    <div class="text-center text-sm font-semibold text-[var(--accent)]">
+                      +{achievement.points} pts
+                    </div>
                   </div>
                 {/each}
               </div>
             {:else}
-              <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+              <div
+                class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+              >
                 <p class="text-[var(--muted)]">No achievements unlocked yet. Keep coding!</p>
               </div>
             {/if}
           </div>
         </div>
-
       {:else if activeTab === 'easter-eggs'}
         <!-- Easter Eggs Tab -->
         <div class="space-y-6">
@@ -1257,10 +1468,12 @@
           {/if}
 
           <div>
-            <h4 class="text-lg font-semibold text-[var(--text)] mb-4">Discovered Easter Eggs ({easterEggs.length})</h4>
+            <h4 class="text-lg font-semibold text-[var(--text)] mb-4">
+              Discovered Easter Eggs ({easterEggs.length})
+            </h4>
             {#if easterEggs.length > 0}
               <div class="space-y-3">
-                {#each easterEggs as egg}
+                {#each easterEggs as egg (egg.title + egg.discovered_at)}
                   <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
                     <div class="font-bold text-[var(--text)] mb-1">{egg.title}</div>
                     <div class="text-sm text-[var(--text-secondary)] mb-2">{egg.message}</div>
@@ -1272,13 +1485,17 @@
                 {/each}
               </div>
             {:else}
-              <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-                <p class="text-[var(--muted)]">No easter eggs discovered yet. Try coding on special dates or using special patterns!</p>
+              <div
+                class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center"
+              >
+                <p class="text-[var(--muted)]">
+                  No easter eggs discovered yet. Try coding on special dates or using special
+                  patterns!
+                </p>
               </div>
             {/if}
           </div>
         </div>
-
       {:else if activeTab === 'social'}
         <!-- Social Tab -->
         <div class="space-y-6">
@@ -1298,7 +1515,10 @@
               </select>
               <button
                 onclick={() => {
-                  window.open(`/api/social/export?project=${project}&format=${exportFormat}`, '_blank');
+                  window.open(
+                    `/api/social/export?project=${project}&format=${exportFormat}`,
+                    '_blank'
+                  );
                 }}
                 class="px-6 py-2 bg-[var(--accent)] text-white rounded-lg font-medium hover:bg-[var(--accent-hover)] transition-colors"
               >
@@ -1312,33 +1532,41 @@
             <h4 class="text-lg font-semibold text-[var(--text)] mb-4">Share History</h4>
             {#if shareHistory.length > 0}
               <div class="space-y-2">
-                {#each shareHistory as share}
+                {#each shareHistory as share (share.shared_at + share.share_type)}
                   <div class="flex justify-between items-center p-3 bg-[var(--bg)] rounded-lg">
                     <div class="flex gap-3">
                       <span class="text-sm font-medium text-[var(--text)]">{share.share_type}</span>
                       <span class="text-sm text-[var(--muted)]">{share.platform}</span>
                     </div>
-                    <span class="text-xs text-[var(--muted)]">{new Date(share.shared_at).toLocaleString()}</span>
+                    <span class="text-xs text-[var(--muted)]"
+                      >{new Date(share.shared_at).toLocaleString()}</span
+                    >
                   </div>
                 {/each}
               </div>
             {:else}
-              <p class="text-center text-[var(--muted)] py-6">No shares yet. Share your achievements!</p>
+              <p class="text-center text-[var(--muted)] py-6">
+                No shares yet. Share your achievements!
+              </p>
             {/if}
           </div>
 
           <!-- Team Members -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-            <h4 class="text-lg font-semibold text-[var(--text)] mb-4">Team Members ({teamMembers.length})</h4>
+            <h4 class="text-lg font-semibold text-[var(--text)] mb-4">
+              Team Members ({teamMembers.length})
+            </h4>
             {#if teamMembers.length > 0}
               <div class="space-y-2">
-                {#each teamMembers as member}
+                {#each teamMembers as member (member.member_name)}
                   <div class="flex justify-between items-center p-3 bg-[var(--bg)] rounded-lg">
                     <div>
                       <div class="text-sm font-medium text-[var(--text)]">{member.member_name}</div>
                       <div class="text-xs text-[var(--muted)]">{member.role}</div>
                     </div>
-                    <span class="text-xs text-[var(--muted)]">{new Date(member.joined_at).toLocaleDateString()}</span>
+                    <span class="text-xs text-[var(--muted)]"
+                      >{new Date(member.joined_at).toLocaleDateString()}</span
+                    >
                   </div>
                 {/each}
               </div>

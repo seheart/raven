@@ -43,8 +43,8 @@
     }
 
     // Watch for theme changes
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
           logger.info('[FileBrowser] Theme changed, recreating charts');
           setTimeout(createCharts, 100);
@@ -168,7 +168,7 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     const colors = {
@@ -252,7 +252,7 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     const textColor = getColor('--text', '#c0caf5');
@@ -269,19 +269,24 @@
     // 1. Pie Chart: File types distribution
     const pieCanvas = document.getElementById('chart-file-types');
     if (pieCanvas) {
-      const typeData = availableFileTypes.map(ext => ({
-        ext,
-        count: files.filter(f => getFileExtension(f) === ext).length
-      })).sort((a, b) => b.count - a.count).slice(0, 10);
+      const typeData = availableFileTypes
+        .map(ext => ({
+          ext,
+          count: files.filter(f => getFileExtension(f) === ext).length
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
 
       charts.fileTypes = new Chart(pieCanvas, {
         type: 'pie',
         data: {
           labels: typeData.map(d => d.ext),
-          datasets: [{
-            data: typeData.map(d => d.count),
-            backgroundColor: typeData.map(d => getFileTypeColor(d.ext))
-          }]
+          datasets: [
+            {
+              data: typeData.map(d => d.count),
+              backgroundColor: typeData.map(d => getFileTypeColor(d.ext))
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -321,11 +326,13 @@
         type: 'bar',
         data: {
           labels: topFiles.map(f => f.file),
-          datasets: [{
-            label: 'Changes',
-            data: topFiles.map(f => f.count),
-            backgroundColor: themeColors.accent
-          }]
+          datasets: [
+            {
+              label: 'Changes',
+              data: topFiles.map(f => f.count),
+              backgroundColor: themeColors.accent
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -357,22 +364,27 @@
     // 3. Horizontal Bar Chart: Changes by file type
     const typeBarCanvas = document.getElementById('chart-changes-by-type');
     if (typeBarCanvas) {
-      const typeChanges = availableFileTypes.map(ext => ({
-        ext,
-        changes: files
-          .filter(f => getFileExtension(f) === ext)
-          .reduce((sum, f) => sum + (fileMetadata.get(f)?.changeCount || 0), 0)
-      })).sort((a, b) => b.changes - a.changes).slice(0, 10);
+      const typeChanges = availableFileTypes
+        .map(ext => ({
+          ext,
+          changes: files
+            .filter(f => getFileExtension(f) === ext)
+            .reduce((sum, f) => sum + (fileMetadata.get(f)?.changeCount || 0), 0)
+        }))
+        .sort((a, b) => b.changes - a.changes)
+        .slice(0, 10);
 
       charts.changesByType = new Chart(typeBarCanvas, {
         type: 'bar',
         data: {
           labels: typeChanges.map(t => t.ext),
-          datasets: [{
-            label: 'Total Changes',
-            data: typeChanges.map(t => t.changes),
-            backgroundColor: typeChanges.map(t => getFileTypeColor(t.ext))
-          }]
+          datasets: [
+            {
+              label: 'Total Changes',
+              data: typeChanges.map(t => t.changes),
+              backgroundColor: typeChanges.map(t => getFileTypeColor(t.ext))
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -404,9 +416,7 @@
 
   // Derived state
   const availableFileTypes = $derived(
-    Array.from(new Set(
-      files.map(f => getFileExtension(f)).filter(ext => ext)
-    )).sort()
+    Array.from(new Set(files.map(f => getFileExtension(f)).filter(ext => ext))).sort()
   );
 
   const filteredFiles = $derived.by(() => {
@@ -447,26 +457,31 @@
   });
 
   const stats = $derived.by(() => {
-    const lastUpdated = files.length > 0
-      ? Array.from(fileMetadata.values())
-          .map(m => m.lastModified)
-          .filter(t => t)
-          .sort()
-          .reverse()[0]
-      : null;
+    const lastUpdated =
+      files.length > 0
+        ? Array.from(fileMetadata.values())
+            .map(m => m.lastModified)
+            .filter(t => t)
+            .sort()
+            .reverse()[0]
+        : null;
 
-    const mostChangedFile = files.length > 0
-      ? files.reduce((max, file) => {
-          const count = fileMetadata.get(file)?.changeCount || 0;
-          const maxCount = fileMetadata.get(max)?.changeCount || 0;
-          return count > maxCount ? file : max;
-        }, files[0])
-      : null;
+    const mostChangedFile =
+      files.length > 0
+        ? files.reduce((max, file) => {
+            const count = fileMetadata.get(file)?.changeCount || 0;
+            const maxCount = fileMetadata.get(max)?.changeCount || 0;
+            return count > maxCount ? file : max;
+          }, files[0])
+        : null;
 
-    const fileTypeBreakdown = availableFileTypes.map(ext => ({
-      ext,
-      count: files.filter(f => getFileExtension(f) === ext).length
-    })).sort((a, b) => b.count - a.count).slice(0, 5);
+    const fileTypeBreakdown = availableFileTypes
+      .map(ext => ({
+        ext,
+        count: files.filter(f => getFileExtension(f) === ext).length
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
 
     return {
       totalFiles: files.length,
@@ -495,7 +510,7 @@
           {loading ? '⏳ Loading' : '🔄 Refresh'}
         </button>
         <button
-          onclick={() => showCharts = !showCharts}
+          onclick={() => (showCharts = !showCharts)}
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
         >
           {showCharts ? '📊 Hide Charts' : '📈 Show Charts'}
@@ -528,20 +543,37 @@
       <!-- Statistics Header -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">Total Files</div>
-          <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">{stats.totalFiles}</div>
+          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
+            Total Files
+          </div>
+          <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">
+            {stats.totalFiles}
+          </div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">Filtered</div>
-          <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">{stats.filteredFiles}</div>
+          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
+            Filtered
+          </div>
+          <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">
+            {stats.filteredFiles}
+          </div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">Last Updated</div>
-          <div class="text-lg font-semibold text-[var(--text)] font-mono">{formatTimestamp(stats.lastUpdated)}</div>
+          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
+            Last Updated
+          </div>
+          <div class="text-lg font-semibold text-[var(--text)] font-mono">
+            {formatTimestamp(stats.lastUpdated)}
+          </div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">Most Changed</div>
-          <div class="text-sm font-semibold text-[var(--text)] font-mono truncate" title={stats.mostChangedFile}>
+          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
+            Most Changed
+          </div>
+          <div
+            class="text-sm font-semibold text-[var(--text)] font-mono truncate"
+            title={stats.mostChangedFile}
+          >
             {getFileName(stats.mostChangedFile)}
           </div>
         </div>
@@ -600,7 +632,7 @@
           />
           {#if searchQuery}
             <button
-              onclick={() => searchQuery = ''}
+              onclick={() => (searchQuery = '')}
               class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] text-xl"
             >
               ×
@@ -640,7 +672,9 @@
                     class:border-accent={selectedFileTypes.includes(ext)}
                     class:bg-surface={!selectedFileTypes.includes(ext)}
                     class:border-border={!selectedFileTypes.includes(ext)}
-                    style={selectedFileTypes.includes(ext) ? `background-color: ${getFileTypeColor(ext)}; border-color: ${getFileTypeColor(ext)}` : ''}
+                    style={selectedFileTypes.includes(ext)
+                      ? `background-color: ${getFileTypeColor(ext)}; border-color: ${getFileTypeColor(ext)}`
+                      : ''}
                   >
                     {ext} ({files.filter(f => getFileExtension(f) === ext).length})
                   </button>
@@ -655,17 +689,24 @@
       <div class="space-y-2">
         {#if filteredFiles.length === 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <p class="text-sm text-[var(--muted)] font-sans">No files match your filters. Try adjusting your search or filters.</p>
+            <p class="text-sm text-[var(--muted)] font-sans">
+              No files match your filters. Try adjusting your search or filters.
+            </p>
           </div>
         {:else}
           {#each filteredFiles as filepath (filepath)}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden"
+            >
               <button
                 onclick={() => toggleFileHistory(filepath)}
                 class="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg)] transition-colors text-left"
                 class:bg-bg={expandedFile === filepath}
               >
-                <span class="text-xs text-[var(--muted)] transition-transform" class:rotate-90={expandedFile === filepath}>
+                <span
+                  class="text-xs text-[var(--muted)] transition-transform"
+                  class:rotate-90={expandedFile === filepath}
+                >
                   ▶
                 </span>
                 <span class="text-xl flex-shrink-0">{getFileIcon(filepath)}</span>
@@ -675,12 +716,16 @@
                       {getFileName(filepath)}
                     </span>
                     {#if isRecent(fileMetadata.get(filepath)?.lastModified)}
-                      <span class="px-2 py-0.5 bg-[var(--success)] text-white text-xs font-semibold rounded uppercase">
+                      <span
+                        class="px-2 py-0.5 bg-[var(--success)] text-white text-xs font-semibold rounded uppercase"
+                      >
                         Recent
                       </span>
                     {/if}
                   </div>
-                  <div class="text-xs text-[var(--muted)] font-mono truncate">{getFilePath(filepath)}</div>
+                  <div class="text-xs text-[var(--muted)] font-mono truncate">
+                    {getFilePath(filepath)}
+                  </div>
                 </div>
                 <div class="flex items-center gap-4 flex-shrink-0">
                   {#if fileMetadata.has(filepath)}
@@ -690,7 +735,9 @@
                     </div>
                     <div class="flex items-center gap-1">
                       <span class="text-xs">📝</span>
-                      <span class="px-2 py-0.5 bg-[var(--accent)] text-white text-xs font-semibold rounded">
+                      <span
+                        class="px-2 py-0.5 bg-[var(--accent)] text-white text-xs font-semibold rounded"
+                      >
                         {fileMetadata.get(filepath).changeCount}
                       </span>
                     </div>

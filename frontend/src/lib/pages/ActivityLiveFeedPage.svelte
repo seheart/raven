@@ -8,7 +8,12 @@
   import { websocketService } from '../services/websocket.js';
   import { api } from '../apiClient.js';
   import { isSourceCodeFile, debounce } from '../utils/helpers.js';
-  import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
 
   // State
   let events = $state([]);
@@ -50,7 +55,7 @@
   }, 300);
 
   // WebSocket event handlers
-  const handleFileChanged = (data) => {
+  const handleFileChanged = data => {
     if (isPaused) return;
     logger.debug('📡 File change detected:', data);
     debouncedLoadEvents();
@@ -61,7 +66,7 @@
     debouncedLoadEvents();
   };
 
-  const handleProjectSwitched = (data) => {
+  const handleProjectSwitched = data => {
     logger.debug('📡 Project switched, reloading data:', data?.project);
     loadAllData();
   };
@@ -147,9 +152,10 @@
       metricsHistory.eventsPerMinute = [...metricsHistory.eventsPerMinute, eventsPerMin].slice(-50);
 
       // Calculate average file size
-      const avgSize = events.length > 0
-        ? events.reduce((sum, e) => sum + (e.event_size || 0), 0) / events.length
-        : 0;
+      const avgSize =
+        events.length > 0
+          ? events.reduce((sum, e) => sum + (e.event_size || 0), 0) / events.length
+          : 0;
       metricsHistory.fileSize = [...metricsHistory.fileSize, avgSize].slice(-50);
     } catch (error) {
       logger.error('Failed to update metrics:', error);
@@ -206,12 +212,14 @@
         type: 'doughnut',
         data: {
           labels: ['Created', 'Modified', 'Deleted'],
-          datasets: [{
-            data: [stats.created, stats.modified, stats.deleted],
-            backgroundColor: [colors.success, colors.primary, colors.error],
-            borderWidth: 2,
-            borderColor: colors.bg
-          }]
+          datasets: [
+            {
+              data: [stats.created, stats.modified, stats.deleted],
+              backgroundColor: [colors.success, colors.primary, colors.error],
+              borderWidth: 2,
+              borderColor: colors.bg
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -247,16 +255,18 @@
         type: 'line',
         data: {
           labels,
-          datasets: [{
-            label: 'Event Size (bytes)',
-            data: sizes,
-            borderColor: colors.primary,
-            backgroundColor: `${colors.primary}33`,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 3,
-            pointHoverRadius: 5
-          }]
+          datasets: [
+            {
+              label: 'Event Size (bytes)',
+              data: sizes,
+              borderColor: colors.primary,
+              backgroundColor: `${colors.primary}33`,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointHoverRadius: 5
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -310,19 +320,27 @@
 
   function getEventIcon(changeType) {
     switch (changeType) {
-      case 'created': return '➕';
-      case 'modified': return '✏️';
-      case 'deleted': return '🗑️';
-      default: return '📝';
+      case 'created':
+        return '➕';
+      case 'modified':
+        return '✏️';
+      case 'deleted':
+        return '🗑️';
+      default:
+        return '📝';
     }
   }
 
   function getEventColor(changeType) {
     switch (changeType) {
-      case 'created': return 'var(--success)';
-      case 'modified': return 'var(--accent)';
-      case 'deleted': return 'var(--error)';
-      default: return 'var(--text)';
+      case 'created':
+        return 'var(--success)';
+      case 'modified':
+        return 'var(--accent)';
+      case 'deleted':
+        return 'var(--error)';
+      default:
+        return 'var(--text)';
     }
   }
 
@@ -392,7 +410,9 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Live Activity Feed</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Real-time stream of code changes • Source code only</p>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Real-time stream of code changes • Source code only
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-2">
@@ -401,7 +421,12 @@
             class="flex items-center gap-1 text-sm font-sans"
             style="color: {websocketService.isConnected() ? 'var(--success)' : 'var(--error)'}"
           >
-            <span class="w-2 h-2 rounded-full" style="background: {websocketService.isConnected() ? 'var(--success)' : 'var(--error)'}"></span>
+            <span
+              class="w-2 h-2 rounded-full"
+              style="background: {websocketService.isConnected()
+                ? 'var(--success)'
+                : 'var(--error)'}"
+            ></span>
             {websocketService.isConnected() ? 'Connected' : 'Disconnected'}
           </span>
         </div>
@@ -429,8 +454,12 @@
     {/if}
 
     {#if isPaused}
-      <div class="bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] rounded-lg p-4 mb-6 text-center">
-        <span class="text-sm text-[var(--warning)] font-sans font-semibold">⏸️ Feed paused - Click Resume to continue live updates</span>
+      <div
+        class="bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] rounded-lg p-4 mb-6 text-center"
+      >
+        <span class="text-sm text-[var(--warning)] font-sans font-semibold"
+          >⏸️ Feed paused - Click Resume to continue live updates</span
+        >
       </div>
     {/if}
 
@@ -454,7 +483,9 @@
       </div>
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Activity Level</div>
-        <div class="text-lg font-bold" style="color: {getActivityLevel().color}">{getActivityLevel().label}</div>
+        <div class="text-lg font-bold" style="color: {getActivityLevel().color}">
+          {getActivityLevel().label}
+        </div>
       </div>
     </div>
 
@@ -465,7 +496,9 @@
           <div class="flex justify-between items-center mb-2">
             <span class="text-sm text-[var(--muted)] font-sans">Events/Minute</span>
             <span class="text-lg font-bold text-[var(--text-heading)]">
-              {metricsHistory.eventsPerMinute[metricsHistory.eventsPerMinute.length - 1]?.toFixed(0) || 0}
+              {metricsHistory.eventsPerMinute[metricsHistory.eventsPerMinute.length - 1]?.toFixed(
+                0
+              ) || 0}
             </span>
           </div>
           <svg class="w-full h-12" viewBox="0 0 200 48">
@@ -514,7 +547,7 @@
       </div>
       <div class="mb-6 text-center">
         <button
-          onclick={() => showCharts = false}
+          onclick={() => (showCharts = false)}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
         >
           Hide Charts
@@ -523,7 +556,10 @@
     {:else if !showCharts && !loading && events.length > 0}
       <div class="mb-6 text-center">
         <button
-          onclick={() => { showCharts = true; setTimeout(createCharts, 100); }}
+          onclick={() => {
+            showCharts = true;
+            setTimeout(createCharts, 100);
+          }}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
         >
           Show Charts
@@ -537,7 +573,7 @@
         <span class="text-sm text-[var(--muted)] font-sans">Filter:</span>
         <div class="flex gap-2">
           <button
-            onclick={() => filter = 'all'}
+            onclick={() => (filter = 'all')}
             class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
             class:bg-accent={filter === 'all'}
             class:text-white={filter === 'all'}
@@ -548,7 +584,7 @@
             All
           </button>
           <button
-            onclick={() => filter = 'created'}
+            onclick={() => (filter = 'created')}
             class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
             class:bg-success={filter === 'created'}
             class:text-white={filter === 'created'}
@@ -559,7 +595,7 @@
             Created
           </button>
           <button
-            onclick={() => filter = 'modified'}
+            onclick={() => (filter = 'modified')}
             class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
             class:bg-accent={filter === 'modified'}
             class:text-white={filter === 'modified'}
@@ -570,7 +606,7 @@
             Modified
           </button>
           <button
-            onclick={() => filter = 'deleted'}
+            onclick={() => (filter = 'deleted')}
             class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
             class:bg-error={filter === 'deleted'}
             class:text-white={filter === 'deleted'}
@@ -582,7 +618,9 @@
           </button>
         </div>
         <div class="ml-auto flex items-center gap-2">
-          <label class="flex items-center gap-2 text-sm text-[var(--muted)] font-sans cursor-pointer">
+          <label
+            class="flex items-center gap-2 text-sm text-[var(--muted)] font-sans cursor-pointer"
+          >
             <input
               type="checkbox"
               bind:checked={autoScroll}
@@ -609,14 +647,13 @@
               {isPaused ? 'Feed Paused' : 'Waiting for events...'}
             </div>
             <div class="text-base text-[var(--muted)] font-sans">
-              {isPaused ? 'Click Resume to continue receiving events' : 'Live events will appear here as they happen'}
+              {isPaused
+                ? 'Click Resume to continue receiving events'
+                : 'Live events will appear here as they happen'}
             </div>
           </div>
         {:else}
-          <div
-            id="live-feed"
-            class="max-h-[600px] overflow-y-auto"
-          >
+          <div id="live-feed" class="max-h-[600px] overflow-y-auto">
             <div class="divide-y divide-[var(--border)]">
               {#each filteredEvents as event (event.id)}
                 <div class="p-4 hover:bg-[var(--bg)] transition-colors">
@@ -626,7 +663,9 @@
                       <div class="flex items-baseline gap-3 mb-1 flex-wrap">
                         <span
                           class="text-xs px-2 py-1 rounded font-semibold"
-                          style="background: {getEventColor(event.change_type)}20; color: {getEventColor(event.change_type)}"
+                          style="background: {getEventColor(
+                            event.change_type
+                          )}20; color: {getEventColor(event.change_type)}"
                         >
                           {event.change_type?.toUpperCase() || 'UNKNOWN'}
                         </span>
@@ -639,7 +678,9 @@
                           </span>
                         {/if}
                         {#if event.project}
-                          <span class="text-xs px-2 py-1 rounded bg-[var(--accent)] bg-opacity-20 text-[var(--accent)] font-mono">
+                          <span
+                            class="text-xs px-2 py-1 rounded bg-[var(--accent)] bg-opacity-20 text-[var(--accent)] font-mono"
+                          >
                             {event.project}
                           </span>
                         {/if}
@@ -684,15 +725,13 @@
 </div>
 
 <style>
-  .bg-warning { background: var(--warning); }
-  .text-warning { color: var(--warning); }
-  .bg-success { background: var(--success); }
-  .text-success { color: var(--success); }
-  .bg-accent { background: var(--accent); }
-  .text-accent { color: var(--accent); }
-  .bg-error { background: var(--error); }
-  .text-error { color: var(--error); }
-  .bg-bg { background: var(--bg); }
-  .border { border-width: 1px; }
-  .border-border { border-color: var(--border); }
+  .bg-bg {
+    background: var(--bg);
+  }
+  .border {
+    border-width: 1px;
+  }
+  .border-border {
+    border-color: var(--border);
+  }
 </style>

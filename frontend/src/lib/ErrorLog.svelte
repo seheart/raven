@@ -10,7 +10,11 @@
   import { API_CONFIG } from '../config.js';
   import { TimeoutManager } from './utils/TimeoutManager.js';
   import { Chart, registerables } from 'chart.js';
-  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+  import {
+    initializeCharts,
+    setupChartThemeObserver,
+    getChartThemeColors
+  } from './utils/chartHelpers.js';
 
   Chart.register(...registerables);
 
@@ -242,19 +246,27 @@
 
   function getSeverityColor(severity) {
     switch (severity) {
-    case 'error': return 'var(--error)';
-    case 'warning': return 'var(--warning)';
-    case 'info': return 'var(--info)';
-    default: return 'var(--muted)';
+      case 'error':
+        return 'var(--error)';
+      case 'warning':
+        return 'var(--warning)';
+      case 'info':
+        return 'var(--info)';
+      default:
+        return 'var(--muted)';
     }
   }
 
   function getSeverityIcon(severity) {
     switch (severity) {
-    case 'error': return '❌';
-    case 'warning': return '⚠️';
-    case 'info': return 'ℹ️';
-    default: return '📝';
+      case 'error':
+        return '❌';
+      case 'warning':
+        return '⚠️';
+      case 'info':
+        return 'ℹ️';
+      default:
+        return '📝';
     }
   }
 
@@ -341,15 +353,17 @@
         type: 'line',
         data: {
           labels: last24Hours.map(h => h.getHours() + ':00'),
-          datasets: [{
-            label: 'Errors',
-            data: hourlyData,
-            borderColor: colors.error,
-            backgroundColor: `${colors.error}33`,
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4
-          }]
+          datasets: [
+            {
+              label: 'Errors',
+              data: hourlyData,
+              borderColor: colors.error,
+              backgroundColor: `${colors.error}33`,
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -401,12 +415,14 @@
         type: 'pie',
         data: {
           labels: ['Errors', 'Warnings', 'Info'],
-          datasets: [{
-            data: severityData,
-            backgroundColor: [colors.error, colors.warning, colors.info],
-            borderColor: [colors.error, colors.warning, colors.info],
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: severityData,
+              backgroundColor: [colors.error, colors.warning, colors.info],
+              borderColor: [colors.error, colors.warning, colors.info],
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -443,13 +459,15 @@
         type: 'bar',
         data: {
           labels: sortedTypes.map(([type]) => type),
-          datasets: [{
-            label: 'Count',
-            data: sortedTypes.map(([, count]) => count),
-            backgroundColor: colors.accent,
-            borderColor: colors.accent,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Count',
+              data: sortedTypes.map(([, count]) => count),
+              backgroundColor: colors.accent,
+              borderColor: colors.accent,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -503,17 +521,44 @@
       <p class="subtitle">Application errors and warnings</p>
     </div>
     <div class="header-actions" role="toolbar" aria-label="Error log actions">
-      <span class="last-updated" role="status" aria-live="polite" aria-label="Last updated {timeAgo}">Updated: {timeAgo}</span>
-      <button class="btn btn-ghost btn-sm" on:click={() => showCharts = !showCharts} aria-label="Toggle charts visibility">
-        <span aria-hidden="true">📊</span> {showCharts ? 'Hide' : 'Show'} Charts
+      <span
+        class="last-updated"
+        role="status"
+        aria-live="polite"
+        aria-label="Last updated {timeAgo}">Updated: {timeAgo}</span
+      >
+      <button
+        class="btn btn-ghost btn-sm"
+        on:click={() => (showCharts = !showCharts)}
+        aria-label="Toggle charts visibility"
+      >
+        <span aria-hidden="true">📊</span>
+        {showCharts ? 'Hide' : 'Show'} Charts
       </button>
-      <button class="btn btn-secondary btn-sm" on:click={triggerTestError} aria-label="Trigger test error">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={triggerTestError}
+        aria-label="Trigger test error"
+      >
         <span aria-hidden="true">🧪</span> Test Error
       </button>
-      <button class="btn btn-primary btn-sm" on:click={exportLog} aria-label="Export error log to JSON file">
+      <button
+        class="btn btn-primary btn-sm"
+        on:click={exportLog}
+        aria-label="Export error log to JSON file"
+      >
         <span aria-hidden="true">💾</span> Export JSON
       </button>
-      <button class="btn btn-secondary btn-sm" on:click={() => { currentPage = 0; loadErrors(true); loadStats(); }} disabled={loading} aria-label="Refresh error log">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={() => {
+          currentPage = 0;
+          loadErrors(true);
+          loadStats();
+        }}
+        disabled={loading}
+        aria-label="Refresh error log"
+      >
         <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
         Refresh
       </button>
@@ -660,7 +705,7 @@
           <button
             class="error-header"
             on:click={() => toggleError(item)}
-            on:keydown={(e) => e.key === 'Enter' && toggleError(item)}
+            on:keydown={e => e.key === 'Enter' && toggleError(item)}
             aria-expanded={selectedError?.id === item.id}
             aria-label="Toggle error details for {item.message}"
             tabindex="0"
@@ -683,7 +728,12 @@
             </div>
             <div class="error-right">
               <span class="error-time">{formatTimestamp(item.timestamp)}</span>
-              <span class="error-severity" style="border-color: {getSeverityColor(item.severity)}; color: {getSeverityColor(item.severity)}">
+              <span
+                class="error-severity"
+                style="border-color: {getSeverityColor(item.severity)}; color: {getSeverityColor(
+                  item.severity
+                )}"
+              >
                 {item.severity}
               </span>
             </div>
@@ -702,7 +752,9 @@
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Severity:</span>
-                  <span class="detail-value" style="color: {getSeverityColor(item.severity)}">{item.severity}</span>
+                  <span class="detail-value" style="color: {getSeverityColor(item.severity)}"
+                    >{item.severity}</span
+                  >
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Component:</span>
@@ -747,11 +799,18 @@
 
       <!-- Pagination -->
       <div class="pagination">
-        <button class="btn btn-secondary btn-sm" on:click={prevPage} disabled={currentPage === 0}>← Previous</button>
+        <button class="btn btn-secondary btn-sm" on:click={prevPage} disabled={currentPage === 0}
+          >← Previous</button
+        >
         <span class="page-info">
-          Page {currentPage + 1} • {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalErrors)} of {totalErrors}
+          Page {currentPage + 1} • {currentPage * pageSize + 1}-{Math.min(
+            (currentPage + 1) * pageSize,
+            totalErrors
+          )} of {totalErrors}
         </span>
-        <button class="btn btn-secondary btn-sm" on:click={nextPage} disabled={!hasMore}>Next →</button>
+        <button class="btn btn-secondary btn-sm" on:click={nextPage} disabled={!hasMore}
+          >Next →</button
+        >
       </div>
     {/if}
   </div>
@@ -804,7 +863,16 @@
   }
 
   .refresh-icon.spinning {
-    /* Animation defined in global app.css */
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .stats-bar {
@@ -882,7 +950,6 @@
     border-color: var(--accent);
   }
 
-
   .filter-tabs {
     display: flex;
     gap: var(--space-lg);
@@ -921,7 +988,6 @@
     display: flex;
     gap: var(--space-lg);
   }
-
 
   .timeline {
     display: flex;
@@ -1135,7 +1201,6 @@
     border-radius: var(--radius);
     border: 1px solid var(--border);
   }
-
 
   .page-info {
     font-size: 11px;

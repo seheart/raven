@@ -24,9 +24,26 @@
   $: warningOnlyCount = (warningsData?.warnings || []).filter(w => w.severity === 'warning').length;
 
   // Calculate health score (more lenient formula)
-  $: healthScore = Math.max(0, 100 - (syntaxErrorCount * 10) - Math.min(patternWarningCount, 30) - (testResults.failed * 5));
-  $: healthStatus = healthScore >= 90 ? 'Excellent' : healthScore >= 70 ? 'Good' : healthScore >= 50 ? 'Fair' : 'Poor';
-  $: healthColor = healthScore >= 90 ? 'var(--success)' : healthScore >= 70 ? 'var(--info)' : healthScore >= 50 ? 'var(--warning)' : 'var(--error)';
+  $: healthScore = Math.max(
+    0,
+    100 - syntaxErrorCount * 10 - Math.min(patternWarningCount, 30) - testResults.failed * 5
+  );
+  $: healthStatus =
+    healthScore >= 90
+      ? 'Excellent'
+      : healthScore >= 70
+        ? 'Good'
+        : healthScore >= 50
+          ? 'Fair'
+          : 'Poor';
+  $: healthColor =
+    healthScore >= 90
+      ? 'var(--success)'
+      : healthScore >= 70
+        ? 'var(--info)'
+        : healthScore >= 50
+          ? 'var(--warning)'
+          : 'var(--error)';
 
   // Fetch all safety data
   async function loadSafetyData() {
@@ -36,9 +53,15 @@
 
       // Parallel data fetching
       const [syntaxData, fetchedWarningsData, sessionsData] = await Promise.all([
-        fetch('/api/syntax-errors/count').then(r => r.json()).catch(() => ({ count: 0 })),
-        fetch('/api/pattern-warnings').then(r => r.json()).catch(() => ({ warnings: [] })),
-        fetch('/api/sessions?limit=5').then(r => r.json()).catch(() => ({ sessions: [] }))
+        fetch('/api/syntax-errors/count')
+          .then(r => r.json())
+          .catch(() => ({ count: 0 })),
+        fetch('/api/pattern-warnings')
+          .then(r => r.json())
+          .catch(() => ({ warnings: [] })),
+        fetch('/api/sessions?limit=5')
+          .then(r => r.json())
+          .catch(() => ({ sessions: [] }))
       ]);
 
       syntaxErrorCount = syntaxData.count || 0;
@@ -132,15 +155,21 @@
         <div class="health-breakdown">
           <div class="breakdown-item">
             <span class="breakdown-label">Syntax Errors:</span>
-            <span class="breakdown-value" class:critical={syntaxErrorCount > 0}>{syntaxErrorCount}</span>
+            <span class="breakdown-value" class:critical={syntaxErrorCount > 0}
+              >{syntaxErrorCount}</span
+            >
           </div>
           <div class="breakdown-item">
             <span class="breakdown-label">Warnings:</span>
-            <span class="breakdown-value" class:warning={patternWarningCount > 5}>{patternWarningCount}</span>
+            <span class="breakdown-value" class:warning={patternWarningCount > 5}
+              >{patternWarningCount}</span
+            >
           </div>
           <div class="breakdown-item">
             <span class="breakdown-label">Test Failures:</span>
-            <span class="breakdown-value" class:critical={testResults.failed > 0}>{testResults.failed}</span>
+            <span class="breakdown-value" class:critical={testResults.failed > 0}
+              >{testResults.failed}</span
+            >
           </div>
         </div>
       </div>
@@ -153,7 +182,11 @@
         <div class="stat-content">
           <div class="stat-value">{syntaxErrorCount}</div>
           <div class="stat-label">Syntax Errors</div>
-          <div class="stat-status" class:ok={syntaxErrorCount === 0} class:critical={syntaxErrorCount > 0}>
+          <div
+            class="stat-status"
+            class:ok={syntaxErrorCount === 0}
+            class:critical={syntaxErrorCount > 0}
+          >
             {syntaxErrorCount === 0 ? 'All clear' : 'Needs attention'}
           </div>
         </div>
@@ -180,9 +213,13 @@
       <a href="#safety-tests" class="stat-card">
         <div class="stat-icon">🧪</div>
         <div class="stat-content">
-          <div class="stat-value">{testResults.total > 0 ? `${testResults.passed}/${testResults.total}` : 'N/A'}</div>
+          <div class="stat-value">
+            {testResults.total > 0 ? `${testResults.passed}/${testResults.total}` : 'N/A'}
+          </div>
           <div class="stat-label">Tests Passing</div>
-          <div class="stat-detail">{testResults.failed > 0 ? `${testResults.failed} failing` : 'All passing'}</div>
+          <div class="stat-detail">
+            {testResults.failed > 0 ? `${testResults.failed} failing` : 'All passing'}
+          </div>
         </div>
       </a>
     </div>
@@ -192,12 +229,14 @@
       <div class="section-card">
         <h2>⚡ Critical Issues</h2>
         <div class="issues-list">
-          {#each criticalWarnings as warning}
+          {#each criticalWarnings as warning (warning.filepath + warning.line_number)}
             <div class="issue-item" class:error={warning.severity === 'error'}>
               <span class="issue-icon">{warning.severity === 'error' ? '🔴' : '🟡'}</span>
               <div class="issue-content">
                 <div class="issue-message">{warning.message}</div>
-                <div class="issue-meta">{warning.filepath} · Line {warning.line_number || 'N/A'}</div>
+                <div class="issue-meta">
+                  {warning.filepath} · Line {warning.line_number || 'N/A'}
+                </div>
               </div>
             </div>
           {/each}
@@ -328,13 +367,6 @@
     align-items: center;
     gap: var(--space-2xl);
     flex-wrap: wrap;
-  }
-
-  .health-content h2 {
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 500;
   }
 
   .health-score {
@@ -582,15 +614,24 @@
 
   .skeleton-card {
     height: 150px;
-    background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--bg-secondary) 25%,
+      var(--bg-tertiary) 50%,
+      var(--bg-secondary) 75%
+    );
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: var(--radius-xl);
   }
 
   @keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
 
   .error-banner {

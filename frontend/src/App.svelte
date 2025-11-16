@@ -1290,37 +1290,6 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
-  .tab-icon {
-    font-size: 14px;
-    line-height: 1;
-  }
-
-  .tab-label {
-    font-weight: 600;
-    font-size: 12px;
-  }
-
-  .tab-shortcut {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    font-size: 11px;
-    padding: 1px 3px;
-    background: var(--bg);
-    border-radius: var(--radius-sm);
-    opacity: 0.4;
-    line-height: 1;
-  }
-
-  .nav-tab:hover .tab-shortcut {
-    opacity: 0.6;
-  }
-
-  .nav-tab.active .tab-shortcut {
-    background: rgba(255, 255, 255, 0.2);
-    opacity: 0.7;
-  }
-
   .view-container {
     padding: 0;
     max-width: 100%;

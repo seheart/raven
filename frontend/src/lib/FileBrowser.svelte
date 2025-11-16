@@ -43,8 +43,8 @@
     }
 
     // Watch for theme changes
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
           logger.info('[FileBrowser] Theme changed, recreating charts');
           setTimeout(createCharts, 100);
@@ -70,9 +70,7 @@
   async function loadProjects() {
     try {
       loadingProjects = true;
-      const data = await api.get(`/projects`);
-        throw new Error(`Failed to load projects: ${response.status} ${response.statusText}`);
-      }
+      const data = await api.get('/projects');
       projects = data.projects || [];
       loadingProjects = false;
     } catch (error) {
@@ -92,8 +90,8 @@
         ? `${API_BASE}/tracked-files?project=${selectedProject}`
         : `${API_BASE}/tracked-files`;
       const response = await fetch(url);
-        throw new Error(`Failed to load files: ${response.status} ${response.statusText}`);
-      }
+      const data = await response.json();
+      files = data.files || [];
       loading = false;
       error = null;
     } catch (err) {
@@ -120,8 +118,7 @@
         ? `${API_BASE}/file-events?project=${selectedProject}&limit=1000`
         : `${API_BASE}/file-events?limit=1000`;
       const response = await fetch(url);
-        throw new Error(`Failed to load file metadata: ${response.status}`);
-      }
+      const data = await response.json();
       const events = data.events || [];
 
       // Build metadata map
@@ -213,7 +210,7 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     const colors = {
@@ -280,9 +277,9 @@
   }
 
   // Auto-detect file types from files list
-  $: availableFileTypes = Array.from(new Set(
-    files.map(f => getFileExtension(f)).filter(ext => ext)
-  )).sort();
+  $: availableFileTypes = Array.from(
+    new Set(files.map(f => getFileExtension(f)).filter(ext => ext))
+  ).sort();
 
   // Filter and sort files
   $: filteredFiles = files
@@ -324,24 +321,29 @@
   $: stats = {
     totalFiles: files.length,
     filteredFiles: filteredFiles.length,
-    fileTypeBreakdown: availableFileTypes.map(ext => ({
-      ext,
-      count: files.filter(f => getFileExtension(f) === ext).length
-    })).sort((a, b) => b.count - a.count).slice(0, 5),
-    lastUpdated: files.length > 0
-      ? Array.from(fileMetadata.values())
-          .map(m => m.lastModified)
-          .filter(t => t)
-          .sort()
-          .reverse()[0]
-      : null,
-    mostChangedFile: files.length > 0
-      ? files.reduce((max, file) => {
-          const count = fileMetadata.get(file)?.changeCount || 0;
-          const maxCount = fileMetadata.get(max)?.changeCount || 0;
-          return count > maxCount ? file : max;
-        }, files[0])
-      : null
+    fileTypeBreakdown: availableFileTypes
+      .map(ext => ({
+        ext,
+        count: files.filter(f => getFileExtension(f) === ext).length
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5),
+    lastUpdated:
+      files.length > 0
+        ? Array.from(fileMetadata.values())
+            .map(m => m.lastModified)
+            .filter(t => t)
+            .sort()
+            .reverse()[0]
+        : null,
+    mostChangedFile:
+      files.length > 0
+        ? files.reduce((max, file) => {
+            const count = fileMetadata.get(file)?.changeCount || 0;
+            const maxCount = fileMetadata.get(max)?.changeCount || 0;
+            return count > maxCount ? file : max;
+          }, files[0])
+        : null
   };
 
   function toggleFileType(ext) {
@@ -358,31 +360,44 @@
 
   // Reactive aria-labels for chart accessibility
   $: fileTypesAriaLabel = (() => {
-    const topTypes = availableFileTypes.map(ext => ({
-      ext,
-      count: files.filter(f => getFileExtension(f) === ext).length
-    })).sort((a, b) => b.count - a.count).slice(0, 3);
+    const topTypes = availableFileTypes
+      .map(ext => ({
+        ext,
+        count: files.filter(f => getFileExtension(f) === ext).length
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
     if (topTypes.length === 0) return 'File types distribution chart: No files available';
     const summary = topTypes.map(({ ext, count }) => `${ext}: ${count} files`).join(', ');
     return `File types distribution chart showing ${files.length} total files. Top types: ${summary}`;
   })();
 
   $: mostChangedAriaLabel = (() => {
-    const topFiles = files.map(f => ({
-      file: getFileName(f),
-      count: fileMetadata.get(f)?.changeCount || 0
-    })).sort((a, b) => b.count - a.count).slice(0, 3);
-    if (topFiles.length === 0 || topFiles[0].count === 0) return 'Most changed files chart: No change data available';
+    const topFiles = files
+      .map(f => ({
+        file: getFileName(f),
+        count: fileMetadata.get(f)?.changeCount || 0
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+    if (topFiles.length === 0 || topFiles[0].count === 0)
+      return 'Most changed files chart: No change data available';
     const summary = topFiles.map(({ file, count }) => `${file}: ${count} changes`).join(', ');
     return `Most changed files chart. Top files: ${summary}`;
   })();
 
   $: changesByTypeAriaLabel = (() => {
-    const typeChanges = availableFileTypes.map(ext => ({
-      ext,
-      changes: files.filter(f => getFileExtension(f) === ext).reduce((sum, f) => sum + (fileMetadata.get(f)?.changeCount || 0), 0)
-    })).sort((a, b) => b.changes - a.changes).slice(0, 3);
-    if (typeChanges.length === 0 || typeChanges[0].changes === 0) return 'Changes by file type chart: No change data available';
+    const typeChanges = availableFileTypes
+      .map(ext => ({
+        ext,
+        changes: files
+          .filter(f => getFileExtension(f) === ext)
+          .reduce((sum, f) => sum + (fileMetadata.get(f)?.changeCount || 0), 0)
+      }))
+      .sort((a, b) => b.changes - a.changes)
+      .slice(0, 3);
+    if (typeChanges.length === 0 || typeChanges[0].changes === 0)
+      return 'Changes by file type chart: No change data available';
     const summary = typeChanges.map(({ ext, changes }) => `${ext}: ${changes} changes`).join(', ');
     return `Changes by file type chart. Top types: ${summary}`;
   })();
@@ -399,7 +414,7 @@
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
       // Only use if it's a valid color (hex or rgb)
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     // Get theme-aware colors
@@ -418,19 +433,24 @@
     // 1. Pie Chart: File types distribution
     const pieCanvas = document.getElementById('chart-file-types');
     if (pieCanvas) {
-      const typeData = availableFileTypes.map(ext => ({
-        ext,
-        count: files.filter(f => getFileExtension(f) === ext).length
-      })).sort((a, b) => b.count - a.count).slice(0, 10);
+      const typeData = availableFileTypes
+        .map(ext => ({
+          ext,
+          count: files.filter(f => getFileExtension(f) === ext).length
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
 
       charts.fileTypes = new Chart(pieCanvas, {
         type: 'pie',
         data: {
           labels: typeData.map(d => d.ext),
-          datasets: [{
-            data: typeData.map(d => d.count),
-            backgroundColor: typeData.map(d => getFileTypeColor(d.ext))
-          }]
+          datasets: [
+            {
+              data: typeData.map(d => d.count),
+              backgroundColor: typeData.map(d => getFileTypeColor(d.ext))
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -470,11 +490,13 @@
         type: 'bar',
         data: {
           labels: topFiles.map(f => f.file),
-          datasets: [{
-            label: 'Changes',
-            data: topFiles.map(f => f.count),
-            backgroundColor: themeColors.accent
-          }]
+          datasets: [
+            {
+              label: 'Changes',
+              data: topFiles.map(f => f.count),
+              backgroundColor: themeColors.accent
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -506,22 +528,27 @@
     // 3. Horizontal Bar Chart: Changes by file type
     const typeBarCanvas = document.getElementById('chart-changes-by-type');
     if (typeBarCanvas) {
-      const typeChanges = availableFileTypes.map(ext => ({
-        ext,
-        changes: files
-          .filter(f => getFileExtension(f) === ext)
-          .reduce((sum, f) => sum + (fileMetadata.get(f)?.changeCount || 0), 0)
-      })).sort((a, b) => b.changes - a.changes).slice(0, 10);
+      const typeChanges = availableFileTypes
+        .map(ext => ({
+          ext,
+          changes: files
+            .filter(f => getFileExtension(f) === ext)
+            .reduce((sum, f) => sum + (fileMetadata.get(f)?.changeCount || 0), 0)
+        }))
+        .sort((a, b) => b.changes - a.changes)
+        .slice(0, 10);
 
       charts.changesByType = new Chart(typeBarCanvas, {
         type: 'bar',
         data: {
           labels: typeChanges.map(t => t.ext),
-          datasets: [{
-            label: 'Total Changes',
-            data: typeChanges.map(t => t.changes),
-            backgroundColor: typeChanges.map(t => getFileTypeColor(t.ext))
-          }]
+          datasets: [
+            {
+              label: 'Total Changes',
+              data: typeChanges.map(t => t.changes),
+              backgroundColor: typeChanges.map(t => getFileTypeColor(t.ext))
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -570,10 +597,19 @@
           {/each}
         </select>
       {/if}
-      <button class="btn btn-secondary btn-sm" on:click={refresh} disabled={loading} aria-label="Refresh file list">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={refresh}
+        disabled={loading}
+        aria-label="Refresh file list"
+      >
         <span aria-hidden="true">{loading ? '⟳' : '↻'}</span> Refresh
       </button>
-      <button class="btn btn-ghost btn-icon" on:click={() => showCharts = !showCharts} aria-label="Toggle charts">
+      <button
+        class="btn btn-ghost btn-icon"
+        on:click={() => (showCharts = !showCharts)}
+        aria-label="Toggle charts"
+      >
         {showCharts ? '📊' : '📈'}
       </button>
     </div>
@@ -582,7 +618,11 @@
   {#if error}
     <div class="error-state" role="alert">
       <p>Error: {error}</p>
-      <button class="btn btn-secondary btn-sm" on:click={loadFiles} aria-label="Retry loading files">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={loadFiles}
+        aria-label="Retry loading files"
+      >
         Retry
       </button>
     </div>
@@ -610,7 +650,9 @@
       </div>
       <div class="stat-item">
         <div class="stat-label">Most Changed</div>
-        <div class="stat-value" title={stats.mostChangedFile}>{getFileName(stats.mostChangedFile)}</div>
+        <div class="stat-value" title={stats.mostChangedFile}>
+          {getFileName(stats.mostChangedFile)}
+        </div>
       </div>
     </div>
 
@@ -664,7 +706,11 @@
           aria-label="Search files"
         />
         {#if searchQuery}
-          <button class="btn btn-ghost btn-icon clear-search-btn" on:click={() => searchQuery = ''} aria-label="Clear search">×</button>
+          <button
+            class="btn btn-ghost btn-icon clear-search-btn"
+            on:click={() => (searchQuery = '')}
+            aria-label="Clear search">×</button
+          >
         {/if}
       </div>
 
@@ -676,7 +722,11 @@
             <option value="lastModified">Last Modified</option>
             <option value="changeCount">Change Count</option>
           </select>
-          <button class="btn btn-ghost btn-icon" on:click={toggleSortOrder} aria-label="Toggle sort order">
+          <button
+            class="btn btn-ghost btn-icon"
+            on:click={toggleSortOrder}
+            aria-label="Toggle sort order"
+          >
             {sortOrder === 'asc' ? '↓' : '↑'}
           </button>
         </div>
@@ -719,7 +769,9 @@
               aria-expanded={expandedFile === filepath}
               aria-controls="file-history-{filepath}"
             >
-              <div class="expand-arrow" aria-hidden="true">{expandedFile === filepath ? '▼' : '▶'}</div>
+              <div class="expand-arrow" aria-hidden="true">
+                {expandedFile === filepath ? '▼' : '▶'}
+              </div>
               <div class="file-icon" aria-hidden="true">{getFileIcon(filepath)}</div>
               <div class="file-info">
                 <div class="file-name">
@@ -742,12 +794,14 @@
                   </div>
                 {/if}
               </div>
-              <div class="view-btn" aria-hidden="true">{expandedFile === filepath ? 'Hide' : 'Show'} History</div>
+              <div class="view-btn" aria-hidden="true">
+                {expandedFile === filepath ? 'Hide' : 'Show'} History
+              </div>
             </button>
 
             {#if expandedFile === filepath}
               <div class="history-expansion" id="file-history-{filepath}">
-                <FileHistory filepath={filepath} inline={true} />
+                <FileHistory {filepath} inline={true} />
               </div>
             {/if}
           </div>
@@ -812,14 +866,6 @@
   .project-selector:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-  }
-
-  .loading {
-    text-align: center;
-    padding: var(--space-lg);
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 10px;
   }
 
   .empty {
@@ -1206,5 +1252,4 @@
     font-size: 13px;
     font-weight: 500;
   }
-
 </style>

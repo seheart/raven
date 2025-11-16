@@ -1,7 +1,12 @@
 <script>
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
-  import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
   /**
    * Activity Event Log Page - Complete event history
    * Advanced filtering and detailed event information with Chart.js visualizations
@@ -31,16 +36,19 @@
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(e =>
-        e.filepath?.toLowerCase().includes(query) ||
-        e.agent?.toLowerCase().includes(query) ||
-        e.message?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        e =>
+          e.filepath?.toLowerCase().includes(query) ||
+          e.agent?.toLowerCase().includes(query) ||
+          e.message?.toLowerCase().includes(query)
       );
     }
 
     // Type filter
     if (selectedType !== 'all') {
-      filtered = filtered.filter(e => e.change_type === selectedType || e.event_type === selectedType);
+      filtered = filtered.filter(
+        e => e.change_type === selectedType || e.event_type === selectedType
+      );
     }
 
     // Agent filter
@@ -92,9 +100,13 @@
 
   const stats = $derived.by(() => {
     const total = events.length;
-    const creates = events.filter(e => e.change_type === 'create' || e.change_type === 'add').length;
+    const creates = events.filter(
+      e => e.change_type === 'create' || e.change_type === 'add'
+    ).length;
     const edits = events.filter(e => e.change_type === 'edit' || e.change_type === 'change').length;
-    const deletes = events.filter(e => e.change_type === 'delete' || e.change_type === 'unlink').length;
+    const deletes = events.filter(
+      e => e.change_type === 'delete' || e.change_type === 'unlink'
+    ).length;
     const reads = events.filter(e => e.change_type === 'read').length;
     return { total, creates, edits, deletes, reads };
   });
@@ -128,27 +140,41 @@
       const typeCounts = {
         create: events.filter(e => e.change_type === 'create' || e.change_type === 'add').length,
         edit: events.filter(e => e.change_type === 'edit' || e.change_type === 'change').length,
-        delete: events.filter(e => e.change_type === 'delete' || e.change_type === 'unlink').length,
+        delete: events.filter(e => e.change_type === 'delete' || e.change_type === 'unlink').length
       };
 
       const labels = [];
       const data = [];
       const chartColors = [];
 
-      if (typeCounts.create > 0) { labels.push('Created'); data.push(typeCounts.create); chartColors.push(colors.success); }
-      if (typeCounts.edit > 0) { labels.push('Modified'); data.push(typeCounts.edit); chartColors.push(colors.primary); }
-      if (typeCounts.delete > 0) { labels.push('Deleted'); data.push(typeCounts.delete); chartColors.push(colors.error); }
+      if (typeCounts.create > 0) {
+        labels.push('Created');
+        data.push(typeCounts.create);
+        chartColors.push(colors.success);
+      }
+      if (typeCounts.edit > 0) {
+        labels.push('Modified');
+        data.push(typeCounts.edit);
+        chartColors.push(colors.primary);
+      }
+      if (typeCounts.delete > 0) {
+        labels.push('Deleted');
+        data.push(typeCounts.delete);
+        chartColors.push(colors.error);
+      }
 
       charts.eventTypes = createChart('chart-event-types', {
         type: 'pie',
         data: {
           labels,
-          datasets: [{
-            data,
-            backgroundColor: chartColors,
-            borderColor: colors.border,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              data,
+              backgroundColor: chartColors,
+              borderColor: colors.border,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -193,13 +219,15 @@
         type: 'bar',
         data: {
           labels: hourLabels,
-          datasets: [{
-            label: 'Events',
-            data: last24Hours,
-            backgroundColor: colors.primary,
-            borderColor: colors.primary,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Events',
+              data: last24Hours,
+              backgroundColor: colors.primary,
+              borderColor: colors.primary,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -236,7 +264,7 @@
       error = null;
 
       const data = await api.get('/all-file-events?limit=1000');
-      events = Array.isArray(data) ? data : (data.events || []);
+      events = Array.isArray(data) ? data : data.events || [];
       totalEvents = data.total || events.length;
 
       // Extract unique agents
@@ -394,7 +422,9 @@
       <!-- Top Files -->
       {#if topFiles.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
-          <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4">🔥 Top 5 Most Changed Files</h3>
+          <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4">
+            🔥 Top 5 Most Changed Files
+          </h3>
           <div class="space-y-2">
             {#each topFiles as [file, count] (file)}
               <div class="flex justify-between items-center p-2 bg-[var(--bg)] rounded">
@@ -412,8 +442,11 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Search -->
         <div>
-          <label class="block text-sm text-[var(--muted)] font-sans mb-2">Search</label>
+          <label for="event-search" class="block text-sm text-[var(--muted)] font-sans mb-2"
+            >Search</label
+          >
           <input
+            id="event-search"
             type="text"
             bind:value={searchQuery}
             placeholder="File, agent, or message..."
@@ -423,8 +456,11 @@
 
         <!-- Event Type -->
         <div>
-          <label class="block text-sm text-[var(--muted)] font-sans mb-2">Event Type</label>
+          <label for="event-type" class="block text-sm text-[var(--muted)] font-sans mb-2"
+            >Event Type</label
+          >
           <select
+            id="event-type"
             bind:value={selectedType}
             class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
@@ -440,8 +476,11 @@
 
         <!-- Agent -->
         <div>
-          <label class="block text-sm text-[var(--muted)] font-sans mb-2">Agent</label>
+          <label for="event-agent" class="block text-sm text-[var(--muted)] font-sans mb-2"
+            >Agent</label
+          >
           <select
+            id="event-agent"
             bind:value={selectedAgent}
             class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
@@ -454,8 +493,11 @@
 
         <!-- Date Range -->
         <div>
-          <label class="block text-sm text-[var(--muted)] font-sans mb-2">Date Range</label>
+          <label for="event-date-range" class="block text-sm text-[var(--muted)] font-sans mb-2"
+            >Date Range</label
+          >
           <select
+            id="event-date-range"
             bind:value={dateRange}
             class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
@@ -468,8 +510,11 @@
 
         <!-- Sort By -->
         <div>
-          <label class="block text-sm text-[var(--muted)] font-sans mb-2">Sort By</label>
+          <label for="event-sort" class="block text-sm text-[var(--muted)] font-sans mb-2"
+            >Sort By</label
+          >
           <select
+            id="event-sort"
             bind:value={sortBy}
             class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
@@ -492,19 +537,33 @@
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
         <div class="text-5xl mb-4">📋</div>
         <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">No events found</div>
-        <div class="text-base text-[var(--muted)] font-sans">Try adjusting your filters or check back later</div>
+        <div class="text-base text-[var(--muted)] font-sans">
+          Try adjusting your filters or check back later
+        </div>
       </div>
     {:else}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden mb-4">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden mb-4"
+      >
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
               <tr>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Type</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">File/Project</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Agent</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Timestamp</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans">Details</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Type</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >File/Project</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Agent</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Timestamp</th
+                >
+                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                  >Details</th
+                >
               </tr>
             </thead>
             <tbody class="divide-y divide-[var(--border)]">
@@ -515,9 +574,15 @@
                 <tr class="hover:bg-[var(--bg)] transition-colors">
                   <td class="px-4 py-3">
                     <span
-                      class="text-xs px-2 py-1 rounded font-semibold {isCreate ? 'bg-green-500/10 text-[var(--success)]' : ''} {isEdit ? 'bg-blue-500/10 text-[var(--accent)]' : ''} {isDelete ? 'bg-red-500/10 text-[var(--error)]' : ''}"
+                      class="text-xs px-2 py-1 rounded font-semibold {isCreate
+                        ? 'bg-green-500/10 text-[var(--success)]'
+                        : ''} {isEdit ? 'bg-blue-500/10 text-[var(--accent)]' : ''} {isDelete
+                        ? 'bg-red-500/10 text-[var(--error)]'
+                        : ''}"
                     >
-                      {event.change_type?.toUpperCase() || event.event_type?.toUpperCase() || 'UNKNOWN'}
+                      {event.change_type?.toUpperCase() ||
+                        event.event_type?.toUpperCase() ||
+                        'UNKNOWN'}
                     </span>
                   </td>
                   <td class="px-4 py-3">

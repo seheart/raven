@@ -7,21 +7,26 @@
    */
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
-  import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
   import AgentsNav from '../components/layout/AgentsNav.svelte';
 
   // Agent configuration with colors and icons
   const AGENT_CONFIG = {
     'claude-code': { icon: '🤖', color: '#6366f1', name: 'Claude Code' },
-    'claude': { icon: '🤖', color: '#6366f1', name: 'Claude' },
-    'cursor': { icon: '↗️', color: '#10b981', name: 'Cursor' },
-    'copilot': { icon: '🤝', color: '#0ea5e9', name: 'Copilot' },
-    'ant': { icon: '🐜', color: '#f59e0b', name: 'ANT' },
-    'aider': { icon: '🛠️', color: '#8b5cf6', name: 'Aider' },
-    'chatgpt': { icon: '💬', color: '#10a37f', name: 'ChatGPT' },
-    'gpt': { icon: '🧠', color: '#10a37f', name: 'GPT' },
-    'manual': { icon: '👤', color: '#6b7280', name: 'Manual' },
-    'default': { icon: '🔧', color: '#9ca3af', name: 'Unknown' }
+    claude: { icon: '🤖', color: '#6366f1', name: 'Claude' },
+    cursor: { icon: '↗️', color: '#10b981', name: 'Cursor' },
+    copilot: { icon: '🤝', color: '#0ea5e9', name: 'Copilot' },
+    ant: { icon: '🐜', color: '#f59e0b', name: 'ANT' },
+    aider: { icon: '🛠️', color: '#8b5cf6', name: 'Aider' },
+    chatgpt: { icon: '💬', color: '#10a37f', name: 'ChatGPT' },
+    gpt: { icon: '🧠', color: '#10a37f', name: 'GPT' },
+    manual: { icon: '👤', color: '#6b7280', name: 'Manual' },
+    default: { icon: '🔧', color: '#9ca3af', name: 'Unknown' }
   };
 
   let agentStats = $state([]);
@@ -52,9 +57,7 @@
   const filteredStats = $derived.by(() => {
     if (!searchQuery) return agentStats;
     const query = searchQuery.toLowerCase();
-    return agentStats.filter(agent =>
-      (agent.agent_name || '').toLowerCase().includes(query)
-    );
+    return agentStats.filter(agent => (agent.agent_name || '').toLowerCase().includes(query));
   });
 
   // Sorted stats
@@ -158,19 +161,19 @@
 
   function getMoodEmoji(mood) {
     const moods = {
-      'aggressive': '🔥',
-      'conservative': '🛡️',
-      'balanced': '⚖️'
+      aggressive: '🔥',
+      conservative: '🛡️',
+      balanced: '⚖️'
     };
     return moods[mood] || '❓';
   }
 
   function getStyleEmoji(style) {
     const styles = {
-      'builder': '🏗️',
-      'cleanup': '🧹',
-      'refactorer': '🔧',
-      'mixed': '🎨'
+      builder: '🏗️',
+      cleanup: '🧹',
+      refactorer: '🔧',
+      mixed: '🎨'
     };
     return styles[style] || '❓';
   }
@@ -185,7 +188,14 @@
   }
 
   function exportCSV() {
-    const headers = ['Agent Name', 'Total Events', 'Lines Changed', 'Files Modified', 'Duration (seconds)', 'Last Active'];
+    const headers = [
+      'Agent Name',
+      'Total Events',
+      'Lines Changed',
+      'Files Modified',
+      'Duration (seconds)',
+      'Last Active'
+    ];
     const rows = filteredStats.map(a => [
       a.agent_name || 'Unknown',
       a.total_events || 0,
@@ -195,9 +205,7 @@
       a.last_active || 'Never'
     ]);
 
-    const csv = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -255,24 +263,14 @@
           type: 'doughnut',
           data: {
             labels: ['Creates', 'Edits', 'Deletes'],
-            datasets: [{
-              data: [
-                stat.create_count || 0,
-                stat.edit_count || 0,
-                stat.delete_count || 0
-              ],
-              backgroundColor: [
-                colors.success,
-                colors.warning,
-                colors.error
-              ],
-              borderColor: [
-                colors.success,
-                colors.warning,
-                colors.error
-              ],
-              borderWidth: 2
-            }]
+            datasets: [
+              {
+                data: [stat.create_count || 0, stat.edit_count || 0, stat.delete_count || 0],
+                backgroundColor: [colors.success, colors.warning, colors.error],
+                borderColor: [colors.success, colors.warning, colors.error],
+                borderWidth: 2
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -283,7 +281,7 @@
               },
               tooltip: {
                 callbacks: {
-                  label: (context) => {
+                  label: context => {
                     const label = context.label || '';
                     const value = context.parsed || 0;
                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -300,16 +298,16 @@
   }
 
   // WebSocket event handlers
-  const handleAgentEvent = (event) => {
+  const handleAgentEvent = event => {
     // Show animation
     showNewEventAnimation = true;
-    setTimeout(() => showNewEventAnimation = false, 2000);
+    setTimeout(() => (showNewEventAnimation = false), 2000);
 
     // Reload stats to reflect new event
     loadStats();
   };
 
-  const handleAgentStats = (stats) => {
+  const handleAgentStats = stats => {
     // Update stats in real-time
     loadStats();
   };
@@ -335,7 +333,7 @@
         if (!agentData[agentName]) {
           agentData[agentName] = {
             lines_changed: 0,
-            files_modified: new Set,
+            files_modified: new Set(),
             last_active: event.timestamp,
             create_count: 0,
             edit_count: 0,
@@ -347,7 +345,8 @@
         }
 
         agentData[agentName].lines_changed += (event.lines_added || 0) + (event.lines_deleted || 0);
-        agentData[agentName].total_change_size += (event.lines_added || 0) + (event.lines_deleted || 0);
+        agentData[agentName].total_change_size +=
+          (event.lines_added || 0) + (event.lines_deleted || 0);
         agentData[agentName].event_count++;
 
         if (event.filepath) {
@@ -360,7 +359,11 @@
           agentData[agentName].create_count++;
         } else if (eventType.includes('delete') || eventType.includes('remove')) {
           agentData[agentName].delete_count++;
-        } else if (eventType.includes('edit') || eventType.includes('modify') || eventType.includes('change')) {
+        } else if (
+          eventType.includes('edit') ||
+          eventType.includes('modify') ||
+          eventType.includes('change')
+        ) {
           agentData[agentName].edit_count++;
         }
 
@@ -377,7 +380,7 @@
       agentStats = stats.map(agent => {
         const data = agentData[agent.agent_name] || {};
         const daysSinceFirst = data.first_seen
-          ? Math.max(1, Math.ceil((new Date - new Date(data.first_seen)) / (1000 * 60 * 60 * 24)))
+          ? Math.max(1, Math.ceil((new Date() - new Date(data.first_seen)) / (1000 * 60 * 60 * 24)))
           : 1;
 
         return {
@@ -390,7 +393,8 @@
           delete_count: data.delete_count || 0,
           // Advanced metrics
           changes_per_day: Math.round((data.event_count || 0) / daysSinceFirst),
-          avg_change_size: data.event_count > 0 ? Math.round(data.total_change_size / data.event_count) : 0,
+          avg_change_size:
+            data.event_count > 0 ? Math.round(data.total_change_size / data.event_count) : 0,
           unique_files: data.files_modified?.size || 0
         };
       });
@@ -448,9 +452,16 @@
     </div>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center">
-        <span class="text-base text-[var(--error)] font-sans">⚠️ Failed to load agent stats: {error}</span>
-        <button onclick={loadStats} class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans">
+      <div
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
+      >
+        <span class="text-base text-[var(--error)] font-sans"
+          >⚠️ Failed to load agent stats: {error}</span
+        >
+        <button
+          onclick={loadStats}
+          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+        >
           Retry
         </button>
       </div>
@@ -460,7 +471,9 @@
     {#if loading}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {#each Array(5) as _, i (i)}
-          <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else}
@@ -533,10 +546,16 @@
 
       <div class="flex items-center gap-4 text-sm font-mono">
         <span class="text-[var(--muted)]">
-          Sorted by: <strong class="text-[var(--accent)]">{sortBy}</strong> ({sortDesc ? 'desc' : 'asc'})
+          Sorted by: <strong class="text-[var(--accent)]">{sortBy}</strong> ({sortDesc
+            ? 'desc'
+            : 'asc'})
         </span>
         <span class="text-[var(--muted)]">•</span>
-        <span class="text-[var(--muted)]" class:text-[var(--warning)]={showNewEventAnimation} class:font-bold={showNewEventAnimation}>
+        <span
+          class="text-[var(--muted)]"
+          class:text-[var(--warning)]={showNewEventAnimation}
+          class:font-bold={showNewEventAnimation}
+        >
           {#if showNewEventAnimation}
             ✨ New Event!
           {:else}
@@ -548,7 +567,9 @@
 
     {#if loading}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"></div>
+        <div
+          class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
+        ></div>
         <p class="text-base text-[var(--muted)] font-sans">Loading agent statistics...</p>
       </div>
     {:else if agentStats.length === 0}
@@ -562,7 +583,9 @@
     {:else if filteredStats.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
         <p class="text-base text-[var(--muted)] mb-2 font-sans">No agents match your search</p>
-        <p class="text-sm text-[var(--muted)] opacity-80 font-sans">Try adjusting your search query.</p>
+        <p class="text-sm text-[var(--muted)] opacity-80 font-sans">
+          Try adjusting your search query.
+        </p>
       </div>
     {:else}
       <div class="text-sm text-[var(--muted)] mb-3 font-mono">
@@ -576,22 +599,34 @@
           {@const config = getAgentConfig(agent.agent_name)}
           {@const mood = calculateMood(agent)}
           {@const style = calculateStyle(agent)}
-          {@const totalChanges = (agent.create_count || 0) + (agent.edit_count || 0) + (agent.delete_count || 0)}
+          {@const totalChanges =
+            (agent.create_count || 0) + (agent.edit_count || 0) + (agent.delete_count || 0)}
           {@const createRate = totalChanges > 0 ? (agent.create_count || 0) / totalChanges : 0}
           {@const modifyRate = totalChanges > 0 ? (agent.edit_count || 0) / totalChanges : 0}
           {@const deleteRate = totalChanges > 0 ? (agent.delete_count || 0) / totalChanges : 0}
 
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all" style="border-left: 4px solid {config.color}">
+          <div
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
+            style="border-left: 4px solid {config.color}"
+          >
             <!-- Agent Header -->
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style="background-color: {config.color}20;">
+                <div
+                  class="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+                  style="background-color: {config.color}20;"
+                >
                   {config.icon}
                 </div>
                 <div>
                   <div class="flex items-center gap-2">
-                    <h3 class="text-lg font-bold text-[var(--text-heading)] font-mono">{agent.agent_name || 'Unknown'}</h3>
-                    <span class="px-2 py-0.5 rounded text-xs font-semibold font-mono" style="background-color: {config.color}20; color: {config.color}">
+                    <h3 class="text-lg font-bold text-[var(--text-heading)] font-mono">
+                      {agent.agent_name || 'Unknown'}
+                    </h3>
+                    <span
+                      class="px-2 py-0.5 rounded text-xs font-semibold font-mono"
+                      style="background-color: {config.color}20; color: {config.color}"
+                    >
                       {config.name}
                     </span>
                   </div>
@@ -604,7 +639,9 @@
               </div>
               <div class="text-right">
                 <div class="text-sm text-[var(--muted)] font-sans">Last Active</div>
-                <div class="text-base font-semibold text-[var(--text)] font-mono">{formatDateTime(agent.last_active)}</div>
+                <div class="text-base font-semibold text-[var(--text)] font-mono">
+                  {formatDateTime(agent.last_active)}
+                </div>
               </div>
             </div>
 
@@ -612,27 +649,39 @@
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
               <div class="bg-[var(--bg)] rounded p-3">
                 <div class="text-xs text-[var(--muted)] font-sans mb-1">Events</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">{formatNumber(agent.total_events)}</div>
+                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+                  {formatNumber(agent.total_events)}
+                </div>
               </div>
               <div class="bg-[var(--bg)] rounded p-3">
                 <div class="text-xs text-[var(--muted)] font-sans mb-1">Lines Changed</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">{formatNumber(agent.lines_changed)}</div>
+                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+                  {formatNumber(agent.lines_changed)}
+                </div>
               </div>
               <div class="bg-[var(--bg)] rounded p-3">
                 <div class="text-xs text-[var(--muted)] font-sans mb-1">Files Modified</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">{formatNumber(agent.files_modified)}</div>
+                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+                  {formatNumber(agent.files_modified)}
+                </div>
               </div>
               <div class="bg-[var(--bg)] rounded p-3">
                 <div class="text-xs text-[var(--muted)] font-sans mb-1">Changes/Day</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">{agent.changes_per_day || 0}</div>
+                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+                  {agent.changes_per_day || 0}
+                </div>
               </div>
               <div class="bg-[var(--bg)] rounded p-3">
                 <div class="text-xs text-[var(--muted)] font-sans mb-1">Avg Size</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">{agent.avg_change_size || 0}</div>
+                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+                  {agent.avg_change_size || 0}
+                </div>
               </div>
               <div class="bg-[var(--bg)] rounded p-3">
                 <div class="text-xs text-[var(--muted)] font-sans mb-1">Duration</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">{formatDuration(agent.total_duration_seconds)}</div>
+                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+                  {formatDuration(agent.total_duration_seconds)}
+                </div>
               </div>
             </div>
 
@@ -640,9 +689,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <!-- Activity Breakdown Chart -->
               <div class="space-y-2">
-                <div class="text-sm text-[var(--muted)] font-sans font-semibold">Activity Breakdown</div>
+                <div class="text-sm text-[var(--muted)] font-sans font-semibold">
+                  Activity Breakdown
+                </div>
                 <div class="h-40 flex items-center justify-center bg-[var(--bg)] rounded p-2">
-                  <canvas id="pie-{(agent.agent_name || 'unknown').replace(/[^a-zA-Z0-9]/g, '-')}"></canvas>
+                  <canvas id="pie-{(agent.agent_name || 'unknown').replace(/[^a-zA-Z0-9]/g, '-')}"
+                  ></canvas>
                 </div>
                 <div class="flex justify-around text-xs font-sans">
                   <span class="text-[var(--success)]">➕ Create: {agent.create_count || 0}</span>
@@ -653,25 +705,39 @@
 
               <!-- Change Distribution Bar -->
               <div class="space-y-2">
-                <div class="text-sm text-[var(--muted)] font-sans font-semibold">Change Distribution</div>
+                <div class="text-sm text-[var(--muted)] font-sans font-semibold">
+                  Change Distribution
+                </div>
                 <div class="h-40 flex flex-col justify-center">
                   <div class="flex h-8 rounded overflow-hidden bg-[var(--bg)] mb-2">
                     {#if createRate > 0}
-                      <div class="bg-[var(--success)] flex items-center justify-center text-white text-xs font-semibold" style="width: {createRate * 100}%" title="Created: {(createRate * 100).toFixed(0)}%">
+                      <div
+                        class="bg-[var(--success)] flex items-center justify-center text-white text-xs font-semibold"
+                        style="width: {createRate * 100}%"
+                        title="Created: {(createRate * 100).toFixed(0)}%"
+                      >
                         {#if createRate > 0.15}
                           {(createRate * 100).toFixed(0)}%
                         {/if}
                       </div>
                     {/if}
                     {#if modifyRate > 0}
-                      <div class="bg-[var(--warning)] flex items-center justify-center text-white text-xs font-semibold" style="width: {modifyRate * 100}%" title="Modified: {(modifyRate * 100).toFixed(0)}%">
+                      <div
+                        class="bg-[var(--warning)] flex items-center justify-center text-white text-xs font-semibold"
+                        style="width: {modifyRate * 100}%"
+                        title="Modified: {(modifyRate * 100).toFixed(0)}%"
+                      >
                         {#if modifyRate > 0.15}
                           {(modifyRate * 100).toFixed(0)}%
                         {/if}
                       </div>
                     {/if}
                     {#if deleteRate > 0}
-                      <div class="bg-[var(--error)] flex items-center justify-center text-white text-xs font-semibold" style="width: {deleteRate * 100}%" title="Deleted: {(deleteRate * 100).toFixed(0)}%">
+                      <div
+                        class="bg-[var(--error)] flex items-center justify-center text-white text-xs font-semibold"
+                        style="width: {deleteRate * 100}%"
+                        title="Deleted: {(deleteRate * 100).toFixed(0)}%"
+                      >
                         {#if deleteRate > 0.15}
                           {(deleteRate * 100).toFixed(0)}%
                         {/if}

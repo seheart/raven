@@ -22,14 +22,13 @@
 
 <nav class="border-b border-[var(--border)] bg-[var(--surface)] mb-6">
   <div class="flex gap-1 px-6">
-    {#each tabs as tab}
+    {#each tabs as tab (tab.id)}
       <button
         onclick={() => navigate(tab.path)}
         class="px-4 py-3 text-sm font-medium transition-colors relative
           {isActive(tab.path)
-            ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
-            : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'
-          }"
+          ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
+          : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'}"
       >
         <span class="mr-2">{tab.icon}</span>
         {tab.label}

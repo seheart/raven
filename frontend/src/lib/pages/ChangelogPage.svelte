@@ -14,7 +14,7 @@
   async function loadChangelog() {
     try {
       const response = await api.get('/changelog');
-      const data = await response.json()
+      const data = await response.json();
       changelog = data;
       loading = false;
     } catch (err) {

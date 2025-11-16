@@ -106,23 +106,35 @@
 
   function getEventIcon(changeType) {
     switch (changeType) {
-      case 'create': return '➕';
-      case 'edit': return '✏️';
-      case 'delete': return '🗑️';
-      case 'read': return '👁️';
-      case 'execute': return '⚡';
-      default: return '📝';
+      case 'create':
+        return '➕';
+      case 'edit':
+        return '✏️';
+      case 'delete':
+        return '🗑️';
+      case 'read':
+        return '👁️';
+      case 'execute':
+        return '⚡';
+      default:
+        return '📝';
     }
   }
 
   function getEventColor(changeType) {
     switch (changeType) {
-      case 'create': return 'var(--success)';
-      case 'edit': return 'var(--accent)';
-      case 'delete': return 'var(--error)';
-      case 'read': return 'var(--muted)';
-      case 'execute': return 'var(--warning)';
-      default: return 'var(--text)';
+      case 'create':
+        return 'var(--success)';
+      case 'edit':
+        return 'var(--accent)';
+      case 'delete':
+        return 'var(--error)';
+      case 'read':
+        return 'var(--muted)';
+      case 'execute':
+        return 'var(--warning)';
+      default:
+        return 'var(--text)';
     }
   }
 
@@ -201,8 +213,11 @@
     <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-sm text-[var(--muted)] font-sans mb-2">Event Type</label>
+          <label for="timeline-event-type" class="block text-sm text-[var(--muted)] font-sans mb-2"
+            >Event Type</label
+          >
           <select
+            id="timeline-event-type"
             bind:value={filter}
             class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
@@ -216,8 +231,11 @@
         </div>
 
         <div>
-          <label class="block text-sm text-[var(--muted)] font-sans mb-2">Time Range</label>
+          <label for="timeline-time-range" class="block text-sm text-[var(--muted)] font-sans mb-2"
+            >Time Range</label
+          >
           <select
+            id="timeline-time-range"
             bind:value={timeRange}
             class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
@@ -229,8 +247,11 @@
         </div>
 
         <div>
-          <label class="block text-sm text-[var(--muted)] font-sans mb-2">Group By</label>
+          <label for="timeline-group-by" class="block text-sm text-[var(--muted)] font-sans mb-2"
+            >Group By</label
+          >
           <select
+            id="timeline-group-by"
             bind:value={groupBy}
             class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
@@ -260,7 +281,9 @@
             <!-- Date Header -->
             <div class="sticky top-0 bg-[var(--bg)] z-10 pb-3">
               <div class="flex items-center gap-3">
-                <div class="bg-[var(--accent)] text-white px-4 py-2 rounded-lg font-semibold text-sm font-sans">
+                <div
+                  class="bg-[var(--accent)] text-white px-4 py-2 rounded-lg font-semibold text-sm font-sans"
+                >
                   {group.date}
                 </div>
                 <div class="text-sm text-[var(--muted)] font-sans">
@@ -280,14 +303,18 @@
                   ></div>
 
                   <!-- Event Card -->
-                  <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors">
+                  <div
+                    class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
+                  >
                     <div class="flex items-start gap-3">
                       <span class="text-2xl flex-shrink-0">{getEventIcon(event.change_type)}</span>
                       <div class="flex-1 min-w-0">
                         <div class="flex items-baseline gap-3 mb-2">
                           <span
                             class="text-xs px-2 py-1 rounded font-semibold"
-                            style="background: {getEventColor(event.change_type)}20; color: {getEventColor(event.change_type)}"
+                            style="background: {getEventColor(
+                              event.change_type
+                            )}20; color: {getEventColor(event.change_type)}"
                           >
                             {event.change_type?.toUpperCase() || 'UNKNOWN'}
                           </span>
@@ -300,7 +327,9 @@
                         </div>
 
                         {#if event.filepath}
-                          <div class="text-base font-medium text-[var(--text)] font-mono mb-1 truncate">
+                          <div
+                            class="text-base font-medium text-[var(--text)] font-mono mb-1 truncate"
+                          >
                             {event.filepath}
                           </div>
                         {/if}

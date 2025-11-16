@@ -17,33 +17,48 @@
   let warningsData = $state({ warnings: [] });
   let loading = $state(true);
   let error = $state(null);
-  let lastUpdated = $state(new Date);
+  let lastUpdated = $state(new Date());
 
   // Derived values
-  const errorCount = $derived((warningsData?.warnings || []).filter(w => w.severity === 'error').length);
-  const warningOnlyCount = $derived((warningsData?.warnings || []).filter(w => w.severity === 'warning').length);
+  const errorCount = $derived(
+    (warningsData?.warnings || []).filter(w => w.severity === 'error').length
+  );
+  const warningOnlyCount = $derived(
+    (warningsData?.warnings || []).filter(w => w.severity === 'warning').length
+  );
 
   // Health score calculation (more lenient formula)
-  const healthScore = $derived(Math.max(0, 100 - (syntaxErrorCount * 10) - Math.min(patternWarningCount, 30) - (testResults.failed * 5)));
+  const healthScore = $derived(
+    Math.max(
+      0,
+      100 - syntaxErrorCount * 10 - Math.min(patternWarningCount, 30) - testResults.failed * 5
+    )
+  );
   const healthStatus = $derived(
-    healthScore >= 90 ? 'Excellent' :
-    healthScore >= 70 ? 'Good' :
-    healthScore >= 50 ? 'Fair' : 'Poor'
+    healthScore >= 90
+      ? 'Excellent'
+      : healthScore >= 70
+        ? 'Good'
+        : healthScore >= 50
+          ? 'Fair'
+          : 'Poor'
   );
   const healthColor = $derived(
-    healthScore >= 90 ? 'var(--success)' :
-    healthScore >= 70 ? 'var(--info)' :
-    healthScore >= 50 ? 'var(--warning)' : 'var(--error)'
+    healthScore >= 90
+      ? 'var(--success)'
+      : healthScore >= 70
+        ? 'var(--info)'
+        : healthScore >= 50
+          ? 'var(--warning)'
+          : 'var(--error)'
   );
   const healthIcon = $derived(
-    healthScore >= 90 ? '✅' :
-    healthScore >= 70 ? '👍' :
-    healthScore >= 50 ? '⚠️' : '🚨'
+    healthScore >= 90 ? '✅' : healthScore >= 70 ? '👍' : healthScore >= 50 ? '⚠️' : '🚨'
   );
 
   // Time since last update
   const timeSinceUpdate = $derived.by(() => {
-    return Math.floor((new Date - lastUpdated) / 1000);
+    return Math.floor((new Date() - lastUpdated) / 1000);
   });
 
   // Load all safety data
@@ -104,7 +119,9 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">🛡️ Safety Overview</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Code health, validation, and quality metrics</p>
+        <p class="text-base text-[var(--muted)] font-sans">
+          Code health, validation, and quality metrics
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <span class="text-sm text-[var(--muted)] font-sans">Updated {timeSinceUpdate}s ago</span>
@@ -119,16 +136,25 @@
     </div>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center">
-        <span class="text-base text-[var(--error)] font-sans">⚠️ Failed to load safety data: {error}</span>
-        <button onclick={loadSafetyData} class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans">
+      <div
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
+      >
+        <span class="text-base text-[var(--error)] font-sans"
+          >⚠️ Failed to load safety data: {error}</span
+        >
+        <button
+          onclick={loadSafetyData}
+          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+        >
           Retry
         </button>
       </div>
     {:else if loading}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {#each Array(4) as _, i (i)}
-          <div class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div
+            class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+          ></div>
         {/each}
       </div>
     {:else}
@@ -254,7 +280,9 @@
       <!-- Critical Issues -->
       {#if criticalWarnings.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">⚡ Critical Issues</h2>
+          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+            ⚡ Critical Issues
+          </h2>
           <div class="space-y-3">
             {#each criticalWarnings as warning (warning.id || warning.message)}
               <div
@@ -263,7 +291,9 @@
                 class:border-[var(--error)]={warning.severity === 'error'}
                 class:border-[var(--border)]={warning.severity !== 'error'}
               >
-                <span class="text-xl flex-shrink-0">{warning.severity === 'error' ? '🔴' : '🟡'}</span>
+                <span class="text-xl flex-shrink-0"
+                  >{warning.severity === 'error' ? '🔴' : '🟡'}</span
+                >
                 <div class="flex-1">
                   <div class="text-base font-medium text-[var(--text)] mb-1 font-sans">
                     {warning.message}
@@ -280,7 +310,9 @@
 
       <!-- Quick Actions -->
       <div>
-        <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">🚀 Quick Actions</h2>
+        <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          🚀 Quick Actions
+        </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onclick={() => navigate('/safety/syntax')}
@@ -288,7 +320,9 @@
           >
             <div class="text-2xl flex-shrink-0">❌</div>
             <div>
-              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">Syntax Errors</div>
+              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+                Syntax Errors
+              </div>
               <div class="text-sm text-[var(--muted)] font-sans">View and fix syntax issues</div>
             </div>
           </button>
@@ -299,7 +333,9 @@
           >
             <div class="text-2xl flex-shrink-0">⚠️</div>
             <div>
-              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">Pattern Warnings</div>
+              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+                Pattern Warnings
+              </div>
               <div class="text-sm text-[var(--muted)] font-sans">Code quality checks</div>
             </div>
           </button>
@@ -310,7 +346,9 @@
           >
             <div class="text-2xl flex-shrink-0">⏮️</div>
             <div>
-              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">Session Rollback</div>
+              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+                Session Rollback
+              </div>
               <div class="text-sm text-[var(--muted)] font-sans">Restore previous states</div>
             </div>
           </button>
@@ -321,7 +359,9 @@
           >
             <div class="text-2xl flex-shrink-0">🧪</div>
             <div>
-              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">Test Results</div>
+              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+                Test Results
+              </div>
               <div class="text-sm text-[var(--muted)] font-sans">View test suite status</div>
             </div>
           </button>

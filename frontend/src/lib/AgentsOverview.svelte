@@ -21,10 +21,18 @@
       error = null;
 
       const [agentsStatus, agentStatsData, conversationsData, eventsData] = await Promise.all([
-        fetch('/api/agents-status').then(r => r.json()).catch(() => []),
-        fetch('/api/agent-stats').then(r => r.json()).catch(() => ({})),
-        fetch('/api/conversations/stats').then(r => r.json()).catch(() => ({ total: 0 })),
-        fetch('/api/agent-events?limit=100').then(r => r.json()).catch(() => ({ events: [] }))
+        fetch('/api/agents-status')
+          .then(r => r.json())
+          .catch(() => []),
+        fetch('/api/agent-stats')
+          .then(r => r.json())
+          .catch(() => ({})),
+        fetch('/api/conversations/stats')
+          .then(r => r.json())
+          .catch(() => ({ total: 0 })),
+        fetch('/api/agent-events?limit=100')
+          .then(r => r.json())
+          .catch(() => ({ events: [] }))
       ]);
 
       const agents = Array.isArray(agentsStatus) ? agentsStatus : [];
@@ -136,7 +144,9 @@
         <div class="stat-content">
           <div class="stat-value">{topAgents.length > 0 ? topAgents[0]?.name || 'N/A' : 'N/A'}</div>
           <div class="stat-label">Most Active Agent</div>
-          <div class="stat-detail">{topAgents.length > 0 ? `${topAgents[0]?.events} events` : ''}</div>
+          <div class="stat-detail">
+            {topAgents.length > 0 ? `${topAgents[0]?.events} events` : ''}
+          </div>
         </div>
       </div>
     </div>
@@ -146,7 +156,7 @@
       <div class="section-card">
         <h2>🏆 Top Active Agents</h2>
         <div class="agents-list">
-          {#each topAgents as agent, index}
+          {#each topAgents as agent, index (agent.name)}
             <div class="agent-item">
               <span class="agent-rank">#{index + 1}</span>
               <div class="agent-info">
@@ -167,7 +177,7 @@
       <div class="section-card">
         <h2>🔄 Recent Activity</h2>
         <div class="activity-list">
-          {#each recentActivity as event}
+          {#each recentActivity as event (event.id || event.timestamp)}
             <div class="activity-item">
               <span class="activity-icon">
                 {event.action === 'edit' ? '✏️' : event.action === 'create' ? '➕' : '🗑️'}
@@ -204,14 +214,20 @@
           <div class="insight-item">
             <div class="insight-icon">⏱️</div>
             <div>
-              <div class="insight-value">{agentStats.avg_session_duration ? Math.round(agentStats.avg_session_duration / 60) + 'm' : 'N/A'}</div>
+              <div class="insight-value">
+                {agentStats.avg_session_duration
+                  ? Math.round(agentStats.avg_session_duration / 60) + 'm'
+                  : 'N/A'}
+              </div>
               <div class="insight-label">Avg Session</div>
             </div>
           </div>
           <div class="insight-item">
             <div class="insight-icon">🎯</div>
             <div>
-              <div class="insight-value">{totalEvents > 0 && totalAgents > 0 ? Math.round(totalEvents / totalAgents) : 0}</div>
+              <div class="insight-value">
+                {totalEvents > 0 && totalAgents > 0 ? Math.round(totalEvents / totalAgents) : 0}
+              </div>
               <div class="insight-label">Events per Agent</div>
             </div>
           </div>
@@ -600,15 +616,24 @@
 
   .skeleton-card {
     height: 150px;
-    background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--bg-secondary) 25%,
+      var(--bg-tertiary) 50%,
+      var(--bg-secondary) 75%
+    );
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: var(--radius-xl);
   }
 
   @keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
 
   .error-banner {

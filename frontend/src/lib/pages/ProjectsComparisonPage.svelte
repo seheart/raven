@@ -23,8 +23,7 @@
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         p =>
-          p.name.toLowerCase().includes(query) ||
-          (p.path && p.path.toLowerCase().includes(query))
+          p.name.toLowerCase().includes(query) || (p.path && p.path.toLowerCase().includes(query))
       );
     }
 
@@ -131,9 +130,7 @@
       getActivityStatus(p.last_activity).label
     ]);
 
-    const csv = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -241,7 +238,9 @@
           <option value="never">Never</option>
         </select>
 
-        <label class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm cursor-pointer">
+        <label
+          class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm cursor-pointer"
+        >
           <input type="checkbox" bind:checked={autoRefresh} />
           <span class="font-mono">Auto-refresh</span>
         </label>
@@ -270,13 +269,17 @@
       </div>
 
       <div class="text-sm text-[var(--muted)] font-mono">
-        Sorted by: <strong class="text-[var(--accent)]">{sortBy}</strong> ({sortDesc ? 'desc' : 'asc'})
+        Sorted by: <strong class="text-[var(--accent)]">{sortBy}</strong> ({sortDesc
+          ? 'desc'
+          : 'asc'})
       </div>
     </div>
 
     {#if loading}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"></div>
+        <div
+          class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
+        ></div>
         <p class="text-base text-[var(--muted)] font-sans">Loading projects...</p>
       </div>
     {:else if projects.length === 0}
@@ -289,7 +292,9 @@
     {:else if filteredProjects.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
         <p class="text-base text-[var(--muted)] mb-2">No projects match your filters</p>
-        <p class="text-xs text-[var(--muted)] opacity-80">Try adjusting your search or status filter.</p>
+        <p class="text-xs text-[var(--muted)] opacity-80">
+          Try adjusting your search or status filter.
+        </p>
       </div>
     {:else}
       <div class="text-sm text-[var(--muted)] mb-3 font-mono">
@@ -363,7 +368,9 @@
                       {/if}
                     </div>
                   </td>
-                  <td class="px-4 py-3 text-sm font-semibold text-[var(--text)] font-mono text-right">
+                  <td
+                    class="px-4 py-3 text-sm font-semibold text-[var(--text)] font-mono text-right"
+                  >
                     {formatNumber(project.total_events)}
                   </td>
                   <td class="px-4 py-3 text-sm font-semibold text-red-500 font-mono text-right">
@@ -383,7 +390,9 @@
                       class:bg-blue-500={status.class === 'recent'}
                       class:bg-gray-500={status.class === 'idle'}
                       class:bg-transparent={status.class === 'never'}
-                      class:text-white={status.class === 'active' || status.class === 'recent' || status.class === 'idle'}
+                      class:text-white={status.class === 'active' ||
+                        status.class === 'recent' ||
+                        status.class === 'idle'}
                       class:text-[var(--muted)]={status.class === 'never'}
                       class:border={status.class === 'never'}
                       class:border-[var(--border)]={status.class === 'never'}

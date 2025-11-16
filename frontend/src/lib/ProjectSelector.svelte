@@ -22,7 +22,7 @@
     try {
       const res = await fetch(`${API_BASE}/projects/list`);
 
-      const data = await response.json()
+      const data = await response.json();
       availableProjects.set(data?.projects || []);
       activeProject.set(data?.active || '');
       selectedProject = data?.active || '';
@@ -44,8 +44,7 @@
         headers: { 'Content-Type': 'application/json' }
       });
 
-
-      const data = await response.json()
+      const data = await response.json();
       availableProjects.set(data?.projects || []);
       activeProject.set(data?.active || '');
       selectedProject = data?.active || '';
@@ -102,7 +101,7 @@
   }
 
   // WebSocket event handler
-  const handleProjectSwitched = (data) => {
+  const handleProjectSwitched = data => {
     logger.info('📡 Project switched via WebSocket:', data?.project);
     activeProject.set(data?.project || '');
     selectedProject = data?.project || '';
@@ -146,7 +145,9 @@
     <span aria-hidden="true">↻</span>
   </button>
   {#if isLoading}
-    <span class="loading-indicator" role="status" aria-live="polite" aria-label="Loading projects">⏳</span>
+    <span class="loading-indicator" role="status" aria-live="polite" aria-label="Loading projects"
+      >⏳</span
+    >
   {/if}
   {#if error}
     <span class="error-message" role="alert" aria-label="Error: {error}">⚠️</span>

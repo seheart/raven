@@ -5,7 +5,11 @@
   import { formatDateTime } from './timeFormat.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
   import { Chart, registerables } from 'chart.js';
-  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+  import {
+    initializeCharts,
+    setupChartThemeObserver,
+    getChartThemeColors
+  } from './utils/chartHelpers.js';
 
   Chart.register(...registerables);
 
@@ -121,7 +125,6 @@
       const response = await fetch(`/api/sessions/${selectedSession}/rollback`, {
         method: 'POST'
       });
-
 
       const result = await response.json();
 
@@ -247,14 +250,16 @@
         type: 'bar',
         data: {
           labels: labels,
-          datasets: [{
-            label: 'Duration (minutes)',
-            data: durations,
-            backgroundColor: colors.accent,
-            borderColor: colors.accent,
-            borderWidth: 2,
-            borderRadius: 4
-          }]
+          datasets: [
+            {
+              label: 'Duration (minutes)',
+              data: durations,
+              backgroundColor: colors.accent,
+              borderColor: colors.accent,
+              borderWidth: 2,
+              borderRadius: 4
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -309,14 +314,16 @@
           type: 'bar',
           data: {
             labels: labels,
-            datasets: [{
-              label: 'Events',
-              data: eventCounts,
-              backgroundColor: colors.info,
-              borderColor: colors.info,
-              borderWidth: 2,
-              borderRadius: 4
-            }]
+            datasets: [
+              {
+                label: 'Events',
+                data: eventCounts,
+                backgroundColor: colors.info,
+                borderColor: colors.info,
+                borderWidth: 2,
+                borderRadius: 4
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -373,10 +380,19 @@
     <p class="panel-description">Undo entire AI coding sessions by rolling back all file changes</p>
     <div class="header-actions">
       <label class="toggle-label">
-        <input type="checkbox" bind:checked={showCharts} on:change={updateCharts} aria-label="Show charts" />
+        <input
+          type="checkbox"
+          bind:checked={showCharts}
+          on:change={updateCharts}
+          aria-label="Show charts"
+        />
         Show Charts
       </label>
-      <button class="btn btn-secondary btn-sm" on:click={fetchSessions} aria-label="Refresh sessions">
+      <button
+        class="btn btn-secondary btn-sm"
+        on:click={fetchSessions}
+        aria-label="Refresh sessions"
+      >
         <span aria-hidden="true">↻</span>
       </button>
     </div>
@@ -410,7 +426,11 @@
   {#if error}
     <div class="error-state" role="alert">
       <p>Error: {error}</p>
-      <button class="btn btn-danger btn-sm" on:click={fetchSessions} aria-label="Retry loading sessions">
+      <button
+        class="btn btn-danger btn-sm"
+        on:click={fetchSessions}
+        aria-label="Retry loading sessions"
+      >
         Retry
       </button>
     </div>
@@ -423,7 +443,8 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="preview-heading"
-      on:keydown={(e) => {
+      tabindex="-1"
+      on:keydown={e => {
         if (e.key === 'Escape') {
           cancelPreview();
         }
@@ -440,12 +461,18 @@
         {#if selectedSessionData?.project_name}
           <div class="info-item">
             <span class="info-label">Project:</span>
-            <span class="info-value"><span class="project-badge-small">{selectedSessionData.project_name}</span></span>
+            <span class="info-value"
+              ><span class="project-badge-small">{selectedSessionData.project_name}</span></span
+            >
           </div>
         {/if}
         <div class="info-item">
           <span class="info-label">Session ended:</span>
-          <span class="info-value mono">{selectedSessionData?.end_time ? formatDate(selectedSessionData.end_time) : 'N/A'}</span>
+          <span class="info-value mono"
+            >{selectedSessionData?.end_time
+              ? formatDate(selectedSessionData.end_time)
+              : 'N/A'}</span
+          >
         </div>
         <div class="info-item">
           <span class="info-label">Changes made:</span>
@@ -457,7 +484,12 @@
         </div>
         <div class="info-item">
           <span class="info-label">Can rollback:</span>
-          <span class="info-value" class:success={previewData.canRollback} class:error={!previewData.canRollback} role="status">
+          <span
+            class="info-value"
+            class:success={previewData.canRollback}
+            class:error={!previewData.canRollback}
+            role="status"
+          >
             {previewData.canRollback ? 'Yes' : 'No'}
           </span>
         </div>
@@ -466,7 +498,10 @@
       {#if !previewData.canRollback}
         <div class="warning-box" role="alert">
           <span class="warning-icon" aria-hidden="true">⚠️</span>
-          <p>No backups available for this session. Files may have been created during this session without prior snapshots.</p>
+          <p>
+            No backups available for this session. Files may have been created during this session
+            without prior snapshots.
+          </p>
         </div>
       {:else}
         <div class="changes-list" role="region" aria-labelledby="files-heading">
@@ -485,10 +520,20 @@
         </div>
 
         <div class="preview-actions" role="group" aria-label="Rollback actions">
-          <button class="btn btn-secondary btn-sm" on:click={cancelPreview} disabled={rollingback} aria-label="Cancel rollback">
+          <button
+            class="btn btn-secondary btn-sm"
+            on:click={cancelPreview}
+            disabled={rollingback}
+            aria-label="Cancel rollback"
+          >
             Cancel
           </button>
-          <button class="btn btn-danger btn-sm" on:click={showRollbackConfirmation} disabled={rollingback} aria-label={rollingback ? 'Rolling back files' : 'Confirm and execute rollback'}>
+          <button
+            class="btn btn-danger btn-sm"
+            on:click={showRollbackConfirmation}
+            disabled={rollingback}
+            aria-label={rollingback ? 'Rolling back files' : 'Confirm and execute rollback'}
+          >
             {rollingback ? 'Rolling back...' : 'Confirm Rollback'}
           </button>
         </div>
@@ -498,7 +543,10 @@
     <div class="empty-state" role="status">
       <div class="empty-icon" aria-hidden="true">📋</div>
       <h3>No Sessions Found</h3>
-      <p>No coding sessions have been recorded yet. Sessions will appear here once files are modified.</p>
+      <p>
+        No coding sessions have been recorded yet. Sessions will appear here once files are
+        modified.
+      </p>
     </div>
   {:else}
     <!-- Sessions List -->
@@ -512,9 +560,15 @@
                 {#if session.project_name}
                   <span class="project-badge">{session.project_name}</span>
                 {/if}
-                <span class="session-time"><time datetime="{session.end_time || ''}">{session.end_time ? timeAgo(session.end_time) : 'N/A'}</time></span>
+                <span class="session-time"
+                  ><time datetime={session.end_time || ''}
+                    >{session.end_time ? timeAgo(session.end_time) : 'N/A'}</time
+                  ></span
+                >
               </div>
-              <div class="session-date">{session.end_time ? formatDate(session.end_time) : 'N/A'}</div>
+              <div class="session-date">
+                {session.end_time ? formatDate(session.end_time) : 'N/A'}
+              </div>
             </div>
           </div>
 
@@ -526,7 +580,11 @@
             </div>
             <div class="stat">
               <span class="stat-icon" aria-hidden="true">⏱️</span>
-              <span class="stat-value" role="status">{session.start_time && session.end_time ? formatDuration(session.start_time, session.end_time) : 'N/A'}</span>
+              <span class="stat-value" role="status"
+                >{session.start_time && session.end_time
+                  ? formatDuration(session.start_time, session.end_time)
+                  : 'N/A'}</span
+              >
               <span class="stat-label">duration</span>
             </div>
             {#if session.quality_score !== undefined && session.quality_score !== null}
@@ -542,7 +600,9 @@
             class="btn btn-primary btn-sm"
             on:click={() => previewRollback(session)}
             disabled={previewing}
-            aria-label={previewing && selectedSession === session.id ? 'Loading rollback preview' : 'Preview rollback for this session'}
+            aria-label={previewing && selectedSession === session.id
+              ? 'Loading rollback preview'
+              : 'Preview rollback for this session'}
           >
             {previewing && selectedSession === session.id ? 'Loading...' : 'Preview Rollback'}
           </button>
@@ -563,6 +623,7 @@
     aria-labelledby="confirm-dialog-title"
     tabindex="-1"
   >
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="modal-content"
       on:click|stopPropagation
@@ -574,15 +635,20 @@
       <h3 id="confirm-dialog-title">⚠️ Confirm Rollback</h3>
       <div class="modal-body">
         <p class="warning-text">
-          You are about to rollback <strong>{previewData?.fileCount || 0} file(s)</strong> to their state before this session started.
+          You are about to rollback <strong>{previewData?.fileCount || 0} file(s)</strong> to their state
+          before this session started.
         </p>
         <p class="warning-subtext">
-          This action will <strong>permanently overwrite</strong> the current contents of these files. Make sure you have committed any important changes.
+          This action will <strong>permanently overwrite</strong> the current contents of these files.
+          Make sure you have committed any important changes.
         </p>
 
         <label class="confirm-checkbox">
           <input type="checkbox" bind:checked={confirmCheckbox} />
-          <span>I understand this will restore {previewData?.fileCount || 0} file(s) and may lose current work</span>
+          <span
+            >I understand this will restore {previewData?.fileCount || 0} file(s) and may lose current
+            work</span
+          >
         </label>
       </div>
       <div class="modal-actions">
@@ -652,14 +718,13 @@
     user-select: none;
   }
 
-  .toggle-label input[type="checkbox"] {
+  .toggle-label input[type='checkbox'] {
     width: var(--icon-xs);
     height: var(--icon-xs);
     cursor: pointer;
   }
 
-
-  .loading, .empty-state {
+  .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -667,15 +732,6 @@
     padding: var(--space-lg) var(--space-xl);
     gap: var(--space-lg);
     text-align: center;
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
   }
 
   .empty-icon {
@@ -832,7 +888,6 @@
     color: var(--text);
   }
 
-
   .preview-info {
     display: flex;
     flex-direction: column;
@@ -970,8 +1025,12 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .modal-content {
@@ -1037,7 +1096,7 @@
     border-color: var(--accent);
   }
 
-  .confirm-checkbox input[type="checkbox"] {
+  .confirm-checkbox input[type='checkbox'] {
     width: var(--icon-sm);
     height: var(--icon-sm);
     cursor: pointer;
@@ -1080,7 +1139,6 @@
     font-size: 13px;
     font-weight: 500;
   }
-
 
   /* Charts Section */
   .charts-section {

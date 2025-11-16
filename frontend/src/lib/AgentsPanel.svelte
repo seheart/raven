@@ -41,25 +41,25 @@
 
   // Agent color mapping
   const AGENT_COLORS = {
-    'claude': 'var(--accent)',
-    'gpt': 'var(--success)',
-    'gemini': 'var(--info)',
-    'ollama': 'var(--warning)',
-    'default': 'var(--muted)'
+    claude: 'var(--accent)',
+    gpt: 'var(--success)',
+    gemini: 'var(--info)',
+    ollama: 'var(--warning)',
+    default: 'var(--muted)'
   };
 
   // WebSocket event handlers (event-driven, no polling)
-  const handleAgentEvent = (event) => {
+  const handleAgentEvent = event => {
     // Add to events list
     agentEvents = [event, ...agentEvents].slice(0, eventsLimit);
     lastUpdated = new Date();
 
     // Show animation
     showNewEventAnimation = true;
-    setTimeout(() => showNewEventAnimation = false, 2000);
+    setTimeout(() => (showNewEventAnimation = false), 2000);
   };
 
-  const handleAgentStats = (stats) => {
+  const handleAgentStats = stats => {
     agentStats = stats;
     lastUpdated = new Date();
 
@@ -69,7 +69,7 @@
     }
   };
 
-  const handleProjectSwitched = async (data) => {
+  const handleProjectSwitched = async data => {
     await loadAllData();
   };
 
@@ -100,8 +100,8 @@
     websocketService.on('file-changed', handleFileChanged);
 
     // Watch for theme changes on body element
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && activeTab === 'performance') {
           logger.debug('[AgentsPanel] Theme changed, recreating charts');
           setTimeout(createCharts, 100);
@@ -247,7 +247,7 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     // Get theme-aware colors from body element (where theme classes are applied)
@@ -272,24 +272,14 @@
           type: 'doughnut',
           data: {
             labels: ['Creates', 'Edits', 'Deletes'],
-            datasets: [{
-              data: [
-                stat.create_count || 0,
-                stat.edit_count || 0,
-                stat.delete_count || 0
-              ],
-              backgroundColor: [
-                successColor,
-                accentColor,
-                errorColor
-              ],
-              borderColor: [
-                successColor,
-                accentColor,
-                errorColor
-              ],
-              borderWidth: 2
-            }]
+            datasets: [
+              {
+                data: [stat.create_count || 0, stat.edit_count || 0, stat.delete_count || 0],
+                backgroundColor: [successColor, accentColor, errorColor],
+                borderColor: [successColor, accentColor, errorColor],
+                borderWidth: 2
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -310,26 +300,20 @@
           type: 'bar',
           data: {
             labels: ['Fastest', 'Average', 'Slowest'],
-            datasets: [{
-              label: 'Response Time (ms)',
-              data: [
-                stat.min_duration_ms || 0,
-                stat.avg_duration_ms || 0,
-                stat.max_duration_ms || 0
-              ],
-              backgroundColor: [
-                successColor,
-                accentColor,
-                warningColor
-              ],
-              borderColor: [
-                successColor,
-                accentColor,
-                warningColor
-              ],
-              borderWidth: 2,
-              borderRadius: 4
-            }]
+            datasets: [
+              {
+                label: 'Response Time (ms)',
+                data: [
+                  stat.min_duration_ms || 0,
+                  stat.avg_duration_ms || 0,
+                  stat.max_duration_ms || 0
+                ],
+                backgroundColor: [successColor, accentColor, warningColor],
+                borderColor: [successColor, accentColor, warningColor],
+                borderWidth: 2,
+                borderRadius: 4
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -442,19 +426,28 @@
   }
 
   function getEventIcon(eventType) {
-    switch(eventType.toLowerCase()) {
-    case 'edit': return '✏️';
-    case 'create': return '➕';
-    case 'delete': return '🗑️';
-    case 'read': return '👁️';
-    case 'execute': return '⚙️';
-    default: return '📝';
+    switch (eventType.toLowerCase()) {
+      case 'edit':
+        return '✏️';
+      case 'create':
+        return '➕';
+      case 'delete':
+        return '🗑️';
+      case 'read':
+        return '👁️';
+      case 'execute':
+        return '⚙️';
+      default:
+        return '📝';
     }
   }
 
   // Reactive computed values
   $: totalEvents = agentStats.reduce((sum, stat) => sum + (stat?.event_count || 0), 0);
-  $: totalLinesChanged = agentStats.reduce((sum, stat) => sum + (stat?.total_lines_changed || 0), 0);
+  $: totalLinesChanged = agentStats.reduce(
+    (sum, stat) => sum + (stat?.total_lines_changed || 0),
+    0
+  );
   $: averageResponseTime = (() => {
     const length = agentStats.length;
     if (length === 0) return 0;
@@ -504,9 +497,10 @@
 
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(event =>
-        event.agent.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.message?.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        event =>
+          event.agent.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.message?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -565,10 +559,7 @@
       stat.avg_duration_ms || 'N/A'
     ]);
 
-    const csv = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+    const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
 
     downloadFile(csv, 'agent-stats.csv', 'text/csv');
   }
@@ -601,7 +592,12 @@
   <div class="header">
     <h2 id="agents-heading">🤖 AI Agents</h2>
     <div class="header-actions" role="toolbar" aria-label="Agent panel actions">
-      <span class="last-updated" role="status" aria-live="polite" class:pulse-animation={showNewEventAnimation}>
+      <span
+        class="last-updated"
+        role="status"
+        aria-live="polite"
+        class:pulse-animation={showNewEventAnimation}
+      >
         {#if showNewEventAnimation}
           ✨ New Event!
         {:else}
@@ -609,13 +605,24 @@
         {/if}
       </span>
       <div class="export-dropdown">
-        <button class="btn-export" aria-label="Export agent data" aria-haspopup="menu">📊 Export</button>
+        <button class="btn-export" aria-label="Export agent data" aria-haspopup="menu"
+          >📊 Export</button
+        >
         <div class="export-menu" role="menu" aria-label="Export options">
-          <button on:click={exportAgentStatsCSV} role="menuitem" aria-label="Export as CSV">📄 Export CSV</button>
-          <button on:click={exportAgentStatsJSON} role="menuitem" aria-label="Export as JSON">📋 Export JSON</button>
+          <button on:click={exportAgentStatsCSV} role="menuitem" aria-label="Export as CSV"
+            >📄 Export CSV</button
+          >
+          <button on:click={exportAgentStatsJSON} role="menuitem" aria-label="Export as JSON"
+            >📋 Export JSON</button
+          >
         </div>
       </div>
-      <button on:click={() => loadAllData(true)} class="btn-refresh" disabled={isRefreshing} aria-label="Refresh agent data">
+      <button
+        on:click={() => loadAllData(true)}
+        class="btn-refresh"
+        disabled={isRefreshing}
+        aria-label="Refresh agent data"
+      >
         <span class="refresh-icon" class:spinning={isRefreshing} aria-hidden="true">↻</span>
         <span>Refresh</span>
       </button>
@@ -625,7 +632,11 @@
   {#if error}
     <div class="error-state" role="alert">
       <p>{error}</p>
-      <button class="btn-retry" on:click={() => loadAllData(true)} aria-label="Retry loading agent data">
+      <button
+        class="btn-retry"
+        on:click={() => loadAllData(true)}
+        aria-label="Retry loading agent data"
+      >
         Retry
       </button>
     </div>
@@ -669,13 +680,13 @@
       {#if selectedAgent}
         <button
           class="filter-chip"
-          on:click={() => selectedAgent = null}
+          on:click={() => (selectedAgent = null)}
           aria-label="Remove agent filter"
         >
           Agent: {selectedAgent} ✕
         </button>
       {/if}
-      {#each selectedEventTypes as type}
+      {#each selectedEventTypes as type (type)}
         <button
           class="filter-chip"
           on:click={() => toggleEventType(type)}
@@ -687,7 +698,7 @@
       {#if dateRange !== 'all'}
         <button
           class="filter-chip"
-          on:click={() => dateRange = 'all'}
+          on:click={() => (dateRange = 'all')}
           aria-label="Remove date range filter"
         >
           Range: {dateRange} ✕
@@ -702,7 +713,7 @@
     <button
       class="tab"
       class:active={activeTab === 'overview'}
-      on:click={() => activeTab = 'overview'}
+      on:click={() => (activeTab = 'overview')}
       role="tab"
       aria-selected={activeTab === 'overview'}
       aria-controls="agents-tabpanel"
@@ -713,7 +724,7 @@
     <button
       class="tab"
       class:active={activeTab === 'activity'}
-      on:click={() => activeTab = 'activity'}
+      on:click={() => (activeTab = 'activity')}
       role="tab"
       aria-selected={activeTab === 'activity'}
       aria-controls="agents-tabpanel"
@@ -724,7 +735,7 @@
     <button
       class="tab"
       class:active={activeTab === 'performance'}
-      on:click={() => activeTab = 'performance'}
+      on:click={() => (activeTab = 'performance')}
       role="tab"
       aria-selected={activeTab === 'performance'}
       aria-controls="agents-tabpanel"
@@ -735,7 +746,7 @@
     <button
       class="tab"
       class:active={activeTab === 'setup'}
-      on:click={() => activeTab = 'setup'}
+      on:click={() => (activeTab = 'setup')}
       role="tab"
       aria-selected={activeTab === 'setup'}
       aria-controls="agents-tabpanel"
@@ -748,7 +759,9 @@
   <!-- Tab Content -->
   <div class="tab-content" id="agents-tabpanel" role="tabpanel" aria-labelledby="{activeTab}-tab">
     {#if loading}
-      <div role="status" aria-live="polite" aria-busy="true"><LoadingSkeleton type="grid" count={4} /></div>
+      <div role="status" aria-live="polite" aria-busy="true">
+        <LoadingSkeleton type="grid" count={4} />
+      </div>
     {:else if activeTab === 'overview'}
       <!-- Overview Tab -->
       <!-- Sort Controls -->
@@ -783,7 +796,11 @@
         <div class="empty" role="status">
           <div class="icon">{searchQuery ? '🔍' : '🤖'}</div>
           <h3>{searchQuery ? 'No agents match your search' : 'No Agent Activity Yet'}</h3>
-          <p>{searchQuery ? 'Try a different search term' : 'Send telemetry events to see agent statistics here.'}</p>
+          <p>
+            {searchQuery
+              ? 'Try a different search term'
+              : 'Send telemetry events to see agent statistics here.'}
+          </p>
           {#if !searchQuery}
             <p class="hint">Agents will appear automatically when they start sending events.</p>
           {/if}
@@ -800,11 +817,15 @@
               role="button"
               on:click={() => selectAgent(stat.agent)}
               tabindex="0"
-              on:keydown={(e) => e.key === 'Enter' && selectAgent(stat.agent)}
+              on:keydown={e => e.key === 'Enter' && selectAgent(stat.agent)}
               aria-label="Filter by {stat.agent}"
             >
               <div class="agent-header">
-                <div class="agent-icon" style="background-color: {getAgentColor(stat.agent)}" aria-hidden="true">
+                <div
+                  class="agent-icon"
+                  style="background-color: {getAgentColor(stat.agent)}"
+                  aria-hidden="true"
+                >
                   {stat.agent.charAt(0).toUpperCase()}
                 </div>
                 <div class="agent-info">
@@ -843,7 +864,6 @@
           {/each}
         </div>
       {/if}
-
     {:else if activeTab === 'activity'}
       <!-- Activity Tab -->
       <!-- Event Type Filters -->
@@ -851,13 +871,14 @@
         <div class="filter-controls">
           <div class="filter-group">
             <span class="filter-label">Event Type:</span>
-            {#each availableEventTypes as type}
+            {#each availableEventTypes as type (type)}
               <button
                 class="filter-btn"
                 class:active={selectedEventTypes.includes(type)}
                 on:click={() => toggleEventType(type)}
               >
-                {getEventIcon(type)} {type}
+                {getEventIcon(type)}
+                {type}
                 {#if selectedEventTypes.includes(type)}✓{/if}
               </button>
             {/each}
@@ -868,28 +889,28 @@
             <button
               class="filter-btn"
               class:active={dateRange === 'all'}
-              on:click={() => dateRange = 'all'}
+              on:click={() => (dateRange = 'all')}
             >
               All Time {#if dateRange === 'all'}✓{/if}
             </button>
             <button
               class="filter-btn"
               class:active={dateRange === 'today'}
-              on:click={() => dateRange = 'today'}
+              on:click={() => (dateRange = 'today')}
             >
               Today {#if dateRange === 'today'}✓{/if}
             </button>
             <button
               class="filter-btn"
               class:active={dateRange === '7d'}
-              on:click={() => dateRange = '7d'}
+              on:click={() => (dateRange = '7d')}
             >
               Last 7 Days {#if dateRange === '7d'}✓{/if}
             </button>
             <button
               class="filter-btn"
               class:active={dateRange === '30d'}
-              on:click={() => dateRange = '30d'}
+              on:click={() => (dateRange = '30d')}
             >
               Last 30 Days {#if dateRange === '30d'}✓{/if}
             </button>
@@ -899,9 +920,19 @@
 
       {#if filteredAgentEvents.length === 0}
         <div class="empty" role="status">
-          <div class="icon" aria-hidden="true">{searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all' ? '🔍' : '📝'}</div>
-          <h3>{searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all' ? 'No events match your filters' : 'No Recent Activity'}</h3>
-          <p>{searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all' ? 'Try adjusting your filters' : 'Agent events will appear here as they occur.'}</p>
+          <div class="icon" aria-hidden="true">
+            {searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all' ? '🔍' : '📝'}
+          </div>
+          <h3>
+            {searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all'
+              ? 'No events match your filters'
+              : 'No Recent Activity'}
+          </h3>
+          <p>
+            {searchQuery || selectedEventTypes.length > 0 || dateRange !== 'all'
+              ? 'Try adjusting your filters'
+              : 'Agent events will appear here as they occur.'}
+          </p>
         </div>
       {:else}
         <div class="events-list" role="feed" aria-label="Agent activity feed">
@@ -932,7 +963,9 @@
                 {#if event.lines_changed}
                   <span class="event-lines">{formatNumber(event.lines_changed)} lines</span>
                 {/if}
-                <time class="event-time" datetime="{event.timestamp}">{formatTimestamp(event.timestamp)}</time>
+                <time class="event-time" datetime={event.timestamp}
+                  >{formatTimestamp(event.timestamp)}</time
+                >
               </div>
             </article>
           {/each}
@@ -948,11 +981,12 @@
                 Load More ({formatNumber(Math.min(30, totalEvents - filteredAgentEvents.length))} more)
               {/if}
             </button>
-            <span class="load-more-info">Showing {formatNumber(filteredAgentEvents.length)} of {formatNumber(totalEvents)} events</span>
+            <span class="load-more-info"
+              >Showing {formatNumber(filteredAgentEvents.length)} of {formatNumber(totalEvents)} events</span
+            >
           </div>
         {/if}
       {/if}
-
     {:else if activeTab === 'performance'}
       <!-- Performance Tab -->
       {#if filteredAgentStats.length === 0}
@@ -968,7 +1002,9 @@
             <h3 class="agent-section-title" style="color: {getAgentColor(stat.agent)}">
               {stat.agent}
               {#if (stat.avg_duration_ms || 0) > 5000}
-                <span class="performance-alert-inline" title="Slow response time detected">⚠️ Slow Performance</span>
+                <span class="performance-alert-inline" title="Slow response time detected"
+                  >⚠️ Slow Performance</span
+                >
               {/if}
             </h3>
 
@@ -977,22 +1013,32 @@
               <div class="performance-card chart-card">
                 <h4>⚡ Response Time</h4>
                 <div class="chart-container">
-                  <div role="img" aria-label={getResponseTimeAriaLabel(stat)} style="height: 160px; width: 100%;">
+                  <div
+                    role="img"
+                    aria-label={getResponseTimeAriaLabel(stat)}
+                    style="height: 160px; width: 100%;"
+                  >
                     <canvas id="bar-{agentId}"></canvas>
                   </div>
                 </div>
                 <div class="metric-grid compact">
                   <div class="metric-item">
                     <span class="metric-label">Average</span>
-                    <span class="metric-value primary">{stat.avg_duration_ms ? formatDuration(stat.avg_duration_ms) : 'N/A'}</span>
+                    <span class="metric-value primary"
+                      >{stat.avg_duration_ms ? formatDuration(stat.avg_duration_ms) : 'N/A'}</span
+                    >
                   </div>
                   <div class="metric-item">
                     <span class="metric-label">Fastest</span>
-                    <span class="metric-value success">{stat.min_duration_ms ? formatDuration(stat.min_duration_ms) : 'N/A'}</span>
+                    <span class="metric-value success"
+                      >{stat.min_duration_ms ? formatDuration(stat.min_duration_ms) : 'N/A'}</span
+                    >
                   </div>
                   <div class="metric-item">
                     <span class="metric-label">Slowest</span>
-                    <span class="metric-value warning">{stat.max_duration_ms ? formatDuration(stat.max_duration_ms) : 'N/A'}</span>
+                    <span class="metric-value warning"
+                      >{stat.max_duration_ms ? formatDuration(stat.max_duration_ms) : 'N/A'}</span
+                    >
                   </div>
                 </div>
               </div>
@@ -1001,7 +1047,11 @@
               <div class="performance-card chart-card">
                 <h4>📊 Activity Breakdown</h4>
                 <div class="chart-container pie">
-                  <div role="img" aria-label={getActivityBreakdownAriaLabel(stat)} style="height: 180px; width: 100%;">
+                  <div
+                    role="img"
+                    aria-label={getActivityBreakdownAriaLabel(stat)}
+                    style="height: 180px; width: 100%;"
+                  >
                     <canvas id="pie-{agentId}"></canvas>
                   </div>
                 </div>
@@ -1036,11 +1086,19 @@
                 <div class="metric-grid">
                   <div class="metric-item">
                     <span class="metric-label">Total Lines</span>
-                    <span class="metric-value primary">{formatNumber(stat.total_lines_changed || 0)}</span>
+                    <span class="metric-value primary"
+                      >{formatNumber(stat.total_lines_changed || 0)}</span
+                    >
                   </div>
                   <div class="metric-item">
                     <span class="metric-label">Per Event</span>
-                    <span class="metric-value">{stat.event_count > 0 ? formatNumber(Math.round((stat.total_lines_changed || 0) / stat.event_count)) : '0'}</span>
+                    <span class="metric-value"
+                      >{stat.event_count > 0
+                        ? formatNumber(
+                            Math.round((stat.total_lines_changed || 0) / stat.event_count)
+                          )
+                        : '0'}</span
+                    >
                   </div>
                   <div class="metric-item">
                     <span class="metric-label">Total Events</span>
@@ -1052,13 +1110,14 @@
           </div>
         {/each}
       {/if}
-
     {:else if activeTab === 'setup'}
       <!-- Setup Guide Tab -->
       <div class="setup-guide">
         <div class="setup-header">
           <h3>📡 Configure Your AI Agents</h3>
-          <p>Send telemetry data from your AI agents to Raven for real-time monitoring and analytics.</p>
+          <p>
+            Send telemetry data from your AI agents to Raven for real-time monitoring and analytics.
+          </p>
         </div>
 
         <!-- Test Telemetry Button -->
@@ -1080,7 +1139,10 @@
           <p>Configure your agents to POST telemetry data to:</p>
           <div class="endpoint-box">
             <code class="endpoint-url">POST http://localhost:3030/telemetry</code>
-            <button class="btn-copy" on:click={() => navigator.clipboard.writeText('http://localhost:3030/telemetry')}>
+            <button
+              class="btn-copy"
+              on:click={() => navigator.clipboard.writeText('http://localhost:3030/telemetry')}
+            >
               📋 Copy
             </button>
           </div>
@@ -1090,30 +1152,46 @@
         <div class="payload-section">
           <h4>3. Example Payload</h4>
           <p>Send a JSON payload with the following structure:</p>
-          <pre class="payload-example"><code>{JSON.stringify({
-            agent: 'your-agent-name',
-            event_type: 'edit',
-            message: 'Modified user authentication logic',
-            file: 'src/auth.js',
-            lines_changed: 25,
-            duration_ms: 1500,
-            metadata: {
-              model: 'claude-3-5-sonnet',
-              prompt_type: 'code-edit'
-            }
-          }, null, 2)}</code></pre>
-          <button class="btn-copy-payload" on:click={() => navigator.clipboard.writeText(JSON.stringify({
-            agent: 'your-agent-name',
-            event_type: 'edit',
-            message: 'Modified user authentication logic',
-            file: 'src/auth.js',
-            lines_changed: 25,
-            duration_ms: 1500,
-            metadata: {
-              model: 'claude-3-5-sonnet',
-              prompt_type: 'code-edit'
-            }
-          }, null, 2))}>
+          <pre class="payload-example"><code
+              >{JSON.stringify(
+                {
+                  agent: 'your-agent-name',
+                  event_type: 'edit',
+                  message: 'Modified user authentication logic',
+                  file: 'src/auth.js',
+                  lines_changed: 25,
+                  duration_ms: 1500,
+                  metadata: {
+                    model: 'claude-3-5-sonnet',
+                    prompt_type: 'code-edit'
+                  }
+                },
+                null,
+                2
+              )}</code
+            ></pre>
+          <button
+            class="btn-copy-payload"
+            on:click={() =>
+              navigator.clipboard.writeText(
+                JSON.stringify(
+                  {
+                    agent: 'your-agent-name',
+                    event_type: 'edit',
+                    message: 'Modified user authentication logic',
+                    file: 'src/auth.js',
+                    lines_changed: 25,
+                    duration_ms: 1500,
+                    metadata: {
+                      model: 'claude-3-5-sonnet',
+                      prompt_type: 'code-edit'
+                    }
+                  },
+                  null,
+                  2
+                )
+              )}
+          >
             📋 Copy Example
           </button>
         </div>
@@ -1126,12 +1204,15 @@
               <tr>
                 <td class="field-name"><code>agent</code></td>
                 <td class="field-type">string</td>
-                <td class="field-desc">Agent identifier (e.g., "claude-code", "cursor", "chatgpt")</td>
+                <td class="field-desc"
+                  >Agent identifier (e.g., "claude-code", "cursor", "chatgpt")</td
+                >
               </tr>
               <tr>
                 <td class="field-name"><code>event_type</code></td>
                 <td class="field-type">string</td>
-                <td class="field-desc">Event type: "edit", "create", "delete", "read", "execute"</td>
+                <td class="field-desc">Event type: "edit", "create", "delete", "read", "execute"</td
+                >
               </tr>
               <tr>
                 <td class="field-name"><code>message</code></td>
@@ -1179,7 +1260,8 @@
           <div class="integration-tabs">
             <details>
               <summary>JavaScript/Node.js</summary>
-              <pre><code>{`async function sendTelemetry(agent, eventType, message, file, linesChanged) {
+              <pre><code
+                  >{`async function sendTelemetry(agent, eventType, message, file, linesChanged) {
   await fetch('http://localhost:3030/telemetry', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1192,11 +1274,13 @@
       duration_ms: Date.now() - startTime
     })
   });
-}`}</code></pre>
+}`}</code
+                ></pre>
             </details>
             <details>
               <summary>Python</summary>
-              <pre><code>{`import requests
+              <pre><code
+                  >{`import requests
 
 def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     requests.post('http://localhost:3030/telemetry', json={
@@ -1205,11 +1289,13 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
         'message': message,
         'file': file,
         'lines_changed': lines_changed
-    })`}</code></pre>
+    })`}</code
+                ></pre>
             </details>
             <details>
               <summary>cURL</summary>
-              <pre><code>{`curl -X POST http://localhost:3030/telemetry \\
+              <pre><code
+                  >{`curl -X POST http://localhost:3030/telemetry \\
   -H "Content-Type: application/json" \\
   -d '{
     "agent": "my-agent",
@@ -1217,7 +1303,8 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
     "message": "Updated function",
     "file": "src/main.js",
     "lines_changed": 10
-  }'`}</code></pre>
+  }'`}</code
+                ></pre>
             </details>
           </div>
         </div>
@@ -1227,8 +1314,8 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   <div class="footer">
     <p class="hint">
-      Raven monitors AI agent activity through telemetry events.
-      Supports: Claude, GPT, Gemini, Ollama, and more.
+      Raven monitors AI agent activity through telemetry events. Supports: Claude, GPT, Gemini,
+      Ollama, and more.
     </p>
   </div>
 </div>
@@ -1373,19 +1460,6 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
 
   .export-menu button:last-child {
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  }
-
-  .message {
-    padding: var(--space-md);
-    border-radius: var(--radius-sm);
-    margin-bottom: var(--space-lg);
-    font-size: 12px;
-  }
-
-  .message.error {
-    background: color-mix(in srgb, var(--error) 15%, var(--surface));
-    border: 1px solid color-mix(in srgb, var(--error) 25%, var(--surface));
-    color: var(--error);
   }
 
   .error-state {
@@ -2136,8 +2210,13 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   /* Active Filters Bar */

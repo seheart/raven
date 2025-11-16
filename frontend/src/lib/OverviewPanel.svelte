@@ -10,8 +10,8 @@
   import { dataService } from './dataService.js';
   import { logger } from './logger.js';
 
-  export let sessionId = 'Loading...';
-  export let sessionUptime = '0s';
+  export const sessionId = 'Loading...';
+  export const sessionUptime = '0s';
 
   // Combined state from Dashboard, Metrics, and Git
   let stats = {
@@ -468,12 +468,6 @@
 
   .overview-stat .stat-text {
     font-weight: 500;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: var(--space-lg);
   }
 
   .stat-card {
