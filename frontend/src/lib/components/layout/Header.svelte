@@ -10,6 +10,7 @@
 
   let {
     activeTab = 'overview',
+    activeSubTab = '',
     username = 'User',
     role = 'user',
     todayStats = { modified: 0, added: 0, deleted: 0 },
@@ -28,13 +29,77 @@
     { id: 'system', label: 'System', path: '/system' }
   ];
 
+  // Sub-tabs for each main tab (no emojis in labels as requested)
+  const subTabs = {
+    overview: [
+      { id: '', label: 'Dashboard' },
+      { id: 'projects', label: 'Projects Comparison' },
+      { id: 'health', label: 'Project Health' }
+    ],
+    safety: [
+      { id: '', label: 'Overview' },
+      { id: 'syntax', label: 'Syntax Errors' },
+      { id: 'rollback', label: 'Session Rollback' },
+      { id: 'risk', label: 'Risk Correlation' },
+      { id: 'patterns', label: 'Pattern Warnings' },
+      { id: 'tests', label: 'Raven Tests' }
+    ],
+    agents: [
+      { id: '', label: 'Overview' },
+      { id: 'stats', label: 'Agent Stats' },
+      { id: 'monitoring', label: 'Monitoring' },
+      { id: 'conversations', label: 'Conversations' }
+    ],
+    activity: [
+      { id: '', label: 'Overview' },
+      { id: 'code', label: 'Code Changes' },
+      { id: 'live', label: 'Live Feed' },
+      { id: 'events', label: 'Event Log' },
+      { id: 'files', label: 'File Browser' },
+      { id: 'timeline', label: 'Timeline' },
+      { id: 'search', label: 'Global Search' }
+    ],
+    analysis: [
+      { id: '', label: 'Overview' },
+      { id: 'performance', label: 'Performance' },
+      { id: 'custom-metrics', label: 'Custom Metrics' },
+      { id: 'trends', label: 'Historical Trends' },
+      { id: 'triggers', label: 'Triggers' },
+      { id: 'session-replay', label: 'Session Replay' },
+      { id: 'developer-insights', label: 'Developer Insights' }
+    ],
+    system: [
+      { id: '', label: 'Overview' },
+      { id: 'status', label: 'Status' },
+      { id: 'anomalies', label: 'Anomaly Alerts' },
+      { id: 'intelligence', label: 'Intelligence' },
+      { id: 'tier4', label: 'Tier 4' },
+      { id: 'storage', label: 'Storage' },
+      { id: 'projects', label: 'Projects' },
+      { id: 'sync', label: 'Server Sync' },
+      { id: 'notifications', label: 'Notifications' },
+      { id: 'errors', label: 'Errors' },
+      { id: 'api', label: 'API Health' }
+    ],
+    settings: []
+  };
+
+  const currentSubTabs = $derived(subTabs[activeTab] || []);
+
   function handleNavClick(event, path) {
     event.preventDefault();
+    navigate(path);
+  }
+
+  function handleSubNavClick(event, subId) {
+    event.preventDefault();
+    const path = subId ? `/${activeTab}/${subId}` : `/${activeTab}`;
     navigate(path);
   }
 </script>
 
 <header class="sticky top-0 z-50 bg-[var(--surface)] border-b border-[var(--border)] font-sans">
+  <!-- Main Header Row -->
   <div class="flex items-center gap-4 px-3 py-2 h-12">
     <!-- Logo -->
     <button
@@ -99,4 +164,25 @@
     <!-- User Menu -->
     <UserMenu {username} {role} {onSettingsClick} {onLogoutClick} />
   </div>
+
+  <!-- Sub-Navigation Row -->
+  {#if currentSubTabs.length > 0}
+    <div class="border-t border-[var(--border)] bg-[var(--surface-2)]">
+      <nav class="flex gap-1 px-3 py-1.5 font-sans overflow-x-auto" aria-label="Sub navigation">
+        {#each currentSubTabs as subTab (subTab.id)}
+          <button
+            onclick={e => handleSubNavClick(e, subTab.id)}
+            class={`px-3 py-1 rounded text-xs transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
+              activeSubTab === subTab.id
+                ? 'bg-[var(--accent)] text-[#ffffff] font-semibold'
+                : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] font-medium'
+            }`}
+            aria-current={activeSubTab === subTab.id ? 'page' : undefined}
+          >
+            {subTab.label}
+          </button>
+        {/each}
+      </nav>
+    </div>
+  {/if}
 </header>

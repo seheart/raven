@@ -7,11 +7,36 @@
   import Header from './lib/components/layout/Header.svelte';
   import Footer from './lib/components/layout/Footer.svelte';
   import OverviewPage from './lib/pages/OverviewPage.svelte';
+  import ProjectsComparisonPage from './lib/pages/ProjectsComparisonPage.svelte';
+  import MultiProjectHealthPage from './lib/pages/MultiProjectHealthPage.svelte';
   import SafetyPage from './lib/pages/SafetyPage.svelte';
+  import SyntaxErrorsPage from './lib/pages/SyntaxErrorsPage.svelte';
+  import SessionRollbackPage from './lib/pages/SessionRollbackPage.svelte';
+  import RiskCorrelationPage from './lib/pages/RiskCorrelationPage.svelte';
+  import PatternWarningsPage from './lib/pages/PatternWarningsPage.svelte';
+  import RavenTestsPage from './lib/pages/RavenTestsPage.svelte';
   import AgentsPage from './lib/pages/AgentsPage.svelte';
-  import ActivityPage from './lib/pages/ActivityPage.svelte';
+  import AgentStatsPage from './lib/pages/AgentStatsPage.svelte';
+  import AgentMonitoringPage from './lib/pages/AgentMonitoringPage.svelte';
+  import AgentConversationsPage from './lib/pages/AgentConversationsPage.svelte';
   import AnalysisPage from './lib/pages/AnalysisPage.svelte';
+  import AnalysisPerformancePage from './lib/pages/AnalysisPerformancePage.svelte';
+  import AnalysisCustomMetricsPage from './lib/pages/AnalysisCustomMetricsPage.svelte';
+  import AnalysisHistoricalTrendsPage from './lib/pages/AnalysisHistoricalTrendsPage.svelte';
+  import AnalysisTriggersPage from './lib/pages/AnalysisTriggersPage.svelte';
+  import AnalysisSessionReplayPage from './lib/pages/AnalysisSessionReplayPage.svelte';
+  import AnalysisDeveloperInsightsPage from './lib/pages/AnalysisDeveloperInsightsPage.svelte';
   import SystemPage from './lib/pages/SystemPage.svelte';
+  import SystemStatusPage from './lib/pages/SystemStatusPage.svelte';
+  import SystemAnomalyAlertsPage from './lib/pages/SystemAnomalyAlertsPage.svelte';
+  import SystemIntelligencePage from './lib/pages/SystemIntelligencePage.svelte';
+  import SystemTier4Page from './lib/pages/SystemTier4Page.svelte';
+  import SystemStoragePage from './lib/pages/SystemStoragePage.svelte';
+  import SystemProjectsPage from './lib/pages/SystemProjectsPage.svelte';
+  import SystemServerSyncPage from './lib/pages/SystemServerSyncPage.svelte';
+  import SystemNotificationsPage from './lib/pages/SystemNotificationsPage.svelte';
+  import SystemErrorsPage from './lib/pages/SystemErrorsPage.svelte';
+  import SystemAPIHealthPage from './lib/pages/SystemAPIHealthPage.svelte';
   import SettingsPage from './lib/pages/SettingsPage.svelte';
   import AboutPage from './lib/pages/AboutPage.svelte';
   import ChangelogPage from './lib/pages/ChangelogPage.svelte';
@@ -33,7 +58,7 @@
   const currentPath = $derived(getPath());
 
   // Parse path to extract tab and subTab
-  const pathParts = $derived(() => {
+  const pathParts = $derived.by(() => {
     const parts = currentPath.split('/').filter(Boolean);
     return {
       tab: parts[0] || 'overview',
@@ -41,8 +66,8 @@
     };
   });
 
-  const activeTab = $derived(pathParts().tab);
-  const activeSubTab = $derived(pathParts().subTab);
+  const activeTab = $derived(pathParts.tab);
+  const activeSubTab = $derived(pathParts.subTab);
 
   // Initialize route on mount
   $effect(() => {
@@ -157,39 +182,128 @@
     {#if activeTab === 'overview'}
       {#if !activeSubTab}
         <OverviewPage />
+      {:else if activeSubTab === 'projects'}
+        <ProjectsComparisonPage />
+      {:else if activeSubTab === 'health'}
+        <MultiProjectHealthPage />
       {:else}
-        <PlaceholderPage
-          title={activeSubTab === 'projects' ? 'Projects Comparison' : 'Project Health'}
-          description="This page is coming soon"
-        />
+        <PlaceholderPage title="Overview - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'safety'}
       {#if !activeSubTab}
         <SafetyPage />
+      {:else if activeSubTab === 'syntax'}
+        <SyntaxErrorsPage />
+      {:else if activeSubTab === 'rollback'}
+        <SessionRollbackPage />
+      {:else if activeSubTab === 'risk'}
+        <RiskCorrelationPage />
+      {:else if activeSubTab === 'patterns'}
+        <PatternWarningsPage />
+      {:else if activeSubTab === 'tests'}
+        <RavenTestsPage />
       {:else}
         <PlaceholderPage title="Safety - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'agents'}
       {#if !activeSubTab}
         <AgentsPage />
+      {:else if activeSubTab === 'stats'}
+        <AgentStatsPage />
+      {:else if activeSubTab === 'monitoring'}
+        <AgentMonitoringPage />
+      {:else if activeSubTab === 'conversations'}
+        <AgentConversationsPage />
       {:else}
         <PlaceholderPage title="Agents - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'activity'}
       {#if !activeSubTab}
-        <ActivityPage />
+        {#await import('./lib/pages/ActivityOverviewPage.svelte') then M}
+          <svelte:component this={M.default} />
+        {:catch}
+          <PlaceholderPage title="Activity Overview" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'code'}
+        {#await import('./lib/pages/ActivityCodeChangesPage.svelte') then M}
+          <svelte:component this={M.default} />
+        {:catch}
+          <PlaceholderPage title="Activity - Code Changes" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'live'}
+        {#await import('./lib/pages/ActivityLiveFeedPage.svelte') then M}
+          <svelte:component this={M.default} />
+        {:catch}
+          <PlaceholderPage title="Activity - Live Feed" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'events'}
+        {#await import('./lib/pages/ActivityEventLogPage.svelte') then M}
+          <svelte:component this={M.default} />
+        {:catch}
+          <PlaceholderPage title="Activity - Event Log" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'files'}
+        {#await import('./lib/pages/ActivityFileBrowserPage.svelte') then M}
+          <svelte:component this={M.default} />
+        {:catch}
+          <PlaceholderPage title="Activity - File Browser" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'timeline'}
+        {#await import('./lib/pages/ActivityTimelinePage.svelte') then M}
+          <svelte:component this={M.default} />
+        {:catch}
+          <PlaceholderPage title="Activity - Timeline" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'search'}
+        {#await import('./lib/pages/ActivitySearchPage.svelte') then M}
+          <svelte:component this={M.default} />
+        {:catch}
+          <PlaceholderPage title="Activity - Search" description="Loading..." />
+        {/await}
       {:else}
         <PlaceholderPage title="Activity - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'analysis'}
       {#if !activeSubTab}
         <AnalysisPage />
+      {:else if activeSubTab === 'performance'}
+        <AnalysisPerformancePage />
+      {:else if activeSubTab === 'custom-metrics'}
+        <AnalysisCustomMetricsPage />
+      {:else if activeSubTab === 'trends'}
+        <AnalysisHistoricalTrendsPage />
+      {:else if activeSubTab === 'triggers'}
+        <AnalysisTriggersPage />
+      {:else if activeSubTab === 'session-replay'}
+        <AnalysisSessionReplayPage />
+      {:else if activeSubTab === 'developer-insights'}
+        <AnalysisDeveloperInsightsPage />
       {:else}
         <PlaceholderPage title="Analysis - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'system'}
       {#if !activeSubTab}
         <SystemPage />
+      {:else if activeSubTab === 'status'}
+        <SystemStatusPage />
+      {:else if activeSubTab === 'anomalies'}
+        <SystemAnomalyAlertsPage />
+      {:else if activeSubTab === 'intelligence'}
+        <SystemIntelligencePage />
+      {:else if activeSubTab === 'tier4'}
+        <SystemTier4Page />
+      {:else if activeSubTab === 'storage'}
+        <SystemStoragePage />
+      {:else if activeSubTab === 'projects'}
+        <SystemProjectsPage />
+      {:else if activeSubTab === 'sync'}
+        <SystemServerSyncPage />
+      {:else if activeSubTab === 'notifications'}
+        <SystemNotificationsPage />
+      {:else if activeSubTab === 'errors'}
+        <SystemErrorsPage />
+      {:else if activeSubTab === 'api'}
+        <SystemAPIHealthPage />
       {:else}
         <PlaceholderPage title="System - {activeSubTab}" description="This page is coming soon" />
       {/if}
