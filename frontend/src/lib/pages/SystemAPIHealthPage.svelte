@@ -511,7 +511,6 @@
                           {@const isFast = check.success && check.responseTime < 50}
                           {@const isMedium =
                             check.success && check.responseTime >= 50 && check.responseTime < 200}
-                          {@const isSlow = check.success && check.responseTime >= 200}
                           {@const isFailure = !check.success}
 
                           <div

@@ -86,15 +86,24 @@
     await fetchErrors(true);
   }
 
-  // Resolve error
-  async function resolveError(errorId) {
+  // Copy error details to clipboard
+  async function copyError(error) {
+    const errorText = `Syntax Error in ${error.filepath}
+
+Project: ${error.project_name || 'N/A'}
+Language: ${error.language}
+Location: Line ${error.line_number}${error.column_number ? `, Column ${error.column_number}` : ''}
+Severity: ${error.severity}
+Message: ${error.message}
+
+${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
+
     try {
-      await fetch(`/api/syntax-errors/${errorId}/resolve`, { method: 'POST' });
-      notifications.success('Error marked as resolved');
-      await fetchErrors();
-    } catch (error) {
-      logger.error('Failed to resolve error:', error);
-      notifications.error('Failed to resolve error');
+      await navigator.clipboard.writeText(errorText);
+      notifications.success('Error details copied to clipboard');
+    } catch (err) {
+      logger.error('Failed to copy to clipboard:', err);
+      notifications.error('Failed to copy to clipboard');
     }
   }
 
@@ -139,7 +148,7 @@
           duration: 7000,
           title: 'Paste this in your editor'
         });
-      } catch (copyError) {
+      } catch {
         // If clipboard fails, just show the path
         notifications.info(`File: ${filepath}:${lineNumber}`, {
           duration: 7000,
@@ -156,27 +165,6 @@
           }
         );
       }, 1000);
-    }
-  }
-
-  // Copy error details to clipboard
-  async function copyError(error) {
-    const errorText = `Syntax Error in ${error.filepath}
-
-Project: ${error.project_name || 'N/A'}
-Language: ${error.language}
-Location: Line ${error.line_number}${error.column_number ? `, Column ${error.column_number}` : ''}
-Severity: ${error.severity}
-Message: ${error.message}
-
-${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
-
-    try {
-      await navigator.clipboard.writeText(errorText);
-      notifications.success('Error details copied to clipboard');
-    } catch (err) {
-      logger.error('Failed to copy to clipboard:', err);
-      notifications.error('Failed to copy to clipboard');
     }
   }
 
@@ -267,7 +255,6 @@ ${allErrorsText}`;
     const textColor = getColor('--text', '#c0caf5');
     const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
-    const successColor = getColor('--success', 'var(--success)');
     const accentColor = getColor('--accent', 'var(--info)');
     const errorColor = getColor('--error', 'var(--error)');
     const warningColor = getColor('--warning', 'var(--warning)');

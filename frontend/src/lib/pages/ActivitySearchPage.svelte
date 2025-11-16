@@ -343,9 +343,10 @@
 
                 <div class="flex flex-wrap gap-3 text-xs text-[var(--muted)]">
                   {#if result.agent}
-                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                     <span class="font-mono"
-                      >🤖 {@html highlightMatch(result.agent, searchQuery)}</span
+                      >🤖
+                      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                      {@html highlightMatch(result.agent, searchQuery)}</span
                     >
                   {/if}
                   {#if result.event_size}

@@ -298,7 +298,7 @@
   }
 
   // WebSocket event handlers
-  const handleAgentEvent = event => {
+  const handleAgentEvent = _event => {
     // Show animation
     showNewEventAnimation = true;
     setTimeout(() => (showNewEventAnimation = false), 2000);
@@ -307,7 +307,7 @@
     loadStats();
   };
 
-  const handleAgentStats = stats => {
+  const handleAgentStats = _stats => {
     // Update stats in real-time
     loadStats();
   };
