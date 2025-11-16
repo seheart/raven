@@ -2,7 +2,16 @@
   /**
    * Button Component - Raven UI Library
    * Built with Tailwind CSS for complete control
+   * Refactored to use shared utilities for better maintainability
    */
+
+  import { buildButtonClasses, cx } from '$lib/utils/classBuilder.js';
+  import {
+    validateVariant,
+    validateSize,
+    VALID_BUTTON_VARIANTS,
+    VALID_SIZES
+  } from '$lib/utils/propValidation.js';
 
   let {
     variant = 'primary',
@@ -15,43 +24,31 @@
     ...restProps
   } = $props();
 
-  // Variant styles using Tailwind default utilities
-  const variants = {
-    primary: 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 focus:ring-blue-500',
-    secondary: 'bg-gray-200 text-gray-900 border-gray-300 hover:bg-gray-300 hover:border-gray-400 focus:ring-gray-400',
-    ghost: 'bg-transparent text-gray-700 border-gray-300 hover:bg-gray-100 hover:border-gray-400 focus:ring-gray-400',
-    danger: 'bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 focus:ring-red-500'
-  };
+  // Validate props
+  const validatedVariant = $derived(validateVariant(variant, VALID_BUTTON_VARIANTS, 'Button'));
+  const validatedSize = $derived(validateSize(size, VALID_SIZES, 'Button'));
 
-  // Size styles using Tailwind default utilities
-  const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg'
-  };
-
-  // Base button classes
-  const baseClasses = 'inline-flex items-center justify-center gap-2 rounded border font-semibold font-sans cursor-pointer transition-all duration-200 outline-none whitespace-nowrap';
-
-  // Disabled state
-  const disabledClasses = 'opacity-50 cursor-not-allowed pointer-events-none';
-
-  // Hover effect
+  // Additional button-specific classes (hover/focus effects)
   const hoverClasses = 'hover:-translate-y-0.5 active:translate-y-0';
+  const focusClasses =
+    'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white whitespace-nowrap cursor-pointer';
 
-  // Focus ring for accessibility
-  const focusClasses = 'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white';
-
-  // Combine all classes
-  const buttonClasses = `${baseClasses} ${variants[variant]} ${sizes[size]} ${!disabled ? hoverClasses : ''} ${focusClasses} ${disabled ? disabledClasses : ''} ${className}`;
+  // Build button classes using shared utility
+  const buttonClasses = $derived(
+    cx(
+      buildButtonClasses({
+        variant: validatedVariant,
+        size: validatedSize,
+        disabled,
+        className: ''
+      }),
+      !disabled ? hoverClasses : '',
+      focusClasses,
+      className
+    )
+  );
 </script>
 
-<button
-  {type}
-  {disabled}
-  {onclick}
-  class={buttonClasses}
-  {...restProps}
->
+<button {type} {disabled} {onclick} class={buttonClasses} {...restProps}>
   {@render children?.()}
 </button>
