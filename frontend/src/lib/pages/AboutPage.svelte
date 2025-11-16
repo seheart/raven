@@ -1,4 +1,5 @@
 <script>
+  import { api } from '../apiClient.js';
   /**
    * About Page - Information about Raven
    * Modern, clean layout with theme-aware design
@@ -10,8 +11,7 @@
   // Load session ID from API
   async function loadSessionId() {
     try {
-      const response = await fetch('http://localhost:3030/api/session-id');
-      const data = await response.json();
+      const data = await api.get('/session-id');
       sessionId = data.session_id || 'Unknown';
     } catch (error) {
       sessionId = 'Offline';

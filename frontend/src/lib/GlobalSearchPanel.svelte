@@ -387,7 +387,6 @@
       searchStartTime = performance.now();
 
       const response = await fetch(`${API_BASE}/search/global?q=${encodeURIComponent(searchQuery)}&limit=1000`);
-      if (!response.ok) throw new Error('Search failed');
 
       const data = await response.json();
       allResults = data.results || [];

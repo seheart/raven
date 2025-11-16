@@ -1,10 +1,12 @@
 <script>
+  import { api } from '../apiClient.js';
   /**
    * System Status Page
-   * Backend connectivity, WebSocket, telemetry bridge, and Git status
+   * Backend connectivity, WebSocket, telemetry bridge, Git status, monitored projects, endpoints, and health checks
    */
 
   import { onMount } from 'svelte';
+  import { projectFilter, availableProjects } from '../projectFilterStore.js';
 
   // State
   let backendStatus = $state({
@@ -30,9 +32,16 @@
     commits: []
   });
 
+  let healthChecks = $state({
+    status: 'pending',
+    summary: { total: 0, passed: 0, failed: 0, byCategory: {} },
+    checks: []
+  });
+
   let loading = $state(true);
   let lastUpdated = $state(null);
   let restartingBridge = $state(false);
+  let healthExpanded = $state(false);
 
   // Derived
   const timeAgo = $derived.by(() => {
@@ -47,7 +56,7 @@
   async function checkBackendHealth() {
     try {
       loading = true;
-      const data = await fetch('http://localhost:3030/api/health').then(r => r.json());
+      const data = await api.get('/health');
 
       backendStatus = {
         connected: true,
@@ -73,15 +82,9 @@
   async function checkGitStatus() {
     try {
       const [statusData, branchesData, historyData] = await Promise.all([
-        fetch('http://localhost:3030/api/git-status')
-          .then(r => r.json())
-          .catch(() => null),
-        fetch('http://localhost:3030/api/git-branches')
-          .then(r => r.json())
-          .catch(() => null),
-        fetch('http://localhost:3030/api/git-history?limit=5')
-          .then(r => r.json())
-          .catch(() => null)
+        api.get('/git/status').catch(() => null),
+        api.get('/git/branches').catch(() => null),
+        api.get('/git/history?limit=5').catch(() => null)
       ]);
 
       if (statusData) {
@@ -97,6 +100,20 @@
       }
     } catch {
       gitStatus.available = false;
+    }
+  }
+
+  async function loadHealthChecks() {
+    try {
+      const data = await api.get('/health-checks');
+      healthChecks = {
+        status: data.status || 'pending',
+        summary: data.summary || { total: 0, passed: 0, failed: 0, byCategory: {} },
+        checks: data.checks || []
+      };
+    } catch (error) {
+      console.error('Failed to load health checks:', error);
+      healthChecks.status = 'error';
     }
   }
 
@@ -131,9 +148,7 @@
 
     restartingBridge = true;
     try {
-      const result = await fetch('http://localhost:3030/api/control/restart-bridge', {
-        method: 'POST'
-      }).then(r => r.json());
+      const result = await api.post('/control/restart-bridge', {});
       if (result.success) {
         setTimeout(() => checkBackendHealth(), 1000);
       }
@@ -144,9 +159,55 @@
     }
   }
 
+  function getStatusIcon(status) {
+    switch (status) {
+      case 'healthy':
+        return '✅';
+      case 'unhealthy':
+        return '⚠️';
+      case 'error':
+        return '❌';
+      case 'pending':
+        return '⏳';
+      default:
+        return '❓';
+    }
+  }
+
+  function getStatusColor(status) {
+    switch (status) {
+      case 'healthy':
+        return 'var(--success)';
+      case 'unhealthy':
+        return 'var(--warning)';
+      case 'error':
+        return 'var(--error)';
+      case 'pending':
+        return 'var(--muted)';
+      default:
+        return 'var(--muted)';
+    }
+  }
+
+  function getCategoryIcon(category) {
+    switch (category) {
+      case 'database':
+        return '💾';
+      case 'data':
+        return '📊';
+      case 'websocket':
+        return '🔌';
+      case 'system':
+        return '🖥️';
+      default:
+        return '📦';
+    }
+  }
+
   onMount(async () => {
     await checkBackendHealth();
     await checkGitStatus();
+    await loadHealthChecks();
   });
 </script>
 
@@ -166,6 +227,7 @@
           onclick={() => {
             checkBackendHealth();
             checkGitStatus();
+            loadHealthChecks();
           }}
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
@@ -442,6 +504,185 @@
         </div>
       </div>
 
+      <!-- Health Checks -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+        <div
+          class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center cursor-pointer hover:bg-[var(--surface)] transition-colors"
+          role="button"
+          tabindex="0"
+          onclick={() => (healthExpanded = !healthExpanded)}
+          onkeydown={(e) => e.key === 'Enter' && (healthExpanded = !healthExpanded)}
+        >
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">
+            {getStatusIcon(healthChecks.status)} Health Checks
+          </h3>
+          <div class="flex items-center gap-3">
+            {#if !loading && healthChecks.summary.total > 0}
+              <span class="text-xs text-[var(--muted)] font-mono">
+                {healthChecks.summary.passed}/{healthChecks.summary.total} passed
+              </span>
+            {/if}
+            <span class="text-xs text-[var(--muted)]">{healthExpanded ? '▼' : '▶'}</span>
+          </div>
+        </div>
+        <div class="p-4">
+          {#if loading}
+            <div class="space-y-3">
+              {#each Array(3) as _, i (i)}
+                <div class="h-6 bg-[var(--bg)] rounded animate-pulse"></div>
+              {/each}
+            </div>
+          {:else}
+            <div
+              class="px-3 py-2 rounded text-sm font-mono text-center"
+              style="background-color: {getStatusColor(healthChecks.status)}20; color: {getStatusColor(
+                healthChecks.status
+              )}"
+            >
+              {#if healthChecks.status === 'healthy'}
+                All Systems Operational
+              {:else if healthChecks.status === 'unhealthy'}
+                {healthChecks.summary.failed} Check{healthChecks.summary.failed > 1 ? 's' : ''} Failed
+              {:else if healthChecks.status === 'error'}
+                Health Check Error
+              {:else}
+                Health Check Pending
+              {/if}
+            </div>
+
+            {#if healthExpanded && healthChecks.checks.length > 0}
+              <div class="mt-4 space-y-4">
+                {#each Object.entries(healthChecks.summary.byCategory || {}) as [category, stats] (category)}
+                  {@const categoryChecks = healthChecks.checks.filter(
+                    (c) => c.category === category
+                  )}
+                  <div class="border border-[var(--border)] rounded-lg overflow-hidden">
+                    <div
+                      class="bg-[var(--bg)] border-b border-[var(--border)] px-3 py-2 flex items-center justify-between"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm">{getCategoryIcon(category)}</span>
+                        <span class="text-xs font-mono font-semibold text-[var(--text)] uppercase"
+                          >{category}</span
+                        >
+                      </div>
+                      <span class="text-xs font-mono text-[var(--muted)]">
+                        {stats.passed}/{stats.passed + stats.failed}
+                        {#if stats.failed > 0}
+                          <span class="text-[var(--error)] font-semibold">
+                            ({stats.failed} failed)
+                          </span>
+                        {/if}
+                      </span>
+                    </div>
+                    <div class="p-3 space-y-2">
+                      {#each categoryChecks as check (check.name)}
+                        {@const checkPassed = check.passed}
+                        {@const borderColorClass = checkPassed
+                          ? 'border-l-[var(--success)]'
+                          : 'border-l-[var(--error)]'}
+                        {@const bgColorClass = checkPassed
+                          ? 'bg-[var(--bg)]'
+                          : 'bg-[var(--error-subtle)]'}
+                        <div
+                          class="flex items-start gap-3 px-3 py-2 rounded border-l-4 {borderColorClass} {bgColorClass}"
+                        >
+                          <span class="text-sm flex-shrink-0 mt-0.5">
+                            {checkPassed ? '✅' : '❌'}
+                          </span>
+                          <div class="flex-1 min-w-0">
+                            <div class="text-xs font-mono font-semibold text-[var(--text)] mb-1">
+                              {check.name}
+                            </div>
+                            <div
+                              class="text-xs font-mono leading-relaxed"
+                              class:text-[var(--muted)]={checkPassed}
+                              class:text-[var(--error)]={!checkPassed}
+                            >
+                              {check.message}
+                            </div>
+                          </div>
+                          <div class="text-xs font-mono text-[var(--muted)] flex-shrink-0">
+                            {check.duration}ms
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          {/if}
+        </div>
+      </div>
+
+      <!-- Monitored Projects Card -->
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden lg:col-span-2"
+      >
+        <div
+          class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center"
+        >
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">
+            👁️ Monitored Projects
+          </h3>
+          {#if loading}
+            <span
+              class="px-3 py-1 bg-[var(--surface)] rounded text-xs font-mono text-[var(--muted)]"
+              >⏳ Loading...</span
+            >
+          {:else}
+            <span class="px-3 py-1 rounded text-xs font-mono bg-[var(--success-subtle)] text-[var(--success)]">
+              🟢 {$availableProjects.length} Active
+            </span>
+          {/if}
+        </div>
+        <div class="p-4">
+          {#if loading}
+            <div class="space-y-3">
+              {#each Array(3) as _, i (i)}
+                <div class="h-12 bg-[var(--bg)] rounded animate-pulse"></div>
+              {/each}
+            </div>
+          {:else}
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+              {#each $availableProjects as project (project.name || project)}
+                {@const projectName = project.name || project}
+                {@const isSelected = $projectFilter === projectName}
+                {@const buttonClasses = isSelected
+                  ? 'bg-[var(--accent-subtle)] border-[var(--accent)] shadow-[0_0_0_2px_var(--accent-subtle)]'
+                  : 'bg-[var(--bg)] border-[var(--border)] hover:border-[var(--accent)]'}
+                <button
+                  class="flex items-center gap-2 px-3 py-2 border rounded text-left transition-all {buttonClasses}"
+                  onclick={() => projectFilter.set(projectName)}
+                >
+                  <div class="w-2 h-2 rounded-full bg-[var(--success)] flex-shrink-0"></div>
+                  <span
+                    class="flex-1 text-sm font-semibold font-sans truncate"
+                    class:text-[var(--accent)]={isSelected}
+                    class:text-[var(--text)]={!isSelected}
+                  >
+                    {projectName}
+                  </span>
+                  {#if isSelected}
+                    <span
+                      class="px-2 py-0.5 bg-[var(--accent)] text-white rounded text-xs font-bold uppercase tracking-wide"
+                    >
+                      viewing
+                    </span>
+                  {/if}
+                </button>
+              {/each}
+            </div>
+            <div
+              class="bg-[var(--success-subtle)] border border-[var(--success)] rounded p-3 text-center text-[var(--success)] text-sm"
+            >
+              ✅ Global multi-project monitoring active
+            </div>
+          {/if}
+        </div>
+      </div>
+
       <!-- Git Repository Status -->
       <div
         class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden lg:col-span-2"
@@ -511,16 +752,12 @@
                   </h4>
                   <div class="flex flex-wrap gap-2">
                     {#each gitStatus.branches as branch (branch)}
-                      <span
-                        class="px-2 py-1 rounded text-xs font-mono"
-                        class:bg-[var(--info-subtle)]={branch === gitStatus.branch}
-                        class:text-[var(--info)]={branch === gitStatus.branch}
-                        class:bg-[var(--bg)]={branch !== gitStatus.branch}
-                        class:text-[var(--muted)]={branch !== gitStatus.branch}
-                        class:border={branch !== gitStatus.branch}
-                        class:border-[var(--border)]={branch !== gitStatus.branch}
-                      >
-                        {branch === gitStatus.branch ? '● ' : ''}{branch}
+                      {@const isActive = branch === gitStatus.branch}
+                      {@const tagClasses = isActive
+                        ? 'bg-[var(--info-subtle)] text-[var(--info)] border-[var(--info)]'
+                        : 'bg-[var(--bg)] text-[var(--muted)] border-[var(--border)]'}
+                      <span class="px-2 py-1 rounded text-xs font-mono border {tagClasses}">
+                        {isActive ? '● ' : ''}{branch}
                       </span>
                     {/each}
                   </div>
@@ -568,6 +805,50 @@
               </p>
             </div>
           {/if}
+        </div>
+      </div>
+
+      <!-- Available Endpoints Card -->
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden lg:col-span-2"
+      >
+        <div
+          class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center"
+        >
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">
+            🌐 Available Endpoints
+          </h3>
+        </div>
+        <div class="p-4">
+          <div class="space-y-2">
+            {#each [
+              { method: 'GET', path: '/health', description: 'Health check', color: 'info' },
+              { method: 'POST', path: '/telemetry', description: 'Agent telemetry', color: 'success' },
+              { method: 'GET', path: '/api/dashboard-stats', description: 'Dashboard statistics', color: 'info' },
+              { method: 'GET', path: '/api/agent-events', description: 'Agent events', color: 'info' },
+              { method: 'GET', path: '/api/agents-status', description: 'Agents status', color: 'info' },
+              { method: 'GET', path: '/api/triggers-config', description: 'Trigger rules', color: 'info' },
+              { method: 'WS', path: 'WebSocket', description: 'Real-time events', color: 'warning' }
+            ] as endpoint (endpoint.path)}
+              {@const methodBgClass =
+                endpoint.color === 'info'
+                  ? 'bg-[var(--info-subtle)] text-[var(--info)]'
+                  : endpoint.color === 'success'
+                    ? 'bg-[var(--success-subtle)] text-[var(--success)]'
+                    : 'bg-[var(--warning-subtle)] text-[var(--warning)]'}
+              <div
+                class="grid grid-cols-[80px_1fr_200px] gap-4 items-center px-4 py-3 bg-[var(--bg)] border border-[var(--border)] rounded hover:bg-[var(--surface)] hover:border-[var(--border)] transition-all"
+              >
+                <span
+                  class="px-2 py-1 rounded text-xs font-bold font-mono text-center {methodBgClass}"
+                >
+                  {endpoint.method}
+                </span>
+                <span class="text-sm font-mono text-[var(--text)] truncate">{endpoint.path}</span>
+                <span class="text-sm text-[var(--muted)] font-sans">{endpoint.description}</span>
+              </div>
+            {/each}
+          </div>
         </div>
       </div>
     </div>

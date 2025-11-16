@@ -1,4 +1,5 @@
 <script>
+  import { api } from '../apiClient.js';
   /**
    * Anomaly Alerts Page
    * Statistical analysis, pattern recognition, and risk scoring
@@ -40,17 +41,12 @@
       loading = true;
       const project = 'raven';
 
-      const [statsRes, anomaliesRes] = await Promise.all([
-        fetch(`http://localhost:3030/api/anomalies/stats?project=${project}`),
-        fetch(`http://localhost:3030/api/anomalies/recent?project=${project}&limit=${limit}`)
+      const [statsData, anomaliesData] = await Promise.all([
+        api.get(`/anomalies/stats?project=${project}`),
+        api.get(`/anomalies/recent?project=${project}&limit=${limit}`)
       ]);
 
-      if (!statsRes.ok || !anomaliesRes.ok) {
-        throw new Error('Failed to fetch anomalies');
-      }
-
-      stats = await statsRes.json();
-      const anomaliesData = await anomaliesRes.json();
+      stats = statsData;
       anomalies = anomaliesData.anomalies || [];
 
       lastUpdate = new Date();

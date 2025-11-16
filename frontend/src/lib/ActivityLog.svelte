@@ -63,7 +63,7 @@
       });
 
       const res = await fetch(`${API_BASE}/activity-log?${params}`);
-      const data = await res.json();
+      const data = await response.json()
 
       if (offset === 0) {
         activities = data.activities;
@@ -346,7 +346,7 @@
   async function exportLog() {
     try {
       const res = await fetch(`${API_BASE}/activity-log?limit=10000`);
-      const data = await res.json();
+      const data = await response.json()
 
       // Build export with session metadata
       const exportData = {
@@ -383,7 +383,7 @@
   async function exportToCSV() {
     try {
       const res = await fetch(`${API_BASE}/activity-log?limit=10000`);
-      const data = await res.json();
+      const data = await response.json()
 
       // CSV headers
       const headers = ['Timestamp', 'Type', 'Description', 'Session ID', 'Category', 'Target'];

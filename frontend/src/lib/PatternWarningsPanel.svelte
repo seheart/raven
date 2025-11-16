@@ -52,7 +52,6 @@
         : `/api/pattern-warnings/category/${selectedCategory}?limit=${limit}`;
 
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch warnings');
 
       const data = await response.json();
 
@@ -86,7 +85,6 @@
         method: 'POST'
       });
 
-      if (!response.ok) throw new Error('Failed to resolve warning');
 
       notifications.success('Warning marked as resolved');
       await fetchWarnings();
@@ -108,7 +106,6 @@
         : `/api/pattern-warnings/resolve-all?category=${selectedCategory}`;
 
       const response = await fetch(url, { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to resolve all warnings');
 
       const data = await response.json();
       notifications.success(data.message || 'All warnings resolved');
@@ -126,7 +123,6 @@
       const url = `/api/pattern-warnings/export?format=${format}${categoryParam}`;
 
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to export warnings');
 
       // Get filename from Content-Disposition header or generate one
       const contentDisposition = response.headers.get('Content-Disposition');

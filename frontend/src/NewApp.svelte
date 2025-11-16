@@ -4,6 +4,7 @@
    * Clean, simple application layout with Tailwind CSS
    */
 
+  import { api } from './lib/apiClient.js';
   import Header from './lib/components/layout/Header.svelte';
   import Footer from './lib/components/layout/Footer.svelte';
   import OverviewPage from './lib/pages/OverviewPage.svelte';
@@ -19,6 +20,7 @@
   import AgentStatsPage from './lib/pages/AgentStatsPage.svelte';
   import AgentMonitoringPage from './lib/pages/AgentMonitoringPage.svelte';
   import AgentConversationsPage from './lib/pages/AgentConversationsPage.svelte';
+  import AgentSetupPage from './lib/pages/AgentSetupPage.svelte';
   import AnalysisPage from './lib/pages/AnalysisPage.svelte';
   import AnalysisPerformancePage from './lib/pages/AnalysisPerformancePage.svelte';
   import AnalysisCustomMetricsPage from './lib/pages/AnalysisCustomMetricsPage.svelte';
@@ -89,8 +91,7 @@
 
   async function loadSessionId() {
     try {
-      const response = await fetch('http://localhost:3030/api/session-id');
-      const data = await response.json();
+      const data = await api.get('/session-id');
       sessionId = data.session_id || 'Unknown';
     } catch (error) {
       sessionId = 'Offline';
@@ -214,15 +215,23 @@
         <AgentMonitoringPage />
       {:else if activeSubTab === 'conversations'}
         <AgentConversationsPage />
+      {:else if activeSubTab === 'setup'}
+        <AgentSetupPage />
       {:else}
         <PlaceholderPage title="Agents - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'activity'}
       {#if !activeSubTab}
-        {#await import('./lib/pages/ActivityOverviewPage.svelte') then M}
+        {#await import('./lib/pages/ActivityDashboardPage.svelte') then M}
           <svelte:component this={M.default} />
         {:catch}
           <PlaceholderPage title="Activity Overview" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'activity-log'}
+        {#await import('./lib/pages/ActivityOverviewPage.svelte') then M}
+          <svelte:component this={M.default} />
+        {:catch}
+          <PlaceholderPage title="Activity Log" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'code'}
         {#await import('./lib/pages/ActivityCodeChangesPage.svelte') then M}

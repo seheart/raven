@@ -46,7 +46,6 @@
       const response = await fetch(`${API_BASE}/projects?_t=${Date.now()}`, {
         cache: 'no-store'
       });
-      if (!response.ok) throw new Error('Failed to load projects');
 
       config = await response.json();
       error = null;
@@ -72,9 +71,7 @@
         body: JSON.stringify({ basePath: config.basePath })
       });
 
-      if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
 
       const data = await response.json();
@@ -107,7 +104,6 @@
         body: JSON.stringify(project)
       });
 
-      if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to add project');
       }
@@ -128,7 +124,6 @@
         body: JSON.stringify(formData)
       });
 
-      if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to add project');
       }
@@ -150,7 +145,6 @@
         body: JSON.stringify(formData)
       });
 
-      if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to update project');
       }
@@ -173,7 +167,6 @@
           method: 'DELETE'
         });
 
-        if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to delete project');
         }
@@ -197,7 +190,6 @@
         body: JSON.stringify({ enabled: !project.enabled })
       });
 
-      if (!response.ok) throw new Error('Failed to toggle project');
 
       await loadConfig();
       showSuccess(`Project ${project.enabled ? 'disabled' : 'enabled'}`);

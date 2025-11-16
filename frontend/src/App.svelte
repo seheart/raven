@@ -625,7 +625,7 @@
             {/if}
           </div>
         {:else if activeTab === 'agents'}
-          <!-- Agents: Overview + Agent Stats + Monitoring + Conversations -->
+          <!-- Agents: Overview + Agent Stats + Monitoring + Conversations + Setup -->
           <div class="tab-content">
             <div class="sub-navigation">
               <button
@@ -656,6 +656,13 @@
               >
                 Conversations
               </button>
+              <button
+                class="sub-tab"
+                class:active={currentSubView === 'setup'}
+                on:click={() => router.navigate(activeTab, 'setup')}
+              >
+                ⚙️ Setup Guide
+              </button>
             </div>
             {#if !currentSubView}
               <AgentsOverview />
@@ -677,10 +684,16 @@
               {:catch _}
                 <div style="min-height:200px" role="status">Loading…</div>
               {/await}
+            {:else if currentSubView === 'setup'}
+              {#await import('./lib/pages/AgentSetupPage.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:200px" role="status">Loading…</div>
+              {/await}
             {/if}
           </div>
         {:else if activeTab === 'activity'}
-          <!-- Activity: Overview + Code Changes + Live Feed + Events + Files + Global Search -->
+          <!-- Activity: Overview + Code Changes + Live Feed + Events + Files + Timeline + Search -->
           <div class="tab-content">
             <div class="sub-navigation">
               <button
@@ -713,13 +726,6 @@
               </button>
               <button
                 class="sub-tab"
-                class:active={currentSubView === 'activity'}
-                on:click={() => router.navigate(activeTab, 'activity')}
-              >
-                Activity Log
-              </button>
-              <button
-                class="sub-tab"
                 class:active={currentSubView === 'files'}
                 on:click={() => router.navigate(activeTab, 'files')}
               >
@@ -727,46 +733,63 @@
               </button>
               <button
                 class="sub-tab"
+                class:active={currentSubView === 'timeline'}
+                on:click={() => router.navigate(activeTab, 'timeline')}
+              >
+                Timeline
+              </button>
+              <button
+                class="sub-tab"
                 class:active={currentSubView === 'search'}
                 on:click={() => router.navigate(activeTab, 'search')}
               >
-                Global Search
+                Search
               </button>
             </div>
             {#if !currentSubView}
-              <ActivityOverview />
+              {#await import('./lib/pages/ActivityDashboardPage.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'activity-log'}
+              {#await import('./lib/pages/ActivityOverviewPage.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
             {:else if currentSubView === 'code'}
-              {#await import('./lib/LiveCodeFeed.svelte') then M}
+              {#await import('./lib/pages/ActivityCodeChangesPage.svelte') then M}
                 <svelte:component this={M.default} />
               {:catch _}
                 <div style="min-height:240px" role="status">Loading…</div>
               {/await}
             {:else if currentSubView === 'live'}
-              {#await import('./lib/LiveFeed.svelte') then M}
+              {#await import('./lib/pages/ActivityLiveFeedPage.svelte') then M}
                 <svelte:component this={M.default} />
               {:catch _}
                 <div style="min-height:240px" role="status">Loading…</div>
               {/await}
             {:else if currentSubView === 'events'}
-              {#await import('./lib/EventFeed.svelte') then M}
-                <svelte:component this={M.default} />
-              {:catch _}
-                <div style="min-height:240px" role="status">Loading…</div>
-              {/await}
-            {:else if currentSubView === 'activity'}
-              {#await import('./lib/ActivityLog.svelte') then M}
+              {#await import('./lib/pages/ActivityEventLogPage.svelte') then M}
                 <svelte:component this={M.default} />
               {:catch _}
                 <div style="min-height:240px" role="status">Loading…</div>
               {/await}
             {:else if currentSubView === 'files'}
-              {#await import('./lib/FileBrowser.svelte') then M}
+              {#await import('./lib/pages/ActivityFileBrowserPage.svelte') then M}
+                <svelte:component this={M.default} />
+              {:catch _}
+                <div style="min-height:240px" role="status">Loading…</div>
+              {/await}
+            {:else if currentSubView === 'timeline'}
+              {#await import('./lib/pages/ActivityTimelinePage.svelte') then M}
                 <svelte:component this={M.default} />
               {:catch _}
                 <div style="min-height:240px" role="status">Loading…</div>
               {/await}
             {:else if currentSubView === 'search'}
-              {#await import('./lib/GlobalSearchPanel.svelte') then M}
+              {#await import('./lib/pages/ActivitySearchPage.svelte') then M}
                 <svelte:component this={M.default} />
               {:catch _}
                 <div style="min-height:240px" role="status">Loading…</div>

@@ -28,7 +28,6 @@
     try {
       // Reload dashboard stats when new events come in
       const response = await fetch(`${API_BASE}/dashboard-stats`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const statsData = await response.json();
       stats = statsData;
     } catch (error) {
@@ -40,7 +39,6 @@
     try {
       // Reload agents status when stats update
       const response = await fetch(`${API_BASE}/agents-status`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const agentsData = await response.json();
       agents = agentsData;
     } catch (error) {

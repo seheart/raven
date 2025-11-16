@@ -44,7 +44,6 @@
   async function fetchFrameworks() {
     try {
       const response = await fetch('/api/tests/frameworks');
-      if (!response.ok) throw new Error('Failed to fetch frameworks');
 
       const data = await response.json();
       frameworks = data.frameworks;
@@ -64,7 +63,6 @@
       }
 
       const response = await fetch(`/api/tests/results?limit=${limit}`);
-      if (!response.ok) throw new Error('Failed to fetch results');
 
       const data = await response.json();
 
@@ -110,7 +108,6 @@
         method: 'DELETE'
       });
 
-      if (!response.ok) throw new Error('Failed to clear results');
 
       const data = await response.json();
       notifications.success(data.message || 'All test results cleared');
@@ -143,7 +140,6 @@
         body: JSON.stringify({ framework: selectedFramework })
       });
 
-      if (!response.ok) throw new Error('Failed to run tests');
 
       const result = await response.json();
       running = false;
@@ -266,7 +262,6 @@
       expandedTests = true;
 
       const response = await fetch(`/api/tests/details/${encodeURIComponent(timestamp)}`);
-      if (!response.ok) throw new Error('Failed to fetch test details');
 
       const data = await response.json();
       allTests = data.tests;
@@ -283,7 +278,6 @@
   async function copyFailedTests(timestamp) {
     try {
       const response = await fetch(`/api/tests/details/${encodeURIComponent(timestamp)}`);
-      if (!response.ok) throw new Error('Failed to fetch test details');
 
       const data = await response.json();
       const failures = data.tests.filter(t => t.status === 'failed');

@@ -58,7 +58,6 @@
     try {
       loading = true;
       const response = await fetch(`${API_BASE}/metrics/performance?range=${timeRange}`);
-      if (!response.ok) throw new Error('Failed to fetch metrics');
 
       const data = await response.json();
       metrics = data.metrics || [];

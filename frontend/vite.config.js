@@ -30,6 +30,7 @@ export default defineConfig({
       host: 'localhost',
       port: 5173,
     },
+    // Proxy API calls to backend server
     proxy: {
       '/api': {
         target: 'http://localhost:3030',

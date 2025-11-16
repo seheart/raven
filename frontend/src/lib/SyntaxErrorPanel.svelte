@@ -58,7 +58,6 @@
       }
 
       const response = await fetch(`/api/syntax-errors?limit=${limit}`);
-      if (!response.ok) throw new Error('Failed to fetch syntax errors');
 
       const data = await response.json();
       errors = data.errors;
@@ -94,7 +93,6 @@
         method: 'POST'
       });
 
-      if (!response.ok) throw new Error('Failed to resolve error');
 
       notifications.success('Error marked as resolved');
       await fetchErrors();

@@ -70,7 +70,6 @@
       loading = true;
       isManualRefresh = manual;
       const response = await fetch(`${API_BASE}/storage`);
-      if (!response.ok) throw new Error('Failed to fetch storage data');
       storageData = await response.json();
       lastUpdated = new Date();
       loading = false;
@@ -130,7 +129,6 @@
   async function exportDatabase(dbName) {
     try {
       const response = await fetch(`${API_BASE}/storage/export/${dbName}`);
-      if (!response.ok) throw new Error('Export failed');
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);

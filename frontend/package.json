@@ -18,8 +18,9 @@
     "lint:html": "html-validate \"src/**/*.svelte\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "validate:patterns": "bash scripts/validate-patterns.sh",
     "check": "svelte-check --tsconfig ./jsconfig.json",
-    "validate": "npm run check && npm run lint && npm run lint:css"
+    "validate": "npm run check && npm run lint && npm run lint:css && npm run validate:patterns"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^6.2.1",

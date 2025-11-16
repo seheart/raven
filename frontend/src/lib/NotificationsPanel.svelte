@@ -105,7 +105,7 @@
       });
 
       const res = await fetch(`${API_BASE}/notifications?${params}`);
-      const data = await res.json();
+      const data = await response.json()
 
       if (offset === 0) {
         notifications = data.notifications;
@@ -126,7 +126,7 @@
   async function loadStats() {
     try {
       const res = await fetch(`${API_BASE}/notifications/stats`);
-      stats = await res.json();
+      stats = await response.json()
     } catch (error) {
       logger.error('Failed to load notification stats:', error);
     }

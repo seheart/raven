@@ -1,4 +1,5 @@
 <script>
+  import { api } from '../apiClient.js';
   /**
    * Documentation Viewer Page
    * Modern sidebar navigation with markdown content display
@@ -36,8 +37,8 @@
   // Load docs list from API
   async function loadDocsList() {
     try {
-      const response = await fetch('http://localhost:3030/api/docs/list');
-      const data = await response.json();
+      const response = await api.get('/docs/list');
+      const data = await response.json()
       docs = data.all || [];
 
       // Load README.md by default
@@ -61,8 +62,8 @@
     error = null;
 
     try {
-      const response = await fetch(`http://localhost:3030/api/docs/${filepath}`);
-      const data = await response.json();
+      const response = await api.get(`/docs/${filepath}`);
+      const data = await response.json()
 
       if (data.error) {
         throw new Error(data.error);

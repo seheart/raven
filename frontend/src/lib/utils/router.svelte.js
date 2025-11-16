@@ -8,6 +8,8 @@ let currentPath = $state(window.location.pathname);
 // Listen for browser back/forward navigation
 window.addEventListener('popstate', () => {
   currentPath = window.location.pathname;
+  // Scroll to top on back/forward navigation
+  window.scrollTo(0, 0);
 });
 
 /**
@@ -18,6 +20,8 @@ export function navigate(path) {
   if (path !== currentPath) {
     window.history.pushState({}, '', path);
     currentPath = path;
+    // Scroll to top when navigating to a new page
+    window.scrollTo(0, 0);
   }
 }
 

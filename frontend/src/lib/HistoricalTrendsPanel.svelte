@@ -80,7 +80,6 @@
     try {
       loading = true;
       const response = await fetch(`${API_BASE}/trends/historical?period=${period}&days=${days}`);
-      if (!response.ok) throw new Error('Failed to fetch trends');
 
       const data = await response.json();
       trends = data.trends || [];

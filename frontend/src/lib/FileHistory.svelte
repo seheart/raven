@@ -68,7 +68,7 @@
     try {
       const filename = filepath?.split('/')?.pop() || '';
       // Note: This endpoint returns text, not JSON
-      const response = await fetch(`http://localhost:3030/api/snapshot/${event.id}/${encodeURIComponent(filename)}`);
+      const response = await api.get(`/snapshot/${event.id}/${encodeURIComponent(filename)}`);
       snapshotContent = await response.text();
     } catch (error) {
       logger.error('Failed to load snapshot:', error);
@@ -175,8 +175,8 @@
       const filename = filepath?.split('/')?.pop() || '';
 
       const [snapshot1Response, snapshot2Response] = await Promise.all([
-        fetch(`http://localhost:3030/api/snapshot/${event1.id}/${encodeURIComponent(filename)}`),
-        fetch(`http://localhost:3030/api/snapshot/${event2.id}/${encodeURIComponent(filename)}`)
+        api.get(`/snapshot/${event1.id}/${encodeURIComponent(filename)}`),
+        api.get(`/snapshot/${event2.id}/${encodeURIComponent(filename)}`)
       ]);
 
       const snapshot1Content = await snapshot1Response.text();

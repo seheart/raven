@@ -1,4 +1,5 @@
 <script>
+  import { api } from './apiClient.js';
   import { onMount, onDestroy } from 'svelte';
   import FileHistory from './FileHistory.svelte';
   import { logger } from './logger.js';
@@ -69,11 +70,9 @@
   async function loadProjects() {
     try {
       loadingProjects = true;
-      const response = await fetch(`${API_BASE}/projects`);
-      if (!response.ok) {
+      const data = await api.get(`/projects`);
         throw new Error(`Failed to load projects: ${response.status} ${response.statusText}`);
       }
-      const data = await response.json();
       projects = data.projects || [];
       loadingProjects = false;
     } catch (error) {
@@ -93,10 +92,8 @@
         ? `${API_BASE}/tracked-files?project=${selectedProject}`
         : `${API_BASE}/tracked-files`;
       const response = await fetch(url);
-      if (!response.ok) {
         throw new Error(`Failed to load files: ${response.status} ${response.statusText}`);
       }
-      files = await response.json();
       loading = false;
       error = null;
     } catch (err) {
@@ -123,10 +120,8 @@
         ? `${API_BASE}/file-events?project=${selectedProject}&limit=1000`
         : `${API_BASE}/file-events?limit=1000`;
       const response = await fetch(url);
-      if (!response.ok) {
         throw new Error(`Failed to load file metadata: ${response.status}`);
       }
-      const data = await response.json();
       const events = data.events || [];
 
       // Build metadata map

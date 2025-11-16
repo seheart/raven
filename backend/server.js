@@ -1251,6 +1251,116 @@ app.get('/api/agents/timeline', (req, res) => {
   }
 });
 
+// Get agent status (for AgentsPage)
+app.get('/api/agents-status', (req, res) => {
+  try {
+    const activeAgents = agentDetector.getActiveAgents();
+    const currentAgent = agentDetector.getCurrentAgent();
+    const runningAgents = agentDetector.scanAllAgents();
+
+    // Build agent status array
+    const agents = runningAgents.map(agent => ({
+      agent_name: agent.name || agent.agent,
+      is_running: true,
+      confidence: agent.confidence || 0.8,
+      last_seen: new Date().toISOString()
+    }));
+
+    res.json(agents);
+  } catch (error) {
+    logger.error('❌ Agent status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get agent statistics from database (for AgentsPage and AgentStatsPage)
+app.get('/api/agent-stats', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const db = projectDatabases.get(projectName);
+
+    if (!db) {
+      return res.json({ stats: [] });
+    }
+
+    // Get comprehensive agent stats from database
+    const stmt = db.prepareStatement(`
+      SELECT
+        agent as agent_name,
+        COUNT(*) as total_events,
+        SUM(CASE WHEN change_type = 'create' THEN 1 ELSE 0 END) as create_count,
+        SUM(CASE WHEN change_type = 'edit' THEN 1 ELSE 0 END) as edit_count,
+        SUM(CASE WHEN change_type = 'delete' THEN 1 ELSE 0 END) as delete_count,
+        SUM(CASE WHEN change_type = 'read' THEN 1 ELSE 0 END) as read_count,
+        COUNT(DISTINCT filepath) as files_touched,
+        AVG(CASE WHEN duration_ms IS NOT NULL THEN duration_ms ELSE 0 END) as avg_duration_ms,
+        SUM(CASE WHEN duration_ms IS NOT NULL THEN duration_ms ELSE 0 END) / 1000.0 as total_duration_seconds,
+        MAX(timestamp) as last_active
+      FROM events
+      WHERE agent IS NOT NULL
+      GROUP BY agent
+      ORDER BY total_events DESC
+    `);
+
+    const stats = stmt.all();
+
+    res.json({ stats });
+  } catch (error) {
+    logger.error('❌ Agent stats error:', error);
+    res.status(500).json({ stats: [], error: error.message });
+  }
+});
+
+// Get all agent events (for AgentMonitoringPage)
+app.get('/api/agent-events', (req, res) => {
+  try {
+    const projectName = req.query.project || activeProject;
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const db = projectDatabases.get(projectName);
+    if (!db) {
+      return res.json({ events: [] });
+    }
+
+    const stmt = db.prepareStatement(`
+      SELECT
+        id,
+        timestamp,
+        filepath,
+        change_type as event_type,
+        event_size,
+        agent as agent_name,
+        agent_confidence,
+        is_anomaly,
+        risk_level,
+        duration_ms
+      FROM events
+      WHERE agent IS NOT NULL
+      ORDER BY timestamp DESC
+      LIMIT ? OFFSET ?
+    `);
+
+    const events = stmt.all(limit, offset);
+
+    // Get total count
+    const countStmt = db.prepareStatement(`
+      SELECT COUNT(*) as total FROM events WHERE agent IS NOT NULL
+    `);
+    const { total } = countStmt.get();
+
+    res.json({
+      events,
+      total,
+      limit,
+      offset
+    });
+  } catch (error) {
+    logger.error('❌ Agent events error:', error);
+    res.status(500).json({ events: [], error: error.message });
+  }
+});
+
 // ==================== Risk Correlation API ====================
 
 // Get high-risk files

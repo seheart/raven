@@ -1,4 +1,5 @@
 <script>
+  import { api } from '../apiClient.js';
   /**
    * System Overview Page
    * Backend status, infrastructure, and health monitoring
@@ -65,23 +66,23 @@
 
       const [healthData, projectsData, errorsData, notifData, apiHealthData, dashboardData] =
         await Promise.all([
-          fetch('http://localhost:3030/api/health')
-            .then(r => r.json())
+          api.get('/health')
+            
             .catch(() => ({})),
-          fetch('http://localhost:3030/api/health/projects')
-            .then(r => r.json())
+          api.get('/health/projects')
+            
             .catch(() => ({ projects: [] })),
-          fetch('http://localhost:3030/api/errors/stats')
-            .then(r => r.json())
+          api.get('/errors/stats')
+            
             .catch(() => ({ total: 0 })),
-          fetch('http://localhost:3030/api/notifications/stats')
-            .then(r => r.json())
+          api.get('/notifications/stats')
+            
             .catch(() => ({ unread: 0 })),
-          fetch('http://localhost:3030/api/health-checks')
-            .then(r => r.json())
+          api.get('/health-checks')
+            
             .catch(() => null),
-          fetch('http://localhost:3030/api/dashboard-stats')
-            .then(r => r.json())
+          api.get('/dashboard-stats')
+            
             .catch(() => ({ total_events: 0 }))
         ]);
 

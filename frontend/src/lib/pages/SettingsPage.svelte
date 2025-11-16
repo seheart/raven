@@ -176,7 +176,7 @@
 
   <!-- Notifications Section -->
   <section class="space-y-3">
-    <h3 class="text-sm font-semibold text-[var(--text-heading)] font-sans">🔔 Notifications</h3>
+    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">🔔 Notifications</h3>
 
     <!-- Enable Notifications -->
     <div class="setting-card">
@@ -258,7 +258,7 @@
 
     <!-- Notification Types -->
     <div class="setting-group">
-      <h4 class="text-xs font-semibold text-[var(--text-heading)] mb-2 font-sans">
+      <h4 class="text-sm font-semibold text-[var(--text-heading)] mb-2 font-sans">
         Notification Types
       </h4>
       <div class="grid grid-cols-2 gap-2">
@@ -333,7 +333,7 @@
 
   <!-- UI Section -->
   <section class="space-y-3">
-    <h3 class="text-sm font-semibold text-[var(--text-heading)] font-sans">🎨 User Interface</h3>
+    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">🎨 User Interface</h3>
 
     <!-- Theme -->
     <div class="setting-card">
@@ -344,7 +344,7 @@
         <select
           id="theme-select"
           bind:value={currentSettings.ui.theme}
-          class="px-2.5 py-1.5 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded text-xs font-sans"
+          class="px-2.5 py-1.5 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded text-sm font-sans"
           onchange={() => settings.updateUI({ theme: currentSettings.ui.theme })}
         >
           <option value="tokyo-night">Tokyo Night</option>
@@ -374,7 +374,7 @@
         <select
           id="time-format-select"
           bind:value={currentSettings.ui.timeFormat}
-          class="px-2.5 py-1.5 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded text-xs font-sans"
+          class="px-2.5 py-1.5 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded text-sm font-sans"
         >
           <option value="12h">12-hour (AM/PM)</option>
           <option value="24h">24-hour</option>
@@ -442,7 +442,7 @@
 
   <!-- Editor Section -->
   <section class="space-y-3">
-    <h3 class="text-sm font-semibold text-[var(--text-heading)] font-sans">📝 Editor</h3>
+    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">📝 Editor</h3>
 
     <div class="setting-card">
       <div class="setting-control">
@@ -452,7 +452,7 @@
         <select
           id="default-editor"
           bind:value={currentSettings.editor.defaultEditor}
-          class="px-2.5 py-1.5 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded text-xs font-sans"
+          class="px-2.5 py-1.5 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded text-sm font-sans"
         >
           <option value="auto">🖥️ System Default</option>
           <option value="vscode">💻 VS Code</option>
@@ -469,7 +469,7 @@
 
   <!-- Performance Section -->
   <section class="space-y-3">
-    <h3 class="text-sm font-semibold text-[var(--text-heading)] font-sans">⚡ Performance</h3>
+    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">⚡ Performance</h3>
 
     <!-- Enable Metrics -->
     <div class="setting-card">

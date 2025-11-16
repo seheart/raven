@@ -19,7 +19,6 @@
   async function fetchStatus() {
     try {
       const response = await fetch('/api/pause/status');
-      if (!response.ok) throw new Error('Failed to fetch pause status');
 
       const data = await response.json();
       paused = data.paused;
@@ -46,7 +45,6 @@
         body: JSON.stringify({ reason: 'User emergency stop' })
       });
 
-      if (!response.ok) throw new Error('Failed to pause monitoring');
 
       notifications.warning('Monitoring PAUSED - File changes will be ignored', {
         title: 'Monitoring Paused',
@@ -73,7 +71,6 @@
         method: 'POST'
       });
 
-      if (!response.ok) throw new Error('Failed to resume monitoring');
 
       notifications.success('Monitoring RESUMED - File changes are being tracked', {
         title: 'Monitoring Resumed'

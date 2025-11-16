@@ -32,7 +32,6 @@
     try {
       loading = true;
       const response = await fetch('/api/sessions');
-      if (!response.ok) throw new Error('Failed to fetch sessions');
 
       const data = await response.json();
       sessions = data.sessions;
@@ -54,7 +53,6 @@
       selectedSessionData = session;
 
       const response = await fetch(`/api/sessions/${session.id}/preview`);
-      if (!response.ok) throw new Error('Failed to preview rollback');
 
       previewData = await response.json();
       previewing = false;
@@ -124,7 +122,6 @@
         method: 'POST'
       });
 
-      if (!response.ok) throw new Error('Failed to execute rollback');
 
       const result = await response.json();
 

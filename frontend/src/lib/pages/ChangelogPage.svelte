@@ -1,4 +1,5 @@
 <script>
+  import { api } from '../apiClient.js';
   /**
    * Changelog Page - Track Raven's development progress
    * Modern, clean layout with timeline-style changelog
@@ -11,8 +12,8 @@
   // Load changelog from API
   async function loadChangelog() {
     try {
-      const response = await fetch('http://localhost:3030/api/changelog');
-      const data = await response.json();
+      const response = await api.get('/changelog');
+      const data = await response.json()
       changelog = data;
       loading = false;
     } catch (err) {

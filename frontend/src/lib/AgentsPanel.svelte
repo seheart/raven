@@ -1,4 +1,5 @@
 <script>
+  import { api } from './apiClient.js';
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
@@ -184,28 +185,19 @@
   async function testTelemetry() {
     testingTelemetry = true;
     try {
-      const response = await fetch('http://localhost:3030/telemetry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agent: 'test-agent',
-          event_type: 'test',
-          message: 'Test telemetry event from Raven UI',
-          file: 'test.js',
-          lines_changed: 10,
-          duration_ms: 150,
-          metadata: { source: 'raven-ui-test' }
-        })
+      await api.post('/telemetry', {
+        agent: 'test-agent',
+        event_type: 'test',
+        message: 'Test telemetry event from Raven UI',
+        file: 'test.js',
+        lines_changed: 10,
+        duration_ms: 150,
+        metadata: { source: 'raven-ui-test' }
       });
 
-      if (response.ok) {
-        error = null;
-        // Reload data to show the test event
-        await loadAllData();
-      } else {
-        const data = await response.json();
-        error = `Test failed: ${data.error || 'Unknown error'}`;
-      }
+      error = null;
+      // Reload data to show the test event
+      await loadAllData();
     } catch (e) {
       error = `Test failed: ${e.message}`;
     } finally {

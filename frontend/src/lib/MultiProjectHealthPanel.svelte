@@ -107,7 +107,6 @@
     try {
       loading = true;
       const response = await fetch(`${API_BASE}/health/projects`);
-      if (!response.ok) throw new Error('Failed to fetch project health');
 
       const data = await response.json();
       projects = data.projects || [];

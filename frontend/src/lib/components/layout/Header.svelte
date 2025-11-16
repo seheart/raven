@@ -52,6 +52,7 @@
     ],
     activity: [
       { id: '', label: 'Overview' },
+      { id: 'activity-log', label: 'Activity Log' },
       { id: 'code', label: 'Code Changes' },
       { id: 'live', label: 'Live Feed' },
       { id: 'events', label: 'Event Log' },
