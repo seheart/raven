@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Risk Correlation Page
@@ -51,7 +52,7 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      console.error('Failed to load risk data:', err);
+      logger.error('Failed to load risk data:', err);
       error = err.message;
       loading = false;
     }

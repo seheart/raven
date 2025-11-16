@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Activity Timeline Page
    * Visual chronological timeline of events
@@ -97,7 +98,7 @@
 
       loading = false;
     } catch (err) {
-      console.error('Failed to load events:', err);
+      logger.error('Failed to load events:', err);
       error = err.message;
       loading = false;
     }

@@ -34,13 +34,13 @@ export function getChartColors() {
 export function createChart(canvasId, config) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) {
-    console.warn(`Canvas element #${canvasId} not found`);
+    logger.warn(`Canvas element #${canvasId} not found`);
     return null;
   }
 
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    console.warn(`Could not get 2D context for #${canvasId}`);
+    logger.warn(`Could not get 2D context for #${canvasId}`);
     return null;
   }
 

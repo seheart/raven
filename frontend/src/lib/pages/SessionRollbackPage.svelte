@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Session Rollback Page
@@ -63,7 +64,7 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      console.error('Failed to load sessions:', err);
+      logger.error('Failed to load sessions:', err);
       error = err.message;
       loading = false;
     }
@@ -82,7 +83,7 @@
       previewData = await response.json();
       previewing = false;
     } catch (err) {
-      console.error('Failed to preview rollback:', err);
+      logger.error('Failed to preview rollback:', err);
       alert(`Failed to preview rollback: ${err.message}`);
       previewing = false;
       selectedSession = null;
@@ -127,7 +128,7 @@
       previewData = null;
       confirmCheckbox = false;
     } catch (err) {
-      console.error('Failed to rollback session:', err);
+      logger.error('Failed to rollback session:', err);
       alert(`Rollback failed: ${err.message}`);
     }
   }

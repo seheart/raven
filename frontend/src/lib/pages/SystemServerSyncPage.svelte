@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../apiClient.js';
   import { notifications } from '../notificationService.js';
@@ -100,7 +101,7 @@
       loading = false;
       isManualRefresh = false;
     } catch (error) {
-      console.error('Failed to load sync config:', error);
+      logger.error('Failed to load sync config:', error);
       loading = false;
       isManualRefresh = false;
     }
@@ -121,7 +122,7 @@
       if (saveStatusTimeout) clearTimeout(saveStatusTimeout);
       saveStatusTimeout = setTimeout(() => saveStatus = null, 3000);
     } catch (error) {
-      console.error('Failed to save config:', error);
+      logger.error('Failed to save config:', error);
       saveStatus = 'error';
       notifications.error('Failed to save configuration', {
         title: 'Config Error'
@@ -159,7 +160,7 @@
         });
       }
     } catch (error) {
-      console.error('Connection test failed:', error);
+      logger.error('Connection test failed:', error);
       connectionStatus = 'failed';
       notifications.error('Connection test failed', {
         title: 'Connection Error'
@@ -181,13 +182,13 @@
       if (result.success) {
         remoteStats = result;
       } else {
-        console.error('Failed to load remote stats:', result.error);
+        logger.error('Failed to load remote stats:', result.error);
         remoteStats = null;
       }
 
       loadingStats = false;
     } catch (error) {
-      console.error('Failed to load remote stats:', error);
+      logger.error('Failed to load remote stats:', error);
       loadingStats = false;
       remoteStats = null;
     }
@@ -253,7 +254,7 @@
       }, 3000);
       syncProgressTimeouts.push(timeout1);
     } catch (error) {
-      console.error('Sync failed:', error);
+      logger.error('Sync failed:', error);
       syncing = false;
       syncProgress = { stage: 'error', percent: 0, message: 'Sync failed' };
       notifications.error('Sync failed', {

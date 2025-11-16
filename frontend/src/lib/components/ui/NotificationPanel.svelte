@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../../logger.js';
   import { notificationHistory, unreadCount } from '../../stores/notificationHistory.js';
   import { navigate } from '../../utils/router.svelte.js';
 
@@ -62,7 +63,7 @@
         copiedId = null;
       }, 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('Failed to copy:', err);
     }
   }
 

@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { wsLogger } from '../logger.js';
 
 // Get WebSocket URL from environment or use default
 const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3030';
@@ -36,22 +37,22 @@ class WebSocketService {
     });
 
     this.socket.on('connect', () => {
-      console.log('🔌 WebSocket connected');
+      wsLogger.info('WebSocket connected');
       this.connected = true;
     });
 
     this.socket.on('disconnect', reason => {
-      console.log('🔌 WebSocket disconnected:', reason);
+      wsLogger.info('WebSocket disconnected', { reason });
       this.connected = false;
     });
 
     this.socket.on('connect_error', error => {
-      console.error('🔌 WebSocket connection error:', error);
+      wsLogger.error('WebSocket connection error', error);
     });
 
     // Handle successful reconnection
     this.socket.on('reconnect', attemptNumber => {
-      console.log(`🔌 WebSocket reconnected after ${attemptNumber} attempts`);
+      wsLogger.info('WebSocket reconnected', { attemptNumber });
       this.connected = true;
 
       // Notify all registered reconnect callbacks
@@ -59,18 +60,18 @@ class WebSocketService {
         try {
           callback();
         } catch (error) {
-          console.error('Error in reconnect callback:', error);
+          wsLogger.error('Error in reconnect callback', error);
         }
       }
     });
 
     // Track reconnection attempts
     this.socket.on('reconnect_attempt', attemptNumber => {
-      console.log(`🔌 Attempting to reconnect (${attemptNumber})...`);
+      wsLogger.debug('Attempting to reconnect', { attemptNumber });
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error('🔌 WebSocket reconnection failed - max attempts reached');
+      wsLogger.error('WebSocket reconnection failed - max attempts reached');
     });
 
     return this.socket;
@@ -84,13 +85,13 @@ class WebSocketService {
 
     // Limit reconnect callbacks to prevent unbounded growth
     if (this.reconnectCallbacks.length >= WEBSOCKET_CONFIG.MAX_RECONNECT_CALLBACKS) {
-      console.warn('Max reconnect callbacks reached, removing oldest');
+      wsLogger.warn('Max reconnect callbacks reached, removing oldest');
       this.reconnectCallbacks.shift();
     }
 
     // Check for duplicates
     if (this.reconnectCallbacks.includes(callback)) {
-      console.warn('Duplicate reconnect callback prevented');
+      wsLogger.warn('Duplicate reconnect callback prevented');
       return;
     }
 
@@ -118,7 +119,7 @@ class WebSocketService {
     // Check if this exact callback is already registered (prevent duplicates)
     const callbacks = this.listeners.get(event);
     if (callbacks.includes(callback)) {
-      console.warn(`Duplicate listener prevented for event: ${event}`);
+      wsLogger.warn('Duplicate listener prevented', { event });
       return; // Don't add duplicate
     }
 

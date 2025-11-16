@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Documentation Viewer Page
@@ -52,7 +53,7 @@
       }
     } catch (err) {
       error = 'Failed to load documentation list';
-      console.error(err);
+      logger.error(err);
     }
   }
 
@@ -75,7 +76,7 @@
       selectedDoc = filepath;
     } catch (err) {
       error = `Failed to load ${filepath}`;
-      console.error(err);
+      logger.error(err);
     } finally {
       loading = false;
     }

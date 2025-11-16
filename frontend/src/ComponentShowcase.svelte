@@ -1,4 +1,5 @@
 <script>
+  import { logger } from './lib/logger.js';
   import { Button } from './lib/components/ui/index.js';
 </script>
 
@@ -90,7 +91,7 @@
         <Button variant="secondary" onclick={() => alert('Secondary clicked!')}>
           Try This
         </Button>
-        <Button variant="ghost" onclick={() => console.log('Ghost button clicked')}>
+        <Button variant="ghost" onclick={() => logger.debug('Ghost button clicked')}>
           Log to Console
         </Button>
       </div>

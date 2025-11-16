@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Changelog Page - Track Raven's development progress
@@ -17,7 +18,7 @@
       changelog = data;
       loading = false;
     } catch (err) {
-      console.error('Failed to load changelog:', err);
+      logger.error('Failed to load changelog:', err);
       error = 'Failed to load changelog';
       loading = false;
     }

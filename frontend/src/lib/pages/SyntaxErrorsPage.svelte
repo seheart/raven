@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Syntax Errors Page
@@ -104,7 +105,7 @@
       loading = false;
       loadingMore = false;
     } catch (err) {
-      console.error('Failed to load syntax errors:', err);
+      logger.error('Failed to load syntax errors:', err);
       error = err.message;
       loading = false;
       loadingMore = false;
@@ -130,7 +131,7 @@
         throw new Error(result.message || 'Failed to open file');
       }
     } catch (err) {
-      console.error('Failed to open file:', err);
+      logger.error('Failed to open file:', err);
       // Fallback: Copy file path to clipboard
       try {
         const fileLocation = `${filepath}:${lineNumber}`;
@@ -156,7 +157,7 @@
       // Reload errors
       await loadErrors();
     } catch (err) {
-      console.error('Failed to resolve error:', err);
+      logger.error('Failed to resolve error:', err);
       alert(`Failed to resolve error: ${err.message}`);
     }
   }
@@ -177,7 +178,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
       await navigator.clipboard.writeText(errorText);
       alert('Error details copied to clipboard');
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      logger.error('Failed to copy to clipboard:', error);
       alert('Failed to copy to clipboard');
     }
   }

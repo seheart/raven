@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Session Replay Page
@@ -122,7 +123,7 @@
         { id: currentSessionId, label: `Current Session (${currentSessionId?.slice(0, 8)}...)` }
       ];
     } catch (e) {
-      console.error('Failed to load sessions:', e);
+      logger.error('Failed to load sessions:', e);
       allSessions = [{ id: 'all', label: 'All Sessions' }];
     }
   }
@@ -139,7 +140,7 @@
       const response = await fetch(url);
       lastUpdated = new Date();
     } catch (e) {
-      console.error('Failed to load events:', e);
+      logger.error('Failed to load events:', e);
     } finally {
       loading = false;
     }

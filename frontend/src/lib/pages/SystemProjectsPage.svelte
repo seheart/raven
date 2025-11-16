@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { onMount } from 'svelte';
   import { api } from '../apiClient.js';
   import { notifications } from '../notificationService.js';
@@ -49,7 +50,7 @@
       config = data;
       error = null;
     } catch (err) {
-      console.error('Failed to load projects:', err);
+      logger.error('Failed to load projects:', err);
       if (err instanceof TypeError && err.message.includes('fetch')) {
         error = 'Cannot connect to Raven backend. Is it running on http://localhost:3030?';
       } else {
@@ -73,7 +74,7 @@
         notifications.success('No new projects found');
       }
     } catch (err) {
-      console.error('Failed to discover projects:', err);
+      logger.error('Failed to discover projects:', err);
       if (err instanceof TypeError && err.message.includes('fetch')) {
         notifications.error('Cannot connect to backend. Check if Raven is running.');
       } else {

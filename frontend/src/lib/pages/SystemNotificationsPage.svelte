@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * System Notifications Page
    * Comprehensive notification management system with filtering, grouping, charts, and real-time updates
@@ -118,7 +119,7 @@
       hasMore = data.hasMore;
       lastUpdated = new Date();
     } catch (error) {
-      console.error('Failed to load notifications:', error);
+      logger.error('Failed to load notifications:', error);
     } finally {
       loading = false;
       isManualRefresh = false;
@@ -130,7 +131,7 @@
       const res = await fetch(`${API_BASE}/notifications/stats`);
       stats = await res.json();
     } catch (error) {
-      console.error('Failed to load notification stats:', error);
+      logger.error('Failed to load notification stats:', error);
     }
   }
 
@@ -142,7 +143,7 @@
       );
       stats.unread = Math.max(0, stats.unread - 1);
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      logger.error('Failed to mark notification as read:', error);
     }
   }
 
@@ -158,7 +159,7 @@
       notifications = notifications.map(n => ({ ...n, read: true }));
       stats.unread = 0;
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      logger.error('Failed to mark all as read:', error);
     }
   }
 
@@ -166,7 +167,7 @@
     try {
       exportJSON(notifications, 'raven-notifications');
     } catch (error) {
-      console.error('Failed to export notifications:', error);
+      logger.error('Failed to export notifications:', error);
       alert('Failed to export notifications: ' + error.message);
     }
   }
@@ -222,7 +223,7 @@
       stats.total = Math.max(0, stats.total - 1);
       await loadStats();
     } catch (error) {
-      console.error('Failed to clear notification:', error);
+      logger.error('Failed to clear notification:', error);
     }
   }
 
@@ -234,7 +235,7 @@
       notifications = [];
       stats = { total: 0, unread: 0, by_type: {}, by_severity: {} };
     } catch (error) {
-      console.error('Failed to clear all notifications:', error);
+      logger.error('Failed to clear all notifications:', error);
     }
   }
 

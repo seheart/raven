@@ -93,7 +93,7 @@ export async function apiFetch(endpoint, options = {}) {
           response.status >= 500 ? 'error' : 'warning'
         ).catch(logError => {
           // Fail silently to prevent infinite loops, but log to console for debugging
-          console.error(
+          logger.error(
             '[API Client] Failed to log error to backend:',
             logError.message || logError
           );
@@ -151,7 +151,7 @@ export async function apiFetch(endpoint, options = {}) {
           'warning'
         ).catch(logError => {
           // Fail silently to prevent infinite loops, but log to console for debugging
-          console.error(
+          logger.error(
             '[API Client] Failed to log error to backend:',
             logError.message || logError
           );
@@ -178,7 +178,7 @@ export async function apiFetch(endpoint, options = {}) {
           'error'
         ).catch(logError => {
           // Fail silently to prevent infinite loops, but log to console for debugging
-          console.error(
+          logger.error(
             '[API Client] Failed to log error to backend:',
             logError.message || logError
           );

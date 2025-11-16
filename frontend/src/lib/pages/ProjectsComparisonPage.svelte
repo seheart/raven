@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
@@ -116,7 +117,7 @@
   function copyPath(path) {
     navigator.clipboard.writeText(path);
     // Simple feedback - could add toast notification
-    console.log('Path copied:', path);
+    logger.debug('Path copied:', path);
   }
 
   function exportCSV() {
@@ -191,14 +192,14 @@
             last_activity: eventsData.events?.[0]?.timestamp || null
           };
         } catch (error) {
-          console.error(`Failed to load stats for project ${project.name}:`, error);
+          logger.error(`Failed to load stats for project ${project.name}:`, error);
           return { ...project, total_events: 0, total_errors: 0, last_activity: null };
         }
       });
 
       projects = await Promise.all(statsPromises);
     } catch (error) {
-      console.error('Failed to load projects:', error);
+      logger.error('Failed to load projects:', error);
     } finally {
       loading = false;
     }

@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Multi-Project Health Page
    * At-a-glance health status across all monitored projects
@@ -215,7 +216,7 @@
       activeProjects = projects.filter(p => p.status === 'active').length;
       recentProjects = projects.filter(p => p.status === 'recent').length;
     } catch (err) {
-      console.error('Failed to load project health:', err);
+      logger.error('Failed to load project health:', err);
       error = err.message;
     } finally {
       loading = false;

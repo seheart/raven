@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Analysis Performance Page
    * Performance profiling with 3 tabs: Metrics, Trend Charts, Correlations
@@ -105,7 +106,7 @@
       loading = false;
       isManualRefresh = false;
     } catch (err) {
-      console.error('Failed to load performance data:', err);
+      logger.error('Failed to load performance data:', err);
       error = err.message || 'Failed to load performance data';
       loading = false;
       isManualRefresh = false;

@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
   import { formatBytes } from '../utils/helpers.js';
@@ -114,7 +115,7 @@
       lastUpdated = new Date();
       error = null;
     } catch (err) {
-      console.error('Failed to load storage data:', err);
+      logger.error('Failed to load storage data:', err);
       error = err.message;
     } finally {
       loading = false;
@@ -158,7 +159,7 @@
 
       alert(`Database ${dbName} exported successfully!`);
     } catch (err) {
-      console.error('Failed to export database:', err);
+      logger.error('Failed to export database:', err);
       alert(`Failed to export database: ${err.message}`);
     }
   }
@@ -179,7 +180,7 @@
         alert(`Optimization failed: ${result.error}`);
       }
     } catch (err) {
-      console.error('Failed to optimize database:', err);
+      logger.error('Failed to optimize database:', err);
       alert(`Failed to optimize database: ${err.message}`);
     }
   }
@@ -213,7 +214,7 @@
         alert(`Cleanup failed: ${result.error}`);
       }
     } catch (err) {
-      console.error('Failed to clean database:', err);
+      logger.error('Failed to clean database:', err);
       alert(`Failed to clean database: ${err.message}`);
     }
   }
@@ -223,7 +224,7 @@
       const data = await api.get('/storage/retention');
       retentionPolicy = data;
     } catch (err) {
-      console.error('Failed to load retention policy:', err);
+      logger.error('Failed to load retention policy:', err);
     }
   }
 
@@ -238,7 +239,7 @@
         alert(`Failed to save policy: ${result.error}`);
       }
     } catch (err) {
-      console.error('Failed to save retention policy:', err);
+      logger.error('Failed to save retention policy:', err);
       alert(`Failed to save policy: ${err.message}`);
     }
   }

@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Settings Page - Application settings and preferences
    */
@@ -52,7 +53,7 @@
           throw new Error('Invalid settings format');
         }
       } catch (err) {
-        console.error('Failed to import settings:', err);
+        logger.error('Failed to import settings:', err);
       }
     };
     reader.readAsText(file);
@@ -91,7 +92,7 @@
         });
       }
     } catch (err) {
-      console.error('Error requesting notification permission:', err);
+      logger.error('Error requesting notification permission:', err);
     }
   }
 

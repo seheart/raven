@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Analysis Overview Page - Tailwind Version
@@ -72,7 +73,7 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      console.error('Failed to load analysis data:', err);
+      logger.error('Failed to load analysis data:', err);
       error = err.message;
       loading = false;
     }

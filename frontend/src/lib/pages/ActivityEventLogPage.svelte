@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
   /**
@@ -247,7 +248,7 @@
 
       loading = false;
     } catch (err) {
-      console.error('Failed to load events:', err);
+      logger.error('Failed to load events:', err);
       error = err.message;
       loading = false;
     }
@@ -260,7 +261,7 @@
         try {
           createCharts();
         } catch (err) {
-          console.error('Failed to create charts:', err);
+          logger.error('Failed to create charts:', err);
         }
       }, 200);
     }

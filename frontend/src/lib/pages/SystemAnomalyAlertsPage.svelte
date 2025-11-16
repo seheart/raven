@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Anomaly Alerts Page
@@ -52,7 +53,7 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      console.error('Failed to load anomalies:', err);
+      logger.error('Failed to load anomalies:', err);
       error = err.message;
     } finally {
       loading = false;

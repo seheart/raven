@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Custom Metrics Dashboard Page
@@ -30,7 +31,7 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      console.error('Failed to load metrics:', err);
+      logger.error('Failed to load metrics:', err);
       error = err.message;
     } finally {
       loading = false;

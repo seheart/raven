@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Agent Setup Guide Page
    * Configuration guide for integrating AI agents with Raven telemetry
@@ -47,7 +48,7 @@
       testResult = 'Test event sent successfully!';
       testError = null;
     } catch (err) {
-      console.error('Test telemetry failed:', err);
+      logger.error('Test telemetry failed:', err);
       testError = `Connection failed: ${err.message}`;
       testResult = null;
     } finally {
@@ -62,7 +63,7 @@
       copiedEndpoint = true;
       setTimeout(() => copiedEndpoint = false, 2000);
     } catch (err) {
-      console.error('Failed to copy endpoint:', err);
+      logger.error('Failed to copy endpoint:', err);
     }
   }
 
@@ -73,7 +74,7 @@
       copiedPayload = true;
       setTimeout(() => copiedPayload = false, 2000);
     } catch (err) {
-      console.error('Failed to copy payload:', err);
+      logger.error('Failed to copy payload:', err);
     }
   }
 </script>

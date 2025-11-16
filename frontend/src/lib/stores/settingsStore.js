@@ -1,4 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
+import { logger } from '../logger.js';
 
 // Default settings structure
 const DEFAULT_SETTINGS = {
@@ -57,7 +58,7 @@ function loadSettings() {
         performance: { ...DEFAULT_SETTINGS.performance, ...parsed.performance }
       };
     } catch (e) {
-      console.error('Failed to parse saved settings:', e);
+      logger.error('Failed to parse saved settings:', e);
       return { ...DEFAULT_SETTINGS };
     }
   }
@@ -75,7 +76,7 @@ settingsStore.subscribe(value => {
     }
   } catch (error) {
     // localStorage may be unavailable in private browsing mode or due to quota
-    console.debug('[Settings] localStorage unavailable:', error.message);
+    logger.debug('[Settings] localStorage unavailable:', error.message);
   }
 });
 
@@ -103,7 +104,7 @@ export const settings = {
 
       // Safety check: ensure keys array is not empty
       if (keys.length === 0) {
-        console.warn('Settings update called with empty path');
+        logger.warn('Settings update called with empty path');
         return updated;
       }
 
@@ -170,7 +171,7 @@ export const settings = {
         }
       } catch (error) {
         // localStorage may be unavailable in private browsing mode or due to quota
-        console.debug('[Settings] Failed to save theme:', error.message);
+        logger.debug('[Settings] Failed to save theme:', error.message);
       }
     }
   },
@@ -192,7 +193,7 @@ export const settings = {
       }
     } catch (error) {
       // localStorage may be unavailable in private browsing mode
-      console.debug('[Settings] Failed to clear localStorage:', error.message);
+      logger.debug('[Settings] Failed to clear localStorage:', error.message);
     }
   },
 
@@ -220,7 +221,7 @@ export const settings = {
       settingsStore.set(merged);
       return true;
     } catch (e) {
-      console.error('Failed to import settings:', e);
+      logger.error('Failed to import settings:', e);
       return false;
     }
   }

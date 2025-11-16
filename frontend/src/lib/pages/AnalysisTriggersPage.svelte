@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
@@ -143,7 +144,7 @@
       lastUpdated = new Date();
     } catch (e) {
       error = `Failed to load triggers data: ${e.message}`;
-      console.error(error);
+      logger.error(error);
     } finally {
       loading = false;
       isManualRefresh = false;
@@ -159,7 +160,7 @@
       await loadAllData();
     } catch (e) {
       error = `Failed to reload config: ${e.message}`;
-      console.error(error);
+      logger.error(error);
     }
   }
 
@@ -171,7 +172,7 @@
       successMessageTimeouts.push(timeout);
     } catch (e) {
       error = `Failed to clear cooldowns: ${e.message}`;
-      console.error(error);
+      logger.error(error);
     }
   }
 

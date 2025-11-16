@@ -8,12 +8,7 @@
 import Database from 'better-sqlite3';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
-
-// Simple logger
-const logger = {
-  info: (...args) => console.log(...args),
-  error: (...args) => console.error(...args)
-};
+import { logger } from './utils/structured-logger.js';
 
 const DB_DIR = '.raven/db';
 

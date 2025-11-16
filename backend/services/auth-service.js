@@ -80,12 +80,12 @@ export class AuthService {
       // but MUST NOT be written to log files for security reasons.
       // The logger writes to files, console.log only writes to stdout.
       /* eslint-disable no-console */
-      console.log('\n' + '='.repeat(70));
-      console.log('🔐 DEFAULT ADMIN CREDENTIALS (save these securely):');
-      console.log('   Username: admin');
-      console.log(`   Password: ${defaultPassword}`);
-      console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!');
-      console.log('='.repeat(70) + '\n');
+      logger.debug('\n' + '='.repeat(70));
+      logger.debug('🔐 DEFAULT ADMIN CREDENTIALS (save these securely):');
+      logger.debug('   Username: admin');
+      logger.debug(`   Password: ${defaultPassword}`);
+      logger.debug('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!');
+      logger.debug('='.repeat(70) + '\n');
       /* eslint-enable no-console */
     }
   }

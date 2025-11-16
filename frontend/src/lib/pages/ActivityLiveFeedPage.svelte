@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Activity Live Feed Page - Real-time activity stream
    * WebSocket-based live event monitoring with Chart.js visualizations
@@ -51,7 +52,7 @@
   // WebSocket event handlers
   const handleFileChanged = (data) => {
     if (isPaused) return;
-    console.log('📡 File change detected:', data);
+    logger.debug('📡 File change detected:', data);
     debouncedLoadEvents();
   };
 
@@ -61,7 +62,7 @@
   };
 
   const handleProjectSwitched = (data) => {
-    console.log('📡 Project switched, reloading data:', data?.project);
+    logger.debug('📡 Project switched, reloading data:', data?.project);
     loadAllData();
   };
 
@@ -84,7 +85,7 @@
       await updateMetrics();
       loading = false;
     } catch (err) {
-      console.error('Failed to load data:', err);
+      logger.error('Failed to load data:', err);
       error = err.message || 'Failed to load data';
       loading = false;
     }
@@ -128,7 +129,7 @@
         }, 10);
       }
     } catch (err) {
-      console.error('Failed to load events:', err);
+      logger.error('Failed to load events:', err);
       throw err;
     }
   }
@@ -151,7 +152,7 @@
         : 0;
       metricsHistory.fileSize = [...metricsHistory.fileSize, avgSize].slice(-50);
     } catch (error) {
-      console.error('Failed to update metrics:', error);
+      logger.error('Failed to update metrics:', error);
     }
   }
 
@@ -190,7 +191,7 @@
   function createCharts() {
     if (!showCharts || filteredEvents.length === 0) return;
 
-    console.log('[ActivityLiveFeed] Creating charts...');
+    logger.debug('[ActivityLiveFeed] Creating charts...');
 
     // Destroy existing charts
     Object.values(charts).forEach(chart => destroyChart(chart));
@@ -345,7 +346,7 @@
     // Create theme observer for chart recreation
     themeObserver = createThemeObserver(() => {
       if (showCharts) {
-        console.log('[ActivityLiveFeed] Theme changed, recreating charts');
+        logger.debug('[ActivityLiveFeed] Theme changed, recreating charts');
         setTimeout(createCharts, 100);
       }
     });

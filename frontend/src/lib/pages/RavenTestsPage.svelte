@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Raven Tests Page
@@ -73,7 +74,7 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      console.error('Failed to load test results:', err);
+      logger.error('Failed to load test results:', err);
       error = err.message;
       loading = false;
     }
@@ -93,7 +94,7 @@
       // Reload results after tests complete
       await loadTests();
     } catch (err) {
-      console.error('Failed to run tests:', err);
+      logger.error('Failed to run tests:', err);
       error = err.message;
       running = false;
     }

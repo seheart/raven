@@ -62,30 +62,24 @@ export function createCorvusV2Routes({ projectDatabases }) {
     }
   });
 
-  // GET /api/anomalies/by-risk - Get anomalies grouped by risk level (stub)
+  // GET /api/anomalies/by-risk - Get anomalies grouped by risk level
   router.get('/anomalies/by-risk', async (req, res) => {
-    try {
-      const { project = 'raven' } = req.query;
-
-      // TODO: Implement getAnomaliesByRiskLevel in AnomalyDetector
-      res.json({ high: [], medium: [], low: [], project });
-    } catch (error) {
-      logger.error('Failed to get anomalies by risk:', error);
-      res.status(500).json({ error: 'Failed to fetch anomalies by risk level' });
-    }
+    // Feature not yet implemented - requires AnomalyDetector.getAnomaliesByRiskLevel()
+    res.status(501).json({
+      error: 'Not Implemented',
+      message: 'Anomaly risk-level grouping is planned for a future release',
+      feature: 'anomalies-by-risk'
+    });
   });
 
-  // GET /api/anomalies/timeline - Get anomaly timeline (stub)
+  // GET /api/anomalies/timeline - Get anomaly timeline
   router.get('/anomalies/timeline', async (req, res) => {
-    try {
-      const { project = 'raven', hours = 24 } = req.query;
-
-      // TODO: Implement getAnomalyTimeline in AnomalyDetector
-      res.json({ timeline: [], hours: parseInt(hours, 10), project });
-    } catch (error) {
-      logger.error('Failed to get anomaly timeline:', error);
-      res.status(500).json({ error: 'Failed to fetch anomaly timeline' });
-    }
+    // Feature not yet implemented - requires AnomalyDetector.getAnomalyTimeline()
+    res.status(501).json({
+      error: 'Not Implemented',
+      message: 'Anomaly timeline visualization is planned for a future release',
+      feature: 'anomaly-timeline'
+    });
   });
 
   // ============================================================================
@@ -147,31 +141,26 @@ export function createCorvusV2Routes({ projectDatabases }) {
     }
   });
 
-  // GET /api/agents/events/:agent - Get events for specific agent (stub)
+  // GET /api/agents/events/:agent - Get events for specific agent
   router.get('/agents/events/:agent', async (req, res) => {
-    try {
-      const { project = 'raven' } = req.query;
-      const { agent } = req.params;
-
-      // TODO: Implement getAgentEvents in AgentDetector
-      res.json({ agent, events: [], count: 0, project });
-    } catch (error) {
-      logger.error('Failed to get agent events:', error);
-      res.status(500).json({ error: 'Failed to fetch agent events' });
-    }
+    // Feature not yet implemented - requires AgentDetector.getAgentEvents()
+    const { agent } = req.params;
+    res.status(501).json({
+      error: 'Not Implemented',
+      message: `Agent-specific event filtering for "${agent}" is planned for a future release`,
+      feature: 'agent-events',
+      agent
+    });
   });
 
-  // GET /api/agents/timeline - Get agent activity timeline (stub)
+  // GET /api/agents/timeline - Get agent activity timeline
   router.get('/agents/timeline', async (req, res) => {
-    try {
-      const { project = 'raven', hours = 24 } = req.query;
-
-      // TODO: Implement getAgentTimeline in AgentDetector
-      res.json({ timeline: [], hours: parseInt(hours, 10), project });
-    } catch (error) {
-      logger.error('Failed to get agent timeline:', error);
-      res.status(500).json({ error: 'Failed to fetch agent timeline' });
-    }
+    // Feature not yet implemented - requires AgentDetector.getAgentTimeline()
+    res.status(501).json({
+      error: 'Not Implemented',
+      message: 'Agent activity timeline is planned for a future release',
+      feature: 'agent-timeline'
+    });
   });
 
   // ============================================================================

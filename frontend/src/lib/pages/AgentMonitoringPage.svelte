@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Agent Monitoring Page
@@ -334,7 +335,7 @@
       // Create charts after data loads
       setTimeout(createCharts, 100);
     } catch (err) {
-      console.error('Failed to load monitoring data:', err);
+      logger.error('Failed to load monitoring data:', err);
       error = err.message;
       loading = false;
     }

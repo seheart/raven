@@ -4,6 +4,7 @@
    * Clean, simple application layout with Tailwind CSS
    */
 
+  import { logger } from './lib/logger.js';
   import { api } from './lib/apiClient.js';
   import Header from './lib/components/layout/Header.svelte';
   import Footer from './lib/components/layout/Footer.svelte';
@@ -110,7 +111,7 @@
       sessionId = data.session_id || 'Unknown';
     } catch (error) {
       sessionId = 'Offline';
-      console.error('Failed to load session ID:', error);
+      logger.error('Failed to load session ID:', error);
     }
   }
 
@@ -189,7 +190,7 @@
     // Add new theme class
     const themeClass = themeClassMap[newTheme] || 'theme--night';
     document.body.classList.add(themeClass);
-    console.log('Theme changed to:', newTheme, 'CSS class:', themeClass);
+    logger.debug('Theme changed to:', newTheme, 'CSS class:', themeClass);
   }
 
   function handleNotificationsClick() {
@@ -213,12 +214,12 @@
   }
 
   function handleLogoutClick() {
-    console.log('Logout clicked');
+    logger.debug('Logout clicked');
     // TODO: Implement logout logic
   }
 
   function handleSessionClick() {
-    console.log('Session clicked:', sessionId);
+    logger.debug('Session clicked:', sessionId);
     // TODO: Navigate to session details page or show modal
   }
 

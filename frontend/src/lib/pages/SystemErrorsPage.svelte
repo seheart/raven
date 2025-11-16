@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * System Errors Page - Complete error log and tracking with charts, filtering, and real-time updates
    * Rebuilt from Svelte 4 to Svelte 5 + Tailwind CSS
@@ -112,7 +113,7 @@
       lastUpdated = new Date();
     } catch (err) {
       error = err.message;
-      console.error('Failed to load errors:', err);
+      logger.error('Failed to load errors:', err);
     } finally {
       loading = false;
       isManualRefresh = false;
@@ -139,7 +140,7 @@
         }
       });
     } catch (err) {
-      console.error('Failed to load error stats:', err);
+      logger.error('Failed to load error stats:', err);
     }
   }
 

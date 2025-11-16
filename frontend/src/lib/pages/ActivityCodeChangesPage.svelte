@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Activity Code Changes Page - Detailed file change log with real-time updates
    */
@@ -76,7 +77,7 @@
   // WebSocket event handlers
   const handleFileChanged = (data) => {
     if (isPaused) return;
-    console.log('📡 File change detected:', data);
+    logger.debug('📡 File change detected:', data);
     debouncedLoadEvents();
   };
 
@@ -86,7 +87,7 @@
   };
 
   const handleProjectSwitched = (data) => {
-    console.log('📡 Project switched, reloading data:', data?.project);
+    logger.debug('📡 Project switched, reloading data:', data?.project);
     loadEvents();
   };
 
@@ -97,14 +98,8 @@
 
       const response = await api.get('/all-file-events?limit=500&diff=false');
       const allEvents = Array.isArray(response) ? response : [];
-      console.log('[ActivityCodeChanges] API returned:', allEvents.length, 'events');
-      console.log('[ActivityCodeChanges] First event:', allEvents[0]);
-
       // Filter to only show real source code (exclude build artifacts)
-      // TEMPORARILY DISABLED FOR DEBUGGING
-      // const sourceEvents = allEvents.filter(event => isSourceCodeFile(event.filepath));
-      const sourceEvents = allEvents; // Show ALL events for now
-      console.log('[ActivityCodeChanges] After isSourceCodeFile filter:', sourceEvents.length, 'events');
+      const sourceEvents = allEvents.filter(event => isSourceCodeFile(event.filepath));
 
       // Process and normalize events
       events = sourceEvents.map(event => ({
@@ -122,7 +117,7 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      console.error('Failed to load events:', err);
+      logger.error('Failed to load events:', err);
       error = err.message;
       loading = false;
     }
@@ -181,7 +176,7 @@
 
       showDiff = true;
     } catch (err) {
-      console.error('Failed to load diff:', err);
+      logger.error('Failed to load diff:', err);
       // Show error in diff viewer
       diffOldContent = `Error loading diff for ${event.filepath}`;
       diffNewContent = `Error: ${err.message}`;

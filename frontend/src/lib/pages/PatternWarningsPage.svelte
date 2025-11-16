@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Pattern Warnings Page
    * Display and manage pattern-based code quality warnings
@@ -146,7 +147,7 @@
       loading = false;
       loadingMore = false;
     } catch (err) {
-      console.error('Failed to load pattern warnings:', err);
+      logger.error('Failed to load pattern warnings:', err);
       error = err.message;
       loading = false;
       loadingMore = false;
@@ -172,7 +173,7 @@
 
       await loadWarnings;
     } catch (err) {
-      console.error('Failed to resolve warning:', err);
+      logger.error('Failed to resolve warning:', err);
       alert(`Failed to resolve warning: ${err.message}`);
     }
   }
@@ -194,7 +195,7 @@
 
       await loadWarnings;
     } catch (err) {
-      console.error('Failed to resolve all warnings:', err);
+      logger.error('Failed to resolve all warnings:', err);
       alert(`Failed to resolve all warnings: ${err.message}`);
     }
   }

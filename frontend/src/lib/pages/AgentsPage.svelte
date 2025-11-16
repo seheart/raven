@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Agents Overview Page
@@ -123,7 +124,7 @@
       loading = false;
       lastUpdated = new Date();
     } catch (err) {
-      console.error('Failed to load agents data:', err);
+      logger.error('Failed to load agents data:', err);
       error = err.message;
       loading = false;
     }

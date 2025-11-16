@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Developer Insights Page
@@ -68,7 +69,7 @@
       patterns = patternsData.patterns || [];
       lastUpdate = new Date();
     } catch (error) {
-      console.error('Failed to load developer insights:', error);
+      logger.error('Failed to load developer insights:', error);
     } finally {
       loading = false;
     }

@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Overview Page - Main dashboard view
    * Modern, compact design with real-time monitoring
@@ -392,7 +393,7 @@
       loading = false;
       lastUpdated = new Date();
     } catch (error) {
-      console.error('Failed to load overview data:', error);
+      logger.error('Failed to load overview data:', error);
       loading = false;
     }
   }
@@ -405,7 +406,7 @@
         try {
           createCharts();
         } catch (err) {
-          console.error('Failed to create charts:', err);
+          logger.error('Failed to create charts:', err);
         }
       }, 200);
     }
@@ -434,7 +435,7 @@
       // Update charts with new data
       createCharts();
     } catch (error) {
-      console.error('Failed to update activity:', error);
+      logger.error('Failed to update activity:', error);
     }
   };
 

@@ -1,3 +1,5 @@
+import { logger } from '../logger.js';
+
 /**
  * Audio Manager
  *
@@ -137,7 +139,7 @@ class AudioManager {
       try {
         await sound();
       } catch (error) {
-        console.error('Failed to play sound:', error);
+        logger.error('Failed to play sound:', error);
       }
     }
   }
@@ -250,7 +252,7 @@ class AudioManager {
         this.updatePreferences(prefs);
       }
     } catch (error) {
-      console.error('Failed to load audio preferences:', error);
+      logger.error('Failed to load audio preferences:', error);
     }
   }
 

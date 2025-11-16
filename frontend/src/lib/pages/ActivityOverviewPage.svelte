@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { onMount } from 'svelte';
   import { api } from '../apiClient.js';
   import { websocketService } from '../websocket.js';
@@ -159,7 +160,7 @@
       loading = false;
       isManualRefresh = false;
     } catch (error) {
-      console.error('Failed to load activity log:', error);
+      logger.error('Failed to load activity log:', error);
       loading = false;
       isManualRefresh = false;
     }
@@ -182,7 +183,7 @@
 
       recentActivity = combined.slice(0, 30);
     } catch (error) {
-      console.error('Failed to load recent activity:', error);
+      logger.error('Failed to load recent activity:', error);
     }
   }
 
@@ -297,7 +298,7 @@
       await api.post(endpoint);
       isPaused = !isPaused;
     } catch (err) {
-      console.error('Failed to toggle tracking:', err);
+      logger.error('Failed to toggle tracking:', err);
     }
   }
 
@@ -336,7 +337,7 @@
 
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error);
     }
   }
 
@@ -372,7 +373,7 @@
 
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('CSV export failed:', error);
+      logger.error('CSV export failed:', error);
     }
   }
 

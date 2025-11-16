@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Historical Trends Page
@@ -56,7 +57,7 @@
       trends = data.trends || [];
       lastUpdate = new Date();
     } catch (err) {
-      console.error('Failed to load trends:', err);
+      logger.error('Failed to load trends:', err);
       error = err.message;
     } finally {
       loading = false;
@@ -312,7 +313,7 @@
 
     // Create theme observer
     const themeObserver = createThemeObserver(() => {
-      console.log('[HistoricalTrends] Theme changed, recreating charts');
+      logger.debug('[HistoricalTrends] Theme changed, recreating charts');
       setTimeout(createCharts, 100);
     });
 

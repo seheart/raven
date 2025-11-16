@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * System API Health Page - Complete endpoint monitoring with sparklines and real-time updates
    * Rebuilt from Svelte 4 to Svelte 5 + Tailwind CSS
@@ -57,7 +58,7 @@
         endpointsLoaded = true;
       }
     } catch (error) {
-      console.error('[APIHealth] Failed to load endpoints:', error);
+      logger.error('[APIHealth] Failed to load endpoints:', error);
       apiEndpoints = [];
       endpointsLoaded = true;
     }

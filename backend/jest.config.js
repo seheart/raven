@@ -34,7 +34,6 @@ export default {
     '!services/pattern-checker.js',
     // Exclude routes without tests or complex system dependencies
     '!routes/sessions.js',
-    '!routes/safety-old.js',
     '!routes/cache.js',
     '!routes/health.js',
     '!routes/analytics.js',

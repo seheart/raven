@@ -1,4 +1,5 @@
 import { join } from 'path';
+import { logger } from '../utils/structured-logger.js';
 
 /**
  * Create a chokidar watcher for a single project.
@@ -105,7 +106,7 @@ export function createFileWatcher({ projectName, projectPath, LIMITS, handleFile
       });
     })
     .on('ready', () => {
-      console.log(`DEBUG WATCHER READY: project=${projectName}, usePolling=${!isMacOS}, platform=${process.platform}`);
+      logger.debug(`DEBUG WATCHER READY: project=${projectName}, usePolling=${!isMacOS}, platform=${process.platform}`);
       logger.info('File watcher ready', { projectName, usePolling: !isMacOS, watchPaths: Array.isArray(watchPaths) ? watchPaths.length + ' paths' : 'single path' });
     });
 

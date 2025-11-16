@@ -160,7 +160,7 @@ export class StartupValidator {
           duration,
           error: null
         });
-        console.log(`  ✅ ${check.name} (${duration}ms)`);
+        logger.debug(`  ✅ ${check.name} (${duration}ms)`);
       } catch (error) {
         const duration = Date.now() - startTime;
         this.results[phase].push({
@@ -169,10 +169,10 @@ export class StartupValidator {
           duration,
           error: error.message
         });
-        console.log(`  ❌ ${check.name} - ${error.message}`);
+        logger.debug(`  ❌ ${check.name} - ${error.message}`);
       }
     }
-    console.log('');
+    logger.debug('');
   }
 
   // ==================== Backend Checks ====================
@@ -422,13 +422,13 @@ export class StartupValidator {
   // ==================== UI Output ====================
 
   printBanner() {
-    console.log('');
-    console.log('🏥 Running Startup Health Validation...');
-    console.log('');
+    logger.debug('');
+    logger.debug('🏥 Running Startup Health Validation...');
+    logger.debug('');
   }
 
   printPhaseHeader(name) {
-    console.log(`\x1b[1m${name}:\x1b[0m`);
+    logger.debug(`\x1b[1m${name}:\x1b[0m`);
   }
 
   printSummary() {
@@ -446,28 +446,28 @@ export class StartupValidator {
 
     const durationSeconds = (this.totalDuration / 1000).toFixed(1);
 
-    console.log('╔════════════════════════════════════════════════╗');
+    logger.debug('╔════════════════════════════════════════════════╗');
 
     if (failed === 0) {
-      console.log('║   ✅ ALL SYSTEMS OPERATIONAL                   ║');
-      console.log(`║   Raven is ready at ${this.frontendUrl}     ║`);
+      logger.debug('║   ✅ ALL SYSTEMS OPERATIONAL                   ║');
+      logger.debug(`║   Raven is ready at ${this.frontendUrl}     ║`);
     } else {
-      console.log('║   ⚠️  WARNINGS DETECTED                        ║');
-      console.log(`║   ${failed} check(s) failed                              ║`);
-      console.log('║   Some features may not work correctly        ║');
+      logger.debug('║   ⚠️  WARNINGS DETECTED                        ║');
+      logger.debug(`║   ${failed} check(s) failed                              ║`);
+      logger.debug('║   Some features may not work correctly        ║');
     }
 
-    console.log('╚════════════════════════════════════════════════╝');
-    console.log('');
-    console.log(`Duration: ${durationSeconds} seconds`);
-    console.log(`Checks: ${passed}/${total} passed`);
+    logger.debug('╚════════════════════════════════════════════════╝');
+    logger.debug('');
+    logger.debug(`Duration: ${durationSeconds} seconds`);
+    logger.debug(`Checks: ${passed}/${total} passed`);
 
     if (failed > 0) {
-      console.log('');
-      console.log('Run \'raven check --verbose\' for detailed diagnostics');
+      logger.debug('');
+      logger.debug('Run \'raven check --verbose\' for detailed diagnostics');
     }
 
-    console.log('');
+    logger.debug('');
   }
 
   /**
@@ -499,7 +499,7 @@ export class StartupValidator {
    * Quick health check (for 'raven check' command)
    */
   async quickCheck() {
-    console.log('🏥 Running quick health check...\n');
+    logger.debug('🏥 Running quick health check...\n');
 
     // Just check backend and integration
     await this.runBackendChecks();

@@ -9,6 +9,7 @@
   import AgentsNav from '../components/layout/AgentsNav.svelte';
   import { createChart, destroyChart, createThemeObserver, getChartColors } from '../utils/chartUtils.js';
   import { websocketService } from '../services/websocket.js';
+  import { logger } from '../logger.js';
 
   // State variables using Svelte 5 $state
   let conversations = $state([]);
@@ -166,7 +167,7 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      console.error('Failed to load conversations:', err);
+      logger.error('Failed to load conversations:', err);
       error = err.message || 'Failed to load conversations';
     } finally {
       loading = false;
@@ -192,7 +193,7 @@
       offset += newConversations.length;
       hasMore = newConversations.length >= limit;
     } catch (err) {
-      console.error('Failed to load more:', err);
+      logger.error('Failed to load more:', err);
     } finally {
       loadingMore = false;
     }
@@ -284,15 +285,15 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      console.log('Conversations exported successfully');
+      logger.info('Conversations exported successfully');
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error);
     }
   }
 
   async function importConversations() {
     if (!importSessionFile.trim()) {
-      console.warn('Please enter a session file path');
+      logger.warn('Please enter a session file path');
       return;
     }
 
@@ -303,14 +304,14 @@
         project: importProject || 'raven'
       });
 
-      console.log(`Imported ${result.imported.total} conversations from ${result.sessionFile}`);
+      logger.info('Imported conversations', { total: result.imported.total, sessionFile: result.sessionFile });
 
       showImportDialog = false;
       importSessionFile = '';
       importProject = '';
       loadConversations();
     } catch (error) {
-      console.error('Import failed:', error);
+      logger.error('Import failed:', error);
     } finally {
       importing = false;
     }
@@ -372,9 +373,9 @@
   async function copyToClipboard(text, label = 'Content') {
     try {
       await navigator.clipboard.writeText(text);
-      console.log(`${label} copied to clipboard`);
+      logger.debug('Copied to clipboard', { label });
     } catch (error) {
-      console.error(`Failed to copy: ${error.message}`);
+      logger.error('Failed to copy to clipboard', { label, error: error.message });
     }
   }
 
@@ -519,7 +520,7 @@
     // Watch for theme changes using chartUtils helper
     themeObserver = createThemeObserver(() => {
       if (showCharts) {
-        console.log('[AgentConversationsPage] Theme changed, recreating charts');
+        logger.debug('Theme changed, recreating charts');
         setTimeout(createCharts, 100);
       }
     });

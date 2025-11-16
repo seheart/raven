@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   import { projectFilter } from '../projectFilterStore.js';
 
@@ -147,7 +148,7 @@
       healthScore = latestData.score;
       healthHistory = historyData.history || [];
     } catch (err) {
-      console.error('Error loading health data:', err);
+      logger.error('Error loading health data:', err);
     }
   }
 
@@ -161,7 +162,7 @@
       recentDrifts = recentData.drifts || [];
       driftSummary = summaryData.summary;
     } catch (err) {
-      console.error('Error loading drift data:', err);
+      logger.error('Error loading drift data:', err);
     }
   }
 
@@ -170,7 +171,7 @@
       const data = await api.get(`/productivity/latest?project=${project}`).catch(() => ({ metrics: null }));
       productivityInsights = data.metrics;
     } catch (err) {
-      console.error('Error loading productivity data:', err);
+      logger.error('Error loading productivity data:', err);
     }
   }
 
@@ -179,7 +180,7 @@
       const data = await api.get(`/personality/latest?project=${project}&agent=claude`).catch(() => ({ profile: null }));
       personalityProfile = data.profile;
     } catch (err) {
-      console.error('Error loading personality data:', err);
+      logger.error('Error loading personality data:', err);
     }
   }
 
@@ -193,7 +194,7 @@
       growthSummary = summaryData.summary;
       growthTimeSeries = timeSeriesData.timeSeries;
     } catch (err) {
-      console.error('Error loading growth data:', err);
+      logger.error('Error loading growth data:', err);
     }
   }
 
@@ -214,7 +215,7 @@
       integrationStatus.slack.events = slackData.events || [];
       integrationStatus.slack.enabled = slackData.events?.length > 0;
     } catch (err) {
-      console.error('Error loading integration status:', err);
+      logger.error('Error loading integration status:', err);
     }
   }
 
@@ -230,7 +231,7 @@
       achievements = achievementsData.achievements || [];
       recentAchievements = recentData.achievements || [];
     } catch (err) {
-      console.error('Error loading gamification data:', err);
+      logger.error('Error loading gamification data:', err);
     }
   }
 
@@ -244,7 +245,7 @@
       easterEggs = eggsData.eggs || [];
       seasonalMessage = seasonalData.messages?.[0] || null;
     } catch (err) {
-      console.error('Error loading easter eggs data:', err);
+      logger.error('Error loading easter eggs data:', err);
     }
   }
 
@@ -258,7 +259,7 @@
       shareHistory = historyData.history || [];
       teamMembers = teamData.members || [];
     } catch (err) {
-      console.error('Error loading social data:', err);
+      logger.error('Error loading social data:', err);
     }
   }
 
@@ -270,7 +271,7 @@
       healthScore = data.healthScore;
       await loadHealthData();
     } catch (err) {
-      console.error('Error calculating health score:', err);
+      logger.error('Error calculating health score:', err);
     } finally {
       loading = false;
     }
@@ -283,7 +284,7 @@
       recentDrifts = data.drifts || [];
       await loadDriftData();
     } catch (err) {
-      console.error('Error detecting drifts:', err);
+      logger.error('Error detecting drifts:', err);
     } finally {
       loading = false;
     }
@@ -294,7 +295,7 @@
       await api.post(`/drift/${driftId}/resolve?project=${project}`, {});
       await loadDriftData();
     } catch (err) {
-      console.error('Error resolving drift:', err);
+      logger.error('Error resolving drift:', err);
     }
   }
 
@@ -304,7 +305,7 @@
       const data = await api.post(`/productivity/calculate?project=${project}&days=30`, {});
       productivityInsights = data.insights;
     } catch (err) {
-      console.error('Error calculating productivity:', err);
+      logger.error('Error calculating productivity:', err);
     } finally {
       loading = false;
     }
@@ -316,7 +317,7 @@
       const data = await api.post(`/personality/analyze?project=${project}&agent=claude&days=30`, {});
       personalityProfile = data.personality;
     } catch (err) {
-      console.error('Error analyzing personality:', err);
+      logger.error('Error analyzing personality:', err);
     } finally {
       loading = false;
     }
@@ -328,7 +329,7 @@
       await api.post(`/growth/snapshot?project=${project}`, {});
       await loadGrowthData();
     } catch (err) {
-      console.error('Error creating growth snapshot:', err);
+      logger.error('Error creating growth snapshot:', err);
     } finally {
       loading = false;
     }

@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Activity Search Page
@@ -92,7 +93,7 @@
       searchTime = Math.round(endTime - startTime);
       loading = false;
     } catch (err) {
-      console.error('Search failed:', err);
+      logger.error('Search failed:', err);
       results = [];
       loading = false;
     }

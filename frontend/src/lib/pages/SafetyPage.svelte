@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * Safety Overview Page
@@ -85,7 +86,7 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      console.error('Failed to load safety data:', err);
+      logger.error('Failed to load safety data:', err);
       error = err.message;
       loading = false;
     }

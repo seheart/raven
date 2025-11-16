@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * System Status Page
@@ -73,7 +74,7 @@
       lastUpdated = new Date();
       loading = false;
     } catch (error) {
-      console.error('Backend health check failed:', error);
+      logger.error('Backend health check failed:', error);
       backendStatus.connected = false;
       loading = false;
     }
@@ -112,7 +113,7 @@
         checks: data.checks || []
       };
     } catch (error) {
-      console.error('Failed to load health checks:', error);
+      logger.error('Failed to load health checks:', error);
       healthChecks.status = 'error';
     }
   }
@@ -153,7 +154,7 @@
         setTimeout(() => checkBackendHealth(), 1000);
       }
     } catch (error) {
-      console.error('Error restarting bridge:', error);
+      logger.error('Error restarting bridge:', error);
     } finally {
       restartingBridge = false;
     }

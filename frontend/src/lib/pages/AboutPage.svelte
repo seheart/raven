@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
    * About Page - Information about Raven
@@ -15,7 +16,7 @@
       sessionId = data.session_id || 'Unknown';
     } catch (error) {
       sessionId = 'Offline';
-      console.error('Failed to load session ID:', error);
+      logger.error('Failed to load session ID:', error);
     }
   }
 

@@ -1,4 +1,5 @@
 <script>
+  import { logger } from '../logger.js';
   /**
    * Activity Dashboard Page
    * Dashboard-style overview of activity monitoring with real-time updates
@@ -116,7 +117,7 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      console.error('Failed to load activity data:', err);
+      logger.error('Failed to load activity data:', err);
       error = err.message;
       loading = false;
     }
@@ -129,7 +130,7 @@
       await api.post(endpoint, {});
       isPaused = !isPaused;
     } catch (err) {
-      console.error('Failed to toggle tracking:', err);
+      logger.error('Failed to toggle tracking:', err);
     }
   }
 
