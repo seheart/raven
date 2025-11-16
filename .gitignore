@@ -32,6 +32,9 @@
 /frontend/.svelte-kit
 /frontend/build
 
+# Old frontend (Svelte 4) - retired after migration to Svelte 5
+/frontend-svelte4/
+
 # Node
 node_modules/
 npm-debug.log*
