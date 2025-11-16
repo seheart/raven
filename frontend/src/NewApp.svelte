@@ -215,12 +215,15 @@
 
   function handleLogoutClick() {
     logger.debug('Logout clicked');
-    // TODO: Implement logout logic
+    // Since Raven is a local tool, clear all local data and reload
+    localStorage.clear();
+    location.reload();
   }
 
   function handleSessionClick() {
     logger.debug('Session clicked:', sessionId);
-    // TODO: Navigate to session details page or show modal
+    // Navigate to system page to view session details
+    navigate('/system');
   }
 
   // ConfirmDialog functions

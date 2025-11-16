@@ -17,11 +17,11 @@ export class AgentBehaviorProfiler {
    * Record agent statistics for today
    * @param {string} agent - Agent name
    * @param {object} change - Change event
+   * @param {string} projectName - Project name (defaults to 'raven')
    */
-  recordAgentActivity(agent, change) {
+  recordAgentActivity(agent, change, projectName = 'raven') {
     try {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const projectName = 'raven'; // TODO: Get from context
 
       const stmt = this.db.prepareStatement(`
         INSERT INTO agent_stats (
@@ -61,11 +61,11 @@ export class AgentBehaviorProfiler {
   /**
    * Get agent behavior profile
    * @param {string} agent - Agent name
+   * @param {string} projectName - Project name (defaults to 'raven')
    * @returns {object} Behavior profile
    */
-  getAgentProfile(agent) {
+  getAgentProfile(agent, projectName = 'raven') {
     try {
-      const projectName = 'raven'; // TODO: Get from context
       const today = new Date().toISOString().split('T')[0];
 
       // Get today's stats
@@ -146,11 +146,11 @@ export class AgentBehaviorProfiler {
 
   /**
    * Get all agents' profiles
+   * @param {string} projectName - Project name (defaults to 'raven')
    * @returns {Array} List of agent profiles
    */
-  getAllAgentProfiles() {
+  getAllAgentProfiles(projectName = 'raven') {
     try {
-      const projectName = 'raven';
 
       // Get unique agents from recent stats
       const stmt = this.db.prepareStatement(`
@@ -162,7 +162,7 @@ export class AgentBehaviorProfiler {
       `);
 
       const agents = stmt.all(projectName);
-      return agents.map(({ agent }) => this.getAgentProfile(agent)).filter(Boolean);
+      return agents.map(({ agent }) => this.getAgentProfile(agent, projectName)).filter(Boolean);
     } catch (error) {
       logger.error('Failed to get all agent profiles:', error);
       return [];

@@ -78,11 +78,12 @@
         body: JSON.stringify({ project: newProject })
       });
 
-        const errorData = await response.json()
+      if (!res.ok) {
+        const errorData = await res.json();
         throw new Error(errorData.error || 'Failed to switch project');
       }
 
-      const data = await response.json()
+      const data = await res.json();
 
       // Update store
       activeProject.set(newProject);
