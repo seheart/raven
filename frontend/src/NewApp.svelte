@@ -45,8 +45,12 @@
   import DocsPage from './lib/pages/DocsPage.svelte';
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
   import NotificationPanel from './lib/components/ui/NotificationPanel.svelte';
+  import WelcomeScreen from './lib/WelcomeScreen.svelte';
+  import QuickStartWizard from './lib/QuickStartWizard.svelte';
+  import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { unreadCount } from './lib/stores/notificationHistory.js';
+  import { onMount } from 'svelte';
 
   // State
   let theme = $state('tokyo-night');
@@ -55,6 +59,9 @@
   let todayStats = $state({ modified: 12, added: 3, deleted: 1 });
   let showNotifications = $state(false);
   let sessionId = $state('Loading...');
+  let showWelcome = $state(false);
+  let showQuickStart = $state(false);
+  let showKeyboardShortcuts = $state(false);
 
   // Get current path from router
   const currentPath = $derived(getPath());
@@ -97,6 +104,50 @@
       sessionId = 'Offline';
       console.error('Failed to load session ID:', error);
     }
+  }
+
+  // Check for first-time user on mount
+  onMount(() => {
+    const welcomeSeen = localStorage.getItem('raven-welcome-seen');
+    if (!welcomeSeen) {
+      showWelcome = true;
+    }
+
+    // Add keyboard listener for ? key
+    const handleKeyPress = (e) => {
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Only show if not typing in an input
+        const target = e.target;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          showKeyboardShortcuts = !showKeyboardShortcuts;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  });
+
+  function handleWelcomeClose() {
+    showWelcome = false;
+    localStorage.setItem('raven-welcome-seen', 'true');
+
+    // Check if quick start wizard should be shown
+    const quickStartCompleted = localStorage.getItem('raven-quick-start-completed');
+    if (!quickStartCompleted) {
+      showQuickStart = true;
+    }
+  }
+
+  function handleQuickStartComplete() {
+    showQuickStart = false;
+    localStorage.setItem('raven-quick-start-completed', 'true');
+  }
+
+  function handleQuickStartSkip() {
+    showQuickStart = false;
+    localStorage.setItem('raven-quick-start-completed', 'true');
   }
 
   function handleThemeChange(newTheme) {
@@ -346,4 +397,17 @@
 
   <!-- Notification Panel Sidebar -->
   <NotificationPanel visible={showNotifications} onClose={() => (showNotifications = false)} />
+
+  <!-- Welcome Screen (first-time users) -->
+  {#if showWelcome}
+    <WelcomeScreen on:close={handleWelcomeClose} />
+  {/if}
+
+  <!-- Quick Start Wizard -->
+  {#if showQuickStart}
+    <QuickStartWizard on:complete={handleQuickStartComplete} on:skip={handleQuickStartSkip} />
+  {/if}
+
+  <!-- Keyboard Shortcuts Help -->
+  <KeyboardShortcuts visible={showKeyboardShortcuts} onClose={() => (showKeyboardShortcuts = false)} />
 </div>

@@ -6,6 +6,7 @@
 
   import RavenLogo from '../ui/RavenLogo.svelte';
   import UserMenu from '../ui/UserMenu.svelte';
+  import EmergencyStopButton from '../../EmergencyStopButton.svelte';
   import { navigate } from '../../utils/router.svelte.js';
 
   let {
@@ -161,6 +162,9 @@
         </span>
       {/if}
     </button>
+
+    <!-- Emergency Stop Button -->
+    <EmergencyStopButton />
 
     <!-- User Menu -->
     <UserMenu {username} {role} {onSettingsClick} {onLogoutClick} />
