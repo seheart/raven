@@ -83,9 +83,9 @@
       loadingMore = false;
       error = null;
     } catch (err) {
-      logger.error('Failed to fetch test results:', err);
+      logger.error('Failed to fetch test results:', error);
       notifications.error('Failed to load test results');
-      error = err.message || 'Failed to load test results';
+      errorMessage = error.message || 'Failed to load test results';
       loading = false;
       loadingMore = false;
     }
@@ -107,7 +107,6 @@
       const response = await fetch('/api/tests/results', {
         method: 'DELETE'
       });
-
 
       const data = await response.json();
       notifications.success(data.message || 'All test results cleared');
@@ -140,7 +139,6 @@
         body: JSON.stringify({ framework: selectedFramework })
       });
 
-
       const result = await response.json();
       running = false;
 
@@ -157,10 +155,13 @@
         });
       } else {
         const passRate = Math.round((result.passed / result.total) * 100);
-        notifications.error(`${formatNumber(result.failed)} of ${formatNumber(result.total)} tests failed (${passRate}% passed)`, {
-          title: 'Test Runner',
-          duration: 10000
-        });
+        notifications.error(
+          `${formatNumber(result.failed)} of ${formatNumber(result.total)} tests failed (${passRate}% passed)`,
+          {
+            title: 'Test Runner',
+            duration: 10000
+          }
+        );
       }
 
       await fetchResults();
@@ -173,7 +174,7 @@
 
   // Setup WebSocket for real-time updates
   function setupWebSocket() {
-    ws = websocketService.subscribe('test-result', (data) => {
+    ws = websocketService.subscribe('test-result', data => {
       logger.info('Test result received:', data);
       fetchResults();
       running = false;
@@ -190,7 +191,7 @@
     });
 
     // Subscribe to test progress updates
-    wsProgress = websocketService.subscribe('test-progress', (data) => {
+    wsProgress = websocketService.subscribe('test-progress', data => {
       logger.info('Test progress received:', data);
       testProgress = data;
 
@@ -206,7 +207,7 @@
     });
 
     // Subscribe to test output stream
-    wsOutput = websocketService.subscribe('test-output', (data) => {
+    wsOutput = websocketService.subscribe('test-output', data => {
       terminalOutput += data.output;
       // Auto-scroll to bottom
       const timeout = setTimeout(() => {
@@ -302,9 +303,12 @@
       text += `\n---\nGenerated from Raven test results at ${formatDateTime(timestamp)}`;
 
       await navigator.clipboard.writeText(text);
-      notifications.success(`Copied ${failures.length} failed test${failures.length === 1 ? '' : 's'} to clipboard`, {
-        title: 'Copied!'
-      });
+      notifications.success(
+        `Copied ${failures.length} failed test${failures.length === 1 ? '' : 's'} to clipboard`,
+        {
+          title: 'Copied!'
+        }
+      );
     } catch (error) {
       logger.error('Failed to copy failures:', error);
       notifications.error('Failed to copy to clipboard');
@@ -320,25 +324,42 @@
 <div class="test-results-panel" role="region" aria-label="Test results panel">
   <div class="panel-header">
     <div class="header-top">
-      <h2 id="test-results-heading">Raven Tests <span class="self-diagnosis-badge">Internal Health Checks</span></h2>
+      <h2 id="test-results-heading">
+        Raven Tests <span class="self-diagnosis-badge">Internal Health Checks</span>
+      </h2>
       <div class="header-actions" role="toolbar" aria-label="Test actions">
         {#if frameworks.length > 0}
-          <button class="btn btn-primary btn-sm" on:click={() => runTests()} disabled={running} aria-label={running ? 'Running tests' : 'Run tests'}>
+          <button
+            class="btn btn-primary btn-sm"
+            on:click={() => runTests()}
+            disabled={running}
+            aria-label={running ? 'Running tests' : 'Run tests'}
+          >
             <span aria-hidden="true">{running ? '⏳' : '▶️'}</span> Run Tests
           </button>
         {/if}
         {#if results.length > 0}
-          <button class="btn btn-danger btn-sm" on:click={clearAllResults} aria-label="Clear all test results" title="Clear All Results">
+          <button
+            class="btn btn-danger btn-sm"
+            on:click={clearAllResults}
+            aria-label="Clear all test results"
+            title="Clear All Results"
+          >
             <span aria-hidden="true">🗑️</span> Clear All
           </button>
         {/if}
-        <button class="btn btn-primary btn-icon" on:click={fetchResults} aria-label="Refresh test results">
+        <button
+          class="btn btn-primary btn-icon"
+          on:click={fetchResults}
+          aria-label="Refresh test results"
+        >
           <span aria-hidden="true">↻</span>
         </button>
       </div>
     </div>
     <p class="panel-description">
-      These are Raven's own internal tests that verify Raven itself is working correctly. This does NOT test your other projects - those have their own test suites.
+      These are Raven's own internal tests that verify Raven itself is working correctly. This does
+      NOT test your other projects - those have their own test suites.
     </p>
   </div>
 
@@ -369,7 +390,11 @@
         </div>
         <div class="info-row">
           <span class="label">Test Framework:</span>
-          <span class="value">{frameworks[0] === 'jest' ? 'Jest (JavaScript testing framework)' : frameworks[0]}</span>
+          <span class="value"
+            >{frameworks[0] === 'jest'
+              ? 'Jest (JavaScript testing framework)'
+              : frameworks[0]}</span
+          >
         </div>
         <div class="info-row">
           <span class="label">Test Files:</span>
@@ -377,7 +402,10 @@
         </div>
         <div class="info-note">
           <span class="note-icon">ℹ️</span>
-          <span class="note-text">These tests verify that Raven is functioning properly. Your other monitored projects are not affected.</span>
+          <span class="note-text"
+            >These tests verify that Raven is functioning properly. Your other monitored projects
+            are not affected.</span
+          >
         </div>
       </div>
     </div>
@@ -392,7 +420,12 @@
 
   <!-- Latest Result Card -->
   {#if latestResult}
-    <div class="latest-result" style="--status-color: {getStatusColor(latestResult.passed)}" role="region" aria-labelledby="latest-result-heading">
+    <div
+      class="latest-result"
+      style="--status-color: {getStatusColor(latestResult.passed)}"
+      role="region"
+      aria-labelledby="latest-result-heading"
+    >
       <div class="result-header">
         <span class="result-status" aria-hidden="true">{latestResult.passed ? '✅' : '❌'}</span>
         <div class="result-info">
@@ -400,33 +433,63 @@
             {#if latestResult.passed}
               All Tests Passed
             {:else}
-              {formatNumber(latestResult.failed_tests)} Test{latestResult.failed_tests === 1 ? '' : 's'} Need Attention
+              {formatNumber(latestResult.failed_tests)} Test{latestResult.failed_tests === 1
+                ? ''
+                : 's'} Need Attention
             {/if}
           </h3>
           <p class="result-framework">
-            {formatNumber(latestResult.total_tests)} total test{latestResult.total_tests === 1 ? '' : 's'} in {latestResult.framework}
+            {formatNumber(latestResult.total_tests)} total test{latestResult.total_tests === 1
+              ? ''
+              : 's'} in {latestResult.framework}
           </p>
         </div>
         <div class="result-stats" role="group" aria-label="Test results breakdown">
-          <div class="stat passed" role="status">{formatNumber(latestResult.passed_tests)} passed</div>
-          <div class="stat failed" role="status">{formatNumber(latestResult.failed_tests)} failed</div>
-          <div class="stat skipped" role="status">{formatNumber(latestResult.skipped_tests)} skipped</div>
+          <div class="stat passed" role="status">
+            {formatNumber(latestResult.passed_tests)} passed
+          </div>
+          <div class="stat failed" role="status">
+            {formatNumber(latestResult.failed_tests)} failed
+          </div>
+          <div class="stat skipped" role="status">
+            {formatNumber(latestResult.skipped_tests)} skipped
+          </div>
         </div>
       </div>
       <div class="result-meta">
         <span class="duration">Completed in {formatDuration(latestResult.duration)}</span>
-        <time class="timestamp" datetime="{latestResult.timestamp}">{formatDateTime(latestResult.timestamp)}</time>
+        <time class="timestamp" datetime={latestResult.timestamp}
+          >{formatDateTime(latestResult.timestamp)}</time
+        >
       </div>
       <div class="result-actions">
-        <button class="btn btn-ghost btn-sm" on:click={() => toggleTestDetails(latestResult.timestamp)} aria-expanded={expandedTests} aria-controls="test-details-{latestResult.timestamp}">
-          <span aria-hidden="true">{expandedTests ? '▼' : '▶'}</span> {expandedTests ? 'Hide' : 'View'} All {formatNumber(latestResult.total_tests)} Test{latestResult.total_tests === 1 ? '' : 's'}
+        <button
+          class="btn btn-ghost btn-sm"
+          on:click={() => toggleTestDetails(latestResult.timestamp)}
+          aria-expanded={expandedTests}
+          aria-controls="test-details-{latestResult.timestamp}"
+        >
+          <span aria-hidden="true">{expandedTests ? '▼' : '▶'}</span>
+          {expandedTests ? 'Hide' : 'View'} All {formatNumber(latestResult.total_tests)} Test{latestResult.total_tests ===
+          1
+            ? ''
+            : 's'}
         </button>
         {#if !latestResult.passed}
-          <button class="btn btn-secondary btn-sm" on:click={() => copyFailedTests(latestResult.timestamp)}>
-            <span aria-hidden="true">📋</span> Copy {formatNumber(latestResult.failed_tests)} Failure{latestResult.failed_tests === 1 ? '' : 's'}
+          <button
+            class="btn btn-secondary btn-sm"
+            on:click={() => copyFailedTests(latestResult.timestamp)}
+          >
+            <span aria-hidden="true">📋</span> Copy {formatNumber(latestResult.failed_tests)} Failure{latestResult.failed_tests ===
+            1
+              ? ''
+              : 's'}
           </button>
         {/if}
-        <button class="btn btn-secondary btn-sm" on:click={() => downloadCSV(latestResult.timestamp)}>
+        <button
+          class="btn btn-secondary btn-sm"
+          on:click={() => downloadCSV(latestResult.timestamp)}
+        >
           <span aria-hidden="true">📄</span> Download CSV
         </button>
       </div>
@@ -441,7 +504,12 @@
           {:else}
             <div class="tests-list">
               {#each allTests as test (test.test_file + ':' + test.test_name)}
-                <div class="test-item" class:failed={test.status === 'failed'} class:passed={test.status === 'passed'} class:skipped={test.status === 'skipped'}>
+                <div
+                  class="test-item"
+                  class:failed={test.status === 'failed'}
+                  class:passed={test.status === 'passed'}
+                  class:skipped={test.status === 'skipped'}
+                >
                   <div class="test-status-icon">
                     {#if test.status === 'passed'}✅
                     {:else if test.status === 'failed'}❌
@@ -470,7 +538,11 @@
   {#if error}
     <div class="error-state" role="alert">
       <p>Error: {error}</p>
-      <button class="btn btn-primary btn-sm" on:click={fetchResults} aria-label="Retry loading test results">
+      <button
+        class="btn btn-primary btn-sm"
+        on:click={fetchResults}
+        aria-label="Retry loading test results"
+      >
         Retry
       </button>
     </div>
@@ -488,7 +560,11 @@
       <h3 id="test-history-heading">Test History</h3>
       <div class="results-list" role="list" aria-label="Past test results">
         {#each results as result (result)}
-          <article class="result-item" style="--status-color: {getStatusColor(result.passed)}" role="listitem">
+          <article
+            class="result-item"
+            style="--status-color: {getStatusColor(result.passed)}"
+            role="listitem"
+          >
             <div class="result-status-icon" aria-hidden="true">{result.passed ? '✅' : '❌'}</div>
             <div class="result-details">
               <div class="result-row">
@@ -504,7 +580,9 @@
                 </span>
               </div>
               <div class="result-row meta">
-                <time class="timestamp" datetime="{result.timestamp}">{formatDateTime(result.timestamp)}</time>
+                <time class="timestamp" datetime={result.timestamp}
+                  >{formatDateTime(result.timestamp)}</time
+                >
                 <span class="duration">{formatDuration(result.duration)}</span>
               </div>
             </div>
@@ -524,7 +602,9 @@
               {/if}
             </button>
           {/if}
-          <span class="load-more-info">Showing {formatNumber(results.length)} of {formatNumber(total)} test runs</span>
+          <span class="load-more-info"
+            >Showing {formatNumber(results.length)} of {formatNumber(total)} test runs</span
+          >
         </div>
       {/if}
     </div>
@@ -581,7 +661,6 @@
     display: flex;
     gap: var(--space-lg);
   }
-
 
   .panel-description {
     margin: 0;
@@ -750,7 +829,8 @@
     color: var(--muted);
   }
 
-  .loading, .empty-state {
+  .loading,
+  .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -847,7 +927,6 @@
     display: flex;
     gap: var(--space-lg);
   }
-
 
   /* Expanded Test Details */
   .test-details-expanded {
@@ -978,8 +1057,13 @@
   }
 
   @keyframes pulse-border {
-    0%, 100% { border-color: var(--info); }
-    50% { border-color: #60a5fa; }
+    0%,
+    100% {
+      border-color: var(--info);
+    }
+    50% {
+      border-color: #60a5fa;
+    }
   }
 
   .terminal-output {
@@ -1107,6 +1191,4 @@
     font-size: 13px;
     font-weight: 500;
   }
-
-
 </style>

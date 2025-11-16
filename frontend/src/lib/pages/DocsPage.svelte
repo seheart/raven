@@ -51,9 +51,9 @@
           loadDoc(docs[0].path);
         }
       }
-    } catch {
+    } catch (error) {
       error = 'Failed to load documentation list';
-      logger.error(err);
+      logger.error(error);
     }
   }
 
@@ -74,9 +74,9 @@
       // For now, display raw markdown. Full implementation would use marked + DOMPurify
       html = `<pre class="whitespace-pre-wrap font-mono text-sm text-[var(--text)] leading-relaxed">${escapeHtml(data.markdown)}</pre>`;
       selectedDoc = filepath;
-    } catch {
+    } catch (error) {
       error = `Failed to load ${filepath}`;
-      logger.error(err);
+      logger.error(error);
     } finally {
       loading = false;
     }

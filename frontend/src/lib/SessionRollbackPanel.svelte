@@ -42,9 +42,9 @@
       loading = false;
       error = null;
     } catch (err) {
-      logger.error('Failed to fetch sessions:', err);
+      logger.error('Failed to fetch sessions:', error);
       notifications.error('Failed to load sessions');
-      error = err.message || 'Failed to load sessions';
+      errorMessage = error.message || 'Failed to load sessions';
       loading = false;
     }
   }

@@ -103,9 +103,9 @@
       lastUpdated = new Date();
       loading = false;
       loadingMore = false;
-    } catch {
-      logger.error('Failed to load syntax errors:', err);
-      error = err.message;
+    } catch (error) {
+      logger.error('Failed to load syntax errors:', error);
+      errorMessage = error.message;
       loading = false;
       loadingMore = false;
     }
@@ -129,15 +129,15 @@
       if (!result.success) {
         throw new Error(result.message || 'Failed to open file');
       }
-    } catch {
-      logger.error('Failed to open file:', err);
+    } catch (error) {
+      logger.error('Failed to open file:', error);
       // Fallback: Copy file path to clipboard
       try {
         const fileLocation = `${filepath}:${lineNumber}`;
         await navigator.clipboard.writeText(fileLocation);
         alert(`Could not open editor. File path copied to clipboard:\n${fileLocation}`);
-      } catch {
-        alert(`Failed to open file: ${err.message}\n\nFile: ${filepath}:${lineNumber}`);
+      } catch (error) {
+        alert(`Failed to open file: ${error.message}\n\nFile: ${filepath}:${lineNumber}`);
       }
     }
   }
@@ -151,9 +151,9 @@
 
       // Reload errors
       await loadErrors();
-    } catch {
-      logger.error('Failed to resolve error:', err);
-      alert(`Failed to resolve error: ${err.message}`);
+    } catch (error) {
+      logger.error('Failed to resolve error:', error);
+      alert(`Failed to resolve error: ${error.message}`);
     }
   }
 
@@ -165,14 +165,14 @@ Project: ${err.project_name || 'N/A'}
 Language: ${err.language || 'N/A'}
 Location: Line ${err.line_number}${err.column_number ? `, Column ${err.column_number}` : ''}
 Severity: ${err.severity}
-Message: ${err.message}
+Message: ${error.message}
 
 ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
 
     try {
       await navigator.clipboard.writeText(errorText);
       alert('Error details copied to clipboard');
-    } catch {
+    } catch (error) {
       logger.error('Failed to copy to clipboard:', error);
       alert('Failed to copy to clipboard');
     }
@@ -414,7 +414,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
 
               <!-- Errors List -->
               <div class="divide-y divide-[var(--border)]">
-                {#each fileErrors as err (err.id || `${err.filepath}-${err.line_number}-${err.message}`)}
+                {#each fileErrors as err (err.id || `${err.filepath}-${err.line_number}-${error.message}`)}
                   <div class="p-4">
                     <!-- Error Header -->
                     <div class="flex items-center justify-between gap-4 mb-3">

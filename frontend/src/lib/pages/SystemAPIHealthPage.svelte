@@ -55,7 +55,7 @@
 
         endpointsLoaded = true;
       }
-    } catch {
+    } catch (error) {
       logger.error('[APIHealth] Failed to load endpoints:', error);
       apiEndpoints = [];
       endpointsLoaded = true;
@@ -130,7 +130,7 @@
         lastCheck: new Date(),
         history: healthHistory[key].checks.slice(-10) // Last 10 for sparkline
       };
-    } catch {
+    } catch (error) {
       // Update history with failure
       healthHistory[key].checks.push({
         timestamp: Date.now(),

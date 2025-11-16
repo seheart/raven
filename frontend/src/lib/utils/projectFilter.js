@@ -121,7 +121,7 @@ export function getRecentProjects(limit = 5) {
   try {
     const recent = JSON.parse(localStorage.getItem('raven-recent-projects') || '[]');
     return recent.slice(0, limit);
-  } catch {
+  } catch (error) {
     return [];
   }
 }
@@ -173,9 +173,10 @@ export function getEmptyStateMessage(itemType, projectFilter, totalCount = 0) {
   }
 
   const primary = `No ${itemType} for project "${projectFilter}"`;
-  const hint = totalCount > 0
-    ? `${totalCount} ${itemType} in other projects`
-    : `Try selecting "All Projects" to see all ${itemType}`;
+  const hint =
+    totalCount > 0
+      ? `${totalCount} ${itemType} in other projects`
+      : `Try selecting "All Projects" to see all ${itemType}`;
 
   return { primary, hint };
 }

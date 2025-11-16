@@ -63,7 +63,7 @@
         copiedId = null;
       }, 2000);
     } catch (err) {
-      logger.error('Failed to copy:', err);
+      logger.error('Failed to copy:', error);
     }
   }
 

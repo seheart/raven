@@ -101,8 +101,8 @@
           await loadSocialData();
           break;
       }
-    } catch {
-      error = err.message;
+    } catch (error) {
+      errorMessage = error.message;
       loadedTabs.delete(tab); // Allow retry on error
     } finally {
       loading = false;
@@ -121,7 +121,7 @@
 
       healthScore = latestData.score;
       healthHistory = historyData.history || [];
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -138,7 +138,7 @@
 
       recentDrifts = recentData.drifts || [];
       driftSummary = summaryData.summary;
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -148,7 +148,7 @@
       await fetch(`${API_BASE}/productivity/latest?project=${project}`);
       const data = await response.json();
       productivityInsights = data.metrics;
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -158,7 +158,7 @@
       await fetch(`${API_BASE}/personality/latest?project=${project}&agent=claude`);
       const data = await response.json();
       personalityProfile = data.profile;
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -175,7 +175,7 @@
 
       growthSummary = summaryData.summary;
       growthTimeSeries = timeSeriesData.timeSeries;
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -206,7 +206,7 @@
 
       integrationStatus.slack.events = slackData.events || [];
       integrationStatus.slack.enabled = slackData.events?.length > 0;
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -226,7 +226,7 @@
       userStats = statsData.stats;
       achievements = achievementsData.achievements || [];
       recentAchievements = recentData.achievements || [];
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -243,7 +243,7 @@
 
       easterEggs = eggsData.eggs || [];
       seasonalMessage = seasonalData.messages?.[0] || null;
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -260,7 +260,7 @@
 
       shareHistory = historyData.history || [];
       teamMembers = teamData.members || [];
-    } catch {
+    } catch (error) {
       // Error handled silently - partial data load
     }
   }
@@ -273,7 +273,7 @@
       const data = await response.json();
       healthScore = data.healthScore;
       await loadHealthData();
-    } catch {
+    } catch (error) {
       // Error handled silently - operation failed gracefully
     }
   }
@@ -284,7 +284,7 @@
       const data = await response.json();
       recentDrifts = data.drifts || [];
       await loadDriftData();
-    } catch {
+    } catch (error) {
       // Error handled silently - operation failed gracefully
     }
   }
@@ -298,7 +298,7 @@
         // Reload drift data after resolution
         await loadDriftData();
       }
-    } catch {
+    } catch (error) {
       // Error handled silently - operation failed gracefully
     }
   }
@@ -310,7 +310,7 @@
       });
       const data = await response.json();
       productivityInsights = data.insights;
-    } catch {
+    } catch (error) {
       // Error handled silently - operation failed gracefully
     }
   }
@@ -322,7 +322,7 @@
       });
       const data = await response.json();
       personalityProfile = data.personality;
-    } catch {
+    } catch (error) {
       // Error handled silently - operation failed gracefully
     }
   }
@@ -332,7 +332,7 @@
       await fetch(`${API_BASE}/growth/snapshot?project=${project}`, { method: 'POST' });
       // removed - api already returns JSON
       await loadGrowthData();
-    } catch {
+    } catch (error) {
       // Error handled silently - operation failed gracefully
     }
   }
@@ -353,8 +353,8 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch {
-      configSaveStatus = `Error saving GitHub config: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `Error saving GitHub config: ${error.message}`;
     }
   }
 
@@ -374,8 +374,8 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch {
-      configSaveStatus = `Error saving Discord config: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `Error saving Discord config: ${error.message}`;
     }
   }
 
@@ -395,8 +395,8 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch {
-      configSaveStatus = `Error saving Slack config: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `Error saving Slack config: ${error.message}`;
     }
   }
 
@@ -412,8 +412,8 @@
         configSaveStatus = `✗ GitHub test failed: ${data.result.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -429,8 +429,8 @@
         configSaveStatus = `✗ Discord test failed: ${data.result.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -446,8 +446,8 @@
         configSaveStatus = `✗ Slack test failed: ${data.result.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -465,8 +465,8 @@
         configSaveStatus = '✗ Failed to post to GitHub';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -484,8 +484,8 @@
         configSaveStatus = '✗ Failed to send to Discord';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -503,8 +503,8 @@
         configSaveStatus = '✗ Failed to send to Slack';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -520,8 +520,8 @@
         integrationStatus.github.enabled = false;
         setTimeout(() => (configSaveStatus = ''), 3000);
       }
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }
   }
@@ -537,8 +537,8 @@
         integrationStatus.discord.enabled = false;
         setTimeout(() => (configSaveStatus = ''), 3000);
       }
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }
   }
@@ -554,8 +554,8 @@
         integrationStatus.slack.enabled = false;
         setTimeout(() => (configSaveStatus = ''), 3000);
       }
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }
   }

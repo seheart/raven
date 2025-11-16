@@ -12,13 +12,13 @@
 
   // Agent badge configuration
   const agentConfig = {
-    'ant': { icon: '🐜', color: 'var(--info)', name: 'ANT' },
+    ant: { icon: '🐜', color: 'var(--info)', name: 'ANT' },
     'claude-code': { icon: '🤖', color: 'var(--accent)', name: 'Claude Code' },
-    'cursor': { icon: '↗️', color: 'var(--success)', name: 'Cursor' },
+    cursor: { icon: '↗️', color: 'var(--success)', name: 'Cursor' },
     'github-copilot': { icon: '🤝', color: 'var(--error)', name: 'Copilot' },
-    'aider': { icon: '💬', color: 'var(--warning)', name: 'Aider' },
-    'manual': { icon: '👤', color: '#a9b1d6', name: 'Manual' },
-    'unknown': { icon: '❓', color: '#565f89', name: 'Unknown' }
+    aider: { icon: '💬', color: 'var(--warning)', name: 'Aider' },
+    manual: { icon: '👤', color: '#a9b1d6', name: 'Manual' },
+    unknown: { icon: '❓', color: '#565f89', name: 'Unknown' }
   };
 
   async function loadProjects() {
@@ -26,7 +26,7 @@
       const projects = await api.get('/projects');
       availableProjects = projects.projects || [];
     } catch (err) {
-      logger.error('Failed to load projects:', err);
+      logger.error('Failed to load projects:', error);
     }
   }
 
@@ -41,8 +41,8 @@
 
       agents = data.agents || [];
     } catch (err) {
-      logger.error('Failed to load agent profiles:', err);
-      error = err.message;
+      logger.error('Failed to load agent profiles:', error);
+      errorMessage = error.message;
       agents = [];
     } finally {
       loading = false;
@@ -81,19 +81,19 @@
 
   function getMoodEmoji(mood) {
     const moods = {
-      'aggressive': '🔥',
-      'conservative': '🛡️',
-      'balanced': '⚖️'
+      aggressive: '🔥',
+      conservative: '🛡️',
+      balanced: '⚖️'
     };
     return moods[mood] || '❓';
   }
 
   function getStyleIcon(style) {
     const styles = {
-      'builder': '🏗️',
-      'cleanup': '🧹',
-      'refactorer': '🔧',
-      'mixed': '🎨'
+      builder: '🏗️',
+      cleanup: '🧹',
+      refactorer: '🔧',
+      mixed: '🎨'
     };
     return styles[style] || '📝';
   }
@@ -108,7 +108,12 @@
   <div class="panel-header">
     <h2 id="agent-profiles-heading"><span aria-hidden="true">🤖</span> Agent Profiles</h2>
     <div class="panel-controls" role="toolbar" aria-label="Agent profiles actions">
-      <select class="project-select" bind:value={selectedProject} on:change={handleProjectChange} aria-label="Filter agents by project">
+      <select
+        class="project-select"
+        bind:value={selectedProject}
+        on:change={handleProjectChange}
+        aria-label="Filter agents by project"
+      >
         <option value="all">All Projects</option>
         {#each availableProjects as project (project.name || project)}
           <option value={project.name}>{project.name}</option>
@@ -140,7 +145,9 @@
           <div class="agent-header">
             <div
               class="agent-avatar"
-              style="background: {getAgentBadge(agent.agent).color}33; border-color: {getAgentBadge(agent.agent).color};"
+              style="background: {getAgentBadge(agent.agent).color}33; border-color: {getAgentBadge(
+                agent.agent
+              ).color};"
               aria-hidden="true"
             >
               <span class="agent-avatar-icon">{getAgentBadge(agent.agent).icon}</span>
@@ -188,7 +195,13 @@
           <!-- Change Type Breakdown -->
           <div class="change-breakdown">
             <div class="breakdown-label">Change Distribution:</div>
-            <div class="breakdown-bars" role="img" aria-label="Change distribution: {(agent.creationRate * 100).toFixed(0)}% create, {(agent.modificationRate * 100).toFixed(0)}% modify, {(agent.deletionRate * 100).toFixed(0)}% delete">
+            <div
+              class="breakdown-bars"
+              role="img"
+              aria-label="Change distribution: {(agent.creationRate * 100).toFixed(0)}% create, {(
+                agent.modificationRate * 100
+              ).toFixed(0)}% modify, {(agent.deletionRate * 100).toFixed(0)}% delete"
+            >
               <div
                 class="breakdown-bar create"
                 style="width: {agent.creationRate * 100}%"
@@ -292,7 +305,9 @@
     outline-offset: 2px;
   }
 
-  .loading, .error, .empty {
+  .loading,
+  .error,
+  .empty {
     text-align: center;
     padding: var(--space-4xl) var(--space-3xl);
     color: var(--muted);
@@ -484,7 +499,7 @@
     font-size: 11px;
     font-weight: 700;
     color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
   .breakdown-legend {

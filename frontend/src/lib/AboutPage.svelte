@@ -14,7 +14,7 @@
       const response = await fetch(`${API_BASE}/session-id`);
       const data = await response.json();
       sessionId = data.session_id || 'Unknown';
-    } catch {
+    } catch (error) {
       sessionId = 'Offline';
     }
   }

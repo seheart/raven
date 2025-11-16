@@ -17,8 +17,8 @@
       const data = await response.json();
       changelog = data;
       loading = false;
-    } catch {
-      logger.error('Failed to load changelog:', err);
+    } catch (error) {
+      logger.error('Failed to load changelog:', error);
       error = 'Failed to load changelog';
       loading = false;
     }

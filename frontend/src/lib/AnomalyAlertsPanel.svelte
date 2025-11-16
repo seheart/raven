@@ -80,8 +80,8 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      logger.error('Failed to load anomalies:', err);
-      error = err.message;
+      logger.error('Failed to load anomalies:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }

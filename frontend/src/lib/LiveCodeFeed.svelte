@@ -155,8 +155,8 @@
       loading = false;
       error = null;
     } catch (err) {
-      logger.error('Failed to load data:', err);
-      error = err.message || 'Failed to load data';
+      logger.error('Failed to load data:', error);
+      errorMessage = error.message || 'Failed to load data';
       loading = false;
     }
   }
@@ -243,8 +243,8 @@
       // Filter to only show real source code (exclude build artifacts)
       codeChanges = allChanges.filter(change => isSourceCodeFile(change.filepath));
     } catch (err) {
-      logger.error('Failed to load code changes:', err);
-      throw err;
+      logger.error('Failed to load code changes:', error);
+      throw error;
     }
   }
 
@@ -256,8 +256,8 @@
         api.get('/all-agent-events?limit=20')
       ]);
     } catch (err) {
-      logger.error('Failed to load recent activity:', err);
-      throw err;
+      logger.error('Failed to load recent activity:', error);
+      throw error;
     }
   }
 

@@ -405,7 +405,7 @@
 
       loading = false;
       lastUpdated = new Date();
-    } catch {
+    } catch (error) {
       logger.error('Failed to load overview data:', error);
       loading = false;
     }
@@ -418,15 +418,15 @@
       setTimeout(() => {
         try {
           createCharts();
-        } catch {
-          logger.error('Failed to create charts:', err);
+        } catch (err) {
+          logger.error('Failed to create charts:', error);
         }
       }, 200);
     }
   });
 
   // WebSocket handlers for real-time updates
-  const handleMetricsUpdate = _data => {
+  const handleMetricsUpdate = data => {
     systemMetrics = data;
     lastUpdated = new Date();
   };
@@ -447,7 +447,7 @@
 
       // Update charts with new data
       createCharts();
-    } catch {
+    } catch (error) {
       logger.error('Failed to update activity:', error);
     }
   };

@@ -78,9 +78,9 @@
       files = await api.get(endpoint);
 
       loading = false;
-    } catch {
-      logger.error('Failed to load tracked files:', err);
-      error = err.message || 'Failed to load tracked files';
+    } catch (error) {
+      logger.error('Failed to load tracked files:', error);
+      errorMessage = error.message || 'Failed to load tracked files';
       files = [];
       loading = false;
     }
@@ -124,7 +124,7 @@
       if (showCharts) {
         setTimeout(createCharts, 100);
       }
-    } catch {
+    } catch (error) {
       logger.error('Failed to load file metadata:', error);
     }
   }

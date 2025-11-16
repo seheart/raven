@@ -27,10 +27,18 @@
 
       // Parallel data fetching
       const [systemMetrics, triggersData, sessionsData, triggeredEventsData] = await Promise.all([
-        fetch('/api/system-metrics?limit=20').then(r => r.json()).catch(() => []),
-        fetch('/api/triggers-config').then(r => r.json()).catch(() => ({ triggers: [] })),
-        fetch('/api/sessions?limit=5').then(r => r.json()).catch(() => ({ sessions: [] })),
-        fetch('/api/triggered-events?limit=10').then(r => r.json()).catch(() => ({ events: [] }))
+        fetch('/api/system-metrics?limit=20')
+          .then(r => r.json())
+          .catch(() => []),
+        fetch('/api/triggers-config')
+          .then(r => r.json())
+          .catch(() => ({ triggers: [] })),
+        fetch('/api/sessions?limit=5')
+          .then(r => r.json())
+          .catch(() => ({ sessions: [] })),
+        fetch('/api/triggered-events?limit=10')
+          .then(r => r.json())
+          .catch(() => ({ events: [] }))
       ]);
 
       // System metrics - API returns array directly
@@ -63,8 +71,8 @@
       await tick();
       updateCpuChart(metricsData);
     } catch (err) {
-      logger.error('Failed to load analysis data:', err);
-      error = err.message;
+      logger.error('Failed to load analysis data:', error);
+      errorMessage = error.message;
       loading = false;
     }
   }
@@ -131,7 +139,7 @@
 
     unsubscribers.push(
       websocketService.subscribe('system-metric', loadAnalysisData),
-      websocketService.subscribe('trigger-fired', (data) => {
+      websocketService.subscribe('trigger-fired', data => {
         triggeredEvents = [data, ...triggeredEvents].slice(0, 10);
       })
     );
@@ -145,8 +153,14 @@
   });
 
   // Calculate health status
-  $: cpuHealth = performanceMetrics.cpu > 80 ? 'critical' : performanceMetrics.cpu > 60 ? 'warning' : 'good';
-  $: memHealth = performanceMetrics.memory > 80 ? 'critical' : performanceMetrics.memory > 60 ? 'warning' : 'good';
+  $: cpuHealth =
+    performanceMetrics.cpu > 80 ? 'critical' : performanceMetrics.cpu > 60 ? 'warning' : 'good';
+  $: memHealth =
+    performanceMetrics.memory > 80
+      ? 'critical'
+      : performanceMetrics.memory > 60
+        ? 'warning'
+        : 'good';
 </script>
 
 <div class="analysis-overview">
@@ -178,28 +192,54 @@
   {:else}
     <!-- Performance Cards -->
     <div class="performance-grid">
-      <div class="perf-card" class:warning={cpuHealth === 'warning'} class:critical={cpuHealth === 'critical'}>
+      <div
+        class="perf-card"
+        class:warning={cpuHealth === 'warning'}
+        class:critical={cpuHealth === 'critical'}
+      >
         <div class="perf-header">
           <span class="perf-icon">🖥️</span>
           <span class="perf-label">CPU Usage</span>
         </div>
         <div class="perf-value">{performanceMetrics.cpu}%</div>
         <div class="perf-bar">
-          <div class="perf-fill" style="width: {performanceMetrics.cpu}%; background: {cpuHealth === 'critical' ? 'var(--error)' : cpuHealth === 'warning' ? 'var(--warning)' : 'var(--success)'}"></div>
+          <div
+            class="perf-fill"
+            style="width: {performanceMetrics.cpu}%; background: {cpuHealth === 'critical'
+              ? 'var(--error)'
+              : cpuHealth === 'warning'
+                ? 'var(--warning)'
+                : 'var(--success)'}"
+          ></div>
         </div>
-        <div class="perf-status">{cpuHealth === 'good' ? 'Normal' : cpuHealth === 'warning' ? 'Elevated' : 'High'}</div>
+        <div class="perf-status">
+          {cpuHealth === 'good' ? 'Normal' : cpuHealth === 'warning' ? 'Elevated' : 'High'}
+        </div>
       </div>
 
-      <div class="perf-card" class:warning={memHealth === 'warning'} class:critical={memHealth === 'critical'}>
+      <div
+        class="perf-card"
+        class:warning={memHealth === 'warning'}
+        class:critical={memHealth === 'critical'}
+      >
         <div class="perf-header">
           <span class="perf-icon">💾</span>
           <span class="perf-label">Memory Usage</span>
         </div>
         <div class="perf-value">{performanceMetrics.memory}%</div>
         <div class="perf-bar">
-          <div class="perf-fill" style="width: {performanceMetrics.memory}%; background: {memHealth === 'critical' ? 'var(--error)' : memHealth === 'warning' ? 'var(--warning)' : 'var(--success)'}"></div>
+          <div
+            class="perf-fill"
+            style="width: {performanceMetrics.memory}%; background: {memHealth === 'critical'
+              ? 'var(--error)'
+              : memHealth === 'warning'
+                ? 'var(--warning)'
+                : 'var(--success)'}"
+          ></div>
         </div>
-        <div class="perf-status">{memHealth === 'good' ? 'Normal' : memHealth === 'warning' ? 'Elevated' : 'High'}</div>
+        <div class="perf-status">
+          {memHealth === 'good' ? 'Normal' : memHealth === 'warning' ? 'Elevated' : 'High'}
+        </div>
       </div>
     </div>
 
@@ -261,7 +301,9 @@
               <div class="trigger-content">
                 <div class="trigger-title">{event.trigger_name || 'Trigger Fired'}</div>
                 <div class="trigger-meta">
-                  {event.message || event.event_type} · {new Date(event.timestamp || Date.now()).toLocaleString()}
+                  {event.message || event.event_type} · {new Date(
+                    event.timestamp || Date.now()
+                  ).toLocaleString()}
                 </div>
               </div>
             </div>
@@ -648,15 +690,24 @@
 
   .skeleton-card {
     height: 150px;
-    background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--bg-secondary) 25%,
+      var(--bg-tertiary) 50%,
+      var(--bg-secondary) 75%
+    );
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: var(--radius-xl);
   }
 
   @keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
 
   .error-banner {

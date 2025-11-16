@@ -3,41 +3,53 @@
  * Manages URL-based navigation with History API
  */
 
-let currentPath = $state(window.location.pathname);
+class Router {
+  path = $state(window.location.pathname);
 
-// Listen for browser back/forward navigation
-window.addEventListener('popstate', () => {
-  currentPath = window.location.pathname;
-  // Scroll to top on back/forward navigation
-  window.scrollTo(0, 0);
-});
+  constructor() {
+    // Listen for browser back/forward navigation
+    window.addEventListener('popstate', () => {
+      this.path = window.location.pathname;
+      // Scroll to top on back/forward navigation
+      window.scrollTo(0, 0);
+    });
+  }
 
-/**
- * Navigate to a new path
- * @param {string} path - The path to navigate to
- */
-export function navigate(path) {
-  if (path !== currentPath) {
-    window.history.pushState({}, '', path);
-    currentPath = path;
-    // Scroll to top when navigating to a new page
-    window.scrollTo(0, 0);
+  /**
+   * Navigate to a new path
+   * @param {string} path - The path to navigate to
+   */
+  navigate(path) {
+    if (path !== this.path) {
+      window.history.pushState({}, '', path);
+      this.path = path;
+      // Scroll to top when navigating to a new page
+      window.scrollTo(0, 0);
+    }
+  }
+
+  /**
+   * Check if a path is active
+   * @param {string} path - Path to check
+   * @returns {boolean} Whether the path is active
+   */
+  isActive(path) {
+    return this.path === path;
   }
 }
 
-/**
- * Get the current path
- * @returns {string} Current path
- */
-export function getPath() {
-  return currentPath;
+// Create singleton instance
+const router = new Router();
+
+// Export convenience functions that use the singleton
+export function navigate(path) {
+  router.navigate(path);
 }
 
-/**
- * Create a derived value that returns true if the current path matches
- * @param {string} path - Path to match
- * @returns {boolean} Whether the path matches
- */
+export function getPath() {
+  return router.path;
+}
+
 export function isActive(path) {
-  return currentPath === path;
+  return router.isActive(path);
 }

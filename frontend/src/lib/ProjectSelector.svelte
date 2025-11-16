@@ -27,7 +27,7 @@
       activeProject.set(data?.active || '');
       selectedProject = data?.active || '';
     } catch (err) {
-      logger.error('Error fetching projects:', err);
+      logger.error('Error fetching projects:', error);
       projectStatus.set({ loading: false, error: err.message });
     }
   }
@@ -52,7 +52,7 @@
       logger.info(`✅ ${data?.message || 'Projects refreshed'}`);
       projectStatus.set({ loading: false, error: null });
     } catch (err) {
-      logger.error('Error refreshing projects:', err);
+      logger.error('Error refreshing projects:', error);
       projectStatus.set({ loading: false, error: err.message });
     }
   }
@@ -89,7 +89,7 @@
 
       logger.info(`✅ Switched to project: ${newProject}`);
     } catch (err) {
-      logger.error('Error switching project:', err);
+      logger.error('Error switching project:', error);
       projectStatus.set({ loading: false, error: err.message });
 
       // Revert selection on error

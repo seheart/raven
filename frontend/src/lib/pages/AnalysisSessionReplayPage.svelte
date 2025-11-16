@@ -120,7 +120,7 @@
         { id: 'all', label: 'All Sessions' },
         { id: currentSessionId, label: `Current Session (${currentSessionId?.slice(0, 8)}...)` }
       ];
-    } catch {
+    } catch (error) {
       logger.error('Failed to load sessions:', e);
       allSessions = [{ id: 'all', label: 'All Sessions' }];
     }
@@ -137,7 +137,7 @@
 
       await fetch(url);
       lastUpdated = new Date();
-    } catch {
+    } catch (error) {
       logger.error('Failed to load events:', e);
     } finally {
       loading = false;

@@ -67,8 +67,8 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      logger.error('Failed to load system data:', err);
-      error = err.message;
+      logger.error('Failed to load system data:', error);
+      errorMessage = error.message;
       loading = false;
     }
   }

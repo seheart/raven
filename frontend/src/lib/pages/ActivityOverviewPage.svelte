@@ -164,7 +164,7 @@
       lastUpdated = new Date();
       loading = false;
       isManualRefresh = false;
-    } catch {
+    } catch (error) {
       logger.error('Failed to load activity log:', error);
       loading = false;
       isManualRefresh = false;
@@ -187,7 +187,7 @@
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       recentActivity = combined.slice(0, 30);
-    } catch {
+    } catch (error) {
       logger.error('Failed to load recent activity:', error);
     }
   }
@@ -302,8 +302,8 @@
       const endpoint = isPaused ? '/resume' : '/pause';
       await api.post(endpoint);
       isPaused = !isPaused;
-    } catch {
-      logger.error('Failed to toggle tracking:', err);
+    } catch (error) {
+      logger.error('Failed to toggle tracking:', error);
     }
   }
 
@@ -341,7 +341,7 @@
       a.click();
 
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (error) {
       logger.error('Export failed:', error);
     }
   }
@@ -381,7 +381,7 @@
       a.click();
 
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (error) {
       logger.error('CSV export failed:', error);
     }
   }

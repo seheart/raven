@@ -66,7 +66,7 @@
       interactions = interactionsData.interactions || [];
       patterns = patternsData.patterns || [];
       lastUpdate = new Date();
-    } catch {
+    } catch (error) {
       logger.error('Failed to load developer insights:', error);
     } finally {
       loading = false;

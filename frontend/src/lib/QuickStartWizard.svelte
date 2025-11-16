@@ -45,9 +45,7 @@
       name: 'Minimal Alerts',
       description: 'Only critical issues - perfect for experienced users',
       icon: '🔕',
-      triggers: [
-        { type: 'security_file', name: 'Security File Modified' }
-      ]
+      triggers: [{ type: 'security_file', name: 'Security File Modified' }]
     }
   ];
 
@@ -56,22 +54,26 @@
     {
       title: 'Welcome to Raven!',
       subtitle: 'Your AI Safety Copilot',
-      description: 'Raven watches over your projects while you code with AI assistants like Claude Code or Cursor. It keeps you safe with automatic syntax checking, session rollback, alerts for big changes, and security monitoring.'
+      description:
+        'Raven watches over your projects while you code with AI assistants like Claude Code or Cursor. It keeps you safe with automatic syntax checking, session rollback, alerts for big changes, and security monitoring.'
     },
     {
       title: 'Choose Your Projects Folder',
       subtitle: 'Where are all your projects?',
-      description: 'Point me to the parent folder containing all your projects (like /home/yourname/Projects). I\'ll monitor all projects inside it automatically.'
+      description:
+        "Point me to the parent folder containing all your projects (like /home/yourname/Projects). I'll monitor all projects inside it automatically."
     },
     {
       title: 'Pick Your Alert Style',
       subtitle: 'How should I keep you safe?',
-      description: 'Choose a preset that matches your experience level. You can always change this later in Settings.'
+      description:
+        'Choose a preset that matches your experience level. You can always change this later in Settings.'
     },
     {
       title: 'Enable Notifications',
       subtitle: 'Never miss important changes',
-      description: 'Desktop notifications let me alert you even when you\'re not looking at this dashboard. Perfect for catching mistakes before they become problems.'
+      description:
+        "Desktop notifications let me alert you even when you're not looking at this dashboard. Perfect for catching mistakes before they become problems."
     }
   ];
 
@@ -80,7 +82,11 @@
     try {
       logger.info('🔄 [QuickStart] Fetching alert templates from /api/alerts/templates');
       const response = await fetch('/api/alerts/templates');
-      logger.info('📡 [QuickStart] Templates response status:', response.status, response.statusText);
+      logger.info(
+        '📡 [QuickStart] Templates response status:',
+        response.status,
+        response.statusText
+      );
 
       if (response.ok) {
         const text = await response.text();
@@ -107,7 +113,7 @@
         logger.warn('⚠️ Using fallback templates (API returned', response.status, ')');
       }
     } catch (err) {
-      logger.error('❌ Error fetching templates:', err);
+      logger.error('❌ Error fetching templates:', error);
       logger.warn('⚠️ Using fallback templates');
     }
   });
@@ -156,7 +162,7 @@
       }
       nextStep();
     } catch (err) {
-      logger.error('Failed to handle notifications:', err);
+      logger.error('Failed to handle notifications:', error);
       error = 'Failed to request notification permissions';
       notificationsEnabled = false;
     }
@@ -191,8 +197,8 @@
         notifications: notificationsEnabled
       });
     } catch (err) {
-      logger.error('❌ [QuickStart] Setup failed:', err);
-      error = err.message;
+      logger.error('❌ [QuickStart] Setup failed:', error);
+      errorMessage = error.message;
       loading = false;
     }
   }
@@ -210,7 +216,14 @@
 <div class="wizard-overlay" role="dialog" aria-modal="true" aria-labelledby="wizard-heading">
   <div class="wizard-container">
     <!-- Progress bar -->
-    <div class="progress-bar" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100" aria-label="Setup progress: {progress.toFixed(0)}%">
+    <div
+      class="progress-bar"
+      role="progressbar"
+      aria-valuenow={progress}
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-label="Setup progress: {progress.toFixed(0)}%"
+    >
       <div class="progress-fill" style="width: {progress}%"></div>
     </div>
 
@@ -258,7 +271,6 @@
             </div>
           </div>
         </div>
-
       {:else if currentStep === 1}
         <!-- Step 1: Projects Folder Selection -->
         <div class="step-content">
@@ -270,15 +282,16 @@
               type="text"
               bind:value={projectPath}
               placeholder="/home/yourname/Projects"
-              on:keydown={(e) => e.key === 'Enter' && selectProjectDirectory()}
+              on:keydown={e => e.key === 'Enter' && selectProjectDirectory()}
             />
-            <p class="hint" id="path-hint">This should be the parent folder containing all your individual projects</p>
+            <p class="hint" id="path-hint">
+              This should be the parent folder containing all your individual projects
+            </p>
           </div>
           {#if error}
             <p class="error-message" role="alert">{error}</p>
           {/if}
         </div>
-
       {:else if currentStep === 2}
         <!-- Step 2: Alert Template Selection -->
         <div class="step-content">
@@ -303,12 +316,15 @@
             {/each}
           </div>
         </div>
-
       {:else if currentStep === 3}
         <!-- Step 3: Notifications -->
         <div class="step-content">
           <p class="description">{steps[3].description}</p>
-          <div class="notification-preview" role="img" aria-label="Example notification showing a large code deletion alert">
+          <div
+            class="notification-preview"
+            role="img"
+            aria-label="Example notification showing a large code deletion alert"
+          >
             <div class="preview-notification">
               <div class="preview-icon" aria-hidden="true">⚠️</div>
               <div class="preview-content">
@@ -318,10 +334,18 @@
             </div>
           </div>
           <div class="notification-buttons" role="group" aria-label="Notification preference">
-            <button class="btn btn-primary" on:click={() => handleNotifications(true)} aria-label="Enable desktop notifications">
+            <button
+              class="btn btn-primary"
+              on:click={() => handleNotifications(true)}
+              aria-label="Enable desktop notifications"
+            >
               Enable Notifications
             </button>
-            <button class="btn btn-secondary" on:click={() => handleNotifications(false)} aria-label="Skip notifications setup">
+            <button
+              class="btn btn-secondary"
+              on:click={() => handleNotifications(false)}
+              aria-label="Skip notifications setup"
+            >
               Skip for Now
             </button>
           </div>
@@ -329,20 +353,25 @@
             <p class="error-message" role="alert">{error}</p>
           {/if}
         </div>
-
       {:else}
         <!-- Step 4: Complete -->
         <div class="step-content">
           <div class="success-icon" aria-hidden="true">✅</div>
           <p class="description">
-            Raven is now monitoring all projects in <strong>{projectPath}</strong> and will alert you about important changes.
+            Raven is now monitoring all projects in <strong>{projectPath}</strong> and will alert you
+            about important changes.
           </p>
           <div class="summary-box" role="region" aria-label="Setup summary">
             <h4>Your Configuration:</h4>
             <ul role="list">
               <li>Projects Folder: {projectPath}</li>
-              <li>Alert Style: {templates.find(t => t.id === selectedTemplate)?.name || selectedTemplate}</li>
-              <li>Notifications: {notificationsEnabled ? 'Enabled ✅' : 'Disabled (can enable later)'}</li>
+              <li>
+                Alert Style: {templates.find(t => t.id === selectedTemplate)?.name ||
+                  selectedTemplate}
+              </li>
+              <li>
+                Notifications: {notificationsEnabled ? 'Enabled ✅' : 'Disabled (can enable later)'}
+              </li>
             </ul>
           </div>
           {#if error}
@@ -365,14 +394,20 @@
         <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
-        <button class="btn btn-primary" on:click={selectProjectDirectory} aria-label="Continue to next step">
+        <button
+          class="btn btn-primary"
+          on:click={selectProjectDirectory}
+          aria-label="Continue to next step"
+        >
           Next →
         </button>
       {:else if currentStep === 2}
         <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
-        <span class="step-indicator" role="status">Selected: {templates.find(t => t.id === selectedTemplate)?.name}</span>
+        <span class="step-indicator" role="status"
+          >Selected: {templates.find(t => t.id === selectedTemplate)?.name}</span
+        >
       {:else}
         <!-- Final step (3): Enable Notifications -->
         <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
@@ -460,7 +495,8 @@
     gap: var(--space-lg);
   }
 
-  .welcome-icon, .success-icon {
+  .welcome-icon,
+  .success-icon {
     font-size: 11px;
     text-align: center;
     margin: 0 auto;

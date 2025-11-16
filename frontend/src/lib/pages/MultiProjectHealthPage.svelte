@@ -216,9 +216,9 @@
       totalProjects = projects.length;
       activeProjects = projects.filter(p => p.status === 'active').length;
       recentProjects = projects.filter(p => p.status === 'recent').length;
-    } catch {
-      logger.error('Failed to load project health:', err);
-      error = err.message;
+    } catch (error) {
+      logger.error('Failed to load project health:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }

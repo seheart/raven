@@ -172,9 +172,9 @@
       hasMore = conversations.length >= limit;
       lastUpdate = new Date();
       error = null;
-    } catch {
-      logger.error('Failed to load conversations:', err);
-      error = err.message || 'Failed to load conversations';
+    } catch (error) {
+      logger.error('Failed to load conversations:', error);
+      errorMessage = error.message || 'Failed to load conversations';
     } finally {
       loading = false;
     }
@@ -198,8 +198,8 @@
       conversations = [...conversations, ...newConversations];
       offset += newConversations.length;
       hasMore = newConversations.length >= limit;
-    } catch {
-      logger.error('Failed to load more:', err);
+    } catch (error) {
+      logger.error('Failed to load more:', error);
     } finally {
       loadingMore = false;
     }
@@ -302,7 +302,7 @@
       URL.revokeObjectURL(url);
 
       logger.info('Conversations exported successfully');
-    } catch {
+    } catch (error) {
       logger.error('Export failed:', error);
     }
   }
@@ -329,7 +329,7 @@
       importSessionFile = '';
       importProject = '';
       loadConversations();
-    } catch {
+    } catch (error) {
       logger.error('Import failed:', error);
     } finally {
       importing = false;
@@ -393,7 +393,7 @@
     try {
       await navigator.clipboard.writeText(text);
       logger.debug('Copied to clipboard', { label });
-    } catch {
+    } catch (error) {
       logger.error('Failed to copy to clipboard', { label, error: error.message });
     }
   }

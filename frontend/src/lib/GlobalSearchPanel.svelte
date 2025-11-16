@@ -126,9 +126,7 @@
     }, {});
 
     const types = Object.entries(byType);
-    const mostCommonType = types.length > 0
-      ? types.reduce((a, b) => a[1] > b[1] ? a : b)[0]
-      : '';
+    const mostCommonType = types.length > 0 ? types.reduce((a, b) => (a[1] > b[1] ? a : b))[0] : '';
 
     return {
       total: processedResults.length,
@@ -152,7 +150,7 @@
     const style = getComputedStyle(document.body);
     const getColor = (varName, fallback) => {
       const value = style.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     return {
@@ -175,7 +173,9 @@
       error: stats.byType.error || 0,
       notification: stats.byType.notification || 0
     };
-    const topTypes = Object.entries(typeData).filter(([_, count]) => count > 0).slice(0, 3);
+    const topTypes = Object.entries(typeData)
+      .filter(([_, count]) => count > 0)
+      .slice(0, 3);
     if (topTypes.length === 0) return 'Results by type chart: No results available';
     const summary = topTypes.map(([type, count]) => `${type}: ${count}`).join(', ');
     return `Results by type chart showing ${stats.total} total results. ${summary}`;
@@ -230,12 +230,14 @@
         type: 'pie',
         data: {
           labels: ['File Events', 'Conversations', 'Errors', 'Notifications'],
-          datasets: [{
-            data: [typeData.event, typeData.conversation, typeData.error, typeData.notification],
-            backgroundColor: [colors.accent, colors.success, colors.error, colors.warning],
-            borderColor: colors.surface,
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: [typeData.event, typeData.conversation, typeData.error, typeData.notification],
+              backgroundColor: [colors.accent, colors.success, colors.error, colors.warning],
+              borderColor: colors.surface,
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           ...chartDefaults,
@@ -261,13 +263,15 @@
         type: 'bar',
         data: {
           labels: projectEntries.map(([name]) => name),
-          datasets: [{
-            label: 'Results',
-            data: projectEntries.map(([, count]) => count),
-            backgroundColor: colors.accent,
-            borderColor: colors.accent,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Results',
+              data: projectEntries.map(([, count]) => count),
+              backgroundColor: colors.accent,
+              borderColor: colors.accent,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           ...chartDefaults,
@@ -321,13 +325,15 @@
         type: 'bar',
         data: {
           labels: last30Days.map(d => `${d.getMonth() + 1}/${d.getDate()}`),
-          datasets: [{
-            label: 'Results',
-            data: timelineData,
-            backgroundColor: colors.success,
-            borderColor: colors.success,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: 'Results',
+              data: timelineData,
+              backgroundColor: colors.success,
+              borderColor: colors.success,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           ...chartDefaults,
@@ -386,7 +392,9 @@
       loading = true;
       searchStartTime = performance.now();
 
-      const response = await fetch(`${API_BASE}/search/global?q=${encodeURIComponent(searchQuery)}&limit=1000`);
+      const response = await fetch(
+        `${API_BASE}/search/global?q=${encodeURIComponent(searchQuery)}&limit=1000`
+      );
 
       const data = await response.json();
       allResults = data.results || [];
@@ -401,8 +409,8 @@
       // Reset pagination
       displayLimit = 50;
     } catch (err) {
-      logger.error('Search error:', err);
-      error = err.message;
+      logger.error('Search error:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }
@@ -471,11 +479,11 @@
     if (!query || !text) return text;
 
     const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, _i) =>
-      part.toLowerCase() === query.toLowerCase()
-        ? `<mark>${part}</mark>`
-        : part
-    ).join('');
+    return parts
+      .map((part, _i) =>
+        part.toLowerCase() === query.toLowerCase() ? `<mark>${part}</mark>` : part
+      )
+      .join('');
   }
 
   function getPreview(result) {
@@ -484,12 +492,14 @@
   }
 
   function getTypeLabel(type) {
-    return {
-      event: 'File Event',
-      conversation: 'Conversation',
-      error: 'Error',
-      notification: 'Notification'
-    }[type] || type;
+    return (
+      {
+        event: 'File Event',
+        conversation: 'Conversation',
+        error: 'Error',
+        notification: 'Notification'
+      }[type] || type
+    );
   }
 
   function getTypeClass(type) {
@@ -580,10 +590,22 @@
     </div>
     <div class="header-right" role="toolbar" aria-label="Search actions">
       {#if processedResults.length > 0}
-        <button class="btn btn-primary btn-sm" on:click={handleExportCSV} aria-label="Export results as CSV">Export CSV</button>
-        <button class="btn btn-primary btn-sm" on:click={handleExportJSON} aria-label="Export results as JSON">Export JSON</button>
+        <button
+          class="btn btn-primary btn-sm"
+          on:click={handleExportCSV}
+          aria-label="Export results as CSV">Export CSV</button
+        >
+        <button
+          class="btn btn-primary btn-sm"
+          on:click={handleExportJSON}
+          aria-label="Export results as JSON">Export JSON</button
+        >
         {#if selectedResults.size > 0}
-          <button class="btn btn-primary btn-sm" on:click={exportSelected} aria-label="Export selected results">Export Selected ({selectedResults.size})</button>
+          <button
+            class="btn btn-primary btn-sm"
+            on:click={exportSelected}
+            aria-label="Export selected results">Export Selected ({selectedResults.size})</button
+          >
         {/if}
       {/if}
     </div>
@@ -602,7 +624,9 @@
         aria-describedby="search-hint"
       />
       {#if searchQuery}
-        <button class="btn btn-ghost btn-sm" on:click={clearSearch} aria-label="Clear search">Clear</button>
+        <button class="btn btn-ghost btn-sm" on:click={clearSearch} aria-label="Clear search"
+          >Clear</button
+        >
       {/if}
     </div>
 
@@ -628,7 +652,10 @@
       {:else if loading}
         <span>Searching...</span>
       {:else if processedResults.length > 0}
-        <span>Found {processedResults.length} result{processedResults.length !== 1 ? 's' : ''} for "{searchQuery}" {searchDuration > 0 ? `(${searchDuration}ms)` : ''}</span>
+        <span
+          >Found {processedResults.length} result{processedResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+          {searchDuration > 0 ? `(${searchDuration}ms)` : ''}</span
+        >
       {:else if searchQuery.length >= 2}
         <span>No results found for "{searchQuery}"</span>
       {:else}
@@ -685,7 +712,9 @@
       </div>
       <div class="stat-card">
         <div class="stat-label">Most Common Type</div>
-        <div class="stat-value">{stats.mostCommonType ? getTypeLabel(stats.mostCommonType) : 'N/A'}</div>
+        <div class="stat-value">
+          {stats.mostCommonType ? getTypeLabel(stats.mostCommonType) : 'N/A'}
+        </div>
       </div>
       <div class="stat-card">
         <div class="stat-label">File Events</div>
@@ -732,19 +761,54 @@
 
     <!-- Type Filters -->
     <div class="filter-bar" role="tablist" aria-label="Filter search results">
-      <button class="btn btn-ghost btn-sm" class:active={filterType === 'all'} on:click={() => filterType = 'all'} role="tab" aria-selected={filterType === 'all'} aria-controls="results-list">
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={filterType === 'all'}
+        on:click={() => (filterType = 'all')}
+        role="tab"
+        aria-selected={filterType === 'all'}
+        aria-controls="results-list"
+      >
         All ({processedResults.length})
       </button>
-      <button class="btn btn-ghost btn-sm" class:active={filterType === 'event'} on:click={() => filterType = 'event'} role="tab" aria-selected={filterType === 'event'} aria-controls="results-list">
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={filterType === 'event'}
+        on:click={() => (filterType = 'event')}
+        role="tab"
+        aria-selected={filterType === 'event'}
+        aria-controls="results-list"
+      >
         Files ({stats.byType.event || 0})
       </button>
-      <button class="btn btn-ghost btn-sm" class:active={filterType === 'conversation'} on:click={() => filterType = 'conversation'} role="tab" aria-selected={filterType === 'conversation'} aria-controls="results-list">
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={filterType === 'conversation'}
+        on:click={() => (filterType = 'conversation')}
+        role="tab"
+        aria-selected={filterType === 'conversation'}
+        aria-controls="results-list"
+      >
         Conversations ({stats.byType.conversation || 0})
       </button>
-      <button class="btn btn-ghost btn-sm" class:active={filterType === 'error'} on:click={() => filterType = 'error'} role="tab" aria-selected={filterType === 'error'} aria-controls="results-list">
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={filterType === 'error'}
+        on:click={() => (filterType = 'error')}
+        role="tab"
+        aria-selected={filterType === 'error'}
+        aria-controls="results-list"
+      >
         Errors ({stats.byType.error || 0})
       </button>
-      <button class="btn btn-ghost btn-sm" class:active={filterType === 'notification'} on:click={() => filterType = 'notification'} role="tab" aria-selected={filterType === 'notification'} aria-controls="results-list">
+      <button
+        class="btn btn-ghost btn-sm"
+        class:active={filterType === 'notification'}
+        on:click={() => (filterType = 'notification')}
+        role="tab"
+        aria-selected={filterType === 'notification'}
+        aria-controls="results-list"
+      >
         Notifications ({stats.byType.notification || 0})
       </button>
     </div>
@@ -764,7 +828,13 @@
       <p>Search error: {error}</p>
     </div>
   {:else if displayedResults.length > 0}
-    <div class="results-list" id="results-list" role="feed" aria-label="Search results" aria-busy="false">
+    <div
+      class="results-list"
+      id="results-list"
+      role="feed"
+      aria-label="Search results"
+      aria-busy="false"
+    >
       {#each displayedResults as result (result.type + result.id)}
         <article class="result-card {getTypeClass(result.type)}">
           <div class="result-actions">
@@ -788,13 +858,17 @@
             <span class="result-icon" aria-hidden="true">{result.icon}</span>
             <div class="result-meta">
               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              <div class="result-title">{@html DOMPurify.sanitize(highlightText(result.title, searchQuery))}</div>
+              <div class="result-title">
+                {@html DOMPurify.sanitize(highlightText(result.title, searchQuery))}
+              </div>
               <div class="result-info">
                 <span class="result-type">{getTypeLabel(result.type)}</span>
                 {#if result.project_name}
                   <span class="result-project">{result.project_name}</span>
                 {/if}
-                <time class="result-timestamp" datetime="{result.timestamp}">{formatTimestamp(result.timestamp)}</time>
+                <time class="result-timestamp" datetime={result.timestamp}
+                  >{formatTimestamp(result.timestamp)}</time
+                >
               </div>
             </div>
           </div>
@@ -1180,7 +1254,8 @@
     font-size: 10px;
   }
 
-  .result-project, .result-timestamp {
+  .result-project,
+  .result-timestamp {
     font-family: var(--mono);
     font-size: 10px;
   }

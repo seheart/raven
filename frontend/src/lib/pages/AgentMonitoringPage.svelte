@@ -343,9 +343,9 @@
 
       // Create charts after data loads
       setTimeout(createCharts, 100);
-    } catch {
-      logger.error('Failed to load monitoring data:', err);
-      error = err.message;
+    } catch (error) {
+      logger.error('Failed to load monitoring data:', error);
+      errorMessage = error.message;
       loading = false;
     }
   }

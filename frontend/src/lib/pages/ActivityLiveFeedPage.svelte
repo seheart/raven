@@ -89,9 +89,9 @@
       await loadRecentEvents();
       await updateMetrics();
       loading = false;
-    } catch {
-      logger.error('Failed to load data:', err);
-      error = err.message || 'Failed to load data';
+    } catch (error) {
+      logger.error('Failed to load data:', error);
+      errorMessage = error.message || 'Failed to load data';
       loading = false;
     }
   }
@@ -133,9 +133,9 @@
           if (feed) feed.scrollTop = 0;
         }, 10);
       }
-    } catch {
-      logger.error('Failed to load events:', err);
-      throw err;
+    } catch (error) {
+      logger.error('Failed to load events:', error);
+      throw error;
     }
   }
 
@@ -157,7 +157,7 @@
           ? events.reduce((sum, e) => sum + (e.event_size || 0), 0) / events.length
           : 0;
       metricsHistory.fileSize = [...metricsHistory.fileSize, avgSize].slice(-50);
-    } catch {
+    } catch (error) {
       logger.error('Failed to update metrics:', error);
     }
   }
@@ -351,7 +351,6 @@
 
     // Connect to WebSocket for real-time updates
     websocketService.connect();
-    connected = websocketService.isConnected();
 
     // Listen for file change events
     websocketService.on('file-changed', handleFileChanged);

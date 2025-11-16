@@ -265,7 +265,6 @@
 
       const data = await api.get('/all-file-events?limit=1000');
       events = Array.isArray(data) ? data : data.events || [];
-      totalEvents = data.total || events.length;
 
       // Extract unique agents
       const uniqueAgents = new Set();
@@ -275,7 +274,7 @@
       agents = Array.from(uniqueAgents).sort();
 
       loading = false;
-    } catch {
+    } catch (err) {
       logger.error('Failed to load events:', err);
       error = err.message;
       loading = false;
@@ -288,8 +287,8 @@
       setTimeout(() => {
         try {
           createCharts();
-        } catch {
-          logger.error('Failed to create charts:', err);
+        } catch (error) {
+          logger.error('Failed to create charts:', error);
         }
       }, 200);
     }

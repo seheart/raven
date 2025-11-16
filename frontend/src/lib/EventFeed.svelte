@@ -14,8 +14,8 @@
   Chart.register(...registerables);
 
   // Configuration constants
-  const MAX_EVENTS_HISTORY = 1000;  // Maximum number of events to keep in memory
-  const MAX_CONVERSATIONS = 500;    // Maximum number of conversations to fetch
+  const MAX_EVENTS_HISTORY = 1000; // Maximum number of events to keep in memory
+  const MAX_CONVERSATIONS = 500; // Maximum number of conversations to fetch
 
   let events = [];
   let error = null;
@@ -108,11 +108,15 @@
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => {
-        // Escape quotes and wrap in quotes if contains comma
-        const escaped = String(cell).replace(/"/g, '""');
-        return escaped.includes(',') ? `"${escaped}"` : escaped;
-      }).join(','))
+      ...rows.map(row =>
+        row
+          .map(cell => {
+            // Escape quotes and wrap in quotes if contains comma
+            const escaped = String(cell).replace(/"/g, '""');
+            return escaped.includes(',') ? `"${escaped}"` : escaped;
+          })
+          .join(',')
+      )
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -138,12 +142,13 @@
   $: {
     const typesKey = JSON.stringify(selectedTypes);
 
-    if (events !== cachedFilterEvents ||
-        searchQuery !== cachedFilterQuery ||
-        typesKey !== cachedFilterTypes ||
-        timeRangeStart !== cachedFilterStartTime ||
-        timeRangeEnd !== cachedFilterEndTime) {
-
+    if (
+      events !== cachedFilterEvents ||
+      searchQuery !== cachedFilterQuery ||
+      typesKey !== cachedFilterTypes ||
+      timeRangeStart !== cachedFilterStartTime ||
+      timeRangeEnd !== cachedFilterEndTime
+    ) {
       cachedFilterEvents = events;
       cachedFilterQuery = searchQuery;
       cachedFilterTypes = typesKey;
@@ -153,7 +158,6 @@
       const lowerQuery = searchQuery.toLowerCase();
 
       cachedFilteredResult = events.filter(event => {
-
         // Filter by search query (check filepath for files, content for conversations)
         if (searchQuery) {
           const matchesFile = event.filepath?.toLowerCase().includes(lowerQuery);
@@ -222,45 +226,56 @@
       }));
 
       // Merge and sort by timestamp (newest first)
-      events = [...mappedFileEvents, ...mappedConversations]
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      events = [...mappedFileEvents, ...mappedConversations].sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+      );
       error = null;
     } catch (err) {
-      logger.error('Failed to load events:', err);
-      error = err.message || 'Failed to load events';
+      logger.error('Failed to load events:', error);
+      errorMessage = error.message || 'Failed to load events';
     }
   }
 
   // Map backend change_type to frontend changeType
   function mapChangeType(backendType) {
-    switch(backendType) {
-    // From events table (file watcher)
-    case 'add': return 'created';
-    case 'change': return 'modified';
-    case 'unlink': return 'deleted';
-    // From agent_events table (AI agents)
-    case 'create': return 'created';
-    case 'edit': return 'modified';
-    case 'delete': return 'deleted';
-    default: return 'modified';
+    switch (backendType) {
+      // From events table (file watcher)
+      case 'add':
+        return 'created';
+      case 'change':
+        return 'modified';
+      case 'unlink':
+        return 'deleted';
+      // From agent_events table (AI agents)
+      case 'create':
+        return 'created';
+      case 'edit':
+        return 'modified';
+      case 'delete':
+        return 'deleted';
+      default:
+        return 'modified';
     }
   }
 
   // WebSocket event handlers
-  const handleFileChanged = (event) => {
+  const handleFileChanged = event => {
     // Add new event to the top of the list
-    events = [{
-      id: event.id || Date.now(),
-      timestamp: event.timestamp || new Date().toISOString(),
-      filepath: event.filepath || 'unknown',
-      changeType: mapChangeType(event.change_type || event.changeType),
-      project: event.project || null,
-      cpu: event.cpu || 0,
-      mem: event.mem || 0
-    }, ...events].slice(0, MAX_EVENTS_HISTORY); // Keep last MAX_EVENTS_HISTORY events
+    events = [
+      {
+        id: event.id || Date.now(),
+        timestamp: event.timestamp || new Date().toISOString(),
+        filepath: event.filepath || 'unknown',
+        changeType: mapChangeType(event.change_type || event.changeType),
+        project: event.project || null,
+        cpu: event.cpu || 0,
+        mem: event.mem || 0
+      },
+      ...events
+    ].slice(0, MAX_EVENTS_HISTORY); // Keep last MAX_EVENTS_HISTORY events
   };
 
-  const handleProjectSwitched = async (data) => {
+  const handleProjectSwitched = async data => {
     logger.info('📡 Project switched, reloading events:', data.project);
     await loadRecentEvents();
   };
@@ -284,8 +299,8 @@
     websocketService.on('project-switched', handleProjectSwitched);
 
     // Watch for theme changes on body element
-    themeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
           logger.info('[EventFeed] Theme changed, recreating charts');
           setTimeout(createCharts, 100);
@@ -318,11 +333,13 @@
   }
 
   function getChangeClass(type) {
-    return {
-      'modified': 'change-modified',
-      'created': 'change-created',
-      'deleted': 'change-deleted'
-    }[type] || '';
+    return (
+      {
+        modified: 'change-modified',
+        created: 'change-created',
+        deleted: 'change-deleted'
+      }[type] || ''
+    );
   }
 
   // Safe helper to get max count for progress bar calculations (prevents division by zero)
@@ -388,7 +405,7 @@
     // Fetch full event details including diff
     try {
       const data = await api.get(`/file-events?limit=${MAX_EVENTS_HISTORY}&diff=true`);
-      const eventsArray = Array.isArray(data) ? data : (data.events || []);
+      const eventsArray = Array.isArray(data) ? data : data.events || [];
       // Extract numeric ID from prefixed ID (e.g., "file-123" -> 123)
       const numericId = parseInt(event.id.toString().replace(/^file-/, ''), 10);
       const eventWithDiff = eventsArray.find(e => e.id === numericId);
@@ -413,12 +430,17 @@
 
   // Get icon for conversation event type
   function getConversationIcon(eventType) {
-    switch(eventType) {
-    case 'user_message': return '💬';
-    case 'assistant_text': return '🤖';
-    case 'tool_call': return '🔧';
-    case 'tool_result': return '✅';
-    default: return '📝';
+    switch (eventType) {
+      case 'user_message':
+        return '💬';
+      case 'assistant_text':
+        return '🤖';
+      case 'tool_call':
+        return '🔧';
+      case 'tool_result':
+        return '✅';
+      default:
+        return '📝';
     }
   }
 
@@ -445,17 +467,17 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     const badges = {
-      'ant': { icon: '🐜', color: getColor('--accent', '#7aa2f7'), name: 'ANT' },
+      ant: { icon: '🐜', color: getColor('--accent', '#7aa2f7'), name: 'ANT' },
       'claude-code': { icon: '🤖', color: getColor('--accent', '#bb9af7'), name: 'Claude Code' },
-      'cursor': { icon: '↗️', color: getColor('--success', '#9ece6a'), name: 'Cursor' },
+      cursor: { icon: '↗️', color: getColor('--success', '#9ece6a'), name: 'Cursor' },
       'github-copilot': { icon: '🤝', color: getColor('--error', '#f7768e'), name: 'Copilot' },
-      'aider': { icon: '💬', color: getColor('--warning', '#e0af68'), name: 'Aider' },
-      'manual': { icon: '👤', color: getColor('--muted', '#565f89'), name: 'Manual' },
-      'unknown': { icon: '❓', color: getColor('--muted', '#565f89'), name: 'Unknown' }
+      aider: { icon: '💬', color: getColor('--warning', '#e0af68'), name: 'Aider' },
+      manual: { icon: '👤', color: getColor('--muted', '#565f89'), name: 'Manual' },
+      unknown: { icon: '❓', color: getColor('--muted', '#565f89'), name: 'Unknown' }
     };
     return badges[agent] || badges.unknown;
   }
@@ -466,13 +488,13 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     const badges = {
-      'high': { icon: '⚠️', color: getColor('--error', '#f7768e'), text: 'High Risk' },
-      'medium': { icon: '⚡', color: getColor('--warning', '#e0af68'), text: 'Medium Risk' },
-      'low': { icon: '✓', color: getColor('--success', '#9ece6a'), text: 'Low Risk' }
+      high: { icon: '⚠️', color: getColor('--error', '#f7768e'), text: 'High Risk' },
+      medium: { icon: '⚡', color: getColor('--warning', '#e0af68'), text: 'Medium Risk' },
+      low: { icon: '✓', color: getColor('--success', '#9ece6a'), text: 'Low Risk' }
     };
     return badges[riskLevel] || null;
   }
@@ -491,7 +513,9 @@
       tool_call: mergedEvents.filter(e => e.changeType === 'tool_call').length,
       tool_result: mergedEvents.filter(e => e.changeType === 'tool_result').length
     };
-    const topTypes = Object.entries(typeCounts).filter(([_, count]) => count > 0).slice(0, 3);
+    const topTypes = Object.entries(typeCounts)
+      .filter(([_, count]) => count > 0)
+      .slice(0, 3);
     if (topTypes.length === 0) return 'Event type distribution chart: No events available';
     const summary = topTypes.map(([type, count]) => `${type}: ${count}`).join(', ');
     return `Event type distribution chart showing ${mergedEvents.length} total events. Top types: ${summary}`;
@@ -509,19 +533,27 @@
 
   $: topAgentsAriaLabel = (() => {
     const agentCounts = {};
-    mergedEvents.filter(e => e.agent).forEach(event => {
-      agentCounts[event.agent] = (agentCounts[event.agent] || 0) + 1;
-    });
-    const topAgents = Object.entries(agentCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    mergedEvents
+      .filter(e => e.agent)
+      .forEach(event => {
+        agentCounts[event.agent] = (agentCounts[event.agent] || 0) + 1;
+      });
+    const topAgents = Object.entries(agentCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
     if (topAgents.length === 0) return 'Top agents chart: No agent data available';
     const summary = topAgents.map(([agent, count]) => `${agent}: ${count} events`).join(', ');
     return `Top agents by event count: ${summary}`;
   })();
 
   $: riskScoresAriaLabel = (() => {
-    const eventsWithRisk = mergedEvents.filter(e => e.riskScore !== undefined && e.riskScore !== null);
+    const eventsWithRisk = mergedEvents.filter(
+      e => e.riskScore !== undefined && e.riskScore !== null
+    );
     if (eventsWithRisk.length === 0) return 'Risk scores chart: No risk data available';
-    const avgRisk = (eventsWithRisk.reduce((sum, e) => sum + e.riskScore, 0) / eventsWithRisk.length).toFixed(1);
+    const avgRisk = (
+      eventsWithRisk.reduce((sum, e) => sum + e.riskScore, 0) / eventsWithRisk.length
+    ).toFixed(1);
     return `Risk scores over time chart showing ${eventsWithRisk.length} events with an average risk score of ${avgRisk}`;
   })();
 
@@ -537,7 +569,7 @@
     const getColor = (varName, fallback) => {
       const computedStyle = getComputedStyle(document.body);
       const value = computedStyle.getPropertyValue(varName).trim();
-      return (value && (value.startsWith('#') || value.startsWith('rgb'))) ? value : fallback;
+      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
     // Get theme-aware colors from body element
@@ -562,22 +594,52 @@
       const data = [];
       const colors = [];
 
-      if (typeCounts.created > 0) { labels.push('Created'); data.push(typeCounts.created); colors.push(getColor('--success', '#22c55e')); }
-      if (typeCounts.modified > 0) { labels.push('Modified'); data.push(typeCounts.modified); colors.push(getColor('--info', '#3b82f6')); }
-      if (typeCounts.deleted > 0) { labels.push('Deleted'); data.push(typeCounts.deleted); colors.push(getColor('--error', '#ef4444')); }
-      if (typeCounts.user_message > 0) { labels.push('User Messages'); data.push(typeCounts.user_message); colors.push(getColor('--accent', '#8b5cf6')); }
-      if (typeCounts.assistant_text > 0) { labels.push('Claude Responses'); data.push(typeCounts.assistant_text); colors.push(getColor('--accent-2', '#ec4899')); }
-      if (typeCounts.tool_call > 0) { labels.push('Tool Calls'); data.push(typeCounts.tool_call); colors.push(getColor('--warning', '#f59e0b')); }
-      if (typeCounts.tool_result > 0) { labels.push('Tool Results'); data.push(typeCounts.tool_result); colors.push(getColor('--info', '#06b6d4')); }
+      if (typeCounts.created > 0) {
+        labels.push('Created');
+        data.push(typeCounts.created);
+        colors.push(getColor('--success', '#22c55e'));
+      }
+      if (typeCounts.modified > 0) {
+        labels.push('Modified');
+        data.push(typeCounts.modified);
+        colors.push(getColor('--info', '#3b82f6'));
+      }
+      if (typeCounts.deleted > 0) {
+        labels.push('Deleted');
+        data.push(typeCounts.deleted);
+        colors.push(getColor('--error', '#ef4444'));
+      }
+      if (typeCounts.user_message > 0) {
+        labels.push('User Messages');
+        data.push(typeCounts.user_message);
+        colors.push(getColor('--accent', '#8b5cf6'));
+      }
+      if (typeCounts.assistant_text > 0) {
+        labels.push('Claude Responses');
+        data.push(typeCounts.assistant_text);
+        colors.push(getColor('--accent-2', '#ec4899'));
+      }
+      if (typeCounts.tool_call > 0) {
+        labels.push('Tool Calls');
+        data.push(typeCounts.tool_call);
+        colors.push(getColor('--warning', '#f59e0b'));
+      }
+      if (typeCounts.tool_result > 0) {
+        labels.push('Tool Results');
+        data.push(typeCounts.tool_result);
+        colors.push(getColor('--info', '#06b6d4'));
+      }
 
       charts.eventTypes = new Chart(pieCanvas, {
         type: 'pie',
         data: {
           labels: labels,
-          datasets: [{
-            data: data,
-            backgroundColor: colors
-          }]
+          datasets: [
+            {
+              data: data,
+              backgroundColor: colors
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -626,11 +688,13 @@
         type: 'bar',
         data: {
           labels: hourLabels,
-          datasets: [{
-            label: 'Events',
-            data: last24Hours,
-            backgroundColor: getColor('--info', '#3b82f6')
-          }]
+          datasets: [
+            {
+              label: 'Events',
+              data: last24Hours,
+              backgroundColor: getColor('--info', '#3b82f6')
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -699,11 +763,13 @@
           type: 'bar',
           data: {
             labels: agentLabels,
-            datasets: [{
-              label: 'Events',
-              data: agentData,
-              backgroundColor: agentColors
-            }]
+            datasets: [
+              {
+                label: 'Events',
+                data: agentData,
+                backgroundColor: agentColors
+              }
+            ]
           },
           options: {
             indexAxis: 'y',
@@ -762,14 +828,17 @@
           type: 'line',
           data: {
             labels: riskLabels,
-            datasets: [{
-              label: 'Risk Score',
-              data: riskData,
-              borderColor: getColor('--error', '#ef4444'),
-              backgroundColor: 'color-mix(in srgb, ' + getColor('--error', '#ef4444') + ' 10%, transparent)',
-              fill: true,
-              tension: 0.4
-            }]
+            datasets: [
+              {
+                label: 'Risk Score',
+                data: riskData,
+                borderColor: getColor('--error', '#ef4444'),
+                backgroundColor:
+                  'color-mix(in srgb, ' + getColor('--error', '#ef4444') + ' 10%, transparent)',
+                fill: true,
+                tension: 0.4
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -827,17 +896,22 @@
         <h2 id="forensics-heading"><span aria-hidden="true">📊</span> Forensics Analysis</h2>
         <button
           class="toggle-forensics"
-          on:click={() => showForensics = !showForensics}
+          on:click={() => (showForensics = !showForensics)}
           aria-label="{showForensics ? 'Hide' : 'Show'} forensics analysis"
           aria-expanded={showForensics}
         >
-          <span aria-hidden="true">{showForensics ? '▼' : '▶'}</span> {showForensics ? 'Hide' : 'Show'}
+          <span aria-hidden="true">{showForensics ? '▼' : '▶'}</span>
+          {showForensics ? 'Hide' : 'Show'}
         </button>
       </div>
 
       <!-- Key Metrics Cards -->
       <div class="stats-cards" role="group" aria-label="Forensics statistics">
-        <div class="stat-card" role="status" aria-label="Total changes: {forensicsStats.totalChanges}">
+        <div
+          class="stat-card"
+          role="status"
+          aria-label="Total changes: {forensicsStats.totalChanges}"
+        >
           <div class="stat-icon" aria-hidden="true">📈</div>
           <div class="stat-content">
             <div class="stat-label">Total Changes</div>
@@ -845,7 +919,11 @@
           </div>
         </div>
 
-        <div class="stat-card" role="status" aria-label="Unique files: {forensicsStats.uniqueFiles}">
+        <div
+          class="stat-card"
+          role="status"
+          aria-label="Unique files: {forensicsStats.uniqueFiles}"
+        >
           <div class="stat-icon" aria-hidden="true">📄</div>
           <div class="stat-content">
             <div class="stat-label">Unique Files</div>
@@ -853,7 +931,11 @@
           </div>
         </div>
 
-        <div class="stat-card success" role="status" aria-label="Files created: {forensicsStats.changeTypeBreakdown.created}">
+        <div
+          class="stat-card success"
+          role="status"
+          aria-label="Files created: {forensicsStats.changeTypeBreakdown.created}"
+        >
           <div class="stat-icon" aria-hidden="true">➕</div>
           <div class="stat-content">
             <div class="stat-label">Created</div>
@@ -861,7 +943,11 @@
           </div>
         </div>
 
-        <div class="stat-card warning" role="status" aria-label="Files modified: {forensicsStats.changeTypeBreakdown.modified}">
+        <div
+          class="stat-card warning"
+          role="status"
+          aria-label="Files modified: {forensicsStats.changeTypeBreakdown.modified}"
+        >
           <div class="stat-icon" aria-hidden="true">✏️</div>
           <div class="stat-content">
             <div class="stat-label">Modified</div>
@@ -869,7 +955,11 @@
           </div>
         </div>
 
-        <div class="stat-card error" role="status" aria-label="Files deleted: {forensicsStats.changeTypeBreakdown.deleted}">
+        <div
+          class="stat-card error"
+          role="status"
+          aria-label="Files deleted: {forensicsStats.changeTypeBreakdown.deleted}"
+        >
           <div class="stat-icon" aria-hidden="true">🗑️</div>
           <div class="stat-content">
             <div class="stat-label">Deleted</div>
@@ -882,13 +972,22 @@
       <div class="forensics-grid">
         <!-- Top 5 Most Changed Files -->
         <div class="forensics-panel">
-          <h3 id="top-files-heading"><span aria-hidden="true">🔥</span> Top 5 Most Changed Files</h3>
+          <h3 id="top-files-heading">
+            <span aria-hidden="true">🔥</span> Top 5 Most Changed Files
+          </h3>
           <ul class="top-files-list" role="list" aria-labelledby="top-files-heading">
             {#each forensicsStats.topFiles as file (file.filepath)}
               <li class="top-file-item">
                 <div class="file-path">{file.filepath}</div>
                 <div class="file-count">{file.count} changes</div>
-                <div class="file-bar" role="progressbar" aria-valuenow="{file.count}" aria-valuemin="0" aria-valuemax="{getMaxFileCount()}" aria-label="{file.count} changes">
+                <div
+                  class="file-bar"
+                  role="progressbar"
+                  aria-valuenow={file.count}
+                  aria-valuemin="0"
+                  aria-valuemax={getMaxFileCount()}
+                  aria-label="{file.count} changes"
+                >
                   <div
                     class="file-bar-fill"
                     style="width: {(file.count / getMaxFileCount()) * 100}%"
@@ -909,7 +1008,14 @@
                   {hourData.hour.toString().padStart(2, '0')}:00
                 </div>
                 <div class="hour-count">{hourData.count} events</div>
-                <div class="hour-bar" role="progressbar" aria-valuenow="{hourData.count}" aria-valuemin="0" aria-valuemax="{getMaxHourCount()}" aria-label="{hourData.count} events at {hourData.hour}:00">
+                <div
+                  class="hour-bar"
+                  role="progressbar"
+                  aria-valuenow={hourData.count}
+                  aria-valuemin="0"
+                  aria-valuemax={getMaxHourCount()}
+                  aria-label="{hourData.count} events at {hourData.hour}:00"
+                >
                   <div
                     class="hour-bar-fill"
                     style="width: {(hourData.count / getMaxHourCount()) * 100}%"
@@ -930,7 +1036,7 @@
         <h2 id="charts-heading">📊 Analytics Visualizations</h2>
         <button
           class="toggle-charts"
-          on:click={() => showCharts = !showCharts}
+          on:click={() => (showCharts = !showCharts)}
           aria-label="{showCharts ? 'Hide' : 'Show'} charts"
           aria-expanded={showCharts}
         >
@@ -966,7 +1072,13 @@
   {/if}
 
   <div class="header">
-    <span class="count" role="status" aria-live="polite" aria-label="{filteredEvents.length} of {events.length} events displayed">{filteredEvents.length} / {events.length} events</span>
+    <span
+      class="count"
+      role="status"
+      aria-live="polite"
+      aria-label="{filteredEvents.length} of {events.length} events displayed"
+      >{filteredEvents.length} / {events.length} events</span
+    >
     <div class="header-actions" role="toolbar" aria-label="Event actions">
       <button class="export-btn" on:click={exportToJSON} aria-label="Export events to JSON file">
         <span aria-hidden="true">📥</span> JSON
@@ -981,7 +1093,9 @@
   </div>
 
   <div class="filters" role="search" aria-label="Filter events">
-    <label for="event-search" class="visually-hidden">Search events by filename or conversation</label>
+    <label for="event-search" class="visually-hidden"
+      >Search events by filename or conversation</label
+    >
     <input
       id="event-search"
       type="text"
@@ -995,34 +1109,62 @@
       <fieldset class="filter-group">
         <legend class="filter-group-label">Files:</legend>
         <label class="filter-checkbox">
-          <input type="checkbox" bind:checked={selectedTypes.created} aria-label="Show created files" />
+          <input
+            type="checkbox"
+            bind:checked={selectedTypes.created}
+            aria-label="Show created files"
+          />
           <span class="filter-label created">Created</span>
         </label>
         <label class="filter-checkbox">
-          <input type="checkbox" bind:checked={selectedTypes.modified} aria-label="Show modified files" />
+          <input
+            type="checkbox"
+            bind:checked={selectedTypes.modified}
+            aria-label="Show modified files"
+          />
           <span class="filter-label modified">Modified</span>
         </label>
         <label class="filter-checkbox">
-          <input type="checkbox" bind:checked={selectedTypes.deleted} aria-label="Show deleted files" />
+          <input
+            type="checkbox"
+            bind:checked={selectedTypes.deleted}
+            aria-label="Show deleted files"
+          />
           <span class="filter-label deleted">Deleted</span>
         </label>
       </fieldset>
       <fieldset class="filter-group">
         <legend class="filter-group-label">Conversations:</legend>
         <label class="filter-checkbox">
-          <input type="checkbox" bind:checked={selectedTypes.user_message} aria-label="Show user messages" />
+          <input
+            type="checkbox"
+            bind:checked={selectedTypes.user_message}
+            aria-label="Show user messages"
+          />
           <span class="filter-label conversation"><span aria-hidden="true">💬</span> User</span>
         </label>
         <label class="filter-checkbox">
-          <input type="checkbox" bind:checked={selectedTypes.assistant_text} aria-label="Show Claude responses" />
+          <input
+            type="checkbox"
+            bind:checked={selectedTypes.assistant_text}
+            aria-label="Show Claude responses"
+          />
           <span class="filter-label conversation"><span aria-hidden="true">🤖</span> Claude</span>
         </label>
         <label class="filter-checkbox">
-          <input type="checkbox" bind:checked={selectedTypes.tool_call} aria-label="Show tool calls" />
+          <input
+            type="checkbox"
+            bind:checked={selectedTypes.tool_call}
+            aria-label="Show tool calls"
+          />
           <span class="filter-label conversation"><span aria-hidden="true">🔧</span> Tools</span>
         </label>
         <label class="filter-checkbox">
-          <input type="checkbox" bind:checked={selectedTypes.tool_result} aria-label="Show tool results" />
+          <input
+            type="checkbox"
+            bind:checked={selectedTypes.tool_result}
+            aria-label="Show tool results"
+          />
           <span class="filter-label conversation"><span aria-hidden="true">✅</span> Results</span>
         </label>
       </fieldset>
@@ -1030,7 +1172,7 @@
   </div>
 
   <div class="timeline-container">
-    <TimelineSlider events={events} onTimeRangeChange={handleTimeRangeChange} />
+    <TimelineSlider {events} onTimeRangeChange={handleTimeRangeChange} />
   </div>
 
   {#if error}
@@ -1058,8 +1200,10 @@
             role="button"
             tabindex="0"
             on:click={() => openDiffModal(item)}
-            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && openDiffModal(item)}
-            aria-label="File {item.changeType}: {item.filepath} at {formatTime(item.timestamp)}. Click to view diff."
+            on:keydown={e => (e.key === 'Enter' || e.key === ' ') && openDiffModal(item)}
+            aria-label="File {item.changeType}: {item.filepath} at {formatTime(
+              item.timestamp
+            )}. Click to view diff."
           >
             <div class="event-type-indicator">
               <span class="event-icon">
@@ -1091,7 +1235,8 @@
                 {#if item.agent}
                   <span
                     class="agent-badge"
-                    style="background: {getAgentBadge(item.agent).color}33; border-color: {getAgentBadge(item.agent).color};"
+                    style="background: {getAgentBadge(item.agent)
+                      .color}33; border-color: {getAgentBadge(item.agent).color};"
                     title="{getAgentBadge(item.agent).name} ({item.agentConfidence}% confidence)"
                   >
                     <span class="agent-icon">{getAgentBadge(item.agent).icon}</span>
@@ -1101,7 +1246,8 @@
                 {#if item.riskLevel && item.riskLevel !== 'low'}
                   <span
                     class="risk-badge risk-{item.riskLevel}"
-                    style="background: {getRiskBadge(item.riskLevel).color}33; border-color: {getRiskBadge(item.riskLevel).color};"
+                    style="background: {getRiskBadge(item.riskLevel)
+                      .color}33; border-color: {getRiskBadge(item.riskLevel).color};"
                     title="Risk Score: {item.riskScore}/100"
                   >
                     <span class="risk-icon">{getRiskBadge(item.riskLevel).icon}</span>
@@ -1130,8 +1276,11 @@
             role="button"
             tabindex="0"
             on:click={() => toggleExpanded(item.id)}
-            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleExpanded(item.id)}
-            aria-label="{item.changeType.replace('_', ' ')}: {truncate(item.content || item.toolName || 'Event', 50)}. Click to {expandedEvents.has(item.id) ? 'collapse' : 'expand'} details."
+            on:keydown={e => (e.key === 'Enter' || e.key === ' ') && toggleExpanded(item.id)}
+            aria-label="{item.changeType.replace('_', ' ')}: {truncate(
+              item.content || item.toolName || 'Event',
+              50
+            )}. Click to {expandedEvents.has(item.id) ? 'collapse' : 'expand'} details."
             aria-expanded={expandedEvents.has(item.id)}
           >
             <div class="event-type-indicator conversation">
@@ -1189,7 +1338,10 @@
                   {item.changeType.replace('_', ' ')}
                 </span>
                 {#if item.changeType === 'tool_call' || item.changeType === 'tool_result'}
-                  <button class="expand-btn" on:click|stopPropagation={() => toggleExpanded(item.id)}>
+                  <button
+                    class="expand-btn"
+                    on:click|stopPropagation={() => toggleExpanded(item.id)}
+                  >
                     {expandedEvents.has(item.id) ? '▲ Collapse' : '▼ Expand'}
                   </button>
                 {/if}
@@ -1218,14 +1370,16 @@
     <div
       class="modal-content"
       on:click|stopPropagation
-      on:keydown={(e) => e.stopPropagation()}
+      on:keydown={e => e.stopPropagation()}
       role="dialog"
       tabindex="-1"
       aria-labelledby="diff-modal-title"
-      aria-modal="true">
+      aria-modal="true"
+    >
       <div class="modal-header">
         <h3 id="diff-modal-title"><span aria-hidden="true">📝</span> File Diff</h3>
-        <button class="close-btn" on:click={closeDiffModal} aria-label="Close diff viewer">✕</button>
+        <button class="close-btn" on:click={closeDiffModal} aria-label="Close diff viewer">✕</button
+        >
       </div>
 
       <div class="modal-body">
@@ -1554,7 +1708,7 @@
     user-select: none;
   }
 
-  .filter-checkbox input[type="checkbox"] {
+  .filter-checkbox input[type='checkbox'] {
     cursor: pointer;
     width: var(--icon-xs);
     height: var(--icon-xs);
@@ -1569,17 +1723,17 @@
   }
 
   .filter-label.created {
-    background: var(--success)33;
+    background: var(--success) 33;
     color: var(--success);
   }
 
   .filter-label.modified {
-    background: var(--warning)33;
+    background: var(--warning) 33;
     color: var(--warning);
   }
 
   .filter-label.deleted {
-    background: var(--error)33;
+    background: var(--error) 33;
     color: var(--error);
   }
 

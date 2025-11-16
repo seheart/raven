@@ -17,7 +17,7 @@
       changelog = data;
       loading = false;
     } catch (err) {
-      logger.error('Failed to load changelog:', err);
+      logger.error('Failed to load changelog:', error);
       error = 'Failed to load changelog';
       loading = false;
     }

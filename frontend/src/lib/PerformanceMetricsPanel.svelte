@@ -67,8 +67,8 @@
       await tick();
       updateCharts();
     } catch (err) {
-      logger.error('Failed to load performance metrics:', err);
-      error = err.message;
+      logger.error('Failed to load performance metrics:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }
@@ -181,7 +181,10 @@
   }
 
   function handleExportJSON() {
-    exportJSON({ metrics, range: timeRange, exported_at: new Date().toISOString() }, 'performance-metrics');
+    exportJSON(
+      { metrics, range: timeRange, exported_at: new Date().toISOString() },
+      'performance-metrics'
+    );
   }
 
   // Optimized: compute all stats in a single pass through the metrics array
@@ -224,16 +227,32 @@
       <h2 id="perf-metrics-heading"><span aria-hidden="true">📊</span> Performance Metrics</h2>
       <p class="subtitle">CPU and memory usage over time</p>
     </div>
-    <div class="header-right" role="toolbar" aria-label="Performance metrics actions" aria-labelledby="perf-metrics-heading">
-      <select id="time-range" bind:value={timeRange} on:change={loadMetrics} aria-label="Select time range">
+    <div
+      class="header-right"
+      role="toolbar"
+      aria-label="Performance metrics actions"
+      aria-labelledby="perf-metrics-heading"
+    >
+      <select
+        id="time-range"
+        bind:value={timeRange}
+        on:change={loadMetrics}
+        aria-label="Select time range"
+      >
         <option value="1h">Last Hour</option>
         <option value="6h">Last 6 Hours</option>
         <option value="24h">Last 24 Hours</option>
         <option value="7d">Last 7 Days</option>
       </select>
-      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export metrics as CSV">Export CSV</button>
-      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export metrics as JSON">Export JSON</button>
-      <button class="btn-primary" on:click={loadMetrics} aria-label="Refresh metrics"><span aria-hidden="true">↻</span> Refresh</button>
+      <button class="btn-secondary" on:click={handleExportCSV} aria-label="Export metrics as CSV"
+        >Export CSV</button
+      >
+      <button class="btn-secondary" on:click={handleExportJSON} aria-label="Export metrics as JSON"
+        >Export JSON</button
+      >
+      <button class="btn-primary" on:click={loadMetrics} aria-label="Refresh metrics"
+        ><span aria-hidden="true">↻</span> Refresh</button
+      >
     </div>
   </div>
 
@@ -385,7 +404,8 @@
     height: 250px;
   }
 
-  .btn-primary, .btn-secondary {
+  .btn-primary,
+  .btn-secondary {
     padding: var(--space-lg) var(--space-2xl);
     border-radius: var(--radius);
     font-size: 13px;
@@ -411,7 +431,8 @@
     border-color: var(--accent);
   }
 
-  .empty-state, .error-state {
+  .empty-state,
+  .error-state {
     text-align: center;
     padding: var(--space-lg) var(--space-xl);
     background: var(--surface);
@@ -419,7 +440,8 @@
     border-radius: var(--radius);
   }
 
-  .empty-state p, .error-state p {
+  .empty-state p,
+  .error-state p {
     margin: var(--space-lg) 0;
     color: var(--text);
   }

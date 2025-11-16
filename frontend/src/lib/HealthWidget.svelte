@@ -159,7 +159,7 @@
           syntaxErrorCount = syntaxData.count || 0;
         }
       } catch (err) {
-        logger.error('Failed to fetch syntax errors:', err);
+        logger.error('Failed to fetch syntax errors:', error);
       }
 
       health.checks = {
@@ -182,8 +182,8 @@
       todayStats = { added: totalAdded, deleted: totalDeleted, files: todayFiles.size };
       loading = false;
     } catch (err) {
-      logger.error('Failed to fetch health:', err);
-      error = err.message;
+      logger.error('Failed to fetch health:', error);
+      errorMessage = error.message;
       loading = false;
     }
   }

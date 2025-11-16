@@ -95,7 +95,7 @@
       error = err.toString();
       loading = false;
       isManualRefresh = false;
-      logger.error('Error fetching performance data:', err);
+      logger.error('Error fetching performance data:', error);
     }
   }
 
@@ -106,7 +106,7 @@
       );
       correlations = await correlationsResponse.json();
     } catch (err) {
-      logger.error('Error fetching correlations:', err);
+      logger.error('Error fetching correlations:', error);
       correlations = [];
     }
   }

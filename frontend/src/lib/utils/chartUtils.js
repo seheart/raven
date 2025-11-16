@@ -1,4 +1,5 @@
 import { Chart, registerables } from 'chart.js';
+import { logger } from '../logger.js';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -44,6 +45,12 @@ export function createChart(canvasId, config) {
     return null;
   }
 
+  // Destroy any existing chart on this canvas
+  const existingChart = Chart.getChart(canvas);
+  if (existingChart) {
+    existingChart.destroy();
+  }
+
   // Get theme colors
   const colors = getChartColors();
 
@@ -64,7 +71,8 @@ export function createChart(canvasId, config) {
     }
 
     if (config.options.plugins?.legend?.labels) {
-      config.options.plugins.legend.labels.color = config.options.plugins.legend.labels.color || colors.text;
+      config.options.plugins.legend.labels.color =
+        config.options.plugins.legend.labels.color || colors.text;
     }
   }
 

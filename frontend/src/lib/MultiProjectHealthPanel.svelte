@@ -116,8 +116,8 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      logger.error('Failed to load project health:', err);
-      error = err.message;
+      logger.error('Failed to load project health:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }

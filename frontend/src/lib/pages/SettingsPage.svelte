@@ -52,8 +52,8 @@
         if (!success) {
           throw new Error('Invalid settings format');
         }
-      } catch {
-        logger.error('Failed to import settings:', err);
+      } catch (error) {
+        logger.error('Failed to import settings:', error);
       }
     };
     reader.readAsText(file);
@@ -91,8 +91,8 @@
           icon: '/favicon.ico'
         });
       }
-    } catch {
-      logger.error('Error requesting notification permission:', err);
+    } catch (error) {
+      logger.error('Error requesting notification permission:', error);
     }
   }
 

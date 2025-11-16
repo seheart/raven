@@ -8,6 +8,7 @@
 
   import { onMount } from 'svelte';
   import { projectFilter, availableProjects } from '../projectFilterStore.js';
+  import { websocketService } from '../services/websocket.js';
 
   // State
   let backendStatus = $state({
@@ -73,7 +74,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch {
+    } catch (error) {
       logger.error('Backend health check failed:', error);
       backendStatus.connected = false;
       loading = false;
@@ -99,7 +100,7 @@
           commits: historyData?.commits || []
         };
       }
-    } catch {
+    } catch (error) {
       gitStatus.available = false;
     }
   }
@@ -112,7 +113,7 @@
         summary: data.summary || { total: 0, passed: 0, failed: 0, byCategory: {} },
         checks: data.checks || []
       };
-    } catch {
+    } catch (error) {
       logger.error('Failed to load health checks:', error);
       healthChecks.status = 'error';
     }
@@ -153,7 +154,7 @@
       if (result.success) {
         setTimeout(() => checkBackendHealth(), 1000);
       }
-    } catch {
+    } catch (error) {
       logger.error('Error restarting bridge:', error);
     } finally {
       restartingBridge = false;
@@ -209,6 +210,23 @@
     await checkBackendHealth();
     await checkGitStatus();
     await loadHealthChecks();
+
+    // Connect to WebSocket
+    websocketService.connect();
+
+    // Check WebSocket status (might take a moment to connect)
+    setTimeout(() => {
+      websocketStatus.connected = websocketService.isConnected();
+    }, 500);
+
+    // Listen for WebSocket connection changes
+    websocketService.socket?.on('connect', () => {
+      websocketStatus.connected = true;
+    });
+
+    websocketService.socket?.on('disconnect', () => {
+      websocketStatus.connected = false;
+    });
   });
 </script>
 

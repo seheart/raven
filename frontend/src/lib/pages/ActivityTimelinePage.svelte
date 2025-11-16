@@ -97,9 +97,9 @@
       events = Array.isArray(data) ? data : [];
 
       loading = false;
-    } catch {
-      logger.error('Failed to load events:', err);
-      error = err.message;
+    } catch (error) {
+      logger.error('Failed to load events:', error);
+      errorMessage = error.message;
       loading = false;
     }
   }
@@ -276,7 +276,7 @@
       </div>
     {:else}
       <div class="space-y-6">
-        {#each groupedEvents as group (group.date)}
+        {#each groupedEvents as group, index (index)}
           <div class="relative">
             <!-- Date Header -->
             <div class="sticky top-0 bg-[var(--bg)] z-10 pb-3">
@@ -294,7 +294,7 @@
 
             <!-- Timeline Events -->
             <div class="relative pl-8 border-l-2 border-[var(--border)] ml-3">
-              {#each group.events as event (event.id || event.timestamp)}
+              {#each group.events as event, eventIndex (eventIndex)}
                 <div class="relative mb-6">
                   <!-- Timeline Dot -->
                   <div

@@ -69,8 +69,8 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      notifications.error(`Failed to load conversations: ${err.message}`);
-      error = err.message || 'Failed to load conversations';
+      notifications.error(`Failed to load conversations: ${error.message}`);
+      errorMessage = error.message || 'Failed to load conversations';
     } finally {
       loading = false;
     }

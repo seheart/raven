@@ -24,6 +24,9 @@
   let error = $state(null);
   let loadedTabs = $state(new Set());
 
+  // Feature flag - disable API calls for Tier 4 (endpoints not implemented yet)
+  const TIER4_ENABLED = false;
+
   // Health Scoring data
   let healthScore = $state(null);
 
@@ -93,6 +96,12 @@
   async function loadTabData(tab) {
     if (loadedTabs.has(tab)) return;
 
+    // Skip loading if Tier 4 features are disabled
+    if (!TIER4_ENABLED) {
+      loadedTabs.add(tab);
+      return;
+    }
+
     loading = true;
     error = null;
     loadedTabs.add(tab);
@@ -127,7 +136,7 @@
           await loadSocialData();
           break;
       }
-    } catch {
+    } catch (err) {
       error = err.message;
       loadedTabs.delete(tab);
     } finally {
@@ -137,15 +146,12 @@
 
   async function loadHealthData() {
     try {
-      const [latestData, historyData] = await Promise.all([
-        api.get(`/health/latest?project=${project}`).catch(() => ({ score: null })),
-        api.get(`/health/history?project=${project}&days=30`).catch(() => ({ history: [] }))
-      ]);
-
+      const latestData = await api
+        .get(`/health/latest?project=${project}`)
+        .catch(() => ({ score: null }));
       healthScore = latestData.score;
-      healthHistory = historyData.history || [];
-    } catch {
-      logger.error('Error loading health data:', err);
+    } catch (error) {
+      logger.error('Error loading health data:', error);
     }
   }
 
@@ -158,8 +164,8 @@
 
       recentDrifts = recentData.drifts || [];
       driftSummary = summaryData.summary;
-    } catch {
-      logger.error('Error loading drift data:', err);
+    } catch (error) {
+      logger.error('Error loading drift data:', error);
     }
   }
 
@@ -169,8 +175,8 @@
         .get(`/productivity/latest?project=${project}`)
         .catch(() => ({ metrics: null }));
       productivityInsights = data.metrics;
-    } catch {
-      logger.error('Error loading productivity data:', err);
+    } catch (error) {
+      logger.error('Error loading productivity data:', error);
     }
   }
 
@@ -180,24 +186,19 @@
         .get(`/personality/latest?project=${project}&agent=claude`)
         .catch(() => ({ profile: null }));
       personalityProfile = data.profile;
-    } catch {
-      logger.error('Error loading personality data:', err);
+    } catch (error) {
+      logger.error('Error loading personality data:', error);
     }
   }
 
   async function loadGrowthData() {
     try {
-      const [summaryData, timeSeriesData] = await Promise.all([
-        api.get(`/growth/summary?project=${project}&days=30`).catch(() => ({ summary: null })),
-        api
-          .get(`/growth/timeseries?project=${project}&days=30&metric=all`)
-          .catch(() => ({ timeSeries: null }))
-      ]);
-
+      const summaryData = await api
+        .get(`/growth/summary?project=${project}&days=30`)
+        .catch(() => ({ summary: null }));
       growthSummary = summaryData.summary;
-      growthTimeSeries = timeSeriesData.timeSeries;
-    } catch {
-      logger.error('Error loading growth data:', err);
+    } catch (error) {
+      logger.error('Error loading growth data:', error);
     }
   }
 
@@ -223,26 +224,22 @@
 
       integrationStatus.slack.events = slackData.events || [];
       integrationStatus.slack.enabled = slackData.events?.length > 0;
-    } catch {
-      logger.error('Error loading integration status:', err);
+    } catch (error) {
+      logger.error('Error loading integration status:', error);
     }
   }
 
   async function loadGamificationData() {
     try {
-      const [statsData, achievementsData, recentData] = await Promise.all([
+      const [statsData, achievementsData] = await Promise.all([
         api.get(`/gamification/stats?project=${project}`).catch(() => ({ stats: null })),
-        api
-          .get(`/gamification/achievements?project=${project}`)
-          .catch(() => ({ achievements: [] })),
-        api.get(`/gamification/recent?project=${project}`).catch(() => ({ achievements: [] }))
+        api.get(`/gamification/achievements?project=${project}`).catch(() => ({ achievements: [] }))
       ]);
 
       userStats = statsData.stats;
       achievements = achievementsData.achievements || [];
-      recentAchievements = recentData.achievements || [];
-    } catch {
-      logger.error('Error loading gamification data:', err);
+    } catch (error) {
+      logger.error('Error loading gamification data:', error);
     }
   }
 
@@ -255,8 +252,8 @@
 
       easterEggs = eggsData.eggs || [];
       seasonalMessage = seasonalData.messages?.[0] || null;
-    } catch {
-      logger.error('Error loading easter eggs data:', err);
+    } catch (error) {
+      logger.error('Error loading easter eggs data:', error);
     }
   }
 
@@ -269,8 +266,8 @@
 
       shareHistory = historyData.history || [];
       teamMembers = teamData.members || [];
-    } catch {
-      logger.error('Error loading social data:', err);
+    } catch (error) {
+      logger.error('Error loading social data:', error);
     }
   }
 
@@ -281,8 +278,8 @@
       const data = await api.post(`/health/calculate?project=${project}`, {});
       healthScore = data.healthScore;
       await loadHealthData();
-    } catch {
-      logger.error('Error calculating health score:', err);
+    } catch (error) {
+      logger.error('Error calculating health score:', error);
     } finally {
       loading = false;
     }
@@ -294,8 +291,8 @@
       const data = await api.post(`/drift/detect?project=${project}`, {});
       recentDrifts = data.drifts || [];
       await loadDriftData();
-    } catch {
-      logger.error('Error detecting drifts:', err);
+    } catch (error) {
+      logger.error('Error detecting drifts:', error);
     } finally {
       loading = false;
     }
@@ -305,8 +302,8 @@
     try {
       await api.post(`/drift/${driftId}/resolve?project=${project}`, {});
       await loadDriftData();
-    } catch {
-      logger.error('Error resolving drift:', err);
+    } catch (error) {
+      logger.error('Error resolving drift:', error);
     }
   }
 
@@ -315,8 +312,8 @@
       loading = true;
       const data = await api.post(`/productivity/calculate?project=${project}&days=30`, {});
       productivityInsights = data.insights;
-    } catch {
-      logger.error('Error calculating productivity:', err);
+    } catch (error) {
+      logger.error('Error calculating productivity:', error);
     } finally {
       loading = false;
     }
@@ -330,8 +327,8 @@
         {}
       );
       personalityProfile = data.personality;
-    } catch {
-      logger.error('Error analyzing personality:', err);
+    } catch (error) {
+      logger.error('Error analyzing personality:', error);
     } finally {
       loading = false;
     }
@@ -342,8 +339,8 @@
       loading = true;
       await api.post(`/growth/snapshot?project=${project}`, {});
       await loadGrowthData();
-    } catch {
-      logger.error('Error creating growth snapshot:', err);
+    } catch (error) {
+      logger.error('Error creating growth snapshot:', error);
     } finally {
       loading = false;
     }
@@ -361,8 +358,8 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch {
-      configSaveStatus = `Error saving GitHub config: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `Error saving GitHub config: ${error.message}`;
     }
   }
 
@@ -377,8 +374,8 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch {
-      configSaveStatus = `Error saving Discord config: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `Error saving Discord config: ${error.message}`;
     }
   }
 
@@ -393,8 +390,8 @@
       } else {
         configSaveStatus = `Error: ${data.error}`;
       }
-    } catch {
-      configSaveStatus = `Error saving Slack config: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `Error saving Slack config: ${error.message}`;
     }
   }
 
@@ -408,8 +405,8 @@
         configSaveStatus = `✗ GitHub test failed: ${data.result?.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -424,8 +421,8 @@
         configSaveStatus = `✗ Discord test failed: ${data.result?.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -440,8 +437,8 @@
         configSaveStatus = `✗ Slack test failed: ${data.result?.error}`;
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -456,8 +453,8 @@
         configSaveStatus = '✗ Failed to post to GitHub';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -472,8 +469,8 @@
         configSaveStatus = '✗ Failed to send to Discord';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -488,8 +485,8 @@
         configSaveStatus = '✗ Failed to send to Slack';
       }
       setTimeout(() => (configSaveStatus = ''), 5000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 5000);
     }
   }
@@ -501,8 +498,8 @@
       configSaveStatus = 'GitHub integration disabled';
       integrationStatus.github.enabled = false;
       setTimeout(() => (configSaveStatus = ''), 3000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }
   }
@@ -514,8 +511,8 @@
       configSaveStatus = 'Discord integration disabled';
       integrationStatus.discord.enabled = false;
       setTimeout(() => (configSaveStatus = ''), 3000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }
   }
@@ -527,8 +524,8 @@
       configSaveStatus = 'Slack integration disabled';
       integrationStatus.slack.enabled = false;
       setTimeout(() => (configSaveStatus = ''), 3000);
-    } catch {
-      configSaveStatus = `✗ Error: ${err.message}`;
+    } catch (error) {
+      configSaveStatus = `✗ Error: ${error.message}`;
       setTimeout(() => (configSaveStatus = ''), 3000);
     }
   }
@@ -538,12 +535,12 @@
     loadTabData(activeTab);
   }
 
-  // Watch for tab changes and load data
-  $effect(() => {
-    if (activeTab && !loadedTabs.has(activeTab)) {
-      loadTabData(activeTab);
+  function switchTab(tab) {
+    activeTab = tab;
+    if (!loadedTabs.has(tab)) {
+      loadTabData(tab);
     }
-  });
+  }
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
@@ -574,7 +571,7 @@
     <!-- Tabs -->
     <div class="flex gap-2 mb-6 border-b border-[var(--border)] pb-2 overflow-x-auto">
       <button
-        onclick={() => (activeTab = 'health')}
+        onclick={() => switchTab('health')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'health'}
         class:border-[var(--accent)]={activeTab === 'health'}
@@ -584,7 +581,7 @@
         Health Scoring
       </button>
       <button
-        onclick={() => (activeTab = 'drift')}
+        onclick={() => switchTab('drift')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'drift'}
         class:border-[var(--accent)]={activeTab === 'drift'}
@@ -594,7 +591,7 @@
         Drift Detection
       </button>
       <button
-        onclick={() => (activeTab = 'productivity')}
+        onclick={() => switchTab('productivity')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'productivity'}
         class:border-[var(--accent)]={activeTab === 'productivity'}
@@ -604,7 +601,7 @@
         Productivity
       </button>
       <button
-        onclick={() => (activeTab = 'personality')}
+        onclick={() => switchTab('personality')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'personality'}
         class:border-[var(--accent)]={activeTab === 'personality'}
@@ -614,7 +611,7 @@
         Personality
       </button>
       <button
-        onclick={() => (activeTab = 'growth')}
+        onclick={() => switchTab('growth')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'growth'}
         class:border-[var(--accent)]={activeTab === 'growth'}
@@ -624,7 +621,7 @@
         Growth Tracking
       </button>
       <button
-        onclick={() => (activeTab = 'integrations')}
+        onclick={() => switchTab('integrations')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'integrations'}
         class:border-[var(--accent)]={activeTab === 'integrations'}
@@ -634,7 +631,7 @@
         Integrations
       </button>
       <button
-        onclick={() => (activeTab = 'gamification')}
+        onclick={() => switchTab('gamification')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'gamification'}
         class:border-[var(--accent)]={activeTab === 'gamification'}
@@ -644,7 +641,7 @@
         Gamification
       </button>
       <button
-        onclick={() => (activeTab = 'easter-eggs')}
+        onclick={() => switchTab('easter-eggs')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'easter-eggs'}
         class:border-[var(--accent)]={activeTab === 'easter-eggs'}
@@ -654,7 +651,7 @@
         Easter Eggs
       </button>
       <button
-        onclick={() => (activeTab = 'social')}
+        onclick={() => switchTab('social')}
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap"
         class:text-[var(--accent)]={activeTab === 'social'}
         class:border-[var(--accent)]={activeTab === 'social'}
@@ -685,20 +682,20 @@
               <!-- Overall Score Display -->
               <div
                 class="text-center mb-8 p-6 border-4 rounded-xl"
-                style="border-color: {getHealthScoreColor(healthScore.overall_score)}"
+                style="border-color: {getHealthScoreColor(healthScore.overall_score || 0)}"
               >
                 <div
                   class="text-6xl font-bold mb-2"
-                  style="color: {getHealthScoreColor(healthScore.overall_score)}"
+                  style="color: {getHealthScoreColor(healthScore.overall_score || 0)}"
                 >
-                  {healthScore.overall_score}
+                  {healthScore.overall_score || 0}
                 </div>
                 <div class="text-lg text-[var(--muted)]">Overall Score</div>
               </div>
 
               <!-- Score Breakdown -->
               <div class="space-y-4 mb-6">
-                {#each [{ name: 'Code Quality', score: healthScore.code_quality_score }, { name: 'Test Coverage', score: healthScore.test_coverage_score }, { name: 'Documentation', score: healthScore.documentation_score }, { name: 'Velocity', score: healthScore.velocity_score }, { name: 'Stability', score: healthScore.stability_score }, { name: 'Security', score: healthScore.security_score }] as item (item.name)}
+                {#each [{ name: 'Code Quality', score: healthScore.code_quality_score || 0 }, { name: 'Test Coverage', score: healthScore.test_coverage_score || 0 }, { name: 'Documentation', score: healthScore.documentation_score || 0 }, { name: 'Velocity', score: healthScore.velocity_score || 0 }, { name: 'Stability', score: healthScore.stability_score || 0 }, { name: 'Security', score: healthScore.security_score || 0 }] as item (item.name)}
                   <div class="grid grid-cols-[150px_1fr_50px] gap-3 items-center">
                     <span class="text-sm text-[var(--text)]">{item.name}</span>
                     <div class="h-6 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -774,7 +771,7 @@
                 >
                   <div class="flex justify-between items-start mb-2">
                     <span class="font-bold text-sm text-[var(--text)]"
-                      >{drift.drift_type.toUpperCase()}</span
+                      >{drift.drift_type?.toUpperCase() || 'UNKNOWN'}</span
                     >
                     <div class="flex items-center gap-2">
                       <span
@@ -804,9 +801,9 @@
                   </div>
                   <div class="text-sm text-[var(--text-secondary)] mb-2">{drift.description}</div>
                   <div class="flex gap-5 text-xs text-[var(--muted)] mb-2">
-                    <span>Baseline: {drift.baseline_value?.toFixed(2)}</span>
-                    <span>Current: {drift.current_value?.toFixed(2)}</span>
-                    <span>Deviation: {drift.deviation_percent}%</span>
+                    <span>Baseline: {drift.baseline_value?.toFixed(2) || 'N/A'}</span>
+                    <span>Current: {drift.current_value?.toFixed(2) || 'N/A'}</span>
+                    <span>Deviation: {drift.deviation_percent || 0}%</span>
                   </div>
                   <div class="text-xs text-[var(--muted)]">
                     Detected: {new Date(drift.detected_at).toLocaleString()}
@@ -843,7 +840,7 @@
           {#if productivityInsights}
             {@const insights = productivityInsights}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {#if insights.peak_hours}
+              {#if insights.peak_hours?.peak_hour !== undefined}
                 <div
                   class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
                 >
@@ -937,68 +934,84 @@
           {#if personalityProfile}
             {@const insights = personalityProfile}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-              <div class="mb-6">
-                <h4 class="text-2xl font-bold text-[var(--accent)] mb-3">
-                  {insights.overall_profile.type}
-                </h4>
-                <p class="text-[var(--text-secondary)] leading-relaxed">
-                  {insights.overall_profile.summary}
-                </p>
-              </div>
-
-              <div class="mb-6">
-                <h5 class="text-lg font-semibold text-[var(--text)] mb-3">Traits</h5>
-                <div class="flex flex-wrap gap-2">
-                  {#each insights.overall_profile.traits as trait (trait)}
-                    <span
-                      class="px-3 py-1 bg-[var(--bg)] border border-[var(--accent)] rounded-full text-sm text-[var(--accent)]"
-                    >
-                      {trait}
-                    </span>
-                  {/each}
+              {#if insights.overall_profile}
+                <div class="mb-6">
+                  <h4 class="text-2xl font-bold text-[var(--accent)] mb-3">
+                    {insights.overall_profile.type || 'Unknown'}
+                  </h4>
+                  <p class="text-[var(--text-secondary)] leading-relaxed">
+                    {insights.overall_profile.summary || 'No summary available'}
+                  </p>
                 </div>
-              </div>
+
+                {#if insights.overall_profile.traits && insights.overall_profile.traits.length > 0}
+                  <div class="mb-6">
+                    <h5 class="text-lg font-semibold text-[var(--text)] mb-3">Traits</h5>
+                    <div class="flex flex-wrap gap-2">
+                      {#each insights.overall_profile.traits as trait (trait)}
+                        <span
+                          class="px-3 py-1 bg-[var(--bg)] border border-[var(--accent)] rounded-full text-sm text-[var(--accent)]"
+                        >
+                          {trait}
+                        </span>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+              {/if}
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
-                  <span class="text-sm text-[var(--muted)]">Communication Style</span>
-                  <span class="text-sm font-bold text-[var(--accent)]"
-                    >{insights.communication_style.style}</span
-                  >
-                </div>
-                <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
-                  <span class="text-sm text-[var(--muted)]">Risk Tolerance</span>
-                  <span class="text-sm font-bold text-[var(--accent)]"
-                    >{insights.risk_profile.tolerance}</span
-                  >
-                </div>
-                <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
-                  <span class="text-sm text-[var(--muted)]">Creativity Score</span>
-                  <span class="text-sm font-bold text-[var(--accent)]"
-                    >{insights.creativity_score.score}/100</span
-                  >
-                </div>
-                <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
-                  <span class="text-sm text-[var(--muted)]">Consistency Score</span>
-                  <span class="text-sm font-bold text-[var(--accent)]"
-                    >{insights.consistency_metrics.score}/100</span
-                  >
-                </div>
-                <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
-                  <span class="text-sm text-[var(--muted)]">Problem Solving</span>
-                  <span class="text-sm font-bold text-[var(--accent)]"
-                    >{insights.problem_solving.approach}</span
-                  >
-                </div>
-                <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
-                  <span class="text-sm text-[var(--muted)]">Decision Speed</span>
-                  <span class="text-sm font-bold text-[var(--accent)]"
-                    >{insights.decision_speed.speed}</span
-                  >
-                </div>
+                {#if insights.communication_style?.style}
+                  <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
+                    <span class="text-sm text-[var(--muted)]">Communication Style</span>
+                    <span class="text-sm font-bold text-[var(--accent)]"
+                      >{insights.communication_style.style}</span
+                    >
+                  </div>
+                {/if}
+                {#if insights.risk_profile?.tolerance}
+                  <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
+                    <span class="text-sm text-[var(--muted)]">Risk Tolerance</span>
+                    <span class="text-sm font-bold text-[var(--accent)]"
+                      >{insights.risk_profile.tolerance}</span
+                    >
+                  </div>
+                {/if}
+                {#if insights.creativity_score?.score}
+                  <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
+                    <span class="text-sm text-[var(--muted)]">Creativity Score</span>
+                    <span class="text-sm font-bold text-[var(--accent)]"
+                      >{insights.creativity_score.score}/100</span
+                    >
+                  </div>
+                {/if}
+                {#if insights.consistency_metrics?.score}
+                  <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
+                    <span class="text-sm text-[var(--muted)]">Consistency Score</span>
+                    <span class="text-sm font-bold text-[var(--accent)]"
+                      >{insights.consistency_metrics.score}/100</span
+                    >
+                  </div>
+                {/if}
+                {#if insights.problem_solving?.approach}
+                  <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
+                    <span class="text-sm text-[var(--muted)]">Problem Solving</span>
+                    <span class="text-sm font-bold text-[var(--accent)]"
+                      >{insights.problem_solving.approach}</span
+                    >
+                  </div>
+                {/if}
+                {#if insights.decision_speed?.speed}
+                  <div class="flex justify-between p-3 bg-[var(--bg)] rounded-lg">
+                    <span class="text-sm text-[var(--muted)]">Decision Speed</span>
+                    <span class="text-sm font-bold text-[var(--accent)]"
+                      >{insights.decision_speed.speed}</span
+                    >
+                  </div>
+                {/if}
               </div>
 
-              {#if insights.overall_profile.strengths && insights.overall_profile.strengths.length > 0}
+              {#if insights.overall_profile?.strengths && insights.overall_profile.strengths.length > 0}
                 <div>
                   <h5 class="text-lg font-semibold text-[var(--text)] mb-3">Strengths</h5>
                   <div class="space-y-2">
@@ -1065,7 +1078,7 @@
               >
                 <div class="text-sm text-[var(--muted)] mb-2">Peak Events</div>
                 <div class="text-3xl font-bold text-[var(--accent)]">
-                  {growthSummary.statistics.peak_events}
+                  {growthSummary.statistics?.peak_events || 0}
                 </div>
               </div>
             </div>
@@ -1106,7 +1119,7 @@
                         class:text-red-400={trend.direction === 'decreasing'}
                       >
                         {trend.direction === 'increasing' ? '↗️' : '↘️'}
-                        {Math.abs(trend.change_percent)}%
+                        {Math.abs(trend.change_percent || 0)}%
                       </span>
                     </div>
                   {/each}

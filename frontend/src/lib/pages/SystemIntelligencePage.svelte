@@ -80,9 +80,9 @@
 
       lastUpdate = new Date();
       error = null;
-    } catch {
-      logger.error('Failed to load intelligence data:', err);
-      error = err.message;
+    } catch (error) {
+      logger.error('Failed to load intelligence data:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }

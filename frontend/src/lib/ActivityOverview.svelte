@@ -57,8 +57,8 @@
       lastUpdated = new Date();
       loading = false;
     } catch (err) {
-      logger.error('Failed to load activity data:', err);
-      error = err.message;
+      logger.error('Failed to load activity data:', error);
+      errorMessage = error.message;
       loading = false;
     }
   }
@@ -70,7 +70,7 @@
       await fetch(endpoint, { method: 'POST' });
       isPaused = !isPaused;
     } catch (err) {
-      logger.error('Failed to toggle tracking:', err);
+      logger.error('Failed to toggle tracking:', error);
     }
   }
 

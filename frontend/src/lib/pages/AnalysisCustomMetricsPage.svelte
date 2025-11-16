@@ -30,9 +30,9 @@
       metrics = data.metrics || {};
       lastUpdate = new Date();
       error = null;
-    } catch {
-      logger.error('Failed to load metrics:', err);
-      error = err.message;
+    } catch (error) {
+      logger.error('Failed to load metrics:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }

@@ -47,9 +47,9 @@
 
       testResult = 'Test event sent successfully!';
       testError = null;
-    } catch {
-      logger.error('Test telemetry failed:', err);
-      testError = `Connection failed: ${err.message}`;
+    } catch (error) {
+      logger.error('Test telemetry failed:', error);
+      testError = `Connection failed: ${error.message}`;
       testResult = null;
     } finally {
       testingTelemetry = false;
@@ -62,8 +62,8 @@
       await navigator.clipboard.writeText('http://localhost:3030/telemetry');
       copiedEndpoint = true;
       setTimeout(() => (copiedEndpoint = false), 2000);
-    } catch {
-      logger.error('Failed to copy endpoint:', err);
+    } catch (error) {
+      logger.error('Failed to copy endpoint:', error);
     }
   }
 
@@ -73,8 +73,8 @@
       await navigator.clipboard.writeText(JSON.stringify(examplePayload, null, 2));
       copiedPayload = true;
       setTimeout(() => (copiedPayload = false), 2000);
-    } catch {
-      logger.error('Failed to copy payload:', err);
+    } catch (error) {
+      logger.error('Failed to copy payload:', error);
     }
   }
 </script>

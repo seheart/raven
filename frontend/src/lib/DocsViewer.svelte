@@ -40,7 +40,7 @@
       }
     } catch (err) {
       error = 'Failed to load documentation list';
-      logger.error(err);
+      logger.error(error);
     }
   }
 
@@ -62,7 +62,7 @@
       selectedDoc = filepath;
     } catch (err) {
       error = `Failed to load ${filepath}`;
-      logger.error(err);
+      logger.error(error);
     } finally {
       loading = false;
     }

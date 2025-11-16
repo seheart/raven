@@ -51,8 +51,8 @@ export function initializeCharts(createChartsFunc, { data, enabled = true, delay
  * @returns {MutationObserver} The observer instance
  */
 export function setupChartThemeObserver(createChartsFunc, { enabled = true, delay = 100 } = {}) {
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
       if (mutation.attributeName === 'class' && enabled) {
         setTimeout(createChartsFunc, delay);
       }
@@ -83,7 +83,7 @@ export function getChartThemeColors() {
     warning: bodyStyles.getPropertyValue('--warning').trim(),
     info: bodyStyles.getPropertyValue('--info').trim(),
     accent: bodyStyles.getPropertyValue('--accent').trim(),
-    grid: 'rgba(128, 128, 128, 0.15)',
+    grid: 'rgba(128, 128, 128, 0.15)'
   };
 }
 
@@ -143,10 +143,8 @@ function mergeDeep(target, source) {
   if (isObject(target) && isObject(source)) {
     Object.keys(source).forEach(key => {
       if (isObject(source[key])) {
-        if (!(key in target))
-          Object.assign(output, { [key]: source[key] });
-        else
-          output[key] = mergeDeep(target[key], source[key]);
+        if (!(key in target)) Object.assign(output, { [key]: source[key] });
+        else output[key] = mergeDeep(target[key], source[key]);
       } else {
         Object.assign(output, { [key]: source[key] });
       }

@@ -72,9 +72,9 @@
         setTimeout(createCharts, 100);
       }
     } catch (err) {
-      logger.error('Failed to fetch syntax errors:', err);
+      logger.error('Failed to fetch syntax errors:', error);
       notifications.error('Failed to load syntax errors');
-      error = err.message || 'Failed to load syntax errors';
+      errorMessage = error.message || 'Failed to load syntax errors';
       loading = false;
       loadingMore = false;
     }
@@ -102,7 +102,7 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
       await navigator.clipboard.writeText(errorText);
       notifications.success('Error details copied to clipboard');
     } catch (err) {
-      logger.error('Failed to copy to clipboard:', err);
+      logger.error('Failed to copy to clipboard:', error);
       notifications.error('Failed to copy to clipboard');
     }
   }
@@ -148,7 +148,7 @@ ${error.code_snippet ? 'Code:\n' + error.code_snippet : ''}`;
           duration: 7000,
           title: 'Paste this in your editor'
         });
-      } catch {
+      } catch (error) {
         // If clipboard fails, just show the path
         notifications.info(`File: ${filepath}:${lineNumber}`, {
           duration: 7000,
@@ -201,7 +201,7 @@ ${allErrorsText}`;
       await navigator.clipboard.writeText(finalText);
       notifications.success(`Copied ${formatNumber(errors.length)} errors to clipboard`);
     } catch (err) {
-      logger.error('Failed to copy all errors:', err);
+      logger.error('Failed to copy all errors:', error);
       notifications.error('Failed to copy to clipboard');
     }
   }
@@ -230,7 +230,7 @@ ${allErrorsText}`;
       notifications.success(`Cleared ${formatNumber(errors.length)} syntax errors`);
       await fetchErrors();
     } catch (err) {
-      logger.error('Failed to clear errors:', err);
+      logger.error('Failed to clear errors:', error);
       notifications.error('Failed to clear errors');
     }
   }

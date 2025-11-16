@@ -70,8 +70,8 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      logger.error('Failed to load risk data:', err);
-      error = err.message;
+      logger.error('Failed to load risk data:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }

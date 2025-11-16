@@ -51,8 +51,8 @@
         stats = null;
       }
     } catch (err) {
-      logger.error('Failed to load session data:', err);
-      error = err.message;
+      logger.error('Failed to load session data:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }

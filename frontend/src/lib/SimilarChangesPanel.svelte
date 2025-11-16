@@ -31,15 +31,16 @@
 
         prediction = {
           successRate: successRate,
-          confidence: similarChanges.length > 10 ? 'high' : similarChanges.length > 5 ? 'medium' : 'low',
+          confidence:
+            similarChanges.length > 10 ? 'high' : similarChanges.length > 5 ? 'medium' : 'low',
           sampleSize: similarChanges.length,
           keptCount,
           rolledBackCount
         };
       }
     } catch (err) {
-      logger.error('Failed to load similar changes:', err);
-      error = err.message;
+      logger.error('Failed to load similar changes:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }
@@ -91,7 +92,12 @@
   {:else}
     <!-- Prediction Summary -->
     {#if prediction}
-      <div class="prediction-box" class:high-risk={prediction.successRate < 0.5} role="region" aria-labelledby="prediction-heading">
+      <div
+        class="prediction-box"
+        class:high-risk={prediction.successRate < 0.5}
+        role="region"
+        aria-labelledby="prediction-heading"
+      >
         <div class="prediction-header">
           <span class="prediction-icon" aria-hidden="true">
             {#if prediction.successRate >= 0.8}
@@ -102,13 +108,22 @@
               ⚠️
             {/if}
           </span>
-          <span class="prediction-title" id="prediction-heading">Historical Outcome Prediction</span>
+          <span class="prediction-title" id="prediction-heading">Historical Outcome Prediction</span
+          >
         </div>
 
         <div class="prediction-stats" role="list" aria-label="Prediction statistics">
           <div class="stat-item" role="listitem">
             <div class="stat-label">Success Rate</div>
-            <div class="stat-value" role="status" style="color: {prediction.successRate >= 0.7 ? 'var(--success)' : prediction.successRate >= 0.5 ? 'var(--warning)' : 'var(--error)'}">
+            <div
+              class="stat-value"
+              role="status"
+              style="color: {prediction.successRate >= 0.7
+                ? 'var(--success)'
+                : prediction.successRate >= 0.5
+                  ? 'var(--warning)'
+                  : 'var(--error)'}"
+            >
               {(prediction.successRate * 100).toFixed(0)}%
             </div>
           </div>
@@ -125,7 +140,11 @@
         </div>
 
         <div class="outcome-breakdown">
-          <div class="outcome-bar" role="img" aria-label="Outcome distribution: {prediction.keptCount} kept, {prediction.rolledBackCount} rolled back">
+          <div
+            class="outcome-bar"
+            role="img"
+            aria-label="Outcome distribution: {prediction.keptCount} kept, {prediction.rolledBackCount} rolled back"
+          >
             <div
               class="outcome-segment kept"
               style="width: {(prediction.keptCount / prediction.sampleSize) * 100}%"
@@ -148,14 +167,19 @@
             </div>
           </div>
           <div class="outcome-legend" role="list" aria-label="Outcome legend">
-            <span class="legend-item kept" role="listitem"><span aria-hidden="true">✅</span> Kept: {prediction.keptCount}</span>
-            <span class="legend-item rolled-back" role="listitem"><span aria-hidden="true">↩️</span> Rolled Back: {prediction.rolledBackCount}</span>
+            <span class="legend-item kept" role="listitem"
+              ><span aria-hidden="true">✅</span> Kept: {prediction.keptCount}</span
+            >
+            <span class="legend-item rolled-back" role="listitem"
+              ><span aria-hidden="true">↩️</span> Rolled Back: {prediction.rolledBackCount}</span
+            >
           </div>
         </div>
 
         {#if prediction.successRate < 0.5}
           <div class="warning-message" role="alert">
-            <span aria-hidden="true">⚠️</span> Warning: Similar changes were rolled back more often than kept. Review carefully!
+            <span aria-hidden="true">⚠️</span> Warning: Similar changes were rolled back more often than
+            kept. Review carefully!
           </div>
         {:else if prediction.successRate >= 0.8}
           <div class="success-message" role="status">
@@ -168,19 +192,36 @@
     <!-- Similar Changes List -->
     <div class="changes-list" role="list" aria-labelledby="similar-changes-heading">
       {#each similarChanges as change (change.id)}
-        <article class="change-card" class:rolled-back={change.outcome === 'rolled_back'} role="listitem">
+        <article
+          class="change-card"
+          class:rolled-back={change.outcome === 'rolled_back'}
+          role="listitem"
+        >
           <div class="change-header">
-            <div class="similarity-badge" style="background: {getSimilarityColor(change.similarity)}33; border-color: {getSimilarityColor(change.similarity)};" role="img" aria-label="{(change.similarity * 100).toFixed(0)}% similarity match">
-              <span class="similarity-percent" aria-hidden="true">{(change.similarity * 100).toFixed(0)}%</span>
+            <div
+              class="similarity-badge"
+              style="background: {getSimilarityColor(
+                change.similarity
+              )}33; border-color: {getSimilarityColor(change.similarity)};"
+              role="img"
+              aria-label="{(change.similarity * 100).toFixed(0)}% similarity match"
+            >
+              <span class="similarity-percent" aria-hidden="true"
+                >{(change.similarity * 100).toFixed(0)}%</span
+              >
               <span class="similarity-label" aria-hidden="true">match</span>
             </div>
 
             <div
               class="outcome-badge"
-              style="background: {getOutcomeBadge(change.outcome).color}33; border-color: {getOutcomeBadge(change.outcome).color}; color: {getOutcomeBadge(change.outcome).color};"
+              style="background: {getOutcomeBadge(change.outcome)
+                .color}33; border-color: {getOutcomeBadge(change.outcome)
+                .color}; color: {getOutcomeBadge(change.outcome).color};"
               role="status"
             >
-              <span class="outcome-icon" aria-hidden="true">{getOutcomeBadge(change.outcome).icon}</span>
+              <span class="outcome-icon" aria-hidden="true"
+                >{getOutcomeBadge(change.outcome).icon}</span
+              >
               <span class="outcome-text">{getOutcomeBadge(change.outcome).text}</span>
             </div>
           </div>
@@ -265,7 +306,8 @@
     margin: 0 auto var(--space-2xl);
   }
 
-  .empty-state, .error-state {
+  .empty-state,
+  .error-state {
     padding: var(--space-lg) var(--space-xl);
     text-align: center;
     color: var(--muted);
@@ -397,7 +439,7 @@
     font-size: 12px;
     font-weight: 700;
     color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
   .outcome-legend {

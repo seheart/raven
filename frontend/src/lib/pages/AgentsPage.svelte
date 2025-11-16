@@ -132,9 +132,9 @@
 
       loading = false;
       lastUpdated = new Date();
-    } catch {
-      logger.error('Failed to load agents data:', err);
-      error = err.message;
+    } catch (error) {
+      logger.error('Failed to load agents data:', error);
+      errorMessage = error.message;
       loading = false;
     }
   }

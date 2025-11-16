@@ -95,12 +95,12 @@
       loading = false;
       error = null;
     } catch (err) {
-      logger.error('Failed to load tracked files:', err);
+      logger.error('Failed to load tracked files:', error);
       notifications.error(`Failed to load tracked files: ${err.message || 'Network error'}`, {
         title: 'File Browser Error',
         message: 'Using fallback data. Check if the Raven backend is running.'
       });
-      error = err.message || 'Failed to load tracked files';
+      errorMessage = error.message || 'Failed to load tracked files';
       // Fallback to mock data
       files = [
         'test_workspace/src/example.py',

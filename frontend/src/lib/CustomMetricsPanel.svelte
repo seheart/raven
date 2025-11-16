@@ -46,8 +46,8 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      logger.error('Failed to load metrics:', err);
-      error = err.message;
+      logger.error('Failed to load metrics:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }
@@ -81,7 +81,9 @@
     </div>
     <div class="header-right" role="toolbar" aria-label="Dashboard actions">
       <span class="last-update" role="status" aria-live="polite">Updated: {timeSinceUpdate}</span>
-      <button class="btn-primary" on:click={loadMetrics} aria-label="Refresh metrics"><span aria-hidden="true">↻</span> Refresh</button>
+      <button class="btn-primary" on:click={loadMetrics} aria-label="Refresh metrics"
+        ><span aria-hidden="true">↻</span> Refresh</button
+      >
     </div>
   </div>
 
@@ -137,7 +139,9 @@
       <!-- Conversations -->
       <article class="metric-card info" role="listitem">
         <div class="metric-icon" aria-hidden="true">💬</div>
-        <div class="metric-value" role="status">{(metrics.conversation_count || 0).toLocaleString()}</div>
+        <div class="metric-value" role="status">
+          {(metrics.conversation_count || 0).toLocaleString()}
+        </div>
         <div class="metric-label">Conversations</div>
         <div class="metric-sublabel">Total logged</div>
       </article>
@@ -162,7 +166,11 @@
 
       <!-- Events by Type -->
       {#if metrics.events_by_type}
-        <article class="metric-card wide breakdown" role="listitem" aria-labelledby="events-by-type-heading">
+        <article
+          class="metric-card wide breakdown"
+          role="listitem"
+          aria-labelledby="events-by-type-heading"
+        >
           <div class="breakdown-header">
             <span class="breakdown-icon" aria-hidden="true">📋</span>
             <span class="breakdown-title" id="events-by-type-heading">Events by Type</span>
@@ -187,7 +195,9 @@
           </div>
           <div class="highlight-content">
             <div class="highlight-file">{metrics.most_active_file.file}</div>
-            <div class="highlight-changes" role="status">{metrics.most_active_file.changes} changes</div>
+            <div class="highlight-changes" role="status">
+              {metrics.most_active_file.changes} changes
+            </div>
           </div>
         </article>
       {/if}

@@ -79,8 +79,24 @@ export async function apiFetch(endpoint, options = {}) {
       const errorText = await response.text().catch(() => 'Unknown error');
       const errorMessage = `API error (${response.status}): ${errorText}`;
 
+      // Check if this is a Tier 4 endpoint (experimental features)
+      const isTier4Endpoint =
+        endpoint.includes('/health/') ||
+        endpoint.includes('/drift/') ||
+        endpoint.includes('/productivity/') ||
+        endpoint.includes('/personality/') ||
+        endpoint.includes('/growth/') ||
+        endpoint.includes('/integrations/') ||
+        endpoint.includes('/gamification/') ||
+        endpoint.includes('/easter-eggs') ||
+        endpoint.includes('/social/');
+
+      // Suppress logging and notifications for 404s/501s on Tier 4 endpoints (they're not implemented yet)
+      const shouldSuppress =
+        (response.status === 404 || response.status === 501) && isTier4Endpoint;
+
       // Log HTTP error to error log (but don't log errors from the error endpoint itself)
-      if (!endpoint.includes('/errors')) {
+      if (!endpoint.includes('/errors') && !shouldSuppress) {
         logError(
           new Error(errorMessage),
           'API Client',
@@ -113,7 +129,11 @@ export async function apiFetch(endpoint, options = {}) {
         throw new Error('Unauthorized');
       }
 
-      notifications.apiError(endpoint, errorMessage);
+      // Don't show notifications for suppressed 404s/501s
+      if (!shouldSuppress) {
+        notifications.apiError(endpoint, errorMessage);
+      }
+
       throw new Error(errorMessage);
     }
 

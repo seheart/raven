@@ -6,7 +6,11 @@
   import { websocketService } from './websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import { Chart, registerables } from 'chart.js';
-  import { initializeCharts, setupChartThemeObserver, getChartThemeColors } from './utils/chartHelpers.js';
+  import {
+    initializeCharts,
+    setupChartThemeObserver,
+    getChartThemeColors
+  } from './utils/chartHelpers.js';
 
   Chart.register(...registerables);
 
@@ -76,8 +80,8 @@
       isManualRefresh = false;
       error = null;
     } catch (err) {
-      logger.error('Failed to load storage data:', err);
-      error = err.message;
+      logger.error('Failed to load storage data:', error);
+      errorMessage = error.message;
       loading = false;
       isManualRefresh = false;
     }
@@ -142,8 +146,8 @@
 
       alert(`Database ${dbName} exported successfully!`);
     } catch (err) {
-      logger.error('Failed to export database:', err);
-      alert(`Failed to export database: ${err.message}`);
+      logger.error('Failed to export database:', error);
+      alert(`Failed to export database: ${error.message}`);
     }
   }
 
@@ -161,14 +165,16 @@
       const result = await response.json();
 
       if (result.success) {
-        alert(`Database optimized!\n\nBefore: ${formatBytes(result.sizeBefore)}\nAfter: ${formatBytes(result.sizeAfter)}\nSpace saved: ${formatBytes(result.spaceSaved)} (${result.percentSaved}%)`);
+        alert(
+          `Database optimized!\n\nBefore: ${formatBytes(result.sizeBefore)}\nAfter: ${formatBytes(result.sizeAfter)}\nSpace saved: ${formatBytes(result.spaceSaved)} (${result.percentSaved}%)`
+        );
         await loadStorageData(); // Refresh to show new size
       } else {
         alert(`Optimization failed: ${result.error}`);
       }
     } catch (err) {
-      logger.error('Failed to optimize database:', err);
-      alert(`Failed to optimize database: ${err.message}`);
+      logger.error('Failed to optimize database:', error);
+      alert(`Failed to optimize database: ${error.message}`);
     }
   }
 
@@ -183,7 +189,11 @@
       return;
     }
 
-    if (!confirm(`Delete all records older than ${daysNum} days from ${dbName}?\n\nThis cannot be undone!`)) {
+    if (
+      !confirm(
+        `Delete all records older than ${daysNum} days from ${dbName}?\n\nThis cannot be undone!`
+      )
+    ) {
       return;
     }
 
@@ -207,8 +217,8 @@
         alert(`Cleanup failed: ${result.error}`);
       }
     } catch (err) {
-      logger.error('Failed to clean database:', err);
-      alert(`Failed to clean database: ${err.message}`);
+      logger.error('Failed to clean database:', error);
+      alert(`Failed to clean database: ${error.message}`);
     }
   }
 
@@ -226,7 +236,7 @@
       const response = await fetch(`${API_BASE}/storage/retention`);
       retentionPolicy = await response.json();
     } catch (err) {
-      logger.error('Failed to load retention policy:', err);
+      logger.error('Failed to load retention policy:', error);
     }
   }
 
@@ -247,8 +257,8 @@
         alert(`Failed to save policy: ${result.error}`);
       }
     } catch (err) {
-      logger.error('Failed to save retention policy:', err);
-      alert(`Failed to save policy: ${err.message}`);
+      logger.error('Failed to save retention policy:', error);
+      alert(`Failed to save policy: ${error.message}`);
     }
   }
 
@@ -258,7 +268,8 @@
   }
 
   $: totalDatabaseSize = storageData?.databases?.reduce((sum, db) => sum + (db?.size || 0), 0) || 0;
-  $: totalSnapshotsSize = storageData?.snapshots?.reduce((sum, snap) => sum + (snap?.size || 0), 0) || 0;
+  $: totalSnapshotsSize =
+    storageData?.snapshots?.reduce((sum, snap) => sum + (snap?.size || 0), 0) || 0;
 
   // Chart Functions
   function createCharts() {
@@ -293,12 +304,14 @@
         type: 'pie',
         data: {
           labels: dbData.map(db => db.name),
-          datasets: [{
-            data: dbData.map(db => db.size),
-            backgroundColor: dbData.map((_, i) => colorPalette[i % colorPalette.length]),
-            borderColor: dbData.map((_, i) => colorPalette[i % colorPalette.length]),
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: dbData.map(db => db.size),
+              backgroundColor: dbData.map((_, i) => colorPalette[i % colorPalette.length]),
+              borderColor: dbData.map((_, i) => colorPalette[i % colorPalette.length]),
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -313,7 +326,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   const label = context.label || '';
                   const value = context.parsed || 0;
                   return `${label}: ${formatBytes(value)}`;
@@ -342,23 +355,23 @@
       });
 
       // Sort by record count and take top 10
-      const topTables = allTables
-        .sort((a, b) => b.records - a.records)
-        .slice(0, 10);
+      const topTables = allTables.sort((a, b) => b.records - a.records).slice(0, 10);
 
       if (topTables.length > 0) {
         charts.largestTablesChart = new Chart(largestTablesCanvas, {
           type: 'bar',
           data: {
             labels: topTables.map(t => t.name),
-            datasets: [{
-              label: 'Row Count',
-              data: topTables.map(t => t.records),
-              backgroundColor: colors.info,
-              borderColor: colors.info,
-              borderWidth: 2,
-              borderRadius: 4
-            }]
+            datasets: [
+              {
+                label: 'Row Count',
+                data: topTables.map(t => t.records),
+                backgroundColor: colors.info,
+                borderColor: colors.info,
+                borderWidth: 2,
+                borderRadius: 4
+              }
+            ]
           },
           options: {
             indexAxis: 'y',
@@ -370,7 +383,7 @@
               },
               tooltip: {
                 callbacks: {
-                  label: function(context) {
+                  label: function (context) {
                     return `Rows: ${formatNumber(context.parsed.x)}`;
                   }
                 }
@@ -382,7 +395,7 @@
                 ticks: {
                   color: colors.muted,
                   font: { size: 10, family: 'var(--mono)' },
-                  callback: function(value) {
+                  callback: function (value) {
                     return formatNumber(value);
                   }
                 },
@@ -428,12 +441,14 @@
         type: 'doughnut',
         data: {
           labels: dbSizes.map(db => db.name),
-          datasets: [{
-            data: dbSizes.map(db => db.size),
-            backgroundColor: dbSizes.map((_, i) => colorPalette[i % colorPalette.length]),
-            borderColor: dbSizes.map((_, i) => colorPalette[i % colorPalette.length]),
-            borderWidth: 2
-          }]
+          datasets: [
+            {
+              data: dbSizes.map(db => db.size),
+              backgroundColor: dbSizes.map((_, i) => colorPalette[i % colorPalette.length]),
+              borderColor: dbSizes.map((_, i) => colorPalette[i % colorPalette.length]),
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -448,7 +463,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   const label = context.label || '';
                   const value = context.parsed || 0;
                   const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -524,7 +539,7 @@
       <div class="charts-section">
         <div class="charts-header">
           <h2>Storage Analytics</h2>
-          <button class="btn btn-ghost btn-sm" on:click={() => showCharts = !showCharts}>
+          <button class="btn btn-ghost btn-sm" on:click={() => (showCharts = !showCharts)}>
             {showCharts ? 'Hide Charts' : 'Show Charts'}
           </button>
         </div>
@@ -600,16 +615,31 @@
                 <td>{formatDate(db.modified)}</td>
                 <td>
                   <div class="db-actions">
-                    <button class="btn btn-ghost btn-sm" on:click={() => toggleDatabaseExpansion(db.name)}>
+                    <button
+                      class="btn btn-ghost btn-sm"
+                      on:click={() => toggleDatabaseExpansion(db.name)}
+                    >
                       {expandedDatabase === db.name ? '▼' : '▶'} Details
                     </button>
-                    <button class="btn btn-icon btn-sm" on:click={() => exportDatabase(db.name)} title="Export database">
+                    <button
+                      class="btn btn-icon btn-sm"
+                      on:click={() => exportDatabase(db.name)}
+                      title="Export database"
+                    >
                       💾
                     </button>
-                    <button class="btn btn-icon btn-sm" on:click={() => optimizeDatabase(db.name)} title="Optimize database (VACUUM)">
+                    <button
+                      class="btn btn-icon btn-sm"
+                      on:click={() => optimizeDatabase(db.name)}
+                      title="Optimize database (VACUUM)"
+                    >
                       ⚡
                     </button>
-                    <button class="btn btn-danger btn-icon btn-sm" on:click={() => cleanDatabase(db.name)} title="Clean old data">
+                    <button
+                      class="btn btn-danger btn-icon btn-sm"
+                      on:click={() => cleanDatabase(db.name)}
+                      title="Clean old data"
+                    >
                       🧹
                     </button>
                   </div>
@@ -637,8 +667,13 @@
                               <td>{formatBytes(table.size)}</td>
                               <td>
                                 <div class="progress-bar">
-                                  <div class="progress-fill" style="width: {getPercentage(table.size, db.size)}%"></div>
-                                  <span class="progress-label">{getPercentage(table.size, db.size)}%</span>
+                                  <div
+                                    class="progress-fill"
+                                    style="width: {getPercentage(table.size, db.size)}%"
+                                  ></div>
+                                  <span class="progress-label"
+                                    >{getPercentage(table.size, db.size)}%</span
+                                  >
                                 </div>
                               </td>
                             </tr>
@@ -706,9 +741,13 @@
     <!-- Actions Section -->
     <section class="actions">
       <h2>⚙️ Actions</h2>
-      <p class="help-text">Use per-database action buttons in the table above, or configure retention policy below.</p>
+      <p class="help-text">
+        Use per-database action buttons in the table above, or configure retention policy below.
+      </p>
       <div class="action-buttons">
-        <button class="btn btn-secondary" on:click={openRetentionConfig}>⚙️ Configure Retention</button>
+        <button class="btn btn-secondary" on:click={openRetentionConfig}
+          >⚙️ Configure Retention</button
+        >
       </div>
     </section>
 
@@ -719,11 +758,26 @@
 
   <!-- Retention Policy Modal -->
   {#if showRetentionModal}
-    <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => showRetentionModal = false} on:keydown={(e) => e.key === 'Escape' && (showRetentionModal = false)}>
-      <div class="modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
+    <div
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+      on:click={() => (showRetentionModal = false)}
+      on:keydown={e => e.key === 'Escape' && (showRetentionModal = false)}
+    >
+      <div
+        class="modal-content"
+        on:click|stopPropagation
+        on:keydown={e => e.stopPropagation()}
+        role="dialog"
+        tabindex="-1"
+      >
         <div class="modal-header">
           <h2>⚙️ Configure Retention Policy</h2>
-          <button class="btn btn-ghost btn-icon" on:click={() => showRetentionModal = false}>✕</button>
+          <button class="btn btn-ghost btn-icon" on:click={() => (showRetentionModal = false)}
+            >✕</button
+          >
         </div>
 
         <div class="modal-body">
@@ -732,7 +786,9 @@
               <input type="checkbox" bind:checked={retentionPolicy.enabled} />
               Enable automatic data retention
             </label>
-            <p class="help-text">When enabled, data older than the retention period will be flagged for cleanup.</p>
+            <p class="help-text">
+              When enabled, data older than the retention period will be flagged for cleanup.
+            </p>
           </div>
 
           <div class="form-group">
@@ -750,10 +806,16 @@
 
           <div class="form-group">
             <label>
-              <input type="checkbox" bind:checked={retentionPolicy.autoCleanup} disabled={!retentionPolicy.enabled} />
+              <input
+                type="checkbox"
+                bind:checked={retentionPolicy.autoCleanup}
+                disabled={!retentionPolicy.enabled}
+              />
               Enable automatic cleanup
             </label>
-            <p class="help-text">Automatically delete old data on schedule (requires backend restart to take effect).</p>
+            <p class="help-text">
+              Automatically delete old data on schedule (requires backend restart to take effect).
+            </p>
           </div>
 
           <div class="form-group">
@@ -772,7 +834,8 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-ghost" on:click={() => showRetentionModal = false}>Cancel</button>
+          <button class="btn btn-ghost" on:click={() => (showRetentionModal = false)}>Cancel</button
+          >
           <button class="btn btn-primary" on:click={saveRetentionPolicy}>Save Policy</button>
         </div>
       </div>
@@ -1107,7 +1170,8 @@
       font-size: 0.75rem;
     }
 
-    td, th {
+    td,
+    th {
       padding: 0.5rem;
     }
   }
@@ -1186,7 +1250,7 @@
     font-size: 0.875rem;
   }
 
-  .form-group input[type="number"],
+  .form-group input[type='number'],
   .form-group select {
     width: 100%;
     padding: 0.75rem;
@@ -1198,7 +1262,7 @@
     font-family: var(--mono);
   }
 
-  .form-group input[type="checkbox"] {
+  .form-group input[type='checkbox'] {
     margin-right: 0.5rem;
     width: 1rem;
     height: 1rem;

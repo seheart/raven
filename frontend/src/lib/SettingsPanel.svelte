@@ -70,7 +70,7 @@
         } else {
           throw new Error('Invalid settings format');
         }
-      } catch {
+      } catch (error) {
         notifications.error('Failed to import settings: Invalid file', {
           title: 'Import Error'
         });
@@ -150,8 +150,8 @@
           title: 'Permission Denied'
         });
       }
-    } catch {
-      logger.error('Error requesting notification permission:', err);
+    } catch (error) {
+      logger.error('Error requesting notification permission:', error);
       notifications.error('Failed to request notification permission:', {
         title: 'Error'
       });

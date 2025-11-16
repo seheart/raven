@@ -49,12 +49,12 @@
       const data = await api.get(`/projects?_t=${Date.now()}`);
       config = data;
       error = null;
-    } catch {
-      logger.error('Failed to load projects:', err);
-      if (err instanceof TypeError && err.message.includes('fetch')) {
+    } catch (error) {
+      logger.error('Failed to load projects:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
         error = 'Cannot connect to Raven backend. Is it running on http://localhost:3030?';
       } else {
-        error = err.message;
+        errorMessage = error.message;
       }
     } finally {
       loading = false;
@@ -73,12 +73,12 @@
       } else {
         notifications.success('No new projects found');
       }
-    } catch {
-      logger.error('Failed to discover projects:', err);
-      if (err instanceof TypeError && err.message.includes('fetch')) {
+    } catch (error) {
+      logger.error('Failed to discover projects:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
         notifications.error('Cannot connect to backend. Check if Raven is running.');
       } else {
-        notifications.error(`Discovery failed: ${err.message}`);
+        notifications.error(`Discovery failed: ${error.message}`);
       }
     } finally {
       discovering = false;
@@ -91,8 +91,8 @@
       await loadConfig();
       discoveredProjects = discoveredProjects.filter(p => p.name !== project.name);
       notifications.success(`Project "${project.name}" added`);
-    } catch {
-      notifications.error(`Failed to add project: ${err.message}`);
+    } catch (error) {
+      notifications.error(`Failed to add project: ${error.message}`);
     }
   }
 
@@ -103,8 +103,8 @@
       showAddModal = false;
       resetForm();
       notifications.success(`Project "${formData.name}" added`);
-    } catch {
-      notifications.error(`Failed to add project: ${err.message}`);
+    } catch (error) {
+      notifications.error(`Failed to add project: ${error.message}`);
     }
   }
 
@@ -116,8 +116,8 @@
       selectedProject = null;
       resetForm();
       notifications.success(`Project "${formData.name}" updated`);
-    } catch {
-      notifications.error(`Failed to update project: ${err.message}`);
+    } catch (error) {
+      notifications.error(`Failed to update project: ${error.message}`);
     }
   }
 
@@ -128,8 +128,8 @@
         await api.delete(`/projects/${projectName}?deleteDb=${deleteDb}`);
         await loadConfig();
         notifications.success('Project removed successfully');
-      } catch {
-        notifications.error(`Failed to delete project: ${err.message}`);
+      } catch (error) {
+        notifications.error(`Failed to delete project: ${error.message}`);
       } finally {
         showConfirmModal = false;
       }
@@ -142,8 +142,8 @@
       await api.put(`/projects/${project.name}`, { enabled: !project.enabled });
       await loadConfig();
       notifications.success(`Project ${project.enabled ? 'disabled' : 'enabled'}`);
-    } catch {
-      notifications.error(`Failed to toggle project: ${err.message}`);
+    } catch (error) {
+      notifications.error(`Failed to toggle project: ${error.message}`);
     }
   }
 

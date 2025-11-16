@@ -50,12 +50,12 @@
       config = await response.json();
       error = null;
     } catch (err) {
-      logger.error('Failed to load projects:', err);
+      logger.error('Failed to load projects:', error);
       // Provide specific error messages for network issues
-      if (err instanceof TypeError && err.message.includes('fetch')) {
+      if (error instanceof TypeError && err.message.includes('fetch')) {
         error = 'Cannot connect to Raven backend. Is it running on http://localhost:3030?';
       } else {
-        error = err.message;
+        errorMessage = error.message;
       }
     } finally {
       loading = false;
@@ -81,12 +81,12 @@
         showSuccess('No new projects found');
       }
     } catch (err) {
-      logger.error('Failed to discover projects:', err);
+      logger.error('Failed to discover projects:', error);
       // Provide specific error messages
-      if (err instanceof TypeError && err.message.includes('fetch')) {
+      if (error instanceof TypeError && err.message.includes('fetch')) {
         showError('Cannot connect to backend. Check if Raven is running.');
       } else {
-        showError(`Discovery failed: ${err.message}`);
+        showError(`Discovery failed: ${error.message}`);
       }
     } finally {
       discovering = false;
@@ -105,7 +105,7 @@
       discoveredProjects = discoveredProjects.filter(p => p.name !== project.name);
       showSuccess(`Project "${project.name}" added`);
     } catch (err) {
-      showError(`Failed to add project: ${err.message}`);
+      showError(`Failed to add project: ${error.message}`);
     }
   }
 
@@ -122,7 +122,7 @@
       resetForm();
       showSuccess(`Project "${formData.name}" added`);
     } catch (err) {
-      showError(`Failed to add project: ${err.message}`);
+      showError(`Failed to add project: ${error.message}`);
     }
   }
 
@@ -140,7 +140,7 @@
       resetForm();
       showSuccess(`Project "${formData.name}" updated`);
     } catch (err) {
-      showError(`Failed to update project: ${err.message}`);
+      showError(`Failed to update project: ${error.message}`);
     }
   }
 
@@ -155,7 +155,7 @@
         await loadConfig();
         showSuccess('Project removed successfully');
       } catch (err) {
-        showError(`Failed to delete project: ${err.message}`);
+        showError(`Failed to delete project: ${error.message}`);
       } finally {
         showConfirmModal = false;
       }
@@ -174,7 +174,7 @@
       await loadConfig();
       showSuccess(`Project ${project.enabled ? 'disabled' : 'enabled'}`);
     } catch (err) {
-      showError(`Failed to toggle project: ${err.message}`);
+      showError(`Failed to toggle project: ${error.message}`);
     }
   }
 

@@ -74,7 +74,7 @@
       lastUpdated = new Date();
       loading = false;
       isManualRefresh = false;
-    } catch {
+    } catch (error) {
       logger.error('Backend health check failed:', error);
       backendStatus.connected = false;
       loading = false;
@@ -101,7 +101,7 @@
         branches: branchesData.branches || [],
         commits: historyData.commits || []
       };
-    } catch {
+    } catch (error) {
       // Silently fail for git - it's optional
       gitStatus.available = false;
     }
@@ -169,7 +169,7 @@
         logger.error('Bridge restart failed:', result.error);
         notifications.error(`Failed to restart bridge: ${result.error}`);
       }
-    } catch {
+    } catch (error) {
       logger.error('Error restarting bridge:', error);
       notifications.error(`Error restarting bridge: ${error.message}`);
     } finally {

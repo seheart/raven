@@ -84,8 +84,8 @@
       lastUpdate = new Date();
       error = null;
     } catch (err) {
-      logger.error('Failed to load trends:', err);
-      error = err.message;
+      logger.error('Failed to load trends:', error);
+      errorMessage = error.message;
     } finally {
       loading = false;
     }
