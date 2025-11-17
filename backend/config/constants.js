@@ -121,8 +121,8 @@ export const LIMITS = {
 
 export const DEFAULTS = {
   // Server
-  PORT: 3030,
-  CORS_ORIGIN: 'http://localhost:5173',
+  PORT: 9100,
+  CORS_ORIGIN: 'http://localhost:9000',
 
   // Logging
   LOG_LEVEL: 'info',

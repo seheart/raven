@@ -120,7 +120,7 @@
         { id: 'all', label: 'All Sessions' },
         { id: currentSessionId, label: `Current Session (${currentSessionId?.slice(0, 8)}...)` }
       ];
-    } catch (error) {
+    } catch {
       logger.error('Failed to load sessions:', e);
       allSessions = [{ id: 'all', label: 'All Sessions' }];
     }
@@ -129,15 +129,16 @@
   async function loadEvents() {
     try {
       loading = true;
-      let url = 'http://localhost:3030/api/agent-events?limit=50';
+      let endpoint = '/agent-events?limit=50';
 
       if (selectedSession !== 'all') {
-        url = `http://localhost:3030/api/events-by-session/${selectedSession}`;
+        endpoint = `/events-by-session/${selectedSession}`;
       }
 
-      await fetch(url);
+      const data = await api.get(endpoint);
+      events = data.events || data || [];
       lastUpdated = new Date();
-    } catch (error) {
+    } catch (e) {
       logger.error('Failed to load events:', e);
     } finally {
       loading = false;

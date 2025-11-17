@@ -3,10 +3,22 @@
  * Centralized configuration for the Raven frontend application
  */
 
+// Get API URL from environment variable or use default
+const getApiUrl = () => {
+  // In development, use Vite proxy (empty string means same origin)
+  if (import.meta.env.DEV) {
+    return '';
+  }
+  // In production, use environment variable or fallback to localhost
+  return import.meta.env.VITE_API_URL || 'http://localhost:9100';
+};
+
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.DEV ? '' : 'http://localhost:3030',
-  API_BASE: import.meta.env.DEV ? '/api' : 'http://localhost:3030/api',  // Use Vite proxy in dev
+  BASE_URL: getApiUrl(),
+  get API_BASE() {
+    return import.meta.env.DEV ? '/api' : `${this.BASE_URL}/api`;
+  },
   get ENDPOINTS() {
     return {
       // Health & Status
@@ -15,9 +27,9 @@ export const API_CONFIG = {
 
       // Storage
       STORAGE: `${this.BASE_URL}/api/storage`,
-      STORAGE_EXPORT: (dbName) => `${this.BASE_URL}/api/storage/export/${dbName}`,
-      STORAGE_VACUUM: (dbName) => `${this.BASE_URL}/api/storage/vacuum/${dbName}`,
-      STORAGE_CLEAN: (dbName) => `${this.BASE_URL}/api/storage/clean/${dbName}`,
+      STORAGE_EXPORT: dbName => `${this.BASE_URL}/api/storage/export/${dbName}`,
+      STORAGE_VACUUM: dbName => `${this.BASE_URL}/api/storage/vacuum/${dbName}`,
+      STORAGE_CLEAN: dbName => `${this.BASE_URL}/api/storage/clean/${dbName}`,
       STORAGE_RETENTION: `${this.BASE_URL}/api/storage/retention`,
 
       // Server Sync
@@ -29,9 +41,9 @@ export const API_CONFIG = {
       // Notifications
       NOTIFICATIONS: `${this.BASE_URL}/api/notifications`,
       NOTIFICATIONS_STATS: `${this.BASE_URL}/api/notifications/stats`,
-      NOTIFICATIONS_READ: (id) => `${this.BASE_URL}/api/notifications/${id}/read`,
+      NOTIFICATIONS_READ: id => `${this.BASE_URL}/api/notifications/${id}/read`,
       NOTIFICATIONS_MARK_ALL_READ: `${this.BASE_URL}/api/notifications/mark-all-read`,
-      NOTIFICATIONS_DELETE: (id) => `${this.BASE_URL}/api/notifications/${id}`,
+      NOTIFICATIONS_DELETE: id => `${this.BASE_URL}/api/notifications/${id}`,
 
       // Endpoints
       ENDPOINTS: `${this.BASE_URL}/api/endpoints`,
@@ -46,7 +58,7 @@ export const API_CONFIG = {
 };
 
 // WebSocket Configuration
-export const WEBSOCKET_URL = import.meta.env.DEV ? '' : 'http://localhost:3030';
+export const WEBSOCKET_URL = getApiUrl();
 
 // UI Configuration
 export const UI_CONFIG = {
@@ -57,7 +69,7 @@ export const UI_CONFIG = {
     NIGHT: 'theme--night'
   },
   REFRESH_INTERVALS: {
-    DEFAULT: 30,  // seconds
+    DEFAULT: 30, // seconds
     MIN: 5,
     MAX: 300
   }

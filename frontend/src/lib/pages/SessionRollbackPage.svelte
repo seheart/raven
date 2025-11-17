@@ -61,7 +61,7 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (error) {
+    } catch {
       logger.error('Failed to load sessions:', error);
       errorMessage = error.message;
       loading = false;
@@ -75,8 +75,7 @@
       selectedSession = session.session_id;
       selectedSessionData = session;
 
-      await fetch(`http://localhost:3030/api/sessions/${session.session_id}/preview`);
-      previewData = await response.json();
+      previewData = await api.get(`/sessions/${session.session_id}/preview`);
       previewing = false;
     } catch (error) {
       logger.error('Failed to preview rollback:', error);
@@ -99,10 +98,7 @@
     if (!selectedSession || !previewData || !confirmCheckbox) return;
 
     try {
-      await fetch(`http://localhost:3030/api/sessions/${selectedSession}/rollback`, {
-        method: 'POST'
-      });
-      const result = await response.json();
+      const result = await api.post(`/sessions/${selectedSession}/rollback`, {});
 
       // Show success message
       if (result.restoredFiles?.length > 0) {

@@ -24,13 +24,13 @@ const isProduction = process.env.NODE_ENV === 'production';
  */
 export const serverConfig = {
   // Server settings
-  port: parseInt(process.env.PORT || '3030', 10),
+  port: parseInt(process.env.PORT || '9100', 10),
   host: process.env.HOST || 'localhost',
   nodeEnv: process.env.NODE_ENV || 'development',
 
   // CORS settings
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:9000',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -65,7 +65,7 @@ export const serverConfig = {
     pingTimeout: parseInt(process.env.WS_PING_TIMEOUT || '60000', 10),
     pingInterval: parseInt(process.env.WS_PING_INTERVAL || '25000', 10),
     cors: {
-      origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+      origin: process.env.CORS_ORIGIN || 'http://localhost:9000',
       credentials: true
     },
     transports: ['websocket', 'polling']
@@ -114,13 +114,7 @@ export const serverConfig = {
   // File watching configuration
   fileWatching: {
     debounceMs: parseInt(process.env.FILE_WATCH_DEBOUNCE || '100', 10),
-    ignored: [
-      '**/node_modules/**',
-      '**/.git/**',
-      '**/dist/**',
-      '**/build/**',
-      '**/.raven/**'
-    ],
+    ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**', '**/.raven/**'],
     maxFiles: parseInt(process.env.MAX_WATCHED_FILES || '10000', 10)
   },
 

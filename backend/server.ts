@@ -32,12 +32,13 @@ import { EventBus, FileWatcher, GitMonitor, getDiff } from './modules/index.js';
 import type { FileEvent, GitStatusEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { rateLimitStatus } from './middleware/security.js';
 
 // ==================== Configuration ====================
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3030', 10);
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const PORT = parseInt(process.env.PORT || '9100', 10);
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:9000';
 
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
@@ -51,8 +52,8 @@ const io = new SocketIOServer(httpServer, {
 });
 
 // Paths
-const RAVEN_DIR = join(process.cwd(), '..', '.raven');
-const WATCH_PATH = join(process.cwd(), '..', 'test_workspace');
+const RAVEN_DIR = process.env.RAVEN_DIR || join(process.cwd(), '..', '.raven');
+const WATCH_PATH = process.env.WATCH_PATH || join(process.cwd(), '..', '..');
 const SNAPSHOTS_DIR = join(RAVEN_DIR, 'snapshots');
 
 // ==================== Security Utilities ====================
@@ -369,6 +370,33 @@ app.get('/health', (req: Request, res: Response) => {
 
 app.get('/api/session-id', (req: Request, res: Response) => {
   return res.json({ session_id: SESSION_ID });
+});
+
+// Rate limit status endpoint (for monitoring)
+app.get('/api/rate-limit-status', (req: Request, res: Response) => {
+  try {
+    const now = Date.now();
+    const status = Object.entries(rateLimitStatus).reduce(
+      (acc, [key, value]) => {
+        const secondsUntilReset = Math.max(0, Math.floor((value.resetTime - now) / 1000));
+        const percentUsed = value.max > 0 ? Math.round((value.current / value.max) * 100) : 0;
+
+        acc[key] = {
+          current: value.current,
+          max: value.max,
+          percentUsed,
+          secondsUntilReset,
+          status: percentUsed >= 95 ? 'critical' : percentUsed >= 80 ? 'warning' : 'ok'
+        };
+        return acc;
+      },
+      {} as Record<string, any>
+    );
+
+    return res.json(status);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 app.get('/api/dashboard-stats', (req: Request, res: Response) => {

@@ -6,6 +6,7 @@
    */
   import AgentsNav from '../components/layout/AgentsNav.svelte';
   import { api } from '../apiClient.js';
+  import { API_CONFIG } from '../../config.js';
 
   // State
   let testingTelemetry = $state(false);
@@ -47,7 +48,7 @@
 
       testResult = 'Test event sent successfully!';
       testError = null;
-    } catch (error) {
+    } catch {
       logger.error('Test telemetry failed:', error);
       testError = `Connection failed: ${error.message}`;
       testResult = null;
@@ -59,7 +60,8 @@
   // Copy endpoint to clipboard
   async function copyEndpoint() {
     try {
-      await navigator.clipboard.writeText('http://localhost:3030/telemetry');
+      const telemetryUrl = `${API_CONFIG.BASE_URL}/telemetry`;
+      await navigator.clipboard.writeText(telemetryUrl);
       copiedEndpoint = true;
       setTimeout(() => (copiedEndpoint = false), 2000);
     } catch (error) {
@@ -138,7 +140,7 @@
         class="flex items-center gap-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4"
       >
         <code class="flex-1 text-base font-mono text-[var(--text)]"
-          >POST http://localhost:3030/telemetry</code
+          >POST http://localhost:9100/telemetry</code
         >
         <button
           onclick={copyEndpoint}
@@ -300,7 +302,7 @@
             <pre
               class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"><code
                 >{`async function sendTelemetry(agent, eventType, message, file, linesChanged) {
-  await fetch('http://localhost:3030/telemetry', {
+  await fetch('http://localhost:9100/telemetry', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -330,7 +332,7 @@
                 >{`import requests
 
 def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
-    requests.post('http://localhost:3030/telemetry', json={
+    requests.post('http://localhost:9100/telemetry', json={
         'agent': agent,
         'event_type': event_type,
         'message': message,
@@ -351,7 +353,7 @@ def send_telemetry(agent, event_type, message, file=None, lines_changed=0):
           <div class="px-4 pb-4">
             <pre
               class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 overflow-x-auto text-sm font-mono text-[var(--text)]"><code
-                >{`curl -X POST http://localhost:3030/telemetry \\
+                >{`curl -X POST http://localhost:9100/telemetry \\
   -H "Content-Type: application/json" \\
   -d '{
     "agent": "my-agent",

@@ -64,15 +64,16 @@ const baseEnv = {
   IS_TEST: process.env.NODE_ENV === 'test',
 
   // Server
-  PORT: getIntEnv('PORT', 3030),
+  PORT: getIntEnv('PORT', 9100),
   HOST: getEnv('HOST', '0.0.0.0'),
-  CORS_ORIGIN: getEnv('CORS_ORIGIN', 'http://localhost:5173'),
+  CORS_ORIGIN: getEnv('CORS_ORIGIN', 'http://localhost:9000'),
 
   // Authentication
   DISABLE_AUTH: getBoolEnv('DISABLE_AUTH', false),
-  JWT_SECRET: process.env.NODE_ENV === 'production'
-    ? getRequiredEnv('JWT_SECRET')
-    : getEnv('JWT_SECRET', 'dev-secret-key'),
+  JWT_SECRET:
+    process.env.NODE_ENV === 'production'
+      ? getRequiredEnv('JWT_SECRET')
+      : getEnv('JWT_SECRET', 'dev-secret-key'),
   JWT_EXPIRES_IN: getEnv('JWT_EXPIRES_IN', '24h'),
 
   // Logging
