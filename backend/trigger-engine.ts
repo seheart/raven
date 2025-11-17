@@ -13,6 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { logger } from './utils/logger.js';
 import toml from 'toml';
 import { EventBus, TriggerFiredEvent } from './modules/eventBus.js';
 import type { Server as SocketIOServer } from 'socket.io';
@@ -105,7 +106,7 @@ export class TriggerEngine {
       const configFile = path.join(this.configPath, 'config.toml');
 
       if (!fs.existsSync(configFile)) {
-        console.log('⚠️  No config.toml found, creating example config...');
+        logger.info('⚠️  No config.toml found, creating example config...');
         this.createExampleConfig(configFile);
       }
 
@@ -124,9 +125,9 @@ export class TriggerEngine {
         }
       }
 
-      console.log(`✅ Loaded ${this.triggers.size} trigger rules`);
-    } catch (error) {
-      console.error('❌ Failed to load triggers config:', error);
+      logger.info(`✅ Loaded ${this.triggers.size} trigger rules`);
+    } catch (error: any) {
+      logger.error('❌ Failed to load triggers config:', error);
     }
   }
 
@@ -159,7 +160,7 @@ cooldown_seconds = 300
 
     fs.mkdirSync(path.dirname(configFile), { recursive: true });
     fs.writeFileSync(configFile, exampleConfig);
-    console.log(`✅ Created example config at ${configFile}`);
+    logger.info(`✅ Created example config at ${configFile}`);
   }
 
   /**
@@ -345,7 +346,7 @@ cooldown_seconds = 300
           break;
       }
     } catch (error) {
-      console.error(`❌ Failed to execute trigger action: ${error}`);
+      logger.error(`❌ Failed to execute trigger action: ${error}`);
     }
   }
 
@@ -359,10 +360,10 @@ cooldown_seconds = 300
       } else if (process.platform === 'darwin') {
         execSync(`osascript -e 'display notification "${message}" with title "Raven Trigger"'`);
       } else if (process.platform === 'win32') {
-        console.log(`📢 Notification: ${message}`);
+        logger.info(`📢 Notification: ${message}`);
       }
     } catch (error) {
-      console.error(`❌ Failed to send notification: ${error}`);
+      logger.error(`❌ Failed to send notification: ${error}`);
     }
   }
 
@@ -376,9 +377,9 @@ cooldown_seconds = 300
       const logLine = `[${timestamp}] ${triggerName} - ${message}\n`;
 
       fs.appendFileSync(logFile, logLine);
-      console.log(`📝 Logged: ${message}`);
+      logger.info(`📝 Logged: ${message}`);
     } catch (error) {
-      console.error(`❌ Failed to log to file: ${error}`);
+      logger.error(`❌ Failed to log to file: ${error}`);
     }
   }
 
@@ -389,9 +390,9 @@ cooldown_seconds = 300
     try {
       const formattedCommand = this.formatMessage(command, event);
       execSync(formattedCommand);
-      console.log(`⚙️  Executed command: ${formattedCommand}`);
+      logger.info(`⚙️  Executed command: ${formattedCommand}`);
     } catch (error) {
-      console.error(`❌ Failed to execute command: ${error}`);
+      logger.error(`❌ Failed to execute command: ${error}`);
     }
   }
 

@@ -50,7 +50,8 @@ export function createTelemetryRouter(deps: TelemetryDependencies): Router {
         duration_ms,
         message,
         metadata,
-        sessionId
+        sessionId,
+        null // project_name (multi-project support not yet implemented)
       );
 
       // Update agent registry
@@ -106,7 +107,7 @@ export function createTelemetryRouter(deps: TelemetryDependencies): Router {
       // Emit updated agent stats
       io.emit('agent-stats', db.getAgentStats());
 
-      res.json({
+      return res.json({
         success: true,
         event_id: eventId,
         session_id: sessionId
@@ -116,7 +117,7 @@ export function createTelemetryRouter(deps: TelemetryDependencies): Router {
         error: error.message,
         stack: error.stack
       });
-      res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: error.message });
     }
   });
 

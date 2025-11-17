@@ -5,7 +5,7 @@
  * Emits git status events via EventBus for visualization.
  */
 
-import simpleGit, { SimpleGit, StatusResult, DiffResult } from 'simple-git';
+import simpleGit, { SimpleGit, StatusResult } from 'simple-git';
 import { EventBus, GitStatusEvent } from './eventBus.js';
 import fs from 'fs/promises';
 import { join } from 'path';

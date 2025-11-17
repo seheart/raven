@@ -16,7 +16,7 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { randomUUID } from 'crypto';
-import { join, relative, basename, dirname, resolve } from 'path';
+import { join, basename, dirname, resolve } from 'path';
 import fs from 'fs/promises';
 import os from 'os';
 
@@ -28,10 +28,10 @@ import { syntaxChecker } from './syntax-checker.js';
 import { patternDetector } from './pattern-detector.js';
 import { pauseManager } from './pause-manager.js';
 import { getTestRunner } from './test-runner.js';
-import type { TestResult } from './test-runner.js';
-import { EventBus, FileWatcher, GitMonitor, getDiff, getDiffStats } from './modules/index.js';
-import type { FileEvent, GitStatusEvent, TelemetryEvent, AgentEvent } from './modules/index.js';
+import { EventBus, FileWatcher, GitMonitor, getDiff } from './modules/index.js';
+import type { FileEvent, GitStatusEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 // ==================== Configuration ====================
 
@@ -302,7 +302,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
     if (event.path.match(/\.(js|ts|jsx|tsx|py|java|go|rs|c|cpp|h|hpp)$/)) {
       await gitMonitor.checkStatus();
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('❌ Error handling file event:', error);
   }
 });
@@ -345,7 +345,7 @@ async function saveSnapshot(filepath: string, content: string): Promise<void> {
     await fs.writeFile(snapshotPath, content, 'utf8');
 
     logger.info(`💾 Snapshot saved: ${snapshotName}`);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('❌ Snapshot save error:', error);
   }
 }
@@ -353,7 +353,7 @@ async function saveSnapshot(filepath: string, content: string): Promise<void> {
 // ==================== REST API Endpoints ====================
 
 app.get('/health', (req: Request, res: Response) => {
-  res.json({
+  return res.json({
     status: 'healthy',
     session_id: SESSION_ID,
     uptime: process.uptime(),
@@ -368,16 +368,16 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 app.get('/api/session-id', (req: Request, res: Response) => {
-  res.json({ session_id: SESSION_ID });
+  return res.json({ session_id: SESSION_ID });
 });
 
 app.get('/api/dashboard-stats', (req: Request, res: Response) => {
   try {
     const stats = db.getDashboardStats(SESSION_ID);
     stats.total_agents = agentRegistry.size;
-    res.json(stats);
+    return res.json(stats);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -385,9 +385,9 @@ app.get('/api/top-modified-files', (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const files = db.getTopModifiedFiles(SESSION_ID, limit);
-    res.json(files);
+    return res.json(files);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -395,9 +395,9 @@ app.get('/api/longest-edits', (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const edits = db.getLongestEdits(limit);
-    res.json(edits);
+    return res.json(edits);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -414,9 +414,9 @@ app.get('/api/agents-status', (req: Request, res: Response) => {
         is_running: secondsSinceLastSeen < 30
       };
     });
-    res.json(agents);
+    return res.json(agents);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -448,9 +448,9 @@ app.get('/api/agent-events', (req: Request, res: Response) => {
     params.push(limit);
 
     const events = db.db.prepare(query).all(...params);
-    res.json(events);
+    return res.json(events);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -459,18 +459,18 @@ app.get('/api/events-by-agent/:agent', (req: Request, res: Response) => {
     const { agent } = req.params;
     const limit = parseInt(req.query.limit as string) || 100;
     const events = db.getEventsByAgent(agent, limit);
-    res.json(events);
+    return res.json(events);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 app.get('/api/agent-stats', (req: Request, res: Response) => {
   try {
     const stats = db.getAgentStats();
-    res.json(stats);
+    return res.json(stats);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -506,18 +506,18 @@ app.get('/api/file-events', (req: Request, res: Response) => {
     params.push(limit);
 
     const events = db.db.prepare(query).all(...params);
-    res.json(events);
+    return res.json(events);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 app.get('/api/tracked-files', (req: Request, res: Response) => {
   try {
     const files = db.getTrackedFiles();
-    res.json(files);
+    return res.json(files);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -525,9 +525,9 @@ app.get('/api/events-by-session/:sessionId', (req: Request, res: Response) => {
   try {
     const { sessionId: sid } = req.params;
     const events = db.getEventsBySession(sid);
-    res.json(events);
+    return res.json(events);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -561,9 +561,9 @@ app.get('/api/system-metrics', (req: Request, res: Response) => {
     params.push(limit);
 
     const metrics = db.db.prepare(query).all(...params);
-    res.json(metrics);
+    return res.json(metrics);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -572,9 +572,9 @@ app.get('/api/process-metrics/:agent', (req: Request, res: Response) => {
     const { agent } = req.params;
     const limit = parseInt(req.query.limit as string) || 100;
     const metrics = db.getProcessMetricsByAgent(agent, limit);
-    res.json(metrics);
+    return res.json(metrics);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -585,9 +585,9 @@ app.get('/api/metrics-stats', (req: Request, res: Response) => {
     const start_time = (req.query.start_time as string) || new Date(dayAgo).toISOString();
     const end_time = (req.query.end_time as string) || new Date(now).toISOString();
     const stats = db.getMetricsStats(start_time, end_time);
-    res.json(stats);
+    return res.json(stats);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -595,9 +595,9 @@ app.get('/api/performance-correlations', (req: Request, res: Response) => {
   try {
     const time_window_seconds = parseInt(req.query.time_window_seconds as string) || 5;
     const correlations = db.correlateEventsWithMetrics(time_window_seconds);
-    res.json(correlations);
+    return res.json(correlations);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -606,27 +606,27 @@ app.get('/api/performance-correlations', (req: Request, res: Response) => {
 app.get('/api/git/status', async (req: Request, res: Response) => {
   try {
     const status = await gitMonitor.checkStatus();
-    res.json(status || gitMonitor.getLastStatus());
+    return res.json(status || gitMonitor.getLastStatus());
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 app.get('/api/git/diff', async (req: Request, res: Response) => {
   try {
     const diff = await gitMonitor.getUncommittedDiff();
-    res.json({ diff });
+    return res.json({ diff });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 app.get('/api/git/branches', async (req: Request, res: Response) => {
   try {
     const branches = await gitMonitor.getBranches();
-    res.json({ branches });
+    return res.json({ branches });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -634,9 +634,9 @@ app.get('/api/git/history', async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const commits = await gitMonitor.getCommitHistory(limit);
-    res.json({ commits });
+    return res.json({ commits });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -645,9 +645,9 @@ app.get('/api/git/history', async (req: Request, res: Response) => {
 app.get('/api/triggers-config', (req: Request, res: Response) => {
   try {
     const triggers = triggerEngine.getTriggersConfig();
-    res.json({ rules: triggers });
+    return res.json({ rules: triggers });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -655,36 +655,36 @@ app.get('/api/triggered-events', (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
     const events = triggerEngine.getTriggeredEvents(limit);
-    res.json(events);
+    return res.json(events);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 app.post('/api/triggers-reload', (req: Request, res: Response) => {
   try {
     const message = triggerEngine.reloadConfig();
-    res.json({ message });
+    return res.json({ message });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 app.get('/api/trigger-stats', (req: Request, res: Response) => {
   try {
     const stats = triggerEngine.getTriggerStats();
-    res.json(stats);
+    return res.json(stats);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 app.post('/api/triggers-clear-cooldowns', (req: Request, res: Response) => {
   try {
     const message = triggerEngine.clearCooldowns();
-    res.json({ message });
+    return res.json({ message });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -709,7 +709,8 @@ app.post('/telemetry', (req: Request, res: Response) => {
       duration_ms,
       message,
       metadata,
-      SESSION_ID
+      SESSION_ID,
+      null // project_name (multi-project support not yet implemented)
     );
 
     // Update agent registry
@@ -755,10 +756,10 @@ app.post('/telemetry', (req: Request, res: Response) => {
 
     io.emit('agent-stats', db.getAgentStats());
 
-    res.json({ success: true, event_id: eventId, session_id: SESSION_ID });
+    return res.json({ success: true, event_id: eventId, session_id: SESSION_ID });
   } catch (error: any) {
     logger.error('❌ Telemetry error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -839,7 +840,7 @@ app.get('/api/health/projects', (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       projects,
       total_projects: projects.length,
       active_projects: projects.filter((p: any) => p.status === 'active').length,
@@ -847,7 +848,7 @@ app.get('/api/health/projects', (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('❌ Multi-project health error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -978,7 +979,7 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
     // Sort by timestamp descending
     anomalies.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-    res.json({
+    return res.json({
       anomalies,
       baseline,
       lookback_hours: lookbackHours,
@@ -986,174 +987,7 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('❌ Anomaly detection error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// New anomaly detection endpoints using AnomalyDetector service
-app.get('/api/anomalies/recent', (req: Request, res: Response) => {
-  try {
-    const projectName = (req.query.project as string) || projectManager.activeProject;
-    const limit = parseInt(req.query.limit as string) || 20;
-
-    const db = projectManager.getProjectDatabase(projectName);
-    if (!db) {
-      return res.status(404).json({ error: 'Project not found' });
-    }
-
-    const stmt = db.prepareStatement(`
-      SELECT
-        id,
-        timestamp,
-        filepath,
-        change_type,
-        event_size,
-        anomaly_score,
-        anomaly_confidence,
-        anomaly_reasons,
-        risk_level,
-        agent,
-        agent_confidence
-      FROM events
-      WHERE is_anomaly = 1
-      ORDER BY timestamp DESC
-      LIMIT ?
-    `);
-
-    const anomalies = stmt.all(limit).map((a: any) => ({
-      ...a,
-      anomaly_reasons: a.anomaly_reasons ? JSON.parse(a.anomaly_reasons) : []
-    }));
-
-    res.json({
-      anomalies,
-      count: anomalies.length,
-      project: projectName
-    });
-  } catch (error: any) {
-    logger.error('❌ Recent anomalies error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/anomalies/stats', (req: Request, res: Response) => {
-  try {
-    const projectName = (req.query.project as string) || projectManager.activeProject;
-
-    const db = projectManager.getProjectDatabase(projectName);
-    if (!db) {
-      return res.status(404).json({ error: 'Project not found' });
-    }
-
-    const stmt = db.prepareStatement(`
-      SELECT
-        COUNT(*) as total_anomalies,
-        AVG(anomaly_score) as avg_score,
-        SUM(CASE WHEN risk_level = 'high' THEN 1 ELSE 0 END) as high_risk,
-        SUM(CASE WHEN risk_level = 'medium' THEN 1 ELSE 0 END) as medium_risk,
-        SUM(CASE WHEN risk_level = 'low' THEN 1 ELSE 0 END) as low_risk,
-        MAX(timestamp) as last_anomaly
-      FROM events
-      WHERE is_anomaly = 1
-    `);
-
-    const stats = stmt.get();
-
-    res.json({
-      ...stats,
-      avg_score: Math.round((stats as any).avg_score || 0),
-      project: projectName
-    });
-  } catch (error: any) {
-    logger.error('❌ Anomaly stats error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/anomalies/by-risk', (req: Request, res: Response) => {
-  try {
-    const projectName = (req.query.project as string) || projectManager.activeProject;
-    const riskLevel = (req.query.risk as string) || 'high';
-    const limit = parseInt(req.query.limit as string) || 20;
-
-    const db = projectManager.getProjectDatabase(projectName);
-    if (!db) {
-      return res.status(404).json({ error: 'Project not found' });
-    }
-
-    const stmt = db.prepareStatement(`
-      SELECT
-        id,
-        timestamp,
-        filepath,
-        change_type,
-        event_size,
-        anomaly_score,
-        anomaly_confidence,
-        anomaly_reasons,
-        risk_level
-      FROM events
-      WHERE is_anomaly = 1 AND risk_level = ?
-      ORDER BY anomaly_score DESC, timestamp DESC
-      LIMIT ?
-    `);
-
-    const anomalies = stmt.all(riskLevel, limit).map((a: any) => ({
-      ...a,
-      anomaly_reasons: a.anomaly_reasons ? JSON.parse(a.anomaly_reasons) : []
-    }));
-
-    res.json({
-      anomalies,
-      count: anomalies.length,
-      riskLevel,
-      project: projectName
-    });
-  } catch (error: any) {
-    logger.error('❌ Anomalies by risk error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/anomalies/timeline', (req: Request, res: Response) => {
-  try {
-    const projectName = (req.query.project as string) || projectManager.activeProject;
-    const hours = parseInt(req.query.hours as string) || 24;
-
-    const db = projectManager.getProjectDatabase(projectName);
-    if (!db) {
-      return res.status(404).json({ error: 'Project not found' });
-    }
-
-    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-
-    const stmt = db.prepareStatement(`
-      SELECT
-        strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
-        COUNT(*) as count,
-        AVG(anomaly_score) as avg_score,
-        SUM(CASE WHEN risk_level = 'high' THEN 1 ELSE 0 END) as high_risk_count,
-        SUM(CASE WHEN risk_level = 'medium' THEN 1 ELSE 0 END) as medium_risk_count,
-        SUM(CASE WHEN risk_level = 'low' THEN 1 ELSE 0 END) as low_risk_count
-      FROM events
-      WHERE is_anomaly = 1 AND timestamp >= ?
-      GROUP BY hour
-      ORDER BY hour ASC
-    `);
-
-    const timeline = stmt.all(cutoff).map((t: any) => ({
-      ...t,
-      avg_score: Math.round(t.avg_score || 0)
-    }));
-
-    res.json({
-      timeline,
-      hours,
-      project: projectName
-    });
-  } catch (error: any) {
-    logger.error('❌ Anomaly timeline error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -1286,7 +1120,7 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
       )
       .get() as any;
 
-    res.json({
+    return res.json({
       total_events: totalEvents.count || 0,
       events_by_type: eventsByType,
       events_24h: events24h.count || 0,
@@ -1300,7 +1134,7 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('❌ Custom metrics error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -1336,7 +1170,7 @@ function isPathAllowed(userPath: string, basePath: string): boolean {
     const resolved = resolve(userPath);
     const base = resolve(basePath);
     return resolved.startsWith(base);
-  } catch (e) {
+  } catch (e: any) {
     logger.error('[isPathAllowed] Error:', e);
     return false;
   }
@@ -1437,12 +1271,12 @@ app.get('/api/projects', async (req: Request, res: Response) => {
       })
     );
 
-    res.json({
+    return res.json({
       ...config,
       projects: projectsWithStats
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -1465,12 +1299,10 @@ app.post('/api/projects', async (req: Request, res: Response) => {
 
     // Validate project name
     if (!validateProjectName(name)) {
-      return res
-        .status(400)
-        .json({
-          error:
-            'Invalid project name. Use only alphanumeric characters, spaces, hyphens, and underscores (max 100 chars)'
-        });
+      return res.status(400).json({
+        error:
+          'Invalid project name. Use only alphanumeric characters, spaces, hyphens, and underscores (max 100 chars)'
+      });
     }
 
     // Validate optional fields
@@ -1479,19 +1311,15 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     }
 
     if (!validateMaxFileSize(maxFileSize)) {
-      return res
-        .status(400)
-        .json({
-          error: `Max file size must be between ${MIN_FILE_SIZE} and ${MAX_FILE_SIZE} bytes`
-        });
+      return res.status(400).json({
+        error: `Max file size must be between ${MIN_FILE_SIZE} and ${MAX_FILE_SIZE} bytes`
+      });
     }
 
     if (!validateRetentionDays(retentionDays)) {
-      return res
-        .status(400)
-        .json({
-          error: `Retention days must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}`
-        });
+      return res.status(400).json({
+        error: `Retention days must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}`
+      });
     }
 
     const config = await loadProjectsConfig();
@@ -1534,10 +1362,10 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     config.projects.push(newProject);
     await saveProjectsConfig(config);
 
-    res.json({ success: true, project: newProject });
+    return res.json({ success: true, project: newProject });
   } catch (error: any) {
     logger.error('[POST /api/projects] Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1580,20 +1408,16 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
           sanitizedUpdates[field] = updates[field];
         } else if (field === 'maxFileSize') {
           if (!validateMaxFileSize(updates[field])) {
-            return res
-              .status(400)
-              .json({
-                error: `Max file size must be between ${MIN_FILE_SIZE} and ${MAX_FILE_SIZE} bytes`
-              });
+            return res.status(400).json({
+              error: `Max file size must be between ${MIN_FILE_SIZE} and ${MAX_FILE_SIZE} bytes`
+            });
           }
           sanitizedUpdates[field] = Number(updates[field]);
         } else if (field === 'retentionDays') {
           if (!validateRetentionDays(updates[field])) {
-            return res
-              .status(400)
-              .json({
-                error: `Retention days must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}`
-              });
+            return res.status(400).json({
+              error: `Retention days must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}`
+            });
           }
           sanitizedUpdates[field] = Number(updates[field]);
         }
@@ -1609,10 +1433,10 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
 
     await saveProjectsConfig(config);
 
-    res.json({ success: true, project: config.projects[projectIndex] });
+    return res.json({ success: true, project: config.projects[projectIndex] });
   } catch (error: any) {
     logger.error('[PUT /api/projects/:id] Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1661,10 +1485,10 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
       }
     }
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error: any) {
     logger.error('[DELETE /api/projects/:id] Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1738,10 +1562,10 @@ app.post('/api/projects/discover', strictLimiter, async (req: Request, res: Resp
       }
     }
 
-    res.json({ discovered, basePath });
+    return res.json({ discovered, basePath });
   } catch (error: any) {
     logger.error('[POST /api/projects/discover] Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1762,9 +1586,9 @@ app.put('/api/projects/config', async (req: Request, res: Response) => {
 
     await saveProjectsConfig(config);
 
-    res.json({ success: true, config });
+    return res.json({ success: true, config });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -1895,14 +1719,14 @@ app.get('/api/search/global', (req: Request, res: Response) => {
       notifications: results.filter(r => r.type === 'notification').length
     };
 
-    res.json({
+    return res.json({
       results: limitedResults,
       total: results.length,
       categories
     });
   } catch (error: any) {
     logger.error('❌ Global search error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -1948,7 +1772,7 @@ app.get('/api/trends/historical', (req: Request, res: Response) => {
       )
       .all(startTime) as any[];
 
-    res.json({
+    return res.json({
       trends,
       period,
       days,
@@ -1956,7 +1780,7 @@ app.get('/api/trends/historical', (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('❌ Historical trends error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -1991,14 +1815,14 @@ app.get('/api/metrics/performance', async (req: Request, res: Response) => {
       )
       .all(startTime) as any[];
 
-    res.json({
+    return res.json({
       metrics,
       range,
       start_time: startTime
     });
   } catch (error: any) {
     logger.error('❌ Performance metrics error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -2029,7 +1853,7 @@ async function loadAlertTemplates(): Promise<AlertTemplates> {
   try {
     const data = await fs.readFile(ALERT_TEMPLATES_PATH, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to load alert templates:', error);
     throw new Error('Alert templates file not found');
   }
@@ -2039,10 +1863,10 @@ async function loadAlertTemplates(): Promise<AlertTemplates> {
 app.get('/api/alerts/templates', async (req: Request, res: Response) => {
   try {
     const templates = await loadAlertTemplates();
-    res.json(templates);
+    return res.json(templates);
   } catch (error: any) {
     logger.error('[GET /api/alerts/templates] Error:', error);
-    res.status(500).json({ error: 'Failed to load alert templates' });
+    return res.status(500).json({ error: 'Failed to load alert templates' });
   }
 });
 
@@ -2050,7 +1874,6 @@ app.get('/api/alerts/templates', async (req: Request, res: Response) => {
 app.post('/api/alerts/templates/:templateId/apply', async (req: Request, res: Response) => {
   try {
     const { templateId } = req.params;
-    const { projectId } = req.body;
 
     const templates = await loadAlertTemplates();
     const template = templates.templates[templateId];
@@ -2061,25 +1884,23 @@ app.post('/api/alerts/templates/:templateId/apply', async (req: Request, res: Re
 
     // Apply template triggers to trigger engine
     // For now, just return success - full implementation will integrate with trigger-engine.js
-    res.json({
+    return res.json({
       success: true,
       template: templateId,
       triggersApplied: template.triggers.length
     });
   } catch (error: any) {
     logger.error('[POST /api/alerts/templates/:templateId/apply] Error:', error);
-    res.status(500).json({ error: 'Failed to apply template' });
+    return res.status(500).json({ error: 'Failed to apply template' });
   }
 });
 
 // GET /api/alerts/status - Get current alert status for project
 app.get('/api/alerts/status', async (req: Request, res: Response) => {
   try {
-    const { projectId } = req.query;
-
     // Return current alert status
     // For now, return mock data - full implementation will query trigger engine
-    res.json({
+    return res.json({
       enabled: true,
       activeTemplate: 'ai-safety-basic',
       triggersActive: 5,
@@ -2087,7 +1908,7 @@ app.get('/api/alerts/status', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('[GET /api/alerts/status] Error:', error);
-    res.status(500).json({ error: 'Failed to get alert status' });
+    return res.status(500).json({ error: 'Failed to get alert status' });
   }
 });
 
@@ -2098,10 +1919,10 @@ app.get('/api/syntax-errors', async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
     const errors = db.getSyntaxErrors(limit);
-    res.json({ errors, count: errors.length });
+    return res.json({ errors, count: errors.length });
   } catch (error: any) {
     logger.error('[GET /api/syntax-errors] Error:', error);
-    res.status(500).json({ error: 'Failed to get syntax errors' });
+    return res.status(500).json({ error: 'Failed to get syntax errors' });
   }
 });
 
@@ -2109,10 +1930,10 @@ app.get('/api/syntax-errors', async (req: Request, res: Response) => {
 app.get('/api/syntax-errors/count', async (req: Request, res: Response) => {
   try {
     const count = db.getUnresolvedSyntaxErrorCount();
-    res.json({ count });
+    return res.json({ count });
   } catch (error: any) {
     logger.error('[GET /api/syntax-errors/count] Error:', error);
-    res.status(500).json({ error: 'Failed to get syntax error count' });
+    return res.status(500).json({ error: 'Failed to get syntax error count' });
   }
 });
 
@@ -2127,10 +1948,10 @@ app.post('/api/syntax-errors/:id/resolve', async (req: Request, res: Response) =
     }
 
     db.resolveSyntaxError(errorId);
-    res.json({ success: true, message: 'Syntax error marked as resolved' });
+    return res.json({ success: true, message: 'Syntax error marked as resolved' });
   } catch (error: any) {
     logger.error('[POST /api/syntax-errors/:id/resolve] Error:', error);
-    res.status(500).json({ error: 'Failed to resolve syntax error' });
+    return res.status(500).json({ error: 'Failed to resolve syntax error' });
   }
 });
 
@@ -2158,10 +1979,10 @@ app.get('/api/sessions', async (req: Request, res: Response) => {
       )
       .all() as any[];
 
-    res.json({ sessions, count: sessions.length });
+    return res.json({ sessions, count: sessions.length });
   } catch (error: any) {
     logger.error('[GET /api/sessions] Error:', error);
-    res.status(500).json({ error: 'Failed to get sessions' });
+    return res.status(500).json({ error: 'Failed to get sessions' });
   }
 });
 
@@ -2222,15 +2043,15 @@ app.get('/api/sessions/:sessionId/preview', async (req: Request, res: Response) 
       });
     }
 
-    res.json({
+    return res.json({
       sessionId,
       fileCount: files.length,
       changes,
-      canRollback: changes.some(c => c.hasBackup)
+      canRollback: changes.some((c: any) => c.hasBackup)
     });
   } catch (error: any) {
     logger.error('[GET /api/sessions/:sessionId/preview] Error:', error);
-    res.status(500).json({ error: 'Failed to preview rollback' });
+    return res.status(500).json({ error: 'Failed to preview rollback' });
   }
 });
 
@@ -2268,12 +2089,12 @@ app.post('/api/sessions/:sessionId/rollback', async (req: Request, res: Response
         restoredFiles.push(change.filepath);
         logger.info(`✅ Rolled back: ${change.filepath}`);
       } catch (error) {
-        logger.error(`❌ Failed to rollback ${change.filepath}:`, error);
+        logger.error(`❌ Failed to rollback ${change.filepath}:`, error as any);
         failedFiles.push(change.filepath);
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: `Rolled back ${restoredFiles.length} files`,
       restoredFiles,
@@ -2282,7 +2103,7 @@ app.post('/api/sessions/:sessionId/rollback', async (req: Request, res: Response
     });
   } catch (error: any) {
     logger.error('[POST /api/sessions/:sessionId/rollback] Error:', error);
-    res.status(500).json({ error: 'Failed to execute rollback' });
+    return res.status(500).json({ error: 'Failed to execute rollback' });
   }
 });
 
@@ -2293,10 +2114,10 @@ app.get('/api/pattern-warnings', async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
     const warnings = db.getPatternWarnings(limit);
-    res.json({ warnings, count: warnings.length });
+    return res.json({ warnings, count: warnings.length });
   } catch (error: any) {
     logger.error('[GET /api/pattern-warnings] Error:', error);
-    res.status(500).json({ error: 'Failed to get pattern warnings' });
+    return res.status(500).json({ error: 'Failed to get pattern warnings' });
   }
 });
 
@@ -2304,10 +2125,10 @@ app.get('/api/pattern-warnings', async (req: Request, res: Response) => {
 app.get('/api/pattern-warnings/count', async (req: Request, res: Response) => {
   try {
     const count = db.getUnresolvedPatternWarningCount();
-    res.json({ count });
+    return res.json({ count });
   } catch (error: any) {
     logger.error('[GET /api/pattern-warnings/count] Error:', error);
-    res.status(500).json({ error: 'Failed to get pattern warning count' });
+    return res.status(500).json({ error: 'Failed to get pattern warning count' });
   }
 });
 
@@ -2316,10 +2137,10 @@ app.get('/api/pattern-warnings/category/:category', async (req: Request, res: Re
   try {
     const { category } = req.params;
     const warnings = db.getPatternWarningsByCategory(category);
-    res.json({ warnings, count: warnings.length });
+    return res.json({ warnings, count: warnings.length });
   } catch (error: any) {
     logger.error('[GET /api/pattern-warnings/category/:category] Error:', error);
-    res.status(500).json({ error: 'Failed to get pattern warnings by category' });
+    return res.status(500).json({ error: 'Failed to get pattern warnings by category' });
   }
 });
 
@@ -2334,10 +2155,10 @@ app.post('/api/pattern-warnings/:id/resolve', async (req: Request, res: Response
     }
 
     db.resolvePatternWarning(warningId);
-    res.json({ success: true, message: 'Pattern warning marked as resolved' });
+    return res.json({ success: true, message: 'Pattern warning marked as resolved' });
   } catch (error: any) {
     logger.error('[POST /api/pattern-warnings/:id/resolve] Error:', error);
-    res.status(500).json({ error: 'Failed to resolve pattern warning' });
+    return res.status(500).json({ error: 'Failed to resolve pattern warning' });
   }
 });
 
@@ -2345,10 +2166,10 @@ app.post('/api/pattern-warnings/:id/resolve', async (req: Request, res: Response
 app.get('/api/pattern-warnings/patterns', async (req: Request, res: Response) => {
   try {
     const patterns = patternDetector.getAllPatterns();
-    res.json({ patterns, count: patterns.length });
+    return res.json({ patterns, count: patterns.length });
   } catch (error: any) {
     logger.error('[GET /api/pattern-warnings/patterns] Error:', error);
-    res.status(500).json({ error: 'Failed to get patterns' });
+    return res.status(500).json({ error: 'Failed to get patterns' });
   }
 });
 
@@ -2358,10 +2179,10 @@ app.get('/api/pattern-warnings/patterns', async (req: Request, res: Response) =>
 app.get('/api/pause/status', async (req: Request, res: Response) => {
   try {
     const status = pauseManager.getStatus();
-    res.json(status);
+    return res.json(status);
   } catch (error: any) {
     logger.error('[GET /api/pause/status] Error:', error);
-    res.status(500).json({ error: 'Failed to get pause status' });
+    return res.status(500).json({ error: 'Failed to get pause status' });
   }
 });
 
@@ -2376,14 +2197,14 @@ app.post('/api/pause', async (req: Request, res: Response) => {
     // Emit WebSocket event
     io.emit('monitoring-paused', status);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Monitoring paused',
       status
     });
   } catch (error: any) {
     logger.error('[POST /api/pause] Error:', error);
-    res.status(500).json({ error: 'Failed to pause monitoring' });
+    return res.status(500).json({ error: 'Failed to pause monitoring' });
   }
 });
 
@@ -2397,14 +2218,14 @@ app.post('/api/resume', async (req: Request, res: Response) => {
     // Emit WebSocket event
     io.emit('monitoring-resumed', status);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Monitoring resumed',
       status
     });
   } catch (error: any) {
     logger.error('[POST /api/resume] Error:', error);
-    res.status(500).json({ error: 'Failed to resume monitoring' });
+    return res.status(500).json({ error: 'Failed to resume monitoring' });
   }
 });
 
@@ -2415,10 +2236,10 @@ app.get('/api/tests/frameworks', async (req: Request, res: Response) => {
   try {
     const testRunner = getTestRunner(WATCH_PATH);
     const frameworks = await testRunner.detectFrameworks();
-    res.json({ frameworks, count: frameworks.length });
+    return res.json({ frameworks, count: frameworks.length });
   } catch (error: any) {
     logger.error('[GET /api/tests/frameworks] Error:', error);
-    res.status(500).json({ error: 'Failed to detect test frameworks' });
+    return res.status(500).json({ error: 'Failed to detect test frameworks' });
   }
 });
 
@@ -2458,10 +2279,10 @@ app.post('/api/tests/run', async (req: Request, res: Response) => {
         : `❌ Tests failed: ${result.failedTests}/${result.totalTests}`
     );
 
-    res.json(result);
+    return res.json(result);
   } catch (error: any) {
     logger.error('[POST /api/tests/run] Error:', error);
-    res.status(500).json({ error: 'Failed to run tests' });
+    return res.status(500).json({ error: 'Failed to run tests' });
   }
 });
 
@@ -2478,10 +2299,10 @@ app.get('/api/tests/results', async (req: Request, res: Response) => {
       failures: r.failures ? JSON.parse(r.failures) : []
     }));
 
-    res.json({ results: parsedResults, count: parsedResults.length });
+    return res.json({ results: parsedResults, count: parsedResults.length });
   } catch (error: any) {
     logger.error('[GET /api/tests/results] Error:', error);
-    res.status(500).json({ error: 'Failed to get test results' });
+    return res.status(500).json({ error: 'Failed to get test results' });
   }
 });
 
@@ -2491,7 +2312,7 @@ app.get('/api/tests/latest', async (req: Request, res: Response) => {
     const result = db.getLatestTestResult();
 
     if (!result) {
-      res.json({ result: null });
+      return res.json({ result: null });
       return;
     }
 
@@ -2501,10 +2322,10 @@ app.get('/api/tests/latest', async (req: Request, res: Response) => {
       failures: result.failures ? JSON.parse(result.failures) : []
     };
 
-    res.json({ result: parsed });
+    return res.json({ result: parsed });
   } catch (error: any) {
     logger.error('[GET /api/tests/latest] Error:', error);
-    res.status(500).json({ error: 'Failed to get latest test result' });
+    return res.status(500).json({ error: 'Failed to get latest test result' });
   }
 });
 
@@ -2670,7 +2491,7 @@ app.get('/api/storage', async (req: Request, res: Response) => {
       // File doesn't exist
     }
 
-    res.json({
+    return res.json({
       totalSize,
       databases: databases.sort((a, b) => b.size - a.size),
       snapshots: snapshots.sort((a, b) => b.size - a.size),
@@ -2683,7 +2504,7 @@ app.get('/api/storage', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('❌ Error getting storage stats:', error);
-    res.status(500).json({ error: 'Failed to get storage statistics' });
+    return res.status(500).json({ error: 'Failed to get storage statistics' });
   }
 });
 
@@ -2710,7 +2531,7 @@ app.get('/api/storage/export/:dbname', async (req: Request, res: Response) => {
     }
 
     // Send the file for download
-    res.download(dbPath, `${dbname}_${Date.now()}.db`, err => {
+    return res.download(dbPath, `${dbname}_${Date.now()}.db`, (err): void => {
       if (err) {
         logger.error('❌ Error sending database file:', err);
         if (!res.headersSent) {
@@ -2720,7 +2541,7 @@ app.get('/api/storage/export/:dbname', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('❌ Error exporting database:', error);
-    res.status(500).json({ error: 'Failed to export database' });
+    return res.status(500).json({ error: 'Failed to export database' });
   }
 });
 
@@ -2762,7 +2583,7 @@ app.post('/api/storage/vacuum/:dbname', async (req: Request, res: Response) => {
     const sizeAfter = statsAfter.size;
     const spaceSaved = sizeBefore - sizeAfter;
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Database optimized successfully',
       sizeBefore,
@@ -2772,7 +2593,7 @@ app.post('/api/storage/vacuum/:dbname', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('❌ Error running VACUUM:', error);
-    res.status(500).json({ error: 'Failed to optimize database: ' + error.message });
+    return res.status(500).json({ error: 'Failed to optimize database: ' + error.message });
   }
 });
 
@@ -2859,7 +2680,7 @@ app.post('/api/storage/clean/:dbname', async (req: Request, res: Response) => {
 
     dbConn.close();
 
-    res.json({
+    return res.json({
       success: true,
       message: `Deleted ${totalDeleted} records older than ${daysNum} days`,
       totalDeleted,
@@ -2868,7 +2689,7 @@ app.post('/api/storage/clean/:dbname', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('❌ Error cleaning old data:', error);
-    res.status(500).json({ error: 'Failed to clean old data: ' + error.message });
+    return res.status(500).json({ error: 'Failed to clean old data: ' + error.message });
   }
 });
 
@@ -2880,10 +2701,10 @@ app.get('/api/storage/retention', async (req: Request, res: Response) => {
       await fs.access(retentionPath);
       const data = await fs.readFile(retentionPath, 'utf-8');
       const policy = JSON.parse(data);
-      res.json(policy);
+      return res.json(policy);
     } catch (err) {
       // Return default policy if file doesn't exist
-      res.json({
+      return res.json({
         enabled: false,
         retentionDays: 30,
         autoCleanup: false,
@@ -2892,7 +2713,7 @@ app.get('/api/storage/retention', async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     logger.error('❌ Error reading retention policy:', error);
-    res.status(500).json({ error: 'Failed to read retention policy' });
+    return res.status(500).json({ error: 'Failed to read retention policy' });
   }
 });
 
@@ -2918,13 +2739,13 @@ app.post('/api/storage/retention', async (req: Request, res: Response) => {
     const retentionPath = join(RAVEN_DIR, 'retention-policy.json');
     await fs.writeFile(retentionPath, JSON.stringify(policy, null, 2), 'utf-8');
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Retention policy saved successfully'
     });
   } catch (error: any) {
     logger.error('❌ Error saving retention policy:', error);
-    res.status(500).json({ error: 'Failed to save retention policy' });
+    return res.status(500).json({ error: 'Failed to save retention policy' });
   }
 });
 
@@ -2937,6 +2758,20 @@ io.on('connection', socket => {
     logger.info('🔌 WebSocket client disconnected:', socket.id);
   });
 });
+
+// ==================== Error Handling Middleware ====================
+
+// 404 handler - must be after all routes
+app.use((req, res) => {
+  return res.status(404).json({
+    error: 'Not Found',
+    path: req.path,
+    method: req.method
+  });
+});
+
+// Global error handler - must be last
+app.use(errorHandler);
 
 // ==================== Server Startup ====================
 

@@ -18,7 +18,6 @@ export interface TelemetryConfig {
 export class TelemetryCollector {
   private intervalId: NodeJS.Timeout | null = null;
   private config: TelemetryConfig;
-  private lastNetworkStats: si.Systeminformation.NetworkStatsData[] | null = null;
 
   constructor(config: Partial<TelemetryConfig> = {}) {
     this.config = {
@@ -32,11 +31,11 @@ export class TelemetryCollector {
    */
   start(): void {
     if (this.intervalId) {
-      console.warn('⚠️  Telemetry collector already running');
+      logger.warn('⚠️  Telemetry collector already running');
       return;
     }
 
-    console.log(`📊 Starting telemetry collection (interval: ${this.config.intervalMs}ms)`);
+    logger.info(`📊 Starting telemetry collection (interval: ${this.config.intervalMs}ms)`);
 
     // Collect immediately
     this.collect();
@@ -54,7 +53,7 @@ export class TelemetryCollector {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('🛑 Telemetry collection stopped');
+      logger.info('🛑 Telemetry collection stopped');
     }
   }
 
@@ -144,7 +143,7 @@ export class TelemetryCollector {
       this.start();
     }
 
-    console.log('⚙️  Telemetry config updated:', this.config);
+    logger.info('⚙️  Telemetry config updated:', this.config);
   }
 }
 

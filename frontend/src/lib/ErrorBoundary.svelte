@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import DOMPurify from 'dompurify';
   import { logger } from './logger.js';
   import { logError } from './errorLogger.js';
   import { formatDateTime } from './timeFormat.js';
@@ -43,11 +44,16 @@
 
     // Log to backend error_log table
     const error = event.error || new Error(errorDetails.message);
-    logError(error, 'ErrorBoundary', {
-      filename: errorDetails.filename,
-      lineno: errorDetails.lineno,
-      colno: errorDetails.colno
-    }, 'error');
+    logError(
+      error,
+      'ErrorBoundary',
+      {
+        filename: errorDetails.filename,
+        lineno: errorDetails.lineno,
+        colno: errorDetails.colno
+      },
+      'error'
+    );
 
     // Prevent default browser error handling
     event.preventDefault();
@@ -79,9 +85,14 @@
 
     // Log to backend error_log table
     const error = event.reason instanceof Error ? event.reason : new Error(errorDetails.message);
-    logError(error, 'ErrorBoundary', {
-      type: 'unhandled_rejection'
-    }, 'error');
+    logError(
+      error,
+      'ErrorBoundary',
+      {
+        type: 'unhandled_rejection'
+      },
+      'error'
+    );
 
     // Prevent default browser handling
     event.preventDefault();
@@ -116,7 +127,7 @@
 {#if hasError}
   {#if fallback}
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-    {@html fallback}
+    {@html DOMPurify.sanitize(fallback)}
   {:else}
     <div class="error-boundary" role="alert" aria-live="assertive">
       <div class="error-container" role="document">
@@ -128,7 +139,8 @@
 
         <div class="error-details" role="region" aria-labelledby="error-heading">
           <div class="error-summary">
-            <strong>Error:</strong> {errorDetails.message}
+            <strong>Error:</strong>
+            {errorDetails.message}
           </div>
 
           {#if errorDetails.stack}
@@ -148,10 +160,18 @@
         </div>
 
         <div class="error-actions" role="group" aria-label="Error recovery actions">
-          <button class="btn-primary" on:click={resetError} aria-label="Reload application to recover">
+          <button
+            class="btn-primary"
+            on:click={resetError}
+            aria-label="Reload application to recover"
+          >
             <span aria-hidden="true">🔄</span> Reload Application
           </button>
-          <button class="btn-secondary" on:click={copyErrorToClipboard} aria-label="Copy error details to clipboard">
+          <button
+            class="btn-secondary"
+            on:click={copyErrorToClipboard}
+            aria-label="Copy error details to clipboard"
+          >
             <span aria-hidden="true">📋</span> Copy Error Details
           </button>
         </div>

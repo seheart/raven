@@ -343,7 +343,7 @@
 
       // Create charts after data loads
       setTimeout(createCharts, 100);
-    } catch (error) {
+    } catch {
       logger.error('Failed to load monitoring data:', error);
       errorMessage = error.message;
       loading = false;
@@ -361,17 +361,24 @@
 
   // Auto-refresh effect
   $effect(() => {
+    // Always clear any existing interval first
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = null;
+    }
+
     if (autoRefresh) {
       refreshInterval = setInterval(() => {
         loadMonitoringData();
       }, 5000); // Refresh every 5 seconds
-
-      return () => {
-        if (refreshInterval) clearInterval(refreshInterval);
-      };
-    } else {
-      if (refreshInterval) clearInterval(refreshInterval);
     }
+
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    };
   });
 
   // Mount lifecycle

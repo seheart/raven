@@ -292,6 +292,20 @@ export class RavenDB {
 
   // ==================== Agent Events ====================
 
+  /**
+   * Insert a new agent event into the database
+   * @param timestamp - ISO timestamp of the event
+   * @param agent - Agent name/identifier
+   * @param event_type - Type of event (e.g., 'file-change', 'command')
+   * @param file - Optional file path related to the event
+   * @param lines_changed - Optional number of lines changed
+   * @param duration_ms - Optional duration in milliseconds
+   * @param message - Event message/description
+   * @param metadata - Optional additional data as JSON
+   * @param session_id - Optional session identifier
+   * @param project_name - Optional project name
+   * @returns The ID of the inserted event
+   */
   insertAgentEvent(
     timestamp: string,
     agent: string,
@@ -348,6 +362,10 @@ export class RavenDB {
     return stmt.all(agent, limit) as AgentEvent[];
   }
 
+  /**
+   * Get aggregated statistics for all agents
+   * @returns Array of agent statistics including event counts and durations
+   */
   getAgentStats(): AgentStats[] {
     const stmt = this.db.prepare(`
       SELECT
@@ -365,6 +383,20 @@ export class RavenDB {
 
   // ==================== File Events ====================
 
+  /**
+   * Insert a new file change event into the database
+   * @param timestamp - ISO timestamp of the file change
+   * @param filepath - Path to the changed file
+   * @param change_type - Type of change ('created', 'modified', 'deleted')
+   * @param diff - Optional diff content
+   * @param cpu - CPU usage percentage at time of event
+   * @param mem - Memory usage percentage at time of event
+   * @param session_id - Optional session identifier
+   * @param file_hash - Optional file content hash
+   * @param event_size - Optional size of the change in bytes
+   * @param project_name - Optional project name
+   * @returns The ID of the inserted event
+   */
   insertEvent(
     timestamp: string,
     filepath: string,
@@ -488,6 +520,12 @@ export class RavenDB {
     return stmt.all(limit) as SystemMetrics[];
   }
 
+  /**
+   * Get aggregated metrics statistics for a time range
+   * @param start_time - ISO timestamp for range start
+   * @param end_time - ISO timestamp for range end
+   * @returns Metrics statistics including CPU/memory averages and maximums
+   */
   getMetricsStats(start_time: string, end_time: string): MetricsStats {
     const stmt = this.db.prepare(`
       SELECT
@@ -635,6 +673,11 @@ export class RavenDB {
     return stmt.all(limit);
   }
 
+  /**
+   * Get comprehensive dashboard statistics for a session
+   * @param session_id - Session identifier to filter by
+   * @returns Complete dashboard statistics including event counts, agent stats, and metrics
+   */
   getDashboardStats(session_id: string): DashboardStats {
     const events = this.getAgentEventsBySession(session_id);
 
@@ -907,6 +950,10 @@ export class RavenDB {
     return result.count;
   }
 
+  /**
+   * Close the database connection
+   * Should be called during application shutdown to ensure data integrity
+   */
   close(): void {
     this.db.close();
   }

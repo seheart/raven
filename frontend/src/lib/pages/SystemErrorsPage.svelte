@@ -8,6 +8,7 @@
   import { api } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime, getTimeAgo } from '../timeFormat.js';
+  import { debounce } from '../utils/helpers.js';
   import VirtualScroll from '../VirtualScroll.svelte';
   import { Chart, registerables } from 'chart.js';
 
@@ -78,11 +79,17 @@
     }
   });
 
+  // Debounced stats loader to prevent excessive updates
+  const debouncedLoadStats = debounce(() => {
+    loadStats();
+  }, 300);
+
   // Handle error-logged WebSocket event
   function handleErrorLogged(errorData) {
     // Prepend new error to the list
     errors = [errorData, ...errors];
-    loadStats();
+    // Debounce stats loading to handle rapid error bursts
+    debouncedLoadStats();
   }
 
   async function loadErrors(manual = false) {
@@ -111,7 +118,7 @@
       totalErrors = data.total || errors.length;
       hasMore = data.hasMore || false;
       lastUpdated = new Date();
-    } catch (error) {
+    } catch {
       errorMessage = error.message;
       logger.error('Failed to load errors:', error);
     } finally {
@@ -139,7 +146,7 @@
           severityStats[s.severity] = s.count;
         }
       });
-    } catch (error) {
+    } catch {
       logger.error('Failed to load error stats:', error);
     }
   }
@@ -179,7 +186,7 @@
       alert(result.message || 'All errors cleared');
       await loadErrors();
       await loadStats();
-    } catch (error) {
+    } catch {
       alert('Failed to clear error logs: ' + error.message);
     }
   }
@@ -199,7 +206,7 @@
       alert(result.message || `Errors older than ${parsedDays} days cleared`);
       await loadErrors();
       await loadStats();
-    } catch (error) {
+    } catch {
       alert('Failed to clear old error logs: ' + error.message);
     }
   }
@@ -276,7 +283,7 @@
         loadErrors();
         loadStats();
       }, 200);
-    } catch (error) {
+    } catch {
       alert('Failed to log test error: ' + error.message);
     }
   }
@@ -295,7 +302,7 @@
       a.click();
 
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       alert('Export failed: ' + error.message);
     }
   }

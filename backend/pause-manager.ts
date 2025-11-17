@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { logger } from './utils/logger.js';
 
 /**
  * Manages pausing/resuming file monitoring
@@ -19,7 +20,7 @@ export class PauseManager extends EventEmitter {
    */
   pause(reason: string = 'User requested'): void {
     if (this.paused) {
-      console.warn('⚠️  Already paused');
+      logger.warn('⚠️  Already paused');
       return;
     }
 
@@ -28,7 +29,7 @@ export class PauseManager extends EventEmitter {
     this.pauseTime = new Date();
     this.pauseCount++;
 
-    console.log(`🛑 MONITORING PAUSED: ${reason}`);
+    logger.info(`🛑 MONITORING PAUSED: ${reason}`);
     this.emit('pause', { reason, timestamp: this.pauseTime });
   }
 
@@ -37,20 +38,18 @@ export class PauseManager extends EventEmitter {
    */
   resume(): void {
     if (!this.paused) {
-      console.warn('⚠️  Not currently paused');
+      logger.warn('⚠️  Not currently paused');
       return;
     }
 
-    const duration = this.pauseTime
-      ? Date.now() - this.pauseTime.getTime()
-      : 0;
+    const duration = this.pauseTime ? Date.now() - this.pauseTime.getTime() : 0;
 
     this.paused = false;
     const previousReason = this.pauseReason;
     this.pauseReason = '';
     this.pauseTime = null;
 
-    console.log(`▶️  MONITORING RESUMED (was paused for ${Math.round(duration / 1000)}s)`);
+    logger.info(`▶️  MONITORING RESUMED (was paused for ${Math.round(duration / 1000)}s)`);
     this.emit('resume', {
       previousReason,
       duration,
@@ -74,9 +73,7 @@ export class PauseManager extends EventEmitter {
       reason: this.pauseReason,
       pauseTime: this.pauseTime,
       pauseCount: this.pauseCount,
-      duration: this.pauseTime
-        ? Date.now() - this.pauseTime.getTime()
-        : 0
+      duration: this.pauseTime ? Date.now() - this.pauseTime.getTime() : 0
     };
   }
 
@@ -85,7 +82,7 @@ export class PauseManager extends EventEmitter {
    */
   shouldProcessEvent(): boolean {
     if (this.paused) {
-      console.log('⏸️  Event skipped (monitoring paused)');
+      logger.info('⏸️  Event skipped (monitoring paused)');
       return false;
     }
     return true;

@@ -1,4 +1,5 @@
 <script>
+  import DOMPurify from 'dompurify';
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
@@ -91,7 +92,7 @@
       const endTime = performance.now();
       searchTime = Math.round(endTime - startTime);
       loading = false;
-    } catch (error) {
+    } catch {
       logger.error('Search failed:', error);
       results = [];
       loading = false;
@@ -106,8 +107,12 @@
 
   function highlightMatch(text, query) {
     if (!text || !query) return text || '';
-    const regex = new RegExp(`(${query})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
+    // Escape the query to prevent regex injection
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    const highlighted = text.replace(regex, '<mark>$1</mark>');
+    // Sanitize to prevent XSS attacks
+    return DOMPurify.sanitize(highlighted, { ALLOWED_TAGS: ['mark'], ALLOWED_ATTR: [] });
   }
 
   function getEventIcon(changeType) {
@@ -170,7 +175,6 @@
             onkeypress={handleKeyPress}
             placeholder="Search for files, messages, agents, or event types..."
             class="w-full px-4 py-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-base font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
-            autofocus
           />
         </div>
         <button

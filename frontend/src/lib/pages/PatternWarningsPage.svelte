@@ -146,7 +146,7 @@
       lastUpdated = new Date();
       loading = false;
       loadingMore = false;
-    } catch (err) {
+    } catch {
       logger.error('Failed to load pattern warnings:', err);
       error = err.message;
       loading = false;
@@ -168,7 +168,7 @@
       });
 
       await loadWarnings;
-    } catch (error) {
+    } catch {
       logger.error('Failed to resolve warning:', error);
       alert(`Failed to resolve warning: ${error.message}`);
     }
@@ -190,7 +190,7 @@
       await fetch(url, { method: 'POST' });
 
       await loadWarnings;
-    } catch (error) {
+    } catch {
       logger.error('Failed to resolve all warnings:', error);
       alert(`Failed to resolve all warnings: ${error.message}`);
     }
@@ -234,19 +234,17 @@
     URL.revokeObjectURL(url);
   }
 
-  // Watch for category changes
+  // Load on mount and when filter changes
+  let isInitialMount = true;
   $effect(() => {
-    if (categoryFilter !== undefined) {
-      loadWarnings();
-    }
-  });
+    // Access categoryFilter to create dependency
+    const _ = categoryFilter;
 
-  // Load on mount (initial load only)
-  let mounted = false;
-  $effect(() => {
-    if (!mounted) {
-      mounted = true;
-      loadWarnings();
+    if (isInitialMount) {
+      isInitialMount = false;
+      loadWarnings(); // Load once on mount
+    } else {
+      loadWarnings(); // Reload when filter changes
     }
   });
 </script>

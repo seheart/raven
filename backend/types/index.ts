@@ -572,15 +572,6 @@ export interface ProjectInfo {
   isActive: boolean;
 }
 
-/**
- * Mutex queue item
- */
-interface MutexQueueItem<T> {
-  fn: () => Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason?: unknown) => void;
-}
-
 // ==================== Utility Types ====================
 
 /**
