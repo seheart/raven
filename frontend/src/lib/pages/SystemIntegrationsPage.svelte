@@ -43,9 +43,9 @@
   async function loadAllConfigs() {
     try {
       const [github, discord, slack] = await Promise.all([
-        api.get('/api/integrations/github/config'),
-        api.get('/api/integrations/discord/config'),
-        api.get('/api/integrations/slack/config')
+        api.get('/integrations/github/config'),
+        api.get('/integrations/discord/config'),
+        api.get('/integrations/slack/config')
       ]);
 
       if (github.enabled) {
@@ -64,7 +64,7 @@
 
   async function loadRecentEvents() {
     try {
-      const data = await api.get('/api/integrations/all/events?limit=20');
+      const data = await api.get('/integrations/all/events?limit=20');
       recentEvents = data.events || [];
     } catch (error) {
       logger.error('Failed to load events:', error);
@@ -73,7 +73,7 @@
 
   async function loadStats() {
     try {
-      stats = await api.get('/api/integrations/stats');
+      stats = await api.get('/integrations/stats');
     } catch (error) {
       logger.error('Failed to load stats:', error);
     }
@@ -82,7 +82,7 @@
   async function saveGitHub() {
     loading = true;
     try {
-      await api.post('/api/integrations/github/config', {
+      await api.post('/integrations/github/config', {
         config: {
           token: githubConfig.token,
           owner: githubConfig.owner,
@@ -104,7 +104,7 @@
   async function saveDiscord() {
     loading = true;
     try {
-      await api.post('/api/integrations/discord/config', {
+      await api.post('/integrations/discord/config', {
         config: {
           webhookUrl: discordConfig.webhookUrl
         },
@@ -124,7 +124,7 @@
   async function saveSlack() {
     loading = true;
     try {
-      await api.post('/api/integrations/slack/config', {
+      await api.post('/integrations/slack/config', {
         config: {
           webhookUrl: slackConfig.webhookUrl
         },
@@ -150,7 +150,7 @@
       else if (service === 'discord') config = { webhookUrl: discordConfig.webhookUrl };
       else if (service === 'slack') config = { webhookUrl: slackConfig.webhookUrl };
 
-      const result = await api.post(`/api/integrations/${service}/test`, { config });
+      const result = await api.post(`/integrations/${service}/test`, { config });
 
       if (result.success) {
         notifications.success(`${service} test successful! Check your ${service} channel.`);

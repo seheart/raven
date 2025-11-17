@@ -25,6 +25,7 @@
 
   let loading = true;
   let error = null;
+  let errorMessage = null;
   let ws = null;
   let healthCheckTimeoutId = null; // Track timeout for cleanup
 

@@ -33,12 +33,22 @@ export default defineConfig({
     // Coverage configuration
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
         'src/**/*.test.js',
-        'src/**/*.spec.js'
-      ]
+        'src/**/*.spec.js',
+        'src/test/**',
+        'src/mocks/**',
+        'vite.config.js',
+        'vitest.config.js'
+      ],
+      thresholds: {
+        lines: 60,
+        functions: 60,
+        branches: 50,
+        statements: 60
+      }
     },
 
     // Setup files

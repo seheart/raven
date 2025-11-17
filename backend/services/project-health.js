@@ -126,18 +126,8 @@ export class ProjectHealthService {
    * Calculate error score (0-100)
    */
   calculateErrorScore(projectName, cutoff) {
-    let query = 'SELECT COUNT(*) as count FROM errors WHERE timestamp > ?';
-    let params = [cutoff];
-
-    if (projectName) {
-      query += ' AND project_name = ?';
-      params.push(projectName);
-    }
-
-    const errors = this.db.prepare(query).get(...params);
-
-    // Get syntax errors
-    let syntaxQuery = 'SELECT COUNT(*) as count FROM syntax_errors WHERE detected_at > ?';
+    // Get syntax errors (using 'timestamp' column, not 'detected_at')
+    let syntaxQuery = 'SELECT COUNT(*) as count FROM syntax_errors WHERE timestamp > ?';
     let syntaxParams = [cutoff];
 
     if (projectName) {
@@ -147,7 +137,18 @@ export class ProjectHealthService {
 
     const syntaxErrors = this.db.prepare(syntaxQuery).get(...syntaxParams);
 
-    const totalErrors = (errors?.count || 0) + (syntaxErrors?.count || 0);
+    // Get test failures from test_results
+    let testQuery = 'SELECT SUM(failed_tests) as count FROM test_results WHERE timestamp > ?';
+    let testParams = [cutoff];
+
+    if (projectName) {
+      testQuery += ' AND project_name = ?';
+      testParams.push(projectName);
+    }
+
+    const testFailures = this.db.prepare(testQuery).get(...testParams);
+
+    const totalErrors = (syntaxErrors?.count || 0) + (testFailures?.count || 0);
 
     // Score calculation: 0 errors = 100, 50+ errors = 0
     if (totalErrors === 0) return 100;
@@ -188,37 +189,42 @@ export class ProjectHealthService {
    * Calculate stability score (0-100)
    */
   calculateStabilityScore(projectName, cutoff) {
-    // Check for anomalies
-    let anomalyQuery = 'SELECT COUNT(*) as count FROM anomalies WHERE timestamp > ?';
+    // Count test failures as a stability indicator
+    let testQuery = `
+      SELECT COUNT(*) as count
+      FROM test_results
+      WHERE timestamp > ?
+        AND passed = 0
+    `;
     let params = [cutoff];
 
     if (projectName) {
-      anomalyQuery += ' AND project_name = ?';
+      testQuery += ' AND project_name = ?';
       params.push(projectName);
     }
 
-    const anomalies = this.db.prepare(anomalyQuery).get(...params);
-    const anomalyCount = anomalies?.count || 0;
+    const testFailures = this.db.prepare(testQuery).get(...params);
+    const failureCount = testFailures?.count || 0;
 
-    // Check for rollback events (sign of instability)
-    let rollbackQuery = `
+    // Count unresolved syntax errors as stability issues
+    let syntaxQuery = `
       SELECT COUNT(*) as count
-      FROM events
+      FROM syntax_errors
       WHERE timestamp > ?
-        AND event_type LIKE '%rollback%'
+        AND resolved = 0
     `;
-    let rollbackParams = [cutoff];
+    let syntaxParams = [cutoff];
 
     if (projectName) {
-      rollbackQuery += ' AND project_name = ?';
-      rollbackParams.push(projectName);
+      syntaxQuery += ' AND project_name = ?';
+      syntaxParams.push(projectName);
     }
 
-    const rollbacks = this.db.prepare(rollbackQuery).get(...rollbackParams);
-    const rollbackCount = rollbacks?.count || 0;
+    const syntaxErrors = this.db.prepare(syntaxQuery).get(...syntaxParams);
+    const syntaxCount = syntaxErrors?.count || 0;
 
-    // Score: fewer anomalies and rollbacks = more stable
-    const totalIssues = anomalyCount + rollbackCount * 2; // Rollbacks weighted higher
+    // Score: fewer issues = more stable
+    const totalIssues = failureCount * 2 + syntaxCount; // Test failures weighted higher
 
     if (totalIssues === 0) return 100;
     if (totalIssues >= 20) return 0;
@@ -230,28 +236,32 @@ export class ProjectHealthService {
    * Calculate performance score (0-100)
    */
   calculatePerformanceScore(projectName, cutoff) {
-    // Check API response times
+    // Check system resource usage as performance indicator
     let query = `
-      SELECT AVG(response_time) as avg_time
-      FROM metrics
+      SELECT AVG(cpu_percent) as avg_cpu, AVG(memory_percent) as avg_mem
+      FROM raven_metrics
       WHERE timestamp > ?
-        AND metric_type = 'api_response'
     `;
     let params = [cutoff];
 
-    if (projectName) {
-      query += ' AND project_name = ?';
-      params.push(projectName);
-    }
+    // Note: raven_metrics doesn't have project_name, it's system-wide
+    // So we ignore projectName for performance metrics
 
     const metrics = this.db.prepare(query).get(...params);
-    const avgResponseTime = metrics?.avg_time || 100; // Default 100ms
+    const avgCpu = metrics?.avg_cpu || 10; // Default low usage
+    const avgMem = metrics?.avg_mem || 20; // Default low usage
 
-    // Score: < 100ms = 100, > 1000ms = 0
-    if (avgResponseTime <= 100) return 100;
-    if (avgResponseTime >= 1000) return 0;
+    // Score based on resource efficiency
+    // Lower resource usage = better performance
+    // CPU: < 30% = excellent, > 80% = poor
+    // Memory: < 50% = excellent, > 90% = poor
+    const cpuScore =
+      avgCpu < 30 ? 100 : avgCpu > 80 ? 20 : Math.round(100 - ((avgCpu - 30) / 50) * 80);
+    const memScore =
+      avgMem < 50 ? 100 : avgMem > 90 ? 20 : Math.round(100 - ((avgMem - 50) / 40) * 80);
 
-    return Math.round(100 - ((avgResponseTime - 100) / 900) * 100);
+    // Weighted average: CPU 60%, Memory 40%
+    return Math.round(cpuScore * 0.6 + memScore * 0.4);
   }
 
   /**
@@ -260,10 +270,10 @@ export class ProjectHealthService {
   getDetailedMetrics(projectName, cutoff) {
     const metrics = {};
 
-    // Error breakdown
+    // Error breakdown (from syntax_errors)
     let errorQuery = `
       SELECT severity, COUNT(*) as count
-      FROM errors
+      FROM syntax_errors
       WHERE timestamp > ?
     `;
     let params = [cutoff];
@@ -278,10 +288,10 @@ export class ProjectHealthService {
     const errorBreakdown = this.db.prepare(errorQuery).all(...params);
     metrics.errors_by_severity = errorBreakdown;
 
-    // File activity
+    // File activity (table is 'events', not 'file_events')
     let fileQuery = `
-      SELECT event_type, COUNT(*) as count
-      FROM file_events
+      SELECT change_type, COUNT(*) as count
+      FROM events
       WHERE timestamp > ?
     `;
     let fileParams = [cutoff];
@@ -291,15 +301,14 @@ export class ProjectHealthService {
       fileParams.push(projectName);
     }
 
-    fileQuery += ' GROUP BY event_type';
+    fileQuery += ' GROUP BY change_type';
 
     const fileActivity = this.db.prepare(fileQuery).all(...fileParams);
     metrics.file_activity = fileActivity;
 
     // Agent interactions
     let agentQuery = `
-      SELECT COUNT(*) as total,
-             SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful
+      SELECT COUNT(*) as total
       FROM agent_events
       WHERE timestamp > ?
     `;
@@ -313,11 +322,11 @@ export class ProjectHealthService {
     const agentStats = this.db.prepare(agentQuery).get(...agentParams);
     metrics.agent_interactions = agentStats;
 
-    // Recent syntax errors
+    // Recent syntax errors (column is 'timestamp', not 'detected_at')
     let syntaxQuery = `
       SELECT COUNT(*) as count
       FROM syntax_errors
-      WHERE detected_at > ?
+      WHERE timestamp > ?
         AND resolved = 0
     `;
     let syntaxParams = [cutoff];

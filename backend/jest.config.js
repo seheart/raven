@@ -1,6 +1,10 @@
 export default {
-  testEnvironment: 'node',
+  testEnvironment: './jest-environment-custom.cjs',
+  testEnvironmentOptions: {
+    url: 'http://localhost'
+  },
   transform: {},
+  setupFiles: ['<rootDir>/jest.setup-early.js'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^\.\./\.\./middleware/metrics\.js$': '<rootDir>/middleware/metrics.js',

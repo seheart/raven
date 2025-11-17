@@ -1,8 +1,8 @@
 <script>
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
-  import { API_CONFIG } from '../config.js';
-  import { websocketService } from './services/websocket.js';
+  import { API_CONFIG } from '../../config.js';
+  import { websocketService } from '../services/websocket.js';
 
   /**
    * About Page - Information about Raven

@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   import {
@@ -327,7 +328,8 @@
     URL.revokeObjectURL(url);
   }
 
-  $effect(() => {
+  // Initialize on mount
+  onMount(() => {
     loadEvents();
 
     // Set up theme observer
@@ -342,6 +344,16 @@
       Object.values(charts).forEach(chart => destroyChart(chart));
       if (themeObserver) themeObserver.disconnect();
     };
+  });
+
+  // Reload events when filters change
+  $effect(() => {
+    const type = selectedType;
+    const agent = selectedAgent;
+    const range = dateRange;
+    const sort = sortBy;
+    const limit = eventsLimit;
+    loadEvents();
   });
 </script>
 

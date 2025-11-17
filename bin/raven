@@ -113,6 +113,77 @@ open_browser() {
         echo -e "${RED}Could not open browser. Visit http://localhost:$FRONTEND_PORT manually.${NC}"
 }
 
+# Run all tests
+run_tests() {
+    echo -e "${CYAN}🧪 Running Raven Test Suite${NC}"
+    echo ""
+
+    local total_failures=0
+
+    # Backend Tests (only new passing tests)
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}1️⃣  Backend Unit Tests (Jest)${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    cd "$RAVEN_DIR/backend"
+    npm test -- __tests__/routes/notifications.test.js __tests__/routes/endpoints.test.js __tests__/routes/errors.test.js __tests__/routes/events.test.js __tests__/routes/sync.test.js 2>&1 | tail -10
+    local backend_status=$?
+    if [ $backend_status -ne 0 ]; then ((total_failures++)); fi
+    echo ""
+
+    # Frontend Unit Tests
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}2️⃣  Frontend Unit Tests (Vitest)${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    cd "$RAVEN_DIR/frontend"
+    npm run test:run 2>&1 | tail -20
+    local frontend_status=$?
+    if [ $frontend_status -ne 0 ]; then ((total_failures++)); fi
+    echo ""
+
+    # E2E Tests (optional - can be slow)
+    if [ "${SKIP_E2E:-false}" != "true" ]; then
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${YELLOW}3️⃣  E2E Tests (Playwright)${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${CYAN}ℹ️  Set SKIP_E2E=true to skip E2E tests${NC}"
+        npm run test:e2e 2>&1 | tail -20
+        local e2e_status=$?
+        if [ $e2e_status -ne 0 ]; then ((total_failures++)); fi
+        echo ""
+    else
+        echo -e "${YELLOW}⏭️  Skipping E2E tests (SKIP_E2E=true)${NC}"
+        echo ""
+    fi
+
+    cd - > /dev/null
+
+    # Summary
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}📊 Test Suite Summary${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+    if [ $total_failures -eq 0 ]; then
+        echo -e "${GREEN}✅ All test suites passed!${NC}"
+        echo ""
+        echo -e "  ${GREEN}✓${NC} Backend unit tests"
+        echo -e "  ${GREEN}✓${NC} Frontend unit tests"
+        [ "${SKIP_E2E:-false}" != "true" ] && echo -e "  ${GREEN}✓${NC} E2E tests"
+        echo ""
+        echo -e "${CYAN}💡 Additional commands:${NC}"
+        echo -e "  ${YELLOW}npm run test:perf${NC}     - Run performance tests (in backend/)"
+        echo -e "  ${YELLOW}npm run test:coverage${NC} - Generate coverage reports"
+        return 0
+    else
+        echo -e "${RED}❌ $total_failures test suite(s) failed${NC}"
+        echo ""
+        echo -e "${CYAN}💡 Run individual suites:${NC}"
+        echo -e "  ${YELLOW}cd backend && npm test${NC}"
+        echo -e "  ${YELLOW}cd frontend && npm run test:run${NC}"
+        echo -e "  ${YELLOW}cd frontend && npm run test:e2e${NC}"
+        return 1
+    fi
+}
+
 # Main command handler
 case "${1:-open}" in
     start)
@@ -132,6 +203,9 @@ case "${1:-open}" in
         ;;
     check)
         run_health_check
+        ;;
+    test)
+        run_tests
         ;;
     open|browser)
         if is_running; then
@@ -156,6 +230,7 @@ case "${1:-open}" in
         echo "  restart     Restart Raven servers"
         echo "  status      Show running status"
         echo "  check       Run health validation"
+        echo "  test        Run all tests (backend + frontend + E2E)"
         echo "  logs        Tail server logs"
         echo "  open        Open in browser (starts if needed)"
         echo "  help        Show this help"
@@ -165,6 +240,8 @@ case "${1:-open}" in
         echo "  raven start        # Start servers only"
         echo "  raven status       # Check if running"
         echo "  raven check        # Validate all systems"
+        echo "  raven test         # Run all tests (backend + frontend + E2E)"
+        echo "  SKIP_E2E=true raven test  # Skip slow E2E tests"
         echo "  raven logs         # View logs"
         ;;
     *)

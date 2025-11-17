@@ -88,28 +88,26 @@ export class DeveloperInsightsService {
   getDeveloperStats(projectName = null, days = 7) {
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-    // Calculate stats from agent_events and file_events
+    // Calculate stats from agent_events and events
     const agentInteractions = this.db
       .prepare(
         `
       SELECT COUNT(*) as count
       FROM agent_events
       WHERE timestamp > ?
-      ${projectName ? 'AND project_name = ?' : ''}
     `
       )
-      .get(projectName ? [cutoff, projectName] : [cutoff]);
+      .get([cutoff]);
 
     const codePatterns = this.db
       .prepare(
         `
       SELECT COUNT(DISTINCT filepath) as count
-      FROM file_events
+      FROM events
       WHERE timestamp > ?
-      ${projectName ? 'AND project_name = ?' : ''}
     `
       )
-      .get(projectName ? [cutoff, projectName] : [cutoff]);
+      .get([cutoff]);
 
     const workflowEvents = this.db
       .prepare(
@@ -117,10 +115,9 @@ export class DeveloperInsightsService {
       SELECT COUNT(*) as count
       FROM events
       WHERE timestamp > ?
-      ${projectName ? 'AND project_name = ?' : ''}
     `
       )
-      .get(projectName ? [cutoff, projectName] : [cutoff]);
+      .get([cutoff]);
 
     // Language breakdown from file extensions
     const languages = this.db
@@ -143,15 +140,14 @@ export class DeveloperInsightsService {
           ELSE 'Other'
         END as language,
         COUNT(*) as count
-      FROM file_events
+      FROM events
       WHERE timestamp > ?
-      ${projectName ? 'AND project_name = ?' : ''}
       GROUP BY language
       ORDER BY count DESC
       LIMIT 10
     `
       )
-      .all(projectName ? [cutoff, projectName] : [cutoff]);
+      .all([cutoff]);
 
     // Hourly activity heatmap
     const hourlyActivity = this.db
@@ -162,12 +158,11 @@ export class DeveloperInsightsService {
         COUNT(*) as count
       FROM events
       WHERE timestamp > ?
-      ${projectName ? 'AND project_name = ?' : ''}
       GROUP BY hour
       ORDER BY hour
     `
       )
-      .all(projectName ? [cutoff, projectName] : [cutoff]);
+      .all([cutoff]);
 
     // Convert hourly activity to 24-hour array
     const hourlyMap = Array(24).fill(0);
@@ -206,16 +201,14 @@ export class DeveloperInsightsService {
         file as file_path,
         lines_changed,
         duration_ms,
-        message as context,
-        project_name
+        message as context
       FROM agent_events
       WHERE 1=1
-      ${projectName && projectName !== 'all' ? 'AND project_name = ?' : ''}
       ORDER BY timestamp DESC
       LIMIT ?
     `
       )
-      .all(projectName && projectName !== 'all' ? [projectName, limit] : [limit]);
+      .all([limit]);
 
     // Add language detection
     return interactions.map(interaction => ({
@@ -230,7 +223,7 @@ export class DeveloperInsightsService {
    * @param {number} limit - Maximum number of patterns to return
    */
   getDeveloperPatterns(projectName = null, limit = 20) {
-    // Detect patterns from file_events
+    // Detect patterns from events
     const patterns = this.db
       .prepare(
         `
@@ -239,18 +232,16 @@ export class DeveloperInsightsService {
         filepath as pattern_name,
         COUNT(*) as frequency,
         MAX(timestamp) as timestamp,
-        GROUP_CONCAT(DISTINCT filepath) as files_affected,
-        project_name
-      FROM file_events
+        GROUP_CONCAT(DISTINCT filepath) as files_affected
+      FROM events
       WHERE 1=1
-      ${projectName && projectName !== 'all' ? 'AND project_name = ?' : ''}
       GROUP BY filepath
       HAVING COUNT(*) > 1
       ORDER BY frequency DESC, timestamp DESC
       LIMIT ?
     `
       )
-      .all(projectName && projectName !== 'all' ? [projectName, limit] : [limit]);
+      .all([limit]);
 
     return patterns.map(pattern => ({
       ...pattern,

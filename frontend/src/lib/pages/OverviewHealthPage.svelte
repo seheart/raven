@@ -79,7 +79,11 @@
     }
   }
 
+  // Load health summary when project or time range changes
   $effect(() => {
+    // Track dependencies: selectedProject and selectedDays
+    const project = selectedProject;
+    const days = selectedDays;
     loadHealthSummary();
   });
 </script>
@@ -378,9 +382,10 @@
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
               <h3 class="text-base font-semibold text-[var(--text)] mb-4">File Activity</h3>
               <div class="space-y-2">
-                {#each healthData.metrics.file_activity as activity (activity.event_type)}
+                {#each healthData.metrics.file_activity as activity (activity.change_type)}
                   <div class="flex items-center justify-between">
-                    <span class="text-sm capitalize text-[var(--muted)]">{activity.event_type}</span
+                    <span class="text-sm capitalize text-[var(--muted)]"
+                      >{activity.change_type}</span
                     >
                     <span class="text-base font-mono font-semibold text-[var(--text)]">
                       {activity.count}

@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   /**
@@ -302,8 +303,8 @@
     });
   }
 
-  // Effect for initialization, WebSocket, and chart management
-  $effect(() => {
+  // Initialize on mount - WebSocket and theme observer
+  onMount(() => {
     // Load initial data
     loadTrends();
 
@@ -343,9 +344,18 @@
     };
   });
 
-  // Effect to recreate charts when trends or showCharts changes
+  // Reload trends when period or days changes
   $effect(() => {
-    if (showCharts && trends.length > 0) {
+    const currentPeriod = period;
+    const currentDays = days;
+    loadTrends();
+  });
+
+  // Recreate charts when trends data or showCharts toggle changes
+  $effect(() => {
+    const shouldShowCharts = showCharts;
+    const trendsLength = trends.length;
+    if (shouldShowCharts && trendsLength > 0) {
       setTimeout(createCharts, 100);
     }
   });

@@ -55,14 +55,37 @@
     try {
       loading = true;
       const [statsData, interactionsData, patternsData] = await Promise.all([
-        api
-          .get('/developer/stats')
-          .catch(() => ({ counts: {}, languages: [], projects: [], hourly_activity: [] })),
+        api.get('/developer/stats').catch(() => ({
+          agent_interactions: 0,
+          code_patterns: 0,
+          workflow_events: 0,
+          error_recoveries: 0,
+          context_switches: 0,
+          preferences_learned: 0,
+          languages: [],
+          hourly_activity: []
+        })),
         api.get('/developer/interactions?limit=20').catch(() => ({ interactions: [] })),
         api.get('/developer/patterns?limit=20').catch(() => ({ patterns: [] }))
       ]);
 
-      stats = statsData;
+      // Transform API response to match frontend structure
+      stats = {
+        counts: {
+          agent_interactions: statsData.agent_interactions || 0,
+          code_patterns: statsData.code_patterns || 0,
+          workflow_events: statsData.workflow_events || 0,
+          error_recovery: statsData.error_recoveries || 0,
+          context_switches: statsData.context_switches || 0,
+          preferences: statsData.preferences_learned || 0
+        },
+        languages: statsData.languages || [],
+        projects: [], // API doesn't return projects yet
+        hourly_activity:
+          Array.isArray(statsData.hourly_activity) && statsData.hourly_activity.length === 24
+            ? statsData.hourly_activity.map((count, hour) => ({ hour_of_day: hour, count }))
+            : []
+      };
       interactions = interactionsData.interactions || [];
       patterns = patternsData.patterns || [];
       lastUpdate = new Date();
@@ -482,34 +505,37 @@
             💻 Recent Code Patterns
           </h2>
           <div class="space-y-3">
-            {#each patterns as pattern (pattern.id)}
+            {#each patterns as pattern (pattern.pattern_name + pattern.timestamp)}
               <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3">
                 <div class="flex items-start justify-between gap-3 mb-2">
-                  <div class="flex items-center gap-2">
-                    <span class="font-semibold text-[var(--accent)] font-mono"
-                      >{pattern.language || 'Unknown'}</span
+                  <div class="flex items-center gap-2 flex-1">
+                    <span class="font-semibold text-[var(--accent)] font-mono text-sm"
+                      >{pattern.pattern_name}</span
                     >
                     <span
-                      class="text-sm px-2 py-0.5 bg-[var(--surface)] rounded text-[var(--muted)] font-sans"
-                      >{pattern.edit_type || 'Edit'}</span
+                      class="text-xs px-2 py-0.5 bg-[var(--surface)] rounded text-[var(--muted)] font-sans"
+                      >{pattern.pattern_type || 'change'}</span
                     >
                   </div>
                   <span class="text-sm text-[var(--muted)] font-mono"
                     >{formatTimestamp(pattern.timestamp)}</span
                   >
                 </div>
+                <div class="text-sm text-[var(--muted)] font-sans mb-2">
+                  {pattern.description}
+                </div>
                 <div class="flex flex-wrap gap-2 text-xs">
                   <span
                     class="px-2 py-0.5 bg-[var(--surface)] rounded text-[var(--muted)] font-mono"
-                    >+{pattern.lines_added || 0} / -{pattern.lines_removed || 0}</span
+                    >Frequency: {pattern.frequency}</span
                   >
-                  {#if pattern.indent_style}
+                  {#if false}
                     <span
                       class="px-2 py-0.5 bg-[var(--surface)] rounded text-[var(--muted)] font-mono"
-                      >Indent: {pattern.indent_style} ({pattern.indent_size || 2})</span
+                      >Placeholder</span
                     >
                   {/if}
-                  {#if pattern.uses_types}
+                  {#if false}
                     <span
                       class="px-2 py-0.5 bg-[var(--accent)] text-white rounded font-mono font-semibold"
                       >TypeScript</span

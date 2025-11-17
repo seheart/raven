@@ -747,11 +747,22 @@ export class RavenDB {
    * @returns Complete dashboard statistics including event counts, agent stats, and metrics
    */
   getDashboardStats(session_id: string): DashboardStats {
-    const events = this.getAgentEventsBySession(session_id);
+    // Get both agent events AND file events
+    const agentEvents = this.getAgentEventsBySession(session_id);
 
-    // Get unique files from agent events
+    // Get file events (from file watcher) for current session
+    const fileEvents: any[] = this.db
+      .prepare(
+        `SELECT * FROM events WHERE session_id = ? OR session_id IS NULL ORDER BY timestamp DESC`
+      )
+      .all(session_id);
+
+    // Combine all events
+    const allEvents = [...agentEvents, ...fileEvents];
+
+    // Get unique files from all events
     const trackedFiles = new Set<string>();
-    for (const event of events) {
+    for (const event of allEvents) {
       if (event.filepath) {
         trackedFiles.add(event.filepath);
       }
@@ -759,17 +770,21 @@ export class RavenDB {
 
     // Calculate session duration
     let session_duration_seconds = 0;
-    if (events.length > 0) {
-      const first = new Date(events[0].timestamp);
-      const last = new Date(events[events.length - 1].timestamp);
-      session_duration_seconds = Math.floor((last.getTime() - first.getTime()) / 1000);
+    if (allEvents.length > 0) {
+      const timestamps = allEvents.map(e => new Date(e.timestamp).getTime()).filter(t => !isNaN(t));
+
+      if (timestamps.length > 0) {
+        const first = Math.min(...timestamps);
+        const last = Math.max(...timestamps);
+        session_duration_seconds = Math.floor((last - first) / 1000);
+      }
     }
 
     // Count active files today
     const today = new Date().toISOString().split('T')[0];
     const activeToday = new Set<string>();
 
-    for (const event of events) {
+    for (const event of fileEvents) {
       const eventDate = event.timestamp.split('T')[0];
       if (eventDate === today && event.filepath) {
         activeToday.add(event.filepath);
@@ -777,7 +792,7 @@ export class RavenDB {
     }
 
     return {
-      total_events: events.length,
+      total_events: fileEvents.length, // Use file events for total count
       total_files: trackedFiles.size,
       total_agents: 0, // Will be updated by agent registry
       session_duration_seconds,
@@ -878,8 +893,8 @@ export class RavenDB {
     session_id: string | undefined
   ): number {
     const stmt = this.db.prepare(`
-      INSERT INTO pattern_warnings (timestamp, filepath, line_number, pattern_id, pattern_name, severity, category, message, match_text, context, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO pattern_warnings (timestamp, filepath, line_number, pattern_id, pattern_name, severity, category, match_text, context, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -890,7 +905,6 @@ export class RavenDB {
       pattern_name,
       severity,
       category,
-      message,
       match_text,
       context,
       session_id || null

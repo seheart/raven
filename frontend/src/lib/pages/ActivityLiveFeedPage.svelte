@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   /**
    * Activity Live Feed Page - Real-time activity stream
@@ -344,8 +345,8 @@
     }
   }
 
-  // Lifecycle - mount
-  $effect(() => {
+  // Initialize on mount
+  onMount(() => {
     // Load initial data
     loadAllData();
 
