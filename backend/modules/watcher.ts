@@ -28,6 +28,7 @@ export class FileWatcher {
   private watcher: FSWatcher | null = null;
   private config: WatcherConfig;
   private fileCache: Map<string, string> = new Map();
+  private pendingOps: Map<string, Promise<void>> = new Map();
 
   constructor(config: WatcherConfig) {
     this.config = {
@@ -40,6 +41,21 @@ export class FileWatcher {
         '**/*.log',
         '**/dist/**',
         '**/.cache/**',
+        // Database files (can be huge, cause OOM)
+        '**/*.db',
+        '**/*.db-wal',
+        '**/*.db-shm',
+        '**/snapshots/**',
+        // Python virtual environments and packages
+        '**/venv/**',
+        '**/.venv/**',
+        '**/env/**',
+        '**/virtualenv/**',
+        '**/site-packages/**',
+        '**/dist-packages/**',
+        '**/__pycache__/**',
+        '**/*.pyc',
+        '**/*.pyo',
         ...(config.ignored || [])
       ],
       debounceMs: 50,
@@ -65,10 +81,54 @@ export class FileWatcher {
     logger.info('Starting file watcher', { watchPath: this.config.watchPath });
 
     this.watcher = chokidar.watch(this.config.watchPath, {
-      ignored: this.config.ignored,
+      ignored: (path: string) => {
+        // Use a function for more reliable ignoring
+        // Ignore dotfiles/dotfolders
+        if (/(^|[\\/])\../.test(path)) return true;
+
+        // Ignore specific directories and files
+        const ignorePatterns = [
+          '/.raven/',
+          '/node_modules/',
+          '/.git/',
+          '/target/',
+          '/dist/',
+          '/.cache/',
+          '/snapshots/',
+          '/venv/',
+          '/.venv/',
+          '/env/',
+          '/virtualenv/',
+          '/site-packages/',
+          '/dist-packages/',
+          '/__pycache__/'
+        ];
+
+        // Check if path contains any ignore pattern
+        if (ignorePatterns.some(pattern => path.includes(pattern))) {
+          return true;
+        }
+
+        // Ignore specific file extensions
+        const ignoreExtensions = ['.log', '.db', '.db-wal', '.db-shm', '.pyc', '.pyo'];
+
+        if (ignoreExtensions.some(ext => path.endsWith(ext))) {
+          return true;
+        }
+
+        return false;
+      },
       persistent: this.config.persistent,
       ignoreInitial: this.config.ignoreInitial,
-      awaitWriteFinish: this.config.awaitWriteFinish
+      awaitWriteFinish: this.config.awaitWriteFinish,
+      // Use polling mode to avoid hitting Linux inotify limits
+      // when watching large directory trees with many files
+      usePolling: true,
+      interval: 1000, // Poll every 1s for normal files
+      binaryInterval: 3000, // Poll every 3s for binary files
+      // Limit depth to prevent deep recursion into node_modules/venv
+      depth: 5, // Shallow depth for broad watching
+      ignorePermissionErrors: true
     });
 
     this.watcher
@@ -112,23 +172,47 @@ export class FileWatcher {
       let hash: string | undefined;
       let size: number | undefined;
 
+      // Wait for any pending operations on this file to complete
+      if (this.pendingOps.has(filepath)) {
+        await this.pendingOps.get(filepath);
+      }
+
       // Read file content for add/change events
       if (eventType === 'add' || eventType === 'change') {
-        try {
-          content = await fs.readFile(filepath, 'utf8');
-          size = content.length;
-          hash = this.calculateFileHash(content);
+        const operation = (async () => {
+          try {
+            content = await fs.readFile(filepath, 'utf8');
+            size = content.length;
+            hash = this.calculateFileHash(content);
 
-          // Update cache
-          this.fileCache.set(filepath, content);
+            // Update cache atomically after read
+            this.fileCache.set(filepath, content);
+          } catch (readError) {
+            // File might be binary or unreadable
+            logger.warn('Could not read file', { relPath });
+            throw readError;
+          } finally {
+            // Remove from pending operations
+            this.pendingOps.delete(filepath);
+          }
+        })();
+
+        this.pendingOps.set(filepath, operation);
+
+        try {
+          await operation;
         } catch (readError) {
-          // File might be binary or unreadable
-          logger.warn('Could not read file', { relPath });
           return;
         }
       } else if (eventType === 'unlink') {
+        // Wait for pending operations before deletion
+        if (this.pendingOps.has(filepath)) {
+          await this.pendingOps.get(filepath);
+        }
+
         // Remove from cache
         this.fileCache.delete(filepath);
+        this.pendingOps.delete(filepath);
       }
 
       // Create event

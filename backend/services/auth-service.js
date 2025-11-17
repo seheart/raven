@@ -79,14 +79,13 @@ export class AuthService {
       // REASON: This is sensitive credential information that MUST be visible on stdout
       // but MUST NOT be written to log files for security reasons.
       // The logger writes to files, console.log only writes to stdout.
-      /* eslint-disable no-console */
-      logger.debug('\n' + '='.repeat(70));
-      logger.debug('🔐 DEFAULT ADMIN CREDENTIALS (save these securely):');
-      logger.debug('   Username: admin');
-      logger.debug(`   Password: ${defaultPassword}`);
-      logger.debug('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!');
-      logger.debug('='.repeat(70) + '\n');
-      /* eslint-enable no-console */
+
+      console.log('\n' + '='.repeat(70));
+      console.log('🔐 DEFAULT ADMIN CREDENTIALS (save these securely):');
+      console.log('   Username: admin');
+      console.log(`   Password: ${defaultPassword}`);
+      console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!');
+      console.log('='.repeat(70) + '\n');
     }
   }
 
@@ -119,12 +118,7 @@ export class AuthService {
       VALUES (?, ?, ?, ?)
     `);
 
-    const result = stmt.run(
-      username,
-      passwordHash,
-      role,
-      new Date().toISOString()
-    );
+    const result = stmt.run(username, passwordHash, role, new Date().toISOString());
 
     return result.lastInsertRowid;
   }
@@ -133,11 +127,15 @@ export class AuthService {
    * Authenticate user with username and password
    */
   async authenticate(username, password) {
-    const user = this.db.prepare(`
+    const user = this.db
+      .prepare(
+        `
       SELECT id, username, password_hash, role, active
       FROM users
       WHERE username = ?
-    `).get(username);
+    `
+      )
+      .get(username);
 
     if (!user) {
       throw new Error('Invalid username or password');
@@ -153,7 +151,8 @@ export class AuthService {
     }
 
     // Update last login
-    this.db.prepare('UPDATE users SET last_login = ? WHERE id = ?')
+    this.db
+      .prepare('UPDATE users SET last_login = ? WHERE id = ?')
       .run(new Date().toISOString(), user.id);
 
     // Generate token
@@ -173,11 +172,15 @@ export class AuthService {
    * Change user password
    */
   async changePassword(userId, oldPassword, newPassword) {
-    const user = this.db.prepare(`
+    const user = this.db
+      .prepare(
+        `
       SELECT id, password_hash
       FROM users
       WHERE id = ?
-    `).get(userId);
+    `
+      )
+      .get(userId);
 
     if (!user) {
       throw new Error('User not found');
@@ -194,8 +197,7 @@ export class AuthService {
 
     const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-    this.db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
-      .run(newHash, userId);
+    this.db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, userId);
 
     return true;
   }
@@ -204,11 +206,15 @@ export class AuthService {
    * Get user by ID
    */
   getUserById(id) {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT id, username, role, created_at, last_login, active
       FROM users
       WHERE id = ?
-    `).get(id);
+    `
+      )
+      .get(id);
   }
 
   /**
@@ -216,12 +222,16 @@ export class AuthService {
    * @param {number} limit - Maximum number of users to return (default: 100)
    */
   getAllUsers(limit = 100) {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT id, username, role, created_at, last_login, active
       FROM users
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(limit);
+    `
+      )
+      .all(limit);
   }
 
   /**
@@ -233,8 +243,7 @@ export class AuthService {
       throw new Error('Invalid role');
     }
 
-    this.db.prepare('UPDATE users SET role = ? WHERE id = ?')
-      .run(newRole, userId);
+    this.db.prepare('UPDATE users SET role = ? WHERE id = ?').run(newRole, userId);
 
     return true;
   }
@@ -243,8 +252,7 @@ export class AuthService {
    * Disable/Enable user account
    */
   setUserActive(userId, active) {
-    this.db.prepare('UPDATE users SET active = ? WHERE id = ?')
-      .run(active ? 1 : 0, userId);
+    this.db.prepare('UPDATE users SET active = ? WHERE id = ?').run(active ? 1 : 0, userId);
 
     return true;
   }
@@ -254,11 +262,15 @@ export class AuthService {
    */
   deleteUser(userId) {
     // Prevent deleting last admin
-    const adminCount = this.db.prepare(`
+    const adminCount = this.db
+      .prepare(
+        `
       SELECT COUNT(*) as count
       FROM users
       WHERE role = 'admin' AND active = 1
-    `).get();
+    `
+      )
+      .get();
 
     const user = this.getUserById(userId);
     if (user.role === 'admin' && adminCount.count <= 1) {

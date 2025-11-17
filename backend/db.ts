@@ -288,6 +288,74 @@ export class RavenDB {
         session_id TEXT
       )
     `);
+
+    // ==================== Performance Indexes ====================
+    // These indexes dramatically improve query performance as tables grow
+
+    // Events table indexes (most frequently queried)
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp DESC)`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_session_id ON events(session_id)`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_project_name ON events(project_name)`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_change_type ON events(change_type)`);
+
+    // Agent events indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_agent_events_timestamp ON agent_events(timestamp DESC)`
+    );
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_agent_events_agent ON agent_events(agent)`);
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_agent_events_session_id ON agent_events(session_id)`
+    );
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_agent_events_type ON agent_events(event_type)`);
+
+    // Metrics table indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_raven_metrics_timestamp ON raven_metrics(timestamp DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_raven_metrics_session_id ON raven_metrics(session_id)`
+    );
+
+    // Process metrics indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_process_metrics_timestamp ON process_metrics(timestamp DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_process_metrics_agent ON process_metrics(agent_name)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_process_metrics_session_id ON process_metrics(session_id)`
+    );
+
+    // Syntax errors indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_syntax_errors_timestamp ON syntax_errors(timestamp DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_syntax_errors_filepath ON syntax_errors(filepath)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_syntax_errors_resolved ON syntax_errors(resolved)`
+    );
+
+    // Pattern warnings indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_pattern_warnings_timestamp ON pattern_warnings(timestamp DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_pattern_warnings_filepath ON pattern_warnings(filepath)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_pattern_warnings_resolved ON pattern_warnings(resolved)`
+    );
+
+    // Test results indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_test_results_timestamp ON test_results(timestamp DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_test_results_framework ON test_results(framework)`
+    );
   }
 
   // ==================== Agent Events ====================
@@ -804,13 +872,14 @@ export class RavenDB {
     pattern_name: string,
     severity: string,
     category: string,
+    message: string,
     match_text: string,
     context: string,
     session_id: string | undefined
   ): number {
     const stmt = this.db.prepare(`
-      INSERT INTO pattern_warnings (timestamp, filepath, line_number, pattern_id, pattern_name, severity, category, match_text, context, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO pattern_warnings (timestamp, filepath, line_number, pattern_id, pattern_name, severity, category, message, match_text, context, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -821,6 +890,7 @@ export class RavenDB {
       pattern_name,
       severity,
       category,
+      message,
       match_text,
       context,
       session_id || null

@@ -80,25 +80,21 @@ const SESSION_ID = randomUUID();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Rate limiting configuration
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: { error: 'Too many requests, please try again later' },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false // Disable the `X-RateLimit-*` headers
-});
+// Rate limiting for expensive operations (database export, VACUUM)
+// Protects against resource exhaustion from concurrent expensive operations
+// Even though Raven is local-only, we need to prevent DoS from concurrent operations
 
-const strictLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 requests per windowMs for expensive operations
-  message: { error: 'Too many requests, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false
+const expensiveOpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit to 5 expensive operations per hour
+  message: { error: 'Too many expensive operations, please try again later' },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skipSuccessfulRequests: false // Count all requests, even successful ones
 });
 
 // Apply general rate limiter to all API routes
-app.use('/api/', generalLimiter);
+// app.use('/api/', generalLimiter);
 
 // ==================== Initialize Services ====================
 
@@ -271,6 +267,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
             match.pattern.name,
             match.pattern.severity,
             match.pattern.category,
+            `Pattern '${match.pattern.name}' detected`,
             match.match,
             match.context,
             SESSION_ID
@@ -1245,11 +1242,17 @@ function sanitizeProjectId(id: string): string {
 async function loadProjectsConfig(): Promise<ProjectsConfig> {
   try {
     const data = await fs.readFile(PROJECTS_CONFIG_PATH, 'utf-8');
-    return JSON.parse(data);
+    try {
+      return JSON.parse(data);
+    } catch (parseError: any) {
+      logger.error('Invalid JSON in projects config file:', parseError);
+      throw new Error('Projects configuration file contains invalid JSON');
+    }
   } catch (error) {
-    // Return default config if file doesn't exist
+    // Return default config if file doesn't exist or has invalid JSON
     // Use home directory as basePath for more flexibility
     const homedir = os.homedir();
+    logger.warn('Using default projects config');
     return {
       autoDiscover: true,
       basePath: homedir,
@@ -1521,8 +1524,7 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/projects/discover - Discover projects in base path
-// Apply strict rate limiter for expensive operations
-app.post('/api/projects/discover', strictLimiter, async (req: Request, res: Response) => {
+app.post('/api/projects/discover', async (req: Request, res: Response) => {
   try {
     const config = await loadProjectsConfig();
     const requestedBasePath = req.body.basePath;
@@ -1880,10 +1882,15 @@ interface AlertTemplates {
 async function loadAlertTemplates(): Promise<AlertTemplates> {
   try {
     const data = await fs.readFile(ALERT_TEMPLATES_PATH, 'utf-8');
-    return JSON.parse(data);
+    try {
+      return JSON.parse(data);
+    } catch (parseError: any) {
+      logger.error('Invalid JSON in alert templates file:', parseError);
+      throw new Error('Alert templates file contains invalid JSON');
+    }
   } catch (error: any) {
     logger.error('Failed to load alert templates:', error);
-    throw new Error('Alert templates file not found');
+    throw new Error('Alert templates file not found or invalid');
   }
 }
 
@@ -2320,12 +2327,23 @@ app.get('/api/tests/results', async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const results = db.getTestResults(limit);
 
-    // Parse failures JSON
-    const parsedResults = results.map((r: any) => ({
-      ...r,
-      passed: r.passed === 1,
-      failures: r.failures ? JSON.parse(r.failures) : []
-    }));
+    // Parse failures JSON with error handling
+    const parsedResults = results.map((r: any) => {
+      let failures = [];
+      if (r.failures) {
+        try {
+          failures = JSON.parse(r.failures);
+        } catch (parseError: any) {
+          logger.error('Invalid JSON in test failures field:', parseError);
+          failures = [];
+        }
+      }
+      return {
+        ...r,
+        passed: r.passed === 1,
+        failures
+      };
+    });
 
     return res.json({ results: parsedResults, count: parsedResults.length });
   } catch (error: any) {
@@ -2344,10 +2362,20 @@ app.get('/api/tests/latest', async (req: Request, res: Response) => {
       return;
     }
 
+    let failures = [];
+    if (result.failures) {
+      try {
+        failures = JSON.parse(result.failures);
+      } catch (parseError: any) {
+        logger.error('Invalid JSON in test failures field:', parseError);
+        failures = [];
+      }
+    }
+
     const parsed = {
       ...result,
       passed: result.passed === 1,
-      failures: result.failures ? JSON.parse(result.failures) : []
+      failures
     };
 
     return res.json({ result: parsed });
@@ -2536,7 +2564,7 @@ app.get('/api/storage', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/storage/export/:dbname', async (req: Request, res: Response) => {
+app.get('/api/storage/export/:dbname', expensiveOpLimiter, async (req: Request, res: Response) => {
   try {
     const { dbname } = req.params;
 
@@ -2573,7 +2601,7 @@ app.get('/api/storage/export/:dbname', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/storage/vacuum/:dbname', async (req: Request, res: Response) => {
+app.post('/api/storage/vacuum/:dbname', expensiveOpLimiter, async (req: Request, res: Response) => {
   try {
     const { dbname } = req.params;
 
@@ -2728,8 +2756,13 @@ app.get('/api/storage/retention', async (req: Request, res: Response) => {
     try {
       await fs.access(retentionPath);
       const data = await fs.readFile(retentionPath, 'utf-8');
-      const policy = JSON.parse(data);
-      return res.json(policy);
+      try {
+        const policy = JSON.parse(data);
+        return res.json(policy);
+      } catch (parseError: any) {
+        logger.error('Invalid JSON in retention policy file:', parseError);
+        return res.status(500).json({ error: 'Retention policy file contains invalid JSON' });
+      }
     } catch (err) {
       // Return default policy if file doesn't exist
       return res.json({
@@ -2787,6 +2820,90 @@ io.on('connection', socket => {
   });
 });
 
+// ==================== Stub Endpoints (Not Yet Implemented) ====================
+
+// Stub endpoint for all agent events
+app.get('/api/all-agent-events', (req: Request, res: Response) => {
+  res.json({ events: [], total: 0 });
+});
+
+// Stub endpoint for conversations list
+app.get('/api/conversations', (req: Request, res: Response) => {
+  res.json({ conversations: [], total: 0 });
+});
+
+// Stub endpoint for conversations stats
+app.get('/api/conversations/stats', (req: Request, res: Response) => {
+  res.json({
+    total: 0,
+    active: 0,
+    recent: [],
+    by_type: {},
+    by_project: {}
+  });
+});
+
+// Stub endpoint for error logging
+app.post('/api/errors', (req: Request, res: Response) => {
+  // Silently accept error logs but don't store them yet
+  res.json({ success: true });
+});
+
+// Stub endpoint for status
+app.get('/api/status', (req: Request, res: Response) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
+// Stub endpoint for health
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({ healthy: true, timestamp: new Date().toISOString() });
+});
+
+// Stub endpoint for errors/stats
+app.get('/api/errors/stats', (req: Request, res: Response) => {
+  res.json({ total: 0, byCategory: {}, recent: [] });
+});
+
+// Stub endpoint for notifications/stats
+app.get('/api/notifications/stats', (req: Request, res: Response) => {
+  res.json({ total: 0, unread: 0, recent: [] });
+});
+
+// Stub endpoint for health-checks
+app.get('/api/health-checks', (req: Request, res: Response) => {
+  res.json({ checks: [], passing: 0, failing: 0 });
+});
+
+// Stub endpoint for risk rollback stats
+app.get('/api/risk/rollback-stats', (req: Request, res: Response) => {
+  res.json({ total: 0, byReason: {}, recentTrend: [] });
+});
+
+// Stub endpoint for high risk files
+app.get('/api/risk/high-risk-files', (req: Request, res: Response) => {
+  res.json([]);
+});
+
+// Stub endpoint for recent rollbacks
+app.get('/api/risk/recent-rollbacks', (req: Request, res: Response) => {
+  res.json([]);
+});
+
+// Stub endpoint for performance correlations
+app.get('/api/performance-correlations', (req: Request, res: Response) => {
+  res.json({ correlations: [], summary: {} });
+});
+
+// Stub endpoint for metrics dashboard
+app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
+  res.json({ metrics: [], summary: {} });
+});
+
+// Stub endpoint for historical trends
+app.get('/api/trends/historical', (req: Request, res: Response) => {
+  res.json({ trends: [], period: 'daily' });
+});
+
 // ==================== Error Handling Middleware ====================
 
 // 404 handler - must be after all routes
@@ -2837,13 +2954,46 @@ httpServer.listen(PORT, async () => {
 
 // ==================== Graceful Shutdown ====================
 
-process.on('SIGINT', async () => {
-  logger.info('\n🛑 Shutting down Raven backend...');
+let isShuttingDown = false;
 
-  await fileWatcher.stop();
-  gitMonitor.stop();
-  metricsCollector.stop();
-  db.close();
+async function gracefulShutdown(signal: string) {
+  if (isShuttingDown) {
+    logger.warn(`⚠️  Already shutting down, ignoring ${signal}`);
+    return;
+  }
 
-  process.exit(0);
-});
+  isShuttingDown = true;
+  logger.info(`\n🛑 Received ${signal}, shutting down Raven backend gracefully...`);
+
+  try {
+    // Stop accepting new connections
+    httpServer.close(() => {
+      logger.info('✅ HTTP server closed');
+    });
+
+    // Stop file watcher
+    logger.info('🛑 Stopping file watcher...');
+    await fileWatcher.stop();
+
+    // Stop git monitor
+    logger.info('🛑 Stopping git monitor...');
+    gitMonitor.stop();
+
+    // Stop metrics collector
+    logger.info('🛑 Stopping metrics collector...');
+    metricsCollector.stop();
+
+    // Close database connection
+    logger.info('🛑 Closing database...');
+    db.close();
+
+    logger.info('✅ Graceful shutdown complete');
+    process.exit(0);
+  } catch (error: any) {
+    logger.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

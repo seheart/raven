@@ -1,5 +1,5 @@
 import { logger } from './logger.js';
-import { websocketService } from './websocket.js';
+import { websocketService } from './services/websocket.js';
 import { notifications } from './notificationService.js';
 
 /**
@@ -8,7 +8,7 @@ import { notifications } from './notificationService.js';
  */
 export function setupNotificationListeners() {
   // Error logged events
-  websocketService.on('error-logged', (error) => {
+  websocketService.on('error-logged', error => {
     const severity = error.severity || 'error';
     const message = `${error.component || 'System'}: ${error.message}`;
 
@@ -25,7 +25,7 @@ export function setupNotificationListeners() {
   });
 
   // Notification events from backend
-  websocketService.on('notification', (notification) => {
+  websocketService.on('notification', notification => {
     const { type, title, message, severity } = notification;
 
     if (severity === 'critical' || severity === 'error') {
@@ -49,10 +49,10 @@ export function setupNotificationListeners() {
   });
 
   // Agent status changes
-  websocketService.on('agent-event', (_event) => {
-    if (event.event_type === 'status_change') {
-      const agentName = event.agent_name || 'Unknown Agent';
-      const newStatus = event.metadata?.status || event.status;
+  websocketService.on('agent-event', agentEvent => {
+    if (agentEvent.event_type === 'status_change') {
+      const agentName = agentEvent.agent_name || 'Unknown Agent';
+      const newStatus = agentEvent.metadata?.status || agentEvent.status;
 
       if (newStatus) {
         notifications.agentStatusChange(agentName, newStatus);
@@ -60,16 +60,19 @@ export function setupNotificationListeners() {
     }
 
     // Agent errors
-    if (event.event_type === 'error') {
-      notifications.error(`Agent ${event.agent_name}: ${event.metadata?.error || 'Unknown error'}`, {
-        title: 'Agent Error',
-        browserNotification: true
-      });
+    if (agentEvent.event_type === 'error') {
+      notifications.error(
+        `Agent ${agentEvent.agent_name}: ${agentEvent.metadata?.error || 'Unknown error'}`,
+        {
+          title: 'Agent Error',
+          browserNotification: true
+        }
+      );
     }
   });
 
   // Sync completion
-  websocketService.on('sync-complete', (data) => {
+  websocketService.on('sync-complete', data => {
     if (data.success) {
       notifications.syncComplete();
     } else {
@@ -78,19 +81,19 @@ export function setupNotificationListeners() {
   });
 
   // File change errors (file watcher issues)
-  websocketService.on('file-watcher-error', (error) => {
+  websocketService.on('file-watcher-error', error => {
     notifications.fileWatcherError(error.message || 'File watcher error');
   });
 
   // Performance alerts
-  websocketService.on('performance-alert', (alert) => {
+  websocketService.on('performance-alert', alert => {
     notifications.performance(alert.message, {
       title: alert.title || 'Performance Alert'
     });
   });
 
   // Storage warnings (we'll add backend emission for this)
-  websocketService.on('storage-warning', (data) => {
+  websocketService.on('storage-warning', data => {
     if (data.critical) {
       notifications.storageCritical(data.percentage);
     } else {
@@ -99,7 +102,7 @@ export function setupNotificationListeners() {
   });
 
   // Trigger events
-  websocketService.on('trigger-fired', (trigger) => {
+  websocketService.on('trigger-fired', trigger => {
     notifications.trigger(`Trigger "${trigger.name}": ${trigger.message}`, {
       title: 'Trigger Fired'
     });
@@ -123,7 +126,7 @@ export function teardownNotificationListeners() {
     'trigger-fired'
   ];
 
-  events.forEach(_event => {
+  events.forEach(eventName => {
     // Note: We'd need to store callbacks to properly remove them
     // For now, disconnect will handle cleanup
   });

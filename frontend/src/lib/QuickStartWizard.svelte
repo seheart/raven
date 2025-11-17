@@ -6,16 +6,19 @@
 
   const dispatch = createEventDispatcher();
 
+  // Props
+  let { asPage = true } = $props();
+
   // Wizard state
-  let currentStep = 0;
-  let projectPath = '/home/seth/Projects';
-  let selectedTemplate = 'ai-safety-basic';
-  let notificationsEnabled = false;
-  let error = null;
-  let loading = false;
+  let currentStep = $state(0);
+  let projectPath = $state('/home/seth/Projects');
+  let selectedTemplate = $state('ai-safety-basic');
+  let notificationsEnabled = $state(false);
+  let error = $state(null);
+  let loading = $state(false);
 
   // Available alert templates (with fallback defaults)
-  let templates = [
+  let templates = $state([
     {
       id: 'ai-safety-basic',
       name: 'AI Safety (Recommended)',
@@ -47,7 +50,7 @@
       icon: '🔕',
       triggers: [{ type: 'security_file', name: 'Security File Modified' }]
     }
-  ];
+  ]);
 
   // Steps configuration
   const steps = [
@@ -112,7 +115,7 @@
       } else {
         logger.warn('⚠️ Using fallback templates (API returned', response.status, ')');
       }
-    } catch (err) {
+    } catch (error) {
       logger.error('❌ Error fetching templates:', error);
       logger.warn('⚠️ Using fallback templates');
     }
@@ -161,7 +164,7 @@
         }
       }
       nextStep();
-    } catch (err) {
+    } catch (error) {
       logger.error('Failed to handle notifications:', error);
       error = 'Failed to request notification permissions';
       notificationsEnabled = false;
@@ -196,7 +199,7 @@
         template: selectedTemplate,
         notifications: notificationsEnabled
       });
-    } catch (err) {
+    } catch (error) {
       logger.error('❌ [QuickStart] Setup failed:', error);
       errorMessage = error.message;
       loading = false;
@@ -210,10 +213,15 @@
   }
 
   // Get progress percentage
-  $: progress = ((currentStep + 1) / (steps.length + 1)) * 100;
+  let progress = $derived(((currentStep + 1) / (steps.length + 1)) * 100);
 </script>
 
-<div class="wizard-overlay" role="dialog" aria-modal="true" aria-labelledby="wizard-heading">
+<div
+  class={asPage ? 'wizard-page' : 'wizard-overlay'}
+  role="dialog"
+  aria-modal={!asPage}
+  aria-labelledby="wizard-heading"
+>
   <div class="wizard-container">
     <!-- Progress bar -->
     <div
@@ -282,7 +290,7 @@
               type="text"
               bind:value={projectPath}
               placeholder="/home/yourname/Projects"
-              on:keydown={e => e.key === 'Enter' && selectProjectDirectory()}
+              onkeydown={e => e.key === 'Enter' && selectProjectDirectory()}
             />
             <p class="hint" id="path-hint">
               This should be the parent folder containing all your individual projects
@@ -301,7 +309,7 @@
               <button
                 class="template-card"
                 class:selected={selectedTemplate === template.id}
-                on:click={() => selectAlertTemplate(template.id)}
+                onclick={() => selectAlertTemplate(template.id)}
                 role="radio"
                 aria-checked={selectedTemplate === template.id}
                 aria-label="{template.name} - {template.description}"
@@ -336,14 +344,14 @@
           <div class="notification-buttons" role="group" aria-label="Notification preference">
             <button
               class="btn btn-primary"
-              on:click={() => handleNotifications(true)}
+              onclick={() => handleNotifications(true)}
               aria-label="Enable desktop notifications"
             >
               Enable Notifications
             </button>
             <button
               class="btn btn-secondary"
-              on:click={() => handleNotifications(false)}
+              onclick={() => handleNotifications(false)}
               aria-label="Skip notifications setup"
             >
               Skip for Now
@@ -384,25 +392,25 @@
     <!-- Footer -->
     <div class="wizard-footer" role="navigation" aria-label="Wizard navigation">
       {#if currentStep === 0}
-        <button class="btn btn-secondary" on:click={skipWizard} aria-label="Skip setup wizard">
+        <button class="btn btn-secondary" onclick={skipWizard} aria-label="Skip setup wizard">
           Skip Setup
         </button>
-        <button class="btn btn-primary" on:click={nextStep} aria-label="Start setup wizard">
+        <button class="btn btn-primary" onclick={nextStep} aria-label="Start setup wizard">
           Get Started →
         </button>
       {:else if currentStep === 1}
-        <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
+        <button class="btn btn-secondary" onclick={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
         <button
           class="btn btn-primary"
-          on:click={selectProjectDirectory}
+          onclick={selectProjectDirectory}
           aria-label="Continue to next step"
         >
           Next →
         </button>
       {:else if currentStep === 2}
-        <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
+        <button class="btn btn-secondary" onclick={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
         <span class="step-indicator" role="status"
@@ -410,12 +418,12 @@
         >
       {:else}
         <!-- Final step (3): Enable Notifications -->
-        <button class="btn btn-secondary" on:click={prevStep} aria-label="Go to previous step">
+        <button class="btn btn-secondary" onclick={prevStep} aria-label="Go to previous step">
           ← Back
         </button>
         <button
           class="btn btn-primary btn-lg"
-          on:click={completeSetup}
+          onclick={completeSetup}
           disabled={loading}
           aria-label={loading ? 'Setting up Raven' : 'Complete setup and start monitoring'}
         >
@@ -436,6 +444,16 @@
     justify-content: center;
     z-index: 10000;
     backdrop-filter: blur(4px);
+  }
+
+  .wizard-page {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    overflow-y: auto;
   }
 
   .wizard-container {
