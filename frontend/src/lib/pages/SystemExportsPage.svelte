@@ -1,7 +1,6 @@
 <script>
   import { logger } from '../logger.js';
   import { projectFilter } from '../projectFilterStore.js';
-  import { notifications } from '../stores/notificationHistory.js';
   /**
    * System Exports Page
    * Export and share Raven data in multiple formats
@@ -119,7 +118,7 @@
             days: reportDays
           });
 
-          notifications.success(`Snapshot created: ${snapshotResult.filename}`);
+          logger.info(`Snapshot created: ${snapshotResult.filename}`);
           await loadExistingExports();
           await loadExportStats();
           loading = false;
@@ -131,11 +130,10 @@
       // Download the exported data
       downloadData(data, activeTab);
 
-      notifications.success('Export completed successfully!');
+      logger.info('Export completed successfully!');
       await loadExportStats();
     } catch (err) {
       logger.error('Export failed:', err);
-      notifications.error(`Export failed: ${err.message}`);
     } finally {
       loading = false;
     }
@@ -173,10 +171,9 @@
     try {
       // Open download URL in new tab
       window.open(`/api/export/download/${filename}`, '_blank');
-      notifications.success('Download started!');
+      logger.info('Download started!');
     } catch (err) {
       logger.error('Download failed:', err);
-      notifications.error('Download failed');
     }
   }
 
@@ -185,12 +182,11 @@
 
     try {
       await api.delete(`/export/${filename}`);
-      notifications.success('Export deleted');
+      logger.info('Export deleted');
       await loadExistingExports();
       await loadExportStats();
     } catch (err) {
       logger.error('Delete failed:', err);
-      notifications.error('Delete failed');
     }
   }
 

@@ -57,7 +57,7 @@ echo -e "${YELLOW}[1/6]${NC} Cleaning up existing processes..."
 pkill -f "node.*dist/server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
 # Kill processes on specific ports (cross-platform compatible)
-BACKEND_PORT_PID=$(check_port 3030)
+BACKEND_PORT_PID=$(check_port 9100)
 FRONTEND_PORT_PID=$(check_port 5173)
 # Only kill if PID is numeric (not "in_use" string from netstat)
 if [[ "$BACKEND_PORT_PID" =~ ^[0-9]+$ ]]; then
@@ -101,11 +101,11 @@ echo -e "  ${BLUE}ℹ${NC}  Backend is running 7-phase startup with verification
 BACKEND_READY=false
 for i in {1..60}; do
   # First check if backend is listening at all
-  if curl -s http://localhost:3030/api/status > /dev/null 2>&1; then
+  if curl -s http://localhost:9100/api/status > /dev/null 2>&1; then
     # Then check if all services are ready
-    READY_STATUS=$(curl -s http://localhost:3030/api/health/ready 2>/dev/null | grep -o '"ready":true' || echo "")
+    READY_STATUS=$(curl -s http://localhost:9100/api/health/ready 2>/dev/null | grep -o '"ready":true' || echo "")
     if [ ! -z "$READY_STATUS" ]; then
-      echo -e "${GREEN}✓${NC} Backend ready on http://localhost:3030 (all services verified)"
+      echo -e "${GREEN}✓${NC} Backend ready on http://localhost:9100 (all services verified)"
       BACKEND_READY=true
       break
     elif [ $((i % 4)) -eq 0 ]; then
@@ -116,7 +116,7 @@ for i in {1..60}; do
   sleep 0.5
   if [ $i -eq 60 ]; then
     echo -e "${RED}✗${NC} Backend failed to complete startup (check /tmp/raven-backend.log)"
-    echo -e "  ${YELLOW}Tip:${NC} Backend may still be booting. Run: ${YELLOW}curl http://localhost:3030/api/health/ready${NC}"
+    echo -e "  ${YELLOW}Tip:${NC} Backend may still be booting. Run: ${YELLOW}curl http://localhost:9100/api/health/ready${NC}"
     exit 1
   fi
 done
@@ -172,7 +172,7 @@ if [ "${SKIP_HEALTH_CHECKS}" != "1" ]; then
     echo "$HEALTH_OUTPUT" | grep -E "❌|Error|Failed" | head -10
     echo ""
     echo -e "${YELLOW}Full health check report:${NC}"
-    echo -e "  curl http://localhost:3030/api/health-checks/comprehensive | jq"
+    echo -e "  curl http://localhost:9100/api/health-checks/comprehensive | jq"
     echo ""
     echo -e "${YELLOW}Backend logs:${NC}"
     echo -e "  tail -50 /tmp/raven-backend.log"
@@ -181,17 +181,17 @@ if [ "${SKIP_HEALTH_CHECKS}" != "1" ]; then
   fi
 else
   echo -e "${YELLOW}[7/7]${NC} Skipping health checks (SKIP_HEALTH_CHECKS=1)"
-  echo -e "  ${BLUE}ℹ${NC}  Run health checks manually: ${YELLOW}curl http://localhost:3030/api/health/ready${NC}"
+  echo -e "  ${BLUE}ℹ${NC}  Run health checks manually: ${YELLOW}curl http://localhost:9100/api/health/ready${NC}"
 fi
 
 # Get session info
-SESSION_INFO=$(curl -s http://localhost:3030/health | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)
+SESSION_INFO=$(curl -s http://localhost:9100/health | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║          🚀 Raven is Running!                 ║${NC}"
 echo -e "${GREEN}╠════════════════════════════════════════════════╣${NC}"
-echo -e "${GREEN}║${NC}  Backend:  http://localhost:3030             ${GREEN}║${NC}"
+echo -e "${GREEN}║${NC}  Backend:  http://localhost:9100             ${GREEN}║${NC}"
 echo -e "${GREEN}║${NC}  Frontend: http://localhost:5173             ${GREEN}║${NC}"
 echo -e "${GREEN}║${NC}  Session:  ${SESSION_INFO:0:36} ${GREEN}║${NC}"
 echo -e "${GREEN}║${NC}                                                ${GREEN}║${NC}"

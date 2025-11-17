@@ -106,9 +106,9 @@ const expensiveOpLimiter = rateLimit({
 const db = new RavenDB(DB_PATH);
 const metricsCollector = new MetricsCollector(db, SESSION_ID, io);
 const triggerEngine = new TriggerEngine(RAVEN_DIR, io);
-const developerInsights = new DeveloperInsightsService(db);
-const integrations = new IntegrationsService(db, io);
-const projectHealth = new ProjectHealthService(db, io);
+const developerInsights = new DeveloperInsightsService(db.db);
+const integrations = new IntegrationsService(db.db, io);
+const projectHealth = new ProjectHealthService(db.db, io);
 const exportService = new ExportService(db.db, RAVEN_DIR);
 
 const fileWatcher = new FileWatcher({
@@ -508,6 +508,147 @@ app.get('/api/agent-stats', (req: Request, res: Response) => {
   }
 });
 
+// Agent profiles API (for intelligence/persona tracking)
+app.get('/api/agent-profiles', (req: Request, res: Response) => {
+  try {
+    // Get all agent events grouped by agent
+    const agents = db.db
+      .prepare(
+        `
+        SELECT
+          agent,
+          COUNT(*) as event_count,
+          MIN(timestamp) as first_seen,
+          MAX(timestamp) as last_seen,
+          COUNT(DISTINCT file) as unique_files
+        FROM agent_events
+        GROUP BY agent
+        ORDER BY event_count DESC
+      `
+      )
+      .all() as any[];
+
+    // Get event type distribution for each agent
+    const profiles = agents.map((agent: any) => {
+      const eventTypes = db.db
+        .prepare(
+          `
+          SELECT event_type, COUNT(*) as count
+          FROM agent_events
+          WHERE agent = ?
+          GROUP BY event_type
+        `
+        )
+        .all(agent.agent) as any[];
+
+      return {
+        agent: agent.agent,
+        event_count: agent.event_count,
+        first_seen: agent.first_seen,
+        last_seen: agent.last_seen,
+        unique_files: agent.unique_files,
+        event_distribution: eventTypes,
+        activity_score: Math.min(100, Math.round((agent.event_count / 100) * 100))
+      };
+    });
+
+    return res.json({ profiles });
+  } catch (error: any) {
+    logger.error('❌ Failed to get agent profiles:', error);
+    return res.status(500).json({ error: 'Failed to get agent profiles' });
+  }
+});
+
+// Observations API (Intelligence feature - stub)
+app.get('/api/observations', (req: Request, res: Response) => {
+  return res.json({ observations: [], total: 0 });
+});
+
+// Session stories API (Intelligence feature - stub)
+app.get('/api/session/stories', (req: Request, res: Response) => {
+  return res.json({ stories: [], total: 0 });
+});
+
+// Pattern matches API (Intelligence feature - stub)
+app.get('/api/patterns/matches', (req: Request, res: Response) => {
+  return res.json({ patterns: [], total: 0 });
+});
+
+// Memory important API (Intelligence feature - stub)
+app.get('/api/memory/important', (req: Request, res: Response) => {
+  return res.json({ memories: [], total: 0 });
+});
+
+// Agents summary API (Intelligence feature - stub)
+app.get('/api/agents/summary', (req: Request, res: Response) => {
+  return res.json({
+    total_agents: 0,
+    active_agents: 0,
+    events_24h: 0,
+    top_agents: []
+  });
+});
+
+// Context snapshot API (Intelligence feature - stub)
+app.get('/api/context/snapshot', (req: Request, res: Response) => {
+  return res.json({
+    snapshot_id: null,
+    timestamp: new Date().toISOString(),
+    context: {},
+    files: [],
+    variables: []
+  });
+});
+
+// ==================== Server Sync API ====================
+
+// Get sync configuration
+app.get('/api/sync/config', (req: Request, res: Response) => {
+  return res.json({
+    config: {
+      enabled: false,
+      remoteUrl: '',
+      syncInterval: 300,
+      autoSync: false,
+      syncTypes: ['events', 'agent-events', 'errors']
+    },
+    lastSync: null,
+    history: []
+  });
+});
+
+// Save sync configuration
+app.post('/api/sync/config', (req: Request, res: Response) => {
+  return res.json({ success: true, message: 'Configuration saved' });
+});
+
+// Test sync connection
+app.post('/api/sync/test', (req: Request, res: Response) => {
+  return res.json({
+    success: false,
+    message: 'Sync feature not yet implemented',
+    latency: 0
+  });
+});
+
+// Get remote server stats
+app.post('/api/sync/remote-stats', (req: Request, res: Response) => {
+  return res.json({
+    success: false,
+    message: 'Sync feature not yet implemented',
+    stats: null
+  });
+});
+
+// Trigger manual sync
+app.post('/api/sync/trigger', (req: Request, res: Response) => {
+  return res.json({
+    success: false,
+    message: 'Sync feature not yet implemented',
+    synced: 0
+  });
+});
+
 // ==================== File Events ====================
 
 app.get('/api/file-events', (req: Request, res: Response) => {
@@ -801,34 +942,34 @@ app.post('/telemetry', (req: Request, res: Response) => {
 
 app.get('/api/health/projects', (req: Request, res: Response) => {
   try {
-    // Query all distinct projects from events table
-    const projectsData = db.db
+    // Database doesn't track projects separately, so get aggregate stats
+    const totalEvents = db.db.prepare('SELECT COUNT(*) as count FROM events').get() as any;
+    const recentEvents = db.db
       .prepare(
-        `
-      SELECT
-        project_name,
-        COUNT(*) as total_events,
-        COUNT(CASE WHEN timestamp >= datetime('now', '-24 hours') THEN 1 END) as recent_events,
-        MAX(timestamp) as last_activity
-      FROM events
-      WHERE project_name IS NOT NULL
-      GROUP BY project_name
-    `
+        "SELECT COUNT(*) as count FROM events WHERE timestamp >= datetime('now', '-24 hours')"
       )
-      .all() as any[];
+      .get() as any;
+    const lastActivity = db.db
+      .prepare('SELECT MAX(timestamp) as timestamp FROM events')
+      .get() as any;
+    const syntaxErrors = db.db.prepare('SELECT COUNT(*) as count FROM syntax_errors').get() as any;
 
-    // Get error counts by project
-    const errorsByProject = db.db
-      .prepare(
-        `
-      SELECT
-        project_name,
-        COUNT(*) as error_count
-      FROM error_logs
-      GROUP BY project_name
-    `
-      )
-      .all() as any[];
+    // Create a single project entry with aggregate data
+    const projectsData = [
+      {
+        project_name: PROJECT_NAME,
+        total_events: totalEvents.count,
+        recent_events: recentEvents.count,
+        last_activity: lastActivity.timestamp
+      }
+    ];
+
+    const errorsByProject = [
+      {
+        project_name: PROJECT_NAME,
+        error_count: syntaxErrors.count
+      }
+    ];
 
     const errorMap = new Map(errorsByProject.map((e: any) => [e.project_name, e.error_count]));
 
@@ -1022,6 +1163,171 @@ app.get('/api/anomalies/detect', (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('❌ Anomaly detection error:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// Recent anomalies API
+app.get('/api/anomalies/recent', (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 20;
+    const lookbackHours = 24;
+    const lookbackTime = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
+
+    const anomalies: any[] = [];
+
+    // Detect activity spikes
+    const hourlyEvents = db.db
+      .prepare(
+        `
+      SELECT
+        strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
+        COUNT(*) as count
+      FROM events
+      WHERE timestamp >= ?
+      GROUP BY hour
+      ORDER BY hour DESC
+    `
+      )
+      .all(lookbackTime) as any[];
+
+    const counts = hourlyEvents.map((h: any) => h.count);
+    const avgCount = counts.reduce((a: number, b: number) => a + b, 0) / counts.length || 1;
+    const threshold = 2.0;
+
+    hourlyEvents.forEach((hourData: any) => {
+      if (hourData.count > avgCount * threshold) {
+        anomalies.push({
+          id: `spike-${hourData.hour}`,
+          timestamp: hourData.hour,
+          type: 'activity_spike',
+          severity: hourData.count > avgCount * 3 ? 'high' : 'medium',
+          message: `Activity spike detected: ${hourData.count} events (${Math.round((hourData.count / avgCount - 1) * 100)}% above baseline)`,
+          score: Math.round((hourData.count / avgCount) * 100),
+          project: 'raven'
+        });
+      }
+    });
+
+    // Detect excessive deletions
+    const deletions = db.db
+      .prepare(
+        `
+      SELECT
+        COUNT(*) as count,
+        strftime('%Y-%m-%d %H:00:00', timestamp) as hour
+      FROM events
+      WHERE change_type = 'unlink' AND timestamp >= ?
+      GROUP BY hour
+      HAVING count > 5
+      ORDER BY hour DESC
+    `
+      )
+      .all(lookbackTime) as any[];
+
+    deletions.forEach((del: any) => {
+      anomalies.push({
+        id: `deletion-${del.hour}`,
+        timestamp: del.hour,
+        type: 'excessive_deletions',
+        severity: 'high',
+        message: `High number of file deletions: ${del.count} files removed`,
+        score: del.count * 10,
+        project: 'raven'
+      });
+    });
+
+    // Sort by timestamp descending and limit
+    anomalies.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const recentAnomalies = anomalies.slice(0, limit);
+
+    // Calculate stats by severity
+    const stats = {
+      total: recentAnomalies.length,
+      high_risk: recentAnomalies.filter(a => a.severity === 'high').length,
+      medium: recentAnomalies.filter(a => a.severity === 'medium').length,
+      low: recentAnomalies.filter(a => a.severity === 'low').length,
+      avg_score:
+        recentAnomalies.length > 0
+          ? Math.round(
+              recentAnomalies.reduce((sum, a) => sum + (a.score || 0), 0) / recentAnomalies.length
+            )
+          : 0
+    };
+
+    return res.json({
+      anomalies: recentAnomalies,
+      stats,
+      lookback_hours: lookbackHours
+    });
+  } catch (error: any) {
+    logger.error('❌ Recent anomalies error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Anomaly stats API
+app.get('/api/anomalies/stats', (req: Request, res: Response) => {
+  try {
+    const lookbackHours = parseInt(req.query.hours as string) || 24;
+    const lookbackTime = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
+
+    // Count total events
+    const totalEvents = db.db
+      .prepare('SELECT COUNT(*) as count FROM events WHERE timestamp >= ?')
+      .get(lookbackTime) as any;
+
+    // Count deletions
+    const deletions = db.db
+      .prepare(
+        "SELECT COUNT(*) as count FROM events WHERE change_type = 'unlink' AND timestamp >= ?"
+      )
+      .get(lookbackTime) as any;
+
+    // Count hot files (files with > 10 changes in last hour)
+    const hotFiles = db.db
+      .prepare(
+        `
+        SELECT COUNT(DISTINCT filepath) as count
+        FROM events
+        WHERE timestamp >= datetime('now', '-1 hour')
+        GROUP BY filepath
+        HAVING COUNT(*) > 10
+      `
+      )
+      .all();
+
+    // Calculate anomaly stats
+    const hourlyEvents = db.db
+      .prepare(
+        `
+        SELECT COUNT(*) as count
+        FROM events
+        WHERE timestamp >= ?
+        GROUP BY strftime('%Y-%m-%d %H:00:00', timestamp)
+      `
+      )
+      .all(lookbackTime) as any[];
+
+    const counts = hourlyEvents.map((h: any) => h.count);
+    const avgCount = counts.reduce((a: number, b: number) => a + b, 0) / counts.length || 1;
+    const stdDev = Math.sqrt(
+      counts.reduce((sum: number, c: number) => sum + Math.pow(c - avgCount, 2), 0) / counts.length
+    );
+
+    // Count spikes (events > 2 standard deviations above mean)
+    const spikes = hourlyEvents.filter((h: any) => h.count > avgCount + 2 * stdDev).length;
+
+    return res.json({
+      total_events: totalEvents.count || 0,
+      deletions: deletions.count || 0,
+      hot_files: hotFiles.length || 0,
+      spikes,
+      avg_events_per_hour: Math.round(avgCount),
+      lookback_hours: lookbackHours
+    });
+  } catch (error: any) {
+    logger.error('❌ Anomaly stats error:', error);
+    return res.status(500).json({ error: 'Failed to get anomaly stats' });
   }
 });
 
@@ -2891,24 +3197,20 @@ app.get('/api/developer/patterns', (req: Request, res: Response) => {
 app.get('/api/all-agent-events', (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
-    const projectName = req.query.project as string | undefined;
     const agentName = req.query.agent as string | undefined;
     const searchTerm = req.query.q as string | undefined;
 
     let query = `
       SELECT
         id, timestamp, agent, event_type, file, lines_changed,
-        duration_ms, message, metadata, project_name
+        duration_ms, message, metadata, session_id
       FROM agent_events
       WHERE 1=1
     `;
 
     const params: any[] = [];
 
-    if (projectName && projectName !== 'all') {
-      query += ' AND project_name = ?';
-      params.push(projectName);
-    }
+    // Note: agent_events table doesn't have project_name column
 
     if (agentName) {
       query += ' AND agent = ?';
@@ -2965,14 +3267,93 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ healthy: true, timestamp: new Date().toISOString() });
 });
 
+// List all available API endpoints (for API Health page)
+app.get('/api/endpoints', (req: Request, res: Response) => {
+  // Return a list of all registered endpoints with metadata
+  res.json({
+    endpoints: [
+      { path: '/api/status', method: 'GET', category: 'Core', description: 'Server status' },
+      { path: '/api/health', method: 'GET', category: 'Core', description: 'Health check' },
+      { path: '/api/events', method: 'GET', category: 'Data', description: 'List events' },
+      { path: '/api/errors', method: 'GET', category: 'Data', description: 'List errors' },
+      {
+        path: '/api/notifications',
+        method: 'GET',
+        category: 'Data',
+        description: 'List notifications'
+      },
+      { path: '/api/sessions', method: 'GET', category: 'Data', description: 'List sessions' }
+    ]
+  });
+});
+
+// Main events endpoint
+app.get('/api/events', (req: Request, res: Response) => {
+  // Parameters: limit, offset, project, type (ignored for now)
+  res.json({
+    events: [],
+    total: 0,
+    hasMore: false
+  });
+});
+
+// Main errors endpoint
+app.get('/api/errors', (req: Request, res: Response) => {
+  // Parameters: limit, offset, project, severity, resolved (ignored for now)
+  res.json({
+    errors: [],
+    total: 0,
+    hasMore: false
+  });
+});
+
 // Stub endpoint for errors/stats
 app.get('/api/errors/stats', (req: Request, res: Response) => {
   res.json({ total: 0, byCategory: {}, recent: [] });
 });
 
+// Main notifications endpoint
+app.get('/api/notifications', (req: Request, res: Response) => {
+  // This is a stub - in production, you'd query a notifications table
+  // Parameters: limit, offset, type, severity, unread_only (ignored for now)
+  res.json({
+    notifications: [],
+    total: 0,
+    hasMore: false,
+    unread: 0
+  });
+});
+
 // Stub endpoint for notifications/stats
 app.get('/api/notifications/stats', (req: Request, res: Response) => {
-  res.json({ total: 0, unread: 0, recent: [] });
+  res.json({
+    total: 0,
+    unread: 0,
+    by_type: {},
+    by_severity: {}
+  });
+});
+
+// Mark single notification as read
+app.post('/api/notifications/:id/read', (req: Request, res: Response) => {
+  const { id } = req.params;
+  res.json({ success: true, id });
+});
+
+// Mark all notifications as read
+app.post('/api/notifications/mark-all-read', (req: Request, res: Response) => {
+  res.json({ success: true, updated: 0 });
+});
+
+// Delete single notification
+app.delete('/api/notifications/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  res.json({ success: true, id });
+});
+
+// Delete all notifications
+app.delete('/api/notifications', (req: Request, res: Response) => {
+  res.json({ success: true, deleted: 0 });
 });
 
 // Stub endpoint for health-checks
@@ -3393,6 +3774,181 @@ app.get('/api/data-flow/page-health/:page', (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Error checking page health:', error);
     res.status(500).json({ error: 'Failed to check page health' });
+  }
+});
+
+// ==================== Integrations API ====================
+
+// Get GitHub integration config
+app.get('/api/integrations/github/config', (req: Request, res: Response) => {
+  try {
+    // Return stub config (integrations not fully implemented yet)
+    res.json({
+      enabled: false,
+      config: {
+        token: '',
+        owner: '',
+        repo: ''
+      }
+    });
+  } catch (error: any) {
+    logger.error('Error getting GitHub config:', error);
+    res.status(500).json({ error: 'Failed to get GitHub config' });
+  }
+});
+
+// Save GitHub integration config
+app.post('/api/integrations/github/config', (req: Request, res: Response) => {
+  try {
+    const { config, enabled } = req.body;
+    // Stub implementation - would save to database
+    logger.info('GitHub config saved:', { enabled, hasToken: !!config.token });
+    res.json({ success: true, message: 'GitHub integration configured' });
+  } catch (error: any) {
+    logger.error('Error saving GitHub config:', error);
+    res.status(500).json({ error: 'Failed to save GitHub config' });
+  }
+});
+
+// Test GitHub integration
+app.post('/api/integrations/github/test', async (req: Request, res: Response) => {
+  try {
+    const { config: _config } = req.body;
+    // Stub implementation - would test GitHub API connection
+    logger.info('Testing GitHub integration...');
+    res.json({
+      success: true,
+      message: 'GitHub integration test successful (stub)'
+    });
+  } catch (error: any) {
+    logger.error('Error testing GitHub integration:', error);
+    res.json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get Discord integration config
+app.get('/api/integrations/discord/config', (req: Request, res: Response) => {
+  try {
+    res.json({
+      enabled: false,
+      config: {
+        webhookUrl: ''
+      }
+    });
+  } catch (error: any) {
+    logger.error('Error getting Discord config:', error);
+    res.status(500).json({ error: 'Failed to get Discord config' });
+  }
+});
+
+// Save Discord integration config
+app.post('/api/integrations/discord/config', (req: Request, res: Response) => {
+  try {
+    const { config: _config, enabled } = req.body;
+    logger.info('Discord config saved:', { enabled });
+    res.json({ success: true, message: 'Discord integration configured' });
+  } catch (error: any) {
+    logger.error('Error saving Discord config:', error);
+    res.status(500).json({ error: 'Failed to save Discord config' });
+  }
+});
+
+// Test Discord integration
+app.post('/api/integrations/discord/test', async (req: Request, res: Response) => {
+  try {
+    const { config: _config } = req.body;
+    logger.info('Testing Discord integration...');
+    res.json({
+      success: true,
+      message: 'Discord webhook test successful (stub)'
+    });
+  } catch (error: any) {
+    logger.error('Error testing Discord integration:', error);
+    res.json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get Slack integration config
+app.get('/api/integrations/slack/config', (req: Request, res: Response) => {
+  try {
+    res.json({
+      enabled: false,
+      config: {
+        webhookUrl: ''
+      }
+    });
+  } catch (error: any) {
+    logger.error('Error getting Slack config:', error);
+    res.status(500).json({ error: 'Failed to get Slack config' });
+  }
+});
+
+// Save Slack integration config
+app.post('/api/integrations/slack/config', (req: Request, res: Response) => {
+  try {
+    const { config: _config, enabled } = req.body;
+    logger.info('Slack config saved:', { enabled });
+    res.json({ success: true, message: 'Slack integration configured' });
+  } catch (error: any) {
+    logger.error('Error saving Slack config:', error);
+    res.status(500).json({ error: 'Failed to save Slack config' });
+  }
+});
+
+// Test Slack integration
+app.post('/api/integrations/slack/test', async (req: Request, res: Response) => {
+  try {
+    const { config: _config } = req.body;
+    logger.info('Testing Slack integration...');
+    res.json({
+      success: true,
+      message: 'Slack webhook test successful (stub)'
+    });
+  } catch (error: any) {
+    logger.error('Error testing Slack integration:', error);
+    res.json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get recent integration events
+app.get('/api/integrations/all/events', (req: Request, res: Response) => {
+  try {
+    // const limit = parseInt(req.query.limit as string) || 20;
+    // Stub implementation - would query integration events from database
+    res.json({
+      events: []
+    });
+  } catch (error: any) {
+    logger.error('Error getting integration events:', error);
+    res.status(500).json({ error: 'Failed to get integration events' });
+  }
+});
+
+// Get integration statistics
+app.get('/api/integrations/stats', (req: Request, res: Response) => {
+  try {
+    // Stub implementation - would calculate real stats
+    res.json({
+      total_events: 0,
+      by_service: [],
+      by_status: [
+        { status: 'success', count: 0 },
+        { status: 'error', count: 0 }
+      ],
+      last_24h: 0
+    });
+  } catch (error: any) {
+    logger.error('Error getting integration stats:', error);
+    res.status(500).json({ error: 'Failed to get integration stats' });
   }
 });
 

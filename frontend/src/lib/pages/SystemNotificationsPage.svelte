@@ -115,16 +115,23 @@
       const res = await fetch(`${API_BASE}/notifications?${params}`);
       const data = await res.json();
 
+      // Ensure notifications is always an array
+      const newNotifications = data.notifications || [];
+
       if (offset === 0) {
-        notifications = data.notifications;
+        notifications = newNotifications;
       } else {
-        notifications = [...notifications, ...data.notifications];
+        notifications = [...notifications, ...newNotifications];
       }
 
-      hasMore = data.hasMore;
+      hasMore = data.hasMore || false;
       lastUpdated = new Date();
     } catch (err) {
       logger.error('Failed to load notifications:', err);
+      // Keep notifications as an empty array on error
+      if (offset === 0) {
+        notifications = [];
+      }
     } finally {
       loading = false;
       isManualRefresh = false;

@@ -94,10 +94,13 @@
           : 5000; // 5 seconds for normal endpoints
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:9100'}${endpoint.path}`, {
-        method: endpoint.method,
-        signal: controller.signal
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:9100'}${endpoint.path}`,
+        {
+          method: endpoint.method,
+          signal: controller.signal
+        }
+      );
 
       clearTimeout(timeoutId);
 
@@ -177,7 +180,6 @@
       healthStatus = { ...healthStatus };
     }
 
-    lastCheck = new Date();
     lastUpdated = new Date();
     loading = false;
     checkingAll = false;

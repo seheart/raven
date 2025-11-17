@@ -11,6 +11,7 @@
   // All page components now use dynamic imports for code splitting
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
   import NotificationPanel from './lib/components/ui/NotificationPanel.svelte';
+  import ToastContainer from './lib/components/ui/ToastContainer.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
   import QuickStartWizard from './lib/QuickStartWizard.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
@@ -552,6 +553,9 @@
 
   <!-- Notification Panel Sidebar -->
   <NotificationPanel visible={showNotifications} onClose={() => (showNotifications = false)} />
+
+  <!-- Toast Notifications -->
+  <ToastContainer />
 
   <!-- Welcome Screen (first-time users) -->
   {#if showWelcome}
