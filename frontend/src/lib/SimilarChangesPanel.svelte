@@ -38,7 +38,7 @@
           rolledBackCount
         };
       }
-    } catch (err) {
+    } catch (error) {
       logger.error('Failed to load similar changes:', error);
       errorMessage = error.message;
     } finally {

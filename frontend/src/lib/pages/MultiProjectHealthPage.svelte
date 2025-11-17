@@ -199,26 +199,35 @@
       loading = true;
       error = null;
 
-      // Fetch project health data
-      const data = await api.get('/projects/list');
+      // Fetch real health comparison data from backend
+      const data = await api.get('/health/compare');
       const projectsList = data.projects || [];
 
-      // Calculate health scores based on recent activity
-      projects = projectsList.map(p => ({
-        name: p.name,
-        status: 'active', // Would be calculated based on last_activity
-        health_score: Math.floor(Math.random() * 100), // Mock score for now
-        recent_events: p.eventCount || 0,
-        error_count: Math.floor(Math.random() * 10), // Would come from API
-        last_activity: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString()
-      }));
+      // Map health data to UI format
+      projects = projectsList.map(p => {
+        // Determine status based on overall score
+        let status = 'active';
+        if (p.overall_score >= 75) status = 'active';
+        else if (p.overall_score >= 50) status = 'recent';
+        else if (p.overall_score >= 25) status = 'idle';
+        else status = 'inactive';
+
+        return {
+          name: p.project,
+          status: status,
+          health_score: p.overall_score,
+          recent_events: p.scores?.activity_score || 0,
+          error_count: 100 - (p.scores?.error_score || 100), // Invert error score to get count
+          last_activity: new Date().toISOString() // Could be enhanced with actual timestamp
+        };
+      });
 
       totalProjects = projects.length;
       activeProjects = projects.filter(p => p.status === 'active').length;
       recentProjects = projects.filter(p => p.status === 'recent').length;
-    } catch (error) {
-      logger.error('Failed to load project health:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load project health:', err);
+      error = err.message;
     } finally {
       loading = false;
     }

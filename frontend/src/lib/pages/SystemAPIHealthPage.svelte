@@ -94,7 +94,7 @@
           : 5000; // 5 seconds for normal endpoints
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3030'}${endpoint.path}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:9100'}${endpoint.path}`, {
         method: endpoint.method,
         signal: controller.signal
       });

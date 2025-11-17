@@ -78,9 +78,9 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (error) {
-      logger.error('Failed to load analysis data:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load analysis data:', err);
+      error = err.message;
       loading = false;
     }
   }

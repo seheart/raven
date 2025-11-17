@@ -3,7 +3,6 @@ import { logger } from './logger.js';
 import { API_CONFIG } from '../config.js';
 import { apiFetch } from './apiClient.js';
 
-const API_BASE = API_CONFIG.API_BASE;
 const BASE_URL = API_CONFIG.BASE_URL;
 
 /**
@@ -104,16 +103,13 @@ class DataService {
    * @throws {Error} Throws if HTTP response is not OK or network fails
    */
   async fetch(endpoint, options = {}) {
-    const {
-      ttl = this.cacheTTL,
-      forceRefresh = false,
-      params = {}
-    } = options;
+    const { ttl = this.cacheTTL, forceRefresh = false, params = {} } = options;
 
     // Build endpoint with query params (cache key)
-    const endpointWithParams = params && Object.keys(params).length > 0
-      ? `${endpoint}?${new URLSearchParams(params).toString()}`
-      : endpoint;
+    const endpointWithParams =
+      params && Object.keys(params).length > 0
+        ? `${endpoint}?${new URLSearchParams(params).toString()}`
+        : endpoint;
 
     // Use endpoint as cache key (consistent with what apiFetch uses)
     const cacheKey = endpointWithParams;
@@ -146,7 +142,7 @@ class DataService {
     logger.debug(`Fetching: ${endpoint}`);
 
     const requestPromise = apiFetch(endpointWithParams)
-      .then((data) => {
+      .then(data => {
         // Evict oldest entry if cache is full (LRU)
         if (this.cache.size >= this.maxCacheSize) {
           this.evictOldestEntry();
@@ -164,7 +160,7 @@ class DataService {
 
         return data;
       })
-      .catch((error) => {
+      .catch(error => {
         // Remove from in-flight on error
         this.inflightRequests.delete(cacheKey);
         logger.error(`Failed to fetch ${endpoint}:`, error);
@@ -188,7 +184,7 @@ class DataService {
   async fetchFileEvents(limit = 500, forceRefresh = false) {
     // Always fetch the max to satisfy all components
     const maxLimit = 500;
-    const data = await this.fetch('/all-file-events', {
+    const data = await this.fetch('/file-events', {
       params: { limit: maxLimit },
       forceRefresh,
       ttl: 3000 // 3 second cache for file events
@@ -237,7 +233,7 @@ class DataService {
    * @throws {Error} Throws if fetch fails or API returns error
    */
   async fetchProjects(forceRefresh = false) {
-    const data = await this.fetch('/projects/list', { forceRefresh });
+    const data = await this.fetch('/projects', { forceRefresh });
     const projects = data.projects || [];
     this.stores.projects.set(projects);
     return projects;
@@ -365,40 +361,179 @@ class DataService {
   }
 
   /**
-   * Preload all initial data in parallel
+   * Preload all initial data with progress tracking
    * Call this once on app startup
-   * @returns {Promise<boolean>} True if successful, false if any fetch fails
+   * @param {Function} [onProgress] - Optional callback: (progress, message, status) => void
+   * @returns {Promise<Object>} Object with success status, duration, and diagnostic results
    */
-  async preloadInitialData() {
+  async preloadInitialData(onProgress = null) {
     logger.info('Preloading initial data for site-wide caching...');
     const startTime = Date.now();
+    const results = {
+      success: true,
+      duration: 0,
+      diagnostics: {
+        total: 11,
+        passed: 0,
+        failed: 0,
+        warnings: 0,
+        details: []
+      }
+    };
+
+    // Helper to update progress
+    const updateProgress = (step, total, message, status = 'success') => {
+      const progress = Math.round((step / total) * 100);
+      if (onProgress) {
+        onProgress(progress, message, status);
+      }
+
+      // Track diagnostics
+      if (status === 'success') results.diagnostics.passed++;
+      else if (status === 'error') results.diagnostics.failed++;
+      else if (status === 'warning') results.diagnostics.warnings++;
+
+      results.diagnostics.details.push({ step, message, status, timestamp: Date.now() });
+    };
 
     try {
-      // Fetch everything in parallel - all data needed for any page
-      // This prevents red-to-green flashes and loading states on page navigation
-      await Promise.all([
-        // Dashboard data
-        this.fetchFileEvents(500),
-        this.fetchDashboardStats(),
-        this.fetchSystemMetrics(),
-        this.fetchProjects(),
-        this.fetchTopFiles(5),
-        this.fetchAgentEvents(500),
+      let step = 0;
+      const total = 11; // Total number of loading steps
 
-        // System > Status page data
-        this.fetchHealth(),
-        this.fetchHealthChecks(),
-        this.fetchGitStatus().catch(() => null), // Git is optional
-        this.fetchGitBranches().catch(() => null), // Git is optional
-        this.fetchGitHistory(5).catch(() => null) // Git is optional
-      ]);
+      // Step 1: File events (critical)
+      try {
+        updateProgress(++step, total, 'Loading file events...', 'loading');
+        await this.fetchFileEvents(500);
+        updateProgress(step, total, 'File events loaded (500 events)', 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Failed to load file events', 'error');
+        logger.error('File events fetch failed:', error);
+      }
 
-      const duration = Date.now() - startTime;
-      logger.info(`Initial data preloaded in ${duration}ms - all pages ready`);
-      return true;
+      // Step 2: Dashboard stats (critical)
+      try {
+        updateProgress(++step, total, 'Loading dashboard statistics...', 'loading');
+        await this.fetchDashboardStats();
+        updateProgress(step, total, 'Dashboard stats loaded', 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Failed to load dashboard stats', 'error');
+        logger.error('Dashboard stats fetch failed:', error);
+      }
+
+      // Step 3: System metrics (critical)
+      try {
+        updateProgress(++step, total, 'Loading system metrics...', 'loading');
+        await this.fetchSystemMetrics();
+        updateProgress(step, total, 'System metrics loaded', 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Failed to load system metrics', 'error');
+        logger.error('System metrics fetch failed:', error);
+      }
+
+      // Step 4: Projects list (critical)
+      try {
+        updateProgress(++step, total, 'Loading projects list...', 'loading');
+        const projects = await this.fetchProjects();
+        updateProgress(step, total, `Projects loaded (${projects.length} projects)`, 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Failed to load projects', 'error');
+        logger.error('Projects fetch failed:', error);
+      }
+
+      // Step 5: Top files (important)
+      try {
+        updateProgress(++step, total, 'Loading top modified files...', 'loading');
+        await this.fetchTopFiles(5);
+        updateProgress(step, total, 'Top files loaded', 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Failed to load top files', 'warning');
+        logger.warn('Top files fetch failed:', error);
+      }
+
+      // Step 6: Agent events (important)
+      try {
+        updateProgress(++step, total, 'Loading agent events...', 'loading');
+        const events = await this.fetchAgentEvents(500);
+        updateProgress(step, total, `Agent events loaded (${events.length} events)`, 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Failed to load agent events', 'warning');
+        logger.warn('Agent events fetch failed:', error);
+      }
+
+      // Step 7: Backend health (critical)
+      try {
+        updateProgress(++step, total, 'Checking backend health...', 'loading');
+        const health = await this.fetchHealth();
+        updateProgress(step, total, `Backend healthy (v${health.version || 'unknown'})`, 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Backend health check failed', 'error');
+        logger.error('Backend health fetch failed:', error);
+      }
+
+      // Step 8: Health checks (important)
+      try {
+        updateProgress(++step, total, 'Running system health checks...', 'loading');
+        const checks = await this.fetchHealthChecks();
+        const passed = checks.summary?.passed || 0;
+        const total_checks = checks.summary?.total || 0;
+        updateProgress(
+          step,
+          total,
+          `Health checks completed (${passed}/${total_checks} passed)`,
+          'success'
+        );
+      } catch (error) {
+        updateProgress(step, total, 'Health checks unavailable', 'warning');
+        logger.warn('Health checks fetch failed:', error);
+      }
+
+      // Step 9: Git status (optional)
+      try {
+        updateProgress(++step, total, 'Loading git status...', 'loading');
+        const gitStatus = await this.fetchGitStatus();
+        const modified = gitStatus.modified?.length || 0;
+        updateProgress(step, total, `Git status loaded (${modified} modified files)`, 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Git status unavailable (optional)', 'warning');
+        logger.debug('Git status fetch failed (optional):', error);
+      }
+
+      // Step 10: Git branches (optional)
+      try {
+        updateProgress(++step, total, 'Loading git branches...', 'loading');
+        const branches = await this.fetchGitBranches();
+        const count = branches.branches?.length || 0;
+        updateProgress(step, total, `Git branches loaded (${count} branches)`, 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Git branches unavailable (optional)', 'warning');
+        logger.debug('Git branches fetch failed (optional):', error);
+      }
+
+      // Step 11: Git history (optional)
+      try {
+        updateProgress(++step, total, 'Loading git history...', 'loading');
+        const history = await this.fetchGitHistory(5);
+        const commits = history.commits?.length || 0;
+        updateProgress(step, total, `Git history loaded (${commits} recent commits)`, 'success');
+      } catch (error) {
+        updateProgress(step, total, 'Git history unavailable (optional)', 'warning');
+        logger.debug('Git history fetch failed (optional):', error);
+      }
+
+      results.duration = Date.now() - startTime;
+      logger.info(`Initial data preloaded in ${results.duration}ms - all pages ready`);
+      logger.info(
+        `Diagnostics: ${results.diagnostics.passed} passed, ${results.diagnostics.failed} failed, ${results.diagnostics.warnings} warnings`
+      );
+
+      // Consider it successful if no critical failures (at least 7/11 passed)
+      results.success = results.diagnostics.passed >= 7;
+      return results;
     } catch (error) {
       logger.error('Failed to preload initial data:', error);
-      return false;
+      results.success = false;
+      results.duration = Date.now() - startTime;
+      return results;
     }
   }
 
@@ -460,7 +595,9 @@ class DataService {
 
     if (oldestKey) {
       this.cache.delete(oldestKey);
-      logger.debug(`Cache eviction: removed LRU entry (size: ${this.cache.size}/${this.maxCacheSize})`);
+      logger.debug(
+        `Cache eviction: removed LRU entry (size: ${this.cache.size}/${this.maxCacheSize})`
+      );
     }
   }
 

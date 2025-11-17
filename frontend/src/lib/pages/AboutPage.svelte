@@ -1,6 +1,9 @@
 <script>
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
+  import { API_CONFIG } from '../config.js';
+  import { websocketService } from './services/websocket.js';
+
   /**
    * About Page - Information about Raven
    * Modern, clean layout with theme-aware design
@@ -8,6 +11,10 @@
 
   let sessionId = $state('Loading...');
   let websocketConnected = $state(false);
+
+  // Get dynamic URLs
+  const backendUrl = $derived(API_CONFIG.BASE_URL || window.location.origin);
+  const frontendUrl = $derived(window.location.origin);
 
   // Load session ID from API
   async function loadSessionId() {
@@ -20,11 +27,17 @@
     }
   }
 
-  // Check WebSocket status (simplified - can be enhanced)
+  // Check WebSocket status
   $effect(() => {
     loadSessionId();
-    // WebSocket connection check would go here
-    websocketConnected = true;
+    websocketConnected = websocketService.isConnected();
+
+    // Listen for connection changes
+    const updateStatus = () => {
+      websocketConnected = websocketService.isConnected();
+    };
+    websocketService.on('connect', updateStatus);
+    websocketService.on('disconnect', updateStatus);
   });
 </script>
 
@@ -236,14 +249,14 @@
               <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                 >Backend URL</span
               >
-              <span class="text-sm font-mono text-[var(--text)]">http://localhost:3030</span>
+              <span class="text-sm font-mono text-[var(--text)]">{backendUrl}</span>
             </div>
 
             <div class="flex flex-col gap-2">
               <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                 >Frontend URL</span
               >
-              <span class="text-sm font-mono text-[var(--text)]">http://localhost:5173</span>
+              <span class="text-sm font-mono text-[var(--text)]">{frontendUrl}</span>
             </div>
 
             <div class="flex flex-col gap-2">

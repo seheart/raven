@@ -97,9 +97,9 @@
       events = Array.isArray(data) ? data : [];
 
       loading = false;
-    } catch (error) {
-      logger.error('Failed to load events:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load events:', err);
+      error = err.message;
       loading = false;
     }
   }

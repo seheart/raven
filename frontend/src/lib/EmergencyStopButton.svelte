@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { websocketService } from './websocket.js';
+  import { websocketService } from './services/websocket.js';
   import { notifications } from './notificationService.js';
   import { logger } from './logger.js';
 

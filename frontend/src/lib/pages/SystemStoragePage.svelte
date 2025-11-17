@@ -119,9 +119,9 @@
       storageData = data;
       lastUpdated = new Date();
       error = null;
-    } catch (error) {
-      logger.error('Failed to load storage data:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load storage data:', err);
+      error = err.message;
     } finally {
       loading = false;
       isManualRefresh = false;
@@ -150,7 +150,7 @@
   async function exportDatabase(dbName) {
     try {
       await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3030'}/api/storage/export/${dbName}`
+        `${import.meta.env.VITE_API_URL || 'http://localhost:9100'}/api/storage/export/${dbName}`
       );
       if (!response.ok) throw new Error('Export failed');
 
@@ -165,8 +165,8 @@
       window.URL.revokeObjectURL(url);
 
       alert(`Database ${dbName} exported successfully!`);
-    } catch (error) {
-      logger.error('Failed to export database:', error);
+    } catch (err) {
+      logger.error('Failed to export database:', err);
       alert(`Failed to export database: ${error.message}`);
     }
   }
@@ -188,8 +188,8 @@
       } else {
         alert(`Optimization failed: ${result.error}`);
       }
-    } catch (error) {
-      logger.error('Failed to optimize database:', error);
+    } catch (err) {
+      logger.error('Failed to optimize database:', err);
       alert(`Failed to optimize database: ${error.message}`);
     }
   }
@@ -226,8 +226,8 @@
       } else {
         alert(`Cleanup failed: ${result.error}`);
       }
-    } catch (error) {
-      logger.error('Failed to clean database:', error);
+    } catch (err) {
+      logger.error('Failed to clean database:', err);
       alert(`Failed to clean database: ${error.message}`);
     }
   }
@@ -236,8 +236,8 @@
     try {
       const data = await api.get('/storage/retention');
       retentionPolicy = data;
-    } catch (error) {
-      logger.error('Failed to load retention policy:', error);
+    } catch (err) {
+      logger.error('Failed to load retention policy:', err);
     }
   }
 
@@ -251,8 +251,8 @@
       } else {
         alert(`Failed to save policy: ${result.error}`);
       }
-    } catch (error) {
-      logger.error('Failed to save retention policy:', error);
+    } catch (err) {
+      logger.error('Failed to save retention policy:', err);
       alert(`Failed to save policy: ${error.message}`);
     }
   }

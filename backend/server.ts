@@ -33,6 +33,11 @@ import type { FileEvent, GitStatusEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { rateLimitStatus } from './middleware/security.js';
+import { DeveloperInsightsService } from './services/developer-insights.js';
+import { DataFlowHealthMonitor } from './services/data-flow-health.js';
+import { IntegrationsService } from './services/integrations.js';
+import { ProjectHealthService } from './services/project-health.js';
+import { ExportService } from './services/export.js';
 
 // ==================== Configuration ====================
 
@@ -101,6 +106,10 @@ const expensiveOpLimiter = rateLimit({
 const db = new RavenDB(DB_PATH);
 const metricsCollector = new MetricsCollector(db, SESSION_ID, io);
 const triggerEngine = new TriggerEngine(RAVEN_DIR, io);
+const developerInsights = new DeveloperInsightsService(db);
+const integrations = new IntegrationsService(db, io);
+const projectHealth = new ProjectHealthService(db, io);
+const exportService = new ExportService(db.db, RAVEN_DIR);
 
 const fileWatcher = new FileWatcher({
   watchPath: WATCH_PATH,
@@ -2820,11 +2829,108 @@ io.on('connection', socket => {
   });
 });
 
+// ==================== Developer Insights Endpoints ====================
+
+// Get developer statistics
+app.get('/api/developer/stats', (req: Request, res: Response) => {
+  try {
+    const projectName = req.query.project as string | undefined;
+    const days = parseInt(req.query.days as string) || 7;
+
+    const stats = developerInsights.getDeveloperStats(
+      projectName && projectName !== 'all' ? projectName : undefined,
+      days
+    );
+
+    res.json(stats);
+  } catch (error: any) {
+    logger.error('Error getting developer stats:', error);
+    res.status(500).json({ error: 'Failed to get developer statistics' });
+  }
+});
+
+// Get developer interactions
+app.get('/api/developer/interactions', (req: Request, res: Response) => {
+  try {
+    const projectName = req.query.project as string | undefined;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const interactions = developerInsights.getDeveloperInteractions(
+      projectName && projectName !== 'all' ? projectName : undefined,
+      limit
+    );
+
+    res.json({ interactions, total: interactions.length });
+  } catch (error: any) {
+    logger.error('Error getting developer interactions:', error);
+    res.status(500).json({ error: 'Failed to get developer interactions' });
+  }
+});
+
+// Get developer patterns
+app.get('/api/developer/patterns', (req: Request, res: Response) => {
+  try {
+    const projectName = req.query.project as string | undefined;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const patterns = developerInsights.getDeveloperPatterns(
+      projectName && projectName !== 'all' ? projectName : undefined,
+      limit
+    );
+
+    res.json({ patterns, total: patterns.length });
+  } catch (error: any) {
+    logger.error('Error getting developer patterns:', error);
+    res.status(500).json({ error: 'Failed to get developer patterns' });
+  }
+});
+
 // ==================== Stub Endpoints (Not Yet Implemented) ====================
 
-// Stub endpoint for all agent events
+// Get all agent events with filtering
 app.get('/api/all-agent-events', (req: Request, res: Response) => {
-  res.json({ events: [], total: 0 });
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const projectName = req.query.project as string | undefined;
+    const agentName = req.query.agent as string | undefined;
+    const searchTerm = req.query.q as string | undefined;
+
+    let query = `
+      SELECT
+        id, timestamp, agent, event_type, file, lines_changed,
+        duration_ms, message, metadata, project_name
+      FROM agent_events
+      WHERE 1=1
+    `;
+
+    const params: any[] = [];
+
+    if (projectName && projectName !== 'all') {
+      query += ' AND project_name = ?';
+      params.push(projectName);
+    }
+
+    if (agentName) {
+      query += ' AND agent = ?';
+      params.push(agentName);
+    }
+
+    if (searchTerm) {
+      query += ' AND (message LIKE ? OR file LIKE ? OR event_type LIKE ?)';
+      const searchPattern = `%${searchTerm}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    query += ' ORDER BY timestamp DESC LIMIT ?';
+    params.push(limit);
+
+    const events = db.db.prepare(query).all(...params);
+
+    res.json({ events, total: events.length, limit });
+  } catch (error: any) {
+    logger.error('Error getting agent events:', error);
+    res.status(500).json({ error: 'Failed to get agent events' });
+  }
 });
 
 // Stub endpoint for conversations list
@@ -2904,6 +3010,392 @@ app.get('/api/trends/historical', (req: Request, res: Response) => {
   res.json({ trends: [], period: 'daily' });
 });
 
+// ==================== Integrations Endpoints ====================
+
+// Get configuration for a specific integration
+app.get('/api/integrations/:service/config', (req: Request, res: Response) => {
+  try {
+    const { service } = req.params;
+    const config = integrations.getConfig(service);
+    res.json(config);
+  } catch (error: any) {
+    logger.error('Error getting integration config:', error);
+    res.status(500).json({ error: 'Failed to get integration config' });
+  }
+});
+
+// Save configuration for an integration
+app.post('/api/integrations/:service/config', (req: Request, res: Response) => {
+  try {
+    const { service } = req.params;
+    const { config, enabled } = req.body;
+
+    integrations.saveConfig(service, config, enabled);
+    res.json({ success: true, message: `${service} configuration saved` });
+  } catch (error: any) {
+    logger.error('Error saving integration config:', error);
+    res.status(500).json({ error: 'Failed to save integration config' });
+  }
+});
+
+// Toggle integration on/off
+app.post('/api/integrations/:service/toggle', (req: Request, res: Response) => {
+  try {
+    const { service } = req.params;
+    const { enabled } = req.body;
+
+    integrations.toggleIntegration(service, enabled);
+    res.json({ success: true, enabled });
+  } catch (error: any) {
+    logger.error('Error toggling integration:', error);
+    res.status(500).json({ error: 'Failed to toggle integration' });
+  }
+});
+
+// Test webhook configuration
+app.post('/api/integrations/:service/test', async (req: Request, res: Response) => {
+  try {
+    const { service } = req.params;
+    const { config } = req.body;
+
+    const result = await integrations.testWebhook(service, config);
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Error testing webhook:', error);
+    res.status(500).json({ error: 'Failed to test webhook' });
+  }
+});
+
+// Get recent integration events
+app.get('/api/integrations/:service/events', (req: Request, res: Response) => {
+  try {
+    const { service } = req.params;
+    const limit = parseInt(req.query.limit as string) || 50;
+
+    const events = integrations.getRecentEvents(service === 'all' ? undefined : service, limit);
+    res.json({ events, total: events.length });
+  } catch (error: any) {
+    logger.error('Error getting integration events:', error);
+    res.status(500).json({ error: 'Failed to get integration events' });
+  }
+});
+
+// Get integration statistics
+app.get('/api/integrations/stats', (req: Request, res: Response) => {
+  try {
+    const stats = integrations.getStats();
+    res.json(stats);
+  } catch (error: any) {
+    logger.error('Error getting integration stats:', error);
+    res.status(500).json({ error: 'Failed to get integration stats' });
+  }
+});
+
+// Broadcast event to all integrations
+app.post('/api/integrations/broadcast', async (req: Request, res: Response) => {
+  try {
+    const message = req.body;
+    const results = await integrations.broadcastEvent(message);
+    res.json({ success: true, results });
+  } catch (error: any) {
+    logger.error('Error broadcasting event:', error);
+    res.status(500).json({ error: 'Failed to broadcast event' });
+  }
+});
+
+// ==================== Project Health Endpoints ====================
+
+// Get comprehensive health summary
+app.get('/api/health/summary', (req: Request, res: Response) => {
+  try {
+    const projectName = req.query.project as string | undefined;
+    const summary = projectHealth.getHealthSummary(
+      projectName && projectName !== 'all' ? projectName : undefined
+    );
+    res.json(summary);
+  } catch (error: any) {
+    logger.error('Error getting health summary:', error);
+    res.status(500).json({ error: 'Failed to get health summary' });
+  }
+});
+
+// Calculate and get current health score
+app.get('/api/health/score', (req: Request, res: Response) => {
+  try {
+    const projectName = req.query.project as string | undefined;
+    const score = projectHealth.calculateHealthScore(
+      projectName && projectName !== 'all' ? projectName : undefined
+    );
+    res.json(score);
+  } catch (error: any) {
+    logger.error('Error calculating health score:', error);
+    res.status(500).json({ error: 'Failed to calculate health score' });
+  }
+});
+
+// Get health trends over time
+app.get('/api/health/trends', (req: Request, res: Response) => {
+  try {
+    const projectName = req.query.project as string | undefined;
+    const days = parseInt(req.query.days as string) || 7;
+
+    const trends = projectHealth.getHealthTrends(
+      projectName && projectName !== 'all' ? projectName : undefined,
+      days
+    );
+    res.json({ trends, period: `${days} days` });
+  } catch (error: any) {
+    logger.error('Error getting health trends:', error);
+    res.status(500).json({ error: 'Failed to get health trends' });
+  }
+});
+
+// Get active health issues
+app.get('/api/health/issues', (req: Request, res: Response) => {
+  try {
+    const projectName = req.query.project as string | undefined;
+    const issues = projectHealth.getActiveIssues(
+      projectName && projectName !== 'all' ? projectName : undefined
+    );
+    res.json({ issues, total: issues.length });
+  } catch (error: any) {
+    logger.error('Error getting health issues:', error);
+    res.status(500).json({ error: 'Failed to get health issues' });
+  }
+});
+
+// Compare health across multiple projects
+app.get('/api/health/compare', (req: Request, res: Response) => {
+  try {
+    const comparison = projectHealth.compareProjects();
+    res.json({ projects: comparison, total: comparison.length });
+  } catch (error: any) {
+    logger.error('Error comparing projects:', error);
+    res.status(500).json({ error: 'Failed to compare projects' });
+  }
+});
+
+// Force recalculation of health score
+app.post('/api/health/calculate', (req: Request, res: Response) => {
+  try {
+    const { project } = req.body;
+    const score = projectHealth.calculateHealthScore(
+      project && project !== 'all' ? project : undefined
+    );
+    res.json({ success: true, score });
+  } catch (error: any) {
+    logger.error('Error forcing health calculation:', error);
+    res.status(500).json({ error: 'Failed to calculate health' });
+  }
+});
+
+// ==================== Export Endpoints ====================
+
+// Export events data
+app.get('/api/export/events', (req: Request, res: Response) => {
+  try {
+    const options = {
+      projectName: req.query.project as string | undefined,
+      startDate: req.query.start as string | undefined,
+      endDate: req.query.end as string | undefined,
+      eventType: req.query.type as string | undefined,
+      limit: parseInt(req.query.limit as string) || 1000,
+      format: (req.query.format as string) || 'json'
+    };
+
+    const data = exportService.exportEvents(options);
+    res.json(data);
+  } catch (error: any) {
+    logger.error('Error exporting events:', error);
+    res.status(500).json({ error: 'Failed to export events' });
+  }
+});
+
+// Export agent events
+app.get('/api/export/agent-events', (req: Request, res: Response) => {
+  try {
+    const options = {
+      projectName: req.query.project as string | undefined,
+      agent: req.query.agent as string | undefined,
+      startDate: req.query.start as string | undefined,
+      endDate: req.query.end as string | undefined,
+      limit: parseInt(req.query.limit as string) || 1000,
+      format: (req.query.format as string) || 'json'
+    };
+
+    const data = exportService.exportAgentEvents(options);
+    res.json(data);
+  } catch (error: any) {
+    logger.error('Error exporting agent events:', error);
+    res.status(500).json({ error: 'Failed to export agent events' });
+  }
+});
+
+// Export errors
+app.get('/api/export/errors', (req: Request, res: Response) => {
+  try {
+    const options = {
+      projectName: req.query.project as string | undefined,
+      severity: req.query.severity as string | undefined,
+      startDate: req.query.start as string | undefined,
+      endDate: req.query.end as string | undefined,
+      limit: parseInt(req.query.limit as string) || 1000,
+      format: (req.query.format as string) || 'json'
+    };
+
+    const data = exportService.exportErrors(options);
+    res.json(data);
+  } catch (error: any) {
+    logger.error('Error exporting errors:', error);
+    res.status(500).json({ error: 'Failed to export errors' });
+  }
+});
+
+// Export metrics
+app.get('/api/export/metrics', (req: Request, res: Response) => {
+  try {
+    const options = {
+      projectName: req.query.project as string | undefined,
+      metricType: req.query.type as string | undefined,
+      startDate: req.query.start as string | undefined,
+      endDate: req.query.end as string | undefined,
+      limit: parseInt(req.query.limit as string) || 1000,
+      format: (req.query.format as string) || 'json'
+    };
+
+    const data = exportService.exportMetrics(options);
+    res.json(data);
+  } catch (error: any) {
+    logger.error('Error exporting metrics:', error);
+    res.status(500).json({ error: 'Failed to export metrics' });
+  }
+});
+
+// Generate comprehensive project report
+app.get('/api/export/report', (req: Request, res: Response) => {
+  try {
+    const projectName = req.query.project as string | undefined;
+    const days = parseInt(req.query.days as string) || 7;
+
+    const report = exportService.exportProjectReport(projectName, days);
+    res.json(report);
+  } catch (error: any) {
+    logger.error('Error generating report:', error);
+    res.status(500).json({ error: 'Failed to generate report' });
+  }
+});
+
+// Create shareable snapshot
+app.post('/api/export/snapshot', async (req: Request, res: Response) => {
+  try {
+    const { projectName, includeData = true, days = 1 } = req.body;
+
+    const result = await exportService.generateSnapshot({
+      projectName,
+      includeData,
+      days
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Error creating snapshot:', error);
+    res.status(500).json({ error: 'Failed to create snapshot' });
+  }
+});
+
+// List available exports
+app.get('/api/export/list', async (req: Request, res: Response) => {
+  try {
+    const exports = await exportService.listExports();
+    res.json({ exports, total: exports.length });
+  } catch (error: any) {
+    logger.error('Error listing exports:', error);
+    res.status(500).json({ error: 'Failed to list exports' });
+  }
+});
+
+// Download export file
+app.get('/api/export/download/:filename', async (req: Request, res: Response) => {
+  try {
+    const { filename } = req.params;
+    const filepath = exportService.getExportPath(filename);
+
+    res.download(filepath, filename, err => {
+      if (err) {
+        logger.error('Error downloading export:', err);
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'Export file not found' });
+        }
+      }
+    });
+  } catch (error: any) {
+    logger.error('Error preparing download:', error);
+    res.status(500).json({ error: 'Failed to download export' });
+  }
+});
+
+// Delete export file
+app.delete('/api/export/:filename', async (req: Request, res: Response) => {
+  try {
+    const { filename } = req.params;
+    const result = await exportService.deleteExport(filename);
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Error deleting export:', error);
+    res.status(500).json({ error: 'Failed to delete export' });
+  }
+});
+
+// Get export statistics
+app.get('/api/export/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await exportService.getExportStats();
+    res.json(stats);
+  } catch (error: any) {
+    logger.error('Error getting export stats:', error);
+    res.status(500).json({ error: 'Failed to get export stats' });
+  }
+});
+
+// ==================== Data Flow Health Monitoring ====================
+
+// Initialize health monitor after all routes are defined
+const dataFlowHealthMonitor = new DataFlowHealthMonitor(app, io);
+
+// Get comprehensive health check report
+app.get('/api/data-flow/health', (req: Request, res: Response) => {
+  try {
+    const results = dataFlowHealthMonitor.runFullHealthCheck();
+    res.json(results);
+  } catch (error: any) {
+    logger.error('Error running health check:', error);
+    res.status(500).json({ error: 'Failed to run health check' });
+  }
+});
+
+// Get endpoint coverage analysis
+app.get('/api/data-flow/coverage', (req: Request, res: Response) => {
+  try {
+    const coverage = dataFlowHealthMonitor.getEndpointCoverage();
+    res.json(coverage);
+  } catch (error: any) {
+    logger.error('Error getting endpoint coverage:', error);
+    res.status(500).json({ error: 'Failed to get endpoint coverage' });
+  }
+});
+
+// Check health of a specific page
+app.get('/api/data-flow/page-health/:page', (req: Request, res: Response) => {
+  try {
+    const pagePath = `/${req.params.page}`;
+    const health = dataFlowHealthMonitor.checkPageHealth(pagePath);
+    res.json(health);
+  } catch (error: any) {
+    logger.error('Error checking page health:', error);
+    res.status(500).json({ error: 'Failed to check page health' });
+  }
+});
+
 // ==================== Error Handling Middleware ====================
 
 // 404 handler - must be after all routes
@@ -2948,6 +3440,16 @@ httpServer.listen(PORT, async () => {
   // Start metrics collector
   logger.info('📊 Starting metrics collector...');
   metricsCollector.start();
+
+  // Start periodic health checks
+  logger.info('🏥 Starting data flow health monitoring...');
+  dataFlowHealthMonitor.startPeriodicChecks(60); // Check every 60 minutes
+
+  // Run initial health check
+  const initialHealth: any = dataFlowHealthMonitor.runFullHealthCheck();
+  logger.info(
+    `Initial health check: ${initialHealth.healthy}/${initialHealth.total_pages} pages healthy (${initialHealth.health_score}%)`
+  );
 
   logger.info('✅ All services started successfully');
 });

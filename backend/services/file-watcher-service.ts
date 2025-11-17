@@ -274,11 +274,16 @@ export class FileWatcherService {
         stabilityThreshold: 100,
         pollInterval: this.FILE_WATCH_DEBOUNCE_MS
       },
-      usePolling: false,
-      depth: 99,
+      // Use polling for ALL projects to avoid hitting inotify limits
+      // Polling is more resource-friendly when watching multiple large projects
+      usePolling: true,
+      interval: 1000, // Poll every 1s for normal files
+      binaryInterval: 3000, // Poll every 3s for binary files
+      // Limit depth to avoid deep node_modules recursion
+      depth: isRavenProject ? 99 : 5, // Deep for raven (selective paths), shallow for others
       ignorePermissionErrors: true,
       // useFsEvents is macOS-specific but not in TypeScript types
-      ...(isMacOS && ({ useFsEvents: true } as any))
+      ...(isMacOS && ({ useFsEvents: false } as any)) // Disable fsEvents, use polling
     });
 
     watcher

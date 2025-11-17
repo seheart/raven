@@ -138,21 +138,21 @@ export class SyntaxChecker {
 
     try {
       switch (language) {
-      case 'javascript':
-        await this.checkJavaScript(content, errors);
-        break;
-      case 'typescript':
-        await this.checkTypeScript(content, errors);
-        break;
-      case 'json':
-        this.checkJSON(content, errors);
-        break;
-      case 'python':
-        // Python syntax checking would require python-shell or similar
-        // Skipping for now
-        break;
-      default:
-        break;
+        case 'javascript':
+          await this.checkJavaScript(content, errors);
+          break;
+        case 'typescript':
+          await this.checkTypeScript(content, errors);
+          break;
+        case 'json':
+          this.checkJSON(content, errors);
+          break;
+        case 'python':
+          // Python syntax checking would require python-shell or similar
+          // Skipping for now
+          break;
+        default:
+          break;
       }
     } catch (error) {
       logger.error(`Parse error for ${language}:`, error);
@@ -193,13 +193,13 @@ export class SyntaxChecker {
     // Skip TypeScript-specific syntax that would fail in JavaScript parser
     // Common TypeScript-only patterns:
     const tsOnlyPatterns = [
-      /import\s+type\s+/,           // import type
-      /export\s+type\s+/,           // export type
-      /declare\s+(const|let|var|function|class|interface|type|namespace|module)/,  // declare
-      /^\s*interface\s+\w+/m,       // interface declaration
-      /^\s*type\s+\w+\s*=/m,        // type alias
-      /as\s+(const|any|unknown|never|string|number|boolean)/,  // type assertions
-      /<\w+>/,                      // generic syntax (basic check)
+      /import\s+type\s+/, // import type
+      /export\s+type\s+/, // export type
+      /declare\s+(const|let|var|function|class|interface|type|namespace|module)/, // declare
+      /^\s*interface\s+\w+/m, // interface declaration
+      /^\s*type\s+\w+\s*=/m, // type alias
+      /as\s+(const|any|unknown|never|string|number|boolean)/, // type assertions
+      /<\w+>/ // generic syntax (basic check)
     ];
 
     // If content has TypeScript-only syntax, skip JavaScript parsing

@@ -172,7 +172,7 @@
   async function loadProjects() {
     try {
       loading = true;
-      const data = await api.get('/projects/list');
+      const data = await api.get('/projects');
       const projectsList = data.projects || [];
 
       // Load stats for each project

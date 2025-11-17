@@ -31,35 +31,71 @@ export class HealthChecker {
       { name: 'Database Connection', fn: () => this.checkEndpoint('/api/health'), critical: true },
 
       // Core Features - Major functionality
-      { name: 'Agent Events', fn: () => this.checkEndpoint('/api/agent-events?limit=1'), critical: true },
+      {
+        name: 'Agent Events',
+        fn: () => this.checkEndpoint('/api/agent-events?limit=1'),
+        critical: true
+      },
 
       // Dashboard & Overview
-      { name: 'Dashboard Stats', fn: () => this.checkEndpoint('/api/dashboard-stats'), critical: false },
+      {
+        name: 'Dashboard Stats',
+        fn: () => this.checkEndpoint('/api/dashboard-stats'),
+        critical: false
+      },
       { name: 'Projects List', fn: () => this.checkEndpoint('/api/projects'), critical: false },
-      { name: 'Agents Status', fn: () => this.checkEndpoint('/api/agents-status'), critical: false },
+      {
+        name: 'Agents Status',
+        fn: () => this.checkEndpoint('/api/agents-status'),
+        critical: false
+      },
 
       // Safety Features
       { name: 'Sessions API', fn: () => this.checkEndpoint('/api/sessions'), critical: false },
-      { name: 'Syntax Errors', fn: () => this.checkEndpoint('/api/syntax-errors'), critical: false },
-      { name: 'Pattern Warnings', fn: () => this.checkEndpoint('/api/pattern-warnings'), critical: false },
+      {
+        name: 'Syntax Errors',
+        fn: () => this.checkEndpoint('/api/syntax-errors'),
+        critical: false
+      },
+      {
+        name: 'Pattern Warnings',
+        fn: () => this.checkEndpoint('/api/pattern-warnings'),
+        critical: false
+      },
 
       // Snapshots & History
       { name: 'Snapshots API', fn: () => this.checkEndpoint('/api/snapshots'), critical: false },
-      { name: 'Conversations', fn: () => this.checkEndpoint('/api/conversations?limit=1'), critical: false },
-      { name: 'Conversation Data Freshness', fn: () => this.checkConversationFreshness(), critical: false },
-      { name: 'Conversation Sync Active', fn: () => this.checkConversationSyncActive(), critical: false },
+      {
+        name: 'Conversations',
+        fn: () => this.checkEndpoint('/api/conversations?limit=1'),
+        critical: false
+      },
+      {
+        name: 'Conversation Data Freshness',
+        fn: () => this.checkConversationFreshness(),
+        critical: false
+      },
+      {
+        name: 'Conversation Sync Active',
+        fn: () => this.checkConversationSyncActive(),
+        critical: false
+      },
 
       // System Features
       { name: 'Storage Info', fn: () => this.checkEndpoint('/api/storage'), critical: false },
-      { name: 'Notifications', fn: () => this.checkEndpoint('/api/notifications?limit=1'), critical: false },
+      {
+        name: 'Notifications',
+        fn: () => this.checkEndpoint('/api/notifications?limit=1'),
+        critical: false
+      },
       { name: 'Changelog', fn: () => this.checkEndpoint('/api/changelog'), critical: false },
 
       // Git Integration
-      { name: 'Git Status', fn: () => this.checkEndpoint('/api/git/status'), critical: false },
+      { name: 'Git Status', fn: () => this.checkEndpoint('/api/git/status'), critical: false }
     ];
 
     // Run all checks in parallel
-    const checkPromises = checks.map(async (check) => {
+    const checkPromises = checks.map(async check => {
       const startTime = Date.now();
       try {
         await check.fn();
@@ -138,7 +174,7 @@ export class HealthChecker {
     const url = `${this.baseUrl}${path}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'Accept': 'application/json' }
+      headers: { Accept: 'application/json' }
     });
 
     if (!response.ok) {
@@ -188,8 +224,8 @@ export class HealthChecker {
     if (hoursSinceLastConversation > 24) {
       throw new Error(
         `Stale conversation data (last: ${mostRecent.timestamp}, ` +
-        `${hoursSinceLastConversation.toFixed(1)} hours ago). ` +
-        `Conversation sync may not be working.`
+          `${hoursSinceLastConversation.toFixed(1)} hours ago). ` +
+          'Conversation sync may not be working.'
       );
     }
 

@@ -18,7 +18,7 @@ function createNotificationHistory() {
     add: notification => {
       update(notifications => {
         const newNotification = {
-          id: Date.now() + Math.random(),
+          id: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
           read: false,
           ...notification

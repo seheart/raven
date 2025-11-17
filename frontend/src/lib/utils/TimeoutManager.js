@@ -1,12 +1,10 @@
-import { logger } from '../logger.js';
-
 /**
  * TimeoutManager - Utility class for managing multiple timeouts
  * Simplifies cleanup of timeouts in Svelte components
  *
  * Usage:
  *   const timeouts = new TimeoutManager();
- *   timeouts.add(() => logger.debug('Hello'), 1000);
+ *   timeouts.add(() => console.log('Hello'), 1000);
  *   onDestroy(() => timeouts.cleanup());
  */
 export class TimeoutManager {

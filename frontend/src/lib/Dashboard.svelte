@@ -1,7 +1,7 @@
 <script>
   import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
-  import { websocketService } from './websocket.js';
+  import { websocketService } from './services/websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import { formatDurationSeconds } from './formatUtils.js';
   import AgentProfilePanel from './AgentProfilePanel.svelte';

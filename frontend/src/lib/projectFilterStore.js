@@ -23,15 +23,23 @@ const storedFilter = localStorage.getItem('raven-project-filter') || ALL_PROJECT
 // Create the filter store
 export const projectFilter = writable(storedFilter);
 
+// Flag to prevent recursive subscription updates
+let isUpdating = false;
+
 // Validate and persist filter changes
 projectFilter.subscribe(value => {
+  // Prevent recursive updates
+  if (isUpdating) return;
+
   // Validate filter against available projects
   const projects = get(availableProjects);
   const validatedValue = validateFilterValue(value, projects);
 
   // If validation changed the value, update the store
   if (validatedValue !== value) {
+    isUpdating = true;
     projectFilter.set(validatedValue);
+    isUpdating = false;
     return;
   }
 

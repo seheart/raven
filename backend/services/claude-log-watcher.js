@@ -178,8 +178,11 @@ export class ClaudeLogWatcher {
       const bytesToRead = stats.size - lastPosition;
       const buffer = Buffer.alloc(bytesToRead);
       const fd = fs.openSync(filepath, 'r');
-      fs.readSync(fd, buffer, 0, bytesToRead, lastPosition);
-      fs.closeSync(fd);
+      try {
+        fs.readSync(fd, buffer, 0, bytesToRead, lastPosition);
+      } finally {
+        fs.closeSync(fd);
+      }
 
       // Update position
       this.filePositions.set(filepath, stats.size);

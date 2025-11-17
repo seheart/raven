@@ -71,9 +71,9 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (error) {
-      logger.error('Failed to load test results:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load test results:', err);
+      error = err.message;
       loading = false;
     }
   }
@@ -91,9 +91,9 @@
 
       // Reload results after tests complete
       await loadTests();
-    } catch (error) {
-      logger.error('Failed to run tests:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to run tests:', err);
+      error = err.message;
       running = false;
     }
   }

@@ -33,7 +33,7 @@ if [ -f /tmp/raven-frontend.pid ]; then
 fi
 
 # Fallback: kill by process name and port
-pkill -f "node server.js" 2>/dev/null || true
+pkill -f "node.*dist/server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
 
 # Kill processes on ports (works on both Linux and macOS)

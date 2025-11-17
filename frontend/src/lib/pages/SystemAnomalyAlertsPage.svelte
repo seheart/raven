@@ -52,9 +52,9 @@
 
       lastUpdate = new Date();
       error = null;
-    } catch (error) {
-      logger.error('Failed to load anomalies:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load anomalies:', err);
+      error = err.message;
     } finally {
       loading = false;
     }

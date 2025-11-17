@@ -17,6 +17,7 @@
   import { API_CONFIG } from '../../config.js';
   import DOMPurify from 'dompurify';
   import { Chart, registerables } from 'chart.js';
+  import VirtualScroll from '../VirtualScroll.svelte';
 
   Chart.register(...registerables);
 
@@ -122,8 +123,8 @@
 
       hasMore = data.hasMore;
       lastUpdated = new Date();
-    } catch (error) {
-      logger.error('Failed to load notifications:', error);
+    } catch (err) {
+      logger.error('Failed to load notifications:', err);
     } finally {
       loading = false;
       isManualRefresh = false;
@@ -134,8 +135,8 @@
     try {
       const res = await fetch(`${API_BASE}/notifications/stats`);
       stats = await res.json();
-    } catch (error) {
-      logger.error('Failed to load notification stats:', error);
+    } catch (err) {
+      logger.error('Failed to load notification stats:', err);
     }
   }
 
@@ -144,8 +145,8 @@
       await fetch(`${API_BASE}/notifications/${id}/read`, { method: 'POST' });
       notifications = notifications.map(n => (n.id === id ? { ...n, read: true } : n));
       stats.unread = Math.max(0, stats.unread - 1);
-    } catch (error) {
-      logger.error('Failed to mark notification as read:', error);
+    } catch (err) {
+      logger.error('Failed to mark notification as read:', err);
     }
   }
 
@@ -160,17 +161,17 @@
       await fetch(`${API_BASE}/notifications/mark-all-read`, { method: 'POST' });
       notifications = notifications.map(n => ({ ...n, read: true }));
       stats.unread = 0;
-    } catch (error) {
-      logger.error('Failed to mark all as read:', error);
+    } catch (err) {
+      logger.error('Failed to mark all as read:', err);
     }
   }
 
   async function exportNotifications() {
     try {
       exportJSON(notifications, 'raven-notifications');
-    } catch (error) {
-      logger.error('Failed to export notifications:', error);
-      alert('Failed to export notifications: ' + error.message);
+    } catch (err) {
+      logger.error('Failed to export notifications:', err);
+      alert('Failed to export notifications: ' + err.message);
     }
   }
 
@@ -224,8 +225,8 @@
       notifications = notifications.filter(n => n.id !== id);
       stats.total = Math.max(0, stats.total - 1);
       await loadStats();
-    } catch (error) {
-      logger.error('Failed to clear notification:', error);
+    } catch (err) {
+      logger.error('Failed to clear notification:', err);
     }
   }
 
@@ -236,8 +237,8 @@
       await fetch(`${API_BASE}/notifications`, { method: 'DELETE' });
       notifications = [];
       stats = { total: 0, unread: 0, by_type: {}, by_severity: {} };
-    } catch (error) {
-      logger.error('Failed to clear all notifications:', error);
+    } catch (err) {
+      logger.error('Failed to clear all notifications:', err);
     }
   }
 
@@ -279,7 +280,7 @@
     handleNewNotification(notification);
   }
 
-  function handleProjectSwitched(data) {
+  function handleProjectSwitched(_data) {
     // Reload notifications when project is switched
     loadNotifications();
     loadStats();
@@ -768,38 +769,44 @@
           </div>
         </div>
       {:else}
-        {#each groupedNotifications as notification (notification.id)}
+        <VirtualScroll
+          items={groupedNotifications}
+          itemHeight={120}
+          containerHeight={600}
+          overscan={5}
+          getKey={notification => notification.id}
+          let:item
+        >
           <div
             class="bg-[var(--surface)] border border-[var(--border)] border-l-[3px] {getSeverityBorderClass(
-              notification.severity
-            )} rounded-lg p-4 cursor-pointer transition-all hover:border-[var(--accent)] hover:shadow-lg focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 {!notification.read
+              item.severity
+            )} rounded-lg p-4 cursor-pointer transition-all hover:border-[var(--accent)] hover:shadow-lg focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 {!item.read
               ? 'bg-[color-mix(in_srgb,var(--accent)_5%,var(--surface))]'
               : ''}"
-            onclick={() => toggleExpand(notification)}
+            onclick={() => toggleExpand(item)}
             onkeydown={e =>
-              (e.key === 'Enter' || e.key === ' ') &&
-              (e.preventDefault(), toggleExpand(notification))}
+              (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleExpand(item))}
             role="button"
             tabindex="0"
           >
             <div class="flex justify-between items-start gap-4">
               <div class="flex items-start gap-4 flex-1">
-                <span class="text-lg">{getNotificationIcon(notification.type)}</span>
+                <span class="text-lg">{getNotificationIcon(item.type)}</span>
                 <div class="flex-1">
                   <div class="text-sm font-semibold text-[var(--text)] mb-1">
-                    {notification.title}
-                    {#if notification.count > 1}
+                    {item.title}
+                    {#if item.count > 1}
                       <span
                         class="inline-block bg-[var(--accent)] text-white text-xs font-bold px-2 py-1 rounded ml-2"
                       >
-                        {formatNumber(notification.count)}×
+                        {formatNumber(item.count)}×
                       </span>
                     {/if}
                   </div>
                   <div class="flex items-center gap-3 text-xs text-[var(--muted)]">
-                    <span class="uppercase font-semibold">{notification.type}</span>
-                    <span>{formatRelativeTime(notification.timestamp)}</span>
-                    {#if !notification.read}
+                    <span class="uppercase font-semibold">{item.type}</span>
+                    <span>{formatRelativeTime(item.timestamp)}</span>
+                    {#if !item.read}
                       <span
                         class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-bold"
                       >
@@ -814,17 +821,17 @@
                   class="px-2 py-1 text-[var(--text)] hover:bg-[var(--bg)] rounded transition-all"
                   onclick={e => {
                     e.stopPropagation();
-                    clearNotification(notification.id);
+                    clearNotification(item.id);
                   }}
                 >
                   🗑️
                 </button>
-                {#if !notification.read}
+                {#if !item.read}
                   <button
                     class="px-2 py-1 text-[var(--text)] hover:bg-[var(--bg)] rounded transition-all"
                     onclick={e => {
                       e.stopPropagation();
-                      markAsRead(notification.id);
+                      markAsRead(item.id);
                     }}
                   >
                     ✓
@@ -833,25 +840,23 @@
               </div>
             </div>
 
-            {#if expandedNotification?.id === notification.id}
+            {#if expandedNotification?.id === item.id}
               <div class="mt-4 pt-4 border-t border-[var(--border)]">
                 <div class="mb-4">
                   <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
                     Message
                   </div>
-                  <div class="text-sm text-[var(--text)]">{notification.message}</div>
+                  <div class="text-sm text-[var(--text)]">{item.message}</div>
                 </div>
                 <div class="mb-4">
                   <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
                     Timestamp
                   </div>
                   <div class="text-sm text-[var(--text)]">
-                    <time datetime={notification.timestamp}
-                      >{formatDateTime(notification.timestamp)}</time
-                    >
+                    <time datetime={item.timestamp}>{formatDateTime(item.timestamp)}</time>
                   </div>
                 </div>
-                {#if notification.metadata}
+                {#if item.metadata}
                   <div>
                     <div class="text-xs text-[var(--muted)] font-semibold uppercase mb-2">
                       Details
@@ -859,14 +864,14 @@
                     <pre
                       class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 text-xs text-[var(--text)] overflow-x-auto font-mono">
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                      {@html DOMPurify.sanitize(JSON.stringify(notification.metadata, null, 2))}
+                      {@html DOMPurify.sanitize(JSON.stringify(item.metadata, null, 2))}
                     </pre>
                   </div>
                 {/if}
               </div>
             {/if}
           </div>
-        {/each}
+        </VirtualScroll>
 
         {#if hasMore}
           <div class="text-center py-4">

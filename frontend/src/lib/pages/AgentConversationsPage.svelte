@@ -172,9 +172,9 @@
       hasMore = conversations.length >= limit;
       lastUpdate = new Date();
       error = null;
-    } catch (error) {
-      logger.error('Failed to load conversations:', error);
-      errorMessage = error.message || 'Failed to load conversations';
+    } catch (err) {
+      logger.error('Failed to load conversations:', err);
+      error = err.message || 'Failed to load conversations';
     } finally {
       loading = false;
     }

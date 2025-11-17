@@ -95,6 +95,9 @@
         <div
           class="{labelSizes[size]} font-medium text-[var(--text)] font-sans cursor-pointer"
           onclick={handleToggle}
+          onkeydown={e => (e.key === 'Enter' || e.key === ' ') && handleToggle()}
+          role="button"
+          tabindex="0"
         >
           {label}
         </div>

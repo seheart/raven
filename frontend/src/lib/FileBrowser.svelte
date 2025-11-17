@@ -94,7 +94,7 @@
       files = data.files || [];
       loading = false;
       error = null;
-    } catch (err) {
+    } catch (error) {
       logger.error('Failed to load tracked files:', error);
       notifications.error(`Failed to load tracked files: ${err.message || 'Network error'}`, {
         title: 'File Browser Error',

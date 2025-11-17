@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { websocketService } from './websocket.js';
+  import { websocketService } from './services/websocket.js';
   import { notifications } from './notificationService.js';
   import { dataService } from './dataService.js';
   import { logger } from './logger.js';
@@ -158,7 +158,7 @@
           const syntaxData = await syntaxResponse.json();
           syntaxErrorCount = syntaxData.count || 0;
         }
-      } catch (err) {
+      } catch (error) {
         logger.error('Failed to fetch syntax errors:', error);
       }
 
@@ -182,8 +182,8 @@
       todayStats = { added: totalAdded, deleted: totalDeleted, files: todayFiles.size };
       loading = false;
     } catch (err) {
-      logger.error('Failed to fetch health:', error);
-      errorMessage = error.message;
+      logger.error('Failed to fetch health:', err);
+      errorMessage = err.message;
       loading = false;
     }
   }

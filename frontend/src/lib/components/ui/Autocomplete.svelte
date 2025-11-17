@@ -142,13 +142,13 @@
         onfocus={() => (showDropdown = true)}
         autocomplete="off"
         aria-autocomplete="list"
-        aria-expanded={showDropdown}
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={describedById}
+        aria-controls="autocomplete-listbox"
       />
 
       {#if showDropdown && filteredOptions.length > 0}
-        <div class={dropdownClasses} role="listbox">
+        <div class={dropdownClasses} role="listbox" id="autocomplete-listbox">
           {#each filteredOptions as option, i (i)}
             {@const isSelected = i === selectedIndex}
             {@const optionLabel = typeof option === 'string' ? option : option.label}
@@ -156,8 +156,10 @@
             <div
               class="{itemBaseClasses} {itemHoverClasses} {isSelected ? itemSelectedClasses : ''}"
               onclick={() => handleSelect(option)}
+              onkeydown={e => (e.key === 'Enter' || e.key === ' ') && handleSelect(option)}
               role="option"
               aria-selected={isSelected}
+              tabindex="0"
             >
               {optionLabel}
             </div>

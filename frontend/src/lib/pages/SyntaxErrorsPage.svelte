@@ -103,9 +103,9 @@
       lastUpdated = new Date();
       loading = false;
       loadingMore = false;
-    } catch (error) {
-      logger.error('Failed to load syntax errors:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load syntax errors:', err);
+      error = err.message;
       loading = false;
       loadingMore = false;
     }
@@ -129,14 +129,14 @@
       if (!result.success) {
         throw new Error(result.message || 'Failed to open file');
       }
-    } catch (error) {
-      logger.error('Failed to open file:', error);
+    } catch (err) {
+      logger.error('Failed to open file:', err);
       // Fallback: Copy file path to clipboard
       try {
         const fileLocation = `${filepath}:${lineNumber}`;
         await navigator.clipboard.writeText(fileLocation);
         alert(`Could not open editor. File path copied to clipboard:\n${fileLocation}`);
-      } catch (error) {
+      } catch (err) {
         alert(`Failed to open file: ${error.message}\n\nFile: ${filepath}:${lineNumber}`);
       }
     }
@@ -145,14 +145,14 @@
   // Resolve error
   async function resolveError(errorId) {
     try {
-      await fetch(`http://localhost:3030/api/syntax-errors/${errorId}/resolve`, {
+      await fetch(`http://localhost:9100/api/syntax-errors/${errorId}/resolve`, {
         method: 'POST'
       });
 
       // Reload errors
       await loadErrors();
-    } catch (error) {
-      logger.error('Failed to resolve error:', error);
+    } catch (err) {
+      logger.error('Failed to resolve error:', err);
       alert(`Failed to resolve error: ${error.message}`);
     }
   }
@@ -172,8 +172,8 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
     try {
       await navigator.clipboard.writeText(errorText);
       alert('Error details copied to clipboard');
-    } catch (error) {
-      logger.error('Failed to copy to clipboard:', error);
+    } catch (err) {
+      logger.error('Failed to copy to clipboard:', err);
       alert('Failed to copy to clipboard');
     }
   }

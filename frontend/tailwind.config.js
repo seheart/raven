@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./index.html",
-    "./src/**/*.{svelte,js,ts,jsx,tsx}",
+    './index.html',
+    './src/**/*.{svelte,js,ts,jsx,tsx}'
   ],
   theme: {
     extend: {
@@ -21,7 +21,7 @@ export default {
           success: '#9ece6a',
           error: '#f7768e',
           warning: '#e0af68',
-          info: '#7aa2f7',
+          info: '#7aa2f7'
         },
         // Gruvbox Light theme (day)
         day: {
@@ -37,7 +37,7 @@ export default {
           success: '#98971a',
           error: '#cc241d',
           warning: '#d65d0e',
-          info: '#458588',
+          info: '#458588'
         },
         // Ristretto theme (dusk)
         dusk: {
@@ -53,12 +53,12 @@ export default {
           success: '#b9ca79',
           error: '#d16969',
           warning: '#e8b878',
-          info: '#78b4c8',
-        },
+          info: '#78b4c8'
+        }
       },
       fontFamily: {
         mono: ['"JetBrainsMono Nerd Font"', '"FiraCode Nerd Font"', '"Hack Nerd Font"', 'ui-monospace', 'monospace'],
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif']
       },
       fontSize: {
         'xs': '10px',
@@ -69,13 +69,13 @@ export default {
         '2xl': '15px',
         '3xl': '16px',
         '4xl': '18px',
-        '5xl': '20px',
+        '5xl': '20px'
       },
       borderRadius: {
         'sm': '3px',
         DEFAULT: '4px',
         'lg': '6px',
-        'xl': '8px',
+        'xl': '8px'
       },
       spacing: {
         'xs': '2px',
@@ -85,9 +85,9 @@ export default {
         'xl': '12px',
         '2xl': '16px',
         '3xl': '24px',
-        '4xl': '32px',
-      },
-    },
+        '4xl': '32px'
+      }
+    }
   },
-  plugins: [],
-}
+  plugins: []
+};

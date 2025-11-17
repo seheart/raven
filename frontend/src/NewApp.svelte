@@ -238,10 +238,10 @@
           <PlaceholderPage title="Projects Comparison" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'health'}
-        {#await import('./lib/pages/MultiProjectHealthPage.svelte') then { default: Component }}
+        {#await import('./lib/pages/OverviewHealthPage.svelte') then { default: Component }}
           <Component />
         {:catch}
-          <PlaceholderPage title="Multi-Project Health" description="Loading..." />
+          <PlaceholderPage title="Project Health" description="Loading..." />
         {/await}
       {:else}
         <PlaceholderPage title="Overview - {activeSubTab}" description="This page is coming soon" />
@@ -443,11 +443,17 @@
         {:catch}
           <PlaceholderPage title="Intelligence" description="Loading..." />
         {/await}
-      {:else if activeSubTab === 'tier4'}
-        {#await import('./lib/pages/SystemTier4Page.svelte') then { default: Component }}
+      {:else if activeSubTab === 'integrations'}
+        {#await import('./lib/pages/SystemIntegrationsPage.svelte') then { default: Component }}
           <Component />
         {:catch}
-          <PlaceholderPage title="Tier 4" description="Loading..." />
+          <PlaceholderPage title="Integrations" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'exports'}
+        {#await import('./lib/pages/SystemExportsPage.svelte') then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Exports" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'storage'}
         {#await import('./lib/pages/SystemStoragePage.svelte') then { default: Component }}

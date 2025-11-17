@@ -308,9 +308,9 @@
       const [statsData, metricsData, activityData, filesData, projectsRes] = await Promise.all([
         api.get('/dashboard-stats'),
         api.get('/system-metrics?limit=1'),
-        api.get('/all-file-events?limit=100'),
+        api.get('/file-events?limit=100'),
         api.get('/top-modified-files?limit=5'),
-        api.get('/projects/list')
+        api.get('/projects')
       ]);
 
       stats = statsData;
@@ -320,7 +320,7 @@
       projects = projectsRes.projects || [];
 
       // Load project stats
-      const projectEvents = await api.get('/all-file-events?limit=500');
+      const projectEvents = await api.get('/file-events?limit=500');
       const events = Array.isArray(projectEvents) ? projectEvents : projectEvents.events || [];
       events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -418,7 +418,7 @@
       setTimeout(() => {
         try {
           createCharts();
-        } catch (err) {
+        } catch (error) {
           logger.error('Failed to create charts:', error);
         }
       }, 200);
@@ -435,7 +435,7 @@
     // Reload activity and stats on file changes
     try {
       const [activityData, statsData, filesData] = await Promise.all([
-        api.get('/all-file-events?limit=100'),
+        api.get('/file-events?limit=100'),
         api.get('/dashboard-stats'),
         api.get('/top-modified-files?limit=5')
       ]);

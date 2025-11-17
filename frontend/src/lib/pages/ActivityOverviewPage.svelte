@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { onMount } from 'svelte';
   import { api } from '../apiClient.js';
-  import { websocketService } from '../websocket.js';
+  import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
   import ProjectBadge from '../ProjectBadge.svelte';
   import { Chart, registerables } from 'chart.js';
@@ -83,7 +83,7 @@
 
       // Load both file events and agent events from all projects
       const [fileEvents, agentEvents] = await Promise.all([
-        api.get('/all-file-events?limit=1000').catch(() => []),
+        api.get('/file-events?limit=1000').catch(() => []),
         api.get('/all-agent-events?limit=1000').catch(() => [])
       ]);
 
@@ -174,7 +174,7 @@
   async function loadRecentActivity() {
     try {
       const [fileEvents, agentEvents] = await Promise.all([
-        api.get('/all-file-events?limit=20').catch(() => []),
+        api.get('/file-events?limit=20').catch(() => []),
         api.get('/all-agent-events?limit=20').catch(() => [])
       ]);
 
@@ -310,7 +310,7 @@
   async function exportLog() {
     try {
       const [fileEvents, agentEvents] = await Promise.all([
-        api.get('/all-file-events?limit=10000').catch(() => []),
+        api.get('/file-events?limit=10000').catch(() => []),
         api.get('/all-agent-events?limit=10000').catch(() => [])
       ]);
 

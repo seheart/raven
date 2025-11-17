@@ -263,7 +263,7 @@
       loading = true;
       error = null;
 
-      const data = await api.get('/all-file-events?limit=1000');
+      const data = await api.get('/file-events?limit=1000');
       events = Array.isArray(data) ? data : data.events || [];
 
       // Extract unique agents

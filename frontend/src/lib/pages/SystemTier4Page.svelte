@@ -136,7 +136,7 @@
           await loadSocialData();
           break;
       }
-    } catch (err) {
+    } catch (error) {
       error = err.message;
       loadedTabs.delete(tab);
     } finally {

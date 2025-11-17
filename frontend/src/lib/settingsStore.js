@@ -42,7 +42,7 @@ function loadSettings() {
     if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') {
       return { ...DEFAULT_SETTINGS };
     }
-  } catch (_) {
+  } catch (error) {
     return { ...DEFAULT_SETTINGS };
   }
 
@@ -81,27 +81,18 @@ settingsStore.subscribe(value => {
 });
 
 // Derived stores for specific setting sections
-export const notificationSettings = derived(
-  settingsStore,
-  $settings => $settings.notifications
-);
+export const notificationSettings = derived(settingsStore, $settings => $settings.notifications);
 
-export const uiSettings = derived(
-  settingsStore,
-  $settings => $settings.ui
-);
+export const uiSettings = derived(settingsStore, $settings => $settings.ui);
 
-export const performanceSettings = derived(
-  settingsStore,
-  $settings => $settings.performance
-);
+export const performanceSettings = derived(settingsStore, $settings => $settings.performance);
 
 // Settings actions
 export const settings = {
   subscribe: settingsStore.subscribe,
 
   // Update entire settings object
-  set: (newSettings) => {
+  set: newSettings => {
     settingsStore.set(newSettings);
   },
 
@@ -128,7 +119,7 @@ export const settings = {
   },
 
   // Update notification settings
-  updateNotifications: (updates) => {
+  updateNotifications: updates => {
     settingsStore.update(current => ({
       ...current,
       notifications: { ...current.notifications, ...updates }
@@ -136,7 +127,7 @@ export const settings = {
   },
 
   // Update UI settings
-  updateUI: (updates) => {
+  updateUI: updates => {
     settingsStore.update(current => ({
       ...current,
       ui: { ...current.ui, ...updates }
@@ -159,7 +150,7 @@ export const settings = {
   },
 
   // Update performance settings
-  updatePerformance: (updates) => {
+  updatePerformance: updates => {
     settingsStore.update(current => ({
       ...current,
       performance: { ...current.performance, ...updates }
@@ -190,7 +181,7 @@ export const settings = {
   },
 
   // Import settings from JSON
-  import: (jsonString) => {
+  import: jsonString => {
     try {
       const imported = JSON.parse(jsonString);
       // Merge with defaults to ensure all keys exist
@@ -210,7 +201,7 @@ export const settings = {
 };
 
 // Convenience getters for commonly used settings
-export const getSetting = (path) => {
+export const getSetting = path => {
   const current = get(settingsStore);
   const keys = path.split('.');
   let value = current;
@@ -224,7 +215,7 @@ export const getSetting = (path) => {
 };
 
 // Check if a notification type is enabled
-export const isNotificationTypeEnabled = (type) => {
+export const isNotificationTypeEnabled = type => {
   const current = get(settingsStore);
   return current.notifications.enabled && current.notifications.types[type];
 };

@@ -49,7 +49,7 @@
       setTimeout(() => {
         copied = false;
       }, 2000);
-    } catch (err) {
+    } catch (error) {
       console.error('Failed to copy:', err);
     }
   }

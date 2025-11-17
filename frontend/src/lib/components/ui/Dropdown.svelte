@@ -74,7 +74,12 @@
 
 <div bind:this={dropdownRef} class="relative inline-block {className}" {...restProps}>
   <!-- Trigger -->
-  <div onclick={toggleDropdown}>
+  <div
+    onclick={toggleDropdown}
+    onkeydown={e => (e.key === 'Enter' || e.key === ' ') && toggleDropdown()}
+    role="button"
+    tabindex="0"
+  >
     {@render trigger?.()}
   </div>
 

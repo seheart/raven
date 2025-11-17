@@ -4,7 +4,7 @@
   import { api } from './apiClient.js';
 
   import { formatDurationMinutes } from './formatUtils.js';
-  import { websocketService } from './websocket.js';
+  import { websocketService } from './services/websocket.js';
 
   export let project = 'raven';
 
@@ -32,7 +32,7 @@
           quality = qualityData.quality;
           // Use recommendation from quality endpoint if available
           breakRecommendation = qualityData.quality?.recommendation || null;
-        } catch (err) {
+        } catch (error) {
           logger.warn('Quality metrics not available:', err);
           quality = null;
           breakRecommendation = null;
@@ -46,11 +46,11 @@
       try {
         const statsData = await api.get(`/sessions/stats?project=${project}&days=30`);
         stats = statsData.stats;
-      } catch (err) {
+      } catch (error) {
         logger.warn('Session stats not available:', err);
         stats = null;
       }
-    } catch (err) {
+    } catch (error) {
       logger.error('Failed to load session data:', error);
       errorMessage = error.message;
     } finally {

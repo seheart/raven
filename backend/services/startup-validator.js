@@ -71,7 +71,7 @@ export class StartupValidator {
       { name: 'Database accessible', fn: () => this.checkDatabase() },
       { name: 'API endpoints healthy', fn: () => this.checkAPIEndpoints() },
       { name: 'WebSocket connected', fn: () => this.checkWebSocket() },
-      { name: 'File watcher active', fn: () => this.checkFileWatcher() },
+      { name: 'File watcher active', fn: () => this.checkFileWatcher() }
     ];
 
     await this.runChecks('backend', checks);
@@ -86,7 +86,7 @@ export class StartupValidator {
     const checks = [
       { name: 'Vite server responding', fn: () => this.checkFrontendServer() },
       { name: 'Assets loaded', fn: () => this.checkAssets() },
-      { name: 'Critical pages rendering', fn: () => this.checkPages() },
+      { name: 'Critical pages rendering', fn: () => this.checkPages() }
     ];
 
     await this.runChecks('frontend', checks);
@@ -100,13 +100,19 @@ export class StartupValidator {
 
     const checks = [
       { name: 'Activity Log data flow', fn: () => this.checkDataFlow('/api/activity-log') },
-      { name: 'Anomaly Alerts data flow', fn: () => this.checkDataFlow('/api/anomalies/detect?hours=24&threshold=2') },
+      {
+        name: 'Anomaly Alerts data flow',
+        fn: () => this.checkDataFlow('/api/anomalies/detect?hours=24&threshold=2')
+      },
       { name: 'Error Log data flow', fn: () => this.checkDataFlow('/api/errors') },
       { name: 'Metrics data flow', fn: () => this.checkDataFlow('/api/system-metrics?limit=10') },
-      { name: 'Notifications data flow', fn: () => this.checkDataFlow('/api/notifications?limit=10') },
+      {
+        name: 'Notifications data flow',
+        fn: () => this.checkDataFlow('/api/notifications?limit=10')
+      },
       { name: 'API Health Monitor', fn: () => this.checkDataFlow('/api/endpoints') },
       { name: 'Server Sync panel', fn: () => this.checkDataFlow('/api/projects') },
-      { name: 'File Browser tree', fn: () => this.checkDataFlow('/api/tracked-files') },
+      { name: 'File Browser tree', fn: () => this.checkDataFlow('/api/tracked-files') }
     ];
 
     await this.runChecks('integration', checks);
@@ -122,7 +128,7 @@ export class StartupValidator {
       { name: 'Dashboard panels', fn: () => this.checkDashboardPanels() },
       { name: 'Charts rendering', fn: () => this.checkCharts() },
       { name: 'Tables rendering', fn: () => this.checkTables() },
-      { name: 'Forms functional', fn: () => this.checkForms() },
+      { name: 'Forms functional', fn: () => this.checkForms() }
     ];
 
     await this.runChecks('components', checks);
@@ -139,7 +145,7 @@ export class StartupValidator {
       { name: 'Historical data access', fn: () => this.checkHistoricalData() },
       { name: 'Data export', fn: () => this.checkDataExport() },
       { name: 'Filtering/search', fn: () => this.checkFiltering() },
-      { name: 'Real-time updates', fn: () => this.checkRealTimeUpdates() },
+      { name: 'Real-time updates', fn: () => this.checkRealTimeUpdates() }
     ];
 
     await this.runChecks('userFlows', checks);
@@ -313,9 +319,13 @@ export class StartupValidator {
     }
 
     // For object responses with data arrays
-    if (data.events !== undefined || data.anomalies !== undefined ||
-        data.errors !== undefined || data.endpoints !== undefined ||
-        data.notifications !== undefined) {
+    if (
+      data.events !== undefined ||
+      data.anomalies !== undefined ||
+      data.errors !== undefined ||
+      data.endpoints !== undefined ||
+      data.notifications !== undefined
+    ) {
       // Has expected structure
       return;
     }
@@ -325,11 +335,7 @@ export class StartupValidator {
 
   async checkDashboardPanels() {
     // Verify dashboard endpoints return data
-    const endpoints = [
-      '/api/dashboard-stats',
-      '/api/agents-status',
-      '/api/projects'
-    ];
+    const endpoints = ['/api/dashboard-stats', '/api/agents-status', '/api/projects'];
 
     for (const endpoint of endpoints) {
       const response = await fetch(`${this.backendUrl}${endpoint}`);
@@ -464,7 +470,7 @@ export class StartupValidator {
 
     if (failed > 0) {
       logger.debug('');
-      logger.debug('Run \'raven check --verbose\' for detailed diagnostics');
+      logger.debug("Run 'raven check --verbose' for detailed diagnostics");
     }
 
     logger.debug('');

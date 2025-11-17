@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 import { wsLogger } from '../logger.js';
 
 // Get WebSocket URL from environment or use default
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3030';
+const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:9100';
 
 // WebSocket configuration constants
 const WEBSOCKET_CONFIG = {

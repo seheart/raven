@@ -62,7 +62,7 @@
       setTimeout(() => {
         copiedId = null;
       }, 2000);
-    } catch (err) {
+    } catch (error) {
       logger.error('Failed to copy:', error);
     }
   }

@@ -55,7 +55,6 @@ check_port() {
 # Step 1: Kill existing processes
 echo -e "${YELLOW}[1/6]${NC} Cleaning up existing processes..."
 pkill -f "node.*dist/server.js" 2>/dev/null || true
-pkill -f "node server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
 # Kill processes on specific ports (cross-platform compatible)
 BACKEND_PORT_PID=$(check_port 3030)
@@ -79,7 +78,7 @@ fi
 # Step 3: Start backend in background
 echo -e "${YELLOW}[3/6]${NC} Starting backend server..."
 cd backend
-nohup env NODE_ENV=development DISABLE_AUTH=true node server.js > /tmp/raven-backend.log 2>&1 &
+nohup env NODE_ENV=development DISABLE_AUTH=true node dist/server.js > /tmp/raven-backend.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > /tmp/raven-backend.pid
 disown

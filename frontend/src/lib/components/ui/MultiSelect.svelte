@@ -114,9 +114,10 @@
       <div
         class={multiSelectClasses}
         onclick={() => !disabled && (showDropdown = !showDropdown)}
+        onkeydown={e =>
+          (e.key === 'Enter' || e.key === ' ') && !disabled && (showDropdown = !showDropdown)}
         role="button"
         tabindex="0"
-        aria-invalid={error ? 'true' : 'false'}
         aria-describedby={describedById}
       >
         <div class="flex flex-wrap gap-2">
@@ -132,6 +133,7 @@
                   removeItem(value);
                 }}
                 class="hover:bg-[var(--accent)] hover:bg-opacity-20 rounded-full p-0.5"
+                aria-label="Remove {getLabel(value)}"
               >
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -172,6 +174,11 @@
                 e.stopPropagation();
                 toggleOption(option);
               }}
+              onkeydown={e =>
+                (e.key === 'Enter' || e.key === ' ') && (e.stopPropagation(), toggleOption(option))}
+              role="option"
+              tabindex="0"
+              aria-selected={selected}
             >
               <span>{optionLabel}</span>
               {#if selected}

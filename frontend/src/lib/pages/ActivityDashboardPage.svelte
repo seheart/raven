@@ -116,9 +116,9 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (error) {
-      logger.error('Failed to load activity data:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load activity data:', err);
+      error = err.message;
       loading = false;
     }
   }
@@ -129,8 +129,8 @@
       const endpoint = isPaused ? '/resume' : '/pause';
       await api.post(endpoint, {});
       isPaused = !isPaused;
-    } catch (error) {
-      logger.error('Failed to toggle tracking:', error);
+    } catch (err) {
+      logger.error('Failed to toggle tracking:', err);
     }
   }
 

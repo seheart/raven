@@ -106,9 +106,9 @@
       lastUpdated = new Date();
       loading = false;
       isManualRefresh = false;
-    } catch (error) {
-      logger.error('Failed to load performance data:', error);
-      errorMessage = error.message || 'Failed to load performance data';
+    } catch (err) {
+      logger.error('Failed to load performance data:', err);
+      error = err.message || 'Failed to load performance data';
       loading = false;
       isManualRefresh = false;
     }

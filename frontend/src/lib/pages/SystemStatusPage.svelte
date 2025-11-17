@@ -366,7 +366,7 @@
               <div class="text-4xl mb-2">❌</div>
               <p class="text-[var(--error)] font-sans">Cannot connect to backend server</p>
               <p class="text-xs text-[var(--muted)] font-sans mt-1">
-                Make sure the backend is running on port 3030
+                Make sure the backend is running on port 9100
               </p>
             </div>
           {/if}

@@ -108,9 +108,11 @@
   <div
     class={backdropClasses}
     onclick={handleBackdropClick}
+    onkeydown={e => e.key === 'Escape' && handleBackdropClick()}
     role="dialog"
     aria-modal="true"
     aria-labelledby={title ? 'modal-title' : undefined}
+    tabindex="-1"
   >
     <!-- Modal Container -->
     <div class={modalClasses} {...restProps}>

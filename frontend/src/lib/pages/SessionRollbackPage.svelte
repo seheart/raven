@@ -61,9 +61,9 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch {
-      logger.error('Failed to load sessions:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load sessions:', err);
+      error = err.message;
       loading = false;
     }
   }
@@ -77,8 +77,8 @@
 
       previewData = await api.get(`/sessions/${session.session_id}/preview`);
       previewing = false;
-    } catch (error) {
-      logger.error('Failed to preview rollback:', error);
+    } catch (err) {
+      logger.error('Failed to preview rollback:', err);
       alert(`Failed to preview rollback: ${error.message}`);
       previewing = false;
       selectedSession = null;
@@ -116,8 +116,8 @@
       selectedSessionData = null;
       previewData = null;
       confirmCheckbox = false;
-    } catch (error) {
-      logger.error('Failed to rollback session:', error);
+    } catch (err) {
+      logger.error('Failed to rollback session:', err);
       alert(`Rollback failed: ${error.message}`);
     }
   }

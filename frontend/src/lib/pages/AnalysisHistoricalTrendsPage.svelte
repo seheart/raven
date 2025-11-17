@@ -60,9 +60,9 @@
       const data = await api.get(`/trends/historical?period=${period}&days=${days}`);
       trends = data.trends || [];
       lastUpdate = new Date();
-    } catch (error) {
-      logger.error('Failed to load trends:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load trends:', err);
+      error = err.message;
     } finally {
       loading = false;
     }

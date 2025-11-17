@@ -40,7 +40,7 @@ function createRouter() {
   // Create the store with initial hash - this runs immediately when module loads
   const initialRoute = parseHash();
   logger.debug('[Router] Initial route:', initialRoute);
-  const { subscribe, set, update } = writable(initialRoute);
+  const { subscribe, set } = writable(initialRoute);
 
   // Listen to hash changes
   if (typeof window !== 'undefined') {

@@ -89,11 +89,15 @@
   // Tooltip classes
   const tooltipBaseClasses =
     'absolute z-50 px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap pointer-events-none transition-opacity duration-150 font-sans';
-  const tooltipClasses = `${tooltipBaseClasses} ${currentPosition.tooltip} ${currentVariant.bg} ${currentVariant.text} ${currentVariant.shadow || ''} ${showTooltip ? 'opacity-100' : 'opacity-0'}`;
+  const tooltipClasses = $derived(
+    `${tooltipBaseClasses} ${currentPosition.tooltip} ${currentVariant.bg} ${currentVariant.text} ${currentVariant.shadow || ''} ${showTooltip ? 'opacity-100' : 'opacity-0'}`
+  );
 
   // Arrow classes
   const arrowBaseClasses = 'absolute w-0 h-0 border-4';
-  const arrowClasses = `${arrowBaseClasses} ${currentPosition.arrow} ${currentVariant.arrow}`;
+  const arrowClasses = $derived(
+    `${arrowBaseClasses} ${currentPosition.arrow} ${currentVariant.arrow}`
+  );
 </script>
 
 <div

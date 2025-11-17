@@ -404,9 +404,9 @@
 
       // Create charts after data loads
       setTimeout(createCharts, 100);
-    } catch (error) {
-      logger.error('Failed to load agent stats:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load agent stats:', err);
+      error = err.message;
       loading = false;
     }
   }

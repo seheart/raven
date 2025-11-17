@@ -96,7 +96,7 @@
       loading = true;
       error = null;
 
-      const response = await api.get('/all-file-events?limit=500&diff=false');
+      const response = await api.get('/file-events?limit=500&diff=false');
       const allEvents = Array.isArray(response) ? response : [];
       // Filter to only show real source code (exclude build artifacts)
       const sourceEvents = allEvents.filter(event => isSourceCodeFile(event.filepath));
@@ -116,9 +116,9 @@
 
       lastUpdated = new Date();
       loading = false;
-    } catch (error) {
-      logger.error('Failed to load events:', error);
-      errorMessage = error.message;
+    } catch (err) {
+      logger.error('Failed to load events:', err);
+      error = err.message;
       loading = false;
     }
   }

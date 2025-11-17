@@ -126,7 +126,7 @@ export class QueryBuilder {
    * @returns {QueryBuilder} This instance for chaining
    */
   limit(count) {
-    this.query += ` LIMIT ?`;
+    this.query += ' LIMIT ?';
     this.params.push(count);
     return this;
   }
@@ -137,7 +137,7 @@ export class QueryBuilder {
    * @returns {QueryBuilder} This instance for chaining
    */
   offset(count) {
-    this.query += ` OFFSET ?`;
+    this.query += ' OFFSET ?';
     this.params.push(count);
     return this;
   }
@@ -185,10 +185,7 @@ export function buildPaginatedTimeQuery(options) {
     builder.where('timestamp', '<=', endTime);
   }
 
-  builder
-    .orderBy(orderByField, orderByDirection)
-    .limit(limit)
-    .offset(offset);
+  builder.orderBy(orderByField, orderByDirection).limit(limit).offset(offset);
 
   return builder.build();
 }

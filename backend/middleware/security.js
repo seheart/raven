@@ -8,6 +8,64 @@ import rateLimit from 'express-rate-limit';
 import { logger } from '../utils/logger.js';
 
 /**
+ * Rate limit status tracker
+ * Stores current rate limit info for monitoring
+ */
+export const rateLimitStatus = {
+  api: { current: 0, max: 0, windowMs: 0, resetTime: Date.now() },
+  telemetry: { current: 0, max: 0, windowMs: 0, resetTime: Date.now() },
+  auth: { current: 0, max: 0, windowMs: 0, resetTime: Date.now() },
+  write: { current: 0, max: 0, windowMs: 0, resetTime: Date.now() }
+};
+
+/**
+ * Create a custom store that tracks rate limit usage
+ */
+function createTrackingStore(limiterName) {
+  const hits = new Map();
+
+  return {
+    async increment(key) {
+      const now = Date.now();
+      const count = (hits.get(key) || 0) + 1;
+      hits.set(key, count);
+
+      // Update status
+      if (rateLimitStatus[limiterName]) {
+        rateLimitStatus[limiterName].current = count;
+      }
+
+      return {
+        totalHits: count,
+        resetTime: new Date(rateLimitStatus[limiterName].resetTime)
+      };
+    },
+    async decrement(key) {
+      const count = Math.max((hits.get(key) || 1) - 1, 0);
+      hits.set(key, count);
+
+      if (rateLimitStatus[limiterName]) {
+        rateLimitStatus[limiterName].current = count;
+      }
+    },
+    async resetKey(key) {
+      hits.delete(key);
+      if (rateLimitStatus[limiterName]) {
+        rateLimitStatus[limiterName].current = 0;
+        rateLimitStatus[limiterName].resetTime = Date.now() + rateLimitStatus[limiterName].windowMs;
+      }
+    },
+    async resetAll() {
+      hits.clear();
+      if (rateLimitStatus[limiterName]) {
+        rateLimitStatus[limiterName].current = 0;
+        rateLimitStatus[limiterName].resetTime = Date.now() + rateLimitStatus[limiterName].windowMs;
+      }
+    }
+  };
+}
+
+/**
  * Configure Helmet for security headers
  */
 export function setupHelmet() {
@@ -93,21 +151,39 @@ export function setupHelmet() {
 
 /**
  * General API rate limiter
- * Development: 5000 requests per minute (increased for rapid page navigation during testing)
- * Production: 100 requests per 15 minutes per IP
+ * Monitoring tools require higher limits due to:
+ * - Continuous polling for metrics/status
+ * - Real-time dashboard updates
+ * - Multiple concurrent page views
+ * - File watching events
+ *
+ * Configurable via environment variables:
+ * - API_RATE_LIMIT_WINDOW_MS: Time window in milliseconds
+ * - API_RATE_LIMIT_MAX: Maximum requests per window
  */
+const apiWindowMs = parseInt(process.env.API_RATE_LIMIT_WINDOW_MS || '60000', 10);
+const apiMax = parseInt(process.env.API_RATE_LIMIT_MAX || '10000', 10);
+
+// Initialize rate limit status
+rateLimitStatus.api.max = apiMax;
+rateLimitStatus.api.windowMs = apiWindowMs;
+rateLimitStatus.api.resetTime = Date.now() + apiWindowMs;
+
 export const apiLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === 'production' ? 15 * 60 * 1000 : 60 * 1000, // 15 min (prod) or 1 min (dev)
-  max: process.env.NODE_ENV === 'production' ? 100 : 5000, // 100 (prod) or 5000 (dev)
+  windowMs: apiWindowMs, // Default: 1 minute
+  max: apiMax, // Default: 10000/min for monitoring
   message: {
     error: 'Too many requests from this IP, please try again later',
-    retryAfter: process.env.NODE_ENV === 'production' ? '15 minutes' : '1 minute'
+    retryAfter: `${apiWindowMs / 1000} seconds`
   },
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting for health check endpoints
-    return req.path === '/health' || req.path === '/api/health';
+  store: createTrackingStore('api'),
+  skip: req => {
+    // Skip rate limiting for health check endpoints and rate-limit-status
+    return (
+      req.path === '/health' || req.path === '/api/health' || req.path === '/api/rate-limit-status'
+    );
   }
 });
 
@@ -128,17 +204,29 @@ export const authLimiter = rateLimit({
 
 /**
  * Telemetry endpoint rate limiter
- * Limits: 1000 requests per minute (high volume expected)
+ * High volume expected for monitoring tools
+ * Configurable via environment variables:
+ * - TELEMETRY_RATE_LIMIT_WINDOW_MS: Time window in milliseconds
+ * - TELEMETRY_RATE_LIMIT_MAX: Maximum requests per window
  */
+const telemetryWindowMs = parseInt(process.env.TELEMETRY_RATE_LIMIT_WINDOW_MS || '60000', 10);
+const telemetryMax = parseInt(process.env.TELEMETRY_RATE_LIMIT_MAX || '5000', 10);
+
+// Initialize rate limit status
+rateLimitStatus.telemetry.max = telemetryMax;
+rateLimitStatus.telemetry.windowMs = telemetryWindowMs;
+rateLimitStatus.telemetry.resetTime = Date.now() + telemetryWindowMs;
+
 export const telemetryLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 1000,
+  windowMs: telemetryWindowMs, // Default: 1 minute
+  max: telemetryMax, // Default: 5000/min
   message: {
     error: 'Telemetry rate limit exceeded',
-    retryAfter: '1 minute'
+    retryAfter: `${telemetryWindowMs / 1000} seconds`
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  store: createTrackingStore('telemetry')
 });
 
 /**

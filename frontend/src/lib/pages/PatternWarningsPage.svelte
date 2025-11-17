@@ -135,8 +135,8 @@
 
       const url =
         categoryFilter === 'all'
-          ? `http://localhost:3030/api/pattern-warnings?limit=${limit}`
-          : `http://localhost:3030/api/pattern-warnings/category/${categoryFilter}?limit=${limit}`;
+          ? `http://localhost:9100/api/pattern-warnings?limit=${limit}`
+          : `http://localhost:9100/api/pattern-warnings/category/${categoryFilter}?limit=${limit}`;
 
       const response = await fetch(url);
 
@@ -146,7 +146,7 @@
       lastUpdated = new Date();
       loading = false;
       loadingMore = false;
-    } catch {
+    } catch (err) {
       logger.error('Failed to load pattern warnings:', err);
       error = err.message;
       loading = false;
@@ -163,12 +163,12 @@
   // Resolve warning
   async function resolveWarning(warningId) {
     try {
-      await fetch(`http://localhost:3030/api/pattern-warnings/${warningId}/resolve`, {
+      await fetch(`http://localhost:9100/api/pattern-warnings/${warningId}/resolve`, {
         method: 'POST'
       });
 
       await loadWarnings;
-    } catch {
+    } catch (error) {
       logger.error('Failed to resolve warning:', error);
       alert(`Failed to resolve warning: ${error.message}`);
     }
@@ -184,13 +184,13 @@
     try {
       const url =
         categoryFilter === 'all'
-          ? 'http://localhost:3030/api/pattern-warnings/resolve-all'
-          : `http://localhost:3030/api/pattern-warnings/resolve-all?category=${categoryFilter}`;
+          ? 'http://localhost:9100/api/pattern-warnings/resolve-all'
+          : `http://localhost:9100/api/pattern-warnings/resolve-all?category=${categoryFilter}`;
 
       await fetch(url, { method: 'POST' });
 
       await loadWarnings;
-    } catch {
+    } catch (error) {
       logger.error('Failed to resolve all warnings:', error);
       alert(`Failed to resolve all warnings: ${error.message}`);
     }

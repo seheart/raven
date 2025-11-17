@@ -89,9 +89,9 @@
       await loadRecentEvents();
       await updateMetrics();
       loading = false;
-    } catch (error) {
-      logger.error('Failed to load data:', error);
-      errorMessage = error.message || 'Failed to load data';
+    } catch (err) {
+      logger.error('Failed to load data:', err);
+      error = err.message || 'Failed to load data';
       loading = false;
     }
   }
@@ -99,7 +99,7 @@
   // Load recent events from API
   async function loadRecentEvents() {
     try {
-      const data = await api.get('/all-file-events?limit=100&diff=true');
+      const data = await api.get('/file-events?limit=100&diff=true');
       const allEvents = Array.isArray(data) ? data : [];
 
       // Filter to only show real source code (exclude build artifacts)
@@ -133,8 +133,8 @@
           if (feed) feed.scrollTop = 0;
         }, 10);
       }
-    } catch (error) {
-      logger.error('Failed to load events:', error);
+    } catch (err) {
+      logger.error('Failed to load events:', err);
       throw error;
     }
   }
@@ -157,8 +157,8 @@
           ? events.reduce((sum, e) => sum + (e.event_size || 0), 0) / events.length
           : 0;
       metricsHistory.fileSize = [...metricsHistory.fileSize, avgSize].slice(-50);
-    } catch (error) {
-      logger.error('Failed to update metrics:', error);
+    } catch (err) {
+      logger.error('Failed to update metrics:', err);
     }
   }
 

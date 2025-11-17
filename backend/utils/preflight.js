@@ -36,10 +36,10 @@ export async function runPreflightChecks(config) {
     const sysCheck = await checkSystemResources();
     if (sysCheck.passed) {
       results.passed.push('System resources');
-      logger.info(`  ✓ System resources OK`, sysCheck.details);
+      logger.info('  ✓ System resources OK', sysCheck.details);
     } else {
       results.failed.push('System resources');
-      logger.error(`  ✗ System resources insufficient`, sysCheck.details);
+      logger.error('  ✗ System resources insufficient', sysCheck.details);
       return { success: false, results, critical: sysCheck };
     }
   } catch (error) {
@@ -56,7 +56,7 @@ export async function runPreflightChecks(config) {
       logger.info(`  ✓ Disk space OK (${formatBytes(diskCheck.available)} available)`);
     } else {
       results.failed.push('Disk space');
-      logger.error(`  ✗ Insufficient disk space`, diskCheck);
+      logger.error('  ✗ Insufficient disk space', diskCheck);
       return { success: false, results, critical: diskCheck };
     }
   } catch (error) {
@@ -69,10 +69,12 @@ export async function runPreflightChecks(config) {
     const dirCheck = await checkRequiredDirectories(config.RAVEN_DIR);
     if (dirCheck.passed) {
       results.passed.push('Required directories');
-      logger.info(`  ✓ All directories OK (${dirCheck.created} created, ${dirCheck.existing} existing)`);
+      logger.info(
+        `  ✓ All directories OK (${dirCheck.created} created, ${dirCheck.existing} existing)`
+      );
     } else {
       results.failed.push('Required directories');
-      logger.error(`  ✗ Directory check failed`, dirCheck);
+      logger.error('  ✗ Directory check failed', dirCheck);
     }
   } catch (error) {
     results.failed.push('Required directories');
@@ -87,7 +89,7 @@ export async function runPreflightChecks(config) {
       logger.info(`  ✓ Ports available (${config.PORT}, ${config.FRONTEND_PORT || 5173})`);
     } else {
       results.warnings.push('Ports in use (will be cleaned)');
-      logger.warn(`  ⚠ Ports in use, will attempt cleanup`, portCheck);
+      logger.warn('  ⚠ Ports in use, will attempt cleanup', portCheck);
     }
   } catch (error) {
     results.warnings.push('Port check failed');
@@ -99,10 +101,10 @@ export async function runPreflightChecks(config) {
     const depsCheck = await checkDependencies();
     if (depsCheck.passed) {
       results.passed.push('Dependencies');
-      logger.info(`  ✓ Dependencies installed`);
+      logger.info('  ✓ Dependencies installed');
     } else {
       results.warnings.push('Missing dependencies');
-      logger.warn(`  ⚠ Some dependencies missing`, depsCheck);
+      logger.warn('  ⚠ Some dependencies missing', depsCheck);
     }
   } catch (error) {
     results.warnings.push('Dependency check failed');
@@ -128,7 +130,9 @@ export async function runPreflightChecks(config) {
 
   const success = results.failed.length === 0;
 
-  logger.info(`Pre-flight complete: ${results.passed.length} passed, ${results.failed.length} failed, ${results.warnings.length} warnings`);
+  logger.info(
+    `Pre-flight complete: ${results.passed.length} passed, ${results.failed.length} failed, ${results.warnings.length} warnings`
+  );
 
   return {
     success,

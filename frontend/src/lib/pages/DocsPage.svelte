@@ -1,10 +1,12 @@
 <script>
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
+  import { marked } from 'marked';
+  import DOMPurify from 'dompurify';
+
   /**
    * Documentation Viewer Page
    * Modern sidebar navigation with markdown content display
-   * Note: Requires 'marked' and 'dompurify' packages for markdown rendering
    */
 
   let docs = $state([]);
@@ -38,8 +40,7 @@
   // Load docs list from API
   async function loadDocsList() {
     try {
-      const response = await api.get('/docs/list');
-      const data = await response.json();
+      const data = await api.get('/docs/list');
       docs = data.all || [];
 
       // Load README.md by default
@@ -51,9 +52,9 @@
           loadDoc(docs[0].path);
         }
       }
-    } catch (error) {
+    } catch (err) {
       error = 'Failed to load documentation list';
-      logger.error(error);
+      logger.error(err);
     }
   }
 
@@ -63,30 +64,22 @@
     error = null;
 
     try {
-      const response = await api.get(`/docs/${filepath}`);
-      const data = await response.json();
+      const data = await api.get(`/docs/${filepath}`);
 
       if (data.error) {
         throw new Error(data.error);
       }
 
-      markdown = data.markdown;
-      // For now, display raw markdown. Full implementation would use marked + DOMPurify
-      html = `<pre class="whitespace-pre-wrap font-mono text-sm text-[var(--text)] leading-relaxed">${escapeHtml(data.markdown)}</pre>`;
+      // Render markdown to HTML using marked, then sanitize with DOMPurify
+      const rawHtml = await marked.parse(data.markdown || '');
+      html = DOMPurify.sanitize(rawHtml);
       selectedDoc = filepath;
-    } catch (error) {
+    } catch (err) {
       error = `Failed to load ${filepath}`;
-      logger.error(error);
+      logger.error(err);
     } finally {
       loading = false;
     }
-  }
-
-  // Simple HTML escaping
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   }
 
   // Load on mount
@@ -157,19 +150,14 @@
       </div>
     {:else if html}
       <div class="max-w-4xl mx-auto">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-          <!-- Note about markdown rendering -->
-          <div
-            class="bg-[var(--warning)] bg-opacity-10 border-l-4 border-[var(--warning)] p-4 mb-6 rounded"
-          >
-            <p class="text-sm text-[var(--text)] font-sans">
-              <strong>Note:</strong> Full markdown rendering requires the 'marked' and 'dompurify' packages.
-              Currently displaying raw markdown.
-            </p>
+        <div
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 prose prose-invert max-w-none"
+        >
+          <!-- Rendered markdown content -->
+          <div class="markdown-content text-[var(--text)]">
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+            {@html html}
           </div>
-
-          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-          {@html html}
         </div>
       </div>
     {:else}

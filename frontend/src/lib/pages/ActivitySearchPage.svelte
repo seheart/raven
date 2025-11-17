@@ -92,7 +92,7 @@
       const endTime = performance.now();
       searchTime = Math.round(endTime - startTime);
       loading = false;
-    } catch {
+    } catch (error) {
       logger.error('Search failed:', error);
       results = [];
       loading = false;

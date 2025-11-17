@@ -10,6 +10,7 @@
     sessionId = 'Loading...',
     onThemeChange = () => {},
     onSessionClick = () => {},
+    onWelcomeClick = () => {},
     onAboutClick = () => {},
     onChangelogClick = () => {},
     onDocsClick = () => {}
@@ -81,6 +82,14 @@
 
     <!-- Right Section -->
     <nav class="flex items-center gap-4" aria-label="Footer navigation">
+      <button
+        onclick={onWelcomeClick}
+        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
+        aria-label="Open welcome page"
+      >
+        Welcome
+      </button>
+      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <button
         onclick={onAboutClick}
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"

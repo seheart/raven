@@ -120,8 +120,8 @@
         { id: 'all', label: 'All Sessions' },
         { id: currentSessionId, label: `Current Session (${currentSessionId?.slice(0, 8)}...)` }
       ];
-    } catch {
-      logger.error('Failed to load sessions:', e);
+    } catch (err) {
+      logger.error('Failed to load sessions:', err);
       allSessions = [{ id: 'all', label: 'All Sessions' }];
     }
   }

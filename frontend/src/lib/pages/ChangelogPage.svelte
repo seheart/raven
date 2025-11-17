@@ -13,12 +13,11 @@
   // Load changelog from API
   async function loadChangelog() {
     try {
-      const response = await api.get('/changelog');
-      const data = await response.json();
+      const data = await api.get('/changelog');
       changelog = data;
       loading = false;
-    } catch (error) {
-      logger.error('Failed to load changelog:', error);
+    } catch (err) {
+      logger.error('Failed to load changelog:', err);
       error = 'Failed to load changelog';
       loading = false;
     }

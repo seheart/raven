@@ -48,7 +48,7 @@
 
       testResult = 'Test event sent successfully!';
       testError = null;
-    } catch {
+    } catch (error) {
       logger.error('Test telemetry failed:', error);
       testError = `Connection failed: ${error.message}`;
       testResult = null;

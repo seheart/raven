@@ -1,7 +1,7 @@
 <script>
   import { logger } from './logger.js';
   import { onMount, onDestroy } from 'svelte';
-  import { websocketService } from './websocket.js';
+  import { websocketService } from './services/websocket.js';
   import { formatTime as formatTimeString } from './timeFormat.js';
   import TimelineSlider from './TimelineSlider.svelte';
   import VirtualScroll from './VirtualScroll.svelte';
@@ -230,7 +230,7 @@
         (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
       );
       error = null;
-    } catch (err) {
+    } catch (error) {
       logger.error('Failed to load events:', error);
       errorMessage = error.message || 'Failed to load events';
     }
@@ -260,19 +260,23 @@
 
   // WebSocket event handlers
   const handleFileChanged = event => {
+    const newEvent = {
+      id: event.id || Date.now(),
+      timestamp: event.timestamp || new Date().toISOString(),
+      filepath: event.filepath || 'unknown',
+      changeType: mapChangeType(event.change_type || event.changeType),
+      project: event.project || null,
+      cpu: event.cpu || 0,
+      mem: event.mem || 0
+    };
+
+    // Check for duplicate event ID to prevent duplicates on reconnection
+    if (events.some(e => e.id === newEvent.id)) {
+      return; // Skip duplicate
+    }
+
     // Add new event to the top of the list
-    events = [
-      {
-        id: event.id || Date.now(),
-        timestamp: event.timestamp || new Date().toISOString(),
-        filepath: event.filepath || 'unknown',
-        changeType: mapChangeType(event.change_type || event.changeType),
-        project: event.project || null,
-        cpu: event.cpu || 0,
-        mem: event.mem || 0
-      },
-      ...events
-    ].slice(0, MAX_EVENTS_HISTORY); // Keep last MAX_EVENTS_HISTORY events
+    events = [newEvent, ...events].slice(0, MAX_EVENTS_HISTORY); // Keep last MAX_EVENTS_HISTORY events
   };
 
   const handleProjectSwitched = async data => {

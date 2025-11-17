@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { fetchErrorLogs, fetchErrorStats, clearErrorLogs, logError } from './errorLogger.js';
   import { formatDateTime, getTimeAgo } from './timeFormat.js';
-  import { websocketService } from './websocket.js';
+  import { websocketService } from './services/websocket.js';
   import VirtualScroll from './VirtualScroll.svelte';
   import { debounceInput } from './utils/debounce.js';
   import LoadingSkeleton from './LoadingSkeleton.svelte';
@@ -134,7 +134,7 @@
       totalErrors = result.total;
       hasMore = result.hasMore;
       lastUpdated = new Date();
-    } catch (err) {
+    } catch (error) {
       errorMessage = error.message;
       logger.error('Failed to load errors:', error);
     } finally {
@@ -159,7 +159,7 @@
           severityStats[s.severity] = s.count;
         }
       });
-    } catch (err) {
+    } catch (error) {
       logger.error('Failed to load error stats:', error);
     }
   }
@@ -196,7 +196,7 @@
       alert(result.message);
       await loadErrors();
       await loadStats();
-    } catch (err) {
+    } catch (error) {
       alert('Failed to clear error logs: ' + error.message);
     }
   }
@@ -216,7 +216,7 @@
       alert(result.message);
       await loadErrors();
       await loadStats();
-    } catch (err) {
+    } catch (error) {
       alert('Failed to clear old error logs: ' + error.message);
     }
   }
@@ -297,7 +297,7 @@
         loadErrors();
         loadStats();
       }, 200);
-    } catch (err) {
+    } catch (error) {
       alert('Failed to log test error: ' + error.message);
     }
   }
@@ -315,7 +315,7 @@
       a.click();
 
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (error) {
       alert('Export failed: ' + error.message);
     }
   }

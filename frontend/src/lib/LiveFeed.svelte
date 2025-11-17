@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { websocketService } from './websocket.js';
+  import { websocketService } from './services/websocket.js';
   import { formatTime as formatTimeString } from './timeFormat.js';
   import ProjectBadge from './ProjectBadge.svelte';
   import { api } from './apiClient.js';
@@ -80,7 +80,7 @@
   async function loadRecentChanges() {
     try {
       // Get recent file events with diffs from ALL projects
-      const data = await api.get('/all-file-events?limit=50&diff=true');
+      const data = await api.get('/file-events?limit=50&diff=true');
       const allChanges = Array.isArray(data) ? data : [];
 
       // Filter to only show real source code (exclude build artifacts)
