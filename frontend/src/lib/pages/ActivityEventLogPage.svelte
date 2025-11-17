@@ -8,6 +8,7 @@
     createThemeObserver,
     getChartColors
   } from '../utils/chartUtils.js';
+  import VirtualScroll from '../VirtualScroll.svelte';
   /**
    * Activity Event Log Page - Complete event history
    * Advanced filtering and detailed event information with Chart.js visualizations
@@ -556,100 +557,87 @@
       <div
         class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden mb-4"
       >
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
-              <tr>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
-                  >Type</th
-                >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
-                  >File/Project</th
-                >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
-                  >Agent</th
-                >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
-                  >Timestamp</th
-                >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
-                  >Details</th
-                >
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-[var(--border)]">
-              {#each filteredEvents as event (event.id || event.timestamp)}
-                {@const isCreate = event.change_type === 'create' || event.change_type === 'add'}
-                {@const isEdit = event.change_type === 'edit' || event.change_type === 'change'}
-                {@const isDelete = event.change_type === 'delete' || event.change_type === 'unlink'}
-                <tr class="hover:bg-[var(--bg)] transition-colors">
-                  <td class="px-4 py-3">
-                    <span
-                      class="text-xs px-2 py-1 rounded font-semibold {isCreate
-                        ? 'bg-green-500/10 text-[var(--success)]'
-                        : ''} {isEdit ? 'bg-blue-500/10 text-[var(--accent)]' : ''} {isDelete
-                        ? 'bg-red-500/10 text-[var(--error)]'
-                        : ''}"
-                    >
-                      {event.change_type?.toUpperCase() ||
-                        event.event_type?.toUpperCase() ||
-                        'UNKNOWN'}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    {#if event.filepath}
-                      <div class="text-sm font-mono text-[var(--text)] max-w-md truncate">
-                        {event.filepath}
-                      </div>
-                    {/if}
-                    {#if event.project}
-                      <div class="text-xs text-[var(--muted)] font-sans">
-                        Project: {event.project}
-                      </div>
-                    {/if}
-                  </td>
-                  <td class="px-4 py-3 text-sm font-mono text-[var(--muted)]">
-                    {event.agent || 'N/A'}
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="text-sm text-[var(--text)] font-sans">
-                      {formatDate(event.timestamp)}
-                    </div>
-                    <div class="text-xs text-[var(--muted)] font-mono">
-                      {formatTime(event.timestamp)}
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 text-xs text-[var(--muted)] font-mono">
-                    {#if event.lines_added}
-                      <div>+{event.lines_added} lines</div>
-                    {/if}
-                    {#if event.lines_deleted}
-                      <div>-{event.lines_deleted} lines</div>
-                    {/if}
-                    {#if event.risk_level}
-                      <div class="text-[var(--warning)]">Risk: {event.risk_level}</div>
-                    {/if}
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
+        <!-- Table Header -->
+        <div
+          class="grid grid-cols-5 gap-4 bg-[var(--bg)] border-b border-[var(--border)] px-4 py-3"
+        >
+          <div class="text-sm font-semibold text-[var(--muted)] font-sans">Type</div>
+          <div class="text-sm font-semibold text-[var(--muted)] font-sans">File/Project</div>
+          <div class="text-sm font-semibold text-[var(--muted)] font-sans">Agent</div>
+          <div class="text-sm font-semibold text-[var(--muted)] font-sans">Timestamp</div>
+          <div class="text-sm font-semibold text-[var(--muted)] font-sans">Details</div>
         </div>
+
+        <!-- Virtualized Event List -->
+        <VirtualScroll
+          items={filteredEvents}
+          itemHeight={80}
+          containerHeight={600}
+          overscan={5}
+          getKey={event => event.id || event.timestamp}
+          let:item
+        >
+          {@const isCreate = item.change_type === 'create' || item.change_type === 'add'}
+          {@const isEdit = item.change_type === 'edit' || item.change_type === 'change'}
+          {@const isDelete = item.change_type === 'delete' || item.change_type === 'unlink'}
+
+          <div
+            class="grid grid-cols-5 gap-4 px-4 py-3 hover:bg-[var(--bg)] transition-colors border-b border-[var(--border)]"
+          >
+            <div>
+              <span
+                class="text-xs px-2 py-1 rounded font-semibold {isCreate
+                  ? 'bg-green-500/10 text-[var(--success)]'
+                  : ''} {isEdit ? 'bg-blue-500/10 text-[var(--accent)]' : ''} {isDelete
+                  ? 'bg-red-500/10 text-[var(--error)]'
+                  : ''}"
+              >
+                {item.change_type?.toUpperCase() || item.event_type?.toUpperCase() || 'UNKNOWN'}
+              </span>
+            </div>
+            <div>
+              {#if item.filepath}
+                <div class="text-sm font-mono text-[var(--text)] truncate">
+                  {item.filepath}
+                </div>
+              {/if}
+              {#if item.project}
+                <div class="text-xs text-[var(--muted)] font-sans">
+                  Project: {item.project}
+                </div>
+              {/if}
+            </div>
+            <div class="text-sm font-mono text-[var(--muted)]">
+              {item.agent || 'N/A'}
+            </div>
+            <div>
+              <div class="text-sm text-[var(--text)] font-sans">
+                {formatDate(item.timestamp)}
+              </div>
+              <div class="text-xs text-[var(--muted)] font-mono">
+                {formatTime(item.timestamp)}
+              </div>
+            </div>
+            <div class="text-xs text-[var(--muted)] font-mono">
+              {#if item.lines_added}
+                <div>+{item.lines_added} lines</div>
+              {/if}
+              {#if item.lines_deleted}
+                <div>-{item.lines_deleted} lines</div>
+              {/if}
+              {#if item.risk_level}
+                <div class="text-[var(--warning)]">Risk: {item.risk_level}</div>
+              {/if}
+            </div>
+          </div>
+        </VirtualScroll>
       </div>
 
-      <!-- Showing count and Load More button -->
+      <!-- Showing count -->
       <div class="text-center space-y-4">
         <div class="text-sm text-[var(--muted)] font-sans">
           Showing {filteredEvents.length} of {events.length} events
         </div>
-        {#if filteredEvents.length < events.length}
-          <button
-            onclick={loadMore}
-            class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity"
-          >
-            Load More
-          </button>
-        {/if}
       </div>
     {/if}
   </div>

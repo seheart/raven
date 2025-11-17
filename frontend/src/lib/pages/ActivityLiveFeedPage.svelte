@@ -15,6 +15,7 @@
     createThemeObserver,
     getChartColors
   } from '../utils/chartUtils.js';
+  import VirtualScroll from '../VirtualScroll.svelte';
 
   // State
   let events = $state([]);
@@ -653,65 +654,68 @@
             </div>
           </div>
         {:else}
-          <div id="live-feed" class="max-h-[600px] overflow-y-auto">
-            <div class="divide-y divide-[var(--border)]">
-              {#each filteredEvents as event (event.id)}
-                <div class="p-4 hover:bg-[var(--bg)] transition-colors">
-                  <div class="flex items-start gap-4">
-                    <span class="text-2xl flex-shrink-0">{getEventIcon(event.change_type)}</span>
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-baseline gap-3 mb-1 flex-wrap">
-                        <span
-                          class="text-xs px-2 py-1 rounded font-semibold"
-                          style="background: {getEventColor(
-                            event.change_type
-                          )}20; color: {getEventColor(event.change_type)}"
-                        >
-                          {event.change_type?.toUpperCase() || 'UNKNOWN'}
-                        </span>
-                        <span class="text-sm text-[var(--muted)] font-sans">
-                          {formatTime(event.timestamp)}
-                        </span>
-                        {#if event.agent}
-                          <span class="text-sm text-[var(--muted)] font-mono">
-                            {event.agent}
-                          </span>
-                        {/if}
-                        {#if event.project}
-                          <span
-                            class="text-xs px-2 py-1 rounded bg-[var(--accent)] bg-opacity-20 text-[var(--accent)] font-mono"
-                          >
-                            {event.project}
-                          </span>
-                        {/if}
-                      </div>
-                      <div class="text-base font-medium text-[var(--text)] font-mono mb-1 truncate">
-                        {event.filepath || event.message || 'Unknown event'}
-                      </div>
-                      {#if event.message && event.filepath}
-                        <div class="text-sm text-[var(--muted)] font-sans">
-                          {event.message}
-                        </div>
-                      {/if}
-                      {#if event.duration_ms || event.event_size}
-                        <div class="flex gap-4 mt-2 text-xs text-[var(--muted)] font-mono">
-                          {#if event.duration_ms}
-                            <span>⏱️ {event.duration_ms}ms</span>
-                          {/if}
-                          {#if event.event_size}
-                            <span>📦 {event.event_size}B</span>
-                          {/if}
-                        </div>
-                      {/if}
-                    </div>
-                    <div class="text-xs text-[var(--muted)] font-sans text-right flex-shrink-0">
-                      {formatDate(event.timestamp)}
-                    </div>
+          <VirtualScroll
+            items={filteredEvents}
+            itemHeight={120}
+            containerHeight={600}
+            overscan={3}
+            getKey={event => event.id}
+            let:item
+          >
+            <div class="p-4 hover:bg-[var(--bg)] transition-colors border-b border-[var(--border)]">
+              <div class="flex items-start gap-4">
+                <span class="text-2xl flex-shrink-0">{getEventIcon(item.change_type)}</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-baseline gap-3 mb-1 flex-wrap">
+                    <span
+                      class="text-xs px-2 py-1 rounded font-semibold"
+                      style="background: {getEventColor(item.change_type)}20; color: {getEventColor(
+                        item.change_type
+                      )}"
+                    >
+                      {item.change_type?.toUpperCase() || 'UNKNOWN'}
+                    </span>
+                    <span class="text-sm text-[var(--muted)] font-sans">
+                      {formatTime(item.timestamp)}
+                    </span>
+                    {#if item.agent}
+                      <span class="text-sm text-[var(--muted)] font-mono">
+                        {item.agent}
+                      </span>
+                    {/if}
+                    {#if item.project}
+                      <span
+                        class="text-xs px-2 py-1 rounded bg-[var(--accent)] bg-opacity-20 text-[var(--accent)] font-mono"
+                      >
+                        {item.project}
+                      </span>
+                    {/if}
                   </div>
+                  <div class="text-base font-medium text-[var(--text)] font-mono mb-1 truncate">
+                    {item.filepath || item.message || 'Unknown event'}
+                  </div>
+                  {#if item.message && item.filepath}
+                    <div class="text-sm text-[var(--muted)] font-sans">
+                      {item.message}
+                    </div>
+                  {/if}
+                  {#if item.duration_ms || item.event_size}
+                    <div class="flex gap-4 mt-2 text-xs text-[var(--muted)] font-mono">
+                      {#if item.duration_ms}
+                        <span>⏱️ {item.duration_ms}ms</span>
+                      {/if}
+                      {#if item.event_size}
+                        <span>📦 {item.event_size}B</span>
+                      {/if}
+                    </div>
+                  {/if}
                 </div>
-              {/each}
+                <div class="text-xs text-[var(--muted)] font-sans text-right flex-shrink-0">
+                  {formatDate(item.timestamp)}
+                </div>
+              </div>
             </div>
-          </div>
+          </VirtualScroll>
         {/if}
       </div>
 

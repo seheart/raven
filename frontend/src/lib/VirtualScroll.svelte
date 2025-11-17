@@ -1,28 +1,27 @@
 <script>
-  // Props
-  export let items = [];
-  export let itemHeight = 40;
-  export let containerHeight = 400;
-  export let overscan = 3; // Extra items to render outside viewport
-  export let getKey = (item, index) => index; // Function to get unique key for each item
+  import { tick, onDestroy } from 'svelte';
+
+  // Props using Svelte 5 runes
+  let {
+    items = [],
+    itemHeight = 40,
+    containerHeight = 400,
+    overscan = 3,
+    getKey = (item, index) => index
+  } = $props();
 
   // State
   let containerElement;
-  let scrollTop = 0;
-  let visibleStart = 0;
-  let visibleEnd = 0;
+  let scrollTop = $state(0);
 
-  // Computed values
-  $: totalHeight = items.length * itemHeight;
-  $: {
-    visibleStart = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-    visibleEnd = Math.min(
-      items.length,
-      Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan
-    );
-  }
-  $: visibleItems = items.slice(visibleStart, visibleEnd);
-  $: offsetY = visibleStart * itemHeight;
+  // Computed values using $derived for better performance
+  const totalHeight = $derived(items.length * itemHeight);
+  const visibleStart = $derived(Math.max(0, Math.floor(scrollTop / itemHeight) - overscan));
+  const visibleEnd = $derived(
+    Math.min(items.length, Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan)
+  );
+  const visibleItems = $derived(items.slice(visibleStart, visibleEnd));
+  const offsetY = $derived(visibleStart * itemHeight);
 
   // Scroll handler with RAF for smooth performance
   let rafId;

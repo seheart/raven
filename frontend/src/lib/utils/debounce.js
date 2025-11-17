@@ -17,7 +17,7 @@ export function debounce(func, wait = 300, immediate = false) {
   let timeout;
   let result;
 
-  const debounced = function(...args) {
+  const debounced = function (...args) {
     const context = this;
     const later = () => {
       timeout = null;
@@ -44,7 +44,7 @@ export function debounce(func, wait = 300, immediate = false) {
   };
 
   // Allow immediate execution, bypassing the debounce
-  debounced.flush = function(...args) {
+  debounced.flush = function (...args) {
     if (timeout) {
       clearTimeout(timeout);
       timeout = null;
@@ -70,10 +70,10 @@ export function createDebouncedStore(initialValue, delay = 300) {
 
   return {
     subscribe,
-    set: (value) => {
+    set: value => {
       debouncedSet(value);
     },
-    update: (fn) => {
+    update: fn => {
       debouncedUpdate(fn);
     },
     setImmediate: originalSet,
@@ -86,6 +86,52 @@ export function createDebouncedStore(initialValue, delay = 300) {
 }
 
 /**
+ * Creates a throttled function that only invokes func at most once per every wait milliseconds
+ * @param {Function} func - The function to throttle
+ * @param {number} wait - The number of milliseconds to throttle invocations to (default: 100)
+ * @param {Object} options - Options object { leading: boolean, trailing: boolean }
+ * @returns {Function} The throttled function with cancel method
+ */
+export function throttle(func, wait = 100, options = {}) {
+  let timeout;
+  let previous = 0;
+  let result;
+  const { leading = true, trailing = true } = options;
+
+  const throttled = function (...args) {
+    const now = Date.now();
+    if (!previous && !leading) previous = now;
+    const remaining = wait - (now - previous);
+    const context = this;
+
+    if (remaining <= 0 || remaining > wait) {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      previous = now;
+      result = func.apply(context, args);
+    } else if (!timeout && trailing) {
+      timeout = setTimeout(() => {
+        previous = leading ? Date.now() : 0;
+        timeout = null;
+        result = func.apply(context, args);
+      }, remaining);
+    }
+
+    return result;
+  };
+
+  throttled.cancel = () => {
+    clearTimeout(timeout);
+    previous = 0;
+    timeout = null;
+  };
+
+  return throttled;
+}
+
+/**
  * Svelte action for debouncing input events
  * Usage: <input use:debounceInput={{ delay: 500 }} on:debounced={handleSearch} />
  * @param {HTMLElement} node - The input element
@@ -95,15 +141,17 @@ export function createDebouncedStore(initialValue, delay = 300) {
 export function debounceInput(node, params = {}) {
   const { delay = 300, event = 'input' } = params;
 
-  let debounced = debounce((e) => {
-    node.dispatchEvent(new CustomEvent('debounced', {
-      detail: e.target.value,
-      bubbles: true,
-      cancelable: true
-    }));
+  let debounced = debounce(e => {
+    node.dispatchEvent(
+      new CustomEvent('debounced', {
+        detail: e.target.value,
+        bubbles: true,
+        cancelable: true
+      })
+    );
   }, delay);
 
-  const handler = (e) => {
+  const handler = e => {
     debounced(e);
   };
 
@@ -116,12 +164,14 @@ export function debounceInput(node, params = {}) {
 
       if (newDelay !== delay || newEvent !== event) {
         node.removeEventListener(event, handler);
-        debounced = debounce((e) => {
-          node.dispatchEvent(new CustomEvent('debounced', {
-            detail: e.target.value,
-            bubbles: true,
-            cancelable: true
-          }));
+        debounced = debounce(e => {
+          node.dispatchEvent(
+            new CustomEvent('debounced', {
+              detail: e.target.value,
+              bubbles: true,
+              cancelable: true
+            })
+          );
         }, newDelay);
         node.addEventListener(newEvent, handler);
       }

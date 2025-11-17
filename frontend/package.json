@@ -74,6 +74,7 @@
     "chart.js": "^4.5.1",
     "dompurify": "^3.3.0",
     "marked": "^16.4.2",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "svelte-virtual-list": "^3.0.1"
   }
 }

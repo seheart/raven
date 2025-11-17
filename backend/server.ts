@@ -38,6 +38,8 @@ import { DataFlowHealthMonitor } from './services/data-flow-health.js';
 import { IntegrationsService } from './services/integrations.js';
 import { ProjectHealthService } from './services/project-health.js';
 import { ExportService } from './services/export.js';
+import { cacheMiddleware } from './services/cache-service.js';
+import { performanceMonitoring } from './middleware/performance.js';
 
 // ==================== Configuration ====================
 
@@ -84,6 +86,7 @@ const SESSION_ID = randomUUID();
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.use(performanceMonitoring);
 
 // Rate limiting for expensive operations (database export, VACUUM)
 // Protects against resource exhaustion from concurrent expensive operations
@@ -405,7 +408,7 @@ app.get('/api/rate-limit-status', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/dashboard-stats', (req: Request, res: Response) => {
+app.get('/api/dashboard-stats', cacheMiddleware(3000), (req: Request, res: Response) => {
   try {
     const stats = db.getDashboardStats(SESSION_ID);
     stats.total_agents = agentRegistry.size;
@@ -415,7 +418,7 @@ app.get('/api/dashboard-stats', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/top-modified-files', (req: Request, res: Response) => {
+app.get('/api/top-modified-files', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const files = db.getTopModifiedFiles(SESSION_ID, limit);
@@ -425,7 +428,7 @@ app.get('/api/top-modified-files', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/longest-edits', (req: Request, res: Response) => {
+app.get('/api/longest-edits', cacheMiddleware(10000), (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const edits = db.getLongestEdits(limit);
@@ -437,7 +440,7 @@ app.get('/api/longest-edits', (req: Request, res: Response) => {
 
 // ==================== Agents ====================
 
-app.get('/api/agents-status', (req: Request, res: Response) => {
+app.get('/api/agents-status', cacheMiddleware(2000), (req: Request, res: Response) => {
   try {
     const now = new Date();
     const agents = Array.from(agentRegistry.values()).map(agent => {
@@ -499,7 +502,7 @@ app.get('/api/events-by-agent/:agent', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/agent-stats', (req: Request, res: Response) => {
+app.get('/api/agent-stats', cacheMiddleware(3000), (req: Request, res: Response) => {
   try {
     const stats = db.getAgentStats();
     return res.json(stats);
@@ -509,7 +512,7 @@ app.get('/api/agent-stats', (req: Request, res: Response) => {
 });
 
 // Agent profiles API (for intelligence/persona tracking)
-app.get('/api/agent-profiles', (req: Request, res: Response) => {
+app.get('/api/agent-profiles', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     // Get all agent events grouped by agent
     const agents = db.db
@@ -687,7 +690,7 @@ app.get('/api/file-events', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/tracked-files', (req: Request, res: Response) => {
+app.get('/api/tracked-files', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     const files = db.getTrackedFiles();
     return res.json(files);
@@ -696,19 +699,23 @@ app.get('/api/tracked-files', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/events-by-session/:sessionId', (req: Request, res: Response) => {
-  try {
-    const { sessionId: sid } = req.params;
-    const events = db.getEventsBySession(sid);
-    return res.json(events);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+app.get(
+  '/api/events-by-session/:sessionId',
+  cacheMiddleware(3000),
+  (req: Request, res: Response) => {
+    try {
+      const { sessionId: sid } = req.params;
+      const events = db.getEventsBySession(sid);
+      return res.json(events);
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
   }
-});
+);
 
 // ==================== System Metrics ====================
 
-app.get('/api/system-metrics', (req: Request, res: Response) => {
+app.get('/api/system-metrics', cacheMiddleware(2000), (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
     const startTime = req.query.start_time as string;
@@ -1582,7 +1589,7 @@ async function saveProjectsConfig(config: ProjectsConfig): Promise<void> {
 }
 
 // GET /api/projects - List all configured projects
-app.get('/api/projects', async (req: Request, res: Response) => {
+app.get('/api/projects', cacheMiddleware(5000), async (req: Request, res: Response) => {
   try {
     const config = await loadProjectsConfig();
 
@@ -3257,13 +3264,13 @@ app.post('/api/errors', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// Stub endpoint for status
-app.get('/api/status', (req: Request, res: Response) => {
+// Stub endpoint for status (cached for 5 seconds)
+app.get('/api/status', cacheMiddleware(5000), (req: Request, res: Response) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-// Stub endpoint for health
-app.get('/api/health', (req: Request, res: Response) => {
+// Stub endpoint for health (cached for 2 seconds)
+app.get('/api/health', cacheMiddleware(2000), (req: Request, res: Response) => {
   res.json({ healthy: true, timestamp: new Date().toISOString() });
 });
 
