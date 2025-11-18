@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raven Live Monitor - Split View</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+      background: #0d1117;
+      color: #c9d1d9;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .top-bar {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 50px;
+    }
+
+    .logo {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #58a6ff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(88, 166, 255, 0.1);
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      border: 1px solid rgba(88, 166, 255, 0.3);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #3fb950;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.7); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(63, 185, 80, 0); }
+    }
+
+    .status-bar {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 0.6rem 1.5rem;
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #8b949e;
+    }
+
+    .status-item strong {
+      color: #c9d1d9;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr 320px;
+      height: calc(100vh - 110px);
+      overflow: hidden;
+    }
+
+    .sidebar {
+      background: #0d1117;
+      border-right: 1px solid #30363d;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+
+    .sidebar-header {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8b949e;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .file-tree {
+      font-size: 0.85rem;
+    }
+
+    .tree-folder {
+      margin-bottom: 0.5rem;
+    }
+
+    .folder-name {
+      color: #8b949e;
+      padding: 0.35rem 0.5rem;
+      cursor: pointer;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.2s;
+    }
+
+    .folder-name:hover {
+      background: #161b22;
+    }
+
+    .folder-icon {
+      font-size: 0.9rem;
+    }
+
+    .file-list {
+      margin-left: 1.25rem;
+      margin-top: 0.25rem;
+    }
+
+    .file-item {
+      padding: 0.35rem 0.5rem;
+      margin-bottom: 0.15rem;
+      cursor: pointer;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s;
+    }
+
+    .file-item:hover {
+      background: #161b22;
+    }
+
+    .file-item.modified {
+      background: rgba(88, 166, 255, 0.1);
+      border-left: 2px solid #58a6ff;
+    }
+
+    .file-item.active {
+      background: rgba(88, 166, 255, 0.2);
+      border-left: 2px solid #58a6ff;
+      color: #58a6ff;
+      font-weight: 600;
+    }
+
+    .file-name {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+    }
+
+    .file-status {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+
+    .file-status.added {
+      background: rgba(63, 185, 80, 0.2);
+      color: #3fb950;
+    }
+
+    .file-status.modified {
+      background: rgba(88, 166, 255, 0.2);
+      color: #58a6ff;
+    }
+
+    .center-panel {
+      background: #0d1117;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-tabs {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      gap: 0.5rem;
+      min-height: 42px;
+    }
+
+    .editor-tab {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-family: monospace;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .editor-tab.active {
+      color: #c9d1d9;
+      border-bottom-color: #58a6ff;
+    }
+
+    .editor-tab:hover {
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .diff-container {
+      flex: 1;
+      overflow-y: auto;
+      background: #0d1117;
+    }
+
+    .diff-header {
+      background: #161b22;
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .diff-file-path {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #58a6ff;
+    }
+
+    .diff-stats {
+      font-size: 0.8rem;
+      display: flex;
+      gap: 1rem;
+    }
+
+    .stat-add {
+      color: #3fb950;
+    }
+
+    .stat-remove {
+      color: #f85149;
+    }
+
+    .diff-view {
+      font-family: 'SF Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .diff-chunk {
+      margin: 1.5rem 0;
+    }
+
+    .chunk-header {
+      background: #161b22;
+      color: #8b949e;
+      padding: 0.4rem 1rem;
+      font-size: 0.75rem;
+      border-top: 1px solid #30363d;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .diff-lines {
+      display: table;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .diff-row {
+      display: table-row;
+    }
+
+    .line-number {
+      display: table-cell;
+      width: 50px;
+      padding: 0.15rem 0.75rem;
+      text-align: right;
+      color: #6e7681;
+      user-select: none;
+      background: #0d1117;
+      border-right: 1px solid #30363d;
+      font-size: 0.75rem;
+    }
+
+    .line-content {
+      display: table-cell;
+      padding: 0.15rem 1rem;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .diff-row.add .line-number {
+      background: rgba(63, 185, 80, 0.15);
+    }
+
+    .diff-row.add .line-content {
+      background: rgba(63, 185, 80, 0.15);
+      color: #c9d1d9;
+    }
+
+    .diff-row.remove .line-number {
+      background: rgba(248, 81, 73, 0.15);
+    }
+
+    .diff-row.remove .line-content {
+      background: rgba(248, 81, 73, 0.15);
+      color: #c9d1d9;
+    }
+
+    .diff-row.context .line-content {
+      color: #8b949e;
+    }
+
+    .right-panel {
+      background: #0d1117;
+      border-left: 1px solid #30363d;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+
+    .panel-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .section-header {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8b949e;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .context-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    .context-title {
+      color: #58a6ff;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .context-body {
+      color: #8b949e;
+      line-height: 1.5;
+    }
+
+    .alert-card {
+      background: #161b22;
+      border-left: 3px solid;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    .alert-card.warning {
+      border-left-color: #d29922;
+      background: rgba(210, 153, 34, 0.1);
+    }
+
+    .alert-card.error {
+      border-left-color: #f85149;
+      background: rgba(248, 81, 73, 0.1);
+    }
+
+    .alert-card.info {
+      border-left-color: #58a6ff;
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .alert-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .alert-body {
+      color: #8b949e;
+      line-height: 1.4;
+      font-size: 0.75rem;
+    }
+
+    .activity-item {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .activity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+
+    .activity-title {
+      color: #c9d1d9;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .activity-time {
+      color: #6e7681;
+      font-size: 0.7rem;
+    }
+
+    .activity-desc {
+      color: #8b949e;
+      line-height: 1.4;
+    }
+
+    .quick-action-btn {
+      display: block;
+      width: 100%;
+      padding: 0.6rem;
+      margin-bottom: 0.5rem;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .quick-action-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+
+    .task-progress-card {
+      background: linear-gradient(135deg, #1f6feb, #8250df);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      color: white;
+    }
+
+    .task-name {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .task-step {
+      font-size: 0.75rem;
+      opacity: 0.9;
+      margin-bottom: 0.75rem;
+    }
+
+    .progress-track {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: white;
+      width: 80%;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1117;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #484f58;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="logo">
+      ⚡ Raven Live Monitor
+    </div>
+    <div class="live-badge">
+      <span class="live-dot"></span>
+      <span style="font-size: 0.85rem;">Active Session: 23m 14s</span>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-item">
+      <span>📄</span>
+      <strong>backend/middleware/security.js:164</strong>
+    </div>
+    <div class="status-item">
+      <span>📊</span>
+      <strong>12 files</strong> modified
+    </div>
+    <div class="status-item">
+      <span>📈</span>
+      <strong>+347 -89</strong> lines
+    </div>
+    <div class="status-item">
+      <span>⏱️</span>
+      Last change: <strong>3s ago</strong>
+    </div>
+    <div class="status-item">
+      <span>🎯</span>
+      Task: <strong>Rate Limiting Implementation</strong>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-layout">
+    <!-- Left Sidebar - File Tree -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        Modified Files
+        <span style="background: rgba(88, 166, 255, 0.2); padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.7rem;">12</span>
+      </div>
+
+      <div class="file-tree">
+        <div class="tree-folder">
+          <div class="folder-name">
+            <span class="folder-icon">📁</span>
+            <span>backend</span>
+          </div>
+          <div class="file-list">
+            <div class="file-item active">
+              <div class="file-name">
+                <span>📄</span>
+                <span>security.js</span>
+              </div>
+              <span class="file-status modified">M</span>
+            </div>
+            <div class="file-item modified">
+              <div class="file-name">
+                <span>📄</span>
+                <span>server.ts</span>
+              </div>
+              <span class="file-status modified">M</span>
+            </div>
+            <div class="file-item modified">
+              <div class="file-name">
+                <span>📄</span>
+                <span>.env</span>
+              </div>
+              <span class="file-status modified">M</span>
+            </div>
+            <div class="file-item modified">
+              <div class="file-name">
+                <span>📄</span>
+                <span>restart.sh</span>
+              </div>
+              <span class="file-status modified">M</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-folder">
+          <div class="folder-name">
+            <span class="folder-icon">📁</span>
+            <span>frontend/src/lib</span>
+          </div>
+          <div class="file-list">
+            <div class="file-item">
+              <div class="file-name">
+                <span>📄</span>
+                <span>RateLimitIndicator.svelte</span>
+              </div>
+              <span class="file-status added">A</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-folder">
+          <div class="folder-name">
+            <span class="folder-icon">📁</span>
+            <span>frontend/src/lib/components</span>
+          </div>
+          <div class="file-list">
+            <div class="file-item modified">
+              <div class="file-name">
+                <span>📄</span>
+                <span>Header.svelte</span>
+              </div>
+              <span class="file-status modified">M</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-folder">
+          <div class="folder-name">
+            <span class="folder-icon">📁</span>
+            <span>frontend/src/lib/pages</span>
+          </div>
+          <div class="file-list">
+            <div class="file-item modified">
+              <div class="file-name">
+                <span>📄</span>
+                <span>SettingsPage.svelte</span>
+              </div>
+              <span class="file-status modified">M</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Panel - Diff Viewer -->
+    <div class="center-panel">
+      <div class="editor-tabs">
+        <div class="editor-tab active">
+          📄 security.js
+        </div>
+        <div class="editor-tab">
+          📄 server.ts
+        </div>
+        <div class="editor-tab">
+          📄 .env
+        </div>
+      </div>
+
+      <div class="diff-container">
+        <div class="diff-header">
+          <div class="diff-file-path">backend/middleware/security.js</div>
+          <div class="diff-stats">
+            <span class="stat-add">+12 additions</span>
+            <span class="stat-remove">-3 deletions</span>
+          </div>
+        </div>
+
+        <div class="diff-view">
+          <div class="diff-chunk">
+            <div class="chunk-header">@@ -161,10 +161,20 @@ export const apiLimiter = rateLimit({</div>
+            <div class="diff-lines">
+              <div class="diff-row context">
+                <div class="line-number">161</div>
+                <div class="line-content">  /**</div>
+              </div>
+              <div class="diff-row context">
+                <div class="line-number">162</div>
+                <div class="line-content">   * General API rate limiter</div>
+              </div>
+              <div class="diff-row context">
+                <div class="line-number">163</div>
+                <div class="line-content">   * Monitoring tools require higher limits due to:</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">164</div>
+                <div class="line-content">+  * - Continuous polling for metrics/status</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">165</div>
+                <div class="line-content">+  * - Real-time dashboard updates</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">166</div>
+                <div class="line-content">+  * - Multiple concurrent page views</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">167</div>
+                <div class="line-content">+  * - File watching events</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">168</div>
+                <div class="line-content">+  *</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">169</div>
+                <div class="line-content">+  * Configurable via environment variables:</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">170</div>
+                <div class="line-content">+  * - API_RATE_LIMIT_WINDOW_MS: Time window in milliseconds</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">171</div>
+                <div class="line-content">+  * - API_RATE_LIMIT_MAX: Maximum requests per window</div>
+              </div>
+              <div class="diff-row context">
+                <div class="line-number">172</div>
+                <div class="line-content">   */</div>
+              </div>
+              <div class="diff-row remove">
+                <div class="line-number">173</div>
+                <div class="line-content">-  const apiMax = 10000;</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">173</div>
+                <div class="line-content">+  const apiWindowMs = parseInt(process.env.API_RATE_LIMIT_WINDOW_MS || '60000', 10);</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">174</div>
+                <div class="line-content">+  const apiMax = parseInt(process.env.API_RATE_LIMIT_MAX || '500', 10);</div>
+              </div>
+              <div class="diff-row context">
+                <div class="line-number">175</div>
+                <div class="line-content"></div>
+              </div>
+              <div class="diff-row context">
+                <div class="line-number">176</div>
+                <div class="line-content">  export const apiLimiter = rateLimit({</div>
+              </div>
+              <div class="diff-row remove">
+                <div class="line-number">177</div>
+                <div class="line-content">-    windowMs: 60000,</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">177</div>
+                <div class="line-content">+    windowMs: apiWindowMs, // Default: 1 minute</div>
+              </div>
+              <div class="diff-row remove">
+                <div class="line-number">178</div>
+                <div class="line-content">-    max: 10000,</div>
+              </div>
+              <div class="diff-row add">
+                <div class="line-number">178</div>
+                <div class="line-content">+    max: apiMax, // Default: 500/min for monitoring</div>
+              </div>
+              <div class="diff-row context">
+                <div class="line-number">179</div>
+                <div class="line-content">    message: {</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel - Context & Actions -->
+    <div class="right-panel">
+      <!-- Current Task -->
+      <div class="task-progress-card">
+        <div class="task-name">🎯 Rate Limiting Implementation</div>
+        <div class="task-step">Step 4 of 5: Testing configuration</div>
+        <div class="progress-track">
+          <div class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Smart Alerts -->
+      <div class="panel-section">
+        <div class="section-header">
+          🚨 Alerts
+          <span style="background: rgba(210, 153, 34, 0.2); padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.7rem; color: #d29922;">2</span>
+        </div>
+
+        <div class="alert-card warning">
+          <div class="alert-title">⚠️ Rate Limit Reduced</div>
+          <div class="alert-body">
+            Default limit decreased from 10,000 to 500 req/min. Monitor for 429 errors after deployment.
+          </div>
+        </div>
+
+        <div class="alert-card info">
+          <div class="alert-title">ℹ️ Env Changes Detected</div>
+          <div class="alert-body">
+            .env file modified. Backend restart required to apply changes.
+          </div>
+        </div>
+      </div>
+
+      <!-- Context -->
+      <div class="panel-section">
+        <div class="section-header">
+          🎯 Context
+        </div>
+
+        <div class="context-card">
+          <div class="context-title">Impact Analysis</div>
+          <div class="context-body">
+            High-risk change affecting rate limiting middleware. 4 related files modified. No test failures detected.
+          </div>
+        </div>
+
+        <div class="context-card">
+          <div class="context-title">Related Files</div>
+          <div class="context-body">
+            Changes may affect: server.ts, auth-service.js, all API routes using /api/ prefix
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="panel-section">
+        <div class="section-header">
+          📊 Recent Changes
+        </div>
+
+        <div class="activity-item">
+          <div class="activity-header">
+            <div class="activity-title">Rate Limiter Config</div>
+            <div class="activity-time">now</div>
+          </div>
+          <div class="activity-desc">
+            Added env variable support for rate limiting
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <div class="activity-header">
+            <div class="activity-title">UI Indicator</div>
+            <div class="activity-time">8m</div>
+          </div>
+          <div class="activity-desc">
+            Created rate limit status component
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <div class="activity-header">
+            <div class="activity-title">Button Relocation</div>
+            <div class="activity-time">18m</div>
+          </div>
+          <div class="activity-desc">
+            Moved emergency stop to settings
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="panel-section">
+        <div class="section-header">
+          ⚡ Quick Actions
+        </div>
+
+        <button class="quick-action-btn">📋 View Full Session Diff</button>
+        <button class="quick-action-btn">🔙 Rollback This Change</button>
+        <button class="quick-action-btn">🧪 Run Tests</button>
+        <button class="quick-action-btn">💾 Create Snapshot</button>
+        <button class="quick-action-btn">📝 Open in Editor</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // File tree interaction
+    document.querySelectorAll('.file-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+      });
+    });
+
+    // Simulate live timer
+    let sessionSeconds = 23 * 60 + 14;
+    setInterval(() => {
+      sessionSeconds++;
+      const minutes = Math.floor(sessionSeconds / 60);
+      const seconds = sessionSeconds % 60;
+      const badge = document.querySelector('.live-badge span:last-child');
+      if (badge) {
+        badge.textContent = `Active Session: ${minutes}m ${seconds}s`;
+      }
+    }, 1000);
+
+    // Simulate last change timer
+    let lastChange = 3;
+    setInterval(() => {
+      lastChange++;
+      const items = document.querySelectorAll('.status-item');
+      items.forEach(item => {
+        if (item.textContent.includes('Last change')) {
+          const strong = item.querySelector('strong');
+          if (strong) {
+            strong.textContent = `${lastChange}s ago`;
+          }
+        }
+      });
+    }, 1000);
+  </script>
+</body>
+</html>

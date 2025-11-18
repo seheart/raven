@@ -18,11 +18,15 @@
   }
 
   onMount(() => {
-    // Initial fetch
-    fetchRateLimitStatus();
+    // Stagger initial load by 600ms to reduce simultaneous API calls
+    const initialDelay = setTimeout(fetchRateLimitStatus, 600);
 
     // Poll every 10 seconds
     interval = setInterval(fetchRateLimitStatus, 10000);
+
+    return () => {
+      clearTimeout(initialDelay);
+    };
   });
 
   onDestroy(() => {
@@ -135,10 +139,6 @@
   .indicator-button:hover {
     background: var(--bg-tertiary, #353535);
     border-color: var(--border-hover, #4a4a4a);
-  }
-
-  .indicator-button.status-ok {
-    border-color: #22c55e;
   }
 
   .indicator-button.status-warning {

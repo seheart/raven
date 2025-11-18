@@ -171,20 +171,23 @@ rateLimitStatus.api.resetTime = Date.now() + apiWindowMs;
 
 export const apiLimiter = rateLimit({
   windowMs: apiWindowMs, // Default: 1 minute
-  max: apiMax, // Default: 10000/min for monitoring
+  max: apiMax, // Default: 500/min for monitoring
+  skip: req => {
+    // Skip rate limiting for localhost in development
+    const isLocalhost = req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1';
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const isHealthEndpoint =
+      req.path === '/health' || req.path === '/api/health' || req.path === '/api/rate-limit-status';
+
+    return (isLocalhost && isDevelopment) || isHealthEndpoint;
+  },
   message: {
     error: 'Too many requests from this IP, please try again later',
     retryAfter: `${apiWindowMs / 1000} seconds`
   },
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,
-  store: createTrackingStore('api'),
-  skip: req => {
-    // Skip rate limiting for health check endpoints and rate-limit-status
-    return (
-      req.path === '/health' || req.path === '/api/health' || req.path === '/api/rate-limit-status'
-    );
-  }
+  store: createTrackingStore('api')
 });
 
 /**

@@ -40,6 +40,7 @@ import { ProjectHealthService } from './services/project-health.js';
 import { ExportService } from './services/export.js';
 import { cacheMiddleware } from './services/cache-service.js';
 import { performanceMonitoring } from './middleware/performance.js';
+import { createLiveSessionRouter } from './routes/live-session.js';
 
 // ==================== Configuration ====================
 
@@ -113,6 +114,9 @@ const developerInsights = new DeveloperInsightsService(db.db);
 const integrations = new IntegrationsService(db.db, io);
 const projectHealth = new ProjectHealthService(db.db, io);
 const exportService = new ExportService(db.db, RAVEN_DIR);
+
+// Mount live session routes
+app.use('/api/session', createLiveSessionRouter(db));
 
 const fileWatcher = new FileWatcher({
   watchPath: WATCH_PATH,

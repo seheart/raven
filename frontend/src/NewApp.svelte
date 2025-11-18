@@ -28,7 +28,6 @@
   let showNotifications = $state(false);
   let sessionId = $state('Loading...');
   let showWelcome = $state(false);
-  let showQuickStart = $state(false);
   let showKeyboardShortcuts = $state(false);
 
   // ConfirmDialog state
@@ -45,7 +44,7 @@
   const pathParts = $derived.by(() => {
     const parts = currentPath.split('/').filter(Boolean);
     return {
-      tab: parts[0] || 'overview',
+      tab: parts[0] || 'live',
       subTab: parts[1] || ''
     };
   });
@@ -55,9 +54,9 @@
 
   // Initialize route on mount
   $effect(() => {
-    // If on root path, redirect to /overview
+    // If on root path, redirect to /live
     if (currentPath === '/') {
-      navigate('/overview');
+      navigate('/live');
     }
   });
 
@@ -225,7 +224,13 @@
 
   <!-- Main Content -->
   <main class="pb-16">
-    {#if activeTab === 'overview'}
+    {#if activeTab === 'live'}
+      {#await import('./lib/pages/LivePage.svelte') then { default: Component }}
+        <Component />
+      {:catch}
+        <PlaceholderPage title="Live Monitor" description="Loading..." />
+      {/await}
+    {:else if activeTab === 'overview'}
       {#if !activeSubTab}
         {#await import('./lib/pages/OverviewPage.svelte') then { default: Component }}
           <Component />
@@ -403,6 +408,24 @@
           <Component />
         {:catch}
           <PlaceholderPage title="Triggers" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'stats'}
+        {#await import('./lib/pages/AgentStatsPage.svelte') then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Agent Stats" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'monitoring'}
+        {#await import('./lib/pages/AgentMonitoringPage.svelte') then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Agent Monitoring" description="Loading..." />
+        {/await}
+      {:else if activeSubTab === 'conversations'}
+        {#await import('./lib/pages/AgentConversationsPage.svelte') then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Agent Conversations" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'session-replay'}
         {#await import('./lib/pages/AnalysisSessionReplayPage.svelte') then { default: Component }}

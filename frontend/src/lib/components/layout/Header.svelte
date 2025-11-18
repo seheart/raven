@@ -22,20 +22,36 @@
   } = $props();
 
   const tabs = [
-    { id: 'overview', label: 'Overview', path: '/overview' },
-    { id: 'safety', label: 'Safety', path: '/safety' },
-    { id: 'agents', label: 'Agents', path: '/agents' },
-    { id: 'activity', label: 'Activity', path: '/activity' },
+    { id: 'live', label: 'Live', path: '/live' },
+    { id: 'overview', label: 'History', path: '/overview' },
     { id: 'analysis', label: 'Analysis', path: '/analysis' },
+    { id: 'safety', label: 'Safety', path: '/safety' },
     { id: 'system', label: 'System', path: '/system' }
   ];
 
   // Sub-tabs for each main tab (no emojis in labels as requested)
   const subTabs = {
+    live: [],
     overview: [
       { id: '', label: 'Dashboard' },
+      { id: 'activity-log', label: 'Activity Log' },
+      { id: 'timeline', label: 'Timeline' },
+      { id: 'code', label: 'Code Changes' },
+      { id: 'files', label: 'File Browser' },
+      { id: 'session-replay', label: 'Session Replay' },
       { id: 'projects', label: 'Projects Comparison' },
-      { id: 'health', label: 'Project Health' }
+      { id: 'health', label: 'Project Health' },
+      { id: 'search', label: 'Global Search' }
+    ],
+    analysis: [
+      { id: '', label: 'Overview' },
+      { id: 'performance', label: 'Performance' },
+      { id: 'custom-metrics', label: 'Custom Metrics' },
+      { id: 'trends', label: 'Historical Trends' },
+      { id: 'stats', label: 'Agent Stats' },
+      { id: 'monitoring', label: 'Agent Monitoring' },
+      { id: 'conversations', label: 'Agent Conversations' },
+      { id: 'triggers', label: 'Triggers' }
     ],
     safety: [
       { id: '', label: 'Overview' },
@@ -45,44 +61,17 @@
       { id: 'patterns', label: 'Pattern Warnings' },
       { id: 'tests', label: 'Raven Tests' }
     ],
-    agents: [
-      { id: '', label: 'Overview' },
-      { id: 'stats', label: 'Agent Stats' },
-      { id: 'monitoring', label: 'Monitoring' },
-      { id: 'conversations', label: 'Conversations' }
-    ],
-    activity: [
-      { id: '', label: 'Overview' },
-      { id: 'activity-log', label: 'Activity Log' },
-      { id: 'code', label: 'Code Changes' },
-      { id: 'live', label: 'Live Feed' },
-      { id: 'events', label: 'Event Log' },
-      { id: 'files', label: 'File Browser' },
-      { id: 'timeline', label: 'Timeline' },
-      { id: 'search', label: 'Global Search' }
-    ],
-    analysis: [
-      { id: '', label: 'Overview' },
-      { id: 'performance', label: 'Performance' },
-      { id: 'custom-metrics', label: 'Custom Metrics' },
-      { id: 'trends', label: 'Historical Trends' },
-      { id: 'triggers', label: 'Triggers' },
-      { id: 'session-replay', label: 'Session Replay' },
-      { id: 'developer-insights', label: 'Developer Insights' }
-    ],
     system: [
       { id: '', label: 'Overview' },
       { id: 'status', label: 'Status' },
       { id: 'anomalies', label: 'Anomaly Alerts' },
       { id: 'intelligence', label: 'Intelligence' },
-      { id: 'integrations', label: 'Integrations' },
-      { id: 'exports', label: 'Exports' },
+      { id: 'api', label: 'API Health' },
+      { id: 'errors', label: 'Errors' },
+      { id: 'notifications', label: 'Notifications' },
       { id: 'storage', label: 'Storage' },
       { id: 'projects', label: 'Projects' },
-      { id: 'sync', label: 'Server Sync' },
-      { id: 'notifications', label: 'Notifications' },
-      { id: 'errors', label: 'Errors' },
-      { id: 'api', label: 'API Health' }
+      { id: 'sync', label: 'Server Sync' }
     ],
     settings: []
   };

@@ -20,20 +20,20 @@ function createRouter() {
       logger.debug('[Router] Parsing hash:', hash);
 
       if (!hash || hash === '/') {
-        logger.debug('[Router] No hash, defaulting to overview');
-        return { tab: 'overview', subTab: '' };
+        logger.debug('[Router] No hash, defaulting to live');
+        return { tab: 'live', subTab: '' };
       }
 
       const parts = hash.split('/').filter(Boolean);
       const route = {
-        tab: parts[0] || 'overview',
+        tab: parts[0] || 'live',
         subTab: parts[1] || ''
       };
       logger.debug('[Router] Parsed route:', route);
       return route;
     } catch (error) {
       logger.error('[Router] Error parsing hash:', error);
-      return { tab: 'overview', subTab: '' };
+      return { tab: 'live', subTab: '' };
     }
   }
 
