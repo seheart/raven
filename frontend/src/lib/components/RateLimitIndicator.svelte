@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { api } from '../api.js';
+  import { api } from '../apiClient.js';
 
   let rateLimitStatus = null;
   let error = null;
