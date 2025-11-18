@@ -124,9 +124,9 @@
     background: var(--bg-secondary, #2a2a2a);
     border: 1px solid var(--border-color, #3a3a3a);
     color: var(--text-primary, #e0e0e0);
-    padding: 0.4rem 0.8rem;
+    padding: 0.125rem 0.5rem;
     border-radius: 4px;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
