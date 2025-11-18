@@ -162,7 +162,7 @@ export function setupHelmet() {
  * - API_RATE_LIMIT_MAX: Maximum requests per window
  */
 const apiWindowMs = parseInt(process.env.API_RATE_LIMIT_WINDOW_MS || '60000', 10);
-const apiMax = parseInt(process.env.API_RATE_LIMIT_MAX || '100', 10);
+const apiMax = parseInt(process.env.API_RATE_LIMIT_MAX || '500', 10);
 
 // Initialize rate limit status
 rateLimitStatus.api.max = apiMax;
