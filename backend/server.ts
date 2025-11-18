@@ -32,7 +32,7 @@ import { EventBus, FileWatcher, GitMonitor, getDiff } from './modules/index.js';
 import type { FileEvent, GitStatusEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { rateLimitStatus } from './middleware/security.js';
+import { rateLimitStatus, apiLimiter } from './middleware/security.js';
 import { DeveloperInsightsService } from './services/developer-insights.js';
 import { DataFlowHealthMonitor } from './services/data-flow-health.js';
 import { IntegrationsService } from './services/integrations.js';
@@ -102,7 +102,7 @@ const expensiveOpLimiter = rateLimit({
 });
 
 // Apply general rate limiter to all API routes
-// app.use('/api/', generalLimiter);
+app.use('/api/', apiLimiter);
 
 // ==================== Initialize Services ====================
 
