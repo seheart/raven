@@ -4,6 +4,7 @@
    * Settings Page - Application settings and preferences
    */
   import { settings } from '../stores/settingsStore.js';
+  import EmergencyStopButton from '../EmergencyStopButton.svelte';
 
   // Subscribe to settings
   let currentSettings = $state({});
@@ -543,6 +544,47 @@
       <p class="setting-help">Maximum number of events to show in lists</p>
     </div>
   </section>
+
+  <!-- Danger Zone Section -->
+  <section class="space-y-3">
+    <h3 class="text-base font-semibold text-[var(--error)] font-sans">⚠️ Danger Zone</h3>
+
+    <div class="danger-zone-card">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+          <h4 class="text-sm font-semibold text-[var(--text)] mb-1 font-sans">Emergency Stop</h4>
+          <p class="text-xs text-[var(--muted)] leading-relaxed">
+            Immediately pause all Claude operations and file monitoring. Use this if you need to
+            halt all agent activity quickly.
+          </p>
+        </div>
+        <div class="flex-shrink-0">
+          <EmergencyStopButton />
+        </div>
+      </div>
+    </div>
+
+    <div class="danger-zone-card">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+          <h4 class="text-sm font-semibold text-[var(--text)] mb-1 font-sans">
+            Reset All Settings
+          </h4>
+          <p class="text-xs text-[var(--muted)] leading-relaxed">
+            Restore all settings to their default values. This action cannot be undone.
+          </p>
+        </div>
+        <div class="flex-shrink-0">
+          <button
+            class="px-3 py-1.5 bg-[var(--error)] text-[#ffffff] text-sm rounded hover:bg-[var(--error-hover)] transition-colors border-0 cursor-pointer font-sans font-medium"
+            onclick={resetToDefaults}
+          >
+            Reset All
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <style>
@@ -625,5 +667,12 @@
 
   input[type='number']:disabled {
     cursor: not-allowed;
+  }
+
+  .danger-zone-card {
+    background: rgba(224, 108, 117, 0.05);
+    border: 1px solid rgba(224, 108, 117, 0.3);
+    border-radius: 6px;
+    padding: 1rem;
   }
 </style>

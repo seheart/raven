@@ -6,7 +6,6 @@
 
   import RavenLogo from '../ui/RavenLogo.svelte';
   import UserMenu from '../ui/UserMenu.svelte';
-  import EmergencyStopButton from '../../EmergencyStopButton.svelte';
   import RateLimitIndicator from '../RateLimitIndicator.svelte';
   import { navigate } from '../../utils/router.svelte.js';
 
@@ -167,9 +166,6 @@
 
     <!-- Rate Limit Indicator -->
     <RateLimitIndicator />
-
-    <!-- Emergency Stop Button -->
-    <EmergencyStopButton />
 
     <!-- User Menu -->
     <UserMenu {username} {role} {onSettingsClick} {onLogoutClick} />
