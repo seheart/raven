@@ -9,6 +9,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import type { Database } from 'better-sqlite3';
+import { logger } from '../utils/logger.js';
 
 const execAsync = promisify(exec);
 
@@ -74,8 +75,8 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       });
 
       res.json({ files: filesWithStats });
-    } catch (error) {
-      console.error('Error fetching session files:', error);
+    } catch (error: any) {
+      logger.error('Error fetching session files:', error);
       res.status(500).json({ error: 'Failed to fetch session files' });
     }
   });
@@ -95,8 +96,8 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
         filePath,
         diff: stdout
       });
-    } catch (error) {
-      console.error('Error fetching file diff:', error);
+    } catch (error: any) {
+      logger.error('Error fetching file diff:', error);
       res.status(500).json({ error: 'Failed to fetch file diff' });
     }
   });
@@ -152,8 +153,8 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
         sessionHealth,
         sessionActive: true
       });
-    } catch (error) {
-      console.error('Error fetching session stats:', error);
+    } catch (error: any) {
+      logger.error('Error fetching session stats:', error);
       res.status(500).json({ error: 'Failed to fetch session stats' });
     }
   });
@@ -210,8 +211,8 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
           progress
         }
       });
-    } catch (error) {
-      console.error('Error fetching current task:', error);
+    } catch (error: any) {
+      logger.error('Error fetching current task:', error);
       res.status(500).json({ task: null });
     }
   });
@@ -275,8 +276,8 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       }
 
       res.json({ alerts });
-    } catch (error) {
-      console.error('Error fetching alerts:', error);
+    } catch (error: any) {
+      logger.error('Error fetching alerts:', error);
       res.status(500).json({ alerts: [] });
     }
   });
@@ -303,8 +304,8 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       }));
 
       res.json({ activity });
-    } catch (error) {
-      console.error('Error fetching recent activity:', error);
+    } catch (error: any) {
+      logger.error('Error fetching recent activity:', error);
       res.status(500).json({ activity: [] });
     }
   });
@@ -347,8 +348,8 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       };
 
       res.json(context);
-    } catch (error) {
-      console.error('Error fetching file context:', error);
+    } catch (error: any) {
+      logger.error('Error fetching file context:', error);
       res.status(500).json({});
     }
   });

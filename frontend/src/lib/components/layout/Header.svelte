@@ -51,6 +51,7 @@
       { id: 'stats', label: 'Agent Stats' },
       { id: 'monitoring', label: 'Agent Monitoring' },
       { id: 'conversations', label: 'Agent Conversations' },
+      { id: 'developer-insights', label: 'Developer Insights' },
       { id: 'triggers', label: 'Triggers' }
     ],
     safety: [
@@ -64,12 +65,15 @@
     system: [
       { id: '', label: 'Overview' },
       { id: 'status', label: 'Status' },
+      { id: 'health-monitor', label: 'Health Monitor' },
       { id: 'anomalies', label: 'Anomaly Alerts' },
       { id: 'intelligence', label: 'Intelligence' },
+      { id: 'integrations', label: 'Integrations' },
       { id: 'api', label: 'API Health' },
       { id: 'errors', label: 'Errors' },
       { id: 'notifications', label: 'Notifications' },
       { id: 'storage', label: 'Storage' },
+      { id: 'exports', label: 'Exports' },
       { id: 'projects', label: 'Projects' },
       { id: 'sync', label: 'Server Sync' }
     ],

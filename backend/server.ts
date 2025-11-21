@@ -41,6 +41,11 @@ import { ExportService } from './services/export.js';
 import { cacheMiddleware } from './services/cache-service.js';
 import { performanceMonitoring } from './middleware/performance.js';
 import { createLiveSessionRouter } from './routes/live-session.js';
+import { createEventsRouter } from './routes/events.js';
+import { createAgentsRouter } from './routes/agents.js';
+import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
+import { HealthMonitor } from './services/health-monitor.js';
+import { createHealthMonitoringRouter } from './routes/health-monitoring.js';
 
 // ==================== Configuration ====================
 
@@ -115,8 +120,70 @@ const integrations = new IntegrationsService(db.db, io);
 const projectHealth = new ProjectHealthService(db.db, io);
 const exportService = new ExportService(db.db, RAVEN_DIR);
 
-// Mount live session routes
-app.use('/api/session', createLiveSessionRouter(db));
+// Initialize health monitoring system
+const healthMonitor = new HealthMonitor(db);
+
+// Set up health alert handler to emit via WebSocket
+healthMonitor.onAlert(report => {
+  logger.warn(`🚨 Health alert: System status is ${report.overallStatus}`, {
+    critical: report.summary.critical,
+    warnings: report.summary.warnings
+  });
+
+  // Emit health alert via Socket.IO for real-time notifications
+  io.emit('health-alert', {
+    status: report.overallStatus,
+    summary: report.summary,
+    criticalIssues: report.checks.filter(c => c.status === 'critical')
+  });
+});
+
+// Initialize Claude Code log watcher for automatic agent detection
+const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
+  // Handle Claude Code activity events
+  const agentName = 'Claude Code';
+  const timestamp = event.timestamp || new Date().toISOString();
+
+  logger.info(`Claude Code activity detected: ${event.type} - ${event.file || 'unknown file'}`);
+
+  // Register/update Claude Code in agent registry
+  if (!agentRegistry.has(agentName)) {
+    agentRegistry.set(agentName, {
+      agent_name: agentName,
+      agent_type: 'claude-code',
+      is_running: true,
+      last_seen: timestamp,
+      models_available: [
+        'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-20241022',
+        'claude-opus-4'
+      ],
+      requests_handled: 0,
+      errors: 0,
+      color: getAgentColor('claude')
+    });
+    logger.info('✅ Claude Code registered in agent registry');
+  }
+
+  // Update agent status
+  const agentStatus = agentRegistry.get(agentName)!;
+  agentStatus.last_seen = timestamp;
+  agentStatus.requests_handled++;
+  agentStatus.is_running = true;
+
+  // Emit via Socket.IO for real-time UI updates
+  io.emit('claude-activity', {
+    type: event.type,
+    file: event.file,
+    timestamp: timestamp
+  });
+
+  // Update agent status via Socket.IO
+  io.emit('agent-status-update', {
+    agent: agentName,
+    status: agentStatus
+  });
+}, logger);
 
 const fileWatcher = new FileWatcher({
   watchPath: WATCH_PATH,
@@ -411,6 +478,22 @@ app.get('/api/rate-limit-status', (req: Request, res: Response) => {
     return res.status(500).json({ error: error.message });
   }
 });
+
+// ==================== Mount Modular Routes ====================
+
+// Mount live session routes
+app.use('/api/session', createLiveSessionRouter(db));
+
+// Mount events routes
+app.use('/api', createEventsRouter(db));
+
+// Mount agents routes
+app.use('/api', createAgentsRouter(db, agentRegistry));
+
+// Mount health monitoring routes
+app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
+
+// ==================== Legacy Individual Route Handlers ====================
 
 app.get('/api/dashboard-stats', cacheMiddleware(3000), (req: Request, res: Response) => {
   try {
@@ -3278,6 +3361,11 @@ app.get('/api/health', cacheMiddleware(2000), (req: Request, res: Response) => {
   res.json({ healthy: true, timestamp: new Date().toISOString() });
 });
 
+// Health readiness endpoint for startup verification
+app.get('/api/health/ready', (req: Request, res: Response) => {
+  res.json({ ready: true, timestamp: new Date().toISOString() });
+});
+
 // List all available API endpoints (for API Health page)
 app.get('/api/endpoints', (req: Request, res: Response) => {
   // Return a list of all registered endpoints with metadata
@@ -3991,6 +4079,10 @@ httpServer.listen(PORT, async () => {
 ╚════════════════════════════════════════════════╝
   `);
 
+  // Start Claude Code log watcher
+  logger.info('🤖 Starting Claude Code log watcher...');
+  await claudeLogWatcher.start();
+
   // Start file watcher
   logger.info('📁 Starting file watcher...');
   fileWatcher.start();
@@ -4018,6 +4110,27 @@ httpServer.listen(PORT, async () => {
     `Initial health check: ${initialHealth.healthy}/${initialHealth.total_pages} pages healthy (${initialHealth.health_score}%)`
   );
 
+  // Start comprehensive health monitoring
+  logger.info('🏥 Starting comprehensive health monitoring...');
+  healthMonitor.startMonitoring(60000); // Check every 60 seconds
+
+  // Run initial comprehensive health check
+  const comprehensiveHealth = await healthMonitor.runHealthCheck();
+  logger.info(
+    `Comprehensive health: ${comprehensiveHealth.overallStatus} - ${comprehensiveHealth.summary.healthy}/${comprehensiveHealth.summary.total} checks passed`
+  );
+
+  if (comprehensiveHealth.summary.critical > 0) {
+    logger.error(
+      `⚠️  ${comprehensiveHealth.summary.critical} critical issues detected on startup!`
+    );
+    comprehensiveHealth.checks
+      .filter(c => c.status === 'critical')
+      .forEach(check => {
+        logger.error(`  - ${check.category}/${check.name}: ${check.message}`);
+      });
+  }
+
   logger.info('✅ All services started successfully');
 });
 
@@ -4040,6 +4153,10 @@ async function gracefulShutdown(signal: string) {
       logger.info('✅ HTTP server closed');
     });
 
+    // Stop Claude Code log watcher
+    logger.info('🛑 Stopping Claude Code log watcher...');
+    await claudeLogWatcher.stop();
+
     // Stop file watcher
     logger.info('🛑 Stopping file watcher...');
     await fileWatcher.stop();
@@ -4051,6 +4168,10 @@ async function gracefulShutdown(signal: string) {
     // Stop metrics collector
     logger.info('🛑 Stopping metrics collector...');
     metricsCollector.stop();
+
+    // Stop health monitor
+    logger.info('🛑 Stopping health monitor...');
+    healthMonitor.stopMonitoring();
 
     // Close database connection
     logger.info('🛑 Closing database...');
