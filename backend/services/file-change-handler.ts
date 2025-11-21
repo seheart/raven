@@ -241,7 +241,8 @@ export class FileChangeHandler {
         eventData.memPercent,
         this.SESSION_ID,
         eventData.fileHash,
-        eventData.eventSize
+        eventData.eventSize,
+        eventData.projectName
       );
 
       logger.info(

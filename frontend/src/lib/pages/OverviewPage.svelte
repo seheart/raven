@@ -327,7 +327,7 @@
       const projectStats = {};
       for (const project of projects) {
         const projectName = project.name || project;
-        const projEvents = events.filter(e => e.project === projectName);
+        const projEvents = events.filter(e => e.project_name === projectName);
         const lastEvent = projEvents.length > 0 ? projEvents[0].timestamp : null;
 
         let status = 'idle';

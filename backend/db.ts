@@ -120,6 +120,9 @@ export interface DashboardStats {
   total_agents: number;
   session_duration_seconds: number;
   active_files_today: number;
+  creates: number;
+  edits: number;
+  deletes: number;
 }
 
 /**
@@ -747,15 +750,13 @@ export class RavenDB {
    * @returns Complete dashboard statistics including event counts, agent stats, and metrics
    */
   getDashboardStats(session_id: string): DashboardStats {
-    // Get both agent events AND file events
-    const agentEvents = this.getAgentEventsBySession(session_id);
+    // Get ALL historical events (not just current session)
+    const agentEvents: any[] = this.db
+      .prepare(`SELECT * FROM agent_events ORDER BY timestamp DESC`)
+      .all();
 
-    // Get file events (from file watcher) for current session
-    const fileEvents: any[] = this.db
-      .prepare(
-        `SELECT * FROM events WHERE session_id = ? OR session_id IS NULL ORDER BY timestamp DESC`
-      )
-      .all(session_id);
+    // Get ALL file events (from file watcher)
+    const fileEvents: any[] = this.db.prepare(`SELECT * FROM events ORDER BY timestamp DESC`).all();
 
     // Combine all events
     const allEvents = [...agentEvents, ...fileEvents];
@@ -791,12 +792,26 @@ export class RavenDB {
       }
     }
 
+    // Count event types for Activity Distribution chart
+    const creates = fileEvents.filter(
+      e => e.change_type === 'create' || e.change_type === 'add'
+    ).length;
+    const edits = fileEvents.filter(
+      e => e.change_type === 'edit' || e.change_type === 'change'
+    ).length;
+    const deletes = fileEvents.filter(
+      e => e.change_type === 'delete' || e.change_type === 'unlink'
+    ).length;
+
     return {
       total_events: fileEvents.length, // Use file events for total count
       total_files: trackedFiles.size,
       total_agents: 0, // Will be updated by agent registry
       session_duration_seconds,
-      active_files_today: activeToday.size
+      active_files_today: activeToday.size,
+      creates,
+      edits,
+      deletes
     };
   }
 

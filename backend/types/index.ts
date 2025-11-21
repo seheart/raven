@@ -458,7 +458,8 @@ export interface RavenDatabase {
     mem: number,
     session_id: SessionID,
     file_hash: SHA256Hash | null,
-    event_size: number
+    event_size: number,
+    project_name: ProjectName | null
   ): number;
   clearSyntaxErrors(filepath: string): void;
   clearPatternWarnings(filepath: string): void;
