@@ -39,10 +39,10 @@ pkill -f "vite" 2>/dev/null || true
 # Kill processes on ports (works on both Linux and macOS)
 if command -v fuser &> /dev/null; then
   # Linux: use fuser
-  fuser -k 3030/tcp 5173/tcp 2>/dev/null || true
+  fuser -k 9100/tcp 9000/tcp 2>/dev/null || true
 elif command -v lsof &> /dev/null; then
   # macOS: use lsof
-  for port in 3030 5173; do
+  for port in 9100 9000; do
     PID=$(lsof -ti:$port 2>/dev/null)
     [ -n "$PID" ] && kill -9 $PID 2>/dev/null || true
   done

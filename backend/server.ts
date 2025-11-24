@@ -2796,12 +2796,14 @@ app.get('/api/tests/latest', async (req: Request, res: Response) => {
 
 // ==================== Storage APIs ====================
 
-app.get('/api/storage', async (req: Request, res: Response) => {
+app.get('/api/storage', cacheMiddleware(30000), async (req: Request, res: Response) => {
   try {
+    const startTime = Date.now();
     const dbDir = join(RAVEN_DIR, 'db');
     const snapshotsDir = join(SNAPSHOTS_DIR);
 
-    // Get all database files
+    // Get all database files (lightweight - no table queries for storage overview)
+    const t1 = Date.now();
     const databases: any[] = [];
     const dbFiles = await fs.readdir(dbDir);
     const dbFilesFiltered = dbFiles.filter(f => f.endsWith('.db'));
@@ -2811,132 +2813,50 @@ app.get('/api/storage', async (req: Request, res: Response) => {
       const stats = await fs.stat(dbPath);
       const dbName = dbFile.replace('.db', '');
 
-      // Try to get record counts
-      let recordCounts: Record<string, number> = {};
-      let tableStats: any[] = [];
-      try {
-        const Database = (await import('better-sqlite3')).default;
-        const dbConn = new Database(dbPath, { readonly: true });
-
-        // Get record counts for each table
-        const tables = dbConn
-          .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-          .all() as { name: string }[];
-        let totalRecords = 0;
-
-        for (const table of tables) {
-          // Validate table name to prevent SQL injection
-          if (!isValidTableName(table.name)) {
-            logger.warn(`[Security] Skipping invalid table name: ${table.name}`);
-            continue;
-          }
-
-          const count = dbConn.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get() as {
-            count: number;
-          };
-          recordCounts[table.name] = count.count;
-          totalRecords += count.count;
-
-          // Get table size
-          const sizeQuery = dbConn
-            .prepare('SELECT SUM(pgsize) as size FROM dbstat WHERE name = ?')
-            .get(table.name) as { size: number } | undefined;
-          tableStats.push({
-            name: table.name,
-            records: count.count,
-            size: sizeQuery?.size || 0
-          });
-        }
-
-        dbConn.close();
-
-        databases.push({
-          name: dbName,
-          filename: dbFile,
-          size: stats.size,
-          totalRecords,
-          recordCounts,
-          tableStats: tableStats.sort((a, b) => b.size - a.size),
-          modified: stats.mtime,
-          isActive: dbName === 'raven'
-        });
-      } catch (err) {
-        databases.push({
-          name: dbName,
-          filename: dbFile,
-          size: stats.size,
-          totalRecords: 0,
-          recordCounts: {},
-          tableStats: [],
-          modified: stats.mtime,
-          isActive: dbName === 'raven',
-          error: 'Failed to read database'
-        });
-      }
+      // For storage overview, just get file sizes - no detailed table queries
+      databases.push({
+        name: dbName,
+        filename: dbFile,
+        size: stats.size,
+        modified: stats.mtime,
+        isActive: dbName === 'raven'
+      });
     }
+    logger.debug(`Storage: DB files took ${Date.now() - t1}ms`);
 
-    // Get snapshot directory stats
+    // Get snapshot directory stats (ultra-lightweight - no size calculations)
+    const t2 = Date.now();
     const snapshots: any[] = [];
+    const totalSnapshotSize = 0; // Skip size calculation for performance
     try {
       await fs.access(snapshotsDir);
       const snapshotProjects = await fs.readdir(snapshotsDir);
 
+      // Get basic info only
       for (const project of snapshotProjects) {
         const projectSnapshotPath = join(snapshotsDir, project);
         const stat = await fs.stat(projectSnapshotPath);
 
         if (stat.isDirectory()) {
           const files = await fs.readdir(projectSnapshotPath);
-          let totalSize = 0;
-          let oldestFile: Date | null = null;
-          let newestFile: Date | null = null;
-
-          for (const file of files) {
-            const filePath = join(projectSnapshotPath, file);
-            const fileStat = await fs.stat(filePath);
-            totalSize += fileStat.size;
-
-            if (!oldestFile || fileStat.mtime < oldestFile) {
-              oldestFile = fileStat.mtime;
-            }
-            if (!newestFile || fileStat.mtime > newestFile) {
-              newestFile = fileStat.mtime;
-            }
-          }
 
           snapshots.push({
             project,
             files: files.length,
-            size: totalSize,
-            oldest: oldestFile,
-            newest: newestFile
+            size: 0, // Not calculated for performance
+            oldest: stat.mtime,
+            newest: stat.mtime
           });
         }
       }
     } catch (err) {
       // Snapshots directory doesn't exist, ignore
     }
+    logger.debug(`Storage: Snapshots took ${Date.now() - t2}ms`);
 
-    // Get total .raven directory size
-    const getRavenDirSize = async (dirPath: string): Promise<number> => {
-      let totalSize = 0;
-      const items = await fs.readdir(dirPath);
-
-      for (const item of items) {
-        const itemPath = join(dirPath, item);
-        const stat = await fs.stat(itemPath);
-
-        if (stat.isDirectory()) {
-          totalSize += await getRavenDirSize(itemPath);
-        } else {
-          totalSize += stat.size;
-        }
-      }
-
-      return totalSize;
-    };
-
-    const totalSize = await getRavenDirSize(RAVEN_DIR);
+    // Calculate total size from components we already have
+    const dbTotalSize = databases.reduce((sum, db) => sum + db.size, 0);
+    const totalSize = dbTotalSize + totalSnapshotSize;
 
     // Get other files
     let configSize = 0;
@@ -2956,6 +2876,7 @@ app.get('/api/storage', async (req: Request, res: Response) => {
       // File doesn't exist
     }
 
+    logger.debug(`Storage: Total request took ${Date.now() - startTime}ms`);
     return res.json({
       totalSize,
       databases: databases.sort((a, b) => b.size - a.size),

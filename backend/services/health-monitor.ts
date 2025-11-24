@@ -6,6 +6,9 @@
 
 import { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
 export interface HealthCheckResult {
   category: string;
@@ -100,6 +103,18 @@ export class HealthMonitor {
 
     // System resources
     checks.push(...this.checkSystemResources());
+
+    // API endpoint health (async)
+    checks.push(...(await this.checkAPIEndpoints()));
+
+    // Configuration validation
+    checks.push(...this.checkConfiguration());
+
+    // File system health
+    checks.push(...this.checkFileSystem());
+
+    // Git repository status
+    checks.push(...this.checkGitRepository());
 
     // Calculate summary
     const summary = {
@@ -342,6 +357,47 @@ export class HealthMonitor {
           timestamp
         });
       }
+
+      // Check for recent activity
+      const recentEvents = this.db.db
+        .prepare(
+          `SELECT COUNT(*) as count FROM events
+         WHERE timestamp > datetime('now', '-1 hour')`
+        )
+        .get() as { count: number };
+
+      const totalEvents = this.db.db.prepare('SELECT COUNT(*) as count FROM events').get() as {
+        count: number;
+      };
+
+      if (totalEvents.count === 0) {
+        checks.push({
+          category: 'Data Integrity',
+          name: 'Event Recording',
+          status: 'warning',
+          message: 'No events recorded - file watcher may not be running',
+          timestamp,
+          details: { totalEvents: 0, recentEvents: 0 }
+        });
+      } else if (recentEvents.count === 0) {
+        checks.push({
+          category: 'Data Integrity',
+          name: 'Event Recording',
+          status: 'warning',
+          message: 'No recent activity in past hour - development may be paused',
+          timestamp,
+          details: { totalEvents: totalEvents.count, recentEvents: 0 }
+        });
+      } else {
+        checks.push({
+          category: 'Data Integrity',
+          name: 'Event Recording',
+          status: 'healthy',
+          message: `${recentEvents.count} events recorded in past hour`,
+          timestamp,
+          details: { totalEvents: totalEvents.count, recentEvents: recentEvents.count }
+        });
+      }
     } catch (error: any) {
       checks.push({
         category: 'Data Integrity',
@@ -450,5 +506,261 @@ export class HealthMonitor {
    */
   isHealthy(): boolean {
     return this.lastReport?.overallStatus === 'healthy';
+  }
+
+  /**
+   * Check API endpoint health
+   */
+  private async checkAPIEndpoints(): Promise<HealthCheckResult[]> {
+    const checks: HealthCheckResult[] = [];
+    const timestamp = new Date().toISOString();
+
+    const endpoints = [
+      { name: 'Dashboard Stats', path: '/api/dashboard-stats' },
+      { name: 'Agent Status', path: '/api/agents-status' },
+      { name: 'Events', path: '/api/events' },
+      { name: 'System Metrics', path: '/api/system-metrics' }
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const startTime = Date.now();
+        const response = await fetch(
+          `http://localhost:${process.env.PORT || 9100}${endpoint.path}`
+        );
+        const responseTime = Date.now() - startTime;
+
+        if (response.ok) {
+          const status = responseTime > 1000 ? 'warning' : 'healthy';
+          checks.push({
+            category: 'API Endpoints',
+            name: endpoint.name,
+            status,
+            message:
+              status === 'healthy'
+                ? `Responding in ${responseTime}ms`
+                : `Slow response: ${responseTime}ms`,
+            timestamp,
+            details: { responseTime, statusCode: response.status }
+          });
+        } else {
+          checks.push({
+            category: 'API Endpoints',
+            name: endpoint.name,
+            status: 'critical',
+            message: `HTTP ${response.status}: ${response.statusText}`,
+            timestamp,
+            details: { statusCode: response.status }
+          });
+        }
+      } catch (error: any) {
+        checks.push({
+          category: 'API Endpoints',
+          name: endpoint.name,
+          status: 'critical',
+          message: `Endpoint unreachable: ${error.message}`,
+          timestamp
+        });
+      }
+    }
+
+    return checks;
+  }
+
+  /**
+   * Check configuration files
+   */
+  private checkConfiguration(): HealthCheckResult[] {
+    const checks: HealthCheckResult[] = [];
+    const timestamp = new Date().toISOString();
+
+    try {
+      // Check if required environment variables are set
+      const requiredEnvVars = ['PORT', 'NODE_ENV'];
+      const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+
+      if (missingVars.length > 0) {
+        checks.push({
+          category: 'Configuration',
+          name: 'Environment Variables',
+          status: 'warning',
+          message: `Missing optional env vars: ${missingVars.join(', ')}`,
+          timestamp,
+          details: { missingVars }
+        });
+      } else {
+        checks.push({
+          category: 'Configuration',
+          name: 'Environment Variables',
+          status: 'healthy',
+          message: 'All required environment variables set',
+          timestamp
+        });
+      }
+
+      // Check PORT configuration
+      const port = parseInt(process.env.PORT || '9100');
+      if (port < 1024 || port > 65535) {
+        checks.push({
+          category: 'Configuration',
+          name: 'Port Configuration',
+          status: 'warning',
+          message: `Port ${port} may require special permissions or is invalid`,
+          timestamp,
+          details: { port }
+        });
+      } else {
+        checks.push({
+          category: 'Configuration',
+          name: 'Port Configuration',
+          status: 'healthy',
+          message: `Server listening on port ${port}`,
+          timestamp,
+          details: { port }
+        });
+      }
+    } catch (error: any) {
+      checks.push({
+        category: 'Configuration',
+        name: 'Configuration Check',
+        status: 'warning',
+        message: `Configuration check failed: ${error.message}`,
+        timestamp
+      });
+    }
+
+    return checks;
+  }
+
+  /**
+   * Check file system health
+   */
+  private checkFileSystem(): HealthCheckResult[] {
+    const checks: HealthCheckResult[] = [];
+    const timestamp = new Date().toISOString();
+
+    try {
+      // Check critical directories
+      const requiredDirs = [
+        { name: 'Database Directory', path: path.join(process.cwd(), '.raven', 'db') },
+        { name: 'Logs Directory', path: path.join(process.cwd(), 'logs') }
+      ];
+
+      for (const dir of requiredDirs) {
+        try {
+          if (fs.existsSync(dir.path)) {
+            // Check if writable
+            fs.accessSync(dir.path, fs.constants.W_OK);
+            checks.push({
+              category: 'File System',
+              name: dir.name,
+              status: 'healthy',
+              message: 'Directory exists and is writable',
+              timestamp,
+              details: { path: dir.path }
+            });
+          } else {
+            checks.push({
+              category: 'File System',
+              name: dir.name,
+              status: 'warning',
+              message: 'Directory does not exist',
+              timestamp,
+              details: { path: dir.path }
+            });
+          }
+        } catch (error: any) {
+          checks.push({
+            category: 'File System',
+            name: dir.name,
+            status: 'warning',
+            message: `Permission issue: ${error.message}`,
+            timestamp,
+            details: { path: dir.path }
+          });
+        }
+      }
+    } catch (error: any) {
+      checks.push({
+        category: 'File System',
+        name: 'File System Check',
+        status: 'warning',
+        message: `File system check failed: ${error.message}`,
+        timestamp
+      });
+    }
+
+    return checks;
+  }
+
+  /**
+   * Check Git repository status
+   */
+  private checkGitRepository(): HealthCheckResult[] {
+    const checks: HealthCheckResult[] = [];
+    const timestamp = new Date().toISOString();
+
+    try {
+      // Check if in a git repository
+      try {
+        execSync('git rev-parse --is-inside-work-tree', { stdio: 'pipe' });
+
+        // Get current branch
+        const branch = execSync('git rev-parse --abbrev-ref HEAD', {
+          encoding: 'utf-8'
+        }).trim();
+
+        checks.push({
+          category: 'Git Repository',
+          name: 'Repository Status',
+          status: 'healthy',
+          message: `On branch: ${branch}`,
+          timestamp,
+          details: { branch }
+        });
+
+        // Check for uncommitted changes
+        const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
+        const hasChanges = status.length > 0;
+
+        if (hasChanges) {
+          const lines = status.split('\n').length;
+          checks.push({
+            category: 'Git Repository',
+            name: 'Working Directory',
+            status: 'warning',
+            message: `${lines} uncommitted ${lines === 1 ? 'change' : 'changes'}`,
+            timestamp,
+            details: { changeCount: lines }
+          });
+        } else {
+          checks.push({
+            category: 'Git Repository',
+            name: 'Working Directory',
+            status: 'healthy',
+            message: 'Working directory clean',
+            timestamp
+          });
+        }
+      } catch {
+        checks.push({
+          category: 'Git Repository',
+          name: 'Repository Status',
+          status: 'warning',
+          message: 'Not a git repository or git not installed',
+          timestamp
+        });
+      }
+    } catch (error: any) {
+      checks.push({
+        category: 'Git Repository',
+        name: 'Git Check',
+        status: 'warning',
+        message: `Git check failed: ${error.message}`,
+        timestamp
+      });
+    }
+
+    return checks;
   }
 }

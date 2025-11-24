@@ -16,6 +16,14 @@ export default defineConfig({
     // Test environment
     environment: 'jsdom',
 
+    // Environment options for jsdom
+    environmentOptions: {
+      jsdom: {
+        resources: 'usable',
+        url: 'http://localhost:9000'
+      }
+    },
+
     // Global test setup
     globals: true,
 
@@ -51,7 +59,10 @@ export default defineConfig({
       }
     },
 
-    // Setup files
+    // Global setup (runs once before all tests)
+    globalSetup: ['./src/test/global-setup.js'],
+
+    // Setup files (runs before each test file)
     setupFiles: ['./src/test/setup.js'],
 
     // Reporter

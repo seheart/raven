@@ -1,0 +1,19 @@
+{
+  "rules": {
+    "no-process-env": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["config/**/*.js", "config/**/*.ts"],
+      "rules": {
+        "no-process-env": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.js", "**/*.test.ts", "__tests__/**"],
+      "rules": {
+        "no-process-env": "off"
+      }
+    }
+  ]
+}

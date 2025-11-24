@@ -35,6 +35,16 @@
 # Old frontend (Svelte 4) - retired after migration to Svelte 5
 /frontend-svelte4/
 
+# Environment files (SECURITY: Never commit secrets)
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
 # Node
 node_modules/
 npm-debug.log*

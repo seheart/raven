@@ -232,7 +232,8 @@
     padding: 2rem;
     max-width: 1400px;
     margin: 0 auto;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+    color: var(--text);
   }
 
   .page-header {
@@ -241,18 +242,18 @@
     align-items: flex-start;
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;
-    border-bottom: 2px solid #e5e7eb;
+    border-bottom: 2px solid var(--border);
   }
 
   .page-header h1 {
     font-size: 2rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--text);
     margin: 0 0 0.5rem 0;
   }
 
   .subtitle {
-    color: #6b7280;
+    color: var(--muted);
     font-size: 0.95rem;
     margin: 0;
   }
@@ -267,9 +268,9 @@
   .btn-retry {
     padding: 0.625rem 1.25rem;
     border-radius: 6px;
-    border: 1px solid #d1d5db;
-    background: white;
-    color: #374151;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -279,8 +280,8 @@
   .btn-refresh:hover,
   .btn-toggle:hover,
   .btn-retry:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
+    background: var(--surface);
+    border-color: var(--accent);
   }
 
   .btn-refresh:disabled {
@@ -289,9 +290,9 @@
   }
 
   .btn-toggle.active {
-    background: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent);
   }
 
   .loading-state,
@@ -303,8 +304,8 @@
   .spinner {
     width: 48px;
     height: 48px;
-    border: 4px solid #e5e7eb;
-    border-top-color: #3b82f6;
+    border: 4px solid var(--border);
+    border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin: 0 auto 1rem;
@@ -319,35 +320,36 @@
   .error-icon {
     font-size: 3rem;
     margin-bottom: 1rem;
+    color: var(--error);
   }
 
   .status-card {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 2rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
     margin-bottom: 2rem;
     display: flex;
     gap: 2rem;
   }
 
   .status-card.critical {
-    border-left: 4px solid #ef4444;
+    border-left: 4px solid var(--error);
   }
 
   .status-card.degraded {
-    border-left: 4px solid #f59e0b;
+    border-left: 4px solid var(--warning, #f59e0b);
   }
 
   .status-card.healthy {
-    border-left: 4px solid #10b981;
+    border-left: 4px solid var(--success);
   }
 
   .status-badge {
     display: inline-block;
     padding: 0.5rem 1rem;
     border-radius: 6px;
-    color: white;
+    color: #ffffff;
     font-weight: 700;
     font-size: 0.875rem;
     letter-spacing: 0.05em;
@@ -356,11 +358,11 @@
   .status-details h2 {
     margin: 0 0 0.5rem 0;
     font-size: 1.5rem;
-    color: #1f2937;
+    color: var(--text);
   }
 
   .timestamp {
-    color: #6b7280;
+    color: var(--muted);
     font-size: 0.875rem;
     margin-bottom: 1.5rem;
   }
@@ -378,7 +380,7 @@
   .stat-label {
     display: block;
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
@@ -388,19 +390,19 @@
     display: block;
     font-size: 2rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--text);
   }
 
   .stat.healthy .stat-value {
-    color: #10b981;
+    color: var(--success);
   }
 
   .stat.warning .stat-value {
-    color: #f59e0b;
+    color: var(--warning, #f59e0b);
   }
 
   .stat.critical .stat-value {
-    color: #ef4444;
+    color: var(--error);
   }
 
   .alert-banner {
@@ -413,13 +415,13 @@
   }
 
   .alert-banner.critical {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
+    background: var(--error-subtle);
+    border: 1px solid var(--error);
   }
 
   .alert-banner.warning {
-    background: #fffbeb;
-    border: 1px solid #fed7aa;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--warning, #f59e0b);
   }
 
   .alert-icon {
@@ -429,12 +431,12 @@
   .alert-content h3 {
     margin: 0 0 0.25rem 0;
     font-size: 1.125rem;
-    color: #1f2937;
+    color: var(--text);
   }
 
   .alert-content p {
     margin: 0;
-    color: #6b7280;
+    color: var(--muted);
     font-size: 0.875rem;
   }
 
@@ -445,19 +447,19 @@
   }
 
   .category-section {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
   }
 
   .category-header {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text);
     margin: 0 0 1rem 0;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border);
   }
 
   .checks-list {
@@ -471,23 +473,23 @@
     align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
-    background: #f9fafb;
+    background: var(--surface-2);
     border-radius: 8px;
     border-left: 3px solid transparent;
   }
 
   .check-item.healthy {
-    border-left-color: #10b981;
+    border-left-color: var(--success);
   }
 
   .check-item.warning {
-    border-left-color: #f59e0b;
-    background: #fffbeb;
+    border-left-color: var(--warning, #f59e0b);
+    background: rgba(245, 158, 11, 0.1);
   }
 
   .check-item.critical {
-    border-left-color: #ef4444;
-    background: #fef2f2;
+    border-left-color: var(--error);
+    background: var(--error-subtle);
   }
 
   .check-status-icon {
@@ -517,12 +519,12 @@
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text);
   }
 
   .check-message {
     margin: 0;
-    color: #4b5563;
+    color: var(--muted);
     font-size: 0.875rem;
   }
 
@@ -532,7 +534,7 @@
 
   .check-details summary {
     cursor: pointer;
-    color: #3b82f6;
+    color: var(--accent);
     font-size: 0.875rem;
     font-weight: 500;
   }
@@ -540,22 +542,25 @@
   .check-details pre {
     margin-top: 0.5rem;
     padding: 0.75rem;
-    background: white;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.8125rem;
     overflow-x: auto;
+    color: var(--text);
+    font-family: var(--font-mono, 'Monaco', 'Courier New', monospace);
   }
 
   .check-timestamp {
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: var(--muted);
     min-width: 160px;
     text-align: right;
   }
 
   .info-panel {
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
+    background: var(--accent-subtle);
+    border: 1px solid var(--accent);
     border-radius: 8px;
     padding: 1.5rem;
     margin-top: 2rem;
@@ -563,20 +568,20 @@
 
   .info-panel h3 {
     margin: 0 0 1rem 0;
-    color: #0369a1;
+    color: var(--accent);
     font-size: 1.125rem;
   }
 
   .info-panel p {
     margin: 0 0 0.75rem 0;
-    color: #0c4a6e;
+    color: var(--text);
     line-height: 1.6;
   }
 
   .info-panel ul {
     margin: 0.75rem 0;
     padding-left: 1.5rem;
-    color: #0c4a6e;
+    color: var(--text);
   }
 
   .info-panel li {
@@ -587,32 +592,32 @@
   .info-note {
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid #bae6fd;
+    border-top: 1px solid var(--border);
     font-size: 0.875rem;
   }
 
   .info-note code {
-    background: white;
+    background: var(--surface);
     padding: 0.125rem 0.375rem;
     border-radius: 3px;
-    font-family: 'Monaco', 'Courier New', monospace;
+    font-family: var(--font-mono, 'Monaco', 'Courier New', monospace);
     font-size: 0.8125rem;
-    color: #0369a1;
+    color: var(--accent);
   }
 
   .bg-green-500 {
-    background-color: #10b981;
+    background-color: var(--success);
   }
 
   .bg-yellow-500 {
-    background-color: #f59e0b;
+    background-color: var(--warning, #f59e0b);
   }
 
   .bg-red-500 {
-    background-color: #ef4444;
+    background-color: var(--error);
   }
 
   .bg-orange-500 {
-    background-color: #f97316;
+    background-color: var(--warning, #f97316);
   }
 </style>

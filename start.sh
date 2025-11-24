@@ -58,7 +58,7 @@ pkill -f "node.*dist/server.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
 # Kill processes on specific ports (cross-platform compatible)
 BACKEND_PORT_PID=$(check_port 9100)
-FRONTEND_PORT_PID=$(check_port 5173)
+FRONTEND_PORT_PID=$(check_port 9000)
 # Only kill if PID is numeric (not "in_use" string from netstat)
 if [[ "$BACKEND_PORT_PID" =~ ^[0-9]+$ ]]; then
   kill -9 $BACKEND_PORT_PID 2>/dev/null || true
@@ -123,8 +123,8 @@ done
 
 # Wait for frontend (max 10 seconds)
 for i in {1..20}; do
-  if curl -s http://localhost:5173 > /dev/null 2>&1; then
-    echo -e "${GREEN}✓${NC} Frontend ready on http://localhost:5173"
+  if curl -s http://localhost:9000 > /dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC} Frontend ready on http://localhost:9000"
     break
   fi
   sleep 0.5
@@ -192,7 +192,7 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║          🚀 Raven is Running!                 ║${NC}"
 echo -e "${GREEN}╠════════════════════════════════════════════════╣${NC}"
 echo -e "${GREEN}║${NC}  Backend:  http://localhost:9100             ${GREEN}║${NC}"
-echo -e "${GREEN}║${NC}  Frontend: http://localhost:5173             ${GREEN}║${NC}"
+echo -e "${GREEN}║${NC}  Frontend: http://localhost:9000             ${GREEN}║${NC}"
 echo -e "${GREEN}║${NC}  Session:  ${SESSION_INFO:0:36} ${GREEN}║${NC}"
 echo -e "${GREEN}║${NC}                                                ${GREEN}║${NC}"
 echo -e "${GREEN}║${NC}  Backend PID:  $BACKEND_PID                        ${GREEN}║${NC}"
