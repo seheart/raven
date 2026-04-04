@@ -10,20 +10,14 @@
   import Footer from './lib/components/layout/Footer.svelte';
   // All page components now use dynamic imports for code splitting
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
-  import NotificationPanel from './lib/components/ui/NotificationPanel.svelte';
   import ToastContainer from './lib/components/ui/ToastContainer.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
   import QuickStartWizard from './lib/QuickStartWizard.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
-  import { unreadCount } from './lib/stores/notificationHistory.js';
   import { onMount } from 'svelte';
 
   // State
-  let username = $state('Seth');
-  let role = $state('admin');
-  let todayStats = $state({ modified: 12, added: 3, deleted: 1 });
-  let showNotifications = $state(false);
   let sessionId = $state('Loading...');
   let showWelcome = $state(false);
   let showKeyboardShortcuts = $state(false);
@@ -108,10 +102,6 @@
     navigate('/overview');
   }
 
-  function handleNotificationsClick() {
-    showNotifications = !showNotifications;
-  }
-
   function handleAboutClick() {
     navigate('/about');
   }
@@ -139,11 +129,6 @@
   <Header
     {activeTab}
     {activeSubTab}
-    {username}
-    {role}
-    {todayStats}
-    unreadCount={$unreadCount}
-    onNotificationsClick={handleNotificationsClick}
     onSettingsClick={handleSettingsClick}
     onLogoutClick={handleLogoutClick}
   />
@@ -209,27 +194,11 @@
         <PlaceholderPage title="Overview - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'safety'}
-      {#if !activeSubTab}
-        {#await import('./lib/pages/SafetyPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Safety" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'syntax'}
-        {#await import('./lib/pages/SyntaxErrorsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Syntax Errors" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'patterns'}
-        {#await import('./lib/pages/PatternWarningsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Pattern Warnings" description="Loading..." />
-        {/await}
-      {:else}
-        <PlaceholderPage title="Safety - {activeSubTab}" description="This page is coming soon" />
-      {/if}
+      {#await import('./lib/pages/SafetyPage.svelte') then { default: Component }}
+        <Component />
+      {:catch}
+        <PlaceholderPage title="Safety" description="Loading..." />
+      {/await}
     {:else if activeTab === 'analysis'}
       {#if !activeSubTab}
         {#await import('./lib/pages/AnalysisPage.svelte') then { default: Component }}
@@ -343,9 +312,6 @@
     onSessionClick={handleSessionClick}
     onAboutClick={handleAboutClick}
   />
-
-  <!-- Notification Panel Sidebar -->
-  <NotificationPanel visible={showNotifications} onClose={() => (showNotifications = false)} />
 
   <!-- Toast Notifications -->
   <ToastContainer />

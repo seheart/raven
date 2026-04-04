@@ -1,374 +1,197 @@
 <script>
-  import { logger } from '../logger.js';
+  import { onMount } from 'svelte';
   import { api } from '../apiClient.js';
-  /**
-   * Safety Overview Page
-   * Modern dashboard for code health, validation, and quality metrics
-   */
 
-  import { navigate } from '../utils/router.svelte.js';
-
-  // State
-  let syntaxErrorCount = $state(0);
-  let patternWarningCount = $state(0);
-  let testResults = $state({ total: 0, passed: 0, failed: 0 });
-  let recentSessions = $state([]);
-  let criticalWarnings = $state([]);
-  let warningsData = $state({ warnings: [] });
+  let warnings = $state([]);
   let loading = $state(true);
-  let error = $state(null);
-  let lastUpdated = $state(new Date());
+  let searchQuery = $state('');
+  let severityFilter = $state('all');
 
-  // Derived values
-  const errorCount = $derived(
-    (warningsData?.warnings || []).filter(w => w.severity === 'error').length
-  );
-  const warningOnlyCount = $derived(
-    (warningsData?.warnings || []).filter(w => w.severity === 'warning').length
-  );
-
-  // Health score calculation (more lenient formula)
-  const healthScore = $derived(
-    Math.max(
-      0,
-      100 - syntaxErrorCount * 10 - Math.min(patternWarningCount, 30) - testResults.failed * 5
-    )
-  );
-  const healthStatus = $derived(
-    healthScore >= 90
-      ? 'Excellent'
-      : healthScore >= 70
-        ? 'Good'
-        : healthScore >= 50
-          ? 'Fair'
-          : 'Poor'
-  );
-  const healthColor = $derived(
-    healthScore >= 90
-      ? 'var(--success)'
-      : healthScore >= 70
-        ? 'var(--info)'
-        : healthScore >= 50
-          ? 'var(--warning)'
-          : 'var(--error)'
-  );
-  const healthIcon = $derived(
-    healthScore >= 90 ? '' : healthScore >= 70 ? '' : healthScore >= 50 ? '' : ''
-  );
-
-  // Time since last update
-  const timeSinceUpdate = $derived.by(() => {
-    return Math.floor((new Date() - lastUpdated) / 1000);
+  const filteredWarnings = $derived.by(() => {
+    let filtered = warnings;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        w =>
+          w.filepath?.toLowerCase().includes(q) ||
+          w.message?.toLowerCase().includes(q) ||
+          w.pattern_name?.toLowerCase().includes(q)
+      );
+    }
+    if (severityFilter !== 'all') {
+      filtered = filtered.filter(w => w.severity === severityFilter);
+    }
+    return filtered;
   });
 
-  // Load all safety data
-  async function loadSafetyData() {
+  const status = $derived(warnings.length === 0 ? 'healthy' : 'warning');
+
+  async function loadWarnings() {
     try {
       loading = true;
-      error = null;
-
-      // Parallel data fetching
-      const [syntaxData, fetchedWarningsData, sessionsData] = await Promise.all([
-        api.get('/syntax-errors/count').catch(() => ({ count: 0 })),
-        api.get('/pattern-warnings').catch(() => ({ warnings: [] })),
-        api.get('/sessions?limit=5').catch(() => ({ sessions: [] }))
-      ]);
-
-      syntaxErrorCount = syntaxData.count || 0;
-
-      // Store full warnings data
-      warningsData = fetchedWarningsData;
-      const warnings = warningsData.warnings || [];
-      patternWarningCount = warnings.length;
-      criticalWarnings = warnings
-        .filter(w => w.severity === 'error' || w.severity === 'warning')
-        .slice(0, 5);
-
-      recentSessions = sessionsData.sessions || [];
-
-      // Try to fetch test results (may not exist yet)
-      try {
-        const testData = await api.get('/tests/results');
-        if (testData.results) {
-          testResults.total = testData.results.length;
-          testResults.passed = testData.results.filter(t => t.status === 'passed').length;
-          testResults.failed = testData.results.filter(t => t.status === 'failed').length;
-        }
-      } catch (err) {
-        // Tests not available yet
-      }
-
-      lastUpdated = new Date();
-      loading = false;
-    } catch (err) {
-      logger.error('Failed to load safety data:', err);
-      error = err.message;
+      const data = await api.get('/pattern-warnings?limit=500').catch(() => ({ warnings: [] }));
+      warnings = data.warnings || [];
+    } catch {
+      // Silent fail
+    } finally {
       loading = false;
     }
   }
 
-  // Load on mount
-  $effect(() => {
-    loadSafetyData();
-  });
+  async function resolveWarning(id) {
+    try {
+      await api.post(`/pattern-warnings/${id}/resolve`);
+      await loadWarnings();
+    } catch (err) {
+      alert('Failed to resolve: ' + err.message);
+    }
+  }
+
+  async function resolveAll() {
+    if (!confirm(`Resolve all ${filteredWarnings.length} warnings?`)) return;
+    try {
+      await api.post('/pattern-warnings/resolve-all');
+      await loadWarnings();
+    } catch (err) {
+      alert('Failed: ' + err.message);
+    }
+  }
+
+  function shortenPath(filepath) {
+    if (!filepath) return '';
+    return filepath.replace(/^\/home\/[^/]+\/Projects\//, '');
+  }
+
+  onMount(loadWarnings);
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <div class="max-w-6xl mx-auto">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6">
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Safety Overview</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Safety</h1>
         <p class="text-sm text-[var(--muted)] font-sans">
-          Code health, validation, and quality metrics
+          Pattern detection: credentials, debug statements, code quality
         </p>
       </div>
-      <div class="flex items-center gap-3">
-        <span class="text-sm text-[var(--muted)] font-sans">Updated {timeSinceUpdate}s ago</span>
+      <div class="flex gap-2">
+        {#if warnings.length > 0}
+          <button
+            onclick={resolveAll}
+            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--success)] rounded text-sm font-sans text-[var(--success)] hover:bg-[var(--success-subtle)] transition-colors"
+          >
+            Resolve All
+          </button>
+        {/if}
         <button
-          onclick={loadSafetyData}
+          onclick={loadWarnings}
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '' : ''} Refresh
+          {loading ? '...' : '↻'} Refresh
         </button>
       </div>
     </div>
 
-    {#if error}
-      <div
-        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
-      >
-        <span class="text-sm text-[var(--error)] font-sans">
-          Failed to load safety data: {error}</span
-        >
-        <button
-          onclick={loadSafetyData}
-          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
-        >
-          Retry
-        </button>
-      </div>
-    {:else if loading}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {#each Array(4) as _, i (i)}
+    {#if loading}
+      <div class="space-y-3">
+        {#each Array(3) as _, i (i)}
           <div
-            class="h-32 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            class="h-16 bg-[var(--surface)] border border-[var(--border)] rounded animate-pulse"
           ></div>
         {/each}
       </div>
     {:else}
-      <!-- Health Score Card -->
-      <div
-        class="bg-gradient-to-br from-[var(--surface)] to-[var(--surface-2)] border-2 rounded-lg p-5 mb-6 flex items-center gap-5"
-        style="border-color: {healthColor}"
-      >
-        <div class="text-5xl flex-shrink-0">{healthIcon}</div>
-        <div class="flex-1 flex items-center gap-6 flex-wrap">
-          <div>
-            <div class="text-4xl font-bold leading-none mb-1" style="color: {healthColor}">
-              {healthScore}
-            </div>
-            <div class="text-base font-semibold" style="color: {healthColor}">{healthStatus}</div>
-          </div>
-          <div class="flex gap-6 flex-wrap">
-            <div class="flex items-baseline gap-2">
-              <span class="text-sm text-[var(--muted)] font-sans">Syntax Errors:</span>
-              <span
-                class="text-xl font-bold"
-                class:text-[var(--error)]={syntaxErrorCount > 0}
-                class:text-[var(--text)]={syntaxErrorCount === 0}
-              >
-                {syntaxErrorCount}
-              </span>
-            </div>
-            <div class="flex items-baseline gap-2">
-              <span class="text-sm text-[var(--muted)] font-sans">Warnings:</span>
-              <span
-                class="text-xl font-bold"
-                class:text-[var(--warning)]={patternWarningCount > 5}
-                class:text-[var(--text)]={patternWarningCount <= 5}
-              >
-                {patternWarningCount}
-              </span>
-            </div>
-            <div class="flex items-baseline gap-2">
-              <span class="text-sm text-[var(--muted)] font-sans">Test Failures:</span>
-              <span
-                class="text-xl font-bold"
-                class:text-[var(--error)]={testResults.failed > 0}
-                class:text-[var(--text)]={testResults.failed === 0}
-              >
-                {testResults.failed}
-              </span>
-            </div>
-          </div>
+      <!-- Status -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 mb-6">
+        <div class="flex items-center gap-2">
+          <span
+            class="w-2 h-2 rounded-full {status === 'healthy'
+              ? 'bg-[var(--success)]'
+              : 'bg-[var(--warning)]'}"
+          ></span>
+          <span class="text-sm font-mono font-semibold text-[var(--text)]">
+            {status === 'healthy'
+              ? 'All Clear — no pattern warnings detected'
+              : `${warnings.length} pattern warning${warnings.length === 1 ? '' : 's'} detected`}
+          </span>
         </div>
       </div>
 
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <button
-          onclick={() => navigate('/safety/syntax')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all text-left"
-        >
-          <div class="text-3xl flex-shrink-0"></div>
-          <div class="flex-1">
-            <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
-              {syntaxErrorCount}
-            </div>
-            <div class="text-sm text-[var(--muted)] font-sans mb-2">Syntax Errors</div>
-            <div
-              class="text-xs px-2 py-0.5 rounded font-semibold inline-block"
-              class:bg-[var(--success-subtle)]={syntaxErrorCount === 0}
-              class:text-[var(--success)]={syntaxErrorCount === 0}
-              class:bg-[var(--error-subtle)]={syntaxErrorCount > 0}
-              class:text-[var(--error)]={syntaxErrorCount > 0}
+      {#if warnings.length > 0}
+        <!-- Search + Filter -->
+        <div class="flex gap-3 mb-4 flex-wrap items-center">
+          <input
+            type="text"
+            placeholder="Search warnings..."
+            bind:value={searchQuery}
+            class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+          />
+          {#each ['all', 'error', 'warning', 'info'] as sev (sev)}
+            <button
+              onclick={() => (severityFilter = sev)}
+              class="px-3 py-1.5 border rounded text-sm font-sans transition-colors {severityFilter ===
+              sev
+                ? 'bg-[var(--accent-subtle)] border-[var(--accent)] text-[var(--accent)]'
+                : 'bg-[var(--surface)] border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'}"
             >
-              {syntaxErrorCount === 0 ? 'ALL CLEAR' : 'NEEDS ATTENTION'}
-            </div>
-          </div>
-        </button>
+              {sev === 'all' ? 'All' : sev.charAt(0).toUpperCase() + sev.slice(1)}
+            </button>
+          {/each}
+        </div>
 
-        <button
-          onclick={() => navigate('/safety/patterns')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all text-left"
-        >
-          <div class="text-3xl flex-shrink-0"></div>
-          <div class="flex-1">
-            <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
-              {patternWarningCount}
-            </div>
-            <div class="text-sm text-[var(--muted)] font-sans mb-1">Pattern Warnings</div>
-            <div class="text-xs text-[var(--muted)] font-sans">
-              {errorCount} errors · {warningOnlyCount} warnings
-            </div>
+        <!-- Warnings List -->
+        {#if filteredWarnings.length === 0}
+          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
+            <p class="text-sm text-[var(--muted)]">No matching warnings</p>
           </div>
-        </button>
-
-        <button
-          onclick={() => navigate('/safety/rollback')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all text-left"
-        >
-          <div class="text-3xl flex-shrink-0"></div>
-          <div class="flex-1">
-            <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
-              {recentSessions.length}
-            </div>
-            <div class="text-sm text-[var(--muted)] font-sans mb-1">Recent Sessions</div>
-            <div class="text-xs text-[var(--muted)] font-sans">Available for rollback</div>
-          </div>
-        </button>
-
-        <button
-          onclick={() => navigate('/safety/tests')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all text-left"
-        >
-          <div class="text-3xl flex-shrink-0"></div>
-          <div class="flex-1">
-            <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
-              {testResults.total > 0 ? `${testResults.passed}/${testResults.total}` : 'N/A'}
-            </div>
-            <div class="text-sm text-[var(--muted)] font-sans mb-1">Tests Passing</div>
-            <div class="text-xs text-[var(--muted)] font-sans">
-              {testResults.failed > 0 ? `${testResults.failed} failing` : 'All passing'}
-            </div>
-          </div>
-        </button>
-      </div>
-
-      <!-- Critical Issues -->
-      {#if criticalWarnings.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h2
-            class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
-          >
-            Critical Issues
-          </h2>
-          <div class="space-y-3">
-            {#each criticalWarnings as warning (warning.id || warning.message)}
-              <div
-                class="flex items-start gap-3 p-3 bg-[var(--bg)] rounded border"
-                class:border-l-4={warning.severity === 'error'}
-                class:border-[var(--error)]={warning.severity === 'error'}
-                class:border-[var(--border)]={warning.severity !== 'error'}
-              >
-                <span class="text-xl flex-shrink-0">{warning.severity === 'error' ? '' : ''}</span>
-                <div class="flex-1">
-                  <div class="text-sm font-medium text-[var(--text)] mb-1 font-sans">
-                    {warning.message}
+        {:else}
+          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+            <div class="divide-y divide-[var(--border)]">
+              {#each filteredWarnings as warning (warning.id)}
+                <div class="px-5 py-3 flex items-start gap-3">
+                  <span
+                    class="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 {warning.severity ===
+                      'error' || warning.severity === 'critical'
+                      ? 'bg-[var(--error)]'
+                      : warning.severity === 'warning'
+                        ? 'bg-[var(--warning)]'
+                        : 'bg-[var(--accent)]'}"
+                  ></span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="text-sm font-mono font-semibold text-[var(--text)]"
+                        >{warning.pattern_name || 'Pattern'}</span
+                      >
+                      <span class="text-xs text-[var(--muted)] font-mono">{warning.severity}</span>
+                    </div>
+                    <div class="text-xs text-[var(--muted)] mb-1">{warning.message}</div>
+                    <div class="text-xs text-[var(--muted)] font-mono">
+                      {shortenPath(warning.filepath)}
+                      {warning.line_number ? `· Line ${warning.line_number}` : ''}
+                    </div>
+                    {#if warning.context || warning.match_text}
+                      <code
+                        class="block mt-2 px-2 py-1 bg-[var(--bg)] rounded text-xs font-mono text-[var(--text)] overflow-x-auto"
+                        >{warning.context || warning.match_text}</code
+                      >
+                    {/if}
                   </div>
-                  <div class="text-sm text-[var(--muted)] font-mono">
-                    {warning.filepath} · Line {warning.line_number || 'N/A'}
-                  </div>
+                  <button
+                    onclick={() => resolveWarning(warning.id)}
+                    class="px-2 py-1 bg-[var(--surface)] border border-[var(--success)] rounded text-xs font-sans text-[var(--success)] hover:bg-[var(--success-subtle)] transition-colors flex-shrink-0"
+                  >
+                    Resolve
+                  </button>
                 </div>
-              </div>
-            {/each}
+              {/each}
+            </div>
           </div>
-        </div>
+          <div class="text-xs text-[var(--muted)] text-center mt-3">
+            Showing {filteredWarnings.length} of {warnings.length} warnings
+          </div>
+        {/if}
       {/if}
-
-      <!-- Quick Actions -->
-      <div>
-        <h2
-          class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
-        >
-          Quick Actions
-        </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <button
-            onclick={() => navigate('/safety/syntax')}
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
-          >
-            <div class="text-2xl flex-shrink-0"></div>
-            <div>
-              <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
-                Syntax Errors
-              </div>
-              <div class="text-sm text-[var(--muted)] font-sans">View and fix syntax issues</div>
-            </div>
-          </button>
-
-          <button
-            onclick={() => navigate('/safety/patterns')}
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
-          >
-            <div class="text-2xl flex-shrink-0"></div>
-            <div>
-              <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
-                Pattern Warnings
-              </div>
-              <div class="text-sm text-[var(--muted)] font-sans">Code quality checks</div>
-            </div>
-          </button>
-
-          <button
-            onclick={() => navigate('/safety/rollback')}
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
-          >
-            <div class="text-2xl flex-shrink-0"></div>
-            <div>
-              <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
-                Session Rollback
-              </div>
-              <div class="text-sm text-[var(--muted)] font-sans">Restore previous states</div>
-            </div>
-          </button>
-
-          <button
-            onclick={() => navigate('/safety/tests')}
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
-          >
-            <div class="text-2xl flex-shrink-0"></div>
-            <div>
-              <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
-                Test Results
-              </div>
-              <div class="text-sm text-[var(--muted)] font-sans">View test suite status</div>
-            </div>
-          </button>
-        </div>
-      </div>
     {/if}
   </div>
 </div>

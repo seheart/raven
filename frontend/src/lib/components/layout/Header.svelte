@@ -1,25 +1,17 @@
 <script>
-  /**
-   * Header Component - Raven UI Library
-   * Compact header with navigation, stats, and user menu
-   */
-
   import RavenLogo from '../ui/RavenLogo.svelte';
-  import UserMenu from '../ui/UserMenu.svelte';
-  import RateLimitIndicator from '../RateLimitIndicator.svelte';
   import { navigate } from '../../utils/router.svelte.js';
+  import { onMount } from 'svelte';
+  import { api } from '../../apiClient.js';
 
   let {
     activeTab = 'overview',
     activeSubTab = '',
-    username = 'User',
-    role = 'user',
-    todayStats = { modified: 0, added: 0, deleted: 0 },
-    unreadCount = 0,
-    onNotificationsClick = () => {},
     onSettingsClick = () => {},
     onLogoutClick = () => {}
   } = $props();
+
+  let stats = $state({ files: 0, edits: 0, creates: 0, deletes: 0 });
 
   const tabs = [
     { id: 'live', label: 'Code Changes', path: '/live' },
@@ -29,7 +21,6 @@
     { id: 'system', label: 'System', path: '/system' }
   ];
 
-  // Sub-tabs for each main tab (no emojis in labels as requested)
   const subTabs = {
     live: [],
     overview: [
@@ -51,11 +42,7 @@
       { id: 'conversations', label: 'Agent Conversations' },
       { id: 'triggers', label: 'Triggers' }
     ],
-    safety: [
-      { id: '', label: 'Overview' },
-      { id: 'syntax', label: 'Syntax Errors' },
-      { id: 'patterns', label: 'Pattern Warnings' }
-    ],
+    safety: [],
     system: [
       { id: '', label: 'Overview' },
       { id: 'health-monitor', label: 'Health Monitor' },
@@ -77,22 +64,42 @@
     const path = subId ? `/${activeTab}/${subId}` : `/${activeTab}`;
     navigate(path);
   }
+
+  async function loadStats() {
+    try {
+      const data = await api.get('/dashboard-stats');
+      stats = {
+        files: data.total_files || 0,
+        edits: data.edits || 0,
+        creates: data.creates || 0,
+        deletes: data.deletes || 0
+      };
+    } catch {
+      // Silent fail — stats are supplementary
+    }
+  }
+
+  onMount(() => {
+    loadStats();
+    // Refresh stats every 30s
+    const interval = setInterval(loadStats, 30000);
+    return () => clearInterval(interval);
+  });
 </script>
 
 <header class="sticky top-0 z-40 bg-[var(--surface)] border-b border-[var(--border)] font-sans">
-  <!-- Main Header Row -->
   <div class="flex items-center gap-4 px-3 py-2 h-12">
     <!-- Logo -->
     <button
-      onclick={e => handleNavClick(e, '/overview')}
+      onclick={e => handleNavClick(e, '/live')}
       class="flex items-center gap-2 font-semibold text-[#0d0d1a] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0"
-      aria-label="Go to Overview"
+      aria-label="Go to Code Changes"
     >
       <RavenLogo size={18} />
       <span>Raven</span>
     </button>
 
-    <!-- Main Navigation Tabs -->
+    <!-- Main Navigation -->
     <nav class="flex gap-1 flex-1 font-sans" aria-label="Main navigation">
       {#each tabs as tab (tab.id)}
         <button
@@ -109,48 +116,29 @@
       {/each}
     </nav>
 
-    <!-- Today's Activity Stats -->
+    <!-- Activity Stats (real data) -->
     <div
-      class="flex gap-2 text-sm font-mono pl-4 border-l border-[var(--border)]"
-      role="region"
-      aria-label="Today's activity"
+      class="flex gap-3 text-xs font-mono text-[var(--muted)] pl-4 border-l border-[var(--border)]"
     >
-      <span class="px-2 py-0.5 bg-[var(--accent-subtle)] text-[var(--accent)] rounded"
-        >{todayStats.modified} modified</span
-      >
-      <span class="px-2 py-0.5 bg-[var(--success-subtle)] text-[var(--success)] rounded"
-        >+{todayStats.added} added</span
-      >
-      <span class="px-2 py-0.5 bg-[var(--error-subtle)] text-[var(--error)] rounded"
-        >-{todayStats.deleted} deleted</span
-      >
+      <span>{stats.files} files</span>
+      <span>{stats.edits} edits</span>
+      <span class="text-[var(--success)]">+{stats.creates}</span>
+      <span class="text-[var(--error)]">-{stats.deletes}</span>
     </div>
 
-    <!-- Notifications Bell -->
+    <!-- Settings -->
     <button
-      onclick={onNotificationsClick}
-      class="relative p-2 text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--accent)] rounded transition-all hover:scale-110"
-      aria-label="Open notifications ({unreadCount} unread)"
+      onclick={onSettingsClick}
+      class="px-2 py-1 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 cursor-pointer"
+      aria-label="Settings"
     >
-      {#if unreadCount > 0}
-        <span
-          class="absolute top-0 right-0 flex items-center justify-center min-w-[20px] h-[20px] px-1 bg-[var(--error)] text-[#ffffff] text-[11px] font-bold rounded-full"
-        >
-          {unreadCount}
-        </span>
-      {/if}
+      Settings
     </button>
-
-    <!-- Rate Limit Indicator -->
-    <RateLimitIndicator />
-
-    <!-- User Menu -->
-    <UserMenu {username} {role} {onSettingsClick} {onLogoutClick} />
   </div>
 
-  <!-- Sub-Navigation Row -->
+  <!-- Sub-Navigation -->
   {#if currentSubTabs.length > 0}
-    <div class="border-t border-[var(--border)] bg-[var(--surface-2)]">
+    <div class="border-t border-[var(--border)] bg-[var(--bg)]">
       <nav class="flex gap-1 px-3 py-1.5 font-sans overflow-x-auto" aria-label="Sub navigation">
         {#each currentSubTabs as subTab (subTab.id)}
           <button

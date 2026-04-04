@@ -65,76 +65,6 @@ const PATTERNS: Pattern[] = [
     severity: 'critical',
     pattern: /\beval\s*\(/,
     category: 'security'
-  },
-
-  // Code quality patterns
-  {
-    id: 'console-log',
-    name: 'Console Log Statement',
-    description: 'Debug console.log should be removed',
-    severity: 'info',
-    pattern: /console\.(log|debug|info|warn|error)\(/,
-    category: 'quality'
-  },
-  {
-    id: 'debugger',
-    name: 'Debugger Statement',
-    description: 'Debugger statement should be removed',
-    severity: 'warning',
-    pattern: /\bdebugger\b/,
-    category: 'quality'
-  },
-  {
-    id: 'todo-comment',
-    name: 'TODO Comment',
-    description: 'TODO comment indicates incomplete work',
-    severity: 'info',
-    pattern: /\/\/\s*TODO|\/\*\s*TODO|\#\s*TODO/i,
-    category: 'maintenance'
-  },
-  {
-    id: 'fixme-comment',
-    name: 'FIXME Comment',
-    description: 'FIXME indicates code that needs fixing',
-    severity: 'warning',
-    pattern: /\/\/\s*FIXME|\/\*\s*FIXME|\#\s*FIXME/i,
-    category: 'maintenance'
-  },
-  {
-    id: 'hack-comment',
-    name: 'HACK Comment',
-    description: 'HACK indicates questionable code',
-    severity: 'warning',
-    pattern: /\/\/\s*HACK|\/\*\s*HACK|\#\s*HACK/i,
-    category: 'maintenance'
-  },
-
-  // Performance patterns
-  {
-    id: 'inefficient-loop',
-    name: 'Inefficient Loop Pattern',
-    description: 'Array.length calculated in every iteration',
-    severity: 'info',
-    pattern: /for\s*\([^;]+;\s*\w+\s*<\s*\w+\.length\s*;/,
-    category: 'performance'
-  },
-
-  // Suspicious patterns
-  {
-    id: 'process-env',
-    name: 'Direct process.env Access',
-    description: 'Consider using config module instead',
-    severity: 'info',
-    pattern: /process\.env\.\w+/,
-    category: 'quality'
-  },
-  {
-    id: 'any-type',
-    name: 'TypeScript Any Type',
-    description: 'Using "any" defeats TypeScript benefits',
-    severity: 'info',
-    pattern: /:\s*any\b/,
-    category: 'quality'
   }
 ];
 
@@ -183,7 +113,7 @@ export class PatternDetector {
     const lines = diff.split('\n');
 
     let currentLine = 0;
-    lines.forEach((line) => {
+    lines.forEach(line => {
       // Only check added lines (starting with +)
       if (line.startsWith('+') && !line.startsWith('+++')) {
         currentLine++;
