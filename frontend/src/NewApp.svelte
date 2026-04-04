@@ -309,35 +309,17 @@
         {:catch}
           <PlaceholderPage title="System" description="Loading..." />
         {/await}
-      {:else if activeSubTab === 'status'}
-        {#await import('./lib/pages/SystemStatusPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="System Status" description="Loading..." />
-        {/await}
       {:else if activeSubTab === 'health-monitor'}
         {#await import('./lib/pages/SystemHealthMonitorPage.svelte') then { default: Component }}
           <Component />
         {:catch}
           <PlaceholderPage title="Health Monitor" description="Loading..." />
         {/await}
-      {:else if activeSubTab === 'storage'}
-        {#await import('./lib/pages/SystemStoragePage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Storage" description="Loading..." />
-        {/await}
       {:else if activeSubTab === 'projects'}
         {#await import('./lib/pages/SystemProjectsPage.svelte') then { default: Component }}
           <Component />
         {:catch}
           <PlaceholderPage title="Projects" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'notifications'}
-        {#await import('./lib/pages/SystemNotificationsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Notifications" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'errors'}
         {#await import('./lib/pages/SystemErrorsPage.svelte') then { default: Component }}

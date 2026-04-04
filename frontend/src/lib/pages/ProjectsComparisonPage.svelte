@@ -208,11 +208,11 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-xl font-bold text-[var(--text)] mb-2">Projects Comparison</h1>
-      <p class="text-base text-[var(--muted)] font-sans">
+      <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Projects Comparison</h1>
+      <p class="text-sm text-[var(--muted)] font-sans">
         Compare all monitored projects side-by-side
       </p>
     </div>
@@ -280,18 +280,18 @@
         <div
           class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
         ></div>
-        <p class="text-base text-[var(--muted)] font-sans">Loading projects...</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Loading projects...</p>
       </div>
     {:else if projects.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-base text-[var(--muted)] mb-2">No projects found</p>
+        <p class="text-sm text-[var(--muted)] mb-2">No projects found</p>
         <p class="text-xs text-[var(--muted)] opacity-80">
           Projects are automatically discovered when you start monitoring code with Raven.
         </p>
       </div>
     {:else if filteredProjects.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-base text-[var(--muted)] mb-2">No projects match your filters</p>
+        <p class="text-sm text-[var(--muted)] mb-2">No projects match your filters</p>
         <p class="text-xs text-[var(--muted)] opacity-80">
           Try adjusting your search or status filter.
         </p>
@@ -349,7 +349,7 @@
               {#each sortedProjects as project (project.name)}
                 {@const status = getActivityStatus(project.last_activity)}
                 <tr class="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
-                  <td class="px-4 py-3 text-base font-semibold text-[var(--accent)] font-mono">
+                  <td class="px-4 py-3 text-sm font-semibold text-[var(--accent)] font-mono">
                     {project.name}
                   </td>
                   <td class="px-4 py-3">

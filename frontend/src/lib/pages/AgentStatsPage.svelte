@@ -442,11 +442,11 @@
 
 <div class="min-h-screen bg-[var(--bg)] pb-20">
   <AgentsNav />
-  <div class="max-w-7xl mx-auto space-y-6 px-6">
+  <div class="max-w-6xl mx-auto space-y-6 px-6">
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Statistics</h1>
-      <p class="text-base text-[var(--muted)] font-sans">
+      <p class="text-sm text-[var(--muted)] font-sans">
         Comprehensive agent statistics and performance metrics
       </p>
     </div>
@@ -455,7 +455,7 @@
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
       >
-        <span class="text-base text-[var(--error)] font-sans"
+        <span class="text-sm text-[var(--error)] font-sans"
           >Failed to load agent stats: {error}</span
         >
         <button
@@ -570,19 +570,19 @@
         <div
           class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
         ></div>
-        <p class="text-base text-[var(--muted)] font-sans">Loading agent statistics...</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Loading agent statistics...</p>
       </div>
     {:else if agentStats.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
         <span class="text-4xl block mb-3"></span>
-        <p class="text-base text-[var(--muted)] mb-2 font-sans">No agent statistics available</p>
+        <p class="text-sm text-[var(--muted)] mb-2 font-sans">No agent statistics available</p>
         <p class="text-sm text-[var(--muted)] opacity-80 font-sans">
           Agent activity will appear here once detected by Raven.
         </p>
       </div>
     {:else if filteredStats.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-base text-[var(--muted)] mb-2 font-sans">No agents match your search</p>
+        <p class="text-sm text-[var(--muted)] mb-2 font-sans">No agents match your search</p>
         <p class="text-sm text-[var(--muted)] opacity-80 font-sans">
           Try adjusting your search query.
         </p>
@@ -620,7 +620,7 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-2">
-                    <h3 class="text-lg font-bold text-[var(--text-heading)] font-mono">
+                    <h3 class="text-sm font-bold text-[var(--text-heading)] font-mono">
                       {agent.agent_name || 'Unknown'}
                     </h3>
                     <span
@@ -639,7 +639,7 @@
               </div>
               <div class="text-right">
                 <div class="text-sm text-[var(--muted)] font-sans">Last Active</div>
-                <div class="text-base font-semibold text-[var(--text)] font-mono">
+                <div class="text-sm font-semibold text-[var(--text)] font-mono">
                   {formatDateTime(agent.last_active)}
                 </div>
               </div>

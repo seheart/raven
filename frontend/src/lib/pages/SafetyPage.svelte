@@ -114,12 +114,12 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Safety Overview</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
+        <p class="text-sm text-[var(--muted)] font-sans">
           Code health, validation, and quality metrics
         </p>
       </div>
@@ -139,7 +139,7 @@
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
       >
-        <span class="text-base text-[var(--error)] font-sans">
+        <span class="text-sm text-[var(--error)] font-sans">
           Failed to load safety data: {error}</span
         >
         <button
@@ -210,7 +210,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <button
           onclick={() => navigate('/safety/syntax')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all text-left"
         >
           <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
@@ -232,7 +232,7 @@
 
         <button
           onclick={() => navigate('/safety/patterns')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all text-left"
         >
           <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
@@ -248,7 +248,7 @@
 
         <button
           onclick={() => navigate('/safety/rollback')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all text-left"
         >
           <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
@@ -262,7 +262,7 @@
 
         <button
           onclick={() => navigate('/safety/tests')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all text-left"
         >
           <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
@@ -280,7 +280,9 @@
       <!-- Critical Issues -->
       {#if criticalWarnings.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          <h2
+            class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+          >
             Critical Issues
           </h2>
           <div class="space-y-3">
@@ -293,7 +295,7 @@
               >
                 <span class="text-xl flex-shrink-0">{warning.severity === 'error' ? '' : ''}</span>
                 <div class="flex-1">
-                  <div class="text-base font-medium text-[var(--text)] mb-1 font-sans">
+                  <div class="text-sm font-medium text-[var(--text)] mb-1 font-sans">
                     {warning.message}
                   </div>
                   <div class="text-sm text-[var(--muted)] font-mono">
@@ -308,17 +310,19 @@
 
       <!-- Quick Actions -->
       <div>
-        <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+        <h2
+          class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+        >
           Quick Actions
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onclick={() => navigate('/safety/syntax')}
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
           >
             <div class="text-2xl flex-shrink-0"></div>
             <div>
-              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+              <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
                 Syntax Errors
               </div>
               <div class="text-sm text-[var(--muted)] font-sans">View and fix syntax issues</div>
@@ -327,11 +331,11 @@
 
           <button
             onclick={() => navigate('/safety/patterns')}
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
           >
             <div class="text-2xl flex-shrink-0"></div>
             <div>
-              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+              <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
                 Pattern Warnings
               </div>
               <div class="text-sm text-[var(--muted)] font-sans">Code quality checks</div>
@@ -340,11 +344,11 @@
 
           <button
             onclick={() => navigate('/safety/rollback')}
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
           >
             <div class="text-2xl flex-shrink-0"></div>
             <div>
-              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+              <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
                 Session Rollback
               </div>
               <div class="text-sm text-[var(--muted)] font-sans">Restore previous states</div>
@@ -353,11 +357,11 @@
 
           <button
             onclick={() => navigate('/safety/tests')}
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
           >
             <div class="text-2xl flex-shrink-0"></div>
             <div>
-              <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+              <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
                 Test Results
               </div>
               <div class="text-sm text-[var(--muted)] font-sans">View test suite status</div>

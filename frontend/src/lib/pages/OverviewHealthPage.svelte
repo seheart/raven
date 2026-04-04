@@ -89,12 +89,12 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-bold text-[var(--text)] mb-2">Project Health</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Project Health</h1>
+        <p class="text-sm text-[var(--muted)] font-sans">
           Comprehensive health analysis for {selectedProject === 'all'
             ? 'all projects'
             : selectedProject}
@@ -127,11 +127,11 @@
         <div
           class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
         ></div>
-        <p class="text-base text-[var(--muted)] font-sans">Calculating health score...</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Calculating health score...</p>
       </div>
     {:else if error}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-base text-red-500 mb-2">{error}</p>
+        <p class="text-sm text-red-500 mb-2">{error}</p>
         <button
           class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90 transition-opacity mt-4"
           onclick={loadHealthSummary}
@@ -144,7 +144,9 @@
       <div class="bg-[var(--surface)] border-2 border-[var(--border)] rounded-lg p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-lg font-semibold text-[var(--text)] mb-1">Overall Health Score</h2>
+            <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1">
+              Overall Health Score
+            </h2>
             <p class="text-sm text-[var(--muted)]">
               {getStatusEmoji(overallStatus)}
               <span class="capitalize">{overallStatus}</span> -{healthData.timestamp
@@ -252,7 +254,9 @@
       <!-- Recommendations -->
       {#if healthData.recommendations && healthData.recommendations.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
-          <h2 class="text-lg font-semibold text-[var(--text)] mb-4">Recommendations</h2>
+          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+            Recommendations
+          </h2>
 
           <div class="space-y-3">
             {#each healthData.recommendations as rec (rec.title)}
@@ -286,7 +290,9 @@
       <!-- Health Trends -->
       {#if trendsData.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
-          <h2 class="text-lg font-semibold text-[var(--text)] mb-4">Health Trends</h2>
+          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+            Health Trends
+          </h2>
 
           <div class="space-y-3">
             {#each trendsData as trend (trend.date)}
@@ -363,12 +369,14 @@
           <!-- Errors Breakdown -->
           {#if healthData.metrics.errors_by_severity}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-              <h3 class="text-base font-semibold text-[var(--text)] mb-4">Errors by Severity</h3>
+              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+                Errors by Severity
+              </h3>
               <div class="space-y-2">
                 {#each healthData.metrics.errors_by_severity as err (err.severity)}
                   <div class="flex items-center justify-between">
                     <span class="text-sm capitalize text-[var(--muted)]">{err.severity}</span>
-                    <span class="text-base font-mono font-semibold text-[var(--text)]">
+                    <span class="text-sm font-mono font-semibold text-[var(--text)]">
                       {err.count}
                     </span>
                   </div>
@@ -380,14 +388,16 @@
           <!-- File Activity -->
           {#if healthData.metrics.file_activity}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-              <h3 class="text-base font-semibold text-[var(--text)] mb-4">File Activity</h3>
+              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+                File Activity
+              </h3>
               <div class="space-y-2">
                 {#each healthData.metrics.file_activity as activity (activity.change_type)}
                   <div class="flex items-center justify-between">
                     <span class="text-sm capitalize text-[var(--muted)]"
                       >{activity.change_type}</span
                     >
-                    <span class="text-base font-mono font-semibold text-[var(--text)]">
+                    <span class="text-sm font-mono font-semibold text-[var(--text)]">
                       {activity.count}
                     </span>
                   </div>
@@ -399,17 +409,19 @@
           <!-- Agent Interactions -->
           {#if healthData.metrics.agent_interactions}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-              <h3 class="text-base font-semibold text-[var(--text)] mb-4">Agent Interactions</h3>
+              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+                Agent Interactions
+              </h3>
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-[var(--muted)]">Total</span>
-                  <span class="text-base font-mono font-semibold text-[var(--text)]">
+                  <span class="text-sm font-mono font-semibold text-[var(--text)]">
                     {healthData.metrics.agent_interactions.total || 0}
                   </span>
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-[var(--muted)]">Successful</span>
-                  <span class="text-base font-mono font-semibold text-green-500">
+                  <span class="text-sm font-mono font-semibold text-green-500">
                     {healthData.metrics.agent_interactions.successful || 0}
                   </span>
                 </div>
@@ -419,7 +431,9 @@
 
           <!-- Syntax Errors -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-            <h3 class="text-base font-semibold text-[var(--text)] mb-4">Active Syntax Errors</h3>
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+              Active Syntax Errors
+            </h3>
             <div class="text-center">
               <div
                 class="text-4xl font-bold font-mono"

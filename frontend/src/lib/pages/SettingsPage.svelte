@@ -181,7 +181,9 @@
 
   <!-- Notifications Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">Notifications</h3>
+    <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+      Notifications
+    </h3>
 
     <!-- Enable Notifications -->
     <div class="setting-card">
@@ -338,7 +340,9 @@
 
   <!-- UI Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">User Interface</h3>
+    <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+      User Interface
+    </h3>
 
     <!-- Time Format -->
     <div class="setting-card">
@@ -417,7 +421,9 @@
 
   <!-- Editor Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">Editor</h3>
+    <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+      Editor
+    </h3>
 
     <div class="setting-card">
       <div class="setting-control">
@@ -444,7 +450,9 @@
 
   <!-- Performance Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">Performance</h3>
+    <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+      Performance
+    </h3>
 
     <!-- Enable Metrics -->
     <div class="setting-card">
@@ -520,7 +528,9 @@
 
   <!-- Danger Zone Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--error)] font-sans">Danger Zone</h3>
+    <h3 class="text-xs font-semibold text-[var(--error)] uppercase tracking-wide font-sans">
+      Danger Zone
+    </h3>
 
     <div class="danger-zone-card">
       <div class="flex items-start justify-between gap-4">

@@ -494,7 +494,7 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto space-y-6">
+  <div class="max-w-6xl mx-auto space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-start">
       <div>
@@ -530,13 +530,11 @@
       </div>
     {:else if loading}
       <div class="text-center py-12">
-        <div class="text-4xl mb-4"></div>
-        <p class="text-[var(--muted)] font-sans">Loading tracked files...</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Loading tracked files...</p>
       </div>
     {:else if files.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4"></div>
-        <p class="text-xl font-semibold text-[var(--text-heading)] mb-2">No files tracked yet</p>
+        <p class="text-sm font-semibold text-[var(--text-heading)] mb-2">No files tracked yet</p>
         <p class="text-sm text-[var(--muted)] font-sans">Edit files to start tracking</p>
       </div>
     {:else}
@@ -546,7 +544,7 @@
           <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
             Total Files
           </div>
-          <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">
+          <div class="text-sm font-bold text-[var(--text)] font-mono">
             {stats.totalFiles}
           </div>
         </div>
@@ -554,7 +552,7 @@
           <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
             Filtered
           </div>
-          <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">
+          <div class="text-sm font-bold text-[var(--text)] font-mono">
             {stats.filteredFiles}
           </div>
         </div>
@@ -562,7 +560,7 @@
           <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
             Last Updated
           </div>
-          <div class="text-lg font-semibold text-[var(--text)] font-mono">
+          <div class="text-sm font-semibold text-[var(--text)] font-mono">
             {formatTimestamp(stats.lastUpdated)}
           </div>
         </div>
@@ -633,7 +631,7 @@
           {#if searchQuery}
             <button
               onclick={() => (searchQuery = '')}
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] text-xl"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] text-sm"
             >
               ×
             </button>
@@ -708,7 +706,7 @@
                   class:rotate-90={expandedFile === filepath}
                 >
                 </span>
-                <span class="text-xl flex-shrink-0">{getFileIcon(filepath)}</span>
+                <span class="text-sm flex-shrink-0">{getFileIcon(filepath)}</span>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-medium text-[var(--text)] font-mono truncate">

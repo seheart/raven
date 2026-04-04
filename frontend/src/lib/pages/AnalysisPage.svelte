@@ -207,12 +207,12 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Analysis Overview</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
+        <p class="text-sm text-[var(--muted)] font-sans">
           Performance metrics, trends, and insights
         </p>
       </div>
@@ -319,7 +319,9 @@
       <!-- CPU/Memory Chart -->
       {#if metricsHistory.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          <h2
+            class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+          >
             Performance Trends
           </h2>
           <div style="height: 300px;">
@@ -332,7 +334,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <button
           onclick={() => navigate('/analysis/triggers')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] transition-all"
         >
           <div class="flex items-center gap-3 mb-2">
             <span class="text-xl"></span>
@@ -344,7 +346,7 @@
 
         <button
           onclick={() => navigate('/analysis/trends')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] transition-all"
         >
           <div class="flex items-center gap-3 mb-2">
             <span class="text-xl"></span>
@@ -358,7 +360,9 @@
       <!-- Recent Triggered Events -->
       {#if triggeredEvents.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+          <h2
+            class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+          >
             Recent Triggered Events
           </h2>
           <div class="space-y-2">
@@ -385,13 +389,15 @@
 
       <!-- Quick Actions Grid -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+        <h2
+          class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+        >
           Quick Actions
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <button
             onclick={() => navigate('/analysis/performance')}
-            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
           >
             <span class="text-2xl"></span>
             <div>
@@ -404,7 +410,7 @@
 
           <button
             onclick={() => navigate('/analysis/trends')}
-            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
           >
             <span class="text-2xl"></span>
             <div>
@@ -417,7 +423,7 @@
 
           <button
             onclick={() => navigate('/analysis/triggers')}
-            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
           >
             <span class="text-2xl"></span>
             <div>

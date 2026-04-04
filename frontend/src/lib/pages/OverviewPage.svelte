@@ -485,16 +485,16 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto space-y-6">
+  <div class="max-w-6xl mx-auto space-y-6">
     <!-- Greeting Header -->
     <div class="text-center mb-6">
-      <h2 class="text-xl font-semibold text-[var(--text)] mb-3 font-mono">{greeting}</h2>
+      <h2 class="text-2xl font-bold text-[var(--text-heading)] mb-3 font-mono">{greeting}</h2>
       <div class="flex items-center justify-center gap-8 flex-wrap">
-        <div class="flex items-center gap-2 text-base text-[var(--muted)] font-mono">
+        <div class="flex items-center gap-2 text-sm text-[var(--muted)] font-mono">
           <span></span>
           <span>Monitoring {projectCount} project{projectCount !== 1 ? 's' : ''}</span>
         </div>
-        <div class="flex items-center gap-2 text-base text-[var(--muted)] font-mono">
+        <div class="flex items-center gap-2 text-sm text-[var(--muted)] font-mono">
           <span></span>
           <span
             >{stats.unique_files_modified} file{stats.unique_files_modified !== 1 ? 's' : ''} changed
@@ -511,7 +511,7 @@
     >
       <div class="flex items-center justify-between gap-4 flex-wrap">
         <div class="flex items-center gap-4">
-          <span class="text-xl">{statusConfig.icon}</span>
+          <span class="text-sm">{statusConfig.icon}</span>
           <h3 class="text-sm font-semibold text-[var(--text)] font-mono m-0">Project Health</h3>
           <p
             class="text-sm font-semibold text-[var(--text)] m-0 font-mono"
@@ -558,7 +558,7 @@
         </h3>
         <div class="h-[200px]">
           {#if loading}
-            <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">
+            <div class="flex items-center justify-center h-full text-sm text-[var(--muted)]">
               Loading...
             </div>
           {:else}
@@ -572,7 +572,7 @@
         <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">Project Health</h3>
         <div class="h-[200px]">
           {#if loading}
-            <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">
+            <div class="flex items-center justify-center h-full text-sm text-[var(--muted)]">
               Loading...
             </div>
           {:else}
@@ -586,13 +586,13 @@
         <h3 class="text-sm font-semibold text-[var(--text)] font-sans mb-4 m-0">Flow State</h3>
         <div class="h-[200px] flex flex-col items-center justify-center">
           {#if loading}
-            <div class="text-base text-[var(--muted)]">Loading...</div>
+            <div class="text-sm text-[var(--muted)]">Loading...</div>
           {:else}
-            <div class="text-6xl mb-4">{flowState.icon}</div>
-            <div class="text-xl font-semibold font-mono" style="color: {flowState.color}">
+            <div class="text-3xl mb-4">{flowState.icon}</div>
+            <div class="text-sm font-semibold font-mono" style="color: {flowState.color}">
               {flowState.state} Activity
             </div>
-            <div class="text-base text-[var(--muted)] mt-2 font-mono">
+            <div class="text-sm text-[var(--muted)] mt-2 font-mono">
               {(stats.total_events / Math.max(1, stats.session_duration_seconds / 60)).toFixed(1)} events/min
             </div>
           {/if}
@@ -607,7 +607,7 @@
       </h3>
       <div class="h-[200px]">
         {#if loading}
-          <div class="flex items-center justify-center h-full text-base text-[var(--muted)]">
+          <div class="flex items-center justify-center h-full text-sm text-[var(--muted)]">
             Loading...
           </div>
         {:else}
@@ -625,9 +625,9 @@
       </div>
 
       {#if loading}
-        <div class="text-center py-8 text-base text-[var(--muted)]">Loading projects...</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">Loading projects...</div>
       {:else if projectsData.length === 0}
-        <div class="text-center py-8 text-base text-[var(--muted)]">No projects found</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">No projects found</div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {#each projectsData as project (project.name)}
@@ -650,13 +650,13 @@
               <div class="flex gap-4">
                 <div class="flex flex-col gap-1">
                   <span class="text-sm text-[var(--muted)] uppercase tracking-wide">Recent</span>
-                  <span class="text-base font-semibold text-[var(--accent)] font-mono"
+                  <span class="text-sm font-semibold text-[var(--accent)] font-mono"
                     >{project.recentChanges}</span
                   >
                 </div>
                 <div class="flex flex-col gap-1">
                   <span class="text-sm text-[var(--muted)] uppercase tracking-wide">Activity</span>
-                  <span class="text-base font-semibold text-[var(--accent)] font-mono">
+                  <span class="text-sm font-semibold text-[var(--accent)] font-mono">
                     {formatRelativeTime(project.lastActivity)}
                   </span>
                 </div>
@@ -674,7 +674,7 @@
         <div class="flex items-center gap-4">
           <span class="text-sm text-[var(--muted)] font-mono">Updated: {timeAgo}</span>
           <button
-            class="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-base font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all disabled:opacity-50"
+            class="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all disabled:opacity-50"
             onclick={() => loadAllData(true)}
             disabled={loading}
           >
@@ -688,11 +688,11 @@
       </div>
 
       {#if loading}
-        <div class="text-center py-8 text-base text-[var(--muted)]">Loading activity...</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">Loading activity...</div>
       {:else if recentActivity.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2"></span>
-          <p class="text-base text-[var(--muted)] font-sans">No recent activity</p>
+          <span class="text-sm block mb-2"></span>
+          <p class="text-sm text-[var(--muted)] font-sans">No recent activity</p>
         </div>
       {:else}
         <div class="space-y-2">
@@ -700,11 +700,11 @@
             <div
               class="flex items-center gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all"
             >
-              <span class="text-base flex-shrink-0">
+              <span class="text-sm flex-shrink-0">
                 {#if event.change_type === 'create' || event.change_type === 'add'}{:else if event.change_type === 'edit' || event.change_type === 'change'}{:else if event.change_type === 'delete' || event.change_type === 'unlink'}{:else}{/if}
               </span>
               <div class="flex-1 min-w-0">
-                <div class="text-base text-[var(--text)] font-mono mb-1">
+                <div class="text-sm text-[var(--text)] font-mono mb-1">
                   {#if event.project}
                     <span
                       class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide"
@@ -728,33 +728,33 @@
       <!-- Current Session -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="flex items-center gap-2 mb-4">
-          <span class="text-base"></span>
+          <span class="text-sm"></span>
           <h3 class="text-sm font-semibold text-[var(--text)] font-sans m-0">Current Session</h3>
         </div>
         {#if loading}
-          <div class="text-center py-4 text-base text-[var(--muted)]">Loading...</div>
+          <div class="text-center py-4 text-sm text-[var(--muted)]">Loading...</div>
         {:else}
           <div class="space-y-3">
             <div class="flex justify-between items-center">
-              <span class="text-base text-[var(--muted)] font-mono">Duration:</span>
+              <span class="text-sm text-[var(--muted)] font-mono">Duration:</span>
               <span class="text-sm font-semibold text-[var(--text)] font-mono">
                 {formatDuration(stats.session_duration_seconds)}
               </span>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-base text-[var(--muted)] font-mono">Files touched:</span>
+              <span class="text-sm text-[var(--muted)] font-mono">Files touched:</span>
               <span class="text-sm font-semibold text-[var(--text)] font-mono">
                 {formatNumber(stats.unique_files_modified)}
               </span>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-base text-[var(--muted)] font-mono">Total changes:</span>
+              <span class="text-sm text-[var(--muted)] font-mono">Total changes:</span>
               <span class="text-sm font-semibold text-[var(--text)] font-mono">
                 {formatNumber(stats.total_events)}
               </span>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-base text-[var(--muted)] font-mono">Current flow:</span>
+              <span class="text-sm text-[var(--muted)] font-mono">Current flow:</span>
               <span class="text-sm font-semibold font-mono" style="color: {flowState.color}">
                 {flowState.icon}
                 {flowState.state}
@@ -767,15 +767,15 @@
       <!-- System Health -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="flex items-center gap-2 mb-4">
-          <span class="text-base"></span>
+          <span class="text-sm"></span>
           <h3 class="text-sm font-semibold text-[var(--text)] font-sans m-0">System Health</h3>
         </div>
         {#if loading}
-          <div class="text-center py-4 text-base text-[var(--muted)]">Loading...</div>
+          <div class="text-center py-4 text-sm text-[var(--muted)]">Loading...</div>
         {:else}
           <div class="space-y-4">
             <div class="flex items-center gap-3">
-              <div class="text-base text-[var(--muted)] font-mono min-w-[60px]">CPU</div>
+              <div class="text-sm text-[var(--muted)] font-mono min-w-[60px]">CPU</div>
               <div class="flex-1 h-2 bg-[var(--bg)] rounded overflow-hidden">
                 <div
                   class="h-full transition-all duration-300"
@@ -787,12 +787,12 @@
                       : 'var(--success)'}"
                 ></div>
               </div>
-              <div class="text-base text-[var(--text)] font-mono min-w-[50px] text-right">
+              <div class="text-sm text-[var(--text)] font-mono min-w-[50px] text-right">
                 {systemMetrics.cpu_percent?.toFixed(1)}%
               </div>
             </div>
             <div class="flex items-center gap-3">
-              <div class="text-base text-[var(--muted)] font-mono min-w-[60px]">Memory</div>
+              <div class="text-sm text-[var(--muted)] font-mono min-w-[60px]">Memory</div>
               <div class="flex-1 h-2 bg-[var(--bg)] rounded overflow-hidden">
                 <div
                   class="h-full transition-all duration-300"
@@ -804,7 +804,7 @@
                       : 'var(--success)'}"
                 ></div>
               </div>
-              <div class="text-base text-[var(--text)] font-mono min-w-[100px] text-right">
+              <div class="text-sm text-[var(--text)] font-mono min-w-[100px] text-right">
                 {formatNumber(systemMetrics.memory_used_mb?.toFixed(0))} / {formatNumber(
                   systemMetrics.memory_total_mb?.toFixed(0)
                 )} MB

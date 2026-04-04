@@ -45,7 +45,7 @@
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="text-center mb-12 pb-8 border-b-2 border-[var(--border)]">
-      <h1 class="text-3xl font-bold text-[var(--text-heading)] mb-3">About Raven</h1>
+      <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-3">About Raven</h1>
       <p class="text-sm text-[var(--muted)] font-sans">
         Production-Ready AI Agent Monitoring Platform - v2.0.1
       </p>
@@ -55,7 +55,9 @@
     <div class="space-y-12">
       <!-- What is Raven? -->
       <section>
-        <h2 class="text-xl font-semibold text-[var(--accent)] mb-4">What is Raven?</h2>
+        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          What is Raven?
+        </h2>
         <div class="space-y-4 text-sm text-[var(--text)] leading-relaxed font-sans">
           <p>
             Raven is a <strong class="text-[var(--text-heading)]"
@@ -75,13 +77,15 @@
 
       <!-- Features Grid -->
       <section>
-        <h2 class="text-xl font-semibold text-[var(--accent)] mb-6">Features</h2>
+        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-6">
+          Features
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
             <div class="text-2xl mb-3"></div>
-            <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
+            <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-2">
               Interactive Analytics
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -94,7 +98,7 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
             <div class="text-2xl mb-3"></div>
-            <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
+            <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-2">
               Multi-Project Monitoring
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -106,7 +110,7 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
             <div class="text-2xl mb-3"></div>
-            <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
+            <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-2">
               Multi-Agent Support
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -118,7 +122,7 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
             <div class="text-2xl mb-3"></div>
-            <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
+            <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-2">
               Developer Insights
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -130,7 +134,7 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
             <div class="text-2xl mb-3"></div>
-            <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
+            <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-2">
               Real-Time Performance
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -142,7 +146,7 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
             <div class="text-2xl mb-3"></div>
-            <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
+            <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-2">
               Production Quality
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -154,7 +158,9 @@
 
       <!-- Tech Stack -->
       <section>
-        <h2 class="text-xl font-semibold text-[var(--accent)] mb-6">Tech Stack</h2>
+        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-6">
+          Tech Stack
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <h3 class="text-xs font-bold text-[var(--muted)] uppercase tracking-wider mb-3">
@@ -224,7 +230,9 @@
 
       <!-- Current Session -->
       <section>
-        <h2 class="text-xl font-semibold text-[var(--accent)] mb-6">Current Session</h2>
+        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-6">
+          Current Session
+        </h2>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="flex flex-col gap-2">
@@ -292,7 +300,9 @@
 
       <!-- Use Cases -->
       <section>
-        <h2 class="text-xl font-semibold text-[var(--accent)] mb-6">Use Cases</h2>
+        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-6">
+          Use Cases
+        </h2>
         <div class="space-y-3">
           <div
             class="flex items-start gap-3 p-4 bg-[var(--surface)] border-l-3 border-l-[var(--accent)] rounded-r-lg"

@@ -147,12 +147,12 @@
 
 <div class="min-h-screen bg-[var(--bg)] pb-20">
   <AgentsNav />
-  <div class="max-w-7xl mx-auto space-y-6 px-6">
+  <div class="max-w-6xl mx-auto space-y-6 px-6">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">AI Agents Overview</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
+        <p class="text-sm text-[var(--muted)] font-sans">
           Monitor agent activity, conversations, and insights
         </p>
       </div>
@@ -172,7 +172,7 @@
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
       >
-        <span class="text-base text-[var(--error)] font-sans"
+        <span class="text-sm text-[var(--error)] font-sans"
           >Failed to load agents data: {error}</span
         >
         <button
@@ -247,15 +247,15 @@
 
     <!-- Top 5 Most Active Agents -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans">
         Top 5 Most Active Agents
       </h2>
       {#if loading}
-        <div class="text-center py-8 text-base text-[var(--muted)]">Loading agents...</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">Loading agents...</div>
       {:else if topAgents.length === 0}
         <div class="text-center py-8">
           <span class="text-2xl block mb-2"></span>
-          <p class="text-base text-[var(--muted)] font-sans">No agent activity detected</p>
+          <p class="text-sm text-[var(--muted)] font-sans">No agent activity detected</p>
         </div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -312,7 +312,9 @@
     <!-- Recent Activity Stream -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-[var(--text-heading)] font-sans">Recent Activity</h2>
+        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+          Recent Activity
+        </h2>
         <span class="flex items-center gap-2 text-sm text-[var(--success)] font-mono">
           <span class="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse"></span>
           Live
@@ -320,11 +322,11 @@
       </div>
 
       {#if loading}
-        <div class="text-center py-8 text-base text-[var(--muted)]">Loading activity...</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">Loading activity...</div>
       {:else if recentActivity.length === 0}
         <div class="text-center py-8">
           <span class="text-2xl block mb-2"></span>
-          <p class="text-base text-[var(--muted)] font-sans">No recent activity</p>
+          <p class="text-sm text-[var(--muted)] font-sans">No recent activity</p>
         </div>
       {:else}
         <div class="space-y-2">
@@ -336,7 +338,7 @@
                 {#if event.event_type === 'file_change'}{:else if event.event_type === 'command'}{:else if event.event_type === 'conversation'}{:else}{/if}
               </span>
               <div class="flex-1 min-w-0">
-                <div class="text-base text-[var(--text)] font-mono mb-1">
+                <div class="text-sm text-[var(--text)] font-mono mb-1">
                   {#if event.agent_name}
                     <span
                       class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide"
@@ -358,11 +360,11 @@
 
     <!-- Agent Insights -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans">
         Agent Insights
       </h2>
       {#if loading}
-        <div class="text-center py-8 text-base text-[var(--muted)]">Loading insights...</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">Loading insights...</div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-[var(--bg)] rounded-lg p-4">
@@ -389,15 +391,17 @@
 
     <!-- Quick Actions -->
     <section>
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">Quick Actions</h2>
+      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans">
+        Quick Actions
+      </h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <button
           onclick={() => navigate('/agents/stats')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
         >
           <div class="text-2xl flex-shrink-0"></div>
           <div>
-            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+            <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
               Agent Stats
             </div>
             <div class="text-sm text-[var(--muted)] font-sans">Detailed statistics</div>
@@ -406,11 +410,11 @@
 
         <button
           onclick={() => navigate('/agents/monitoring')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
         >
           <div class="text-2xl flex-shrink-0"></div>
           <div>
-            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+            <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
               Live Monitoring
             </div>
             <div class="text-sm text-[var(--muted)] font-sans">Real-time tracking</div>
@@ -419,11 +423,11 @@
 
         <button
           onclick={() => navigate('/agents/conversations')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
         >
           <div class="text-2xl flex-shrink-0"></div>
           <div>
-            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+            <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
               Conversations
             </div>
             <div class="text-sm text-[var(--muted)] font-sans">View interactions</div>
@@ -432,11 +436,11 @@
 
         <button
           onclick={() => navigate('/agents/setup')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all text-left"
         >
           <div class="text-2xl flex-shrink-0"></div>
           <div>
-            <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
+            <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
               Setup Guide
             </div>
             <div class="text-sm text-[var(--muted)] font-sans">Integration help</div>
@@ -445,11 +449,11 @@
 
         <button
           onclick={loadAllData}
-          class="bg-[var(--accent)] border border-[var(--accent)] rounded-lg p-4 flex items-center gap-3 hover:opacity-90 transition-all hover:-translate-y-0.5 text-left text-white"
+          class="bg-[var(--accent)] border border-[var(--accent)] rounded-lg p-4 flex items-center gap-3 hover:opacity-90 transition-all text-left text-white"
         >
           <div class="text-2xl flex-shrink-0"></div>
           <div>
-            <div class="text-base font-semibold font-sans">Refresh Data</div>
+            <div class="text-sm font-semibold font-sans">Refresh Data</div>
             <div class="text-sm opacity-90 font-sans">Update all stats</div>
           </div>
         </button>

@@ -535,14 +535,14 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 pb-6 border-b-2 border-[var(--border)]">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">
           <span aria-hidden="true"></span> Error Log
         </h1>
-        <p class="text-base text-[var(--muted)] font-sans">Application errors and warnings</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Application errors and warnings</p>
       </div>
       <div class="flex items-center gap-3 flex-wrap justify-end">
         <span class="text-sm text-[var(--muted)] font-mono" role="status" aria-live="polite">
@@ -733,13 +733,13 @@
       {:else if error}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
           <div class="text-4xl mb-4"></div>
-          <h2 class="text-xl font-bold text-[var(--text)] mb-2">Failed to Load Errors</h2>
+          <h2 class="text-sm font-bold text-[var(--text)] mb-2">Failed to Load Errors</h2>
           <p class="text-[var(--muted)]">{error}</p>
         </div>
       {:else if errors.length === 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
           <div class="text-4xl mb-4"></div>
-          <h2 class="text-xl font-bold text-[var(--text)] mb-2">No Errors Found</h2>
+          <h2 class="text-sm font-bold text-[var(--text)] mb-2">No Errors Found</h2>
           <p class="text-[var(--muted)]">Your application is running smoothly!</p>
         </div>
       {:else}

@@ -183,12 +183,12 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Code Changes</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
+        <p class="text-sm text-[var(--muted)] font-sans">
           Detailed file change history • Source code only
         </p>
       </div>
@@ -246,19 +246,19 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Total Changes</div>
-        <div class="text-2xl font-bold text-[var(--text-heading)]">{stats.total}</div>
+        <div class="text-sm font-bold font-mono text-[var(--text)]">{stats.total}</div>
       </div>
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Created</div>
-        <div class="text-2xl font-bold text-[var(--success)]">{stats.created}</div>
+        <div class="text-sm font-bold font-mono text-[var(--success)]">{stats.created}</div>
       </div>
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Modified</div>
-        <div class="text-2xl font-bold text-[var(--accent)]">{stats.modified}</div>
+        <div class="text-sm font-bold font-mono text-[var(--accent)]">{stats.modified}</div>
       </div>
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Deleted</div>
-        <div class="text-2xl font-bold text-[var(--error)]">{stats.deleted}</div>
+        <div class="text-sm font-bold font-mono text-[var(--error)]">{stats.deleted}</div>
       </div>
     </div>
 
@@ -289,14 +289,12 @@
     <!-- Events List -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-4xl mb-4"></div>
-        <div class="text-[var(--muted)] font-sans">Loading changes...</div>
+        <div class="text-sm text-[var(--muted)] font-sans">Loading changes...</div>
       </div>
     {:else if filteredEvents.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4"></div>
-        <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">No changes found</div>
-        <div class="text-base text-[var(--muted)] font-sans">
+        <div class="text-sm font-semibold text-[var(--text-heading)] mb-2">No changes found</div>
+        <div class="text-sm text-[var(--muted)] font-sans">
           {searchQuery || selectedType !== 'all'
             ? 'Try adjusting your filters'
             : 'Waiting for code changes to be detected'}

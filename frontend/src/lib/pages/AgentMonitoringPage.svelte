@@ -416,12 +416,12 @@
 
 <div class="min-h-screen bg-[var(--bg)] pb-20">
   <AgentsNav />
-  <div class="max-w-7xl mx-auto space-y-6 px-6">
+  <div class="max-w-6xl mx-auto space-y-6 px-6">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Monitoring</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
+        <p class="text-sm text-[var(--muted)] font-sans">
           Real-time agent status and activity tracking
         </p>
       </div>
@@ -458,7 +458,7 @@
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
       >
-        <span class="text-base text-[var(--error)] font-sans"
+        <span class="text-sm text-[var(--error)] font-sans"
           >Failed to load monitoring data: {error}</span
         >
         <button
@@ -525,7 +525,7 @@
         <!-- Agent Activity Over Time -->
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
           <h2
-            class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
+            class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans flex items-center gap-2"
           >
             <span></span>
             Agent Activity (Last 24h)
@@ -538,7 +538,7 @@
         <!-- Agent Distribution -->
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
           <h2
-            class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
+            class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans flex items-center gap-2"
           >
             <span></span>
             Event Distribution by Agent
@@ -553,7 +553,7 @@
     <!-- Currently Running Agents -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-[var(--text-heading)] font-sans">
+        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
           Currently Running Agents
         </h2>
         {#if autoRefresh}
@@ -565,11 +565,11 @@
       </div>
 
       {#if loading}
-        <div class="text-center py-8 text-base text-[var(--muted)]">Loading agents...</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">Loading agents...</div>
       {:else if runningAgents.length === 0}
         <div class="text-center py-8">
           <span class="text-2xl block mb-2"></span>
-          <p class="text-base text-[var(--muted)] font-sans">No agents currently running</p>
+          <p class="text-sm text-[var(--muted)] font-sans">No agents currently running</p>
         </div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -622,16 +622,16 @@
 
     <!-- All Agents Status -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans">
         All Agents Status
       </h2>
 
       {#if loading}
-        <div class="text-center py-8 text-base text-[var(--muted)]">Loading agents...</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">Loading agents...</div>
       {:else if agentsStatus.length === 0}
         <div class="text-center py-8">
           <span class="text-2xl block mb-2"></span>
-          <p class="text-base text-[var(--muted)] font-sans">No agents detected</p>
+          <p class="text-sm text-[var(--muted)] font-sans">No agents detected</p>
         </div>
       {:else}
         <div class="overflow-x-auto">
@@ -663,7 +663,7 @@
             <tbody>
               {#each agentsStatus as agent (agent.agent_name)}
                 <tr class="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
-                  <td class="px-4 py-3 text-base font-semibold text-[var(--accent)] font-mono">
+                  <td class="px-4 py-3 text-sm font-semibold text-[var(--accent)] font-mono">
                     {agent.agent_name || 'Unknown'}
                   </td>
                   <td class="px-4 py-3">
@@ -708,12 +708,12 @@
     <!-- Detection Info Box -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
       <h3
-        class="text-lg font-semibold text-[var(--text-heading)] mb-3 font-sans flex items-center gap-2"
+        class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-3 font-sans flex items-center gap-2"
       >
         <span></span>
         How Agent Detection Works
       </h3>
-      <ul class="space-y-2 text-base text-[var(--muted)] font-sans">
+      <ul class="space-y-2 text-sm text-[var(--muted)] font-sans">
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
           <span
@@ -746,7 +746,7 @@
 
     <!-- Activity Timeline -->
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
+      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans">
         Recent Activity Timeline
       </h2>
 
@@ -836,11 +836,11 @@
       {/if}
 
       {#if loading}
-        <div class="text-center py-8 text-base text-[var(--muted)]">Loading activity...</div>
+        <div class="text-center py-8 text-sm text-[var(--muted)]">Loading activity...</div>
       {:else if filteredEvents.length === 0}
         <div class="text-center py-8">
           <span class="text-2xl block mb-2">{hasActiveFilters ? '' : ''}</span>
-          <p class="text-base text-[var(--muted)] font-sans">
+          <p class="text-sm text-[var(--muted)] font-sans">
             {hasActiveFilters ? 'No events match your filters' : 'No recent activity'}
           </p>
           {#if hasActiveFilters}
@@ -862,7 +862,7 @@
                 {getEventIcon(event.event_type)}
               </span>
               <div class="flex-1 min-w-0">
-                <div class="text-base text-[var(--text)] font-mono mb-1">
+                <div class="text-sm text-[var(--text)] font-mono mb-1">
                   {#if event.agent_name}
                     <span
                       class="inline-block px-2 py-0.5 mr-2 bg-[var(--accent)] text-white rounded text-sm font-semibold uppercase tracking-wide"

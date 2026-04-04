@@ -230,7 +230,7 @@
 <style>
   .health-monitor-page {
     padding: 2rem;
-    max-width: 1400px;
+    max-width: 1152px;
     margin: 0 auto;
     font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     color: var(--text);
@@ -246,15 +246,15 @@
   }
 
   .page-header h1 {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--text);
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.25rem 0;
   }
 
   .subtitle {
     color: var(--muted);
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     margin: 0;
   }
 
@@ -357,8 +357,11 @@
 
   .status-details h2 {
     margin: 0 0 0.5rem 0;
-    font-size: 1.5rem;
-    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .timestamp {
@@ -430,8 +433,11 @@
 
   .alert-content h3 {
     margin: 0 0 0.25rem 0;
-    font-size: 1.125rem;
-    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .alert-content p {
@@ -454,9 +460,11 @@
   }
 
   .category-header {
-    font-size: 1.25rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: var(--text);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     margin: 0 0 1rem 0;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--border);
@@ -568,8 +576,11 @@
 
   .info-panel h3 {
     margin: 0 0 1rem 0;
-    color: var(--accent);
-    font-size: 1.125rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .info-panel p {

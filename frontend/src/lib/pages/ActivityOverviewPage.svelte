@@ -794,7 +794,7 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-[1800px] mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 pb-6 border-b-2 border-[var(--border)]">
       <div>
@@ -923,56 +923,56 @@
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div
-            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
+            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-3xl"></div>
+            <div class="text-sm"></div>
             <div>
               <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
                 Total Activities
               </div>
-              <div class="text-2xl font-bold text-[var(--text)] font-mono">
+              <div class="text-sm font-bold text-[var(--text)] font-mono">
                 {enhancedStats.totalActivities}
               </div>
             </div>
           </div>
 
           <div
-            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
+            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-3xl"></div>
+            <div class="text-sm"></div>
             <div>
               <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
                 Unique Sessions
               </div>
-              <div class="text-2xl font-bold text-[var(--text)] font-mono">
+              <div class="text-sm font-bold text-[var(--text)] font-mono">
                 {enhancedStats.uniqueSessions}
               </div>
             </div>
           </div>
 
           <div
-            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
+            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-3xl"></div>
+            <div class="text-sm"></div>
             <div>
               <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
                 Avg Session Duration
               </div>
-              <div class="text-2xl font-bold text-[var(--text)] font-mono">
+              <div class="text-sm font-bold text-[var(--text)] font-mono">
                 {formatDuration(enhancedStats.averageSessionDuration)}
               </div>
             </div>
           </div>
 
           <div
-            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
+            class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-3xl"></div>
+            <div class="text-sm"></div>
             <div>
               <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
                 Activities Per Hour
               </div>
-              <div class="text-2xl font-bold text-[var(--text)] font-mono">
+              <div class="text-sm font-bold text-[var(--text)] font-mono">
                 {enhancedStats.activitiesPerHour}
               </div>
             </div>
@@ -984,7 +984,7 @@
       {#if showCharts}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
           <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-semibold text-[var(--text-heading)]">
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
               Analytics Visualizations
             </h3>
             <button
@@ -1046,8 +1046,8 @@
         </div>
       {:else if activities.length === 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <div class="text-6xl mb-4"></div>
-          <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-2">No Activities Found</h2>
+          <div class="text-2xl mb-4"></div>
+          <h2 class="text-sm font-semibold text-[var(--text-heading)] mb-2">No Activities Found</h2>
           {#if selectedType !== 'all'}
             <p class="text-[var(--muted)] mb-4">
               No <strong>{selectedType}</strong> activities found. Try changing filters or search query.
@@ -1090,7 +1090,7 @@
                 >
                 <div class="flex-1 text-left">
                   <div class="flex items-center gap-3 mb-2">
-                    <span class="text-xl"></span>
+                    <span class="text-sm"></span>
                     <span class="text-sm font-bold text-[var(--text)] font-mono"
                       >Session: {session.id.substring(0, 12)}</span
                     >
@@ -1128,7 +1128,7 @@
                     >
                       <div class="flex items-center gap-4 flex-1 min-w-0">
                         <span class="text-xs text-[var(--muted)]">{isExpanded ? '' : ''}</span>
-                        <span class="text-lg" style="color: {getCategoryColor(activity.category)}">
+                        <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
                           {getCategoryIcon(activity.category)}
                         </span>
                         <div class="flex-1 min-w-0 text-left">
@@ -1236,7 +1236,7 @@
             >
               <div class="flex items-center gap-4 flex-1 min-w-0">
                 <span class="text-xs text-[var(--muted)]">{isExpanded ? '' : ''}</span>
-                <span class="text-lg" style="color: {getCategoryColor(activity.category)}">
+                <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
                   {getCategoryIcon(activity.category)}
                 </span>
                 <div class="flex-1 min-w-0 text-left">
@@ -1351,7 +1351,7 @@
               <div
                 class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 hover:border-[var(--accent)] transition-colors"
               >
-                <div class="text-lg flex-shrink-0">
+                <div class="text-sm flex-shrink-0">
                   {#if activity.type === 'file'}
                     <span style="color: {getChangeTypeColor(activity.change_type)}">
                       {getChangeTypeIcon(activity.change_type)}

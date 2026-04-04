@@ -160,7 +160,7 @@
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Global Search</h1>
-      <p class="text-base text-[var(--muted)] font-sans">
+      <p class="text-sm text-[var(--muted)] font-sans">
         Search across all files, events, and activity
       </p>
     </div>
@@ -174,13 +174,13 @@
             bind:value={searchQuery}
             onkeypress={handleKeyPress}
             placeholder="Search for files, messages, agents, or event types..."
-            class="w-full px-4 py-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-base font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+            class="w-full px-4 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
           />
         </div>
         <button
           onclick={performSearch}
           disabled={loading || !searchQuery.trim()}
-          class="px-6 py-3 bg-[var(--accent)] text-white rounded-lg text-base font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
+          class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {loading ? ' Searching...' : ' Search'}
         </button>
@@ -238,22 +238,19 @@
     <!-- Search Results -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-4xl mb-4"></div>
-        <div class="text-[var(--muted)] font-sans">Searching...</div>
+        <div class="text-sm text-[var(--muted)] font-sans">Searching...</div>
       </div>
     {:else if !hasSearched}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4"></div>
-        <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">Start Searching</div>
-        <div class="text-base text-[var(--muted)] font-sans">
+        <div class="text-sm font-semibold text-[var(--text-heading)] mb-2">Start Searching</div>
+        <div class="text-sm text-[var(--muted)] font-sans">
           Enter a search term to find files, events, and activity
         </div>
       </div>
     {:else if filteredResults.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4"></div>
-        <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">No Results Found</div>
-        <div class="text-base text-[var(--muted)] font-sans">
+        <div class="text-sm font-semibold text-[var(--text-heading)] mb-2">No Results Found</div>
+        <div class="text-sm text-[var(--muted)] font-sans">
           No matches for "{searchQuery}". Try a different search term.
         </div>
       </div>
@@ -262,7 +259,7 @@
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-4">
         <div class="flex justify-between items-center">
           <div>
-            <div class="text-lg font-semibold text-[var(--text-heading)] font-sans">
+            <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
               Found {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
             </div>
             <div class="text-sm text-[var(--muted)] font-sans">
@@ -285,23 +282,27 @@
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
             <div class="text-sm text-[var(--muted)] font-sans mb-1">Created</div>
-            <div class="text-xl font-bold text-[var(--success)]">{stats.byType.create}</div>
+            <div class="text-sm font-bold font-mono text-[var(--success)]">
+              {stats.byType.create}
+            </div>
           </div>
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
             <div class="text-sm text-[var(--muted)] font-sans mb-1">Edited</div>
-            <div class="text-xl font-bold text-[var(--accent)]">{stats.byType.edit}</div>
+            <div class="text-sm font-bold font-mono text-[var(--accent)]">{stats.byType.edit}</div>
           </div>
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
             <div class="text-sm text-[var(--muted)] font-sans mb-1">Deleted</div>
-            <div class="text-xl font-bold text-[var(--error)]">{stats.byType.delete}</div>
+            <div class="text-sm font-bold font-mono text-[var(--error)]">{stats.byType.delete}</div>
           </div>
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
             <div class="text-sm text-[var(--muted)] font-sans mb-1">Read</div>
-            <div class="text-xl font-bold text-[var(--text)]">{stats.byType.read}</div>
+            <div class="text-sm font-bold font-mono text-[var(--text)]">{stats.byType.read}</div>
           </div>
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
             <div class="text-sm text-[var(--muted)] font-sans mb-1">Execute</div>
-            <div class="text-xl font-bold text-[var(--warning)]">{stats.byType.execute}</div>
+            <div class="text-sm font-bold font-mono text-[var(--warning)]">
+              {stats.byType.execute}
+            </div>
           </div>
         </div>
       {/if}
@@ -313,7 +314,7 @@
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
           >
             <div class="flex items-start gap-3">
-              <span class="text-2xl flex-shrink-0"
+              <span class="text-sm flex-shrink-0"
                 >{getEventIcon(result.change_type || result.event_type)}</span
               >
               <div class="flex-1 min-w-0">
@@ -332,7 +333,7 @@
                 </div>
 
                 {#if result.filepath || result.file}
-                  <div class="text-base font-medium text-[var(--text)] font-mono mb-1">
+                  <div class="text-sm font-medium text-[var(--text)] font-mono mb-1">
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                     {@html highlightMatch(result.filepath || result.file, searchQuery)}
                   </div>

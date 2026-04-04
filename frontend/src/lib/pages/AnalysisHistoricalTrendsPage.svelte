@@ -362,12 +362,12 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Historical Trends</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Activity patterns over time</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Activity patterns over time</p>
       </div>
       <div class="flex items-center gap-3 flex-wrap">
         <span class="text-sm text-[var(--muted)] font-mono">Updated: {timeSinceUpdate}</span>
@@ -453,7 +453,7 @@
       </div>
     {:else if trends.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-        <p class="text-lg text-[var(--muted)] font-sans mb-2">
+        <p class="text-sm text-[var(--muted)] font-sans mb-2">
           No activity data for the selected period
         </p>
         <p class="text-sm text-[var(--muted)] font-sans">Try selecting a longer time range</p>
@@ -494,7 +494,7 @@
       <!-- Visualizations Section -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-semibold text-[var(--text-heading)] font-sans">
+          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
             Analytics Visualizations
           </h2>
           <button

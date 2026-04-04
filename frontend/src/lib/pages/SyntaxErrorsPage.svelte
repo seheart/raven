@@ -220,14 +220,12 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Syntax Errors</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
-          Detected syntax issues in your codebase
-        </p>
+        <p class="text-sm text-[var(--muted)] font-sans">Detected syntax issues in your codebase</p>
       </div>
       <div class="flex items-center gap-3">
         <span class="text-sm text-[var(--muted)] font-sans">Updated {timeSinceUpdate}s ago</span>
@@ -245,7 +243,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
       >
-        <span class="text-base text-[var(--error)] font-sans">Failed to load errors: {error}</span>
+        <span class="text-sm text-[var(--error)] font-sans">Failed to load errors: {error}</span>
         <button
           onclick={loadErrors}
           class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
@@ -271,15 +269,15 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-base text-[var(--muted)] font-sans mb-1">Total Errors</div>
+          <div class="text-sm text-[var(--muted)] font-sans mb-1">Total Errors</div>
           <div class="text-3xl font-bold text-[var(--text-heading)]">{errors.length}</div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-base text-[var(--muted)] font-sans mb-1">Critical</div>
+          <div class="text-sm text-[var(--muted)] font-sans mb-1">Critical</div>
           <div class="text-3xl font-bold text-[var(--error)]">{errorsBySeverity.error}</div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-base text-[var(--muted)] font-sans mb-1">Warnings</div>
+          <div class="text-sm text-[var(--muted)] font-sans mb-1">Warnings</div>
           <div class="text-3xl font-bold text-[var(--warning)]">{errorsBySeverity.warning}</div>
         </div>
       </div>
@@ -293,14 +291,14 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
               type="text"
               bind:value={searchQuery}
               placeholder="Search by filepath or message..."
-              class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-base font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+              class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
             />
           </div>
 
           <!-- Severity Filter -->
           <select
             bind:value={severityFilter}
-            class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-base font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+            class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
             <option value="all">All Severities</option>
             <option value="error">Errors Only</option>
@@ -366,12 +364,12 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
       {#if filteredErrors.length === 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
           <div class="text-5xl mb-4"></div>
-          <div class="text-xl font-semibold text-[var(--text-heading)] mb-2 font-sans">
+          <div class="text-sm font-semibold text-[var(--text-heading)] mb-2 font-sans">
             {searchQuery || severityFilter !== 'all' || projectFilter !== 'all'
               ? 'No matching errors'
               : 'No syntax errors!'}
           </div>
-          <div class="text-base text-[var(--muted)] font-sans">
+          <div class="text-sm text-[var(--muted)] font-sans">
             {searchQuery || severityFilter !== 'all' || projectFilter !== 'all'
               ? 'Try adjusting your filters'
               : 'Your codebase is syntax-error free'}
@@ -509,7 +507,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
             </span>
           </div>
         {:else}
-          <div class="mt-4 text-base text-[var(--muted)] font-sans text-center">
+          <div class="mt-4 text-sm text-[var(--muted)] font-sans text-center">
             Showing {filteredErrors.length} of {errors.length} errors
           </div>
         {/if}

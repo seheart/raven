@@ -58,11 +58,8 @@
     ],
     system: [
       { id: '', label: 'Overview' },
-      { id: 'status', label: 'Status' },
       { id: 'health-monitor', label: 'Health Monitor' },
       { id: 'errors', label: 'Errors' },
-      { id: 'notifications', label: 'Notifications' },
-      { id: 'storage', label: 'Storage' },
       { id: 'projects', label: 'Projects' }
     ],
     settings: []

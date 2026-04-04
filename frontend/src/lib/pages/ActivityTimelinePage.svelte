@@ -172,7 +172,7 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Activity Timeline</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Chronological view of all events</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Chronological view of all events</p>
       </div>
       <button
         onclick={loadEvents}
@@ -193,19 +193,19 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Total Events</div>
-        <div class="text-2xl font-bold text-[var(--text-heading)]">{stats.total}</div>
+        <div class="text-sm font-bold font-mono text-[var(--text)]">{stats.total}</div>
       </div>
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Created</div>
-        <div class="text-2xl font-bold text-[var(--success)]">{stats.creates}</div>
+        <div class="text-sm font-bold font-mono text-[var(--success)]">{stats.creates}</div>
       </div>
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Edited</div>
-        <div class="text-2xl font-bold text-[var(--accent)]">{stats.edits}</div>
+        <div class="text-sm font-bold font-mono text-[var(--accent)]">{stats.edits}</div>
       </div>
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="text-sm text-[var(--muted)] font-sans">Deleted</div>
-        <div class="text-2xl font-bold text-[var(--error)]">{stats.deletes}</div>
+        <div class="text-sm font-bold font-mono text-[var(--error)]">{stats.deletes}</div>
       </div>
     </div>
 
@@ -265,14 +265,12 @@
     <!-- Timeline -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-4xl mb-4"></div>
-        <div class="text-[var(--muted)] font-sans">Loading timeline...</div>
+        <div class="text-sm text-[var(--muted)] font-sans">Loading timeline...</div>
       </div>
     {:else if groupedEvents.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4"></div>
-        <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">No events found</div>
-        <div class="text-base text-[var(--muted)] font-sans">Try adjusting your filters</div>
+        <div class="text-sm font-semibold text-[var(--text-heading)] mb-2">No events found</div>
+        <div class="text-sm text-[var(--muted)] font-sans">Try adjusting your filters</div>
       </div>
     {:else}
       <div class="space-y-6">
@@ -307,7 +305,7 @@
                     class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
                   >
                     <div class="flex items-start gap-3">
-                      <span class="text-2xl flex-shrink-0">{getEventIcon(event.change_type)}</span>
+                      <span class="text-sm flex-shrink-0">{getEventIcon(event.change_type)}</span>
                       <div class="flex-1 min-w-0">
                         <div class="flex items-baseline gap-3 mb-2">
                           <span
@@ -328,7 +326,7 @@
 
                         {#if event.filepath}
                           <div
-                            class="text-base font-medium text-[var(--text)] font-mono mb-1 truncate"
+                            class="text-sm font-medium text-[var(--text)] font-mono mb-1 truncate"
                           >
                             {event.filepath}
                           </div>

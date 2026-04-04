@@ -266,12 +266,12 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Trigger Configuration</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
+        <p class="text-sm text-[var(--muted)] font-sans">
           Automated monitoring rules and real-time alerts
         </p>
       </div>
@@ -394,7 +394,9 @@
         {#if filteredTriggers.length === 0 && triggers.length > 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
             <div class="text-4xl mb-3"></div>
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
+            >
               No Matching Triggers
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -404,7 +406,9 @@
         {:else if triggers.length === 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
             <div class="text-4xl mb-3"></div>
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
+            >
               No Triggers Configured
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans mb-2">
@@ -545,7 +549,9 @@
         {#if filteredEvents.length === 0 && triggeredEvents.length > 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
             <div class="text-4xl mb-3"></div>
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
+            >
               No Events for Selected Project
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">Try selecting a different project.</p>
@@ -553,7 +559,9 @@
         {:else if triggeredEvents.length === 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
             <div class="text-4xl mb-3"></div>
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
+            >
               No Triggered Events
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -628,7 +636,9 @@
           <!-- Trigger Fire Counts -->
           {#if Object.keys(stats?.trigger_counts || {}).length > 0}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-              <h3 class="text-lg font-semibold text-[var(--text-heading)] font-sans mb-4">
+              <h3
+                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans mb-4"
+              >
                 Trigger Fire Counts
               </h3>
               <div class="space-y-2">
@@ -650,7 +660,9 @@
               class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center"
             >
               <div class="text-4xl mb-3"></div>
-              <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
+              <h3
+                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
+              >
                 No Statistics Available
               </h3>
               <p class="text-sm text-[var(--muted)] font-sans">

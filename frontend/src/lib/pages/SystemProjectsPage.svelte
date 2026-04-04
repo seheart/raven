@@ -234,12 +234,12 @@
 <svelte:window onkeydown={handleModalKeydown} />
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Project Configuration</h1>
-        <p class="text-base text-[var(--muted)] font-sans">Manage which projects Raven monitors</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Manage which projects Raven monitors</p>
       </div>
       <div class="flex gap-3">
         <button
@@ -282,7 +282,7 @@
     {:else if config.projects.length === 0}
       <!-- Empty state -->
       <div class="text-center p-12 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
-        <p class="text-[var(--text)] text-lg mb-2">No projects configured</p>
+        <p class="text-[var(--text)] text-sm mb-2">No projects configured</p>
         <p class="text-[var(--muted)] text-sm mb-6">
           Add a project or discover projects automatically
         </p>
@@ -305,7 +305,7 @@
             <!-- Project header -->
             <div class="flex justify-between items-start mb-4">
               <div>
-                <h3 class="text-lg font-semibold text-[var(--text)] mb-1">{project.name}</h3>
+                <h3 class="text-sm font-semibold text-[var(--text)] mb-1">{project.name}</h3>
                 <span class="text-sm text-[var(--muted)] font-mono">{project.name}</span>
               </div>
               <button
@@ -392,7 +392,7 @@
     >
       <!-- Modal header -->
       <div class="flex justify-between items-center p-6 border-b border-[var(--border)]">
-        <h3 class="text-xl font-semibold text-[var(--text)]">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
           {showAddModal ? 'Add New Project' : 'Edit Project'}
         </h3>
         <button
@@ -551,7 +551,9 @@
     >
       <!-- Modal header -->
       <div class="flex justify-between items-center p-6 border-b border-[var(--border)]">
-        <h3 class="text-xl font-semibold text-[var(--text)]">Discovered Projects</h3>
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+          Discovered Projects
+        </h3>
         <button
           class="text-[var(--muted)] hover:text-[var(--text)] text-3xl w-8 h-8 flex items-center justify-center"
           onclick={() => (showDiscoverModal = false)}
@@ -620,7 +622,9 @@
     >
       <!-- Modal header -->
       <div class="flex justify-between items-center p-6 border-b border-[var(--border)]">
-        <h3 class="text-xl font-semibold text-[var(--text)]">Confirm Action</h3>
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+          Confirm Action
+        </h3>
         <button
           class="text-[var(--muted)] hover:text-[var(--text)] text-3xl w-8 h-8 flex items-center justify-center"
           onclick={() => (showConfirmModal = false)}

@@ -437,6 +437,43 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Alias for frontend compatibility
+app.get('/api/health', (req: Request, res: Response) => {
+  let dbHealthy = true;
+  try {
+    db.db.prepare('SELECT 1').get();
+  } catch {
+    dbHealthy = false;
+  }
+  return res.json({
+    status: 'healthy',
+    version: '2.1.0',
+    session_id: SESSION_ID,
+    uptime: process.uptime(),
+    active_agents: agentRegistry.size,
+    modules: {
+      watcher: fileWatcher.isRunning(),
+      git: gitMonitor.isRunning(),
+      metrics: metricsCollector.isCollectorRunning()
+    },
+    database: DB_PATH,
+    database_health: { status: dbHealthy ? 'healthy' : 'error', accessible: dbHealthy }
+  });
+});
+
+app.get('/api/health-checks', (req: Request, res: Response) => {
+  try {
+    const issues = db.db.prepare('SELECT * FROM health_issues ORDER BY id DESC LIMIT 50').all();
+    return res.json({
+      status: issues.length > 0 ? 'issues_found' : 'healthy',
+      checks: issues,
+      summary: { total: issues.length, passed: 0, failed: issues.length }
+    });
+  } catch {
+    return res.json({ status: 'healthy', checks: [], summary: { total: 0, passed: 0, failed: 0 } });
+  }
+});
+
 app.get('/api/session-id', (req: Request, res: Response) => {
   return res.json({ session_id: SESSION_ID });
 });
@@ -2689,13 +2726,13 @@ app.get('/api/errors/stats', (req: Request, res: Response) => {
 app.get('/api/notifications', (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
   const notifications = db.db
-    .prepare('SELECT * FROM health_checks ORDER BY timestamp DESC LIMIT ?')
+    .prepare('SELECT * FROM health_issues ORDER BY timestamp DESC LIMIT ?')
     .all(limit);
   return res.json({ notifications, total: notifications.length });
 });
 
 app.get('/api/notifications/stats', (req: Request, res: Response) => {
-  const result = db.db.prepare('SELECT COUNT(*) as total FROM health_checks').get() as any;
+  const result = db.db.prepare('SELECT COUNT(*) as total FROM health_issues').get() as any;
   return res.json({ total: result?.total || 0, unread: 0 });
 });
 

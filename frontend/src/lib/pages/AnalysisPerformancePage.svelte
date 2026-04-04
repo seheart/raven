@@ -218,7 +218,7 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
       <div>
@@ -340,7 +340,9 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- System Metrics Card -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+            >
               System Metrics
             </h3>
             <div class="space-y-3">
@@ -403,7 +405,9 @@
           <!-- Process Metrics Card -->
           {#if latestProcessMetrics}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-              <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans">
+              <h3
+                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+              >
                 Process: {latestProcessMetrics.agent_name || selectedAgent}
               </h3>
               <div class="space-y-3">
@@ -454,7 +458,9 @@
             <div
               class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 text-center"
             >
-              <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
+              <h3
+                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
+              >
                 Process Metrics
               </h3>
               <p class="text-sm text-[var(--muted)] font-sans">No process metrics available</p>
@@ -464,7 +470,9 @@
           <!-- Statistics Card -->
           {#if stats && stats.sample_count > 0}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-              <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans">
+              <h3
+                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+              >
                 Last Hour Stats
               </h3>
               <div class="space-y-3">
@@ -504,7 +512,7 @@
         </div>
       {:else}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <p class="text-[var(--muted)] font-sans text-lg">No performance data available yet.</p>
+          <p class="text-[var(--muted)] font-sans text-sm">No performance data available yet.</p>
           <p class="text-sm text-[var(--muted)] font-sans mt-2">
             Metrics are collected automatically when monitoring is active.
           </p>
@@ -548,7 +556,9 @@
 
           <!-- CPU Chart -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+            >
               CPU Usage Over Time
             </h3>
             <div class="flex gap-3 h-48">
@@ -606,7 +616,9 @@
 
           <!-- Memory Chart -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+            >
               Memory Usage Over Time
             </h3>
             <div class="flex gap-3 h-48">
@@ -664,7 +676,9 @@
 
           <!-- Threshold Configuration -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
+            >
               Alert Thresholds
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -727,7 +741,7 @@
         </div>
       {:else}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <p class="text-[var(--muted)] font-sans text-lg">No metrics data available for charts.</p>
+          <p class="text-[var(--muted)] font-sans text-sm">No metrics data available for charts.</p>
           <p class="text-sm text-[var(--muted)] font-sans mt-2">
             Charts will appear once performance data is collected.
           </p>
@@ -738,7 +752,9 @@
       {#if correlations && correlations.length > 0}
         <div class="space-y-4">
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-            <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
+            <h3
+              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
+            >
               Performance Correlations
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -819,7 +835,7 @@
         </div>
       {:else}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <p class="text-[var(--muted)] font-sans text-lg">No performance correlations found.</p>
+          <p class="text-[var(--muted)] font-sans text-sm">No performance correlations found.</p>
           <p class="text-sm text-[var(--muted)] font-sans mt-2">
             Correlations show which file changes coincide with CPU/memory spikes.
           </p>

@@ -247,12 +247,12 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Pattern Warnings</h1>
-        <p class="text-base text-[var(--muted)] font-sans">
+        <p class="text-sm text-[var(--muted)] font-sans">
           Automatic detection of problematic patterns: hardcoded secrets, debug statements, and code
           quality issues
         </p>
@@ -330,21 +330,21 @@
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-base text-[var(--muted)] font-sans mb-1">Total Warnings</div>
+          <div class="text-sm text-[var(--muted)] font-sans mb-1">Total Warnings</div>
           <div class="text-3xl font-bold text-[var(--text-heading)]">{stats.total}</div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-base text-[var(--muted)] font-sans mb-1">Critical/Errors</div>
+          <div class="text-sm text-[var(--muted)] font-sans mb-1">Critical/Errors</div>
           <div class="text-3xl font-bold text-[var(--error)]">
             {stats.critical + stats.error}
           </div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-base text-[var(--muted)] font-sans mb-1">Warnings</div>
+          <div class="text-sm text-[var(--muted)] font-sans mb-1">Warnings</div>
           <div class="text-3xl font-bold text-[var(--warning)]">{stats.warning}</div>
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-base text-[var(--muted)] font-sans mb-1">Info</div>
+          <div class="text-sm text-[var(--muted)] font-sans mb-1">Info</div>
           <div class="text-3xl font-bold text-[var(--info)]">{stats.info}</div>
         </div>
       </div>
@@ -358,7 +358,7 @@
               type="text"
               bind:value={searchQuery}
               placeholder="Search by filepath, message, or pattern..."
-              class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-base font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+              class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
             />
           </div>
 
@@ -366,7 +366,7 @@
           {#if projects.length > 0}
             <select
               bind:value={projectFilter}
-              class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-base font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+              class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
             >
               <option value="all">All Projects</option>
               {#each projects as project (project)}
@@ -378,7 +378,7 @@
           <!-- Severity Filter -->
           <select
             bind:value={severityFilter}
-            class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-base font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+            class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           >
             <option value="all">All Severities</option>
             <option value="critical">Critical</option>
@@ -409,7 +409,7 @@
       {#if filteredWarnings.length === 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
           <div class="text-5xl mb-4"></div>
-          <div class="text-xl font-semibold text-[var(--text-heading)] mb-2 font-sans">
+          <div class="text-sm font-semibold text-[var(--text-heading)] mb-2 font-sans">
             {searchQuery ||
             projectFilter !== 'all' ||
             categoryFilter !== 'all' ||
@@ -417,7 +417,7 @@
               ? 'No matching warnings'
               : 'No pattern warnings!'}
           </div>
-          <div class="text-base text-[var(--muted)] font-sans">
+          <div class="text-sm text-[var(--muted)] font-sans">
             {searchQuery ||
             projectFilter !== 'all' ||
             categoryFilter !== 'all' ||
@@ -553,7 +553,7 @@
           {/if}
 
           <!-- Results Count -->
-          <div class="text-base text-[var(--muted)] font-sans text-center py-4">
+          <div class="text-sm text-[var(--muted)] font-sans text-center py-4">
             Showing {filteredWarnings.length} of {stats.total} warnings
           </div>
         </div>
