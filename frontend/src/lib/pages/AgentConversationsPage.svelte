@@ -340,30 +340,6 @@
     showImportDialog = false;
   }
 
-  function handleImportModalKeydown(event) {
-    if (event.key === 'Escape') {
-      closeImportDialog();
-      return;
-    }
-
-    // Focus trap
-    if (event.key === 'Tab' && importModalElement) {
-      const focusableElements = importModalElement.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
-    }
-  }
-
   function setupWebSocket() {
     // Listen for new conversation events
     websocketService.on('conversation', () => {
@@ -1113,77 +1089,58 @@
   </div>
 </div>
 
-<!-- Import Dialog -->
+<!-- Import Section (inline) -->
 {#if showImportDialog}
-  <div
-    class="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]"
-    onclick={closeImportDialog}
-    onkeydown={handleImportModalKeydown}
-    role="dialog"
-    aria-modal="true"
-    tabindex="-1"
-  >
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div
-      class="bg-[var(--surface)] border border-[var(--border)] rounded p-5 max-w-[600px] w-[90%] max-h-[90vh] overflow-y-auto"
-      onclick={e => e.stopPropagation()}
-      onkeydown={e => {
-        e.stopPropagation();
-        handleImportModalKeydown(e);
-      }}
-      bind:this={importModalElement}
-      role="document"
-    >
-      <h2 class="m-0 mb-4 text-[var(--accent)]">Import Claude Conversations</h2>
-      <p class="m-0 mb-3 text-[var(--muted)] text-sm">
-        Import conversation history from Claude Code .jsonl session files.
-      </p>
-
-      <div class="mb-4">
-        <label for="sessionFile" class="block mb-2 font-semibold text-[var(--text)] text-sm"
-          >Session File Path:</label
+  <div class="mt-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 max-w-xl">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+        Import Claude Conversations
+      </h3>
+      <button onclick={closeImportDialog} class="text-xs text-[var(--accent)] hover:underline"
+        >Cancel</button
+      >
+    </div>
+    <p class="text-xs text-[var(--muted)] mb-4">
+      Import conversation history from Claude Code .jsonl session files.
+    </p>
+    <div class="space-y-3">
+      <div>
+        <label for="sessionFile" class="block text-sm text-[var(--muted)] mb-1"
+          >Session File Path</label
         >
         <input
           id="sessionFile"
           type="text"
-          class="w-full p-3 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs"
-          placeholder="c6ceb139-5c3f-4cc6-923a-2bcac56f3479.jsonl"
           bind:value={importSessionFile}
+          placeholder="session-id.jsonl"
+          class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
         />
-        <div class="mt-2 text-xs text-[var(--muted)] italic">
-          Enter filename or full path. Default location: ~/.claude/projects/-home-seth/
-        </div>
       </div>
-
-      <div class="mb-4">
-        <label for="importProject" class="block mb-2 font-semibold text-[var(--text)] text-sm"
-          >Project Name (optional):</label
+      <div>
+        <label for="importProject" class="block text-sm text-[var(--muted)] mb-1"
+          >Project Name (optional)</label
         >
         <input
           id="importProject"
           type="text"
-          class="w-full p-3 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs"
-          placeholder="raven"
           bind:value={importProject}
+          placeholder="raven"
+          class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
         />
       </div>
-
-      <div class="flex gap-3 justify-end mt-6">
+      <div class="flex gap-2 pt-3 border-t border-[var(--border)]">
         <button
-          class="px-3 py-2 bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded font-mono text-xs cursor-pointer hover:bg-[var(--bg)] transition-colors"
-          onclick={closeImportDialog}
-          >Cancel
-        </button>
-        <button
-          class="px-3 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           onclick={importConversations}
           disabled={importing}
+          class="px-3 py-1.5 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          {#if importing}
-            <span></span>Importing...
-          {:else}
-            <span></span>Import
-          {/if}
+          {importing ? 'Importing...' : 'Import'}
+        </button>
+        <button
+          onclick={closeImportDialog}
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--muted)] hover:border-[var(--accent)] transition-colors"
+        >
+          Cancel
         </button>
       </div>
     </div>

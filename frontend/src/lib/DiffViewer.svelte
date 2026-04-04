@@ -4,9 +4,9 @@
   export let newContent = '';
   export let onClose = () => {};
 
+  let diffLines = [];
   let leftLines = [];
   let rightLines = [];
-  let diffLines = [];
 
   $: {
     if (diff) {
@@ -17,282 +17,88 @@
   }
 
   function parseDiff(diffText) {
-    // Parse unified diff format
     const lines = (diffText || '').split('\n');
     diffLines = lines
       .filter(line => line != null)
       .map(line => {
-        if (line.startsWith('+') && !line.startsWith('+++')) {
+        if (line.startsWith('+') && !line.startsWith('+++'))
           return { type: 'add', content: line.substring(1) };
-        } else if (line.startsWith('-') && !line.startsWith('---')) {
+        if (line.startsWith('-') && !line.startsWith('---'))
           return { type: 'remove', content: line.substring(1) };
-        } else if (line.startsWith(' ')) {
-          return { type: 'context', content: line.substring(1) };
-        } else {
-          return { type: 'meta', content: line };
-        }
+        if (line.startsWith(' ')) return { type: 'context', content: line.substring(1) };
+        return { type: 'meta', content: line };
       })
       .filter(line => line.type !== 'meta');
   }
 
   function parseContents(old, newText) {
-    // Simple line-by-line comparison
     const oldLines = (old || '').split('\n');
     const newLines = (newText || '').split('\n');
     const maxLines = Math.max(oldLines.length, newLines.length);
-
     leftLines = [];
     rightLines = [];
-
     for (let i = 0; i < maxLines; i++) {
       const oldLine = oldLines[i] !== undefined ? oldLines[i] : '';
       const newLine = newLines[i] !== undefined ? newLines[i] : '';
-
       if (oldLine === newLine) {
         leftLines.push({ type: 'context', content: oldLine, lineNum: i + 1 });
         rightLines.push({ type: 'context', content: newLine, lineNum: i + 1 });
       } else {
-        if (oldLine) {
-          leftLines.push({ type: 'remove', content: oldLine, lineNum: i + 1 });
-        }
-        if (newLine) {
-          rightLines.push({ type: 'add', content: newLine, lineNum: i + 1 });
-        }
+        if (oldLine) leftLines.push({ type: 'remove', content: oldLine, lineNum: i + 1 });
+        if (newLine) rightLines.push({ type: 'add', content: newLine, lineNum: i + 1 });
       }
     }
   }
-
-  function getLineClass(type) {
-    return (
-      {
-        add: 'line-add',
-        remove: 'line-remove',
-        context: 'line-context'
-      }[type] || ''
-    );
-  }
 </script>
 
-<div
-  class="diff-modal-overlay"
-  on:click={onClose}
-  on:keydown={e => e.key === 'Escape' && onClose()}
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby="diff-title"
-  tabindex="-1"
->
+<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
   <div
-    class="diff-modal-content"
-    on:click|stopPropagation
-    on:keydown={e => e.stopPropagation()}
-    role="dialog"
-    tabindex="-1"
-    aria-modal="true"
+    class="flex justify-between items-center px-4 py-2 border-b border-[var(--border)] bg-[var(--bg)]"
   >
-    <div class="diff-header">
-      <h2 id="diff-title"><span aria-hidden="true"></span> Diff Viewer</h2>
-      <button class="btn btn-ghost btn-icon" on:click={onClose} aria-label="Close diff viewer"
-        >×</button
-      >
-    </div>
-
-    {#if diffLines.length > 0}
-      <!-- Unified diff view -->
-      <div class="unified-diff" role="region" aria-label="Unified diff view">
-        <pre
-          class="diff-content"
-          aria-label="Code differences">{#each diffLines || [] as line (line.lineNum)}
-            <span class="diff-line {getLineClass(line.type)}"
-              >{line.content}
-</span>{/each}</pre>
-      </div>
-    {:else if leftLines.length > 0 || rightLines.length > 0}
-      <!-- Side-by-side view -->
-      <div class="side-by-side">
-        <div class="diff-pane" role="region" aria-label="Before changes">
-          <div class="pane-header">Before</div>
-          <div class="pane-content">
-            {#each leftLines || [] as line (line.lineNum)}
-              <div class="code-line {getLineClass(line.type)}">
-                <span class="line-num">{line.lineNum}</span>
-                <span class="line-content">{line.content || ' '}</span>
-              </div>
-            {/each}
-          </div>
-        </div>
-
-        <div class="diff-divider" aria-hidden="true"></div>
-
-        <div class="diff-pane" role="region" aria-label="After changes">
-          <div class="pane-header">After</div>
-          <div class="pane-content">
-            {#each rightLines || [] as line (line.lineNum)}
-              <div class="code-line {getLineClass(line.type)}">
-                <span class="line-num">{line.lineNum}</span>
-                <span class="line-content">{line.content || ' '}</span>
-              </div>
-            {/each}
-          </div>
-        </div>
-      </div>
-    {:else}
-      <div class="empty">No diff available</div>
-    {/if}
+    <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Diff</span>
+    <button onclick={onClose} class="text-xs text-[var(--accent)] hover:underline">Close</button>
   </div>
+
+  {#if diffLines.length > 0}
+    <pre
+      class="text-xs font-mono p-3 overflow-auto max-h-96 m-0">{#each diffLines as line (line.content)}<span
+          class={line.type === 'add'
+            ? 'block bg-[var(--success-subtle)] text-[var(--success)]'
+            : line.type === 'remove'
+              ? 'block bg-[var(--error-subtle)] text-[var(--error)]'
+              : 'block text-[var(--text)]'}
+          >{line.content}
+</span>{/each}</pre>
+  {:else if leftLines.length > 0}
+    <div
+      class="grid grid-cols-2 divide-x divide-[var(--border)] text-xs font-mono overflow-auto max-h-96"
+    >
+      <div>
+        {#each leftLines as line (line.lineNum)}
+          <div
+            class="px-3 py-0.5 {line.type === 'remove'
+              ? 'bg-[var(--error-subtle)] text-[var(--error)]'
+              : 'text-[var(--text)]'}"
+          >
+            <span class="text-[var(--muted)] inline-block w-8 text-right mr-2">{line.lineNum}</span
+            >{line.content}
+          </div>
+        {/each}
+      </div>
+      <div>
+        {#each rightLines as line (line.lineNum)}
+          <div
+            class="px-3 py-0.5 {line.type === 'add'
+              ? 'bg-[var(--success-subtle)] text-[var(--success)]'
+              : 'text-[var(--text)]'}"
+          >
+            <span class="text-[var(--muted)] inline-block w-8 text-right mr-2">{line.lineNum}</span
+            >{line.content}
+          </div>
+        {/each}
+      </div>
+    </div>
+  {:else}
+    <div class="p-6 text-center text-sm text-[var(--muted)]">No diff available</div>
+  {/if}
 </div>
-
-<style>
-  .diff-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: color-mix(in srgb, var(--bg) 90%, black);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-  }
-
-  .diff-modal-content {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    width: 95%;
-    max-width: 1400px;
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .diff-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-xl);
-    border-bottom: 2px solid var(--info);
-  }
-
-  .diff-header {
-    padding: 0 var(--space-lg);
-  }
-
-  h2 {
-    margin: 0;
-    color: var(--text);
-    font-size: 12px;
-  }
-
-  .unified-diff {
-    flex: 1;
-    overflow: auto;
-    padding: var(--space-lg);
-  }
-
-  .diff-content {
-    font-family: var(--mono);
-    font-size: 12px;
-    margin: 0;
-    white-space: pre;
-  }
-
-  .diff-line {
-    display: block;
-    padding: var(--space-xs) var(--space-lg);
-  }
-
-  .diff-line.line-add {
-    background: color-mix(in srgb, var(--success) 15%, var(--surface));
-    color: var(--success);
-  }
-
-  .diff-line.line-remove {
-    background: color-mix(in srgb, var(--error) 15%, var(--surface));
-    color: var(--error);
-  }
-
-  .diff-line.line-context {
-    color: var(--text);
-  }
-
-  .side-by-side {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  .diff-pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .pane-header {
-    background: var(--surface-2);
-    padding: var(--space-lg) 1rem;
-    font-weight: 600;
-    color: var(--text);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .pane-content {
-    flex: 1;
-    overflow: auto;
-    font-family: var(--mono);
-    font-size: 12px;
-  }
-
-  .diff-divider {
-    width: 2px;
-    background: var(--surface-2);
-  }
-
-  .code-line {
-    display: flex;
-    padding: var(--space-xs) 0;
-    min-height: var(--icon-sm);
-  }
-
-  .code-line.line-add {
-    background: color-mix(in srgb, var(--success) 15%, var(--surface));
-  }
-
-  .code-line.line-remove {
-    background: color-mix(in srgb, var(--error) 15%, var(--surface));
-  }
-
-  .line-num {
-    display: inline-block;
-    width: 50px;
-    text-align: right;
-    padding-right: 1rem;
-    color: var(--muted);
-    user-select: none;
-    flex-shrink: 0;
-  }
-
-  .line-content {
-    flex: 1;
-    color: var(--text);
-    white-space: pre;
-    padding-right: 1rem;
-  }
-
-  .code-line.line-add .line-content {
-    color: var(--success);
-  }
-
-  .code-line.line-remove .line-content {
-    color: var(--error);
-  }
-
-  .empty {
-    text-align: center;
-    padding: var(--space-2xl);
-    color: var(--muted);
-  }
-</style>

@@ -79,7 +79,7 @@
   }
 </script>
 
-<header class="sticky top-0 z-50 bg-[var(--surface)] border-b border-[var(--border)] font-sans">
+<header class="sticky top-0 z-40 bg-[var(--surface)] border-b border-[var(--border)] font-sans">
   <!-- Main Header Row -->
   <div class="flex items-center gap-4 px-3 py-2 h-12">
     <!-- Logo -->

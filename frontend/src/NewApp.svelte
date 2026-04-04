@@ -15,7 +15,6 @@
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
   import QuickStartWizard from './lib/QuickStartWizard.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
-  import ConfirmDialog from './lib/ConfirmDialog.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { unreadCount } from './lib/stores/notificationHistory.js';
   import { onMount } from 'svelte';
@@ -28,13 +27,6 @@
   let sessionId = $state('Loading...');
   let showWelcome = $state(false);
   let showKeyboardShortcuts = $state(false);
-
-  // ConfirmDialog state
-  let showConfirm = $state(false);
-  let confirmTitle = $state('Confirm Action');
-  let confirmMessage = $state('Are you sure?');
-  let confirmType = $state('warning');
-  let confirmCallback = $state(null);
 
   // Get current path from router
   const currentPath = $derived(getPath());
@@ -139,24 +131,6 @@
     logger.debug('Session clicked:', sessionId);
     // Navigate to system page to view session details
     navigate('/system');
-  }
-
-  // ConfirmDialog functions (reserved for future use)
-  // function showConfirmDialog(options) {
-  //   confirmTitle = options.title || 'Confirm Action';
-  //   confirmMessage = options.message || 'Are you sure?';
-  //   confirmType = options.type || 'warning';
-  //   confirmCallback = options.onConfirm || null;
-  //   showConfirm = true;
-  // }
-
-  function handleConfirmYes() {
-    if (confirmCallback) confirmCallback();
-    showConfirm = false;
-  }
-
-  function handleConfirmNo() {
-    showConfirm = false;
   }
 </script>
 
@@ -387,15 +361,5 @@
   <KeyboardShortcuts
     visible={showKeyboardShortcuts}
     onClose={() => (showKeyboardShortcuts = false)}
-  />
-
-  <!-- Confirm Dialog -->
-  <ConfirmDialog
-    show={showConfirm}
-    title={confirmTitle}
-    message={confirmMessage}
-    type={confirmType}
-    on:confirm={handleConfirmYes}
-    on:cancel={handleConfirmNo}
   />
 </div>
