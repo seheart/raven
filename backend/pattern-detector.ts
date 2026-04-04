@@ -80,6 +80,18 @@ export class PatternDetector {
    */
   detect(filepath: string, content: string): DetectionResult {
     const matches: PatternMatch[] = [];
+
+    // Skip Raven's own source files and test files
+    if (
+      filepath.includes('raven/backend/') ||
+      filepath.includes('raven/frontend/') ||
+      filepath.includes('__tests__') ||
+      filepath.includes('.test.') ||
+      filepath.includes('.spec.')
+    ) {
+      return { filepath, matches, hasIssues: false };
+    }
+
     const lines = content.split('\n');
 
     lines.forEach((line, index) => {
