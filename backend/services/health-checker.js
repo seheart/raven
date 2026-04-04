@@ -8,10 +8,9 @@
 import { logger } from '../utils/logger.js';
 
 export class HealthChecker {
-  constructor(baseUrl = 'http://localhost:9100', db = null, conversationSyncs = null) {
+  constructor(baseUrl = 'http://localhost:9100', db = null) {
     this.baseUrl = baseUrl;
     this.db = db;
-    this.conversationSyncs = conversationSyncs;
     this.results = [];
   }
 
@@ -75,12 +74,6 @@ export class HealthChecker {
         fn: () => this.checkConversationFreshness(),
         critical: false
       },
-      {
-        name: 'Conversation Sync Active',
-        fn: () => this.checkConversationSyncActive(),
-        critical: false
-      },
-
       // System Features
       { name: 'Storage Info', fn: () => this.checkEndpoint('/api/storage'), critical: false },
       {
@@ -230,39 +223,6 @@ export class HealthChecker {
     }
 
     logger.info(`  ℹ️  Last conversation: ${hoursSinceLastConversation.toFixed(1)} hours ago`);
-  }
-
-  /**
-   * Check if conversation sync services are active
-   */
-  async checkConversationSyncActive() {
-    if (!this.conversationSyncs) {
-      throw new Error('Conversation sync tracking not available');
-    }
-
-    const activeCount = this.conversationSyncs.size;
-
-    if (activeCount === 0) {
-      logger.info('  ℹ️  No conversation syncs active (no projects started yet)');
-      return;
-    }
-
-    // Verify syncs are actually running
-    let runningCount = 0;
-    for (const [projectName, sync] of this.conversationSyncs.entries()) {
-      const status = sync.getStatus();
-      if (status.running) {
-        runningCount++;
-      } else {
-        logger.warn(`  ⚠️  Conversation sync for ${projectName} is not running`);
-      }
-    }
-
-    if (runningCount === 0 && activeCount > 0) {
-      throw new Error(`${activeCount} conversation sync(s) registered but none running`);
-    }
-
-    logger.info(`  ℹ️  ${runningCount}/${activeCount} conversation sync(s) active`);
   }
 
   /**

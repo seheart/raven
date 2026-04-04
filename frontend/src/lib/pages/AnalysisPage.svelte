@@ -351,30 +351,6 @@
         </button>
 
         <button
-          onclick={() => navigate('/analysis/session-replay')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all"
-        >
-          <div class="flex items-center gap-3 mb-2">
-            <span class="text-xl">🎬</span>
-            <span class="text-sm text-[var(--muted)] font-sans">Recent Sessions</span>
-          </div>
-          <div class="text-3xl font-bold text-[var(--text-heading)]">{totalSessions}</div>
-          <div class="text-xs text-[var(--muted)] font-sans mt-1">Available for replay</div>
-        </button>
-
-        <button
-          onclick={() => navigate('/analysis/developer-insights')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all"
-        >
-          <div class="flex items-center gap-3 mb-2">
-            <span class="text-xl">👨‍💻</span>
-            <span class="text-sm text-[var(--muted)] font-sans">Insights</span>
-          </div>
-          <div class="text-3xl font-bold text-[var(--accent)]">Live</div>
-          <div class="text-xs text-[var(--muted)] font-sans mt-1">Productivity metrics</div>
-        </button>
-
-        <button
           onclick={() => navigate('/analysis/trends')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all"
         >
@@ -435,19 +411,6 @@
           </button>
 
           <button
-            onclick={() => navigate('/analysis/custom-metrics')}
-            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
-          >
-            <span class="text-2xl">📈</span>
-            <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
-                Custom Metrics
-              </div>
-              <div class="text-xs text-[var(--muted)] font-sans">User-defined dashboards</div>
-            </div>
-          </button>
-
-          <button
             onclick={() => navigate('/analysis/trends')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
           >
@@ -470,32 +433,6 @@
                 Configure Triggers
               </div>
               <div class="text-xs text-[var(--muted)] font-sans">Automated monitoring</div>
-            </div>
-          </button>
-
-          <button
-            onclick={() => navigate('/analysis/session-replay')}
-            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
-          >
-            <span class="text-2xl">🎬</span>
-            <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
-                Session Replay
-              </div>
-              <div class="text-xs text-[var(--muted)] font-sans">Review coding sessions</div>
-            </div>
-          </button>
-
-          <button
-            onclick={() => navigate('/analysis/developer-insights')}
-            class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
-          >
-            <span class="text-2xl">👨‍💻</span>
-            <div>
-              <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
-                Developer Insights
-              </div>
-              <div class="text-xs text-[var(--muted)] font-sans">Productivity analytics</div>
             </div>
           </button>
         </div>

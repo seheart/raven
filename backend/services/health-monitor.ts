@@ -197,12 +197,8 @@ export class HealthMonitor {
           ]
         },
         {
-          table: 'metrics',
+          table: 'raven_metrics',
           requiredColumns: ['id', 'timestamp', 'cpu_percent', 'memory_percent']
-        },
-        {
-          table: 'sessions',
-          requiredColumns: ['id', 'session_id', 'start_time']
         }
       ];
 
@@ -423,7 +419,7 @@ export class HealthMonitor {
       const recentMetrics = this.db.db
         .prepare(
           `SELECT AVG(cpu_percent) as avg_cpu, AVG(memory_percent) as avg_memory
-         FROM metrics
+         FROM raven_metrics
          WHERE timestamp > datetime('now', '-5 minutes')`
         )
         .get() as { avg_cpu: number; avg_memory: number };

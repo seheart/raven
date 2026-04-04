@@ -10,10 +10,7 @@
     sessionId = 'Loading...',
     onThemeChange = () => {},
     onSessionClick = () => {},
-    onWelcomeClick = () => {},
-    onAboutClick = () => {},
-    onChangelogClick = () => {},
-    onDocsClick = () => {}
+    onAboutClick = () => {}
   } = $props();
 </script>
 
@@ -83,35 +80,11 @@
     <!-- Right Section -->
     <nav class="flex items-center gap-4" aria-label="Footer navigation">
       <button
-        onclick={onWelcomeClick}
-        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
-        aria-label="Open welcome page"
-      >
-        Welcome
-      </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
         onclick={onAboutClick}
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
         aria-label="Open about dialog"
       >
         About
-      </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
-        onclick={onChangelogClick}
-        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
-        aria-label="View changelog"
-      >
-        Changelog
-      </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
-        onclick={onDocsClick}
-        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
-        aria-label="Open documentation"
-      >
-        Docs
       </button>
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <a

@@ -2562,6 +2562,92 @@ app.post('/api/storage/retention', async (req: Request, res: Response) => {
   }
 });
 
+// ==================== Conversations ====================
+
+app.get('/api/conversations', (req: Request, res: Response) => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+  const offset = parseInt(req.query.offset as string) || 0;
+  const conversations = db.db
+    .prepare(
+      'SELECT * FROM agent_events WHERE event_type = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?'
+    )
+    .all('conversation', limit, offset);
+  return res.json({ conversations, total: conversations.length });
+});
+
+app.get('/api/conversations/stats', (req: Request, res: Response) => {
+  const result = db.db
+    .prepare("SELECT COUNT(*) as total FROM agent_events WHERE event_type = 'conversation'")
+    .get() as any;
+  return res.json({ total: result?.total || 0 });
+});
+
+// ==================== Errors ====================
+
+app.get('/api/errors', (req: Request, res: Response) => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+  const errors = db.db
+    .prepare('SELECT * FROM syntax_errors ORDER BY timestamp DESC LIMIT ?')
+    .all(limit);
+  return res.json({ errors, total: errors.length });
+});
+
+app.post('/api/errors', (req: Request, res: Response) => {
+  const { message, stack, component, severity } = req.body;
+  db.db
+    .prepare(
+      'INSERT INTO syntax_errors (timestamp, file, line, message, severity) VALUES (?, ?, ?, ?, ?)'
+    )
+    .run(
+      new Date().toISOString(),
+      component || 'frontend',
+      0,
+      message || stack || 'Unknown error',
+      severity || 'error'
+    );
+  return res.json({ success: true });
+});
+
+app.get('/api/errors/stats', (req: Request, res: Response) => {
+  const result = db.db.prepare('SELECT COUNT(*) as total FROM syntax_errors').get() as any;
+  return res.json({ total: result?.total || 0 });
+});
+
+// ==================== Notifications ====================
+
+app.get('/api/notifications', (req: Request, res: Response) => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+  const notifications = db.db
+    .prepare('SELECT * FROM health_checks ORDER BY timestamp DESC LIMIT ?')
+    .all(limit);
+  return res.json({ notifications, total: notifications.length });
+});
+
+app.get('/api/notifications/stats', (req: Request, res: Response) => {
+  const result = db.db.prepare('SELECT COUNT(*) as total FROM health_checks').get() as any;
+  return res.json({ total: result?.total || 0, unread: 0 });
+});
+
+app.post('/api/notifications/:id/read', (req: Request, res: Response) => {
+  return res.json({ success: true });
+});
+
+app.post('/api/notifications/mark-all-read', (req: Request, res: Response) => {
+  return res.json({ success: true });
+});
+
+app.delete('/api/notifications/:id', (req: Request, res: Response) => {
+  return res.json({ success: true });
+});
+
+// ==================== All Agent Events ====================
+
+app.get('/api/all-agent-events', (req: Request, res: Response) => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 100, 1000);
+  const events = db.getRecentAgentEvents(limit);
+  return res.json(events);
+});
+
 // ==================== WebSocket ====================
 
 io.on('connection', socket => {
@@ -2570,196 +2656,6 @@ io.on('connection', socket => {
   socket.on('disconnect', () => {
     logger.info('🔌 WebSocket client disconnected:', socket.id);
   });
-});
-
-// ==================== Stub Endpoints (Not Yet Implemented) ====================
-
-// Get all agent events with filtering
-app.get('/api/all-agent-events', (req: Request, res: Response) => {
-  try {
-    const limit = parseInt(req.query.limit as string) || 100;
-    const agentName = req.query.agent as string | undefined;
-    const searchTerm = req.query.q as string | undefined;
-
-    let query = `
-      SELECT
-        id, timestamp, agent, event_type, file, lines_changed,
-        duration_ms, message, metadata, session_id
-      FROM agent_events
-      WHERE 1=1
-    `;
-
-    const params: any[] = [];
-
-    // Note: agent_events table doesn't have project_name column
-
-    if (agentName) {
-      query += ' AND agent = ?';
-      params.push(agentName);
-    }
-
-    if (searchTerm) {
-      query += ' AND (message LIKE ? OR file LIKE ? OR event_type LIKE ?)';
-      const searchPattern = `%${searchTerm}%`;
-      params.push(searchPattern, searchPattern, searchPattern);
-    }
-
-    query += ' ORDER BY timestamp DESC LIMIT ?';
-    params.push(limit);
-
-    const events = db.db.prepare(query).all(...params);
-
-    res.json({ events, total: events.length, limit });
-  } catch (error: any) {
-    logger.error('Error getting agent events:', error);
-    res.status(500).json({ error: 'Failed to get agent events' });
-  }
-});
-
-// Stub endpoint for conversations list
-app.get('/api/conversations', (req: Request, res: Response) => {
-  res.json({ conversations: [], total: 0 });
-});
-
-// Stub endpoint for conversations stats
-app.get('/api/conversations/stats', (req: Request, res: Response) => {
-  res.json({
-    total: 0,
-    active: 0,
-    recent: [],
-    by_type: {},
-    by_project: {}
-  });
-});
-
-// Stub endpoint for error logging
-app.post('/api/errors', (req: Request, res: Response) => {
-  // Silently accept error logs but don't store them yet
-  res.json({ success: true });
-});
-
-// Stub endpoint for status (cached for 5 seconds)
-app.get('/api/status', cacheMiddleware(5000), (req: Request, res: Response) => {
-  res.json({ status: 'ok', uptime: process.uptime() });
-});
-
-// Stub endpoint for health (cached for 2 seconds)
-app.get('/api/health', cacheMiddleware(2000), (req: Request, res: Response) => {
-  res.json({ healthy: true, timestamp: new Date().toISOString() });
-});
-
-// Health readiness endpoint for startup verification
-app.get('/api/health/ready', (req: Request, res: Response) => {
-  res.json({ ready: true, timestamp: new Date().toISOString() });
-});
-
-// List all available API endpoints (for API Health page)
-app.get('/api/endpoints', (req: Request, res: Response) => {
-  // Return a list of all registered endpoints with metadata
-  res.json({
-    endpoints: [
-      { path: '/api/status', method: 'GET', category: 'Core', description: 'Server status' },
-      { path: '/api/health', method: 'GET', category: 'Core', description: 'Health check' },
-      { path: '/api/events', method: 'GET', category: 'Data', description: 'List events' },
-      { path: '/api/errors', method: 'GET', category: 'Data', description: 'List errors' },
-      {
-        path: '/api/notifications',
-        method: 'GET',
-        category: 'Data',
-        description: 'List notifications'
-      },
-      { path: '/api/sessions', method: 'GET', category: 'Data', description: 'List sessions' }
-    ]
-  });
-});
-
-// Main events endpoint
-app.get('/api/events', (req: Request, res: Response) => {
-  // Parameters: limit, offset, project, type (ignored for now)
-  res.json({
-    events: [],
-    total: 0,
-    hasMore: false
-  });
-});
-
-// Main errors endpoint
-app.get('/api/errors', (req: Request, res: Response) => {
-  // Parameters: limit, offset, project, severity, resolved (ignored for now)
-  res.json({
-    errors: [],
-    total: 0,
-    hasMore: false
-  });
-});
-
-// Stub endpoint for errors/stats
-app.get('/api/errors/stats', (req: Request, res: Response) => {
-  res.json({ total: 0, byCategory: {}, recent: [] });
-});
-
-// Main notifications endpoint
-app.get('/api/notifications', (req: Request, res: Response) => {
-  // This is a stub - in production, you'd query a notifications table
-  // Parameters: limit, offset, type, severity, unread_only (ignored for now)
-  res.json({
-    notifications: [],
-    total: 0,
-    hasMore: false,
-    unread: 0
-  });
-});
-
-// Stub endpoint for notifications/stats
-app.get('/api/notifications/stats', (req: Request, res: Response) => {
-  res.json({
-    total: 0,
-    unread: 0,
-    by_type: {},
-    by_severity: {}
-  });
-});
-
-// Mark single notification as read
-app.post('/api/notifications/:id/read', (req: Request, res: Response) => {
-  const { id } = req.params;
-  res.json({ success: true, id });
-});
-
-// Mark all notifications as read
-app.post('/api/notifications/mark-all-read', (req: Request, res: Response) => {
-  res.json({ success: true, updated: 0 });
-});
-
-// Delete single notification
-app.delete('/api/notifications/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  res.json({ success: true, id });
-});
-
-// Delete all notifications
-app.delete('/api/notifications', (req: Request, res: Response) => {
-  res.json({ success: true, deleted: 0 });
-});
-
-// Stub endpoint for health-checks
-app.get('/api/health-checks', (req: Request, res: Response) => {
-  res.json({ checks: [], passing: 0, failing: 0 });
-});
-
-// Stub endpoint for performance correlations
-app.get('/api/performance-correlations', (req: Request, res: Response) => {
-  res.json({ correlations: [], summary: {} });
-});
-
-// Stub endpoint for metrics dashboard
-app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
-  res.json({ metrics: [], summary: {} });
-});
-
-// Stub endpoint for historical trends
-app.get('/api/trends/historical', (req: Request, res: Response) => {
-  res.json({ trends: [], period: 'daily' });
 });
 
 // ==================== Error Handling Middleware ====================

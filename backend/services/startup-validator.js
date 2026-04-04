@@ -20,8 +20,7 @@ export class StartupValidator {
     this.backendUrl = deps.backendUrl || 'http://localhost:9100';
     this.frontendUrl = deps.frontendUrl || 'http://localhost:9000';
     this.db = deps.db;
-    this.conversationSyncs = deps.conversationSyncs;
-    this.healthChecker = new HealthChecker(this.backendUrl, this.db, this.conversationSyncs);
+    this.healthChecker = new HealthChecker(this.backendUrl, this.db);
 
     this.results = {
       backend: [],
