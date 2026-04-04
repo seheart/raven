@@ -110,7 +110,7 @@
       </div>
     {:else if healthReport}
       <!-- Overall Status -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
           <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
             Status
@@ -127,14 +127,6 @@
               >{(healthReport.overallStatus || 'unknown').toUpperCase()}</span
             >
           </div>
-        </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-            Total Checks
-          </div>
-          <span class="text-sm font-mono font-bold text-[var(--text)]"
-            >{healthReport.summary?.total || 0}</span
-          >
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
           <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">

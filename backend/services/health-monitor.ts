@@ -20,7 +20,7 @@ export interface HealthCheckResult {
 }
 
 export interface HealthReport {
-  overallStatus: 'healthy' | 'degraded' | 'critical';
+  overallStatus: 'healthy' | 'warning' | 'critical';
   timestamp: string;
   checks: HealthCheckResult[];
   summary: {
@@ -125,11 +125,11 @@ export class HealthMonitor {
     };
 
     // Determine overall status
-    let overallStatus: 'healthy' | 'degraded' | 'critical' = 'healthy';
+    let overallStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
     if (summary.critical > 0) {
       overallStatus = 'critical';
     } else if (summary.warnings > 0) {
-      overallStatus = 'degraded';
+      overallStatus = 'warning';
     }
 
     const report: HealthReport = {
