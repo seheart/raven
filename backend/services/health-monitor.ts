@@ -443,7 +443,7 @@ export class HealthMonitor {
         });
       }
 
-      if (recentMetrics.avg_memory !== null && recentMetrics.avg_memory > 90) {
+      if (recentMetrics.avg_memory !== null && recentMetrics.avg_memory > 95) {
         checks.push({
           category: 'System Resources',
           name: 'Memory Usage',
@@ -571,28 +571,14 @@ export class HealthMonitor {
     const timestamp = new Date().toISOString();
 
     try {
-      // Check if required environment variables are set
-      const requiredEnvVars = ['PORT', 'NODE_ENV'];
-      const missingVars = requiredEnvVars.filter(v => !process.env[v]);
-
-      if (missingVars.length > 0) {
-        checks.push({
-          category: 'Configuration',
-          name: 'Environment Variables',
-          status: 'warning',
-          message: `Missing optional env vars: ${missingVars.join(', ')}`,
-          timestamp,
-          details: { missingVars }
-        });
-      } else {
-        checks.push({
-          category: 'Configuration',
-          name: 'Environment Variables',
-          status: 'healthy',
-          message: 'All required environment variables set',
-          timestamp
-        });
-      }
+      // Environment variables (all optional, defaults are fine)
+      checks.push({
+        category: 'Configuration',
+        name: 'Environment Variables',
+        status: 'healthy',
+        message: `PORT=${process.env.PORT || '9100 (default)'}, NODE_ENV=${process.env.NODE_ENV || 'development (default)'}`,
+        timestamp
+      });
 
       // Check PORT configuration
       const port = parseInt(process.env.PORT || '9100');
@@ -638,7 +624,7 @@ export class HealthMonitor {
     try {
       // Check critical directories
       const requiredDirs = [
-        { name: 'Database Directory', path: path.join(process.cwd(), '.raven', 'db') },
+        { name: 'Database Directory', path: path.join(process.cwd(), '..', '.raven', 'db') },
         { name: 'Logs Directory', path: path.join(process.cwd(), 'logs') }
       ];
 

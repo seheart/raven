@@ -2721,6 +2721,11 @@ app.get('/api/errors/stats', (req: Request, res: Response) => {
   return res.json({ total: result?.total || 0 });
 });
 
+app.delete('/api/errors/clear', (req: Request, res: Response) => {
+  db.db.prepare('DELETE FROM syntax_errors').run();
+  return res.json({ success: true, message: 'All errors cleared' });
+});
+
 // ==================== Notifications ====================
 
 app.get('/api/notifications', (req: Request, res: Response) => {

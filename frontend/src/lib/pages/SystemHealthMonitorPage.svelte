@@ -119,9 +119,9 @@
             <span
               class="w-2 h-2 rounded-full {healthReport.overallStatus === 'healthy'
                 ? 'bg-[var(--success)]'
-                : healthReport.overallStatus === 'warning'
-                  ? 'bg-[var(--warning)]'
-                  : 'bg-[var(--error)]'}"
+                : healthReport.overallStatus === 'critical'
+                  ? 'bg-[var(--error)]'
+                  : 'bg-[var(--warning)]'}"
             ></span>
             <span class="text-sm font-mono font-semibold text-[var(--text)]"
               >{(healthReport.overallStatus || 'unknown').toUpperCase()}</span
@@ -158,33 +158,31 @@
         </div>
       </div>
 
-      <!-- Alerts -->
-      {#if criticalCount > 0}
-        <div
-          class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-4 flex items-center gap-3"
-        >
-          <span class="w-2 h-2 rounded-full bg-[var(--error)]"></span>
-          <div>
-            <div class="text-sm font-semibold text-[var(--error)]">Critical Issues</div>
-            <div class="text-xs text-[var(--error)]">
-              {criticalCount}
-              {criticalCount === 1 ? 'issue' : 'issues'} requiring attention
-            </div>
+      <!-- Issues (front and center) -->
+      {#if criticalCount > 0 || warningCount > 0}
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg mb-6">
+          <div class="px-5 py-3 border-b border-[var(--border)]">
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+              {criticalCount > 0 ? 'Critical Issues' : 'Warnings'} ({criticalCount + warningCount})
+            </h3>
           </div>
-        </div>
-      {/if}
-
-      {#if warningCount > 0 && criticalCount === 0}
-        <div
-          class="bg-[#fefbe8] border border-[var(--warning)] rounded-lg p-4 mb-4 flex items-center gap-3"
-        >
-          <span class="w-2 h-2 rounded-full bg-[var(--warning)]"></span>
-          <div>
-            <div class="text-sm font-semibold text-[var(--warning)]">Warnings</div>
-            <div class="text-xs text-[var(--warning)]">
-              {warningCount}
-              {warningCount === 1 ? 'warning' : 'warnings'} to review
-            </div>
+          <div class="divide-y divide-[var(--border)]">
+            {#each (healthReport.checks || []).filter(c => c.status !== 'healthy') as check (check.name + check.category)}
+              <div class="px-5 py-3 flex items-start gap-3">
+                <span
+                  class="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 {check.status === 'critical'
+                    ? 'bg-[var(--error)]'
+                    : 'bg-[var(--warning)]'}"
+                ></span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-mono text-[var(--text)]">{check.name}</div>
+                  <div class="text-xs text-[var(--muted)] mt-0.5">{check.message}</div>
+                </div>
+                <span class="text-xs text-[var(--muted)] font-mono flex-shrink-0"
+                  >{check.category}</span
+                >
+              </div>
+            {/each}
           </div>
         </div>
       {/if}

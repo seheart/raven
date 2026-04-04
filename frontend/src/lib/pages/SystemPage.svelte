@@ -57,13 +57,11 @@
         api.get('/health/projects').catch(() => ({ projects: [] })),
         api.get('/errors/stats').catch(() => ({ total: 0 })),
         api.get('/git/status').catch(() => null),
-        api
-          .get('/health-checks')
-          .catch(() => ({
-            status: 'healthy',
-            checks: [],
-            summary: { total: 0, passed: 0, failed: 0 }
-          })),
+        api.get('/health-checks').catch(() => ({
+          status: 'healthy',
+          checks: [],
+          summary: { total: 0, passed: 0, failed: 0 }
+        })),
         api.get('/git/history?limit=5').catch(() => null)
       ]);
 
@@ -97,10 +95,7 @@
         };
       }
 
-      // Check WebSocket
-      setTimeout(() => {
-        websocketStatus.connected = websocketService.isConnected();
-      }, 300);
+      websocketStatus.connected = websocketService.isConnected();
 
       lastUpdated = new Date();
     } catch (err) {
@@ -129,13 +124,30 @@
   }
 
   onMount(() => {
+    // Ensure WebSocket is connected
+    websocketService.connect();
     loadAll();
-    websocketService.socket?.on('connect', () => {
+
+    // Listen for connection state changes
+    const onConnect = () => {
       websocketStatus.connected = true;
-    });
-    websocketService.socket?.on('disconnect', () => {
+    };
+    const onDisconnect = () => {
       websocketStatus.connected = false;
-    });
+    };
+    websocketService.socket?.on('connect', onConnect);
+    websocketService.socket?.on('disconnect', onDisconnect);
+
+    // Re-check after socket has time to connect
+    const checkTimer = setTimeout(() => {
+      websocketStatus.connected = websocketService.isConnected();
+    }, 2000);
+
+    return () => {
+      websocketService.socket?.off('connect', onConnect);
+      websocketService.socket?.off('disconnect', onDisconnect);
+      clearTimeout(checkTimer);
+    };
   });
 </script>
 
@@ -277,15 +289,9 @@
 
         <!-- Health Checks -->
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <button
-            class="w-full flex justify-between items-center mb-4"
-            onclick={() => (healthExpanded = !healthExpanded)}
-          >
-            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
-              Health Checks
-            </h3>
-            <span class="text-xs text-[var(--muted)]">{healthExpanded ? '▼' : '▶'}</span>
-          </button>
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+            Health Checks
+          </h3>
           <div
             class="px-3 py-2 rounded text-sm font-mono text-center mb-3"
             style="background: {healthChecks.status === 'healthy'
@@ -300,7 +306,7 @@
                 ? `${healthChecks.summary.failed} Issues Found`
                 : 'Checking...'}
           </div>
-          {#if healthExpanded && healthChecks.checks.length > 0}
+          {#if healthChecks.checks.length > 0}
             <div class="space-y-2 mt-3 max-h-60 overflow-y-auto">
               {#each healthChecks.checks as check (check.id || check.name)}
                 <div
@@ -326,43 +332,6 @@
           </button>
         </div>
       </div>
-
-      <!-- Projects -->
-      {#if projectHealth.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
-              Monitored Projects
-            </h3>
-            <span class="text-xs font-mono text-[var(--accent)]">{projectHealth.length} active</span
-            >
-          </div>
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {#each projectHealth as project (project.name)}
-              {@const isActive = project.status === 'active' || project.status === 'recent'}
-              <div
-                class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm"
-              >
-                <span
-                  class="w-2 h-2 rounded-full flex-shrink-0 {isActive
-                    ? 'bg-[var(--success)]'
-                    : 'bg-[var(--muted)]'}"
-                ></span>
-                <span class="font-mono text-[var(--text)] truncate">{project.name}</span>
-                <span class="text-xs text-[var(--muted)] ml-auto font-mono"
-                  >{project.recent_events || 0}</span
-                >
-              </div>
-            {/each}
-          </div>
-          <button
-            onclick={() => navigate('/system/projects')}
-            class="text-xs text-[var(--accent)] font-sans hover:underline mt-3 block"
-          >
-            Manage projects →
-          </button>
-        </div>
-      {/if}
 
       <!-- Git -->
       {#if gitStatus.available}
