@@ -568,85 +568,115 @@
 <div class="min-h-screen bg-[var(--bg)] pb-20">
   <AgentsNav />
 
-  <div class="conversations-panel">
+  <div class="max-w-6xl mx-auto p-6 pb-20">
     <!-- Stats Cards -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon"></div>
-        <div class="stat-content">
-          <div class="stat-label">Total Conversations</div>
-          <div class="stat-value">{stats.total.toLocaleString()}</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex items-center gap-4"
+      >
+        <div class="text-xs"></div>
+        <div class="flex-1">
+          <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">
+            Total Conversations
+          </div>
+          <div class="text-sm font-mono font-bold text-[var(--text)]">
+            {stats.total.toLocaleString()}
+          </div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon"></div>
-        <div class="stat-content">
-          <div class="stat-label">User Messages</div>
-          <div class="stat-value">{(stats.by_type.user_message || 0).toLocaleString()}</div>
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex items-center gap-4"
+      >
+        <div class="text-xs"></div>
+        <div class="flex-1">
+          <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">User Messages</div>
+          <div class="text-sm font-mono font-bold text-[var(--text)]">
+            {(stats.by_type.user_message || 0).toLocaleString()}
+          </div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon"></div>
-        <div class="stat-content">
-          <div class="stat-label">Assistant Responses</div>
-          <div class="stat-value">{(stats.by_type.assistant_text || 0).toLocaleString()}</div>
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex items-center gap-4"
+      >
+        <div class="text-xs"></div>
+        <div class="flex-1">
+          <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">
+            Assistant Responses
+          </div>
+          <div class="text-sm font-mono font-bold text-[var(--text)]">
+            {(stats.by_type.assistant_text || 0).toLocaleString()}
+          </div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon"></div>
-        <div class="stat-content">
-          <div class="stat-label">Tool Calls</div>
-          <div class="stat-value">{(stats.by_type.tool_call || 0).toLocaleString()}</div>
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex items-center gap-4"
+      >
+        <div class="text-xs"></div>
+        <div class="flex-1">
+          <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">Tool Calls</div>
+          <div class="text-sm font-mono font-bold text-[var(--text)]">
+            {(stats.by_type.tool_call || 0).toLocaleString()}
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Charts Section -->
     {#if showCharts && !loading && stats.total > 0}
-      <div class="charts-section">
-        <div class="charts-header">
-          <h3>Analytics</h3>
-          <button class="btn-toggle-charts" onclick={() => (showCharts = false)}>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-sm font-semibold text-[var(--accent)]">Analytics</h3>
+          <button
+            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-mono cursor-pointer hover:bg-[var(--accent)] hover:text-white transition-colors"
+            onclick={() => (showCharts = false)}
+          >
             Hide Charts
           </button>
         </div>
-        <div class="charts-grid">
-          <div class="chart-card">
-            <h4>Event Type Distribution</h4>
-            <div class="chart-container">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
+            <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Event Type Distribution</h4>
+            <div class="h-[250px] relative">
               <canvas id="chart-type-breakdown"></canvas>
             </div>
           </div>
-          <div class="chart-card">
-            <h4>Top 10 Projects</h4>
-            <div class="chart-container horizontal">
+          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
+            <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Top 10 Projects</h4>
+            <div class="h-[300px] relative">
               <canvas id="chart-project-distribution"></canvas>
             </div>
           </div>
         </div>
       </div>
     {:else if !showCharts && !loading}
-      <div class="charts-toggle">
-        <button class="btn-show-charts" onclick={() => (showCharts = true)}>
+      <div class="text-center p-5 mb-6">
+        <button
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-mono cursor-pointer hover:bg-[var(--accent)] hover:text-white transition-colors"
+          onclick={() => (showCharts = true)}
+        >
           Show Analytics Charts
         </button>
       </div>
     {/if}
 
     <!-- Controls -->
-    <div class="controls">
-      <div class="controls-row">
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+      <div class="flex gap-3 flex-wrap items-center">
         <input
           type="text"
-          class="search-input"
+          class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs"
           placeholder=" Search conversations..."
           bind:value={searchQuery}
         />
 
-        <select class="filter-select" bind:value={filterType} onchange={loadConversations}>
+        <select
+          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer"
+          bind:value={filterType}
+          onchange={loadConversations}
+        >
           <option value="all">All Types</option>
           <option value="user_message">User Messages</option>
           <option value="assistant_text">Assistant</option>
@@ -654,24 +684,34 @@
           <option value="tool_result">Tool Results</option>
         </select>
 
-        <select class="filter-select" bind:value={filterProject} onchange={loadConversations}>
+        <select
+          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer"
+          bind:value={filterProject}
+          onchange={loadConversations}
+        >
           <option value="all">All Projects</option>
           {#each Object.keys(stats?.by_project || {}) as project (project)}
             <option value={project}>{project} ({stats?.by_project?.[project] || 0})</option>
           {/each}
         </select>
 
-        <label class="auto-refresh">
-          <input type="checkbox" bind:checked={autoRefresh} />
+        <label
+          class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer text-xs"
+        >
+          <input type="checkbox" class="cursor-pointer" bind:checked={autoRefresh} />
           Auto-refresh
         </label>
 
-        <button class="btn-refresh" onclick={loadConversations} disabled={loading}>
+        <button
+          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          onclick={loadConversations}
+          disabled={loading}
+        >
           {#if loading}{:else}{/if} Refresh
         </button>
 
         <button
-          class="btn-expand-all"
+          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           onclick={toggleExpandAll}
           disabled={filteredConversations.length === 0}
         >
@@ -679,114 +719,156 @@
           {allExpanded ? 'Collapse All' : 'Expand All'}
         </button>
 
-        <button class="btn-import" onclick={() => (showImportDialog = true)}>Import </button>
+        <button
+          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 transition-all"
+          onclick={() => (showImportDialog = true)}
+          >Import
+        </button>
 
-        <button class="btn-export" onclick={exportConversations}>Export </button>
+        <button
+          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 transition-all"
+          onclick={exportConversations}
+          >Export
+        </button>
       </div>
 
       <!-- Secondary Controls Row -->
-      <div class="controls-row secondary">
-        <div class="control-group">
-          <span class="control-label">Date Range:</span>
+      <div class="flex gap-3 flex-wrap items-center mt-5 pt-5 border-t border-[var(--border)]">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-[var(--muted)] font-semibold uppercase tracking-wide"
+            >Date Range:</span
+          >
           <button
-            class="filter-btn"
-            class:active={dateRange === 'all'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            'all'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (dateRange = 'all')}
           >
             All Time
           </button>
           <button
-            class="filter-btn"
-            class:active={dateRange === 'today'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            'today'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (dateRange = 'today')}
           >
             Today
           </button>
           <button
-            class="filter-btn"
-            class:active={dateRange === '7d'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            '7d'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (dateRange = '7d')}
           >
             7 Days
           </button>
           <button
-            class="filter-btn"
-            class:active={dateRange === '30d'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            '30d'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (dateRange = '30d')}
           >
             30 Days
           </button>
         </div>
 
-        <div class="control-group">
-          <span class="control-label">Sort By:</span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-[var(--muted)] font-semibold uppercase tracking-wide"
+            >Sort By:</span
+          >
           <button
-            class="sort-btn"
-            class:active={sortBy === 'timestamp'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            'timestamp'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => toggleSort('timestamp')}
           >
             Time {sortBy === 'timestamp' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
           </button>
           <button
-            class="sort-btn"
-            class:active={sortBy === 'type'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            'type'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => toggleSort('type')}
           >
             Type {sortBy === 'type' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
           </button>
           <button
-            class="sort-btn"
-            class:active={sortBy === 'project'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            'project'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => toggleSort('project')}
           >
             Project {sortBy === 'project' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
           </button>
         </div>
 
-        <div class="control-group">
-          <span class="control-label">View:</span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-[var(--muted)] font-semibold uppercase tracking-wide"
+            >View:</span
+          >
           <button
-            class="view-btn"
-            class:active={viewMode === 'compact'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {viewMode ===
+            'compact'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (viewMode = 'compact')}
           >
             Compact
           </button>
           <button
-            class="view-btn"
-            class:active={viewMode === 'detailed'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {viewMode ===
+            'detailed'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (viewMode = 'detailed')}
           >
             Detailed
           </button>
         </div>
 
-        <div class="control-group">
-          <span class="control-label">Group:</span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-[var(--muted)] font-semibold uppercase tracking-wide"
+            >Group:</span
+          >
           <button
-            class="group-btn"
-            class:active={groupBy === 'none'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            'none'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (groupBy = 'none')}
           >
             None
           </button>
           <button
-            class="group-btn"
-            class:active={groupBy === 'session'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            'session'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (groupBy = 'session')}
           >
             Session
           </button>
           <button
-            class="group-btn"
-            class:active={groupBy === 'project'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            'project'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (groupBy = 'project')}
           >
             Project
           </button>
           <button
-            class="group-btn"
-            class:active={groupBy === 'date'}
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            'date'
+              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              : ''}"
             onclick={() => (groupBy = 'date')}
           >
             Date
@@ -795,7 +877,7 @@
       </div>
 
       {#if lastUpdate}
-        <div class="last-update">
+        <div class="mt-3 text-xs text-[var(--muted)]">
           Updated: {formatTime(lastUpdate.toISOString())}
         </div>
       {/if}
@@ -803,52 +885,90 @@
 
     <!-- Conversations Timeline -->
     {#if error}
-      <div class="error-state">
-        <p>Error: {error}</p>
-        <button class="btn-retry" onclick={loadConversations}>Retry </button>
+      <div
+        class="flex flex-col items-center justify-center gap-4 p-8 bg-[color-mix(in_srgb,var(--error)_5%,transparent)] border border-[color-mix(in_srgb,var(--error)_20%,transparent)] rounded-lg text-center mb-6"
+      >
+        <p class="m-0 text-[var(--error)] text-sm font-medium">Error: {error}</p>
+        <button
+          class="px-4 py-2 bg-[var(--error)] text-white border-none rounded text-sm font-semibold cursor-pointer hover:translate-y-[-1px] hover:shadow-md transition-all focus:outline-2 focus:outline-[var(--error)] focus:outline-offset-2"
+          onclick={loadConversations}
+          >Retry
+        </button>
       </div>
     {:else if loading}
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading conversations...</p>
+      <div class="text-center p-8">
+        <div
+          class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
+        ></div>
+        <p class="text-sm text-[var(--muted)]">Loading conversations...</p>
       </div>
     {:else if filteredConversations.length === 0}
-      <div class="empty">
-        <p>No conversations found</p>
-        <button class="btn-import" onclick={() => (showImportDialog = true)}>
+      <div class="text-center p-12 text-[var(--muted)]">
+        <p class="mb-4 text-xs">No conversations found</p>
+        <button
+          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 transition-all"
+          onclick={() => (showImportDialog = true)}
+        >
           Import Claude Sessions
         </button>
       </div>
     {:else}
-      <div class="conversations-timeline">
-        <div class="results-count">
+      <div class="flex flex-col gap-3">
+        <div class="text-xs text-[var(--muted)] py-2">
           Showing {filteredConversations.length} of {stats.total} conversations
         </div>
 
         {#each Object.entries(groupedConversations) as [groupName, groupConvs] (groupName)}
           {#if groupBy !== 'none'}
-            <div class="group-header">
-              <h3>{groupName}</h3>
-              <span class="group-count">({groupConvs.length} conversations)</span>
+            <div
+              class="flex items-center gap-3 px-5 py-3 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg mb-3 mt-5"
+            >
+              <h3 class="m-0 text-sm font-semibold text-[var(--accent)]">{groupName}</h3>
+              <span class="text-xs text-[var(--muted)] font-mono"
+                >({groupConvs.length} conversations)</span
+              >
             </div>
           {/if}
 
           {#each groupConvs as conv (conv.id)}
-            <article class="conversation-item {getEventClass(conv.event_type)}">
-              <button class="conv-header" onclick={() => toggleExpanded(conv.id)}>
-                <div class="conv-icon">{getEventIcon(conv.event_type)}</div>
-                <div class="conv-info">
-                  <div class="conv-type-row">
-                    <span class="conv-type">{conv.event_type}</span>
+            <article
+              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden {getEventClass(
+                conv.event_type
+              ) === 'user'
+                ? 'border-l-4 border-l-[var(--accent)]'
+                : getEventClass(conv.event_type) === 'assistant'
+                  ? 'border-l-4 border-l-[var(--accent-2)]'
+                  : getEventClass(conv.event_type) === 'tool-call'
+                    ? 'border-l-4 border-l-[#ffa500]'
+                    : getEventClass(conv.event_type) === 'tool-result'
+                      ? 'border-l-4 border-l-[#00c853]'
+                      : ''}"
+            >
+              <button
+                class="flex items-center gap-3 p-5 cursor-pointer w-full bg-transparent border-none text-left font-inherit text-inherit hover:bg-[var(--bg)] focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-[-2px] transition-colors"
+                onclick={() => toggleExpanded(conv.id)}
+              >
+                <div class="text-xs shrink-0">{getEventIcon(conv.event_type)}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex gap-2 mb-2 flex-wrap">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]"
+                      >{conv.event_type}</span
+                    >
                     {#if conv.tool_name}
-                      <span class="tool-badge">{conv.tool_name}</span>
+                      <span class="text-xs px-2 py-0.5 rounded bg-[var(--bg)] text-[var(--muted)]"
+                        >{conv.tool_name}</span
+                      >
                     {/if}
                     {#if conv.project}
-                      <span class="project-badge">{conv.project}</span>
+                      <span class="text-xs px-2 py-0.5 rounded bg-[var(--bg)] text-[var(--muted)]"
+                        >{conv.project}</span
+                      >
                     {/if}
                   </div>
                   {#if viewMode === 'detailed'}
-                    <div class="conv-preview">
+                    <div
+                      class="text-xs text-[var(--text)] leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis"
+                    >
                       {#if conv.content}
                         {truncateContent(conv.content)}
                       {:else if conv.tool_name}
@@ -859,80 +979,111 @@
                     </div>
                   {/if}
                 </div>
-                <div class="conv-meta">
-                  <time class="conv-time" datetime={conv.timestamp}
+                <div class="text-right shrink-0">
+                  <time class="text-xs text-[var(--muted)] block mb-1" datetime={conv.timestamp}
                     >{formatTime(conv.timestamp)}</time
                   >
-                  <div class="conv-id">#{conv.id}</div>
+                  <div class="text-xs text-[var(--muted)] font-mono">#{conv.id}</div>
                 </div>
-                <span class="expand-btn">
+                <span class="text-xs text-[var(--muted)] shrink-0 p-1">
                   {expandedConversations.includes(conv.id) ? '' : ''}
                 </span>
               </button>
 
               {#if expandedConversations.includes(conv.id)}
-                <div class="conv-details">
+                <div class="border-t border-[var(--border)] p-5 bg-[var(--bg)]">
                   {#if conv.content}
-                    <div class="detail-section">
-                      <div class="detail-header">
-                        <div class="detail-label">Content:</div>
+                    <div class="mb-5">
+                      <div class="flex justify-between items-center mb-2">
+                        <div
+                          class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
+                        >
+                          Content:
+                        </div>
                         <button
-                          class="btn-copy-content"
+                          class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-[10px] cursor-pointer hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-colors"
                           onclick={() => copyToClipboard(conv.content, 'Content')}
                         >
                           Copy
                         </button>
                       </div>
-                      <pre class="detail-content">{conv.content}</pre>
+                      <pre
+                        class="bg-[var(--surface)] border border-[var(--border)] rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words">{conv.content}</pre>
                     </div>
                   {/if}
 
                   {#if conv.tool_input}
-                    <div class="detail-section">
-                      <div class="detail-header">
-                        <div class="detail-label">Tool Input:</div>
+                    <div class="mb-5">
+                      <div class="flex justify-between items-center mb-2">
+                        <div
+                          class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
+                        >
+                          Tool Input:
+                        </div>
                         <button
-                          class="btn-copy-content"
+                          class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-[10px] cursor-pointer hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-colors"
                           onclick={() =>
                             copyToClipboard(formatToolInput(conv.tool_input), 'Tool Input')}
                         >
                           Copy
                         </button>
                       </div>
-                      <pre class="detail-content">{formatToolInput(conv.tool_input)}</pre>
+                      <pre
+                        class="bg-[var(--surface)] border border-[var(--border)] rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words">{formatToolInput(
+                          conv.tool_input
+                        )}</pre>
                     </div>
                   {/if}
 
                   {#if conv.tool_output}
-                    <div class="detail-section">
-                      <div class="detail-header">
-                        <div class="detail-label">Tool Output:</div>
+                    <div class="mb-5">
+                      <div class="flex justify-between items-center mb-2">
+                        <div
+                          class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
+                        >
+                          Tool Output:
+                        </div>
                         <button
-                          class="btn-copy-content"
+                          class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-[10px] cursor-pointer hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-colors"
                           onclick={() => copyToClipboard(conv.tool_output, 'Tool Output')}
                         >
                           Copy
                         </button>
                       </div>
-                      <pre class="detail-content tool-output">{conv.tool_output}</pre>
+                      <pre
+                        class="bg-[var(--surface)] border border-[var(--border)] rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto">{conv.tool_output}</pre>
                     </div>
                   {/if}
 
-                  <div class="detail-metadata">
-                    <div class="meta-item">
-                      <span class="meta-label">Session ID:</span>
-                      <span class="meta-value">{conv.claude_session_id}</span>
+                  <div
+                    class="flex flex-col gap-2 p-3 bg-[var(--surface)] border border-[var(--border)] rounded"
+                  >
+                    <div class="flex gap-3 text-xs">
+                      <span class="text-[var(--muted)] font-semibold min-w-[100px]"
+                        >Session ID:</span
+                      >
+                      <span class="text-[var(--text)] font-mono break-all"
+                        >{conv.claude_session_id}</span
+                      >
                     </div>
                     {#if conv.parent_uuid}
-                      <div class="meta-item">
-                        <span class="meta-label">Parent UUID:</span>
-                        <span class="meta-value">{conv.parent_uuid}</span>
+                      <div class="flex gap-3 text-xs">
+                        <span class="text-[var(--muted)] font-semibold min-w-[100px]"
+                          >Parent UUID:</span
+                        >
+                        <span class="text-[var(--text)] font-mono break-all"
+                          >{conv.parent_uuid}</span
+                        >
                       </div>
                     {/if}
                     {#if conv.metadata}
-                      <div class="meta-item">
-                        <span class="meta-label">Metadata:</span>
-                        <span class="meta-value">{JSON.stringify(conv.metadata)}</span>
+                      <div class="flex gap-3 text-xs">
+                        <span class="text-[var(--muted)] font-semibold min-w-[100px]"
+                          >Metadata:</span
+                        >
+                        <span class="text-[var(--text)] font-mono break-all"
+                          >{JSON.stringify(conv.metadata)}</span
+                        >
                       </div>
                     {/if}
                   </div>
@@ -943,8 +1094,12 @@
         {/each}
 
         {#if hasMore}
-          <div class="load-more">
-            <button class="btn-load-more" onclick={loadMore} disabled={loadingMore}>
+          <div class="flex justify-center p-4">
+            <button
+              class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:bg-[var(--accent)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              onclick={loadMore}
+              disabled={loadingMore}
+            >
               {#if loadingMore}
                 <span></span>Loading...
               {:else}
@@ -961,7 +1116,7 @@
 <!-- Import Dialog -->
 {#if showImportDialog}
   <div
-    class="modal-overlay"
+    class="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]"
     onclick={closeImportDialog}
     onkeydown={handleImportModalKeydown}
     role="dialog"
@@ -970,7 +1125,7 @@
   >
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
-      class="modal-content"
+      class="bg-[var(--surface)] border border-[var(--border)] rounded p-5 max-w-[600px] w-[90%] max-h-[90vh] overflow-y-auto"
       onclick={e => e.stopPropagation()}
       onkeydown={e => {
         e.stopPropagation();
@@ -979,37 +1134,51 @@
       bind:this={importModalElement}
       role="document"
     >
-      <h2>Import Claude Conversations</h2>
-      <p>Import conversation history from Claude Code .jsonl session files.</p>
+      <h2 class="m-0 mb-4 text-[var(--accent)]">Import Claude Conversations</h2>
+      <p class="m-0 mb-3 text-[var(--muted)] text-sm">
+        Import conversation history from Claude Code .jsonl session files.
+      </p>
 
-      <div class="form-group">
-        <label for="sessionFile">Session File Path:</label>
+      <div class="mb-4">
+        <label for="sessionFile" class="block mb-2 font-semibold text-[var(--text)] text-sm"
+          >Session File Path:</label
+        >
         <input
           id="sessionFile"
           type="text"
-          class="form-input"
+          class="w-full p-3 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs"
           placeholder="c6ceb139-5c3f-4cc6-923a-2bcac56f3479.jsonl"
           bind:value={importSessionFile}
         />
-        <div class="form-hint">
+        <div class="mt-2 text-xs text-[var(--muted)] italic">
           Enter filename or full path. Default location: ~/.claude/projects/-home-seth/
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="importProject">Project Name (optional):</label>
+      <div class="mb-4">
+        <label for="importProject" class="block mb-2 font-semibold text-[var(--text)] text-sm"
+          >Project Name (optional):</label
+        >
         <input
           id="importProject"
           type="text"
-          class="form-input"
+          class="w-full p-3 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs"
           placeholder="raven"
           bind:value={importProject}
         />
       </div>
 
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick={closeImportDialog}>Cancel </button>
-        <button class="btn-primary" onclick={importConversations} disabled={importing}>
+      <div class="flex gap-3 justify-end mt-6">
+        <button
+          class="px-3 py-2 bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded font-mono text-xs cursor-pointer hover:bg-[var(--bg)] transition-colors"
+          onclick={closeImportDialog}
+          >Cancel
+        </button>
+        <button
+          class="px-3 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          onclick={importConversations}
+          disabled={importing}
+        >
           {#if importing}
             <span></span>Importing...
           {:else}
@@ -1020,740 +1189,3 @@
     </div>
   </div>
 {/if}
-
-<style>
-  .conversations-panel {
-    padding: var(--space-lg);
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--space-lg);
-    margin-bottom: var(--space-lg);
-  }
-
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: var(--space-2xl);
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-  }
-
-  .stat-icon {
-    font-size: 11px;
-  }
-
-  .stat-content {
-    flex: 1;
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: var(--space-sm);
-  }
-
-  .stat-value {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent);
-    font-family: var(--mono);
-  }
-
-  .controls {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: var(--space-2xl);
-    margin-bottom: var(--space-lg);
-  }
-
-  .controls-row {
-    display: flex;
-    gap: var(--space-xl);
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .search-input {
-    flex: 1;
-    min-width: 200px;
-    padding: var(--space-lg) var(--space-xl);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11px;
-  }
-
-  .filter-select {
-    padding: var(--space-lg) var(--space-xl);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11px;
-    cursor: pointer;
-  }
-
-  .auto-refresh {
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-    padding: var(--space-lg) var(--space-xl);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 11px;
-  }
-
-  .auto-refresh input {
-    cursor: pointer;
-  }
-
-  .btn-refresh,
-  .btn-import,
-  .btn-export,
-  .btn-expand-all {
-    padding: var(--space-lg) var(--space-2xl);
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-family: var(--mono);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all var(--duration-base) var(--ease-smooth);
-  }
-
-  .btn-refresh:hover,
-  .btn-import:hover,
-  .btn-export:hover,
-  .btn-expand-all:hover {
-    filter: brightness(1.2);
-  }
-
-  .btn-refresh:disabled,
-  .btn-expand-all:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .last-update {
-    margin-top: var(--space-xl);
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .conversations-timeline {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-  }
-
-  .results-count {
-    font-size: 11px;
-    color: var(--text-muted);
-    padding: var(--space-lg) 0;
-  }
-
-  .conversation-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .conversation-item.user {
-    border-left: 4px solid var(--accent);
-  }
-
-  .conversation-item.assistant {
-    border-left: 4px solid var(--accent-2);
-  }
-
-  .conversation-item.tool-call {
-    border-left: 4px solid #ffa500;
-  }
-
-  .conversation-item.tool-result {
-    border-left: 4px solid #00c853;
-  }
-
-  .conv-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-    padding: var(--space-2xl);
-    cursor: pointer;
-    transition: background var(--duration-base) var(--ease-smooth);
-    width: 100%;
-    background: transparent;
-    border: none;
-    text-align: left;
-    font-family: inherit;
-    color: inherit;
-  }
-
-  .conv-header:hover {
-    background: var(--bg);
-  }
-
-  .conv-header:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
-  }
-
-  .conv-icon {
-    font-size: 11px;
-    flex-shrink: 0;
-  }
-
-  .conv-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .conv-type-row {
-    display: flex;
-    gap: var(--space-lg);
-    margin-bottom: var(--space-lg);
-    flex-wrap: wrap;
-  }
-
-  .conv-type {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--accent);
-  }
-
-  .tool-badge,
-  .project-badge {
-    font-size: 11px;
-    padding: var(--space-xs) var(--space-lg);
-    border-radius: var(--radius-sm);
-    background: var(--bg);
-    color: var(--text-muted);
-  }
-
-  .conv-preview {
-    font-size: 11px;
-    color: var(--text);
-    line-height: 1.5;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .conv-meta {
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  .conv-time {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: var(--space-sm);
-  }
-
-  .conv-id {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: var(--mono);
-  }
-
-  .expand-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 11px;
-    padding: var(--space-sm);
-    flex-shrink: 0;
-  }
-
-  .conv-details {
-    border-top: 1px solid var(--border);
-    padding: var(--space-2xl);
-    background: var(--bg);
-  }
-
-  .detail-section {
-    margin-bottom: var(--space-2xl);
-  }
-
-  .detail-label {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    margin-bottom: var(--space-lg);
-  }
-
-  .detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-lg);
-  }
-
-  .detail-content {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-xl);
-    font-family: var(--mono);
-    font-size: 13px;
-    line-height: 1.6;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-  }
-
-  .detail-content.tool-output {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-
-  .detail-metadata {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-    padding: var(--space-xl);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-  }
-
-  .meta-item {
-    display: flex;
-    gap: var(--space-xl);
-    font-size: 12px;
-  }
-
-  .meta-label {
-    color: var(--text-muted);
-    font-weight: 600;
-    min-width: 100px;
-  }
-
-  .meta-value {
-    color: var(--text);
-    font-family: var(--mono);
-    word-break: break-all;
-  }
-
-  .load-more {
-    display: flex;
-    justify-content: center;
-    padding: var(--space-lg);
-  }
-
-  .btn-load-more {
-    padding: var(--space-md) var(--space-xl);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family: var(--mono);
-    cursor: pointer;
-    transition: all var(--duration-base) var(--ease-smooth);
-  }
-
-  .btn-load-more:hover {
-    background: var(--accent);
-    color: white;
-  }
-
-  .btn-load-more:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .empty {
-    text-align: center;
-    padding: var(--space-4xl) var(--space-3xl);
-    color: var(--text-muted);
-  }
-
-  .empty p {
-    margin-bottom: var(--space-lg);
-    font-size: 11px;
-  }
-
-  .loading-state {
-    text-align: center;
-    padding: var(--space-4xl) var(--space-3xl);
-  }
-
-  .spinner {
-    width: 48px;
-    height: 48px;
-    border: 4px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto var(--space-lg);
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* Modal Styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-  }
-
-  .modal-content {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-xl);
-    max-width: 600px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-
-  .modal-content h2 {
-    margin: 0 0 var(--space-lg) 0;
-    color: var(--accent);
-  }
-
-  .modal-content p {
-    margin: 0 0 var(--space-md) 0;
-    color: var(--text-muted);
-  }
-
-  .form-group {
-    margin-bottom: var(--space-lg);
-  }
-
-  .form-group label {
-    display: block;
-    margin-bottom: var(--space-lg);
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .form-input {
-    width: 100%;
-    padding: var(--space-xl);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11px;
-  }
-
-  .form-hint {
-    margin-top: var(--space-lg);
-    font-size: 12px;
-    color: var(--text-muted);
-    font-style: italic;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: var(--space-xl);
-    justify-content: flex-end;
-    margin-top: var(--space-4xl);
-  }
-
-  .btn-cancel,
-  .btn-primary {
-    padding: var(--space-md) var(--space-xl);
-    border: none;
-    border-radius: var(--radius-sm);
-    font-family: var(--mono);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all var(--duration-base) var(--ease-smooth);
-  }
-
-  .btn-cancel {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  .btn-cancel:hover {
-    background: var(--bg);
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-
-  .btn-primary:hover {
-    filter: brightness(1.2);
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* Charts Section */
-  .charts-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: var(--space-2xl);
-    margin-bottom: var(--space-2xl);
-  }
-
-  .charts-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-2xl);
-  }
-
-  .charts-header h3 {
-    margin: 0;
-    font-size: var(--icon-xs);
-    color: var(--accent);
-  }
-
-  .btn-toggle-charts,
-  .btn-show-charts {
-    padding: var(--space-md) var(--space-xl);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all var(--duration-base) var(--ease-smooth);
-  }
-
-  .btn-toggle-charts:hover,
-  .btn-show-charts:hover {
-    background: var(--accent);
-    color: white;
-  }
-
-  .charts-toggle {
-    text-align: center;
-    padding: var(--space-2xl);
-    margin-bottom: var(--space-2xl);
-  }
-
-  .charts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: var(--space-2xl);
-  }
-
-  .chart-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: var(--space-2xl);
-  }
-
-  .chart-card h4 {
-    margin: 0 0 var(--space-xl) 0;
-    font-size: 13px;
-    color: var(--text);
-    font-weight: 600;
-  }
-
-  .chart-container {
-    height: 250px;
-    position: relative;
-  }
-
-  .chart-container.horizontal {
-    height: 300px;
-  }
-
-  /* Secondary Controls */
-  .controls-row.secondary {
-    margin-top: var(--space-2xl);
-    padding-top: var(--space-2xl);
-    border-top: 1px solid var(--border);
-  }
-
-  .control-group {
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-    flex-wrap: wrap;
-  }
-
-  .control-label {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .filter-btn,
-  .sort-btn,
-  .view-btn,
-  .group-btn {
-    padding: var(--space-md) var(--space-xl);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all var(--duration-base) var(--ease-smooth);
-  }
-
-  .filter-btn:hover,
-  .sort-btn:hover,
-  .view-btn:hover,
-  .group-btn:hover {
-    background: var(--surface);
-    border-color: var(--accent);
-  }
-
-  .filter-btn.active,
-  .sort-btn.active,
-  .view-btn.active,
-  .group-btn.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-    font-weight: 600;
-  }
-
-  /* Group Headers */
-  .group-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xl);
-    padding: var(--space-xl) var(--space-2xl);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: var(--space-xl);
-    margin-top: var(--space-2xl);
-  }
-
-  .group-header h3 {
-    margin: 0;
-    font-size: 14px;
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .group-count {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-family: var(--mono);
-  }
-
-  .btn-copy-content {
-    padding: var(--space-sm) var(--space-lg);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 10px;
-    cursor: pointer;
-    transition: all var(--duration-base) var(--ease-smooth);
-  }
-
-  .btn-copy-content:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
-  .error-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-xl);
-    padding: var(--space-4xl) var(--space-2xl);
-    background: color-mix(in srgb, var(--error) 5%, transparent);
-    border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
-    border-radius: var(--radius);
-    text-align: center;
-    margin-bottom: var(--space-2xl);
-  }
-
-  .error-state p {
-    margin: 0;
-    color: var(--error);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .btn-retry {
-    padding: var(--space-lg) var(--space-2xl);
-    background: var(--error);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--duration-base) var(--ease-smooth);
-  }
-
-  .btn-retry:hover {
-    background: var(--error);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .btn-retry:focus {
-    outline: 2px solid var(--error);
-    outline-offset: 2px;
-  }
-
-  /* Responsive Adjustments */
-  @media (max-width: 1024px) {
-    .charts-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .control-group {
-      width: 100%;
-    }
-
-    .controls-row.secondary {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  }
-</style>
