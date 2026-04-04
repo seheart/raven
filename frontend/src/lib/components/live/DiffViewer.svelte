@@ -9,14 +9,14 @@
   let openTabs = $state([]);
   let activeTab = $state(null);
 
-  // Fetch diff for a specific file
+  // Fetch computed diff between consecutive snapshots
   async function fetchFileDiff(path) {
     if (!path) return;
 
     try {
       loading = true;
       error = null;
-      const response = await api.get(`/session/diff/${encodeURIComponent(path)}`);
+      const response = await api.get(`/file-diff/${encodeURIComponent(path)}`);
       diffData = parseDiff(response);
     } catch (err) {
       error = err.message;
@@ -36,39 +36,30 @@
       };
     }
 
+    const raw = response.diff;
+    const lines = raw.split('\n');
     const hunks = [];
-    const lines = response.diff.split('\n');
     let currentHunk = null;
     let additions = 0;
     let deletions = 0;
 
     lines.forEach(line => {
-      // Hunk header (e.g., @@ -1,5 +1,7 @@)
       if (line.startsWith('@@')) {
-        if (currentHunk) {
-          hunks.push(currentHunk);
-        }
-        currentHunk = {
-          header: line,
-          lines: []
-        };
+        if (currentHunk) hunks.push(currentHunk);
+        currentHunk = { header: line, lines: [] };
       } else if (currentHunk) {
         const type = line.startsWith('+') ? 'add' : line.startsWith('-') ? 'remove' : 'context';
-
         if (type === 'add') additions++;
         if (type === 'remove') deletions++;
-
         currentHunk.lines.push({
           type,
-          content: line.substring(1), // Remove +/- prefix
+          content: line.substring(1),
           originalLine: line
         });
       }
     });
 
-    if (currentHunk) {
-      hunks.push(currentHunk);
-    }
+    if (currentHunk) hunks.push(currentHunk);
 
     return {
       filePath: response.filePath || filePath,
@@ -183,7 +174,7 @@
               <div class="diff-lines">
                 {#each hunk.lines as line, lineIdx (lineIdx)}
                   <div class="diff-row {line.type}">
-                    <div class="line-number">{lineIdx + 1}</div>
+                    <div class="line-number">{line.lineNum || lineIdx + 1}</div>
                     <div class="line-content">{line.content}</div>
                   </div>
                 {/each}
@@ -368,6 +359,17 @@
     padding: 2rem;
     text-align: center;
     color: var(--muted);
+  }
+
+  .snapshot-label {
+    padding: 0.4rem 1rem;
+    background: var(--accent-subtle);
+    color: var(--accent);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
   }
 
   .diff-chunk {

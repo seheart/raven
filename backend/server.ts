@@ -27,7 +27,7 @@ import { TriggerEngine } from './trigger-engine.js';
 import { syntaxChecker } from './syntax-checker.js';
 import { patternDetector } from './pattern-detector.js';
 import { pauseManager } from './pause-manager.js';
-import { EventBus, FileWatcher, GitMonitor, getDiff } from './modules/index.js';
+import { EventBus, FileWatcher, GitMonitor, getDiff, createPatch } from './modules/index.js';
 import type { FileEvent, GitStatusEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -646,24 +646,31 @@ app.get('/api/file-events', (req: Request, res: Response) => {
     const includeDiff = req.query.diff === 'true';
     const startTime = req.query.start_time as string;
     const endTime = req.query.end_time as string;
+    const filepath = req.query.filepath as string;
 
-    // Build query with optional time filtering
+    // Build query with optional filtering
     const fields = includeDiff
       ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name'
       : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name';
 
     let query = `SELECT ${fields} FROM events`;
     const params: any[] = [];
+    const conditions: string[] = [];
 
-    if (startTime && endTime) {
-      query += ' WHERE timestamp BETWEEN ? AND ?';
-      params.push(startTime, endTime);
-    } else if (startTime) {
-      query += ' WHERE timestamp >= ?';
+    if (filepath) {
+      conditions.push('filepath = ?');
+      params.push(filepath);
+    }
+    if (startTime) {
+      conditions.push('timestamp >= ?');
       params.push(startTime);
-    } else if (endTime) {
-      query += ' WHERE timestamp <= ?';
+    }
+    if (endTime) {
+      conditions.push('timestamp <= ?');
       params.push(endTime);
+    }
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
 
     query += ' ORDER BY timestamp DESC LIMIT ?';
@@ -671,6 +678,70 @@ app.get('/api/file-events', (req: Request, res: Response) => {
 
     const events = db.db.prepare(query).all(...params);
     return res.json(events);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Get a computed unified diff between two consecutive snapshots of a file
+app.get('/api/file-diff/:filepath(*)', async (req: Request, res: Response) => {
+  try {
+    const filepath = req.params.filepath;
+
+    // Get the two most recent snapshots with different content
+    const snapshots = db.db
+      .prepare(
+        `
+      SELECT id, diff as content, file_hash, timestamp
+      FROM events
+      WHERE filepath = ? AND diff IS NOT NULL AND diff != ''
+      ORDER BY id DESC LIMIT 10
+    `
+      )
+      .all(filepath) as Array<{
+      id: number;
+      content: string;
+      file_hash: string;
+      timestamp: string;
+    }>;
+
+    if (snapshots.length < 2) {
+      // Only one snapshot — show as all additions
+      const content = snapshots[0]?.content || '';
+      const lines = content.split('\n');
+      const unifiedDiff = [
+        `--- /dev/null`,
+        `+++ ${filepath}`,
+        `@@ -0,0 +1,${lines.length} @@`,
+        ...lines.map(l => `+${l}`)
+      ].join('\n');
+      return res.json({ filepath, diff: unifiedDiff, type: 'new' });
+    }
+
+    // Find the first pair with different hashes
+    let current = snapshots[0];
+    let previous = null;
+    for (let i = 1; i < snapshots.length; i++) {
+      if (snapshots[i].file_hash !== current.file_hash) {
+        previous = snapshots[i];
+        break;
+      }
+    }
+
+    if (!previous) {
+      // All snapshots are identical — no changes
+      return res.json({ filepath, diff: '', type: 'unchanged' });
+    }
+
+    // Compute unified diff
+    const diff = await createPatch(previous.content, current.content, filepath);
+    return res.json({
+      filepath,
+      diff,
+      type: 'modified',
+      from: previous.timestamp,
+      to: current.timestamp
+    });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }

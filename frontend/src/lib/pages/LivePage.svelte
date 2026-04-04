@@ -13,13 +13,21 @@
   let selectedFile = $state(null);
   let loading = $state(true);
   let unsubscribe = null;
+  let pollInterval = null;
 
   async function loadRecentFiles() {
     try {
-      const data = await api.get('/session/files');
-      recentFiles = (data.files || data || []).slice(0, 50);
+      const data = await api.get('/file-events?limit=50');
+      const events = Array.isArray(data) ? data : data?.events || [];
+      // Show one entry per file, most recent event wins
+      const seen = new Map();
+      for (const e of events) {
+        const path = e.filepath || e.path;
+        if (!seen.has(path)) seen.set(path, e);
+      }
+      recentFiles = Array.from(seen.values());
       if (recentFiles.length > 0 && !selectedFile) {
-        selectedFile = recentFiles[0].path || recentFiles[0].file;
+        selectedFile = recentFiles[0].filepath || recentFiles[0].path;
       }
     } catch (err) {
       console.error('Failed to load recent files:', err);
@@ -29,31 +37,43 @@
   }
 
   function handleFileClick(file) {
-    selectedFile = file.path || file.file;
+    selectedFile = file.filepath || file.path;
   }
 
   function getChangeType(file) {
-    const type = file.change_type || file.type || 'modified';
-    return type.charAt(0).toUpperCase();
+    const type = file.status || file.change_type || file.type || 'change';
+    if (type.includes('add') || type.includes('create')) return 'A';
+    if (type.includes('del') || type.includes('remove')) return 'D';
+    return 'M';
   }
 
   function getChangeClass(file) {
-    const type = (file.change_type || file.type || '').toLowerCase();
+    const type = (file.status || file.change_type || file.type || '').toLowerCase();
     if (type.includes('add') || type.includes('create')) return 'text-[var(--success)]';
     if (type.includes('del') || type.includes('remove')) return 'text-[var(--error)]';
     return 'text-[var(--accent)]';
   }
 
   function getFileName(file) {
-    const path = file.path || file.file || '';
+    const path = file.path || file.filepath || file.file || '';
     return path.split('/').pop();
   }
 
   function getFileDir(file) {
-    const path = file.path || file.file || '';
+    const path = file.path || file.filepath || file.file || '';
     const parts = path.split('/');
     parts.pop();
     return parts.join('/');
+  }
+
+  function timeAgo(timestamp) {
+    if (!timestamp) return '';
+    const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+    if (seconds < 5) return 'just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
   }
 
   onMount(() => {
@@ -61,10 +81,13 @@
     unsubscribe = websocketService.subscribe('file-changed', () => {
       loadRecentFiles();
     });
+    // Poll every 5s as fallback in case WebSocket misses events
+    pollInterval = setInterval(loadRecentFiles, 5000);
   });
 
   onDestroy(() => {
     if (unsubscribe) unsubscribe();
+    if (pollInterval) clearInterval(pollInterval);
   });
 </script>
 
@@ -86,10 +109,10 @@
         {:else if recentFiles.length === 0}
           <div class="empty-state">No file changes detected yet</div>
         {:else}
-          {#each recentFiles as file (file.path || file.file)}
+          {#each recentFiles as file (file.id || file.filepath || file.path)}
             <button
               class="file-item"
-              class:active={(file.path || file.file) === selectedFile}
+              class:active={(file.filepath || file.path) === selectedFile}
               onclick={() => handleFileClick(file)}
             >
               <span class="change-indicator {getChangeClass(file)}">{getChangeType(file)}</span>
@@ -97,6 +120,7 @@
                 <span class="file-name">{getFileName(file)}</span>
                 <span class="file-dir">{getFileDir(file)}</span>
               </div>
+              <span class="file-time">{timeAgo(file.timestamp)}</span>
             </button>
           {/each}
         {/if}
@@ -225,6 +249,14 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .file-time {
+    font-size: 0.6rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .diff-panel {
