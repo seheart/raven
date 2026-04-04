@@ -127,7 +127,7 @@ export class FileWatcher {
       interval: 1000, // Poll every 1s for normal files
       binaryInterval: 3000, // Poll every 3s for binary files
       // Limit depth to prevent deep recursion into node_modules/venv
-      depth: 5, // Shallow depth for broad watching
+      depth: 10, // Deep enough to reach nested source files
       ignorePermissionErrors: true
     });
 

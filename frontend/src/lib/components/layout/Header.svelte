@@ -22,7 +22,7 @@
   } = $props();
 
   const tabs = [
-    { id: 'live', label: 'Live', path: '/live' },
+    { id: 'live', label: 'Code Changes', path: '/live' },
     { id: 'overview', label: 'History', path: '/overview' },
     { id: 'analysis', label: 'Analysis', path: '/analysis' },
     { id: 'safety', label: 'Safety', path: '/safety' },
@@ -88,7 +88,7 @@
     <!-- Logo -->
     <button
       onclick={e => handleNavClick(e, '/overview')}
-      class="flex items-center gap-2 font-semibold text-[var(--accent)] text-base hover:text-[var(--accent-2)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0"
+      class="flex items-center gap-2 font-semibold text-[#0d0d1a] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0"
       aria-label="Go to Overview"
     >
       <RavenLogo size={18} />

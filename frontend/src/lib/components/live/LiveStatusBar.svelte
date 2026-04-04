@@ -51,24 +51,6 @@
     return `${Math.floor(seconds / 3600)}h ago`;
   }
 
-  function getHealthIcon(health) {
-    const icons = {
-      healthy: '',
-      warning: '',
-      error: ''
-    };
-    return icons[health] || '';
-  }
-
-  function getHealthColor(health) {
-    const colors = {
-      healthy: 'var(--success)',
-      warning: 'var(--warning)',
-      error: 'var(--error)'
-    };
-    return colors[health] || 'var(--success)';
-  }
-
   onMount(() => {
     fetchSessionStats();
 
@@ -132,26 +114,11 @@
   <div class="status-divider"></div>
 
   <div class="status-item">
-    <span class="status-icon">{getHealthIcon(sessionStats.sessionHealth)}</span>
     <div class="status-content">
-      <div class="status-label">Session Health</div>
-      <div class="status-value" style="color: {getHealthColor(sessionStats.sessionHealth)}">
-        {sessionStats.sessionHealth.charAt(0).toUpperCase() + sessionStats.sessionHealth.slice(1)}
-      </div>
+      <div class="status-label">Session Time</div>
+      <div class="status-value">{formatDuration(sessionDuration)}</div>
     </div>
   </div>
-
-  {#if sessionStats.sessionActive}
-    <div class="status-divider"></div>
-
-    <div class="status-item">
-      <span class="status-icon"></span>
-      <div class="status-content">
-        <div class="status-label">Session Time</div>
-        <div class="status-value">{formatDuration(sessionDuration)}</div>
-      </div>
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -160,8 +127,8 @@
     align-items: center;
     gap: 1.5rem;
     padding: 0.6rem 1.5rem;
-    background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(139, 92, 246, 0.1));
-    border-radius: 8px;
+    background: var(--surface);
+    border-radius: var(--radius);
     border: 1px solid var(--border);
     font-size: 0.8rem;
   }
