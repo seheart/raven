@@ -164,14 +164,6 @@
     navigate('/about');
   }
 
-  function handleChangelogClick() {
-    navigate('/changelog');
-  }
-
-  function handleDocsClick() {
-    navigate('/docs');
-  }
-
   function handleSettingsClick() {
     navigate('/settings');
   }
@@ -261,12 +253,6 @@
         {:catch}
           <PlaceholderPage title="File Browser" description="Loading..." />
         {/await}
-      {:else if activeSubTab === 'session-replay'}
-        {#await import('./lib/pages/AnalysisSessionReplayPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Session Replay" description="Loading..." />
-        {/await}
       {:else if activeSubTab === 'projects'}
         {#await import('./lib/pages/ProjectsComparisonPage.svelte') then { default: Component }}
           <Component />
@@ -301,29 +287,11 @@
         {:catch}
           <PlaceholderPage title="Syntax Errors" description="Loading..." />
         {/await}
-      {:else if activeSubTab === 'rollback'}
-        {#await import('./lib/pages/SessionRollbackPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Session Rollback" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'risk'}
-        {#await import('./lib/pages/RiskCorrelationPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Risk Correlation" description="Loading..." />
-        {/await}
       {:else if activeSubTab === 'patterns'}
         {#await import('./lib/pages/PatternWarningsPage.svelte') then { default: Component }}
           <Component />
         {:catch}
           <PlaceholderPage title="Pattern Warnings" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'tests'}
-        {#await import('./lib/pages/RavenTestsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Raven Tests" description="Loading..." />
         {/await}
       {:else}
         <PlaceholderPage title="Safety - {activeSubTab}" description="This page is coming soon" />
@@ -340,12 +308,6 @@
           <Component />
         {:catch}
           <PlaceholderPage title="Performance Analysis" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'custom-metrics'}
-        {#await import('./lib/pages/AnalysisCustomMetricsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Custom Metrics" description="Loading..." />
         {/await}
       {:else if activeSubTab === 'trends'}
         {#await import('./lib/pages/AnalysisHistoricalTrendsPage.svelte') then { default: Component }}
@@ -377,18 +339,6 @@
         {:catch}
           <PlaceholderPage title="Agent Conversations" description="Loading..." />
         {/await}
-      {:else if activeSubTab === 'session-replay'}
-        {#await import('./lib/pages/AnalysisSessionReplayPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Session Replay" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'developer-insights'}
-        {#await import('./lib/pages/AnalysisDeveloperInsightsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Developer Insights" description="Loading..." />
-        {/await}
       {:else}
         <PlaceholderPage title="Analysis - {activeSubTab}" description="This page is coming soon" />
       {/if}
@@ -411,30 +361,6 @@
         {:catch}
           <PlaceholderPage title="Health Monitor" description="Loading..." />
         {/await}
-      {:else if activeSubTab === 'anomalies'}
-        {#await import('./lib/pages/SystemAnomalyAlertsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Anomaly Alerts" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'intelligence'}
-        {#await import('./lib/pages/SystemIntelligencePage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Intelligence" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'integrations'}
-        {#await import('./lib/pages/SystemIntegrationsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Integrations" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'exports'}
-        {#await import('./lib/pages/SystemExportsPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Exports" description="Loading..." />
-        {/await}
       {:else if activeSubTab === 'storage'}
         {#await import('./lib/pages/SystemStoragePage.svelte') then { default: Component }}
           <Component />
@@ -447,12 +373,6 @@
         {:catch}
           <PlaceholderPage title="Projects" description="Loading..." />
         {/await}
-      {:else if activeSubTab === 'sync'}
-        {#await import('./lib/pages/SystemServerSyncPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Server Sync" description="Loading..." />
-        {/await}
       {:else if activeSubTab === 'notifications'}
         {#await import('./lib/pages/SystemNotificationsPage.svelte') then { default: Component }}
           <Component />
@@ -464,12 +384,6 @@
           <Component />
         {:catch}
           <PlaceholderPage title="Errors" description="Loading..." />
-        {/await}
-      {:else if activeSubTab === 'api'}
-        {#await import('./lib/pages/SystemAPIHealthPage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="API Health" description="Loading..." />
         {/await}
       {:else}
         <PlaceholderPage title="System - {activeSubTab}" description="This page is coming soon" />
@@ -485,18 +399,6 @@
         <Component />
       {:catch}
         <PlaceholderPage title="About" description="Loading..." />
-      {/await}
-    {:else if activeTab === 'changelog'}
-      {#await import('./lib/pages/ChangelogPage.svelte') then { default: Component }}
-        <Component />
-      {:catch}
-        <PlaceholderPage title="Changelog" description="Loading..." />
-      {/await}
-    {:else if activeTab === 'docs'}
-      {#await import('./lib/pages/DocsPage.svelte') then { default: Component }}
-        <Component />
-      {:catch}
-        <PlaceholderPage title="Docs" description="Loading..." />
       {/await}
     {:else if activeTab === 'quickstart'}
       <QuickStartWizard
@@ -526,8 +428,6 @@
     onThemeChange={handleThemeChange}
     onSessionClick={handleSessionClick}
     onAboutClick={handleAboutClick}
-    onChangelogClick={handleChangelogClick}
-    onDocsClick={handleDocsClick}
   />
 
   <!-- Notification Panel Sidebar -->

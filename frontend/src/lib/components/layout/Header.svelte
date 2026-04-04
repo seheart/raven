@@ -38,7 +38,6 @@
       { id: 'timeline', label: 'Timeline' },
       { id: 'code', label: 'Code Changes' },
       { id: 'files', label: 'File Browser' },
-      { id: 'session-replay', label: 'Session Replay' },
       { id: 'projects', label: 'Projects Comparison' },
       { id: 'health', label: 'Project Health' },
       { id: 'search', label: 'Global Search' }
@@ -46,36 +45,25 @@
     analysis: [
       { id: '', label: 'Overview' },
       { id: 'performance', label: 'Performance' },
-      { id: 'custom-metrics', label: 'Custom Metrics' },
       { id: 'trends', label: 'Historical Trends' },
       { id: 'stats', label: 'Agent Stats' },
       { id: 'monitoring', label: 'Agent Monitoring' },
       { id: 'conversations', label: 'Agent Conversations' },
-      { id: 'developer-insights', label: 'Developer Insights' },
       { id: 'triggers', label: 'Triggers' }
     ],
     safety: [
       { id: '', label: 'Overview' },
       { id: 'syntax', label: 'Syntax Errors' },
-      { id: 'rollback', label: 'Session Rollback' },
-      { id: 'risk', label: 'Risk Correlation' },
-      { id: 'patterns', label: 'Pattern Warnings' },
-      { id: 'tests', label: 'Raven Tests' }
+      { id: 'patterns', label: 'Pattern Warnings' }
     ],
     system: [
       { id: '', label: 'Overview' },
       { id: 'status', label: 'Status' },
       { id: 'health-monitor', label: 'Health Monitor' },
-      { id: 'anomalies', label: 'Anomaly Alerts' },
-      { id: 'intelligence', label: 'Intelligence' },
-      { id: 'integrations', label: 'Integrations' },
-      { id: 'api', label: 'API Health' },
       { id: 'errors', label: 'Errors' },
       { id: 'notifications', label: 'Notifications' },
       { id: 'storage', label: 'Storage' },
-      { id: 'exports', label: 'Exports' },
-      { id: 'projects', label: 'Projects' },
-      { id: 'sync', label: 'Server Sync' }
+      { id: 'projects', label: 'Projects' }
     ],
     settings: []
   };

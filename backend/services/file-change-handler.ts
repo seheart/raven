@@ -202,19 +202,12 @@ export class FileChangeHandler {
     setImmediate(async () => {
       try {
         const { SyntaxChecker } = (await import('./syntax-checker.js')) as any;
-        const { PatternChecker } = (await import('./pattern-checker.js')) as any;
 
         const syntaxChecker = new SyntaxChecker(db, this.SESSION_ID, this.io, projectName);
-        const patternChecker = new PatternChecker(db, this.SESSION_ID, this.io, projectName);
 
-        await Promise.all([
-          syntaxChecker
-            .checkFile(filepath)
-            .catch((err: Error) => logger.error(`Syntax check failed for ${filepath}:`, err)),
-          patternChecker
-            .checkFile(filepath)
-            .catch((err: Error) => logger.error(`Pattern check failed for ${filepath}:`, err))
-        ]);
+        await syntaxChecker
+          .checkFile(filepath)
+          .catch((err: Error) => logger.error(`Syntax check failed for ${filepath}:`, err));
       } catch (error) {
         logger.error('Error running safety checks:', error as any);
       }
