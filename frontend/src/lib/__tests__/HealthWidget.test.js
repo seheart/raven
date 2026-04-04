@@ -203,8 +203,8 @@ describe('HealthWidget', () => {
       render(HealthWidget);
 
       await waitFor(() => {
-        const criticalIcon = screen.queryByText(/🚨/);
-        expect(criticalIcon).toBeTruthy();
+        const criticalText = screen.queryByText(/critical|error|issue/i);
+        expect(criticalText).toBeTruthy();
       });
     });
   });
@@ -305,9 +305,9 @@ describe('HealthWidget', () => {
 
       await waitFor(
         () => {
-          // Should display healthy status icon
-          const healthIcons = screen.queryAllByText(/✅/);
-          expect(healthIcons.length).toBeGreaterThan(0);
+          // Should display healthy status text
+          const healthText = screen.queryByText(/All Systems Operational|healthy|pass/i);
+          expect(healthText).toBeTruthy();
         },
         { timeout: 3000 }
       );

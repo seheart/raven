@@ -20,11 +20,11 @@
 
   // Categories
   const categories = [
-    { id: 'all', label: 'All', icon: '🔍' },
-    { id: 'security', label: 'Security', icon: '🔒' },
-    { id: 'quality', label: 'Quality', icon: '✨' },
-    { id: 'maintenance', label: 'Maintenance', icon: '🔧' },
-    { id: 'performance', label: 'Performance', icon: '⚡' }
+    { id: 'all', label: 'All', icon: '' },
+    { id: 'security', label: 'Security', icon: '' },
+    { id: 'quality', label: 'Quality', icon: '' },
+    { id: 'maintenance', label: 'Maintenance', icon: '' },
+    { id: 'performance', label: 'Performance', icon: '' }
   ];
 
   // Derived values - Extract unique projects
@@ -408,7 +408,7 @@
       <!-- Warnings List (Grouped by File) -->
       {#if filteredWarnings.length === 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <div class="text-5xl mb-4">✅</div>
+          <div class="text-5xl mb-4"></div>
           <div class="text-xl font-semibold text-[var(--text-heading)] mb-2 font-sans">
             {searchQuery ||
             projectFilter !== 'all' ||
@@ -437,7 +437,7 @@
                 class="flex items-center justify-between gap-4 px-4 py-3 bg-[var(--surface-2)] border-b border-[var(--border)]"
               >
                 <div class="flex items-center gap-3 flex-1 min-w-0">
-                  <span class="text-lg">📄</span>
+                  <span class="text-lg"></span>
                   <span
                     class="text-sm font-mono font-semibold text-[var(--text)] truncate"
                     title={filepath}
@@ -522,7 +522,7 @@
                       <div
                         class="flex items-start gap-2 px-3 py-2 bg-[var(--success-subtle)] border-l-2 border-[var(--success)] rounded text-sm text-[var(--success)]"
                       >
-                        <span class="text-base">💡</span>
+                        <span class="text-base"></span>
                         <span class="flex-1 font-sans">{warning.suggestion}</span>
                       </div>
                     {/if}

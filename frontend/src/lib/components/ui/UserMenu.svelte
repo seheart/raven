@@ -35,9 +35,9 @@
 
   function getRoleBadge(role) {
     const badges = {
-      admin: { emoji: '👑', label: 'Admin' },
-      user: { emoji: '👤', label: 'User' },
-      viewer: { emoji: '👁️', label: 'Viewer' }
+      admin: { emoji: '', label: 'Admin' },
+      user: { emoji: '', label: 'User' },
+      viewer: { emoji: '', label: 'Viewer' }
     };
     return badges[role] || badges.user;
   }
@@ -62,7 +62,7 @@
       {userInitial}
     </span>
     <span class="text-sm font-medium text-[var(--text)]">{username}</span>
-    <span class="text-xs text-[var(--muted)]">{showMenu ? '▲' : '▼'}</span>
+    <span class="text-xs text-[var(--muted)]">{showMenu ? '' : ''}</span>
   </button>
 
   {#if showMenu}
@@ -97,7 +97,7 @@
         class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-[var(--surface-2)] transition-colors border-0 cursor-pointer bg-transparent"
         role="menuitem"
       >
-        <span class="text-sm">⚙️</span>
+        <span class="text-sm"></span>
         <span class="text-sm font-medium text-[var(--text)]">Settings</span>
       </button>
 
@@ -106,7 +106,7 @@
         class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-[var(--surface-2)] transition-colors border-0 cursor-pointer bg-transparent"
         role="menuitem"
       >
-        <span class="text-sm">🚪</span>
+        <span class="text-sm"></span>
         <span class="text-sm font-medium text-[var(--text)]">Logout</span>
       </button>
     </div>

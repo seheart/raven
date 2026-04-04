@@ -27,13 +27,13 @@
 
   function getStatusEmoji(status) {
     const map = {
-      excellent: '🎉',
-      good: '✅',
-      fair: '⚠️',
-      poor: '❌',
-      critical: '🚨'
+      excellent: '',
+      good: '',
+      fair: '',
+      poor: '',
+      critical: ''
     };
-    return map[status] || '❓';
+    return map[status] || '';
   }
 
   function getSeverityColor(severity) {
@@ -117,7 +117,7 @@
           onclick={recalculateHealth}
           disabled={loading}
         >
-          {loading ? '⏳ Loading...' : '🔄 Refresh'}
+          {loading ? ' Loading...' : ' Refresh'}
         </button>
       </div>
     </div>
@@ -131,7 +131,7 @@
       </div>
     {:else if error}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-base text-red-500 mb-2">⚠️ {error}</p>
+        <p class="text-base text-red-500 mb-2">{error}</p>
         <button
           class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90 transition-opacity mt-4"
           onclick={loadHealthSummary}

@@ -247,7 +247,7 @@
           disabled={loading}
           class="px-3 py-2 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          <span class="inline-block" class:animate-spin={isManualRefresh}>↻</span> Refresh
+          <span class="inline-block" class:animate-spin={isManualRefresh}>↻</span>Refresh
         </button>
       </div>
     </div>
@@ -263,7 +263,7 @@
               ? 'bg-red-500/10 border-red-500'
               : ''} {isWarning ? 'bg-yellow-500/10 border-yellow-500' : ''}"
           >
-            <span class="text-2xl">{isCritical ? '🔴' : '🟡'}</span>
+            <span class="text-2xl">{isCritical ? '' : ''}</span>
             <div class="flex-1">
               <div class="font-semibold text-[var(--text-heading)] font-sans">
                 {alert.type.toUpperCase()} Alert
@@ -532,16 +532,16 @@
             </label>
             <div class="flex gap-4 text-xs font-mono">
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-[var(--accent)]"></span> CPU
+                <span class="w-3 h-3 rounded-full bg-[var(--accent)]"></span>CPU
               </span>
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-[var(--info)]"></span> Memory
+                <span class="w-3 h-3 rounded-full bg-[var(--info)]"></span>Memory
               </span>
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-yellow-500"></span> Warning
+                <span class="w-3 h-3 rounded-full bg-yellow-500"></span>Warning
               </span>
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-red-500"></span> Critical
+                <span class="w-3 h-3 rounded-full bg-red-500"></span>Critical
               </span>
             </div>
           </div>

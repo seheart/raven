@@ -36,16 +36,16 @@
   });
 
   function getStatusIcon(status) {
-    if (!status) return '⚪';
+    if (!status) return '—';
     switch (status.status) {
       case 'ok':
-        return '🟢';
+        return '●';
       case 'warning':
-        return '🟡';
+        return '●';
       case 'critical':
-        return '🔴';
+        return '●';
       default:
-        return '⚪';
+        return '○';
     }
   }
 
@@ -74,7 +74,7 @@
 <div class="rate-limit-indicator" class:has-warning={hasWarning}>
   {#if error}
     <button class="indicator-button" on:click={toggleDetails} title="Rate limit error">
-      ⚠️ Rate Limit Error
+      Rate Limit Error
     </button>
   {:else if primaryStatus}
     <button
@@ -85,14 +85,14 @@
       {getStatusIcon(primaryStatus)} API: {primaryStatus.current}/{primaryStatus.max} ({primaryStatus.percentUsed}%)
     </button>
   {:else}
-    <button class="indicator-button" on:click={toggleDetails}> ⚪ Loading... </button>
+    <button class="indicator-button" on:click={toggleDetails}> Loading... </button>
   {/if}
 
   {#if showDetails && rateLimitStatus}
     <div class="details-panel">
       <div class="details-header">
         <h3>Rate Limit Status</h3>
-        <button class="close-btn" on:click={toggleDetails}>✕</button>
+        <button class="close-btn" on:click={toggleDetails}></button>
       </div>
       <div class="details-content">
         {#each Object.entries(rateLimitStatus) as [name, status] (name)}

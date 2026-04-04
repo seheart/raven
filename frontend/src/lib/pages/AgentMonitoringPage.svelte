@@ -128,16 +128,16 @@
 
   function getEventIcon(eventType) {
     const icons = {
-      file_change: '📝',
-      edit: '✏️',
-      create: '➕',
-      delete: '🗑️',
-      read: '👁️',
-      execute: '⚙️',
-      command: '⚡',
-      conversation: '💬'
+      file_change: '',
+      edit: '',
+      create: '',
+      delete: '',
+      read: '',
+      execute: '',
+      command: '',
+      conversation: ''
     };
-    return icons[eventType?.toLowerCase()] || '🔔';
+    return icons[eventType?.toLowerCase()] || '';
   }
 
   function toggleEventType(type) {
@@ -439,7 +439,7 @@
           class:font-bold={showNewEventAnimation}
         >
           {#if showNewEventAnimation}
-            ✨ New Event!
+            New Event!
           {:else}
             Updated {timeAgo}
           {/if}
@@ -449,7 +449,7 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '⏳' : '🔄'} Refresh
+          {loading ? '' : ''} Refresh
         </button>
       </div>
     </div>
@@ -459,7 +459,7 @@
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
       >
         <span class="text-base text-[var(--error)] font-sans"
-          >⚠️ Failed to load monitoring data: {error}</span
+          >Failed to load monitoring data: {error}</span
         >
         <button
           onclick={loadMonitoringData}
@@ -483,7 +483,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
           <div class="flex items-center gap-3">
-            <span class="text-3xl">🤖</span>
+            <span class="text-3xl"></span>
             <div>
               <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
                 {formatNumber(agentsStatus.length)}
@@ -495,7 +495,7 @@
 
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
           <div class="flex items-center gap-3">
-            <span class="text-3xl">✅</span>
+            <span class="text-3xl"></span>
             <div>
               <div class="text-2xl font-bold text-[var(--success)] leading-none mb-1">
                 {formatNumber(runningAgents.length)}
@@ -507,7 +507,7 @@
 
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
           <div class="flex items-center gap-3">
-            <span class="text-3xl">💤</span>
+            <span class="text-3xl"></span>
             <div>
               <div class="text-2xl font-bold text-[var(--muted)] leading-none mb-1">
                 {formatNumber(idleAgents.length)}
@@ -527,7 +527,7 @@
           <h2
             class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
           >
-            <span>📊</span>
+            <span></span>
             Agent Activity (Last 24h)
           </h2>
           <div class="h-64 bg-[var(--bg)] rounded p-3">
@@ -540,7 +540,7 @@
           <h2
             class="text-lg font-semibold text-[var(--text-heading)] mb-4 font-sans flex items-center gap-2"
           >
-            <span>🥧</span>
+            <span></span>
             Event Distribution by Agent
           </h2>
           <div class="h-64 bg-[var(--bg)] rounded p-3">
@@ -568,7 +568,7 @@
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading agents...</div>
       {:else if runningAgents.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2">💤</span>
+          <span class="text-2xl block mb-2"></span>
           <p class="text-base text-[var(--muted)] font-sans">No agents currently running</p>
         </div>
       {:else}
@@ -580,7 +580,7 @@
             >
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                  <span class="text-xl">🤖</span>
+                  <span class="text-xl"></span>
                   <span class="text-sm font-semibold text-[var(--text)] font-mono truncate">
                     {agent.agent_name || 'Unknown'}
                   </span>
@@ -630,7 +630,7 @@
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading agents...</div>
       {:else if agentsStatus.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2">🤖</span>
+          <span class="text-2xl block mb-2"></span>
           <p class="text-base text-[var(--muted)] font-sans">No agents detected</p>
         </div>
       {:else}
@@ -710,34 +710,35 @@
       <h3
         class="text-lg font-semibold text-[var(--text-heading)] mb-3 font-sans flex items-center gap-2"
       >
-        <span>🔍</span>
+        <span></span>
         How Agent Detection Works
       </h3>
       <ul class="space-y-2 text-base text-[var(--muted)] font-sans">
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
           <span
-            ><strong class="text-[var(--text)]">Process Scanning:</strong> Detects running AI coding
+            ><strong class="text-[var(--text)]">Process Scanning:</strong>Detects running AI coding
             tools</span
           >
         </li>
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
           <span
-            ><strong class="text-[var(--text)]">Log Analysis:</strong> Correlates Claude Code session
+            ><strong class="text-[var(--text)]">Log Analysis:</strong>Correlates Claude Code session
             logs</span
           >
         </li>
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
           <span
-            ><strong class="text-[var(--text)]">Pattern Matching:</strong> Identifies editing patterns</span
+            ><strong class="text-[var(--text)]">Pattern Matching:</strong>Identifies editing
+            patterns</span
           >
         </li>
         <li class="flex gap-2">
           <span class="text-[var(--text)]">•</span>
           <span
-            ><strong class="text-[var(--text)]">Git Attribution:</strong> Analyzes commit authors</span
+            ><strong class="text-[var(--text)]">Git Attribution:</strong>Analyzes commit authors</span
           >
         </li>
       </ul>
@@ -768,7 +769,7 @@
               >
                 {getEventIcon(type)}
                 {type}
-                {#if selectedEventTypes.includes(type)}✓{/if}
+                {#if selectedEventTypes.includes(type)}{/if}
               </button>
             {/each}
           </div>
@@ -794,7 +795,7 @@
                     : range === '7d'
                       ? 'Last 7 Days'
                       : 'Last 30 Days'}
-                {#if dateRange === range}✓{/if}
+                {#if dateRange === range}{/if}
               </button>
             {/each}
           </div>
@@ -812,7 +813,7 @@
                   class="inline-flex items-center gap-1 px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-sans font-semibold"
                   onclick={() => toggleEventType(type)}
                 >
-                  Type: {type} ✕
+                  Type: {type}
                 </button>
               {/each}
               {#if dateRange !== 'all'}
@@ -820,7 +821,7 @@
                   class="inline-flex items-center gap-1 px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-sans font-semibold"
                   onclick={() => (dateRange = 'all')}
                 >
-                  Range: {dateRange} ✕
+                  Range: {dateRange}
                 </button>
               {/if}
               <button
@@ -838,7 +839,7 @@
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading activity...</div>
       {:else if filteredEvents.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2">{hasActiveFilters ? '🔍' : '💤'}</span>
+          <span class="text-2xl block mb-2">{hasActiveFilters ? '' : ''}</span>
           <p class="text-base text-[var(--muted)] font-sans">
             {hasActiveFilters ? 'No events match your filters' : 'No recent activity'}
           </p>

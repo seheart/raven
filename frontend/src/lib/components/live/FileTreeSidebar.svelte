@@ -67,17 +67,17 @@
   function getFileIcon(fileName) {
     const ext = fileName.split('.').pop();
     const iconMap = {
-      js: '📄',
-      ts: '📘',
-      svelte: '🔶',
-      json: '📋',
-      md: '📝',
-      css: '🎨',
-      html: '🌐',
-      sh: '⚙️',
-      env: '🔧'
+      js: '',
+      ts: '',
+      svelte: '',
+      json: '',
+      md: '',
+      css: '',
+      html: '',
+      sh: '',
+      env: ''
     };
-    return iconMap[ext] || '📄';
+    return iconMap[ext] || '';
   }
 
   function getStatusBadge(status) {
@@ -118,12 +118,12 @@
     </div>
   {:else if error}
     <div class="error-state">
-      <div>⚠️ Error loading files</div>
+      <div>Error loading files</div>
       <div class="error-message">{error}</div>
     </div>
   {:else if modifiedFiles.length === 0}
     <div class="empty-state">
-      <div>📂</div>
+      <div></div>
       <div>No modified files</div>
       <div class="empty-hint">Files will appear here as the AI makes changes</div>
     </div>
@@ -132,7 +132,7 @@
       {#each modifiedFiles as folder (folder.name)}
         <div class="tree-folder">
           <div class="folder-name">
-            <span class="folder-icon">📁</span>
+            <span class="folder-icon"></span>
             <span>{folder.name === 'root' ? 'Root' : folder.name}</span>
           </div>
           <div class="file-list">

@@ -259,13 +259,13 @@
   function getSeverityIcon(severity) {
     switch (severity) {
       case 'error':
-        return '❌';
+        return '';
       case 'warning':
-        return '⚠️';
+        return '';
       case 'info':
-        return 'ℹ️';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -516,7 +516,7 @@
 <div class="error-log" role="region" aria-label="Error Log">
   <div class="log-header">
     <div class="header-title">
-      <h1 id="error-log-title"><span aria-hidden="true">⚠️</span> Error Log</h1>
+      <h1 id="error-log-title"><span aria-hidden="true"></span> Error Log</h1>
       <p class="subtitle">Application errors and warnings</p>
     </div>
     <div class="header-actions" role="toolbar" aria-label="Error log actions">
@@ -531,7 +531,7 @@
         on:click={() => (showCharts = !showCharts)}
         aria-label="Toggle charts visibility"
       >
-        <span aria-hidden="true">📊</span>
+        <span aria-hidden="true"></span>
         {showCharts ? 'Hide' : 'Show'} Charts
       </button>
       <button
@@ -539,14 +539,14 @@
         on:click={triggerTestError}
         aria-label="Trigger test error"
       >
-        <span aria-hidden="true">🧪</span> Test Error
+        <span aria-hidden="true"></span> Test Error
       </button>
       <button
         class="btn btn-primary btn-sm"
         on:click={exportLog}
         aria-label="Export error log to JSON file"
       >
-        <span aria-hidden="true">💾</span> Export JSON
+        <span aria-hidden="true"></span> Export JSON
       </button>
       <button
         class="btn btn-secondary btn-sm"
@@ -558,7 +558,7 @@
         disabled={loading}
         aria-label="Refresh error log"
       >
-        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true">🔄</span>
+        <span class="refresh-icon" class:spinning={isManualRefresh} aria-hidden="true"></span>
         Refresh
       </button>
     </div>
@@ -597,7 +597,7 @@
         use:debounceInput={{ delay: 300 }}
         on:debounced={handleDebouncedSearch}
       />
-      <button class="btn btn-primary btn-sm" on:click={handleSearch}>🔍 Search</button>
+      <button class="btn btn-primary btn-sm" on:click={handleSearch}> Search</button>
     </div>
 
     <div class="filter-tabs">
@@ -613,27 +613,27 @@
         class:active={severityFilter === 'error'}
         on:click={() => handleSeverityFilter('error')}
       >
-        ❌ Errors ({severityStats.error})
+        Errors ({severityStats.error})
       </button>
       <button
         class="filter-tab"
         class:active={severityFilter === 'warning'}
         on:click={() => handleSeverityFilter('warning')}
       >
-        ⚠️ Warnings ({severityStats.warning})
+        Warnings ({severityStats.warning})
       </button>
       <button
         class="filter-tab"
         class:active={severityFilter === 'info'}
         on:click={() => handleSeverityFilter('info')}
       >
-        ℹ️ Info ({severityStats.info})
+        Info ({severityStats.info})
       </button>
     </div>
 
     <div class="action-buttons">
-      <button class="btn btn-secondary btn-sm" on:click={handleClearOld}>🗑️ Clear Old</button>
-      <button class="btn btn-danger btn-sm" on:click={handleClearAll}>🗑️ Clear All</button>
+      <button class="btn btn-secondary btn-sm" on:click={handleClearOld}> Clear Old</button>
+      <button class="btn btn-danger btn-sm" on:click={handleClearAll}> Clear All</button>
     </div>
   </div>
 
@@ -677,13 +677,13 @@
       <LoadingSkeleton count={8} height="100px" />
     {:else if error}
       <div class="error-state">
-        <div class="error-icon">❌</div>
+        <div class="error-icon"></div>
         <h2>Failed to Load Errors</h2>
         <p>{error}</p>
       </div>
     {:else if errors.length === 0}
       <div class="empty-state">
-        <div class="empty-icon">✅</div>
+        <div class="empty-icon"></div>
         <h2>No Errors Found</h2>
         <p>Your application is running smoothly!</p>
       </div>
@@ -710,7 +710,7 @@
             tabindex="0"
           >
             <div class="error-left">
-              <span class="expand-arrow">{selectedError?.id === item.id ? '▼' : '▶'}</span>
+              <span class="expand-arrow">{selectedError?.id === item.id ? '' : ''}</span>
               <span class="error-icon" style="color: {getSeverityColor(item.severity)}">
                 {getSeverityIcon(item.severity)}
               </span>

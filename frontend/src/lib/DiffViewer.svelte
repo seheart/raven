@@ -19,17 +19,20 @@
   function parseDiff(diffText) {
     // Parse unified diff format
     const lines = (diffText || '').split('\n');
-    diffLines = lines.filter(line => line != null).map(line => {
-      if (line.startsWith('+') && !line.startsWith('+++')) {
-        return { type: 'add', content: line.substring(1) };
-      } else if (line.startsWith('-') && !line.startsWith('---')) {
-        return { type: 'remove', content: line.substring(1) };
-      } else if (line.startsWith(' ')) {
-        return { type: 'context', content: line.substring(1) };
-      } else {
-        return { type: 'meta', content: line };
-      }
-    }).filter(line => line.type !== 'meta');
+    diffLines = lines
+      .filter(line => line != null)
+      .map(line => {
+        if (line.startsWith('+') && !line.startsWith('+++')) {
+          return { type: 'add', content: line.substring(1) };
+        } else if (line.startsWith('-') && !line.startsWith('---')) {
+          return { type: 'remove', content: line.substring(1) };
+        } else if (line.startsWith(' ')) {
+          return { type: 'context', content: line.substring(1) };
+        } else {
+          return { type: 'meta', content: line };
+        }
+      })
+      .filter(line => line.type !== 'meta');
   }
 
   function parseContents(old, newText) {
@@ -60,34 +63,48 @@
   }
 
   function getLineClass(type) {
-    return {
-      'add': 'line-add',
-      'remove': 'line-remove',
-      'context': 'line-context'
-    }[type] || '';
+    return (
+      {
+        add: 'line-add',
+        remove: 'line-remove',
+        context: 'line-context'
+      }[type] || ''
+    );
   }
 </script>
 
 <div
   class="diff-modal-overlay"
   on:click={onClose}
-  on:keydown={(e) => e.key === 'Escape' && onClose()}
+  on:keydown={e => e.key === 'Escape' && onClose()}
   role="dialog"
   aria-modal="true"
   aria-labelledby="diff-title"
   tabindex="-1"
 >
-  <div class="diff-modal-content" on:click|stopPropagation on:keydown={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
+  <div
+    class="diff-modal-content"
+    on:click|stopPropagation
+    on:keydown={e => e.stopPropagation()}
+    role="dialog"
+    tabindex="-1"
+    aria-modal="true"
+  >
     <div class="diff-header">
-      <h2 id="diff-title"><span aria-hidden="true">📊</span> Diff Viewer</h2>
-      <button class="btn btn-ghost btn-icon" on:click={onClose} aria-label="Close diff viewer">×</button>
+      <h2 id="diff-title"><span aria-hidden="true"></span> Diff Viewer</h2>
+      <button class="btn btn-ghost btn-icon" on:click={onClose} aria-label="Close diff viewer"
+        >×</button
+      >
     </div>
 
     {#if diffLines.length > 0}
       <!-- Unified diff view -->
       <div class="unified-diff" role="region" aria-label="Unified diff view">
-        <pre class="diff-content" aria-label="Code differences">{#each diffLines || [] as line (line.lineNum)}
-<span class="diff-line {getLineClass(line.type)}">{line.content}
+        <pre
+          class="diff-content"
+          aria-label="Code differences">{#each diffLines || [] as line (line.lineNum)}
+            <span class="diff-line {getLineClass(line.type)}"
+              >{line.content}
 </span>{/each}</pre>
       </div>
     {:else if leftLines.length > 0 || rightLines.length > 0}

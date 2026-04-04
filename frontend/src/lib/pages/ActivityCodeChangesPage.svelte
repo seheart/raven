@@ -77,7 +77,7 @@
   // WebSocket event handlers
   const handleFileChanged = data => {
     if (isPaused) return;
-    logger.debug('📡 File change detected:', data);
+    logger.debug(' File change detected:', data);
     debouncedLoadEvents();
   };
 
@@ -87,7 +87,7 @@
   };
 
   const handleProjectSwitched = data => {
-    logger.debug('📡 Project switched, reloading data:', data?.project);
+    logger.debug(' Project switched, reloading data:', data?.project);
     loadEvents();
   };
 
@@ -214,21 +214,21 @@
           class:bg-warning={isPaused}
           class:text-white={isPaused}
         >
-          {isPaused ? '▶️ Resume' : '⏸️ Pause'}
+          {isPaused ? ' Resume' : ' Pause'}
         </button>
         <button
           onclick={loadEvents}
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '⏳' : '🔄'} Refresh
+          {loading ? '' : ''} Refresh
         </button>
       </div>
     </div>
 
     {#if error}
       <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6">
-        <span class="text-sm text-[var(--error)] font-sans">⚠️ {error}</span>
+        <span class="text-sm text-[var(--error)] font-sans"> {error}</span>
       </div>
     {/if}
 
@@ -237,7 +237,7 @@
         class="bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] rounded-lg p-4 mb-6 text-center"
       >
         <span class="text-sm text-[var(--warning)] font-sans font-semibold"
-          >⏸️ Live updates paused - Click Resume to continue</span
+          >Live updates paused - Click Resume to continue</span
         >
       </div>
     {/if}
@@ -289,12 +289,12 @@
     <!-- Events List -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-4xl mb-4">⏳</div>
+        <div class="text-4xl mb-4"></div>
         <div class="text-[var(--muted)] font-sans">Loading changes...</div>
       </div>
     {:else if filteredEvents.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4">📝</div>
+        <div class="text-5xl mb-4"></div>
         <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">No changes found</div>
         <div class="text-base text-[var(--muted)] font-sans">
           {searchQuery || selectedType !== 'all'

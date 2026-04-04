@@ -108,7 +108,7 @@ export function setupNotificationListeners() {
     });
   });
 
-  logger.info('📢 Notification listeners initialized');
+  logger.info(' Notification listeners initialized');
 }
 
 /**

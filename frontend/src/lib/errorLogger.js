@@ -54,7 +54,7 @@ export async function logError(error, component = 'Unknown', metadata = {}, seve
  */
 export function setupGlobalErrorHandler() {
   // Handle unhandled errors
-  window.addEventListener('error', (event) => {
+  window.addEventListener('error', event => {
     logError(
       event.error || new Error(event.message),
       'Global',
@@ -68,7 +68,7 @@ export function setupGlobalErrorHandler() {
   });
 
   // Handle unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener('unhandledrejection', event => {
     logError(
       event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
       'Promise',
@@ -79,7 +79,7 @@ export function setupGlobalErrorHandler() {
     );
   });
 
-  logger.info('✅ Global error handlers installed');
+  logger.info(' Global error handlers installed');
 }
 
 /**
@@ -129,9 +129,7 @@ export async function fetchErrorStats() {
  */
 export async function clearErrorLogs(olderThanDays = null) {
   try {
-    const endpoint = olderThanDays
-      ? `/errors?olderThanDays=${olderThanDays}`
-      : '/errors';
+    const endpoint = olderThanDays ? `/errors?olderThanDays=${olderThanDays}` : '/errors';
 
     const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
       method: 'DELETE'

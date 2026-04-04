@@ -53,7 +53,7 @@
           : 'var(--error)'
   );
   const healthIcon = $derived(
-    healthScore >= 90 ? '✅' : healthScore >= 70 ? '👍' : healthScore >= 50 ? '⚠️' : '🚨'
+    healthScore >= 90 ? '' : healthScore >= 70 ? '' : healthScore >= 50 ? '' : ''
   );
 
   // Time since last update
@@ -118,7 +118,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">🛡️ Safety Overview</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Safety Overview</h1>
         <p class="text-base text-[var(--muted)] font-sans">
           Code health, validation, and quality metrics
         </p>
@@ -130,7 +130,7 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '⏳' : '🔄'} Refresh
+          {loading ? '' : ''} Refresh
         </button>
       </div>
     </div>
@@ -139,8 +139,8 @@
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
       >
-        <span class="text-base text-[var(--error)] font-sans"
-          >⚠️ Failed to load safety data: {error}</span
+        <span class="text-base text-[var(--error)] font-sans">
+          Failed to load safety data: {error}</span
         >
         <button
           onclick={loadSafetyData}
@@ -212,7 +212,7 @@
           onclick={() => navigate('/safety/syntax')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
         >
-          <div class="text-3xl flex-shrink-0">❌</div>
+          <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
               {syntaxErrorCount}
@@ -234,7 +234,7 @@
           onclick={() => navigate('/safety/patterns')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
         >
-          <div class="text-3xl flex-shrink-0">⚠️</div>
+          <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
               {patternWarningCount}
@@ -250,7 +250,7 @@
           onclick={() => navigate('/safety/rollback')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
         >
-          <div class="text-3xl flex-shrink-0">⏮️</div>
+          <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
               {recentSessions.length}
@@ -264,7 +264,7 @@
           onclick={() => navigate('/safety/tests')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
         >
-          <div class="text-3xl flex-shrink-0">🧪</div>
+          <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
               {testResults.total > 0 ? `${testResults.passed}/${testResults.total}` : 'N/A'}
@@ -281,7 +281,7 @@
       {#if criticalWarnings.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
           <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
-            ⚡ Critical Issues
+            Critical Issues
           </h2>
           <div class="space-y-3">
             {#each criticalWarnings as warning (warning.id || warning.message)}
@@ -291,9 +291,7 @@
                 class:border-[var(--error)]={warning.severity === 'error'}
                 class:border-[var(--border)]={warning.severity !== 'error'}
               >
-                <span class="text-xl flex-shrink-0"
-                  >{warning.severity === 'error' ? '🔴' : '🟡'}</span
-                >
+                <span class="text-xl flex-shrink-0">{warning.severity === 'error' ? '' : ''}</span>
                 <div class="flex-1">
                   <div class="text-base font-medium text-[var(--text)] mb-1 font-sans">
                     {warning.message}
@@ -311,14 +309,14 @@
       <!-- Quick Actions -->
       <div>
         <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
-          🚀 Quick Actions
+          Quick Actions
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onclick={() => navigate('/safety/syntax')}
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
           >
-            <div class="text-2xl flex-shrink-0">❌</div>
+            <div class="text-2xl flex-shrink-0"></div>
             <div>
               <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
                 Syntax Errors
@@ -331,7 +329,7 @@
             onclick={() => navigate('/safety/patterns')}
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
           >
-            <div class="text-2xl flex-shrink-0">⚠️</div>
+            <div class="text-2xl flex-shrink-0"></div>
             <div>
               <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
                 Pattern Warnings
@@ -344,7 +342,7 @@
             onclick={() => navigate('/safety/rollback')}
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
           >
-            <div class="text-2xl flex-shrink-0">⏮️</div>
+            <div class="text-2xl flex-shrink-0"></div>
             <div>
               <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
                 Session Rollback
@@ -357,7 +355,7 @@
             onclick={() => navigate('/safety/tests')}
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
           >
-            <div class="text-2xl flex-shrink-0">🧪</div>
+            <div class="text-2xl flex-shrink-0"></div>
             <div>
               <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
                 Test Results

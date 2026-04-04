@@ -14,9 +14,7 @@ const LOG_LEVELS = {
 
 // Current log level (set via environment or config)
 // In production, set to ERROR to suppress debug/info logs
-const CURRENT_LEVEL = import.meta.env.MODE === 'production' 
-  ? LOG_LEVELS.ERROR 
-  : LOG_LEVELS.DEBUG;
+const CURRENT_LEVEL = import.meta.env.MODE === 'production' ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG;
 
 /**
  * @typedef {'DEBUG'|'INFO'|'WARN'|'ERROR'|'NONE'} LogLevel
@@ -41,7 +39,7 @@ class Logger {
   debug(...args) {
     if (CURRENT_LEVEL <= LOG_LEVELS.DEBUG) {
       const prefix = this.context ? `[${this.context}]` : '';
-      console.log(`🐛 ${prefix}`, ...args);
+      console.log(` ${prefix}`, ...args);
     }
   }
 
@@ -52,7 +50,7 @@ class Logger {
   info(...args) {
     if (CURRENT_LEVEL <= LOG_LEVELS.INFO) {
       const prefix = this.context ? `[${this.context}]` : '';
-      console.log(`ℹ️ ${prefix}`, ...args);
+      console.log(` ${prefix}`, ...args);
     }
   }
 
@@ -63,7 +61,7 @@ class Logger {
   warn(...args) {
     if (CURRENT_LEVEL <= LOG_LEVELS.WARN) {
       const prefix = this.context ? `[${this.context}]` : '';
-      console.warn(`⚠️ ${prefix}`, ...args);
+      console.warn(` ${prefix}`, ...args);
     }
   }
 
@@ -74,7 +72,7 @@ class Logger {
   error(...args) {
     if (CURRENT_LEVEL <= LOG_LEVELS.ERROR) {
       const prefix = this.context ? `[${this.context}]` : '';
-      console.error(`❌ ${prefix}`, ...args);
+      console.error(` ${prefix}`, ...args);
     }
   }
 
@@ -84,9 +82,7 @@ class Logger {
    * @returns {Logger} New logger instance with combined context
    */
   child(childContext) {
-    const newContext = this.context
-      ? `${this.context}:${childContext}`
-      : childContext;
+    const newContext = this.context ? `${this.context}:${childContext}` : childContext;
     return new Logger(newContext);
   }
 

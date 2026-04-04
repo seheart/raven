@@ -97,10 +97,10 @@
   }
 
   function getUrgencyIcon(urgency) {
-    if (urgency === 'critical') return '🚨';
-    if (urgency === 'warning') return '⚠️';
-    if (urgency === 'info') return 'ℹ️';
-    return '✅';
+    if (urgency === 'critical') return '';
+    if (urgency === 'warning') return '';
+    if (urgency === 'info') return '';
+    return '';
   }
 
   function formatTimeAgo(timestamp) {
@@ -123,7 +123,7 @@
 
 <div class="card session-dashboard">
   <div class="dashboard-header">
-    <h3>⏱️ Session Intelligence</h3>
+    <h3>Session Intelligence</h3>
     {#if currentSession}
       <span class="active-indicator">
         <span class="pulse-dot"></span>
@@ -145,7 +145,7 @@
     </div>
   {:else if error}
     <div class="error-state">
-      <p>❌ Failed to load session data</p>
+      <p>Failed to load session data</p>
       <p class="error-detail">{error}</p>
     </div>
   {:else}
@@ -200,15 +200,7 @@
                   {#each quality.factors as factor (factor.type)}
                     <div class="factor-item">
                       <span class="factor-icon">
-                        {#if factor.type === 'high_rollback_rate'}
-                          ↩️
-                        {:else if factor.type === 'long_session'}
-                          ⏰
-                        {:else if factor.type === 'increasing_change_size'}
-                          📈
-                        {:else if factor.type === 'high_risk_changes'}
-                          ⚠️
-                        {/if}
+                        {#if factor.type === 'high_rollback_rate'}{:else if factor.type === 'long_session'}{:else if factor.type === 'increasing_change_size'}{:else if factor.type === 'high_risk_changes'}{/if}
                       </span>
                       <span class="factor-message">{factor.message}</span>
                     </div>
@@ -244,13 +236,13 @@
             </div>
           {:else if breakRecommendation}
             <div class="no-break-needed">
-              ✅ {breakRecommendation.message}
+              {breakRecommendation.message}
             </div>
           {/if}
         </div>
       {:else}
         <div class="panel no-session-panel">
-          <div class="no-session-icon">💤</div>
+          <div class="no-session-icon"></div>
           <div class="no-session-title">No Active Session</div>
           <div class="no-session-hint">Start coding to begin a new session</div>
         </div>
@@ -263,19 +255,19 @@
 
           <div class="stats-grid">
             <div class="stat-card">
-              <div class="stat-icon">📊</div>
+              <div class="stat-icon"></div>
               <div class="stat-value">{stats.totalSessions}</div>
               <div class="stat-label">Total Sessions</div>
             </div>
 
             <div class="stat-card">
-              <div class="stat-icon">⏱️</div>
+              <div class="stat-icon"></div>
               <div class="stat-value">{stats.avgDuration}h</div>
               <div class="stat-label">Avg Duration</div>
             </div>
 
             <div class="stat-card">
-              <div class="stat-icon">⭐</div>
+              <div class="stat-icon"></div>
               <div class="stat-value" style="color: {getQualityColor(stats.avgQuality)}">
                 {stats.avgQuality}
               </div>
@@ -283,7 +275,7 @@
             </div>
 
             <div class="stat-card">
-              <div class="stat-icon">↩️</div>
+              <div class="stat-icon"></div>
               <div class="stat-value">{stats.avgRollbackRate}</div>
               <div class="stat-label">Rollback Rate</div>
             </div>
@@ -291,7 +283,7 @@
 
           {#if stats.peakHours && stats.peakHours.length > 0}
             <div class="peak-hours-section">
-              <div class="peak-hours-title">🔥 Peak Productivity Hours</div>
+              <div class="peak-hours-title">Peak Productivity Hours</div>
               <div class="peak-hours-list">
                 {#each stats.peakHours as peak (peak.hour)}
                   <div class="peak-hour-item">

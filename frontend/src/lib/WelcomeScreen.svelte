@@ -12,22 +12,22 @@
 
   const features = [
     {
-      icon: '🔍',
+      icon: '',
       title: 'Real-time Monitoring',
       description: 'Watch file changes, system metrics, and AI agent activity as it happens'
     },
     {
-      icon: '🤖',
+      icon: '',
       title: 'AI Agent Tracking',
-      description: 'Monitor Claude Code, GPT, and local LLMs - see what they\'re doing in real-time'
+      description: "Monitor Claude Code, GPT, and local LLMs - see what they're doing in real-time"
     },
     {
-      icon: '📊',
+      icon: '',
       title: 'Pattern Recognition',
       description: 'Raven learns your coding patterns and rhythms to become your perfect companion'
     },
     {
-      icon: '💾',
+      icon: '',
       title: 'Local-First Privacy',
       description: 'Everything stays on your machine - no cloud, no telemetry, just you and Raven'
     }
@@ -47,10 +47,7 @@
   aria-modal="true"
   aria-labelledby="welcome-title"
 >
-  <div
-    class="welcome-container"
-    transition:fly={{ y: 50, duration: 400, delay: 100 }}
-  >
+  <div class="welcome-container" transition:fly={{ y: 50, duration: 400, delay: 100 }}>
     <!-- Header -->
     <div class="welcome-header">
       <RavenLogo size={64} />
@@ -61,9 +58,10 @@
     <!-- Vision Statement -->
     <div class="vision-section">
       <p class="vision-text">
-        Raven isn't just another monitoring tool - it's designed to <strong>understand you</strong> as a developer.
-        By watching your patterns, rhythms, and how you interact with AI agents, Raven builds a profile
-        of your unique coding style. This is "vibe coding" - where the tool adapts to you, not the other way around.
+        Raven isn't just another monitoring tool - it's designed to <strong>understand you</strong> as
+        a developer. By watching your patterns, rhythms, and how you interact with AI agents, Raven builds
+        a profile of your unique coding style. This is "vibe coding" - where the tool adapts to you,
+        not the other way around.
       </p>
     </div>
 
@@ -98,7 +96,7 @@
         on:click={handleGetStarted}
         aria-label="Get started with Raven"
       >
-        Let's Go! 🚀
+        Let's Go!
       </button>
       <p class="footer-note">
         Raven will start learning your patterns immediately. The more you code, the smarter it gets.
@@ -135,8 +133,13 @@
   }
 
   @keyframes gentleFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
   }
 
   .welcome-header {
@@ -331,8 +334,13 @@
 
   /* Alive feeling - pulsing elements */
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
 
   .feature-icon {
@@ -340,8 +348,16 @@
     animation-delay: calc(var(--index, 0) * 0.2s);
   }
 
-  .feature-card:nth-child(1) .feature-icon { animation-delay: 0s; }
-  .feature-card:nth-child(2) .feature-icon { animation-delay: 0.2s; }
-  .feature-card:nth-child(3) .feature-icon { animation-delay: 0.4s; }
-  .feature-card:nth-child(4) .feature-icon { animation-delay: 0.6s; }
+  .feature-card:nth-child(1) .feature-icon {
+    animation-delay: 0s;
+  }
+  .feature-card:nth-child(2) .feature-icon {
+    animation-delay: 0.2s;
+  }
+  .feature-card:nth-child(3) .feature-icon {
+    animation-delay: 0.4s;
+  }
+  .feature-card:nth-child(4) .feature-icon {
+    animation-delay: 0.6s;
+  }
 </style>

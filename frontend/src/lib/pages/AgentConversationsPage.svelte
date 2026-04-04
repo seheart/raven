@@ -226,15 +226,15 @@
   function getEventIcon(eventType) {
     switch (eventType) {
       case 'user_message':
-        return '👤';
+        return '';
       case 'assistant_text':
-        return '🤖';
+        return '';
       case 'tool_call':
-        return '🔧';
+        return '';
       case 'tool_result':
-        return '✅';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -572,7 +572,7 @@
     <!-- Stats Cards -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon">💬</div>
+        <div class="stat-icon"></div>
         <div class="stat-content">
           <div class="stat-label">Total Conversations</div>
           <div class="stat-value">{stats.total.toLocaleString()}</div>
@@ -580,7 +580,7 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">👤</div>
+        <div class="stat-icon"></div>
         <div class="stat-content">
           <div class="stat-label">User Messages</div>
           <div class="stat-value">{(stats.by_type.user_message || 0).toLocaleString()}</div>
@@ -588,7 +588,7 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">🤖</div>
+        <div class="stat-icon"></div>
         <div class="stat-content">
           <div class="stat-label">Assistant Responses</div>
           <div class="stat-value">{(stats.by_type.assistant_text || 0).toLocaleString()}</div>
@@ -596,7 +596,7 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">🔧</div>
+        <div class="stat-icon"></div>
         <div class="stat-content">
           <div class="stat-label">Tool Calls</div>
           <div class="stat-value">{(stats.by_type.tool_call || 0).toLocaleString()}</div>
@@ -608,7 +608,7 @@
     {#if showCharts && !loading && stats.total > 0}
       <div class="charts-section">
         <div class="charts-header">
-          <h3>📊 Analytics</h3>
+          <h3>Analytics</h3>
           <button class="btn-toggle-charts" onclick={() => (showCharts = false)}>
             Hide Charts
           </button>
@@ -631,7 +631,7 @@
     {:else if !showCharts && !loading}
       <div class="charts-toggle">
         <button class="btn-show-charts" onclick={() => (showCharts = true)}>
-          📊 Show Analytics Charts
+          Show Analytics Charts
         </button>
       </div>
     {/if}
@@ -642,7 +642,7 @@
         <input
           type="text"
           class="search-input"
-          placeholder="🔍 Search conversations..."
+          placeholder=" Search conversations..."
           bind:value={searchQuery}
         />
 
@@ -667,7 +667,7 @@
         </label>
 
         <button class="btn-refresh" onclick={loadConversations} disabled={loading}>
-          {#if loading}⏳{:else}🔄{/if} Refresh
+          {#if loading}{:else}{/if} Refresh
         </button>
 
         <button
@@ -675,13 +675,13 @@
           onclick={toggleExpandAll}
           disabled={filteredConversations.length === 0}
         >
-          {#if allExpanded}📕{:else}📖{/if}
+          {#if allExpanded}{:else}{/if}
           {allExpanded ? 'Collapse All' : 'Expand All'}
         </button>
 
-        <button class="btn-import" onclick={() => (showImportDialog = true)}> 📥 Import </button>
+        <button class="btn-import" onclick={() => (showImportDialog = true)}>Import </button>
 
-        <button class="btn-export" onclick={exportConversations}> 📤 Export </button>
+        <button class="btn-export" onclick={exportConversations}>Export </button>
       </div>
 
       <!-- Secondary Controls Row -->
@@ -805,7 +805,7 @@
     {#if error}
       <div class="error-state">
         <p>Error: {error}</p>
-        <button class="btn-retry" onclick={loadConversations}> Retry </button>
+        <button class="btn-retry" onclick={loadConversations}>Retry </button>
       </div>
     {:else if loading}
       <div class="loading-state">
@@ -816,7 +816,7 @@
       <div class="empty">
         <p>No conversations found</p>
         <button class="btn-import" onclick={() => (showImportDialog = true)}>
-          📥 Import Claude Sessions
+          Import Claude Sessions
         </button>
       </div>
     {:else}
@@ -866,7 +866,7 @@
                   <div class="conv-id">#{conv.id}</div>
                 </div>
                 <span class="expand-btn">
-                  {expandedConversations.includes(conv.id) ? '▼' : '▶'}
+                  {expandedConversations.includes(conv.id) ? '' : ''}
                 </span>
               </button>
 
@@ -880,7 +880,7 @@
                           class="btn-copy-content"
                           onclick={() => copyToClipboard(conv.content, 'Content')}
                         >
-                          📋 Copy
+                          Copy
                         </button>
                       </div>
                       <pre class="detail-content">{conv.content}</pre>
@@ -896,7 +896,7 @@
                           onclick={() =>
                             copyToClipboard(formatToolInput(conv.tool_input), 'Tool Input')}
                         >
-                          📋 Copy
+                          Copy
                         </button>
                       </div>
                       <pre class="detail-content">{formatToolInput(conv.tool_input)}</pre>
@@ -911,7 +911,7 @@
                           class="btn-copy-content"
                           onclick={() => copyToClipboard(conv.tool_output, 'Tool Output')}
                         >
-                          📋 Copy
+                          Copy
                         </button>
                       </div>
                       <pre class="detail-content tool-output">{conv.tool_output}</pre>
@@ -946,7 +946,7 @@
           <div class="load-more">
             <button class="btn-load-more" onclick={loadMore} disabled={loadingMore}>
               {#if loadingMore}
-                <span>⏳</span> Loading...
+                <span></span>Loading...
               {:else}
                 Load More
               {/if}
@@ -1008,12 +1008,12 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn-cancel" onclick={closeImportDialog}> Cancel </button>
+        <button class="btn-cancel" onclick={closeImportDialog}>Cancel </button>
         <button class="btn-primary" onclick={importConversations} disabled={importing}>
           {#if importing}
-            <span>⏳</span> Importing...
+            <span></span>Importing...
           {:else}
-            <span>📥</span> Import
+            <span></span>Import
           {/if}
         </button>
       </div>

@@ -62,12 +62,12 @@
 
   function getAlertIcon(type) {
     const icons = {
-      error: '🔴',
-      warning: '⚠️',
-      info: 'ℹ️',
-      success: '✅'
+      error: '',
+      warning: '',
+      info: '',
+      success: ''
     };
-    return icons[type] || 'ℹ️';
+    return icons[type] || '';
   }
 
   function formatTimeAgo(timestamp) {
@@ -89,7 +89,7 @@
     <!-- Current Task Card -->
     {#if sessionTask}
       <div class="task-progress-card">
-        <div class="task-name">🎯 {sessionTask.name || 'Current Task'}</div>
+        <div class="task-name">{sessionTask.name || 'Current Task'}</div>
         {#if sessionTask.step}
           <div class="task-step">{sessionTask.step}</div>
         {/if}
@@ -105,7 +105,7 @@
     {#if alerts.length > 0}
       <div class="panel-section">
         <div class="section-header">
-          <span>🚨 Alerts</span>
+          <span> Alerts</span>
           <span class="count-badge">{alerts.length}</span>
         </div>
 
@@ -125,7 +125,7 @@
     {#if currentFile && Object.keys(context).length > 0}
       <div class="panel-section">
         <div class="section-header">
-          <span>🎯 Context</span>
+          <span> Context</span>
         </div>
 
         {#if context.impact}
@@ -163,7 +163,7 @@
     {#if recentActivity.length > 0}
       <div class="panel-section">
         <div class="section-header">
-          <span>📊 Recent Changes</span>
+          <span> Recent Changes</span>
         </div>
 
         {#each recentActivity.slice(0, 5) as activity (activity.id || activity.timestamp)}
@@ -183,23 +183,21 @@
     <!-- Quick Actions -->
     <div class="panel-section">
       <div class="section-header">
-        <span>⚡ Quick Actions</span>
+        <span> Quick Actions</span>
       </div>
 
       <button class="quick-action-btn" onclick={() => console.log('View session diff')}>
-        📋 View Full Session Diff
+        View Full Session Diff
       </button>
       <button class="quick-action-btn" onclick={() => console.log('Rollback')}>
-        🔙 Rollback Last Change
+        Rollback Last Change
       </button>
-      <button class="quick-action-btn" onclick={() => console.log('Run tests')}>
-        🧪 Run Tests
-      </button>
+      <button class="quick-action-btn" onclick={() => console.log('Run tests')}> Run Tests </button>
       <button class="quick-action-btn" onclick={() => console.log('Create snapshot')}>
-        💾 Create Snapshot
+        Create Snapshot
       </button>
       <button class="quick-action-btn" onclick={() => console.log('Open in editor')}>
-        📝 Open in Editor
+        Open in Editor
       </button>
     </div>
   {/if}

@@ -307,21 +307,21 @@
   function getNotificationIcon(type) {
     switch (type) {
       case 'error':
-        return '⚠️';
+        return '';
       case 'trigger':
-        return '🔔';
+        return '';
       case 'performance':
-        return '⚡';
+        return '';
       case 'git':
-        return '🌳';
+        return '';
       case 'agent':
-        return '🤖';
+        return '';
       case 'file':
-        return '📁';
+        return '';
       case 'system':
-        return '⚙️';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -554,7 +554,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 gap-6">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">📬 Notifications</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Notifications</h1>
         <p class="text-base text-[var(--muted)] font-sans">System alerts and activity updates</p>
       </div>
       <div class="flex gap-3 items-center flex-wrap justify-end">
@@ -583,7 +583,7 @@
           onclick={exportNotifications}
           disabled={notifications.length === 0}
         >
-          📤 Export
+          Export
         </button>
         <button
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -608,7 +608,7 @@
           }}
           disabled={loading}
         >
-          <span class={isManualRefresh ? 'inline-block animate-spin' : ''}>🔄</span>
+          <span class={isManualRefresh ? 'inline-block animate-spin' : ''}></span>
           Refresh
         </button>
       </div>
@@ -765,7 +765,7 @@
         <div
           class="bg-[var(--surface)] border border-dashed border-[var(--border)] rounded-lg p-12 text-center"
         >
-          <div class="text-4xl mb-4">📭</div>
+          <div class="text-4xl mb-4"></div>
           <div class="text-sm font-semibold text-[var(--text)] mb-2">No notifications</div>
           <div class="text-sm text-[var(--muted)]">
             {#if filterType !== 'all' || filterSeverity !== 'all' || showUnreadOnly}
@@ -831,7 +831,6 @@
                     clearNotification(item.id);
                   }}
                 >
-                  🗑️
                 </button>
                 {#if !item.read}
                   <button
@@ -841,7 +840,6 @@
                       markAsRead(item.id);
                     }}
                   >
-                    ✓
                   </button>
                 {/if}
               </div>

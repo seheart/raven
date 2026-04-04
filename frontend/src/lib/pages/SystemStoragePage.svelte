@@ -483,7 +483,7 @@
     {:else if error}
       <!-- Error state -->
       <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-8 text-center">
-        <h3 class="text-xl font-bold text-[var(--error)] mb-4">⚠️ Error Loading Storage Data</h3>
+        <h3 class="text-xl font-bold text-[var(--error)] mb-4">Error Loading Storage Data</h3>
         <p class="text-[var(--muted)] mb-6">{error}</p>
         <button
           onclick={() => loadStorageData()}
@@ -496,7 +496,7 @@
       <!-- Header Section -->
       <div class="flex justify-between items-start mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">💾 Storage Overview</h1>
+          <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Storage Overview</h1>
           <p class="text-base text-[var(--muted)] font-sans">
             Database and snapshot storage management
           </p>
@@ -508,7 +508,7 @@
             disabled={loading}
             class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
           >
-            <span class:animate-spin={isManualRefresh}>🔄</span>
+            <span class:animate-spin={isManualRefresh}></span>
             Refresh
           </button>
         </div>
@@ -620,7 +620,7 @@
 
       <!-- Databases Section -->
       <section class="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-        <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">🗄️ Databases</h2>
+        <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">Databases</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead class="bg-[var(--surface-2)]">
@@ -699,28 +699,25 @@
                         onclick={() => toggleDatabaseExpansion(db.name)}
                         class="px-2 py-1 text-xs bg-transparent border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors font-sans"
                       >
-                        {isExpanded ? '▼' : '▶'} Details
+                        {isExpanded ? '▼' : ''} Details
                       </button>
                       <button
                         onclick={() => exportDatabase(db.name)}
                         title="Export database"
                         class="px-2 py-1 text-xs bg-transparent border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
                       >
-                        💾
                       </button>
                       <button
                         onclick={() => optimizeDatabase(db.name)}
                         title="Optimize database (VACUUM)"
                         class="px-2 py-1 text-xs bg-transparent border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
                       >
-                        ⚡
                       </button>
                       <button
                         onclick={() => cleanDatabase(db.name)}
                         title="Clean old data"
                         class="px-2 py-1 text-xs bg-transparent border border-[var(--error)] text-[var(--error)] rounded hover:bg-[var(--error)] hover:text-white transition-colors"
                       >
-                        🧹
                       </button>
                     </div>
                   </td>
@@ -801,7 +798,7 @@
 
       <!-- Snapshots Section -->
       <section class="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-        <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">📸 Snapshots</h2>
+        <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">Snapshots</h2>
         {#if storageData?.snapshots?.length > 0}
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -861,7 +858,7 @@
 
       <!-- Other Files Section -->
       <section class="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-        <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">📄 Other Files</h2>
+        <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">Other Files</h2>
         <div class="space-y-4">
           <div
             class="flex justify-between items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4"
@@ -884,7 +881,7 @@
 
       <!-- Actions Section -->
       <section class="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-        <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">⚙️ Actions</h2>
+        <h2 class="text-lg font-bold text-[var(--text)] mb-4 font-sans">Actions</h2>
         <p class="text-sm text-[var(--muted)] mb-4 font-sans">
           Use per-database action buttons in the table above, or configure retention policy below.
         </p>
@@ -893,7 +890,7 @@
             onclick={openRetentionConfig}
             class="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors font-sans"
           >
-            ⚙️ Configure Retention
+            Configure Retention
           </button>
         </div>
       </section>
@@ -929,14 +926,11 @@
     >
       <!-- Modal Header -->
       <div class="flex justify-between items-center p-6 border-b border-[var(--border)]">
-        <h2 class="text-xl font-bold text-[var(--text)] font-sans">
-          ⚙️ Configure Retention Policy
-        </h2>
+        <h2 class="text-xl font-bold text-[var(--text)] font-sans">Configure Retention Policy</h2>
         <button
           onclick={() => (showRetentionModal = false)}
           class="px-2 py-1 text-xl bg-transparent border border-transparent rounded hover:bg-[var(--surface-2)] transition-colors"
         >
-          ✕
         </button>
       </div>
 

@@ -103,9 +103,9 @@
   function getPermissionStatusText() {
     switch (notificationPermission) {
       case 'granted':
-        return '✓ Granted';
+        return ' Granted';
       case 'denied':
-        return '✗ Denied';
+        return ' Denied';
       case 'default':
         return '? Not requested';
       default:
@@ -148,20 +148,20 @@
   <!-- Header -->
   <div class="border-b border-[var(--border)] pb-4 flex justify-between items-center">
     <div>
-      <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">⚙️ Settings</h1>
-      <p class="text-xs text-[var(--muted)]">⚡ Auto-saves • Last modified: {timeAgo}</p>
+      <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Settings</h1>
+      <p class="text-xs text-[var(--muted)]">Auto-saves • Last modified: {timeAgo}</p>
     </div>
     <div class="flex gap-2">
       <button
         class="px-2.5 py-1.5 bg-[var(--surface-2)] text-[var(--text)] text-xs rounded hover:bg-[var(--surface-3)] transition-colors border border-[var(--border)] cursor-pointer font-sans"
         onclick={exportSettings}
       >
-        📤 Export
+        Export
       </button>
       <label
         class="px-2.5 py-1.5 bg-[var(--surface-2)] text-[var(--text)] text-xs rounded hover:bg-[var(--surface-3)] transition-colors border border-[var(--border)] cursor-pointer font-sans"
       >
-        📥 Import
+        Import
         <input
           type="file"
           accept=".json"
@@ -174,14 +174,14 @@
         class="px-2.5 py-1.5 bg-[var(--surface-2)] text-[var(--text)] text-xs rounded hover:bg-[var(--surface-3)] transition-colors border border-[var(--border)] cursor-pointer font-sans"
         onclick={resetToDefaults}
       >
-        🔄 Reset
+        Reset
       </button>
     </div>
   </div>
 
   <!-- Notifications Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">🔔 Notifications</h3>
+    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">Notifications</h3>
 
     <!-- Enable Notifications -->
     <div class="setting-card">
@@ -338,37 +338,7 @@
 
   <!-- UI Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">🎨 User Interface</h3>
-
-    <!-- Theme -->
-    <div class="setting-card">
-      <div class="setting-control">
-        <label for="theme-select" class="text-sm font-medium text-[var(--text)] font-sans"
-          >Theme</label
-        >
-        <select
-          id="theme-select"
-          bind:value={currentSettings.ui.theme}
-          class="px-2.5 py-1.5 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded text-sm font-sans"
-          onchange={() => settings.updateUI({ theme: currentSettings.ui.theme })}
-        >
-          <option value="tokyo-night">Tokyo Night</option>
-          <option value="catppuccin">Catppuccin</option>
-          <option value="everforest">Everforest</option>
-          <option value="gruvbox">Gruvbox</option>
-          <option value="gruvbox-light">Gruvbox Light</option>
-          <option value="osaka-jade">Osaka Jade</option>
-          <option value="kanagawa">Kanagawa</option>
-          <option value="nord">Nord</option>
-          <option value="matte-black">Matte Black</option>
-          <option value="ristretto">Ristretto</option>
-          <option value="flexoki-light">Flexoki Light</option>
-          <option value="rose-pine">Rose Pine</option>
-          <option value="catppuccin-latte">Catppuccin Latte</option>
-        </select>
-      </div>
-      <p class="setting-help">Color theme for the application</p>
-    </div>
+    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">User Interface</h3>
 
     <!-- Time Format -->
     <div class="setting-card">
@@ -447,7 +417,7 @@
 
   <!-- Editor Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">📝 Editor</h3>
+    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">Editor</h3>
 
     <div class="setting-card">
       <div class="setting-control">
@@ -459,13 +429,13 @@
           bind:value={currentSettings.editor.defaultEditor}
           class="px-2.5 py-1.5 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded text-sm font-sans"
         >
-          <option value="auto">🖥️ System Default</option>
-          <option value="vscode">💻 VS Code</option>
-          <option value="cursor">⚡ Cursor</option>
-          <option value="sublime">📝 Sublime Text</option>
-          <option value="intellij">🧠 IntelliJ IDEA</option>
-          <option value="vim">🟢 Vim</option>
-          <option value="nvim">🟩 Neovim</option>
+          <option value="auto"> System Default</option>
+          <option value="vscode"> VS Code</option>
+          <option value="cursor"> Cursor</option>
+          <option value="sublime"> Sublime Text</option>
+          <option value="intellij"> IntelliJ IDEA</option>
+          <option value="vim"> Vim</option>
+          <option value="nvim"> Neovim</option>
         </select>
       </div>
       <p class="setting-help">Which editor opens files from error panels</p>
@@ -474,7 +444,7 @@
 
   <!-- Performance Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">⚡ Performance</h3>
+    <h3 class="text-base font-semibold text-[var(--text-heading)] font-sans">Performance</h3>
 
     <!-- Enable Metrics -->
     <div class="setting-card">
@@ -550,7 +520,7 @@
 
   <!-- Danger Zone Section -->
   <section class="space-y-3">
-    <h3 class="text-base font-semibold text-[var(--error)] font-sans">⚠️ Danger Zone</h3>
+    <h3 class="text-base font-semibold text-[var(--error)] font-sans">Danger Zone</h3>
 
     <div class="danger-zone-card">
       <div class="flex items-start justify-between gap-4">

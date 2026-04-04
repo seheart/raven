@@ -107,17 +107,17 @@
   function getEventIcon(changeType) {
     switch (changeType) {
       case 'create':
-        return '➕';
+        return '';
       case 'edit':
-        return '✏️';
+        return '';
       case 'delete':
-        return '🗑️';
+        return '';
       case 'read':
-        return '👁️';
+        return '';
       case 'execute':
-        return '⚡';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -179,13 +179,13 @@
         disabled={loading}
         class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
       >
-        {loading ? '⏳ Loading' : '🔄 Refresh'}
+        {loading ? ' Loading' : ' Refresh'}
       </button>
     </div>
 
     {#if error}
       <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6">
-        <span class="text-sm text-[var(--error)] font-sans">⚠️ {error}</span>
+        <span class="text-sm text-[var(--error)] font-sans"> {error}</span>
       </div>
     {/if}
 
@@ -265,12 +265,12 @@
     <!-- Timeline -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-4xl mb-4">⏳</div>
+        <div class="text-4xl mb-4"></div>
         <div class="text-[var(--muted)] font-sans">Loading timeline...</div>
       </div>
     {:else if groupedEvents.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4">📊</div>
+        <div class="text-5xl mb-4"></div>
         <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">No events found</div>
         <div class="text-base text-[var(--muted)] font-sans">Try adjusting your filters</div>
       </div>
@@ -342,16 +342,16 @@
 
                         <div class="flex flex-wrap gap-3 text-xs text-[var(--muted)]">
                           {#if event.agent}
-                            <span class="font-mono">🤖 {event.agent}</span>
+                            <span class="font-mono"> {event.agent}</span>
                           {/if}
                           {#if event.event_size}
-                            <span class="font-mono">📦 {event.event_size}B</span>
+                            <span class="font-mono"> {event.event_size}B</span>
                           {/if}
                           {#if event.duration_ms}
-                            <span class="font-mono">⏱️ {event.duration_ms}ms</span>
+                            <span class="font-mono"> {event.duration_ms}ms</span>
                           {/if}
                           {#if event.risk_level}
-                            <span class="font-mono">⚠️ Risk: {event.risk_level}</span>
+                            <span class="font-mono">Risk: {event.risk_level}</span>
                           {/if}
                         </div>
                       </div>

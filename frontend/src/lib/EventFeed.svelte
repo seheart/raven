@@ -280,7 +280,7 @@
   };
 
   const handleProjectSwitched = async data => {
-    logger.info('📡 Project switched, reloading events:', data.project);
+    logger.info(' Project switched, reloading events:', data.project);
     await loadRecentEvents();
   };
 
@@ -436,15 +436,15 @@
   function getConversationIcon(eventType) {
     switch (eventType) {
       case 'user_message':
-        return '💬';
+        return '';
       case 'assistant_text':
-        return '🤖';
+        return '';
       case 'tool_call':
-        return '🔧';
+        return '';
       case 'tool_result':
-        return '✅';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -475,13 +475,13 @@
     };
 
     const badges = {
-      ant: { icon: '🐜', color: getColor('--accent', '#7aa2f7'), name: 'ANT' },
-      'claude-code': { icon: '🤖', color: getColor('--accent', '#bb9af7'), name: 'Claude Code' },
-      cursor: { icon: '↗️', color: getColor('--success', '#9ece6a'), name: 'Cursor' },
-      'github-copilot': { icon: '🤝', color: getColor('--error', '#f7768e'), name: 'Copilot' },
-      aider: { icon: '💬', color: getColor('--warning', '#e0af68'), name: 'Aider' },
-      manual: { icon: '👤', color: getColor('--muted', '#565f89'), name: 'Manual' },
-      unknown: { icon: '❓', color: getColor('--muted', '#565f89'), name: 'Unknown' }
+      ant: { icon: '', color: getColor('--accent', '#7aa2f7'), name: 'ANT' },
+      'claude-code': { icon: '', color: getColor('--accent', '#bb9af7'), name: 'Claude Code' },
+      cursor: { icon: '', color: getColor('--success', '#9ece6a'), name: 'Cursor' },
+      'github-copilot': { icon: '', color: getColor('--error', '#f7768e'), name: 'Copilot' },
+      aider: { icon: '', color: getColor('--warning', '#e0af68'), name: 'Aider' },
+      manual: { icon: '', color: getColor('--muted', '#565f89'), name: 'Manual' },
+      unknown: { icon: '', color: getColor('--muted', '#565f89'), name: 'Unknown' }
     };
     return badges[agent] || badges.unknown;
   }
@@ -496,9 +496,9 @@
     };
 
     const badges = {
-      high: { icon: '⚠️', color: getColor('--error', '#f7768e'), text: 'High Risk' },
-      medium: { icon: '⚡', color: getColor('--warning', '#e0af68'), text: 'Medium Risk' },
-      low: { icon: '✓', color: getColor('--success', '#9ece6a'), text: 'Low Risk' }
+      high: { icon: '', color: getColor('--error', '#f7768e'), text: 'High Risk' },
+      medium: { icon: '', color: getColor('--warning', '#e0af68'), text: 'Medium Risk' },
+      low: { icon: '', color: getColor('--success', '#9ece6a'), text: 'Low Risk' }
     };
     return badges[riskLevel] || null;
   }
@@ -897,14 +897,14 @@
   {#if showForensics && filteredEvents.length > 0}
     <section class="forensics-dashboard" aria-labelledby="forensics-heading">
       <div class="forensics-header">
-        <h2 id="forensics-heading"><span aria-hidden="true">📊</span> Forensics Analysis</h2>
+        <h2 id="forensics-heading"><span aria-hidden="true"></span> Forensics Analysis</h2>
         <button
           class="toggle-forensics"
           on:click={() => (showForensics = !showForensics)}
           aria-label="{showForensics ? 'Hide' : 'Show'} forensics analysis"
           aria-expanded={showForensics}
         >
-          <span aria-hidden="true">{showForensics ? '▼' : '▶'}</span>
+          <span aria-hidden="true">{showForensics ? '' : ''}</span>
           {showForensics ? 'Hide' : 'Show'}
         </button>
       </div>
@@ -916,7 +916,7 @@
           role="status"
           aria-label="Total changes: {forensicsStats.totalChanges}"
         >
-          <div class="stat-icon" aria-hidden="true">📈</div>
+          <div class="stat-icon" aria-hidden="true"></div>
           <div class="stat-content">
             <div class="stat-label">Total Changes</div>
             <div class="stat-value">{forensicsStats.totalChanges}</div>
@@ -928,7 +928,7 @@
           role="status"
           aria-label="Unique files: {forensicsStats.uniqueFiles}"
         >
-          <div class="stat-icon" aria-hidden="true">📄</div>
+          <div class="stat-icon" aria-hidden="true"></div>
           <div class="stat-content">
             <div class="stat-label">Unique Files</div>
             <div class="stat-value">{forensicsStats.uniqueFiles}</div>
@@ -940,7 +940,7 @@
           role="status"
           aria-label="Files created: {forensicsStats.changeTypeBreakdown.created}"
         >
-          <div class="stat-icon" aria-hidden="true">➕</div>
+          <div class="stat-icon" aria-hidden="true"></div>
           <div class="stat-content">
             <div class="stat-label">Created</div>
             <div class="stat-value">{forensicsStats.changeTypeBreakdown.created}</div>
@@ -952,7 +952,7 @@
           role="status"
           aria-label="Files modified: {forensicsStats.changeTypeBreakdown.modified}"
         >
-          <div class="stat-icon" aria-hidden="true">✏️</div>
+          <div class="stat-icon" aria-hidden="true"></div>
           <div class="stat-content">
             <div class="stat-label">Modified</div>
             <div class="stat-value">{forensicsStats.changeTypeBreakdown.modified}</div>
@@ -964,7 +964,7 @@
           role="status"
           aria-label="Files deleted: {forensicsStats.changeTypeBreakdown.deleted}"
         >
-          <div class="stat-icon" aria-hidden="true">🗑️</div>
+          <div class="stat-icon" aria-hidden="true"></div>
           <div class="stat-content">
             <div class="stat-label">Deleted</div>
             <div class="stat-value">{forensicsStats.changeTypeBreakdown.deleted}</div>
@@ -977,7 +977,7 @@
         <!-- Top 5 Most Changed Files -->
         <div class="forensics-panel">
           <h3 id="top-files-heading">
-            <span aria-hidden="true">🔥</span> Top 5 Most Changed Files
+            <span aria-hidden="true"></span> Top 5 Most Changed Files
           </h3>
           <ul class="top-files-list" role="list" aria-labelledby="top-files-heading">
             {#each forensicsStats.topFiles as file (file.filepath)}
@@ -1004,7 +1004,7 @@
 
         <!-- Busiest Hours Heat Map -->
         <div class="forensics-panel">
-          <h3 id="busiest-hours-heading"><span aria-hidden="true">⏰</span> Busiest Hours</h3>
+          <h3 id="busiest-hours-heading"><span aria-hidden="true"></span> Busiest Hours</h3>
           <ul class="hours-heatmap" role="list" aria-labelledby="busiest-hours-heading">
             {#each forensicsStats.busiestHours as hourData (hourData.hour)}
               <li class="hour-item">
@@ -1037,7 +1037,7 @@
   {#if filteredEvents.length > 0}
     <section class="charts-section" aria-labelledby="charts-heading">
       <div class="charts-header">
-        <h2 id="charts-heading">📊 Analytics Visualizations</h2>
+        <h2 id="charts-heading">Analytics Visualizations</h2>
         <button
           class="toggle-charts"
           on:click={() => (showCharts = !showCharts)}
@@ -1085,13 +1085,13 @@
     >
     <div class="header-actions" role="toolbar" aria-label="Event actions">
       <button class="export-btn" on:click={exportToJSON} aria-label="Export events to JSON file">
-        <span aria-hidden="true">📥</span> JSON
+        <span aria-hidden="true"></span> JSON
       </button>
       <button class="export-btn" on:click={exportToCSV} aria-label="Export events to CSV file">
-        <span aria-hidden="true">📥</span> CSV
+        <span aria-hidden="true"></span> CSV
       </button>
       <button class="clear-btn" on:click={clearEvents} aria-label="Clear all events">
-        <span aria-hidden="true">🗑️</span> Clear
+        <span aria-hidden="true"></span> Clear
       </button>
     </div>
   </div>
@@ -1145,7 +1145,7 @@
             bind:checked={selectedTypes.user_message}
             aria-label="Show user messages"
           />
-          <span class="filter-label conversation"><span aria-hidden="true">💬</span> User</span>
+          <span class="filter-label conversation"><span aria-hidden="true"></span> User</span>
         </label>
         <label class="filter-checkbox">
           <input
@@ -1153,7 +1153,7 @@
             bind:checked={selectedTypes.assistant_text}
             aria-label="Show Claude responses"
           />
-          <span class="filter-label conversation"><span aria-hidden="true">🤖</span> Claude</span>
+          <span class="filter-label conversation"><span aria-hidden="true"></span> Claude</span>
         </label>
         <label class="filter-checkbox">
           <input
@@ -1161,7 +1161,7 @@
             bind:checked={selectedTypes.tool_call}
             aria-label="Show tool calls"
           />
-          <span class="filter-label conversation"><span aria-hidden="true">🔧</span> Tools</span>
+          <span class="filter-label conversation"><span aria-hidden="true"></span> Tools</span>
         </label>
         <label class="filter-checkbox">
           <input
@@ -1169,7 +1169,7 @@
             bind:checked={selectedTypes.tool_result}
             aria-label="Show tool results"
           />
-          <span class="filter-label conversation"><span aria-hidden="true">✅</span> Results</span>
+          <span class="filter-label conversation"><span aria-hidden="true"></span> Results</span>
         </label>
       </fieldset>
     </div>
@@ -1211,13 +1211,7 @@
           >
             <div class="event-type-indicator">
               <span class="event-icon">
-                {#if item.changeType === 'created'}
-                  ➕
-                {:else if item.changeType === 'modified'}
-                  ✏️
-                {:else if item.changeType === 'deleted'}
-                  🗑️
-                {/if}
+                {#if item.changeType === 'created'}{:else if item.changeType === 'modified'}{:else if item.changeType === 'deleted'}{/if}
               </span>
             </div>
 
@@ -1260,12 +1254,12 @@
                 {/if}
                 <div class="event-metrics">
                   <span class="metric cpu">
-                    <span class="metric-icon">⚙️</span>
+                    <span class="metric-icon"></span>
                     <span class="metric-value">{(item.cpu ?? 0).toFixed(1)}%</span>
                     <span class="metric-label">CPU</span>
                   </span>
                   <span class="metric mem">
-                    <span class="metric-icon">💾</span>
+                    <span class="metric-icon"></span>
                     <span class="metric-value">{(item.mem ?? 0).toFixed(1)}%</span>
                     <span class="metric-label">RAM</span>
                   </span>
@@ -1305,7 +1299,7 @@
                     <span class="conv-text tool-name">{item.toolName}</span>
                   {:else if item.changeType === 'tool_result'}
                     <span class="conv-label">
-                      {item.isError ? '❌' : '✅'} Result:
+                      {item.isError ? '' : ''} Result:
                     </span>
                     <span class="conv-text">{truncate(item.toolOutput, 100)}</span>
                   {/if}
@@ -1346,7 +1340,7 @@
                     class="expand-btn"
                     on:click|stopPropagation={() => toggleExpanded(item.id)}
                   >
-                    {expandedEvents.has(item.id) ? '▲ Collapse' : '▼ Expand'}
+                    {expandedEvents.has(item.id) ? ' Collapse' : ' Expand'}
                   </button>
                 {/if}
               </div>
@@ -1381,9 +1375,8 @@
       aria-modal="true"
     >
       <div class="modal-header">
-        <h3 id="diff-modal-title"><span aria-hidden="true">📝</span> File Diff</h3>
-        <button class="close-btn" on:click={closeDiffModal} aria-label="Close diff viewer">✕</button
-        >
+        <h3 id="diff-modal-title"><span aria-hidden="true"></span> File Diff</h3>
+        <button class="close-btn" on:click={closeDiffModal} aria-label="Close diff viewer"></button>
       </div>
 
       <div class="modal-body">

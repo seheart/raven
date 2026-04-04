@@ -151,7 +151,7 @@
       on:click={resetRange}
       aria-label="Reset timeline range to show all events"
     >
-      <span aria-hidden="true">🔄</span> Reset
+      <span aria-hidden="true"></span> Reset
     </button>
   </div>
 

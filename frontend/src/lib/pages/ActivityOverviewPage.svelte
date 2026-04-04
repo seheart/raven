@@ -391,17 +391,17 @@
       case 'add':
       case 'create':
       case 'created':
-        return '➕';
+        return '';
       case 'change':
       case 'edit':
       case 'modified':
-        return '✏️';
+        return '';
       case 'unlink':
       case 'delete':
       case 'deleted':
-        return '🗑️';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -427,13 +427,13 @@
   function getCategoryIcon(category) {
     switch (category) {
       case 'file':
-        return '📁';
+        return '';
       case 'agent':
-        return '🤖';
+        return '';
       case 'system':
-        return '⚙️';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -798,7 +798,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 pb-6 border-b-2 border-[var(--border)]">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-2">📜 Activity Log</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-2">Activity Log</h1>
         <p class="text-sm text-[var(--muted)]">
           Complete audit trail • All files • Build artifacts • System events
         </p>
@@ -809,27 +809,27 @@
           onclick={() => togglePause()}
           class="px-3 py-2 text-sm font-semibold rounded transition-all bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)]"
         >
-          {isPaused ? '▶️ Resume' : '⏸️ Pause'} Tracking
+          {isPaused ? ' Resume' : ' Pause'} Tracking
         </button>
         <button
           onclick={() => loadActivities(true)}
           disabled={loading}
           class="px-3 py-2 text-sm font-semibold rounded transition-all bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] disabled:opacity-50"
         >
-          <span class={isManualRefresh ? 'inline-block animate-spin' : 'inline-block'}>🔄</span>
+          <span class={isManualRefresh ? 'inline-block animate-spin' : 'inline-block'}></span>
           Refresh
         </button>
         <button
           onclick={exportLog}
           class="px-3 py-2 text-sm font-semibold rounded transition-all bg-[var(--accent)] text-white hover:opacity-90"
         >
-          💾 Export JSON
+          Export JSON
         </button>
         <button
           onclick={exportToCSV}
           class="px-3 py-2 text-sm font-semibold rounded transition-all bg-[var(--accent)] text-white hover:opacity-90"
         >
-          📊 Export CSV
+          Export CSV
         </button>
       </div>
     </div>
@@ -849,7 +849,7 @@
             onclick={search}
             class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90"
           >
-            🔍 Search
+            Search
           </button>
         </div>
 
@@ -863,7 +863,7 @@
               ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
               : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
           >
-            📦 Session View
+            Session View
           </button>
 
           <select
@@ -873,8 +873,8 @@
           >
             <option value="time_desc">↓ Newest First</option>
             <option value="time_asc">↑ Oldest First</option>
-            <option value="duration_desc">⏱️ Longest Duration</option>
-            <option value="events_desc">📊 Most Events</option>
+            <option value="duration_desc">Longest Duration</option>
+            <option value="events_desc">Most Events</option>
           </select>
         </div>
       </div>
@@ -895,7 +895,7 @@
             ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
             : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
         >
-          📁 Files ({stats.file})
+          Files ({stats.file})
         </button>
         <button
           onclick={() => setFilter('agent')}
@@ -904,7 +904,7 @@
             ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
             : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
         >
-          🤖 Agents ({stats.agent})
+          Agents ({stats.agent})
         </button>
         <button
           onclick={() => setFilter('system')}
@@ -913,7 +913,7 @@
             ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
             : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
         >
-          ⚙️ System ({stats.system})
+          System ({stats.system})
         </button>
       </div>
     </div>
@@ -925,7 +925,7 @@
           <div
             class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
           >
-            <div class="text-3xl">📈</div>
+            <div class="text-3xl"></div>
             <div>
               <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
                 Total Activities
@@ -939,7 +939,7 @@
           <div
             class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
           >
-            <div class="text-3xl">🔖</div>
+            <div class="text-3xl"></div>
             <div>
               <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
                 Unique Sessions
@@ -953,7 +953,7 @@
           <div
             class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
           >
-            <div class="text-3xl">⏱️</div>
+            <div class="text-3xl"></div>
             <div>
               <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
                 Avg Session Duration
@@ -967,7 +967,7 @@
           <div
             class="flex gap-4 items-center p-4 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-all hover:-translate-y-0.5"
           >
-            <div class="text-3xl">⚡</div>
+            <div class="text-3xl"></div>
             <div>
               <div class="text-xs text-[var(--muted)] uppercase font-semibold tracking-wide mb-1">
                 Activities Per Hour
@@ -985,7 +985,7 @@
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
           <div class="flex justify-between items-center mb-6">
             <h3 class="text-lg font-semibold text-[var(--text-heading)]">
-              📊 Analytics Visualizations
+              Analytics Visualizations
             </h3>
             <button
               onclick={() => (showCharts = false)}
@@ -1046,7 +1046,7 @@
         </div>
       {:else if activities.length === 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <div class="text-6xl mb-4">📭</div>
+          <div class="text-6xl mb-4"></div>
           <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-2">No Activities Found</h2>
           {#if selectedType !== 'all'}
             <p class="text-[var(--muted)] mb-4">
@@ -1086,25 +1086,25 @@
             >
               <div class="flex items-center gap-4 flex-1">
                 <span class="text-[var(--muted)]"
-                  >{collapsedSessions.has(session.id) ? '▶' : '▼'}</span
+                  >{collapsedSessions.has(session.id) ? '' : ''}</span
                 >
                 <div class="flex-1 text-left">
                   <div class="flex items-center gap-3 mb-2">
-                    <span class="text-xl">🔖</span>
+                    <span class="text-xl"></span>
                     <span class="text-sm font-bold text-[var(--text)] font-mono"
                       >Session: {session.id.substring(0, 12)}</span
                     >
                   </div>
                   <div class="flex items-center gap-3 text-xs text-[var(--muted)] font-mono">
-                    <span>⏱️ {formatDuration(session.duration)}</span>
+                    <span> {formatDuration(session.duration)}</span>
                     <span class="text-[var(--border)]">•</span>
-                    <span>📊 {session.totalEvents} events</span>
+                    <span> {session.totalEvents} events</span>
                     <span class="text-[var(--border)]">•</span>
-                    <span>📁 {session.filesCount} files</span>
+                    <span> {session.filesCount} files</span>
                     <span class="text-[var(--border)]">•</span>
-                    <span>🤖 {session.agentCount} agent</span>
+                    <span> {session.agentCount} agent</span>
                     <span class="text-[var(--border)]">•</span>
-                    <span>⚙️ {session.systemCount} system</span>
+                    <span> {session.systemCount} system</span>
                   </div>
                 </div>
               </div>
@@ -1127,7 +1127,7 @@
                       class="w-full flex justify-between items-center p-4"
                     >
                       <div class="flex items-center gap-4 flex-1 min-w-0">
-                        <span class="text-xs text-[var(--muted)]">{isExpanded ? '▼' : '▶'}</span>
+                        <span class="text-xs text-[var(--muted)]">{isExpanded ? '' : ''}</span>
                         <span class="text-lg" style="color: {getCategoryColor(activity.category)}">
                           {getCategoryIcon(activity.category)}
                         </span>
@@ -1235,7 +1235,7 @@
               class="w-full flex justify-between items-center p-4"
             >
               <div class="flex items-center gap-4 flex-1 min-w-0">
-                <span class="text-xs text-[var(--muted)]">{isExpanded ? '▼' : '▶'}</span>
+                <span class="text-xs text-[var(--muted)]">{isExpanded ? '' : ''}</span>
                 <span class="text-lg" style="color: {getCategoryColor(activity.category)}">
                   {getCategoryIcon(activity.category)}
                 </span>
@@ -1338,7 +1338,7 @@
       class="fixed right-0 top-0 h-screen w-80 bg-[var(--surface)] border-l border-[var(--border)] overflow-hidden hidden xl:flex flex-col"
     >
       <div class="p-5 bg-[var(--bg)] border-b border-[var(--border)]">
-        <h3 class="text-sm font-semibold text-[var(--text)]">⚡ Recent Activity</h3>
+        <h3 class="text-sm font-semibold text-[var(--text)]">Recent Activity</h3>
       </div>
       <div class="flex-1 overflow-y-auto p-3">
         {#if loading}
@@ -1357,7 +1357,7 @@
                       {getChangeTypeIcon(activity.change_type)}
                     </span>
                   {:else}
-                    <span>🤖</span>
+                    <span></span>
                   {/if}
                 </div>
 

@@ -230,8 +230,7 @@ class NotificationService {
     if (this.browserPermission !== 'granted') return;
 
     try {
-      const icon =
-        type === 'error' ? '🔴' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+      const icon = type === 'error' ? '' : type === 'warning' ? '' : type === 'success' ? '' : '';
 
       new Notification(`${icon} ${title}`, {
         body: message,

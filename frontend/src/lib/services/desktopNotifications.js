@@ -46,8 +46,8 @@ class DesktopNotificationService {
       if (this.enabled) {
         // Show welcome notification
         this.show({
-          title: '🎉 Raven Alerts Enabled',
-          body: 'You\'ll now get desktop notifications when AI makes important changes',
+          title: ' Raven Alerts Enabled',
+          body: "You'll now get desktop notifications when AI makes important changes",
           icon: '/raven-icon.png',
           tag: 'welcome'
         });
@@ -93,9 +93,9 @@ class DesktopNotificationService {
     try {
       // Add severity emoji to title
       const severityEmoji = {
-        critical: '🚨',
-        warning: '⚠️',
-        info: 'ℹ️'
+        critical: '',
+        warning: '',
+        info: 'ℹ'
       };
 
       const enhancedTitle = `${severityEmoji[severity] || ''} ${title}`;
@@ -239,10 +239,13 @@ class DesktopNotificationService {
    * Save preferences to localStorage
    */
   savePreferences() {
-    localStorage.setItem('raven-desktop-notifications', JSON.stringify({
-      enabled: this.enabled,
-      soundEnabled: this.soundEnabled
-    }));
+    localStorage.setItem(
+      'raven-desktop-notifications',
+      JSON.stringify({
+        enabled: this.enabled,
+        soundEnabled: this.soundEnabled
+      })
+    );
   }
 
   /**

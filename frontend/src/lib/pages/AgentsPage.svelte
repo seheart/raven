@@ -163,7 +163,7 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '⏳' : '🔄'} Refresh
+          {loading ? '' : ''} Refresh
         </button>
       </div>
     </div>
@@ -173,7 +173,7 @@
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
       >
         <span class="text-base text-[var(--error)] font-sans"
-          >⚠️ Failed to load agents data: {error}</span
+          >Failed to load agents data: {error}</span
         >
         <button
           onclick={() => loadAllData(true)}
@@ -198,7 +198,7 @@
         <div
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4"
         >
-          <div class="text-3xl flex-shrink-0">🤖</div>
+          <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
               {formatNumber(stats.total_agents)}
@@ -210,7 +210,7 @@
         <div
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4"
         >
-          <div class="text-3xl flex-shrink-0">✅</div>
+          <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--success)] leading-none mb-1">
               {formatNumber(stats.active_agents)}
@@ -222,7 +222,7 @@
         <div
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4"
         >
-          <div class="text-3xl flex-shrink-0">📊</div>
+          <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
               {formatNumber(stats.total_events)}
@@ -234,7 +234,7 @@
         <div
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-4"
         >
-          <div class="text-3xl flex-shrink-0">💬</div>
+          <div class="text-3xl flex-shrink-0"></div>
           <div class="flex-1">
             <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
               {formatNumber(stats.total_conversations)}
@@ -254,7 +254,7 @@
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading agents...</div>
       {:else if topAgents.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2">🤖</span>
+          <span class="text-2xl block mb-2"></span>
           <p class="text-base text-[var(--muted)] font-sans">No agent activity detected</p>
         </div>
       {:else}
@@ -274,11 +274,10 @@
                   title="Slow response time detected (avg > 5s)"
                   style="animation: pulse 2s ease-in-out infinite;"
                 >
-                  ⚠️
                 </span>
               {/if}
               <div class="flex items-center gap-2 mb-3">
-                <span class="text-xl">🤖</span>
+                <span class="text-xl"></span>
                 <span class="text-sm font-semibold text-[var(--text)] font-mono truncate flex-1">
                   {agent.agent_name || 'Unknown'}
                 </span>
@@ -324,7 +323,7 @@
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading activity...</div>
       {:else if recentActivity.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2">💤</span>
+          <span class="text-2xl block mb-2"></span>
           <p class="text-base text-[var(--muted)] font-sans">No recent activity</p>
         </div>
       {:else}
@@ -334,15 +333,7 @@
               class="flex items-start gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all"
             >
               <span class="text-base flex-shrink-0 mt-1">
-                {#if event.event_type === 'file_change'}
-                  📝
-                {:else if event.event_type === 'command'}
-                  ⚡
-                {:else if event.event_type === 'conversation'}
-                  💬
-                {:else}
-                  🔔
-                {/if}
+                {#if event.event_type === 'file_change'}{:else if event.event_type === 'command'}{:else if event.event_type === 'conversation'}{:else}{/if}
               </span>
               <div class="flex-1 min-w-0">
                 <div class="text-base text-[var(--text)] font-mono mb-1">
@@ -404,7 +395,7 @@
           onclick={() => navigate('/agents/stats')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
         >
-          <div class="text-2xl flex-shrink-0">📊</div>
+          <div class="text-2xl flex-shrink-0"></div>
           <div>
             <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
               Agent Stats
@@ -417,7 +408,7 @@
           onclick={() => navigate('/agents/monitoring')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
         >
-          <div class="text-2xl flex-shrink-0">📡</div>
+          <div class="text-2xl flex-shrink-0"></div>
           <div>
             <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
               Live Monitoring
@@ -430,7 +421,7 @@
           onclick={() => navigate('/agents/conversations')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
         >
-          <div class="text-2xl flex-shrink-0">💬</div>
+          <div class="text-2xl flex-shrink-0"></div>
           <div>
             <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
               Conversations
@@ -443,7 +434,7 @@
           onclick={() => navigate('/agents/setup')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
         >
-          <div class="text-2xl flex-shrink-0">⚙️</div>
+          <div class="text-2xl flex-shrink-0"></div>
           <div>
             <div class="text-base font-semibold text-[var(--text-heading)] font-sans">
               Setup Guide
@@ -456,7 +447,7 @@
           onclick={loadAllData}
           class="bg-[var(--accent)] border border-[var(--accent)] rounded-lg p-4 flex items-center gap-3 hover:opacity-90 transition-all hover:-translate-y-0.5 text-left text-white"
         >
-          <div class="text-2xl flex-shrink-0">🔄</div>
+          <div class="text-2xl flex-shrink-0"></div>
           <div>
             <div class="text-base font-semibold font-sans">Refresh Data</div>
             <div class="text-sm opacity-90 font-sans">Update all stats</div>

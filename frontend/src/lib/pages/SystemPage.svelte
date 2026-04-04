@@ -148,7 +148,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">⚙️ System Overview</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">System Overview</h1>
         <p class="text-base text-[var(--muted)] font-sans">
           Backend status, infrastructure, and monitoring
         </p>
@@ -160,7 +160,7 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '⏳' : '↻'} Refresh
+          {loading ? '' : '↻'} Refresh
         </button>
       </div>
     </div>
@@ -169,8 +169,8 @@
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center mb-6"
       >
-        <span class="text-sm text-[var(--error)] font-sans"
-          >⚠️ Failed to load system data: {error}</span
+        <span class="text-sm text-[var(--error)] font-sans">
+          Failed to load system data: {error}</span
         >
         <button
           onclick={() => loadSystemData()}
@@ -193,7 +193,7 @@
         class="bg-[var(--surface)] border-2 rounded-lg p-5 mb-6 flex gap-5 items-start"
         style="border-color: {statusColor}"
       >
-        <div class="text-5xl">{systemStatus === 'healthy' ? '✅' : '⚠️'}</div>
+        <div class="text-5xl">{systemStatus === 'healthy' ? '' : ''}</div>
         <div class="flex-1">
           <h2 class="text-xl font-semibold text-[var(--text-heading)] font-sans mb-1">
             System Status: <span style="color: {statusColor}">{systemStatus.toUpperCase()}</span>
@@ -203,17 +203,17 @@
           </p>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="flex items-center gap-2 text-sm">
-              <span class="text-lg">{backendHealth.status === 'healthy' ? '🟢' : '🔴'}</span>
+              <span class="text-lg">{backendHealth.status === 'healthy' ? '' : ''}</span>
               <span class="text-[var(--text)] font-sans">Backend: {backendHealth.status}</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <span class="text-lg">📁</span>
+              <span class="text-lg"></span>
               <span class="text-[var(--text)] font-sans"
                 >Projects: {healthyProjects}/{totalProjects} healthy</span
               >
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <span class="text-lg">🤖</span>
+              <span class="text-lg"></span>
               <span class="text-[var(--text)] font-sans"
                 >Active Agents: {backendHealth.active_agents}</span
               >
@@ -228,7 +228,7 @@
           onclick={() => navigate('/system/projects')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex gap-4 items-center hover:border-[var(--accent)] transition-all hover:-translate-y-1"
         >
-          <div class="text-3xl">📂</div>
+          <div class="text-3xl"></div>
           <div class="flex-1 text-left">
             <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">
               {totalProjects}
@@ -248,7 +248,7 @@
           onclick={() => navigate('/system/storage')}
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex gap-4 items-center hover:border-[var(--accent)] transition-all hover:-translate-y-1"
         >
-          <div class="text-3xl">💾</div>
+          <div class="text-3xl"></div>
           <div class="flex-1 text-left">
             <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">
               {formatBytes(databaseStats.size)}
@@ -265,7 +265,7 @@
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex gap-4 items-center hover:border-[var(--accent)] transition-all hover:-translate-y-1"
           class:border-[var(--error)]={errorCount > 0}
         >
-          <div class="text-3xl">🚨</div>
+          <div class="text-3xl"></div>
           <div class="flex-1 text-left">
             <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">{errorCount}</div>
             <div class="text-sm text-[var(--muted)] font-sans">System Errors</div>
@@ -284,7 +284,7 @@
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex gap-4 items-center hover:border-[var(--accent)] transition-all hover:-translate-y-1"
           class:border-[var(--warning)]={notifications > 0}
         >
-          <div class="text-3xl">🔔</div>
+          <div class="text-3xl"></div>
           <div class="flex-1 text-left">
             <div class="text-2xl font-bold text-[var(--text-heading)] font-mono">
               {notifications}
@@ -299,7 +299,7 @@
       {#if projectHealth.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
           <h2 class="text-xl font-semibold text-[var(--text-heading)] font-sans mb-4">
-            📊 Project Health Status
+            Project Health Status
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
             {#each projectHealth.slice(0, 6) as project (project.name)}
@@ -313,13 +313,7 @@
                   project.status === 'idle'}
               >
                 <div class="text-xl">
-                  {#if project.status === 'active' || project.status === 'recent'}
-                    ✅
-                  {:else if project.status === 'idle'}
-                    🟢
-                  {:else}
-                    ⚠️
-                  {/if}
+                  {#if project.status === 'active' || project.status === 'recent'}{:else if project.status === 'idle'}{:else}{/if}
                 </div>
                 <div class="flex-1">
                   <div class="font-semibold text-[var(--text)] font-mono text-sm">
@@ -347,7 +341,7 @@
       {#if apiHealth && apiHealth.summary}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
           <h2 class="text-xl font-semibold text-[var(--text-heading)] font-sans mb-4">
-            🏥 API Health Checks
+            API Health Checks
           </h2>
           <div class="flex gap-6 mb-4">
             <div class="text-center">
@@ -387,14 +381,14 @@
       <!-- Quick Actions -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
         <h2 class="text-xl font-semibold text-[var(--text-heading)] font-sans mb-4">
-          🚀 Quick Actions
+          Quick Actions
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onclick={() => navigate('/system/status')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 items-center hover:border-[var(--accent)] transition-colors"
           >
-            <div class="text-2xl">📊</div>
+            <div class="text-2xl"></div>
             <div class="text-left">
               <div class="font-semibold text-sm text-[var(--text)] font-sans">System Status</div>
               <div class="text-xs text-[var(--muted)] font-sans">Backend connectivity</div>
@@ -405,7 +399,7 @@
             onclick={() => navigate('/system/anomalies')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 items-center hover:border-[var(--accent)] transition-colors"
           >
-            <div class="text-2xl">🚨</div>
+            <div class="text-2xl"></div>
             <div class="text-left">
               <div class="font-semibold text-sm text-[var(--text)] font-sans">Anomaly Alerts</div>
               <div class="text-xs text-[var(--muted)] font-sans">Unusual patterns</div>
@@ -416,7 +410,7 @@
             onclick={() => navigate('/system/storage')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 items-center hover:border-[var(--accent)] transition-colors"
           >
-            <div class="text-2xl">💾</div>
+            <div class="text-2xl"></div>
             <div class="text-left">
               <div class="font-semibold text-sm text-[var(--text)] font-sans">
                 Storage Management
@@ -429,7 +423,7 @@
             onclick={() => navigate('/system/sync')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 items-center hover:border-[var(--accent)] transition-colors"
           >
-            <div class="text-2xl">🔄</div>
+            <div class="text-2xl"></div>
             <div class="text-left">
               <div class="font-semibold text-sm text-[var(--text)] font-sans">Server Sync</div>
               <div class="text-xs text-[var(--muted)] font-sans">Remote sync</div>
@@ -440,7 +434,7 @@
             onclick={() => navigate('/system/projects')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 items-center hover:border-[var(--accent)] transition-colors"
           >
-            <div class="text-2xl">📂</div>
+            <div class="text-2xl"></div>
             <div class="text-left">
               <div class="font-semibold text-sm text-[var(--text)] font-sans">Projects Config</div>
               <div class="text-xs text-[var(--muted)] font-sans">Manage projects</div>
@@ -451,7 +445,7 @@
             onclick={() => navigate('/system/notifications')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 items-center hover:border-[var(--accent)] transition-colors"
           >
-            <div class="text-2xl">🔔</div>
+            <div class="text-2xl"></div>
             <div class="text-left">
               <div class="font-semibold text-sm text-[var(--text)] font-sans">Notifications</div>
               <div class="text-xs text-[var(--muted)] font-sans">Alerts history</div>
@@ -462,7 +456,7 @@
             onclick={() => navigate('/system/errors')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 items-center hover:border-[var(--accent)] transition-colors"
           >
-            <div class="text-2xl">🐛</div>
+            <div class="text-2xl"></div>
             <div class="text-left">
               <div class="font-semibold text-sm text-[var(--text)] font-sans">Error Log</div>
               <div class="text-xs text-[var(--muted)] font-sans">Error tracking</div>
@@ -473,7 +467,7 @@
             onclick={() => navigate('/system/api')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex gap-3 items-center hover:border-[var(--accent)] transition-colors"
           >
-            <div class="text-2xl">🏥</div>
+            <div class="text-2xl"></div>
             <div class="text-left">
               <div class="font-semibold text-sm text-[var(--text)] font-sans">API Health</div>
               <div class="text-xs text-[var(--muted)] font-sans">Endpoint monitoring</div>

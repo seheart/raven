@@ -23,7 +23,7 @@
       id: 'ai-safety-basic',
       name: 'AI Safety (Recommended)',
       description: 'Essential alerts to keep your project safe while using AI coding assistants',
-      icon: '🛡️',
+      icon: '',
       triggers: [
         { type: 'large_deletion', name: 'Large Code Deletion' },
         { type: 'security_file', name: 'Security File Modified' },
@@ -34,7 +34,7 @@
       id: 'paranoid',
       name: 'Paranoid Mode',
       description: 'Maximum protection - alerts for every significant change',
-      icon: '🚨',
+      icon: '',
       triggers: [
         { type: 'large_deletion', name: 'Large Code Deletion' },
         { type: 'security_file', name: 'Security File Modified' },
@@ -47,7 +47,7 @@
       id: 'minimal',
       name: 'Minimal Alerts',
       description: 'Only critical issues - perfect for experienced users',
-      icon: '🔕',
+      icon: '',
       triggers: [{ type: 'security_file', name: 'Security File Modified' }]
     }
   ]);
@@ -83,20 +83,16 @@
   // Load templates from API
   onMount(async () => {
     try {
-      logger.info('🔄 [QuickStart] Fetching alert templates from /api/alerts/templates');
+      logger.info(' [QuickStart] Fetching alert templates from /api/alerts/templates');
       const response = await fetch('/api/alerts/templates');
-      logger.info(
-        '📡 [QuickStart] Templates response status:',
-        response.status,
-        response.statusText
-      );
+      logger.info(' [QuickStart] Templates response status:', response.status, response.statusText);
 
       if (response.ok) {
         const text = await response.text();
-        logger.info('📄 [QuickStart] Response body length:', text.length, 'bytes');
+        logger.info(' [QuickStart] Response body length:', text.length, 'bytes');
 
         if (text.length === 0) {
-          logger.warn('⚠️ Empty response from templates API, using fallback templates');
+          logger.warn(' Empty response from templates API, using fallback templates');
         } else {
           try {
             const data = JSON.parse(text);
@@ -106,18 +102,18 @@
               ...template
             }));
             selectedTemplate = data.metadata?.recommended || 'ai-safety-basic';
-            logger.info('✅ Loaded alert templates from API:', templates.length, 'templates');
+            logger.info(' Loaded alert templates from API:', templates.length, 'templates');
           } catch (parseErr) {
-            logger.error('❌ Failed to parse templates JSON:', parseErr);
+            logger.error(' Failed to parse templates JSON:', parseErr);
             logger.error('Response text:', text.substring(0, 200));
           }
         }
       } else {
-        logger.warn('⚠️ Using fallback templates (API returned', response.status, ')');
+        logger.warn(' Using fallback templates (API returned', response.status, ')');
       }
     } catch (error) {
-      logger.error('❌ Error fetching templates:', error);
-      logger.warn('⚠️ Using fallback templates');
+      logger.error(' Error fetching templates:', error);
+      logger.warn(' Using fallback templates');
     }
   });
 
@@ -173,7 +169,7 @@
 
   // Complete setup
   async function completeSetup() {
-    logger.info('🚀 [QuickStart] completeSetup called');
+    logger.info(' [QuickStart] completeSetup called');
     logger.info('   Projects folder:', projectPath);
     logger.info('   Selected template:', selectedTemplate);
     logger.info('   Notifications enabled:', notificationsEnabled);
@@ -184,23 +180,23 @@
     try {
       // Raven auto-discovers and monitors all projects in the folder at startup
       // No API call needed - monitoring is already active!
-      logger.info('✅ [QuickStart] Projects in', projectPath, 'are already being monitored');
+      logger.info(' [QuickStart] Projects in', projectPath, 'are already being monitored');
 
       // Save wizard completion status
       localStorage.setItem('raven-quick-start-completed', 'true');
       localStorage.setItem('raven-welcome-seen', 'true');
-      logger.info('💾 [QuickStart] Saved completion status to localStorage');
+      logger.info(' [QuickStart] Saved completion status to localStorage');
 
       // Close wizard
       loading = false;
-      logger.info('🎉 [QuickStart] Setup complete! Dispatching complete event');
+      logger.info(' [QuickStart] Setup complete! Dispatching complete event');
       dispatch('complete', {
         projectsFolder: projectPath,
         template: selectedTemplate,
         notifications: notificationsEnabled
       });
     } catch (error) {
-      logger.error('❌ [QuickStart] Setup failed:', error);
+      logger.error(' [QuickStart] Setup failed:', error);
       errorMessage = error.message;
       loading = false;
     }
@@ -258,23 +254,23 @@
       {#if currentStep === 0}
         <!-- Step 0: Welcome -->
         <div class="step-content">
-          <div class="welcome-icon" aria-hidden="true">🛡️</div>
+          <div class="welcome-icon" aria-hidden="true"></div>
           <p class="description">{steps[0].description}</p>
           <div class="features-list" role="list" aria-label="Key features">
             <div class="feature" role="listitem">
-              <span class="feature-icon" aria-hidden="true">⚠️</span>
+              <span class="feature-icon" aria-hidden="true"></span>
               <span class="feature-text">Get alerted when AI deletes lots of code</span>
             </div>
             <div class="feature" role="listitem">
-              <span class="feature-icon" aria-hidden="true">🔒</span>
+              <span class="feature-icon" aria-hidden="true"></span>
               <span class="feature-text">Know when security files are changed</span>
             </div>
             <div class="feature" role="listitem">
-              <span class="feature-icon" aria-hidden="true">↩️</span>
+              <span class="feature-icon" aria-hidden="true"></span>
               <span class="feature-text">Undo any change with one click</span>
             </div>
             <div class="feature" role="listitem">
-              <span class="feature-icon" aria-hidden="true">📊</span>
+              <span class="feature-icon" aria-hidden="true"></span>
               <span class="feature-text">See everything your AI does in real-time</span>
             </div>
           </div>
@@ -334,7 +330,7 @@
             aria-label="Example notification showing a large code deletion alert"
           >
             <div class="preview-notification">
-              <div class="preview-icon" aria-hidden="true">⚠️</div>
+              <div class="preview-icon" aria-hidden="true"></div>
               <div class="preview-content">
                 <strong>Large Code Deletion</strong>
                 <p>AI deleted 150 lines in auth.js</p>
@@ -364,7 +360,7 @@
       {:else}
         <!-- Step 4: Complete -->
         <div class="step-content">
-          <div class="success-icon" aria-hidden="true">✅</div>
+          <div class="success-icon" aria-hidden="true"></div>
           <p class="description">
             Raven is now monitoring all projects in <strong>{projectPath}</strong> and will alert you
             about important changes.
@@ -378,7 +374,7 @@
                   selectedTemplate}
               </li>
               <li>
-                Notifications: {notificationsEnabled ? 'Enabled ✅' : 'Disabled (can enable later)'}
+                Notifications: {notificationsEnabled ? 'Enabled ' : 'Disabled (can enable later)'}
               </li>
             </ul>
           </div>
@@ -427,7 +423,7 @@
           disabled={loading}
           aria-label={loading ? 'Setting up Raven' : 'Complete setup and start monitoring'}
         >
-          {loading ? 'Setting up...' : 'Start Monitoring! 🚀'}
+          {loading ? 'Setting up...' : 'Start Monitoring! '}
         </button>
       {/if}
     </div>

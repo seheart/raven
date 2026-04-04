@@ -320,7 +320,7 @@
                 onclick={() => toggleProject(project)}
                 title={project.enabled ? 'Disable monitoring' : 'Enable monitoring'}
               >
-                {project.enabled ? '✓ Enabled' : '○ Disabled'}
+                {project.enabled ? ' Enabled' : '○ Disabled'}
               </button>
             </div>
 

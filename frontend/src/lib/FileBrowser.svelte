@@ -190,19 +190,19 @@
   }
 
   function getFileIcon(filepath) {
-    if (!filepath || typeof filepath !== 'string') return '📄';
-    if (filepath.endsWith('.py')) return '🐍';
-    if (filepath.endsWith('.js') || filepath.endsWith('.jsx')) return '📜';
-    if (filepath.endsWith('.ts') || filepath.endsWith('.tsx')) return '📘';
-    if (filepath.endsWith('.json')) return '📋';
-    if (filepath.endsWith('.md')) return '📝';
-    if (filepath.endsWith('.rs')) return '🦀';
-    if (filepath.endsWith('.toml')) return '⚙️';
-    if (filepath.endsWith('.svelte')) return '🔶';
-    if (filepath.endsWith('.css') || filepath.endsWith('.scss')) return '🎨';
-    if (filepath.endsWith('.html')) return '🌐';
-    if (filepath.endsWith('.yml') || filepath.endsWith('.yaml')) return '⚙️';
-    return '📄';
+    if (!filepath || typeof filepath !== 'string') return '';
+    if (filepath.endsWith('.py')) return '';
+    if (filepath.endsWith('.js') || filepath.endsWith('.jsx')) return '';
+    if (filepath.endsWith('.ts') || filepath.endsWith('.tsx')) return '';
+    if (filepath.endsWith('.json')) return '';
+    if (filepath.endsWith('.md')) return '';
+    if (filepath.endsWith('.rs')) return '';
+    if (filepath.endsWith('.toml')) return '';
+    if (filepath.endsWith('.svelte')) return '';
+    if (filepath.endsWith('.css') || filepath.endsWith('.scss')) return '';
+    if (filepath.endsWith('.html')) return '';
+    if (filepath.endsWith('.yml') || filepath.endsWith('.yaml')) return '';
+    return '';
   }
 
   function getFileTypeColor(ext) {
@@ -582,7 +582,7 @@
 <div class="file-browser" role="region" aria-label="File browser">
   <!-- Header with controls -->
   <div class="browser-header">
-    <h3 id="files-heading"><span aria-hidden="true">📂</span> Tracked Files</h3>
+    <h3 id="files-heading"><span aria-hidden="true"></span> Tracked Files</h3>
     <div class="header-controls">
       {#if !loadingProjects && projects.length > 0}
         <select
@@ -603,14 +603,14 @@
         disabled={loading}
         aria-label="Refresh file list"
       >
-        <span aria-hidden="true">{loading ? '⟳' : '↻'}</span> Refresh
+        <span aria-hidden="true">{loading ? '' : '↻'}</span> Refresh
       </button>
       <button
         class="btn btn-ghost btn-icon"
         on:click={() => (showCharts = !showCharts)}
         aria-label="Toggle charts"
       >
-        {showCharts ? '📊' : '📈'}
+        {showCharts ? '' : ''}
       </button>
     </div>
   </div>
@@ -770,7 +770,7 @@
               aria-controls="file-history-{filepath}"
             >
               <div class="expand-arrow" aria-hidden="true">
-                {expandedFile === filepath ? '▼' : '▶'}
+                {expandedFile === filepath ? '' : ''}
               </div>
               <div class="file-icon" aria-hidden="true">{getFileIcon(filepath)}</div>
               <div class="file-info">
@@ -785,11 +785,11 @@
               <div class="file-metadata">
                 {#if fileMetadata.has(filepath)}
                   <div class="metadata-item" title="Last modified">
-                    <span class="metadata-icon">🕒</span>
+                    <span class="metadata-icon"></span>
                     {formatTimestamp(fileMetadata.get(filepath).lastModified)}
                   </div>
                   <div class="metadata-item" title="Number of changes">
-                    <span class="metadata-icon">📝</span>
+                    <span class="metadata-icon"></span>
                     <span class="change-badge">{fileMetadata.get(filepath).changeCount}</span>
                   </div>
                 {/if}

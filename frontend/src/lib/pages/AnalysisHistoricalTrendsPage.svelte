@@ -366,7 +366,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">📊 Historical Trends</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Historical Trends</h1>
         <p class="text-base text-[var(--muted)] font-sans">Activity patterns over time</p>
       </div>
       <div class="flex items-center gap-3 flex-wrap">
@@ -388,7 +388,7 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '⏳' : '↻'} Refresh
+          {loading ? '' : '↻'} Refresh
         </button>
       </div>
     </div>
@@ -443,7 +443,7 @@
       <div
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
       >
-        <span class="text-sm text-[var(--error)] font-sans">⚠️ Error loading trends: {error}</span>
+        <span class="text-sm text-[var(--error)] font-sans">Error loading trends: {error}</span>
         <button
           onclick={loadTrends}
           class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
@@ -454,7 +454,7 @@
     {:else if trends.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
         <p class="text-lg text-[var(--muted)] font-sans mb-2">
-          📭 No activity data for the selected period
+          No activity data for the selected period
         </p>
         <p class="text-sm text-[var(--muted)] font-sans">Try selecting a longer time range</p>
       </div>

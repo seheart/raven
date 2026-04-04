@@ -30,13 +30,13 @@
   function getIcon() {
     switch (type) {
       case 'danger':
-        return '⚠️';
+        return '';
       case 'warning':
-        return '⚡';
+        return '';
       case 'info':
-        return 'ℹ️';
+        return '';
       default:
-        return '❓';
+        return '';
     }
   }
 </script>

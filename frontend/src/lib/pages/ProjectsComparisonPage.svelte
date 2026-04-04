@@ -222,7 +222,7 @@
       <div class="flex flex-wrap gap-3 mb-3">
         <input
           type="text"
-          placeholder="🔍 Search projects..."
+          placeholder=" Search projects..."
           bind:value={searchQuery}
           class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] font-mono"
         />
@@ -250,21 +250,21 @@
           onclick={() => loadProjects()}
           disabled={loading}
         >
-          <span>{loading ? '⏳' : '🔄'}</span> Refresh
+          <span>{loading ? '' : ''}</span> Refresh
         </button>
 
         <button
           class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all"
           onclick={exportCSV}
         >
-          <span>📤</span> CSV
+          <span></span> CSV
         </button>
 
         <button
           class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all"
           onclick={exportJSON}
         >
-          <span>📦</span> JSON
+          <span></span> JSON
         </button>
       </div>
 
@@ -363,7 +363,6 @@
                           onclick={() => copyPath(project.path)}
                           title="Copy path"
                         >
-                          📋
                         </button>
                       {/if}
                     </div>

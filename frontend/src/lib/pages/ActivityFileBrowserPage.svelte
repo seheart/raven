@@ -149,19 +149,19 @@
   }
 
   function getFileIcon(filepath) {
-    if (!filepath || typeof filepath !== 'string') return '📄';
-    if (filepath.endsWith('.py')) return '🐍';
-    if (filepath.endsWith('.js') || filepath.endsWith('.jsx')) return '📜';
-    if (filepath.endsWith('.ts') || filepath.endsWith('.tsx')) return '📘';
-    if (filepath.endsWith('.json')) return '📋';
-    if (filepath.endsWith('.md')) return '📝';
-    if (filepath.endsWith('.rs')) return '🦀';
-    if (filepath.endsWith('.toml')) return '⚙️';
-    if (filepath.endsWith('.svelte')) return '🔶';
-    if (filepath.endsWith('.css') || filepath.endsWith('.scss')) return '🎨';
-    if (filepath.endsWith('.html')) return '🌐';
-    if (filepath.endsWith('.yml') || filepath.endsWith('.yaml')) return '⚙️';
-    return '📄';
+    if (!filepath || typeof filepath !== 'string') return '';
+    if (filepath.endsWith('.py')) return '';
+    if (filepath.endsWith('.js') || filepath.endsWith('.jsx')) return '';
+    if (filepath.endsWith('.ts') || filepath.endsWith('.tsx')) return '';
+    if (filepath.endsWith('.json')) return '';
+    if (filepath.endsWith('.md')) return '';
+    if (filepath.endsWith('.rs')) return '';
+    if (filepath.endsWith('.toml')) return '';
+    if (filepath.endsWith('.svelte')) return '';
+    if (filepath.endsWith('.css') || filepath.endsWith('.scss')) return '';
+    if (filepath.endsWith('.html')) return '';
+    if (filepath.endsWith('.yml') || filepath.endsWith('.yaml')) return '';
+    return '';
   }
 
   function getFileTypeColor(ext) {
@@ -507,20 +507,20 @@
           disabled={loading}
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '⏳ Loading' : '🔄 Refresh'}
+          {loading ? ' Loading' : ' Refresh'}
         </button>
         <button
           onclick={() => (showCharts = !showCharts)}
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
         >
-          {showCharts ? '📊 Hide Charts' : '📈 Show Charts'}
+          {showCharts ? ' Hide Charts' : ' Show Charts'}
         </button>
       </div>
     </div>
 
     {#if error}
       <div class="bg-[var(--error-bg)] border border-[var(--error)] rounded-lg p-4">
-        <p class="text-sm text-[var(--error)] font-sans">⚠️ {error}</p>
+        <p class="text-sm text-[var(--error)] font-sans">{error}</p>
         <button
           onclick={loadFiles}
           class="mt-2 px-3 py-1 bg-[var(--error)] text-white rounded text-sm font-sans hover:opacity-90"
@@ -530,12 +530,12 @@
       </div>
     {:else if loading}
       <div class="text-center py-12">
-        <div class="text-4xl mb-4">⏳</div>
+        <div class="text-4xl mb-4"></div>
         <p class="text-[var(--muted)] font-sans">Loading tracked files...</p>
       </div>
     {:else if files.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4">📁</div>
+        <div class="text-5xl mb-4"></div>
         <p class="text-xl font-semibold text-[var(--text-heading)] mb-2">No files tracked yet</p>
         <p class="text-sm text-[var(--muted)] font-sans">Edit files to start tracking</p>
       </div>
@@ -707,7 +707,6 @@
                   class="text-xs text-[var(--muted)] transition-transform"
                   class:rotate-90={expandedFile === filepath}
                 >
-                  ▶
                 </span>
                 <span class="text-xl flex-shrink-0">{getFileIcon(filepath)}</span>
                 <div class="flex-1 min-w-0">
@@ -730,11 +729,11 @@
                 <div class="flex items-center gap-4 flex-shrink-0">
                   {#if fileMetadata.has(filepath)}
                     <div class="flex items-center gap-1 text-xs text-[var(--muted)] font-mono">
-                      <span>🕒</span>
+                      <span></span>
                       {formatTimestamp(fileMetadata.get(filepath).lastModified)}
                     </div>
                     <div class="flex items-center gap-1">
-                      <span class="text-xs">📝</span>
+                      <span class="text-xs"></span>
                       <span
                         class="px-2 py-0.5 bg-[var(--accent)] text-white text-xs font-semibold rounded"
                       >

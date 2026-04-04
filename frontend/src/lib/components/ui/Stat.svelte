@@ -8,7 +8,7 @@
    * <Stat
    *   label="Active Agents"
    *   value="127"
-   *   icon="🤖"
+   *   icon=""
    * />
    *
    * @example
@@ -103,8 +103,8 @@
 
   // Trend icons and colors
   const trendIcons = {
-    up: '↗',
-    down: '↘',
+    up: '',
+    down: '',
     neutral: '→'
   };
 

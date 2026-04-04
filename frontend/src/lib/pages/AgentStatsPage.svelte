@@ -17,16 +17,16 @@
 
   // Agent configuration with colors and icons
   const AGENT_CONFIG = {
-    'claude-code': { icon: '🤖', color: '#6366f1', name: 'Claude Code' },
-    claude: { icon: '🤖', color: '#6366f1', name: 'Claude' },
-    cursor: { icon: '↗️', color: '#10b981', name: 'Cursor' },
-    copilot: { icon: '🤝', color: '#0ea5e9', name: 'Copilot' },
-    ant: { icon: '🐜', color: '#f59e0b', name: 'ANT' },
-    aider: { icon: '🛠️', color: '#8b5cf6', name: 'Aider' },
-    chatgpt: { icon: '💬', color: '#10a37f', name: 'ChatGPT' },
-    gpt: { icon: '🧠', color: '#10a37f', name: 'GPT' },
-    manual: { icon: '👤', color: '#6b7280', name: 'Manual' },
-    default: { icon: '🔧', color: '#9ca3af', name: 'Unknown' }
+    'claude-code': { icon: '', color: '#6366f1', name: 'Claude Code' },
+    claude: { icon: '', color: '#6366f1', name: 'Claude' },
+    cursor: { icon: '', color: '#10b981', name: 'Cursor' },
+    copilot: { icon: '', color: '#0ea5e9', name: 'Copilot' },
+    ant: { icon: '', color: '#f59e0b', name: 'ANT' },
+    aider: { icon: '', color: '#8b5cf6', name: 'Aider' },
+    chatgpt: { icon: '', color: '#10a37f', name: 'ChatGPT' },
+    gpt: { icon: '', color: '#10a37f', name: 'GPT' },
+    manual: { icon: '', color: '#6b7280', name: 'Manual' },
+    default: { icon: '', color: '#9ca3af', name: 'Unknown' }
   };
 
   let agentStats = $state([]);
@@ -161,30 +161,30 @@
 
   function getMoodEmoji(mood) {
     const moods = {
-      aggressive: '🔥',
-      conservative: '🛡️',
-      balanced: '⚖️'
+      aggressive: '',
+      conservative: '',
+      balanced: ''
     };
-    return moods[mood] || '❓';
+    return moods[mood] || '';
   }
 
   function getStyleEmoji(style) {
     const styles = {
-      builder: '🏗️',
-      cleanup: '🧹',
-      refactorer: '🔧',
-      mixed: '🎨'
+      builder: '',
+      cleanup: '',
+      refactorer: '',
+      mixed: ''
     };
-    return styles[style] || '❓';
+    return styles[style] || '';
   }
 
   // function handleSort(newSortBy) {
-  //   if (sortBy === newSortBy) {
-  //     sortDesc = !sortDesc;
-  //   } else {
-  //     sortBy = newSortBy;
-  //     sortDesc = true;
-  //   }
+  // if (sortBy === newSortBy) {
+  // sortDesc = !sortDesc;
+  // } else {
+  // sortBy = newSortBy;
+  // sortDesc = true;
+  // }
   // }
 
   function exportCSV() {
@@ -456,7 +456,7 @@
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
       >
         <span class="text-base text-[var(--error)] font-sans"
-          >⚠️ Failed to load agent stats: {error}</span
+          >Failed to load agent stats: {error}</span
         >
         <button
           onclick={loadStats}
@@ -516,7 +516,7 @@
       <div class="flex flex-wrap gap-3 mb-3">
         <input
           type="text"
-          placeholder="🔍 Search agents..."
+          placeholder=" Search agents..."
           bind:value={searchQuery}
           class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] font-mono"
         />
@@ -526,21 +526,21 @@
           onclick={loadStats}
           disabled={loading}
         >
-          <span>{loading ? '⏳' : '🔄'}</span> Refresh
+          <span>{loading ? '' : ''}</span>Refresh
         </button>
 
         <button
           class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all"
           onclick={exportCSV}
         >
-          <span>📤</span> CSV
+          <span></span>CSV
         </button>
 
         <button
           class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all"
           onclick={exportJSON}
         >
-          <span>📦</span> JSON
+          <span></span>JSON
         </button>
       </div>
 
@@ -557,7 +557,7 @@
           class:font-bold={showNewEventAnimation}
         >
           {#if showNewEventAnimation}
-            ✨ New Event!
+            New Event!
           {:else}
             Updated {timeAgo}
           {/if}
@@ -574,7 +574,7 @@
       </div>
     {:else if agentStats.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <span class="text-4xl block mb-3">🤖</span>
+        <span class="text-4xl block mb-3"></span>
         <p class="text-base text-[var(--muted)] mb-2 font-sans">No agent statistics available</p>
         <p class="text-sm text-[var(--muted)] opacity-80 font-sans">
           Agent activity will appear here once detected by Raven.
@@ -697,9 +697,9 @@
                   ></canvas>
                 </div>
                 <div class="flex justify-around text-xs font-sans">
-                  <span class="text-[var(--success)]">➕ Create: {agent.create_count || 0}</span>
-                  <span class="text-[var(--warning)]">✏️ Edit: {agent.edit_count || 0}</span>
-                  <span class="text-[var(--error)]">🗑️ Delete: {agent.delete_count || 0}</span>
+                  <span class="text-[var(--success)]">Create: {agent.create_count || 0}</span>
+                  <span class="text-[var(--warning)]">Edit: {agent.edit_count || 0}</span>
+                  <span class="text-[var(--error)]">Delete: {agent.delete_count || 0}</span>
                 </div>
               </div>
 

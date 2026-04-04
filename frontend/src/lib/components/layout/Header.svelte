@@ -135,7 +135,6 @@
       class="relative p-2 text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--accent)] rounded transition-all hover:scale-110"
       aria-label="Open notifications ({unreadCount} unread)"
     >
-      🔔
       {#if unreadCount > 0}
         <span
           class="absolute top-0 right-0 flex items-center justify-center min-w-[20px] h-[20px] px-1 bg-[var(--error)] text-[#ffffff] text-[11px] font-bold rounded-full"

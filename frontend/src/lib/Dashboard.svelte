@@ -48,7 +48,7 @@
 
   const handleProjectSwitched = async data => {
     try {
-      logger.info('📡 Project switched, reloading dashboard data:', data.project);
+      logger.info(' Project switched, reloading dashboard data:', data.project);
       await loadAllData();
     } catch (error) {
       logger.error('Failed to handle project switch:', error);
@@ -151,7 +151,7 @@
         role="status"
         aria-label="Total events: {stats.total_events}"
       >
-        <div class="stat-icon" aria-hidden="true">📊</div>
+        <div class="stat-icon" aria-hidden="true"></div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_events}</div>
           <div class="stat-label">Total Events</div>
@@ -163,7 +163,7 @@
         role="status"
         aria-label="Tracked files: {stats.total_files}"
       >
-        <div class="stat-icon" aria-hidden="true">📁</div>
+        <div class="stat-icon" aria-hidden="true"></div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_files}</div>
           <div class="stat-label">Tracked Files</div>
@@ -175,7 +175,7 @@
         role="status"
         aria-label="AI agents: {stats.total_agents}"
       >
-        <div class="stat-icon" aria-hidden="true">🤖</div>
+        <div class="stat-icon" aria-hidden="true"></div>
         <div class="stat-content">
           <div class="stat-value">{stats.total_agents}</div>
           <div class="stat-label">AI Agents</div>
@@ -187,7 +187,7 @@
         role="status"
         aria-label="Session duration: {formatDurationSeconds(stats.session_duration_seconds)}"
       >
-        <div class="stat-icon" aria-hidden="true">⏱️</div>
+        <div class="stat-icon" aria-hidden="true"></div>
         <div class="stat-content">
           <div class="stat-value">{formatDurationSeconds(stats.session_duration_seconds)}</div>
           <div class="stat-label">Session Duration</div>
@@ -199,7 +199,7 @@
         role="status"
         aria-label="Active files today: {stats.active_files_today}"
       >
-        <div class="stat-icon" aria-hidden="true">🔥</div>
+        <div class="stat-icon" aria-hidden="true"></div>
         <div class="stat-content">
           <div class="stat-value">{stats.active_files_today}</div>
           <div class="stat-label">Active Today</div>
@@ -212,7 +212,7 @@
       <!-- Top Modified Files -->
       <section class="card panel" aria-labelledby="top-files-heading">
         <div class="panel-header">
-          <h2 id="top-files-heading"><span aria-hidden="true">📝</span> Top Modified Files</h2>
+          <h2 id="top-files-heading"><span aria-hidden="true"></span> Top Modified Files</h2>
           <span class="panel-count" aria-label="{topFiles.length} files">{topFiles.length}</span>
         </div>
         <div class="panel-content">
@@ -228,7 +228,7 @@
               {#each topFiles || [] as file (file.filepath)}
                 <div class="table-row" role="row">
                   <div class="col-file" role="cell" title={file.filepath}>
-                    <span class="file-icon" aria-hidden="true">📄</span>
+                    <span class="file-icon" aria-hidden="true"></span>
                     <span class="file-path">{file.filepath}</span>
                   </div>
                   <div class="col-count" role="cell">
@@ -248,7 +248,7 @@
       <!-- Longest Edits -->
       <section class="card panel" aria-labelledby="longest-edits-heading">
         <div class="panel-header">
-          <h2 id="longest-edits-heading"><span aria-hidden="true">🎯</span> Longest Edits</h2>
+          <h2 id="longest-edits-heading"><span aria-hidden="true"></span> Longest Edits</h2>
           <span class="panel-count" aria-label="{longestEdits.length} edits"
             >{longestEdits.length}</span
           >
@@ -266,7 +266,7 @@
               {#each longestEdits || [] as edit (edit.id || `${edit.filepath}-${edit.timestamp}`)}
                 <div class="table-row" role="row">
                   <div class="col-file" role="cell" title={edit.filepath}>
-                    <span class="file-icon" aria-hidden="true">📄</span>
+                    <span class="file-icon" aria-hidden="true"></span>
                     <span class="file-path">{edit.filepath || 'Unknown'}</span>
                   </div>
                   <div class="col-count" role="cell">
@@ -297,7 +297,7 @@
       <!-- Active Agents -->
       <section class="card panel agents-panel" aria-labelledby="active-agents-heading">
         <div class="panel-header">
-          <h2 id="active-agents-heading"><span aria-hidden="true">🤖</span> Active Agents</h2>
+          <h2 id="active-agents-heading"><span aria-hidden="true"></span> Active Agents</h2>
           <span
             class="panel-count"
             aria-label="{agents.filter(a => a?.is_running)
@@ -317,7 +317,7 @@
                     class:running={agent?.is_running}
                     aria-label={agent?.is_running ? 'Running' : 'Stopped'}
                   >
-                    <span aria-hidden="true">{agent?.is_running ? '🟢' : '🔴'}</span>
+                    <span aria-hidden="true">{agent?.is_running ? '' : ''}</span>
                   </div>
                   <div class="agent-info">
                     <div class="agent-name">{agent?.agent_name || 'Unknown'}</div>

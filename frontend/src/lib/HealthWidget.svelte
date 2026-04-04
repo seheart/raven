@@ -32,20 +32,20 @@
   // Status icons and colors
   const statusConfig = {
     good: {
-      icon: '✅',
-      emoji: '🟢',
+      icon: '',
+      emoji: '',
       color: 'var(--success)',
       message: 'All Systems OK'
     },
     warning: {
-      icon: '⚠️',
-      emoji: '🟡',
+      icon: '',
+      emoji: '',
       color: 'var(--warning)',
       message: 'Some Issues Detected'
     },
     critical: {
-      icon: '🚨',
-      emoji: '🔴',
+      icon: '',
+      emoji: '',
       color: 'var(--error)',
       message: 'Critical Issues Found'
     }
@@ -259,15 +259,15 @@
   function getStartupStatusIcon(status) {
     switch (status) {
       case 'healthy':
-        return '✅';
+        return '';
       case 'unhealthy':
-        return '⚠️';
+        return '';
       case 'error':
-        return '❌';
+        return '';
       case 'pending':
-        return '⏳';
+        return '';
       default:
-        return '❓';
+        return '';
     }
   }
 
@@ -311,7 +311,7 @@
     </div>
   {:else if error}
     <div class="health-error" role="alert">
-      <p>❌ {error}</p>
+      <p>{error}</p>
       <button class="btn btn-primary btn-sm" on:click={fetchHealth} aria-label="Retry health check"
         >Try Again</button
       >
@@ -345,7 +345,7 @@
             <span class="check-label">
               {getStartupStatusText(startupHealthStatus)}
               {#if startupHealthResults && startupHealthResults.summary}
-                <span class="expand-arrow">{startupHealthExpanded ? '▼' : '▶'}</span>
+                <span class="expand-arrow">{startupHealthExpanded ? '' : ''}</span>
               {/if}
             </span>
           </div>
@@ -359,7 +359,7 @@
             aria-label="Syntax errors: {health.checks.syntaxErrors}"
           >
             <span class="check-icon" aria-hidden="true"
-              >{health.checks.syntaxErrors === 0 ? '✅' : '❌'}</span
+              >{health.checks.syntaxErrors === 0 ? '' : ''}</span
             >
             <span class="check-label">Syntax</span>
           </div>
@@ -370,7 +370,7 @@
             aria-label="Test failures: {health.checks.testFailures}"
           >
             <span class="check-icon" aria-hidden="true"
-              >{health.checks.testFailures === 0 ? '✅' : '❌'}</span
+              >{health.checks.testFailures === 0 ? '' : ''}</span
             >
             <span class="check-label">Tests</span>
           </div>
@@ -381,7 +381,7 @@
             aria-label="Large deletions: {health.checks.largeDeletions}"
           >
             <span class="check-icon" aria-hidden="true"
-              >{health.checks.largeDeletions === 0 ? '✅' : '⚠️'}</span
+              >{health.checks.largeDeletions === 0 ? '' : ''}</span
             >
             <span class="check-label">Deletions ({health.checks.largeDeletions})</span>
           </div>
@@ -392,7 +392,7 @@
             aria-label="Security file changes: {health.checks.securityChanges}"
           >
             <span class="check-icon" aria-hidden="true"
-              >{health.checks.securityChanges === 0 ? '✅' : '🚨'}</span
+              >{health.checks.securityChanges === 0 ? '' : ''}</span
             >
             <span class="check-label">Security ({health.checks.securityChanges})</span>
           </div>
@@ -426,7 +426,7 @@
               role="status"
               aria-label="{check.name}: {check.passed ? 'passed' : 'failed'} - {check.message}"
             >
-              <span class="check-icon" aria-hidden="true">{check.passed ? '✅' : '❌'}</span>
+              <span class="check-icon" aria-hidden="true">{check.passed ? '' : ''}</span>
               <span class="check-name">{check.name}</span>
               <span class="check-message" class:error={!check.passed}>{check.message}</span>
               <span class="check-duration" aria-label="Duration: {check.duration} milliseconds"

@@ -57,10 +57,10 @@
   // Time-based greeting
   const greeting = $derived.by(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return '🌅 Morning';
-    if (hour < 17) return '☀️ Afternoon';
-    if (hour < 21) return '🌆 Evening';
-    return '🌙 Night';
+    if (hour < 12) return ' Morning';
+    if (hour < 17) return ' Afternoon';
+    if (hour < 21) return ' Evening';
+    return ' Night';
   });
 
   // Format time ago
@@ -87,17 +87,17 @@
   const flowState = $derived.by(() => {
     const durationMinutes = Math.max(1, stats.session_duration_seconds / 60);
     const eventsPerMinute = stats.total_events / durationMinutes;
-    if (eventsPerMinute > 5) return { state: 'High', color: 'var(--success)', icon: '🔥' };
-    if (eventsPerMinute > 2) return { state: 'Medium', color: 'var(--warning)', icon: '⚡' };
-    return { state: 'Low', color: 'var(--info)', icon: '💤' };
+    if (eventsPerMinute > 5) return { state: 'High', color: 'var(--success)', icon: '' };
+    if (eventsPerMinute > 2) return { state: 'Medium', color: 'var(--warning)', icon: '' };
+    return { state: 'Low', color: 'var(--info)', icon: '' };
   });
 
   // Health status config
   const statusConfig = $derived.by(() => {
     const configs = {
-      good: { icon: '✅', color: 'var(--success)', message: 'All Systems OK' },
-      warning: { icon: '⚠️', color: 'var(--warning)', message: 'Some Issues Detected' },
-      critical: { icon: '🚨', color: 'var(--error)', message: 'Critical Issues Found' }
+      good: { icon: '', color: 'var(--success)', message: 'All Systems OK' },
+      warning: { icon: '', color: 'var(--warning)', message: 'Some Issues Detected' },
+      critical: { icon: '', color: 'var(--error)', message: 'Critical Issues Found' }
     };
     return configs[health.status] || configs.good;
   });
@@ -491,11 +491,11 @@
       <h2 class="text-xl font-semibold text-[var(--text)] mb-3 font-mono">{greeting}</h2>
       <div class="flex items-center justify-center gap-8 flex-wrap">
         <div class="flex items-center gap-2 text-base text-[var(--muted)] font-mono">
-          <span>📁</span>
+          <span></span>
           <span>Monitoring {projectCount} project{projectCount !== 1 ? 's' : ''}</span>
         </div>
         <div class="flex items-center gap-2 text-base text-[var(--muted)] font-mono">
-          <span>📝</span>
+          <span></span>
           <span
             >{stats.unique_files_modified} file{stats.unique_files_modified !== 1 ? 's' : ''} changed
             today</span
@@ -523,19 +523,19 @@
 
         <div class="flex items-center gap-4 flex-wrap">
           <div class="flex items-center gap-2 text-sm font-mono">
-            <span>{health.checks.syntaxErrors === 0 ? '✅' : '❌'}</span>
+            <span>{health.checks.syntaxErrors === 0 ? '' : ''}</span>
             <span class="text-[var(--muted)]">Syntax</span>
           </div>
           <div class="flex items-center gap-2 text-sm font-mono">
-            <span>{health.checks.testFailures === 0 ? '✅' : '❌'}</span>
+            <span>{health.checks.testFailures === 0 ? '' : ''}</span>
             <span class="text-[var(--muted)]">Tests</span>
           </div>
           <div class="flex items-center gap-2 text-sm font-mono">
-            <span>{health.checks.largeDeletions === 0 ? '✅' : '⚠️'}</span>
+            <span>{health.checks.largeDeletions === 0 ? '' : ''}</span>
             <span class="text-[var(--muted)]">Deletions ({health.checks.largeDeletions})</span>
           </div>
           <div class="flex items-center gap-2 text-sm font-mono">
-            <span>{health.checks.securityChanges === 0 ? '✅' : '🚨'}</span>
+            <span>{health.checks.securityChanges === 0 ? '' : ''}</span>
             <span class="text-[var(--muted)]">Security ({health.checks.securityChanges})</span>
           </div>
         </div>
@@ -620,7 +620,7 @@
     <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold text-[var(--text)] font-sans m-0">
-          📁 Projects ({projectsData.length})
+          Projects ({projectsData.length})
         </h3>
       </div>
 
@@ -678,7 +678,7 @@
             onclick={() => loadAllData(true)}
             disabled={loading}
           >
-            <span>{loading ? '⏳' : '🔄'}</span> Refresh
+            <span>{loading ? '' : ''}</span>Refresh
           </button>
           <span class="flex items-center gap-2 text-sm text-[var(--success)] font-mono">
             <span class="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse"></span>
@@ -691,7 +691,7 @@
         <div class="text-center py-8 text-base text-[var(--muted)]">Loading activity...</div>
       {:else if recentActivity.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2">💤</span>
+          <span class="text-2xl block mb-2"></span>
           <p class="text-base text-[var(--muted)] font-sans">No recent activity</p>
         </div>
       {:else}
@@ -701,15 +701,7 @@
               class="flex items-center gap-3 p-3 bg-[var(--bg)] rounded hover:bg-[var(--surface-2)] transition-all"
             >
               <span class="text-base flex-shrink-0">
-                {#if event.change_type === 'create' || event.change_type === 'add'}
-                  ➕
-                {:else if event.change_type === 'edit' || event.change_type === 'change'}
-                  ✏️
-                {:else if event.change_type === 'delete' || event.change_type === 'unlink'}
-                  🗑️
-                {:else}
-                  📄
-                {/if}
+                {#if event.change_type === 'create' || event.change_type === 'add'}{:else if event.change_type === 'edit' || event.change_type === 'change'}{:else if event.change_type === 'delete' || event.change_type === 'unlink'}{:else}{/if}
               </span>
               <div class="flex-1 min-w-0">
                 <div class="text-base text-[var(--text)] font-mono mb-1">
@@ -736,7 +728,7 @@
       <!-- Current Session -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="flex items-center gap-2 mb-4">
-          <span class="text-base">⏱️</span>
+          <span class="text-base"></span>
           <h3 class="text-sm font-semibold text-[var(--text)] font-sans m-0">Current Session</h3>
         </div>
         {#if loading}
@@ -775,7 +767,7 @@
       <!-- System Health -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div class="flex items-center gap-2 mb-4">
-          <span class="text-base">📊</span>
+          <span class="text-base"></span>
           <h3 class="text-sm font-semibold text-[var(--text)] font-sans m-0">System Health</h3>
         </div>
         {#if loading}

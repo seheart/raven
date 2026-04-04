@@ -219,13 +219,13 @@
   function getActionIcon(action) {
     switch (action?.toLowerCase()) {
       case 'notify':
-        return '🔔';
+        return '';
       case 'log':
-        return '📝';
+        return '';
       case 'command':
-        return '⚙️';
+        return '';
       default:
-        return '❓';
+        return '';
     }
   }
 
@@ -281,13 +281,13 @@
           onclick={reloadConfig}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors"
         >
-          🔄 Reload Config
+          Reload Config
         </button>
         <button
           onclick={clearCooldowns}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors"
         >
-          ⏰ Clear Cooldowns
+          Clear Cooldowns
         </button>
         <button
           onclick={() => loadAllData(true)}
@@ -329,7 +329,7 @@
           ? 'text-[var(--warning)] border-[var(--warning)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)] hover:bg-[var(--surface)]'}"
       >
-        📋 Rules ({triggers.length})
+        Rules ({triggers.length})
       </button>
       <button
         onclick={() => (activeTab = 'events')}
@@ -337,7 +337,7 @@
           ? 'text-[var(--warning)] border-[var(--warning)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)] hover:bg-[var(--surface)]'}"
       >
-        🔔 Events ({filteredEvents.length})
+        Events ({filteredEvents.length})
       </button>
       <button
         onclick={() => (activeTab = 'stats')}
@@ -345,7 +345,7 @@
           ? 'text-[var(--warning)] border-[var(--warning)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)] hover:bg-[var(--surface)]'}"
       >
-        📊 Stats
+        Stats
       </button>
     </div>
 
@@ -378,9 +378,9 @@
               class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] cursor-pointer"
             >
               <option value="all">All Actions</option>
-              <option value="notify">🔔 Notify</option>
-              <option value="log">📝 Log</option>
-              <option value="command">⚙️ Command</option>
+              <option value="notify">Notify</option>
+              <option value="log">Log</option>
+              <option value="command">Command</option>
             </select>
             <div
               class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--muted)] font-semibold"
@@ -393,7 +393,7 @@
         <!-- Trigger Rules Grid -->
         {#if filteredTriggers.length === 0 && triggers.length > 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3">🔍</div>
+            <div class="text-4xl mb-3"></div>
             <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
               No Matching Triggers
             </h3>
@@ -403,7 +403,7 @@
           </div>
         {:else if triggers.length === 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3">📝</div>
+            <div class="text-4xl mb-3"></div>
             <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
               No Triggers Configured
             </h3>
@@ -504,10 +504,10 @@
                     disabled={!enabledTriggers.has(trigger.name)}
                     class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-sans text-[var(--text)] hover:bg-[var(--warning)] hover:text-white hover:border-[var(--warning)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    🧪 Test Fire
+                    Test Fire
                   </button>
                   <span class="text-xs font-semibold font-sans px-2 py-1 bg-[var(--bg)] rounded">
-                    {enabledTriggers.has(trigger.name) ? '🟢 Enabled' : '⚫ Disabled'}
+                    {enabledTriggers.has(trigger.name) ? ' Enabled' : ' Disabled'}
                   </span>
                 </div>
               </div>
@@ -544,7 +544,7 @@
         <!-- Triggered Events -->
         {#if filteredEvents.length === 0 && triggeredEvents.length > 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3">🔍</div>
+            <div class="text-4xl mb-3"></div>
             <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
               No Events for Selected Project
             </h3>
@@ -552,7 +552,7 @@
           </div>
         {:else if triggeredEvents.length === 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3">🔕</div>
+            <div class="text-4xl mb-3"></div>
             <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
               No Triggered Events
             </h3>
@@ -649,7 +649,7 @@
             <div
               class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center"
             >
-              <div class="text-4xl mb-3">📊</div>
+              <div class="text-4xl mb-3"></div>
               <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2 font-sans">
                 No Statistics Available
               </h3>

@@ -224,15 +224,15 @@
 
   function getEventIcon(eventType) {
     const icons = {
-      edit: '✏️',
-      create: '➕',
-      delete: '🗑️',
-      read: '👁️',
-      execute: '⚙️',
-      'session-start': '▶️',
-      'session-end': '⏹️'
+      edit: '',
+      create: '',
+      delete: '',
+      read: '',
+      execute: '',
+      'session-start': '',
+      'session-end': ''
     };
-    return icons[eventType] || '📝';
+    return icons[eventType] || '';
   }
 
   function getEventColor(eventType) {
@@ -251,7 +251,7 @@
 
 <div class="session-replay" role="region" aria-label="Session replay panel">
   <div class="header">
-    <h2 id="session-replay-heading"><span aria-hidden="true">🎬</span> Session Replay</h2>
+    <h2 id="session-replay-heading"><span aria-hidden="true"></span> Session Replay</h2>
     <div class="header-controls" role="toolbar" aria-label="Session replay controls">
       <span class="last-updated" role="status" aria-live="polite">Updated: {timeAgo}</span>
       <div class="filter-group">
@@ -304,7 +304,7 @@
               bind:checked={selectedEventTypes.edit}
               aria-label="Filter edit events"
             />
-            <span class="filter-badge edit"><span aria-hidden="true">✏️</span> Edit</span>
+            <span class="filter-badge edit"><span aria-hidden="true"></span> Edit</span>
           </label>
           <label class="filter-checkbox">
             <input
@@ -312,7 +312,7 @@
               bind:checked={selectedEventTypes.create}
               aria-label="Filter create events"
             />
-            <span class="filter-badge create"><span aria-hidden="true">➕</span> Create</span>
+            <span class="filter-badge create"><span aria-hidden="true"></span> Create</span>
           </label>
           <label class="filter-checkbox">
             <input
@@ -320,7 +320,7 @@
               bind:checked={selectedEventTypes.delete}
               aria-label="Filter delete events"
             />
-            <span class="filter-badge delete"><span aria-hidden="true">🗑️</span> Delete</span>
+            <span class="filter-badge delete"><span aria-hidden="true"></span> Delete</span>
           </label>
           <label class="filter-checkbox">
             <input
@@ -328,7 +328,7 @@
               bind:checked={selectedEventTypes.read}
               aria-label="Filter read events"
             />
-            <span class="filter-badge read"><span aria-hidden="true">👁️</span> Read</span>
+            <span class="filter-badge read"><span aria-hidden="true"></span> Read</span>
           </label>
           <label class="filter-checkbox">
             <input
@@ -336,7 +336,7 @@
               bind:checked={selectedEventTypes.execute}
               aria-label="Filter execute events"
             />
-            <span class="filter-badge execute"><span aria-hidden="true">⚙️</span> Execute</span>
+            <span class="filter-badge execute"><span aria-hidden="true"></span> Execute</span>
           </label>
         </div>
       </div>
@@ -368,7 +368,7 @@
   <!-- Timeline Visualization -->
   {#if !loading && filteredEvents.length > 0 && timelineBuckets.length > 1}
     <div class="timeline-viz" role="region" aria-labelledby="timeline-heading">
-      <h3 id="timeline-heading"><span aria-hidden="true">⏱️</span> Activity Timeline</h3>
+      <h3 id="timeline-heading"><span aria-hidden="true"></span> Activity Timeline</h3>
       <p class="timeline-hint" role="status" aria-live="polite">
         {selectedTimeBucket
           ? `Showing ${selectedTimeBucket.count} events from ${selectedTimeBucket.label}`
@@ -399,7 +399,7 @@
           on:click={() => (selectedTimeBucket = null)}
           aria-label="Clear time filter"
         >
-          <span aria-hidden="true">✕</span> Clear Time Filter
+          <span aria-hidden="true"></span> Clear Time Filter
         </button>
       {/if}
     </div>
@@ -409,7 +409,7 @@
     <LoadingSkeleton count={5} height="80px" />
   {:else if filteredEvents.length === 0 && events.length > 0}
     <div class="empty-state" role="status">
-      <p><span aria-hidden="true">🔍</span> No events match your filters</p>
+      <p><span aria-hidden="true"></span> No events match your filters</p>
       <p>Try adjusting your search or event type filters.</p>
     </div>
   {:else if events.length === 0}
@@ -420,7 +420,7 @@
   {:else}
     <section class="timeline" aria-labelledby="recent-activity-heading">
       <h3 id="recent-activity-heading">
-        <span aria-hidden="true">📜</span> Recent Activity (<span role="status"
+        <span aria-hidden="true"></span> Recent Activity (<span role="status"
           >{displayedEvents.length} events</span
         >)
       </h3>
@@ -446,7 +446,7 @@
             <div class="event-body">
               <p class="message">{event.message}</p>
               {#if event.file}
-                <p class="file"><span aria-hidden="true">📄</span> {event.file}</p>
+                <p class="file"><span aria-hidden="true"></span> {event.file}</p>
               {/if}
               {#if event.lines_changed}
                 <p class="lines">Lines changed: {event.lines_changed}</p>

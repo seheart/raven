@@ -49,12 +49,12 @@
   // WebSocket event handlers
   const handleFileChanged = data => {
     if (isPaused) return;
-    logger.info('🟢 LIVE: File change detected:', data);
+    logger.info(' LIVE: File change detected:', data);
     debouncedLoadChanges();
   };
 
   const handleProjectSwitched = data => {
-    logger.info('📡 Project switched, reloading live feed:', data.project);
+    logger.info(' Project switched, reloading live feed:', data.project);
     loadRecentChanges();
   };
 
@@ -157,10 +157,10 @@
   }
 
   function getChangeTypeIcon(changeType) {
-    if (changeType === 'add' || changeType === 'create') return '➕';
-    if (changeType === 'change' || changeType === 'modify') return '✏️';
-    if (changeType === 'unlink' || changeType === 'delete') return '🗑️';
-    return '📝';
+    if (changeType === 'add' || changeType === 'create') return '';
+    if (changeType === 'change' || changeType === 'modify') return '';
+    if (changeType === 'unlink' || changeType === 'delete') return '';
+    return '';
   }
 
   function getChangeTypeColor(changeType) {
@@ -195,7 +195,7 @@
   <!-- Header -->
   <div class="live-feed-header">
     <div class="header-left">
-      <h2>🟢 Live Feed</h2>
+      <h2>Live Feed</h2>
       <p class="subtitle">Real-time code changes as they happen</p>
     </div>
     <div class="header-controls">
@@ -212,7 +212,7 @@
         aria-label={isPaused ? 'Resume live updates' : 'Pause live updates'}
         aria-pressed={isPaused}
       >
-        <span aria-hidden="true">{isPaused ? '▶️' : '⏸️'}</span>
+        <span aria-hidden="true">{isPaused ? '' : ''}</span>
         <span>{isPaused ? 'Resume' : 'Pause'}</span>
       </button>
     </div>
@@ -220,7 +220,7 @@
 
   {#if isPaused}
     <div class="paused-banner" role="status" aria-live="polite">
-      <span aria-hidden="true">⏸️</span> Feed paused - Click Resume to continue live updates
+      <span aria-hidden="true"></span> Feed paused - Click Resume to continue live updates
     </div>
   {/if}
 
@@ -235,8 +235,7 @@
     />
     {#if searchQuery}
       <button class="clear-search" on:click={() => (searchQuery = '')} aria-label="Clear search"
-        >✕</button
-      >
+      ></button>
     {/if}
     <div class="search-info">
       <span class="count"
@@ -256,7 +255,7 @@
           <p class="empty-hint">Try a different search term</p>
         {:else}
           <p>Waiting for code changes...</p>
-          <p class="empty-hint">Start coding and watch this feed light up! 🚀</p>
+          <p class="empty-hint">Start coding and watch this feed light up!</p>
         {/if}
       </div>
     {:else}
@@ -282,8 +281,8 @@
                 on:click={() => {
                   navigator.clipboard.writeText(change.filepath || 'Unknown file');
                   notifications.success('File path copied!');
-                }}>📋</button
-              >
+                }}
+              ></button>
             </div>
 
             <div class="change-file">
@@ -300,7 +299,7 @@
                 {/each}
               </div>
             {:else if change.filepath && /\.(png|jpg|jpeg|gif|pdf|zip|exe|dll|so|mp3|mp4|woff|woff2|ttf|eot|otf)$/i.test(change.filepath)}
-              <div class="binary-file-notice">📦 Binary file (no diff available)</div>
+              <div class="binary-file-notice">Binary file (no diff available)</div>
             {/if}
 
             <div class="change-footer">

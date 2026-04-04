@@ -211,7 +211,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">📊 Analysis Overview</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Analysis Overview</h1>
         <p class="text-base text-[var(--muted)] font-sans">
           Performance metrics, trends, and insights
         </p>
@@ -223,7 +223,7 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '⏳ Loading' : '🔄 Refresh'}
+          {loading ? ' Loading' : ' Refresh'}
         </button>
       </div>
     </div>
@@ -233,7 +233,7 @@
         class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
       >
         <span class="text-sm text-[var(--error)] font-sans"
-          >⚠️ Failed to load analysis data: {error}</span
+          >Failed to load analysis data: {error}</span
         >
         <button
           onclick={() => loadAnalysisData()}
@@ -263,7 +263,7 @@
               : 'var(--border)'}"
         >
           <div class="flex items-center gap-3 mb-3">
-            <span class="text-2xl">🖥️</span>
+            <span class="text-2xl"></span>
             <span class="font-semibold text-[var(--text-heading)] font-sans">CPU Usage</span>
           </div>
           <div class="text-4xl font-bold text-[var(--text-heading)] mb-3">
@@ -280,11 +280,7 @@
             ></div>
           </div>
           <div class="text-sm text-[var(--muted)] font-sans">
-            {cpuHealth === 'good'
-              ? '✓ Normal'
-              : cpuHealth === 'warning'
-                ? '⚠ Elevated'
-                : '🔴 High'}
+            {cpuHealth === 'good' ? ' Normal' : cpuHealth === 'warning' ? ' Elevated' : ' High'}
           </div>
         </div>
 
@@ -298,7 +294,7 @@
               : 'var(--border)'}"
         >
           <div class="flex items-center gap-3 mb-3">
-            <span class="text-2xl">💾</span>
+            <span class="text-2xl"></span>
             <span class="font-semibold text-[var(--text-heading)] font-sans">Memory Usage</span>
           </div>
           <div class="text-4xl font-bold text-[var(--text-heading)] mb-3">
@@ -315,11 +311,7 @@
             ></div>
           </div>
           <div class="text-sm text-[var(--muted)] font-sans">
-            {memHealth === 'good'
-              ? '✓ Normal'
-              : memHealth === 'warning'
-                ? '⚠ Elevated'
-                : '🔴 High'}
+            {memHealth === 'good' ? ' Normal' : memHealth === 'warning' ? ' Elevated' : ' High'}
           </div>
         </div>
       </div>
@@ -328,7 +320,7 @@
       {#if metricsHistory.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
           <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
-            📈 Performance Trends
+            Performance Trends
           </h2>
           <div style="height: 300px;">
             <canvas bind:this={cpuChartCanvas}></canvas>
@@ -343,7 +335,7 @@
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all"
         >
           <div class="flex items-center gap-3 mb-2">
-            <span class="text-xl">⚡</span>
+            <span class="text-xl"></span>
             <span class="text-sm text-[var(--muted)] font-sans">Active Triggers</span>
           </div>
           <div class="text-3xl font-bold text-[var(--text-heading)]">{activeTriggers}</div>
@@ -355,7 +347,7 @@
           class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-left hover:border-[var(--accent)] hover:-translate-y-0.5 transition-all"
         >
           <div class="flex items-center gap-3 mb-2">
-            <span class="text-xl">📉</span>
+            <span class="text-xl"></span>
             <span class="text-sm text-[var(--muted)] font-sans">Historical Data</span>
           </div>
           <div class="text-3xl font-bold text-[var(--accent)]">Trends</div>
@@ -367,14 +359,14 @@
       {#if triggeredEvents.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
           <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
-            🔔 Recent Triggered Events
+            Recent Triggered Events
           </h2>
           <div class="space-y-2">
             {#each triggeredEvents.slice(0, 5) as event, i (event.id || `${event.timestamp}-${i}`)}
               <div
                 class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 flex items-start gap-3 hover:border-[var(--accent)] transition-colors"
               >
-                <span class="text-xl flex-shrink-0">⚡</span>
+                <span class="text-xl flex-shrink-0"></span>
                 <div class="flex-1">
                   <div class="font-medium text-[var(--text-heading)] font-sans">
                     {event.trigger_name || 'Trigger Fired'}
@@ -394,14 +386,14 @@
       <!-- Quick Actions Grid -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
         <h2 class="text-xl font-semibold text-[var(--text-heading)] mb-4 font-sans">
-          🚀 Quick Actions
+          Quick Actions
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <button
             onclick={() => navigate('/analysis/performance')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
           >
-            <span class="text-2xl">📊</span>
+            <span class="text-2xl"></span>
             <div>
               <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
                 Performance Metrics
@@ -414,7 +406,7 @@
             onclick={() => navigate('/analysis/trends')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
           >
-            <span class="text-2xl">📉</span>
+            <span class="text-2xl"></span>
             <div>
               <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
                 Historical Trends
@@ -427,7 +419,7 @@
             onclick={() => navigate('/analysis/triggers')}
             class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 flex items-center gap-3 hover:border-[var(--accent)] transition-all hover:-translate-y-0.5 text-left"
           >
-            <span class="text-2xl">⚡</span>
+            <span class="text-2xl"></span>
             <div>
               <div class="font-semibold text-[var(--text-heading)] font-sans text-sm">
                 Configure Triggers

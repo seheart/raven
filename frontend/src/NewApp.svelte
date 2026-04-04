@@ -21,7 +21,6 @@
   import { onMount } from 'svelte';
 
   // State
-  let theme = $state('tokyo-night');
   let username = $state('Seth');
   let role = $state('admin');
   let todayStats = $state({ modified: 12, added: 3, deleted: 1 });
@@ -58,11 +57,6 @@
     if (currentPath === '/') {
       navigate('/live');
     }
-  });
-
-  // Apply initial theme on mount
-  $effect(() => {
-    handleThemeChange(theme);
   });
 
   // Load session ID on mount
@@ -120,40 +114,6 @@
   function handleQuickStartSkip() {
     localStorage.setItem('raven-quick-start-completed', 'true');
     navigate('/overview');
-  }
-
-  function handleThemeChange(newTheme) {
-    theme = newTheme;
-
-    // Map theme IDs to CSS class names
-    const themeClassMap = {
-      'tokyo-night': 'theme--night',
-      catppuccin: 'theme--catppuccin',
-      everforest: 'theme--everforest',
-      gruvbox: 'theme--gruvbox',
-      'gruvbox-light': 'theme--day',
-      'osaka-jade': 'theme--osaka',
-      kanagawa: 'theme--kanagawa',
-      nord: 'theme--nord',
-      'matte-black': 'theme--matte',
-      ristretto: 'theme--dusk',
-      'flexoki-light': 'theme--flexoki',
-      'rose-pine': 'theme--rose',
-      'catppuccin-latte': 'theme--latte'
-    };
-
-    // Remove all theme classes
-    const classesToRemove = Array.from(document.body.classList).filter(className =>
-      className.startsWith('theme--')
-    );
-    classesToRemove.forEach(className => {
-      document.body.classList.remove(className);
-    });
-
-    // Add new theme class
-    const themeClass = themeClassMap[newTheme] || 'theme--night';
-    document.body.classList.add(themeClass);
-    logger.debug('Theme changed to:', newTheme, 'CSS class:', themeClass);
   }
 
   function handleNotificationsClick() {
@@ -422,10 +382,8 @@
 
   <!-- Footer -->
   <Footer
-    {theme}
     {sessionId}
     version="2.0.1-corvus"
-    onThemeChange={handleThemeChange}
     onSessionClick={handleSessionClick}
     onAboutClick={handleAboutClick}
   />

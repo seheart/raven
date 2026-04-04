@@ -20,18 +20,18 @@
   function getIcon(type) {
     switch (type) {
       case 'success':
-        return '✓';
+        return '';
       case 'error':
-        return '✕';
+        return '';
       case 'warning':
-        return '⚠';
+        return '';
       case 'trigger':
-        return '⚡';
+        return '';
       case 'performance':
-        return '📊';
+        return '';
       case 'info':
       default:
-        return 'ℹ';
+        return '';
     }
   }
 
@@ -90,9 +90,7 @@
 {#if visible}
   <div class="notification-panel">
     <div class="panel-header">
-      <h2 class="text-[var(--text-heading)] text-sm font-semibold m-0 font-sans">
-        🔔 Notifications
-      </h2>
+      <h2 class="text-[var(--text-heading)] text-sm font-semibold m-0 font-sans">Notifications</h2>
       <div class="header-actions flex gap-2">
         {#if $notificationHistory.length > 0}
           <button
@@ -106,7 +104,6 @@
           class="btn-close p-1.5 bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] rounded transition-all border-0 cursor-pointer flex items-center justify-center text-lg"
           onclick={onClose}
         >
-          ✕
         </button>
       </div>
     </div>

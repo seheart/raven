@@ -91,7 +91,7 @@
           class="px-2 py-1 text-xs font-sans text-[var(--muted)] hover:text-[var(--accent)] transition-colors duration-150 rounded hover:bg-[var(--accent)] hover:bg-opacity-10"
           aria-label="Copy code"
         >
-          {copied ? '✓ Copied' : '📋 Copy'}
+          {copied ? ' Copied' : ' Copy'}
         </button>
       {/if}
     </div>

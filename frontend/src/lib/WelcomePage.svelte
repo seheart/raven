@@ -9,22 +9,22 @@
 
   const features = [
     {
-      icon: '🔍',
+      icon: '',
       title: 'Real-time Monitoring',
       description: 'Watch file changes, system metrics, and AI agent activity as it happens'
     },
     {
-      icon: '🤖',
+      icon: '',
       title: 'AI Agent Tracking',
       description: "Monitor Claude Code, GPT, and local LLMs - see what they're doing in real-time"
     },
     {
-      icon: '📊',
+      icon: '',
       title: 'Pattern Recognition',
       description: 'Raven learns your coding patterns and rhythms to become your perfect companion'
     },
     {
-      icon: '💾',
+      icon: '',
       title: 'Local-First Privacy',
       description: 'Everything stays on your machine - no cloud, no telemetry, just you and Raven'
     }
@@ -87,7 +87,7 @@
         on:click={handleGetStarted}
         aria-label="Get started with Raven"
       >
-        Let's Go! 🚀
+        Let's Go!
       </button>
       <p class="footer-note">
         Raven will start learning your patterns immediately. The more you code, the smarter it gets.

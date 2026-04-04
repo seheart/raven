@@ -164,15 +164,15 @@
   function getStatusIcon(status) {
     switch (status) {
       case 'healthy':
-        return '✅';
+        return '';
       case 'unhealthy':
-        return '⚠️';
+        return '';
       case 'error':
-        return '❌';
+        return '';
       case 'pending':
-        return '⏳';
+        return '';
       default:
-        return '❓';
+        return '';
     }
   }
 
@@ -194,15 +194,15 @@
   function getCategoryIcon(category) {
     switch (category) {
       case 'database':
-        return '💾';
+        return '';
       case 'data':
-        return '📊';
+        return '';
       case 'websocket':
-        return '🔌';
+        return '';
       case 'system':
-        return '🖥️';
+        return '';
       default:
-        return '📦';
+        return '';
     }
   }
 
@@ -235,7 +235,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">🏥 System Status</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">System Status</h1>
         <p class="text-base text-[var(--muted)] font-sans">
           Backend connectivity and health monitoring
         </p>
@@ -262,11 +262,12 @@
         <div
           class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center"
         >
-          <h3 class="text-base font-semibold text-[var(--text)] font-sans">⚙️ Backend Server</h3>
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">Backend Server</h3>
           {#if loading}
             <span
               class="px-3 py-1 bg-[var(--surface)] rounded text-xs font-mono text-[var(--muted)]"
-              >⏳ Loading...</span
+            >
+              Loading...</span
             >
           {:else}
             <span
@@ -276,7 +277,7 @@
               class:bg-[var(--error-subtle)]={!backendStatus.connected}
               class:text-[var(--error)]={!backendStatus.connected}
             >
-              {backendStatus.connected ? '🟢 Online' : '🔴 Offline'}
+              {backendStatus.connected ? ' Online' : ' Offline'}
             </span>
           {/if}
         </div>
@@ -316,7 +317,6 @@
                       class="px-2 py-1 bg-[var(--bg)] hover:bg-[var(--surface)] rounded text-xs"
                       title="Copy to clipboard"
                     >
-                      📋
                     </button>
                   {/if}
                 </div>
@@ -357,13 +357,13 @@
                   class:text-[var(--success)]={backendStatus.database_health.status === 'healthy'}
                   class:text-[var(--error)]={backendStatus.database_health.status === 'error'}
                 >
-                  {backendStatus.database_health.status === 'healthy' ? '✓ Healthy' : '✗ Error'}
+                  {backendStatus.database_health.status === 'healthy' ? ' Healthy' : ' Error'}
                 </span>
               </div>
             </div>
           {:else}
             <div class="text-center py-8">
-              <div class="text-4xl mb-2">❌</div>
+              <div class="text-4xl mb-2"></div>
               <p class="text-[var(--error)] font-sans">Cannot connect to backend server</p>
               <p class="text-xs text-[var(--muted)] font-sans mt-1">
                 Make sure the backend is running on port 9100
@@ -378,13 +378,12 @@
         <div
           class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center"
         >
-          <h3 class="text-base font-semibold text-[var(--text)] font-sans">
-            🔌 WebSocket Connection
-          </h3>
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">WebSocket Connection</h3>
           {#if loading}
             <span
               class="px-3 py-1 bg-[var(--surface)] rounded text-xs font-mono text-[var(--muted)]"
-              >⏳ Loading...</span
+            >
+              Loading...</span
             >
           {:else}
             <span
@@ -394,7 +393,7 @@
               class:bg-[var(--error-subtle)]={!websocketStatus.connected}
               class:text-[var(--error)]={!websocketStatus.connected}
             >
-              {websocketStatus.connected ? '🟢 Connected' : '🔴 Disconnected'}
+              {websocketStatus.connected ? ' Connected' : ' Disconnected'}
             </span>
           {/if}
         </div>
@@ -417,17 +416,17 @@
               </div>
               <div class="flex justify-between items-center py-2">
                 <span class="text-[var(--muted)] font-sans">Real-time Updates:</span>
-                <span class="text-[var(--success)] font-mono">Enabled ✓</span>
+                <span class="text-[var(--success)] font-mono">Enabled </span>
               </div>
               <div
                 class="bg-[var(--success-subtle)] border border-[var(--success)] rounded p-3 mt-4 text-center text-[var(--success)]"
               >
-                ✅ Receiving real-time events from backend
+                Receiving real-time events from backend
               </div>
             </div>
           {:else}
             <div class="text-center py-8">
-              <div class="text-4xl mb-2">⚠️</div>
+              <div class="text-4xl mb-2"></div>
               <p class="text-[var(--warning)] font-sans">WebSocket disconnected</p>
               <p class="text-xs text-[var(--muted)] font-sans mt-1">Falling back to HTTP polling</p>
             </div>
@@ -440,11 +439,12 @@
         <div
           class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center"
         >
-          <h3 class="text-base font-semibold text-[var(--text)] font-sans">🔗 Telemetry Bridge</h3>
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">Telemetry Bridge</h3>
           {#if loading}
             <span
               class="px-3 py-1 bg-[var(--surface)] rounded text-xs font-mono text-[var(--muted)]"
-              >⏳ Loading...</span
+            >
+              Loading...</span
             >
           {:else}
             <span
@@ -454,7 +454,7 @@
               class:bg-[var(--error-subtle)]={!backendStatus.telemetry_bridge.healthy}
               class:text-[var(--error)]={!backendStatus.telemetry_bridge.healthy}
             >
-              {backendStatus.telemetry_bridge.healthy ? '🟢 Running' : '🔴 Stopped'}
+              {backendStatus.telemetry_bridge.healthy ? ' Running' : ' Stopped'}
             </span>
           {/if}
         </div>
@@ -480,12 +480,12 @@
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-[var(--muted)] font-sans">Health:</span>
-                  <span class="text-[var(--success)] font-mono">✓ Healthy</span>
+                  <span class="text-[var(--success)] font-mono"> Healthy</span>
                 </div>
                 <div
                   class="bg-[var(--success-subtle)] border border-[var(--success)] rounded p-3 mt-4 text-center text-[var(--success)]"
                 >
-                  ✅ Claude Code operations are being tracked
+                  Claude Code operations are being tracked
                 </div>
                 <button
                   onclick={restartBridge}
@@ -498,7 +498,7 @@
               </div>
             {:else}
               <div class="text-center py-6">
-                <div class="text-4xl mb-2">⚠️</div>
+                <div class="text-4xl mb-2"></div>
                 <p class="text-[var(--warning)] font-sans">Telemetry bridge is not running</p>
                 <p class="text-xs text-[var(--muted)] font-sans mt-1">
                   Claude Code operations will not be tracked
@@ -515,7 +515,7 @@
             {/if}
           {:else}
             <div class="text-center py-8">
-              <div class="text-4xl mb-2">❌</div>
+              <div class="text-4xl mb-2"></div>
               <p class="text-[var(--error)] font-sans">Cannot check bridge status</p>
               <p class="text-xs text-[var(--muted)] font-sans mt-1">Backend must be online first</p>
             </div>
@@ -541,7 +541,7 @@
                 {healthChecks.summary.passed}/{healthChecks.summary.total} passed
               </span>
             {/if}
-            <span class="text-xs text-[var(--muted)]">{healthExpanded ? '▼' : '▶'}</span>
+            <span class="text-xs text-[var(--muted)]">{healthExpanded ? '▼' : ''}</span>
           </div>
         </div>
         <div class="p-4">
@@ -605,7 +605,7 @@
                           class="flex items-start gap-3 px-3 py-2 rounded border-l-4 {borderColorClass} {bgColorClass}"
                         >
                           <span class="text-sm flex-shrink-0 mt-0.5">
-                            {checkPassed ? '✅' : '❌'}
+                            {checkPassed ? '' : ''}
                           </span>
                           <div class="flex-1 min-w-0">
                             <div class="text-xs font-mono font-semibold text-[var(--text)] mb-1">
@@ -640,19 +640,18 @@
         <div
           class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center"
         >
-          <h3 class="text-base font-semibold text-[var(--text)] font-sans">
-            👁️ Monitored Projects
-          </h3>
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">Monitored Projects</h3>
           {#if loading}
             <span
               class="px-3 py-1 bg-[var(--surface)] rounded text-xs font-mono text-[var(--muted)]"
-              >⏳ Loading...</span
+            >
+              Loading...</span
             >
           {:else}
             <span
               class="px-3 py-1 rounded text-xs font-mono bg-[var(--success-subtle)] text-[var(--success)]"
             >
-              🟢 {$availableProjects.length} Active
+              {$availableProjects.length} Active
             </span>
           {/if}
         </div>
@@ -696,7 +695,7 @@
             <div
               class="bg-[var(--success-subtle)] border border-[var(--success)] rounded p-3 text-center text-[var(--success)] text-sm"
             >
-              ✅ Global multi-project monitoring active
+              Global multi-project monitoring active
             </div>
           {/if}
         </div>
@@ -709,11 +708,12 @@
         <div
           class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center"
         >
-          <h3 class="text-base font-semibold text-[var(--text)] font-sans">🌳 Git Repository</h3>
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">Git Repository</h3>
           {#if loading}
             <span
               class="px-3 py-1 bg-[var(--surface)] rounded text-xs font-mono text-[var(--muted)]"
-              >⏳ Loading...</span
+            >
+              Loading...</span
             >
           {:else}
             <span
@@ -723,7 +723,7 @@
               class:bg-[var(--muted-subtle)]={!gitStatus.available}
               class:text-[var(--muted)]={!gitStatus.available}
             >
-              {gitStatus.available ? '🟢 Available' : '⚫ Not a Git Repo'}
+              {gitStatus.available ? ' Available' : ' Not a Git Repo'}
             </span>
           {/if}
         </div>
@@ -741,7 +741,7 @@
                 <h4
                   class="text-sm font-semibold text-[var(--text-heading)] font-sans mb-3 pb-2 border-b border-[var(--border)]"
                 >
-                  📍 Current Branch
+                  Current Branch
                 </h4>
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between items-center">
@@ -767,7 +767,7 @@
                   <h4
                     class="text-sm font-semibold text-[var(--text-heading)] font-sans mb-3 pb-2 border-b border-[var(--border)] mt-6"
                   >
-                    🌿 All Branches ({gitStatus.branches.length})
+                    All Branches ({gitStatus.branches.length})
                   </h4>
                   <div class="flex flex-wrap gap-2">
                     {#each gitStatus.branches as branch (branch)}
@@ -789,7 +789,7 @@
                   <h4
                     class="text-sm font-semibold text-[var(--text-heading)] font-sans mb-3 pb-2 border-b border-[var(--border)]"
                   >
-                    📜 Recent Commits
+                    Recent Commits
                   </h4>
                   <div class="space-y-3">
                     {#each gitStatus.commits as commit (commit.hash)}
@@ -818,7 +818,7 @@
             </div>
           {:else}
             <div class="text-center py-8">
-              <div class="text-4xl mb-2">ℹ️</div>
+              <div class="text-4xl mb-2"></div>
               <p class="text-[var(--muted)] font-sans">
                 Not a Git repository or Git monitoring is disabled
               </p>
@@ -834,9 +834,7 @@
         <div
           class="bg-[var(--bg)] border-b border-[var(--border)] p-4 flex justify-between items-center"
         >
-          <h3 class="text-base font-semibold text-[var(--text)] font-sans">
-            🌐 Available Endpoints
-          </h3>
+          <h3 class="text-base font-semibold text-[var(--text)] font-sans">Available Endpoints</h3>
         </div>
         <div class="p-4">
           <div class="space-y-2">

@@ -118,17 +118,17 @@
   function getEventIcon(changeType) {
     switch (changeType) {
       case 'create':
-        return '➕';
+        return '';
       case 'edit':
-        return '✏️';
+        return '';
       case 'delete':
-        return '🗑️';
+        return '';
       case 'read':
-        return '👁️';
+        return '';
       case 'execute':
-        return '⚡';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -182,7 +182,7 @@
           disabled={loading || !searchQuery.trim()}
           class="px-6 py-3 bg-[var(--accent)] text-white rounded-lg text-base font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          {loading ? '🔍 Searching...' : '🔍 Search'}
+          {loading ? ' Searching...' : ' Search'}
         </button>
       </div>
 
@@ -238,12 +238,12 @@
     <!-- Search Results -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-4xl mb-4">🔍</div>
+        <div class="text-4xl mb-4"></div>
         <div class="text-[var(--muted)] font-sans">Searching...</div>
       </div>
     {:else if !hasSearched}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4">🔍</div>
+        <div class="text-5xl mb-4"></div>
         <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">Start Searching</div>
         <div class="text-base text-[var(--muted)] font-sans">
           Enter a search term to find files, events, and activity
@@ -251,7 +251,7 @@
       </div>
     {:else if filteredResults.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-5xl mb-4">🔎</div>
+        <div class="text-5xl mb-4"></div>
         <div class="text-xl font-semibold text-[var(--text-heading)] mb-2">No Results Found</div>
         <div class="text-base text-[var(--muted)] font-sans">
           No matches for "{searchQuery}". Try a different search term.
@@ -271,10 +271,10 @@
           </div>
           <div class="flex gap-4 text-sm text-[var(--muted)] font-sans">
             {#if stats.filesFound > 0}
-              <span>📄 {stats.filesFound} files</span>
+              <span> {stats.filesFound} files</span>
             {/if}
             {#if stats.agentsFound > 0}
-              <span>🤖 {stats.agentsFound} agents</span>
+              <span> {stats.agentsFound} agents</span>
             {/if}
           </div>
         </div>
@@ -347,17 +347,16 @@
 
                 <div class="flex flex-wrap gap-3 text-xs text-[var(--muted)]">
                   {#if result.agent}
-                    <span class="font-mono"
-                      >🤖
+                    <span class="font-mono">
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                       {@html highlightMatch(result.agent, searchQuery)}</span
                     >
                   {/if}
                   {#if result.event_size}
-                    <span class="font-mono">📦 {result.event_size}B</span>
+                    <span class="font-mono"> {result.event_size}B</span>
                   {/if}
                   {#if result.duration_ms}
-                    <span class="font-mono">⏱️ {result.duration_ms}ms</span>
+                    <span class="font-mono"> {result.duration_ms}ms</span>
                   {/if}
                 </div>
               </div>

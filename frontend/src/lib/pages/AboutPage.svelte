@@ -80,7 +80,7 @@
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-2xl mb-3">📊</div>
+            <div class="text-2xl mb-3"></div>
             <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
               Interactive Analytics
             </h3>
@@ -93,7 +93,7 @@
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-2xl mb-3">🌍</div>
+            <div class="text-2xl mb-3"></div>
             <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
               Multi-Project Monitoring
             </h3>
@@ -105,7 +105,7 @@
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-2xl mb-3">🤖</div>
+            <div class="text-2xl mb-3"></div>
             <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
               Multi-Agent Support
             </h3>
@@ -117,7 +117,7 @@
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-2xl mb-3">🧠</div>
+            <div class="text-2xl mb-3"></div>
             <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
               Developer Insights
             </h3>
@@ -129,7 +129,7 @@
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-2xl mb-3">⚡</div>
+            <div class="text-2xl mb-3"></div>
             <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
               Real-Time Performance
             </h3>
@@ -141,7 +141,7 @@
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
           >
-            <div class="text-2xl mb-3">🔒</div>
+            <div class="text-2xl mb-3"></div>
             <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">
               Production Quality
             </h3>
@@ -344,7 +344,7 @@
       <!-- Footer -->
       <section class="text-center pt-8 border-t-2 border-[var(--border)]">
         <p class="text-sm text-[var(--muted)] italic mb-4 font-sans">
-          Built with ❤️ for real-time AI agent monitoring
+          Built with for real-time AI agent monitoring
         </p>
         <a
           href="https://github.com/seheart/raven"

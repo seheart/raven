@@ -249,13 +249,13 @@
   function getSeverityIcon(severity) {
     switch (severity) {
       case 'error':
-        return '❌';
+        return '';
       case 'warning':
-        return '⚠️';
+        return '';
       case 'info':
-        return 'ℹ️';
+        return '';
       default:
-        return '📝';
+        return '';
     }
   }
 
@@ -540,7 +540,7 @@
     <div class="flex justify-between items-start mb-6 pb-6 border-b-2 border-[var(--border)]">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">
-          <span aria-hidden="true">⚠️</span> Error Log
+          <span aria-hidden="true"></span> Error Log
         </h1>
         <p class="text-base text-[var(--muted)] font-sans">Application errors and warnings</p>
       </div>
@@ -553,7 +553,7 @@
           onclick={() => (showCharts = !showCharts)}
           aria-label="Toggle charts visibility"
         >
-          <span aria-hidden="true">📊</span>
+          <span aria-hidden="true"></span>
           {showCharts ? 'Hide' : 'Show'} Charts
         </button>
         <button
@@ -561,14 +561,14 @@
           onclick={triggerTestError}
           aria-label="Trigger test error"
         >
-          <span aria-hidden="true">🧪</span> Test Error
+          <span aria-hidden="true"></span> Test Error
         </button>
         <button
           class="px-3 py-2 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-all"
           onclick={exportLog}
           aria-label="Export error log to JSON file"
         >
-          <span aria-hidden="true">💾</span> Export JSON
+          <span aria-hidden="true"></span> Export JSON
         </button>
         <button
           class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -580,7 +580,7 @@
           disabled={loading}
           aria-label="Refresh error log"
         >
-          <span class:animate-spin={isManualRefresh} aria-hidden="true">🔄</span>
+          <span class:animate-spin={isManualRefresh} aria-hidden="true"></span>
           Refresh
         </button>
       </div>
@@ -683,7 +683,7 @@
             : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
           onclick={() => handleSeverityFilter('error')}
         >
-          ❌ Errors ({severityStats.error})
+          Errors ({severityStats.error})
         </button>
         <button
           class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter ===
@@ -692,7 +692,7 @@
             : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
           onclick={() => handleSeverityFilter('warning')}
         >
-          ⚠️ Warnings ({severityStats.warning})
+          Warnings ({severityStats.warning})
         </button>
         <button
           class="px-4 py-2 text-sm font-medium rounded-lg transition-all {severityFilter === 'info'
@@ -700,7 +700,7 @@
             : 'bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:border-[var(--accent)]'}"
           onclick={() => handleSeverityFilter('info')}
         >
-          ℹ️ Info ({severityStats.info})
+          Info ({severityStats.info})
         </button>
       </div>
 
@@ -709,13 +709,13 @@
           class="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all"
           onclick={handleClearOld}
         >
-          🗑️ Clear Old
+          Clear Old
         </button>
         <button
           class="px-4 py-2 bg-[var(--error)] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-all"
           onclick={handleClearAll}
         >
-          🗑️ Clear All
+          Clear All
         </button>
       </div>
     </div>
@@ -732,13 +732,13 @@
         </div>
       {:else if error}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <div class="text-4xl mb-4">❌</div>
+          <div class="text-4xl mb-4"></div>
           <h2 class="text-xl font-bold text-[var(--text)] mb-2">Failed to Load Errors</h2>
           <p class="text-[var(--muted)]">{error}</p>
         </div>
       {:else if errors.length === 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <div class="text-4xl mb-4">✅</div>
+          <div class="text-4xl mb-4"></div>
           <h2 class="text-xl font-bold text-[var(--text)] mb-2">No Errors Found</h2>
           <p class="text-[var(--muted)]">Your application is running smoothly!</p>
         </div>
@@ -768,7 +768,7 @@
             >
               <div class="flex items-center gap-3 flex-1 min-w-0">
                 <span class="text-sm text-[var(--muted)]"
-                  >{selectedError?.id === item.id ? '▼' : '▶'}</span
+                  >{selectedError?.id === item.id ? '▼' : ''}</span
                 >
                 <span class="text-lg" style="color: {getSeverityColor(item.severity)}">
                   {getSeverityIcon(item.severity)}

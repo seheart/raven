@@ -342,7 +342,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
                 class:text-white={projectFilter === 'all'}
                 class:bg-[var(--surface-2)]={projectFilter !== 'all'}
               >
-                <span>📁</span>
+                <span></span>
                 <span>All Projects</span>
               </button>
               {#each projects as project (project)}
@@ -353,7 +353,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
                   class:text-white={projectFilter === project}
                   class:bg-[var(--surface-2)]={projectFilter !== project}
                 >
-                  <span>📦</span>
+                  <span></span>
                   <span>{project}</span>
                 </button>
               {/each}
@@ -365,7 +365,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
       <!-- Errors Grouped by File -->
       {#if filteredErrors.length === 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <div class="text-5xl mb-4">✅</div>
+          <div class="text-5xl mb-4"></div>
           <div class="text-xl font-semibold text-[var(--text-heading)] mb-2 font-sans">
             {searchQuery || severityFilter !== 'all' || projectFilter !== 'all'
               ? 'No matching errors'
@@ -388,7 +388,7 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
                 class="flex items-center justify-between gap-4 px-4 py-3 bg-[var(--surface-2)] border-b border-[var(--border)]"
               >
                 <div class="flex items-center gap-3 flex-1 min-w-0">
-                  <span class="text-base">📄</span>
+                  <span class="text-base"></span>
                   <span class="text-sm font-mono font-semibold text-[var(--text)] truncate"
                     >{shortenPath(filepath)}</span
                   >
@@ -466,20 +466,20 @@ ${err.code_snippet ? 'Code:\n' + err.code_snippet : ''}`;
                         onclick={() => openFile(err.filepath, err.line_number)}
                         class="px-3 py-1.5 bg-[var(--accent)] text-white rounded text-xs font-sans hover:opacity-90 transition-opacity"
                       >
-                        📂 Open File
+                        Open File
                       </button>
                       <button
                         onclick={() => copyError(err)}
                         class="px-3 py-1.5 bg-[var(--surface-2)] border border-[var(--border)] rounded text-xs font-sans hover:border-[var(--accent)] transition-colors"
                       >
-                        📋 Copy
+                        Copy
                       </button>
                       {#if err.id}
                         <button
                           onclick={() => resolveError(err.id)}
                           class="px-3 py-1.5 bg-[var(--success)] text-white rounded text-xs font-sans hover:opacity-90 transition-opacity"
                         >
-                          ✓ Resolve
+                          Resolve
                         </button>
                       {/if}
                     </div>

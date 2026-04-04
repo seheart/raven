@@ -6,11 +6,11 @@
   import { navigate, getPath } from '../../utils/router.svelte.js';
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: '📊', path: '/agents' },
-    { id: 'activity', label: 'Recent Activity', icon: '📋', path: '/agents/monitoring' },
-    { id: 'stats', label: 'Agent Stats', icon: '📈', path: '/agents/stats' },
-    { id: 'conversations', label: 'Conversations', icon: '💬', path: '/agents/conversations' },
-    { id: 'setup', label: 'Setup Guide', icon: '⚙️', path: '/agents/setup' }
+    { id: 'overview', label: 'Overview', icon: '', path: '/agents' },
+    { id: 'activity', label: 'Recent Activity', icon: '', path: '/agents/monitoring' },
+    { id: 'stats', label: 'Agent Stats', icon: '', path: '/agents/stats' },
+    { id: 'conversations', label: 'Conversations', icon: '', path: '/agents/conversations' },
+    { id: 'setup', label: 'Setup Guide', icon: '', path: '/agents/setup' }
   ];
 
   const currentPath = $derived(getPath());

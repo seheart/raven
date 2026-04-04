@@ -112,17 +112,17 @@
   function getFileIcon(fileName) {
     const ext = fileName.split('.').pop();
     const iconMap = {
-      js: '📄',
-      ts: '📘',
-      svelte: '🔶',
-      json: '📋',
-      md: '📝',
-      css: '🎨',
-      html: '🌐',
-      sh: '⚙️',
-      env: '🔧'
+      js: '',
+      ts: '',
+      svelte: '',
+      json: '',
+      md: '',
+      css: '',
+      html: '',
+      sh: '',
+      env: ''
     };
-    return iconMap[ext] || '📄';
+    return iconMap[ext] || '';
   }
 </script>
 
@@ -151,12 +151,12 @@
       </div>
     {:else if error}
       <div class="error-state">
-        <div>⚠️ Error loading diff</div>
+        <div>Error loading diff</div>
         <div class="error-message">{error}</div>
       </div>
     {:else if !diffData}
       <div class="empty-state">
-        <div>📄</div>
+        <div></div>
         <div>No file selected</div>
         <div class="empty-hint">Select a file from the sidebar to view changes</div>
       </div>

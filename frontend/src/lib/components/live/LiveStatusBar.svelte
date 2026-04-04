@@ -53,11 +53,11 @@
 
   function getHealthIcon(health) {
     const icons = {
-      healthy: '✓',
-      warning: '⚠️',
-      error: '✗'
+      healthy: '',
+      warning: '',
+      error: ''
     };
-    return icons[health] || '✓';
+    return icons[health] || '';
   }
 
   function getHealthColor(health) {
@@ -87,7 +87,7 @@
 
 <div class="live-status-bar">
   <div class="status-item">
-    <span class="status-icon">📄</span>
+    <span class="status-icon"></span>
     <div class="status-content">
       <div class="status-label">Current File</div>
       <div class="status-value">{sessionStats.currentFile || 'None'}</div>
@@ -97,7 +97,7 @@
   <div class="status-divider"></div>
 
   <div class="status-item">
-    <span class="status-icon">📊</span>
+    <span class="status-icon"></span>
     <div class="status-content">
       <div class="status-label">Files Modified</div>
       <div class="status-value">{sessionStats.filesModified}</div>
@@ -107,7 +107,7 @@
   <div class="status-divider"></div>
 
   <div class="status-item">
-    <span class="status-icon">📈</span>
+    <span class="status-icon"></span>
     <div class="status-content">
       <div class="status-label">Lines Changed</div>
       <div class="status-value">
@@ -120,7 +120,7 @@
   <div class="status-divider"></div>
 
   <div class="status-item">
-    <span class="status-icon">⏱️</span>
+    <span class="status-icon"></span>
     <div class="status-content">
       <div class="status-label">Last Change</div>
       <div class="status-value">
@@ -145,7 +145,7 @@
     <div class="status-divider"></div>
 
     <div class="status-item">
-      <span class="status-icon">🟢</span>
+      <span class="status-icon"></span>
       <div class="status-content">
         <div class="status-label">Session Time</div>
         <div class="status-value">{formatDuration(sessionDuration)}</div>

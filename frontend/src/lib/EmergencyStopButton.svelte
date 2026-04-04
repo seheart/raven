@@ -36,7 +36,7 @@
 
     if (
       !confirm(
-        '⚠️ PAUSE MONITORING?\n\nThis will stop processing file changes until you resume.\n\nUse this if the AI is making unwanted changes.'
+        ' PAUSE MONITORING?\n\nThis will stop processing file changes until you resume.\n\nUse this if the AI is making unwanted changes.'
       )
     ) {
       return;
@@ -65,7 +65,7 @@
   async function resume() {
     if (!paused) return;
 
-    if (!confirm('▶️ RESUME MONITORING?\n\nFile changes will be processed again.')) {
+    if (!confirm(' RESUME MONITORING?\n\nFile changes will be processed again.')) {
       return;
     }
 
@@ -141,7 +141,7 @@
   <!-- Paused State: Resume Button -->
   <div class="emergency-stop paused" class:pulsing role="region" aria-label="Monitoring paused">
     <button class="btn resume-btn" on:click={resume} aria-label="Resume file monitoring">
-      <span class="icon" aria-hidden="true">▶️</span>
+      <span class="icon" aria-hidden="true"></span>
       <div class="button-content">
         <span class="button-label">MONITORING PAUSED</span>
         <span class="button-sublabel">Click to Resume</span>
@@ -159,7 +159,7 @@
     on:click={pause}
     aria-label="Emergency stop - Pause file monitoring"
   >
-    <span class="icon" aria-hidden="true">🛑</span>
+    <span class="icon" aria-hidden="true"></span>
     <div class="button-content">
       <span class="button-label">EMERGENCY STOP</span>
       <span class="button-sublabel">Pause Monitoring</span>

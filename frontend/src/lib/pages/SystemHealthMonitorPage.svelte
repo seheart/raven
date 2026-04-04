@@ -16,9 +16,9 @@
   };
 
   const STATUS_ICONS = {
-    healthy: '✓',
-    warning: '⚠',
-    critical: '✗'
+    healthy: '',
+    warning: '',
+    critical: ''
   };
 
   async function fetchHealthReport() {
@@ -101,7 +101,7 @@
         {loading ? 'Checking...' : 'Refresh Now'}
       </button>
       <button on:click={toggleAutoRefresh} class="btn-toggle" class:active={autoRefresh}>
-        {autoRefresh ? '⏸ Pause' : '▶ Auto-refresh'}
+        {autoRefresh ? ' Pause' : ' Auto-refresh'}
       </button>
     </div>
   </header>
@@ -113,7 +113,7 @@
     </div>
   {:else if error}
     <div class="error-state" transition:fade>
-      <div class="error-icon">⚠</div>
+      <div class="error-icon"></div>
       <h2>Health Check Failed</h2>
       <p>{error}</p>
       <button on:click={fetchHealthReport} class="btn-retry">Retry</button>
@@ -154,7 +154,7 @@
       <!-- Critical Alerts (if any) -->
       {#if criticalCount > 0}
         <div class="alert-banner critical" transition:slide>
-          <div class="alert-icon">🚨</div>
+          <div class="alert-icon"></div>
           <div class="alert-content">
             <h3>Critical Issues Detected</h3>
             <p>
@@ -168,7 +168,7 @@
       <!-- Warning Alerts (if any) -->
       {#if warningCount > 0 && criticalCount === 0}
         <div class="alert-banner warning" transition:slide>
-          <div class="alert-icon">⚠️</div>
+          <div class="alert-icon"></div>
           <div class="alert-content">
             <h3>Warnings Detected</h3>
             <p>{warningCount} {warningCount === 1 ? 'warning' : 'warnings'} should be reviewed</p>
@@ -219,8 +219,8 @@
           <li><strong>Connectivity:</strong> Validates database accessibility</li>
         </ul>
         <p class="info-note">
-          💡 This monitoring system was created after the functional audit to prevent silent
-          failures like the missing <code>project_name</code> column that broke agent detection.
+          This monitoring system was created after the functional audit to prevent silent failures
+          like the missing <code>project_name</code> column that broke agent detection.
         </p>
       </div>
     </div>

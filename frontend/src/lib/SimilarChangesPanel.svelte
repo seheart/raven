@@ -58,16 +58,16 @@
 
   function getOutcomeBadge(outcome) {
     if (outcome === 'kept') {
-      return { icon: '✅', text: 'Kept', color: 'var(--success)' };
+      return { icon: '', text: 'Kept', color: 'var(--success)' };
     } else {
-      return { icon: '↩️', text: 'Rolled Back', color: 'var(--error)' };
+      return { icon: '', text: 'Rolled Back', color: 'var(--error)' };
     }
   }
 </script>
 
 <div class="similar-changes-panel" role="region" aria-label="Similar past changes panel">
   <div class="panel-header">
-    <h3 id="similar-changes-heading"><span aria-hidden="true">🔍</span> Similar Past Changes</h3>
+    <h3 id="similar-changes-heading"><span aria-hidden="true"></span> Similar Past Changes</h3>
     {#if similarChanges.length > 0}
       <span class="count-badge" role="status">{similarChanges.length} found</span>
     {/if}
@@ -80,12 +80,12 @@
     </div>
   {:else if error}
     <div class="error-state" role="alert">
-      <p><span aria-hidden="true">❌</span> Failed to find similar changes</p>
+      <p><span aria-hidden="true"></span> Failed to find similar changes</p>
       <p class="error-detail">{error}</p>
     </div>
   {:else if similarChanges.length === 0}
     <div class="empty-state" role="status">
-      <div class="empty-icon" aria-hidden="true">🎯</div>
+      <div class="empty-icon" aria-hidden="true"></div>
       <p class="empty-title">No similar changes found</p>
       <p class="empty-hint">This appears to be a unique change pattern</p>
     </div>
@@ -100,13 +100,7 @@
       >
         <div class="prediction-header">
           <span class="prediction-icon" aria-hidden="true">
-            {#if prediction.successRate >= 0.8}
-              ✅
-            {:else if prediction.successRate >= 0.5}
-              ⚡
-            {:else}
-              ⚠️
-            {/if}
+            {#if prediction.successRate >= 0.8}{:else if prediction.successRate >= 0.5}{:else}{/if}
           </span>
           <span class="prediction-title" id="prediction-heading">Historical Outcome Prediction</span
           >
@@ -168,22 +162,22 @@
           </div>
           <div class="outcome-legend" role="list" aria-label="Outcome legend">
             <span class="legend-item kept" role="listitem"
-              ><span aria-hidden="true">✅</span> Kept: {prediction.keptCount}</span
+              ><span aria-hidden="true"></span> Kept: {prediction.keptCount}</span
             >
             <span class="legend-item rolled-back" role="listitem"
-              ><span aria-hidden="true">↩️</span> Rolled Back: {prediction.rolledBackCount}</span
+              ><span aria-hidden="true"></span> Rolled Back: {prediction.rolledBackCount}</span
             >
           </div>
         </div>
 
         {#if prediction.successRate < 0.5}
           <div class="warning-message" role="alert">
-            <span aria-hidden="true">⚠️</span> Warning: Similar changes were rolled back more often than
+            <span aria-hidden="true"></span> Warning: Similar changes were rolled back more often than
             kept. Review carefully!
           </div>
         {:else if prediction.successRate >= 0.8}
           <div class="success-message" role="status">
-            <span aria-hidden="true">✅</span> Good signs: Similar changes were usually successful.
+            <span aria-hidden="true"></span> Good signs: Similar changes were usually successful.
           </div>
         {/if}
       </div>
