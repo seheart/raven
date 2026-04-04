@@ -34,8 +34,8 @@ async function main() {
 
     // Create validator
     const validator = new StartupValidator({
-      backendUrl: process.env.BACKEND_URL || 'http://localhost:3030',
-      frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+      backendUrl: process.env.BACKEND_URL || 'http://localhost:9100',
+      frontendUrl: process.env.FRONTEND_URL || 'http://localhost:9000',
       db,
       conversationSyncs: null // Not available in standalone script
     });

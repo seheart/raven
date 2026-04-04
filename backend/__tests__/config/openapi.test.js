@@ -45,7 +45,7 @@ describe('OpenAPI Specification', () => {
     test('should have default local server', () => {
       const localServer = openApiSpec.servers.find(s => s.description === 'Default local server');
       expect(localServer).toBeDefined();
-      expect(localServer.url).toBe('http://localhost:3030');
+      expect(localServer.url).toBe('http://localhost:9100');
     });
   });
 

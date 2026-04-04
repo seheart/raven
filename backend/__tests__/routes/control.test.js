@@ -44,7 +44,7 @@ describe('Control Routes', () => {
 
     // Create mock mutex
     mockProjectStateMutex = {
-      runExclusive: jest.fn(async (callback) => await callback())
+      runExclusive: jest.fn(async callback => await callback())
     };
 
     // Create mock watcher initializer
@@ -59,7 +59,7 @@ describe('Control Routes', () => {
       projectState: mockProjectState,
       projectStateMutex: mockProjectStateMutex,
       initializeWatcher: mockInitializeWatcher,
-      PORT: 3030,
+      PORT: 9100,
       execAsync: mockExecAsync,
       // Mock auth middleware to bypass authentication in tests
       authMiddleware: (req, res, next) => {
@@ -150,14 +150,10 @@ describe('Control Routes', () => {
       });
 
       // Should call stop script
-      expect(mockExecAsync).toHaveBeenCalledWith(
-        expect.stringContaining('stop-claude-bridge.sh')
-      );
+      expect(mockExecAsync).toHaveBeenCalledWith(expect.stringContaining('stop-claude-bridge.sh'));
 
       // Should call start script
-      expect(mockExecAsync).toHaveBeenCalledWith(
-        expect.stringContaining('start-claude-bridge.sh')
-      );
+      expect(mockExecAsync).toHaveBeenCalledWith(expect.stringContaining('start-claude-bridge.sh'));
     });
 
     test('should handle bridge not running initially', async () => {
@@ -182,7 +178,7 @@ describe('Control Routes', () => {
 
     test('should fail if bridge does not start', async () => {
       // Mock fs.existsSync to return true for scripts, false for PID file
-      fs.existsSync.mockImplementation((path) => {
+      fs.existsSync.mockImplementation(path => {
         if (path.includes('.pid')) return false;
         return true; // Scripts exist
       });
@@ -207,7 +203,7 @@ describe('Control Routes', () => {
 
     test('should include stdout/stderr on verification failure', async () => {
       // Mock fs.existsSync to return true for scripts, false for PID file
-      fs.existsSync.mockImplementation((path) => {
+      fs.existsSync.mockImplementation(path => {
         if (path.includes('.pid')) return false;
         return true; // Scripts exist
       });
@@ -263,7 +259,7 @@ describe('Control Routes', () => {
     test('should fetch from local health endpoint', async () => {
       await request(app).get('/api/control/export-health');
 
-      expect(global.fetch).toHaveBeenCalledWith('http://localhost:3030/health');
+      expect(global.fetch).toHaveBeenCalledWith('http://localhost:9100/health');
     });
 
     test('should handle health endpoint errors', async () => {
@@ -292,7 +288,7 @@ describe('Control Routes', () => {
 
     test('should handle script verification with verification disabled', async () => {
       // Mock config file with verification disabled
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: false, strictMode: false },
@@ -314,7 +310,7 @@ describe('Control Routes', () => {
 
     test('should handle script not registered in hash config', async () => {
       // Mock config file with verification enabled but script not registered
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: true },
@@ -335,7 +331,7 @@ describe('Control Routes', () => {
 
     test('should handle hash calculation failure', async () => {
       // Mock config with verification enabled
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: false },
@@ -359,7 +355,7 @@ describe('Control Routes', () => {
 
     test('should handle first run scenario (no hash, non-strict mode)', async () => {
       // Mock config with empty hash in non-strict mode
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: false },
@@ -385,7 +381,7 @@ describe('Control Routes', () => {
 
     test('should handle hash mismatch', async () => {
       // Mock config with wrong hash
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: true },
@@ -412,7 +408,7 @@ describe('Control Routes', () => {
       const crypto = await import('crypto');
       const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
 
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: true },
@@ -440,7 +436,7 @@ describe('Control Routes', () => {
       const crypto = await import('crypto');
       const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
 
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: true },
@@ -466,7 +462,7 @@ describe('Control Routes', () => {
 
     test('should handle missing script-hashes.json config', async () => {
       // Mock readFileSync to throw error
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           throw new Error('ENOENT: no such file or directory');
         }
@@ -490,7 +486,7 @@ describe('Control Routes', () => {
       const crypto = await import('crypto');
       const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
 
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: true },
@@ -517,7 +513,7 @@ describe('Control Routes', () => {
 
     test('should fail when stop script file does not exist', async () => {
       // Mock existsSync to return false for stop script
-      fs.existsSync.mockImplementation((path) => {
+      fs.existsSync.mockImplementation(path => {
         if (path.includes('stop-claude-bridge.sh')) return false;
         return true;
       });
@@ -535,7 +531,7 @@ describe('Control Routes', () => {
       const crypto = await import('crypto');
       const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
 
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: true },
@@ -548,7 +544,7 @@ describe('Control Routes', () => {
       });
 
       // Mock existsSync to return true for stop script, false for start script
-      fs.existsSync.mockImplementation((path) => {
+      fs.existsSync.mockImplementation(path => {
         if (path.includes('start-claude-bridge.sh')) return false;
         return true;
       });
@@ -568,7 +564,7 @@ describe('Control Routes', () => {
       const crypto = await import('crypto');
       const validHash = crypto.createHash('sha256').update(scriptContent).digest('hex');
 
-      fs.readFileSync.mockImplementation((path) => {
+      fs.readFileSync.mockImplementation(path => {
         if (path.includes('script-hashes.json')) {
           return JSON.stringify({
             verification: { enabled: true, strictMode: true },

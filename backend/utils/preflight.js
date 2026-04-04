@@ -83,10 +83,10 @@ export async function runPreflightChecks(config) {
 
   // Check 4: Port availability
   try {
-    const portCheck = await checkPortsAvailable(config.PORT, config.FRONTEND_PORT || 5173);
+    const portCheck = await checkPortsAvailable(config.PORT, config.FRONTEND_PORT || 9000);
     if (portCheck.passed) {
       results.passed.push('Port availability');
-      logger.info(`  ✓ Ports available (${config.PORT}, ${config.FRONTEND_PORT || 5173})`);
+      logger.info(`  ✓ Ports available (${config.PORT}, ${config.FRONTEND_PORT || 9000})`);
     } else {
       results.warnings.push('Ports in use (will be cleaned)');
       logger.warn('  ⚠ Ports in use, will attempt cleanup', portCheck);

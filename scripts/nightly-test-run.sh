@@ -7,7 +7,7 @@
 set -e
 
 # Setup
-PROJECT_DIR="/home/seth/Projects/raven"
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="$PROJECT_DIR/logs/nightly-tests"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_FILE="$LOG_DIR/test-run-$TIMESTAMP.log"

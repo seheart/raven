@@ -12,11 +12,14 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { logger } from './utils/logger.js';
 import toml from 'toml';
 import { EventBus, TriggerFiredEvent } from './modules/eventBus.js';
 import type { Server as SocketIOServer } from 'socket.io';
+
+const execFileAsync = promisify(execFile);
 
 // ==================== Type Definitions ====================
 
@@ -330,18 +333,22 @@ cooldown_seconds = 300
   /**
    * Execute trigger action (log, notify, command)
    */
-  private executeAction(trigger: TriggerRule, message: string, event: TriggerEvent): void {
+  private async executeAction(
+    trigger: TriggerRule,
+    message: string,
+    event: TriggerEvent
+  ): Promise<void> {
     try {
       switch (trigger.action) {
         case 'notify':
-          this.sendNotification(message);
+          await this.sendNotification(message);
           break;
         case 'log':
           this.logToFile(trigger.name, message);
           break;
         case 'command':
           if (trigger.command) {
-            this.executeCommand(trigger.command, event);
+            await this.executeCommand(trigger.command, event);
           }
           break;
       }
@@ -351,15 +358,62 @@ cooldown_seconds = 300
   }
 
   /**
+   * Sanitize user input to prevent command injection
+   */
+  private sanitizeShellArg(arg: string | number): string {
+    let str = typeof arg !== 'string' ? String(arg) : arg;
+    return str
+      .replace(/[;&|`$(){}[\]<>\\'"]/g, '')
+      .replace(/\n/g, ' ')
+      .replace(/\r/g, '')
+      .trim()
+      .slice(0, 500);
+  }
+
+  /**
+   * Format message safely by sanitizing all replaced values
+   */
+  private formatMessageSafe(template: string, event: TriggerEvent): string {
+    return template
+      .replace(/\{file\}/g, event.file ? this.sanitizeShellArg(event.file) : '')
+      .replace(/\{agent\}/g, event.agent ? this.sanitizeShellArg(event.agent) : '')
+      .replace(/\{event_type\}/g, event.event_type ? this.sanitizeShellArg(event.event_type) : '')
+      .replace(
+        /\{lines_changed\}/g,
+        event.lines_changed !== undefined ? this.sanitizeShellArg(event.lines_changed) : ''
+      )
+      .replace(
+        /\{duration_ms\}/g,
+        event.duration_ms !== undefined ? this.sanitizeShellArg(event.duration_ms) : ''
+      )
+      .replace(
+        /\{cpu_percent\}/g,
+        event.cpu_percent !== undefined ? this.sanitizeShellArg(event.cpu_percent) : ''
+      )
+      .replace(
+        /\{memory_percent\}/g,
+        event.memory_percent !== undefined ? this.sanitizeShellArg(event.memory_percent) : ''
+      );
+  }
+
+  /**
    * Send platform-specific notification
    */
-  private sendNotification(message: string): void {
+  private async sendNotification(message: string): Promise<void> {
     try {
+      const sanitized = this.sanitizeShellArg(message);
       if (process.platform === 'linux') {
-        execSync(`notify-send "Raven Trigger" "${message}"`);
+        await execFileAsync('notify-send', ['Raven Trigger', sanitized], {
+          timeout: 5000,
+          shell: false
+        });
       } else if (process.platform === 'darwin') {
-        execSync(`osascript -e 'display notification "${message}" with title "Raven Trigger"'`);
-      } else if (process.platform === 'win32') {
+        await execFileAsync(
+          'osascript',
+          ['-e', `display notification "${sanitized}" with title "Raven Trigger"`],
+          { timeout: 5000, shell: false }
+        );
+      } else {
         logger.info(`📢 Notification: ${message}`);
       }
     } catch (error) {
@@ -383,16 +437,40 @@ cooldown_seconds = 300
     }
   }
 
+  private static readonly ALLOWED_COMMANDS = ['echo', 'notify-send', 'osascript', 'logger', 'wall'];
+
   /**
-   * Execute shell command
+   * Execute shell command with whitelist and argument sanitization
    */
-  private executeCommand(command: string, event: TriggerEvent): void {
+  private async executeCommand(command: string, event: TriggerEvent): Promise<void> {
     try {
-      const formattedCommand = this.formatMessage(command, event);
-      execSync(formattedCommand);
-      logger.info(`⚙️  Executed command: ${formattedCommand}`);
+      const formattedCommand = this.formatMessageSafe(command, event);
+      const parts = formattedCommand.trim().split(/\s+/);
+      const baseCommand = parts[0];
+      const args = parts.slice(1);
+
+      const isAllowed = TriggerEngine.ALLOWED_COMMANDS.some(
+        allowed => baseCommand === allowed || baseCommand.endsWith(`/${allowed}`)
+      );
+
+      if (!isAllowed) {
+        logger.error(`❌ Command execution blocked: '${baseCommand}' is not in whitelist`);
+        logger.error(`   Allowed commands: ${TriggerEngine.ALLOWED_COMMANDS.join(', ')}`);
+        return;
+      }
+
+      const sanitizedArgs = args.map(arg => this.sanitizeShellArg(arg));
+
+      await execFileAsync(baseCommand, sanitizedArgs, {
+        timeout: 5000,
+        shell: false
+      });
+
+      logger.info(`⚙️  Executed command: ${baseCommand} ${sanitizedArgs.join(' ')}`);
     } catch (error) {
-      logger.error(`❌ Failed to execute command: ${error}`);
+      logger.error(
+        `❌ Failed to execute command: ${error instanceof Error ? error.message : error}`
+      );
     }
   }
 

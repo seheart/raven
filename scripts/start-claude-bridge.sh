@@ -23,7 +23,7 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 # Check if Raven is running
-if ! curl -s http://localhost:3030/api/status > /dev/null 2>&1; then
+if ! curl -s http://localhost:9100/api/status > /dev/null 2>&1; then
   echo "⚠️  Warning: Raven backend doesn't appear to be running"
   echo "   Start Raven first with: ./start.sh"
   echo ""

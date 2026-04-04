@@ -1,5 +1,6 @@
 <script>
   import { logger } from '../logger.js';
+  import { api } from '../apiClient.js';
   /**
    * Pattern Warnings Page
    * Display and manage pattern-based code quality warnings
@@ -133,14 +134,12 @@
       }
       error = null;
 
-      const url =
+      const endpoint =
         categoryFilter === 'all'
-          ? `http://localhost:9100/api/pattern-warnings?limit=${limit}`
-          : `http://localhost:9100/api/pattern-warnings/category/${categoryFilter}?limit=${limit}`;
+          ? `/api/pattern-warnings?limit=${limit}`
+          : `/api/pattern-warnings/category/${categoryFilter}?limit=${limit}`;
 
-      const response = await fetch(url);
-
-      const data = await response.json();
+      const data = await api.get(endpoint);
       warnings = data.warnings || [];
 
       lastUpdated = new Date();
@@ -163,14 +162,12 @@
   // Resolve warning
   async function resolveWarning(warningId) {
     try {
-      await fetch(`http://localhost:9100/api/pattern-warnings/${warningId}/resolve`, {
-        method: 'POST'
-      });
+      await api.post(`/api/pattern-warnings/${warningId}/resolve`);
 
-      await loadWarnings;
-    } catch (error) {
-      logger.error('Failed to resolve warning:', error);
-      alert(`Failed to resolve warning: ${error.message}`);
+      await loadWarnings();
+    } catch (err) {
+      logger.error('Failed to resolve warning:', err);
+      alert(`Failed to resolve warning: ${err.message}`);
     }
   }
 
@@ -182,17 +179,17 @@
     }
 
     try {
-      const url =
+      const endpoint =
         categoryFilter === 'all'
-          ? 'http://localhost:9100/api/pattern-warnings/resolve-all'
-          : `http://localhost:9100/api/pattern-warnings/resolve-all?category=${categoryFilter}`;
+          ? '/api/pattern-warnings/resolve-all'
+          : `/api/pattern-warnings/resolve-all?category=${categoryFilter}`;
 
-      await fetch(url, { method: 'POST' });
+      await api.post(endpoint);
 
-      await loadWarnings;
-    } catch (error) {
-      logger.error('Failed to resolve all warnings:', error);
-      alert(`Failed to resolve all warnings: ${error.message}`);
+      await loadWarnings();
+    } catch (err) {
+      logger.error('Failed to resolve all warnings:', err);
+      alert(`Failed to resolve all warnings: ${err.message}`);
     }
   }
 

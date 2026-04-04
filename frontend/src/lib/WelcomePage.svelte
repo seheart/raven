@@ -1,10 +1,10 @@
 <script>
-  import { router } from './router.js';
+  import { navigate } from './utils/router.svelte.js';
   import RavenLogo from './components/ui/RavenLogo.svelte';
 
   function handleGetStarted() {
     localStorage.setItem('raven-welcome-seen', 'true');
-    router.navigate('overview');
+    navigate('/overview');
   }
 
   const features = [

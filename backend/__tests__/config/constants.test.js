@@ -123,8 +123,8 @@ describe('Constants Configuration', () => {
 
   describe('DEFAULTS', () => {
     test('should have server defaults', () => {
-      expect(DEFAULTS.PORT).toBe(3030);
-      expect(DEFAULTS.CORS_ORIGIN).toBe('http://localhost:5173');
+      expect(DEFAULTS.PORT).toBe(9100);
+      expect(DEFAULTS.CORS_ORIGIN).toBe('http://localhost:9000');
     });
 
     test('should have logging defaults', () => {

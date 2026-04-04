@@ -1,4 +1,4 @@
-import { getSetting } from './settingsStore.js';
+import { getSetting } from './stores/settingsStore.js';
 
 /**
  * Format a timestamp according to user's time format preference

@@ -287,7 +287,7 @@ export class ClaudeLogWatcher {
     const projectDirName = parts[0]; // e.g., "-home-seth-Projects-raven"
     const sessionId = path.basename(parts[1], '.jsonl');
 
-    // Convert "-home-seth-Projects-raven" back to "/home/seth/Projects/raven"
+    // Convert "-home-user-Projects-myapp" back to "/home/user/Projects/myapp"
     const projectPath = projectDirName.replace(/^-/, '/').replace(/-/g, '/');
 
     const projectName = path.basename(projectPath);

@@ -6,6 +6,7 @@
    */
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../apiClient.js';
+  import { API_CONFIG } from '../../config.js';
   import { websocketService } from '../services/websocket.js';
   import { getTimeAgo } from '../timeFormat.js';
   import { TimeoutManager } from '../utils/TimeoutManager.js';
@@ -94,13 +95,10 @@
           : 5000; // 5 seconds for normal endpoints
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:9100'}${endpoint.path}`,
-        {
-          method: endpoint.method,
-          signal: controller.signal
-        }
-      );
+      const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint.path}`, {
+        method: endpoint.method,
+        signal: controller.signal
+      });
 
       clearTimeout(timeoutId);
 

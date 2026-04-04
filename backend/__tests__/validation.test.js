@@ -178,7 +178,7 @@ describe('Validation', () => {
         stack: 'Error stack trace here',
         component: 'App.svelte',
         user_agent: 'Mozilla/5.0...',
-        url: 'http://localhost:5173',
+        url: 'http://localhost:9000',
         metadata: { extra: 'data' },
         severity: 'error'
       });
@@ -349,15 +349,20 @@ describe('Validation', () => {
 
     it('should reject paths outside baseDir', () => {
       const baseDir = '/tmp/project';
-      expect(() => sanitizeFilePath('../outside/file.js', baseDir))
-        .toThrow('Path traversal detected');
+      expect(() => sanitizeFilePath('../outside/file.js', baseDir)).toThrow(
+        'Path traversal detected'
+      );
     });
 
     it('should block sensitive paths', () => {
       expect(() => sanitizeFilePath('/etc/passwd')).toThrow('Access to sensitive path denied');
       expect(() => sanitizeFilePath('/etc/shadow')).toThrow('Access to sensitive path denied');
-      expect(() => sanitizeFilePath('/home/user/.ssh/id_rsa')).toThrow('Access to sensitive path denied');
-      expect(() => sanitizeFilePath('/home/user/.aws/credentials')).toThrow('Access to sensitive path denied');
+      expect(() => sanitizeFilePath('/home/user/.ssh/id_rsa')).toThrow(
+        'Access to sensitive path denied'
+      );
+      expect(() => sanitizeFilePath('/home/user/.aws/credentials')).toThrow(
+        'Access to sensitive path denied'
+      );
       expect(() => sanitizeFilePath('/app/.env')).toThrow('Access to sensitive path denied');
     });
 
@@ -639,11 +644,11 @@ describe('Validation', () => {
       const statusCalls = [];
       const jsonCalls = [];
       res = {
-        status: (code) => {
+        status: code => {
           statusCalls.push(code);
           return res;
         },
-        json: (data) => {
+        json: data => {
           jsonCalls.push(data);
           return res;
         },
@@ -755,11 +760,11 @@ describe('Validation', () => {
       const statusCalls = [];
       const jsonCalls = [];
       res = {
-        status: (code) => {
+        status: code => {
           statusCalls.push(code);
           return res;
         },
-        json: (data) => {
+        json: data => {
           jsonCalls.push(data);
           return res;
         },

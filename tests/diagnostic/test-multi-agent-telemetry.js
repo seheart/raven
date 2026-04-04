@@ -12,7 +12,7 @@
  * This demonstrates the passive telemetry API approach used by Node.js backend.
  */
 
-const API_URL = 'http://localhost:3030';
+const API_URL = 'http://localhost:9100';
 
 async function sendTelemetry(agent, event, message, metadata = {}) {
   const payload = {

@@ -5,7 +5,7 @@
  * Tests all Tier 4 endpoints to verify they work correctly
  */
 
-const API_BASE = 'http://localhost:3030/api';
+const API_BASE = 'http://localhost:9100/api';
 const PROJECT = 'raven';
 
 // ANSI color codes

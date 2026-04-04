@@ -10,7 +10,7 @@ echo "🧪 Testing Quick Start Wizard Workflow"
 echo "======================================"
 echo ""
 
-BASE_URL="http://localhost:3030"
+BASE_URL="http://localhost:9100"
 TEST_PROJECT_NAME="test-quickstart-project"
 TEST_PROJECT_PATH="/Users/seth/$TEST_PROJECT_NAME"
 TEST_TEMPLATE="ai-safety-basic"
@@ -54,8 +54,8 @@ if ! curl -s "$BASE_URL/api/health" >/dev/null 2>&1; then
 fi
 pass "Backend server is running"
 
-if ! curl -s "http://localhost:5173" >/dev/null 2>&1; then
-    fail "Frontend server is not running on http://localhost:5173"
+if ! curl -s "http://localhost:9000" >/dev/null 2>&1; then
+    fail "Frontend server is not running on http://localhost:9000"
 fi
 pass "Frontend server is running"
 

@@ -4,7 +4,7 @@
   import { websocketService } from './services/websocket.js';
   import { formatDateTime } from './timeFormat.js';
   import { formatDurationSeconds } from './formatUtils.js';
-  import AgentProfilePanel from './AgentProfilePanel.svelte';
+
   import SessionDashboard from './SessionDashboard.svelte';
   import { API_CONFIG } from '../config.js';
 
@@ -340,11 +340,6 @@
           {/if}
         </div>
       </section>
-    </div>
-
-    <!-- Agent Profile Panel -->
-    <div class="full-width-panel">
-      <AgentProfilePanel />
     </div>
 
     <!-- Session Dashboard -->

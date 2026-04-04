@@ -33,7 +33,7 @@ describe('Environment Configuration', () => {
     test('should load PORT with default', async () => {
       delete process.env.PORT;
       const { env } = await import('../../config/environment.js');
-      expect(env.PORT).toBe(3030);
+      expect(env.PORT).toBe(9100);
     });
 
     test('should override PORT from env var', async () => {

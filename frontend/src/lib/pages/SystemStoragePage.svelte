@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
+  import { API_CONFIG } from '../../config.js';
   import { websocketService } from '../services/websocket.js';
   import { formatBytes } from '../utils/helpers.js';
   import { formatDateTime, getTimeAgo } from '../timeFormat.js';
@@ -149,9 +150,7 @@
   // Export database file
   async function exportDatabase(dbName) {
     try {
-      await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:9100'}/api/storage/export/${dbName}`
-      );
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/storage/export/${dbName}`);
       if (!response.ok) throw new Error('Export failed');
 
       const blob = await response.blob();
@@ -167,7 +166,7 @@
       alert(`Database ${dbName} exported successfully!`);
     } catch (err) {
       logger.error('Failed to export database:', err);
-      alert(`Failed to export database: ${error.message}`);
+      alert(`Failed to export database: ${err.message}`);
     }
   }
 

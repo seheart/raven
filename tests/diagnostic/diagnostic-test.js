@@ -5,7 +5,7 @@
  * Tests all Raven functionality and reports issues
  */
 
-const API_URL = 'http://localhost:3030';
+const API_URL = 'http://localhost:9100';
 
 const tests = {
   passed: [],

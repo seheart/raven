@@ -9,11 +9,11 @@ services:
     container_name: raven-backend
     restart: unless-stopped
     ports:
-      - "3030:3030"
+      - '9100:9100'
     environment:
       - NODE_ENV=production
-      - PORT=3030
-      - CORS_ORIGIN=http://localhost:5173
+      - PORT=9100
+      - CORS_ORIGIN=http://localhost:9000
       - LOG_LEVEL=info
       - DISABLE_AUTH=false
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable must be set}
@@ -26,7 +26,7 @@ services:
       # Mount project directory for file watching (development)
       # - ./backend:/app:ro
     healthcheck:
-      test: ["CMD", "node", "healthcheck.js"]
+      test: ['CMD', 'node', 'healthcheck.js']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -42,10 +42,10 @@ services:
     container_name: raven-frontend
     restart: unless-stopped
     ports:
-      - "5173:5173"
+      - '9000:9000'
     environment:
       # For browser-based API calls (accessed from host)
-      - VITE_API_URL=${API_URL:-http://localhost:3030}
+      - VITE_API_URL=${API_URL:-http://localhost:9100}
     depends_on:
       - backend
     networks:
@@ -59,7 +59,7 @@ services:
     container_name: claude-telemetry-bridge
     restart: unless-stopped
     environment:
-      - TELEMETRY_URL=http://backend:3030/telemetry
+      - TELEMETRY_URL=http://backend:9100/telemetry
     volumes:
       # Mount Claude Code logs directory (adjust path for your system)
       - ${CLAUDE_LOGS_DIR:-~/.claude}:/root/.claude:ro

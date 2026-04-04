@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 # Configuration
 RAVEN_DIR="${1:-$HOME/Projects/raven}"
 DB_DIR="$RAVEN_DIR/.raven/db"
-API_URL="http://localhost:3030/api/health-checks"
+API_URL="http://localhost:9100/api/health-checks"
 MAX_AGE_MINUTES=5
 
 echo "🔍 Checking Raven Metrics Collection Health"

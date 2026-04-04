@@ -3,7 +3,7 @@
  * Sends simulated AI agent events to Raven backend
  */
 
-const API_BASE = 'http://localhost:3030';
+const API_BASE = 'http://localhost:9100';
 
 const agents = ['claude-sonnet-3.5', 'github-copilot', 'cursor'];
 const files = [
@@ -85,7 +85,7 @@ async function generateTestData(count = 50) {
   console.log(`   - ${successCount} total events`);
   console.log(`   - ${agents.length} active agents`);
   console.log(`   - ${files.length} files modified`);
-  console.log('\n🌐 Open http://localhost:5173 to see the data!');
+  console.log('\n🌐 Open http://localhost:9000 to see the data!');
 }
 
 // Run the generator

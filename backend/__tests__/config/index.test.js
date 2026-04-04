@@ -28,8 +28,8 @@ describe('Config Index', () => {
       const { config } = await import('../../config/index.js');
 
       expect(config).toBeDefined();
-      expect(config.PORT).toBe(3030);
-      expect(config.CORS_ORIGIN).toBe('http://localhost:5173');
+      expect(config.PORT).toBe(9100);
+      expect(config.CORS_ORIGIN).toBe('http://localhost:9000');
       expect(config.JSON_LIMIT).toBe('10mb');
       expect(config.LOG_LEVEL).toBe('info');
       expect(config.SNAPSHOT_TTL_DAYS).toBe(30);
@@ -128,8 +128,8 @@ describe('Config Index', () => {
       process.env.PORT = 'invalid';
       const { config } = await import('../../config/index.js');
 
-      // parseInt('invalid') returns NaN, which triggers the || fallback to 3030
-      expect(config.PORT).toBe(3030);
+      // parseInt('invalid') returns NaN, which triggers the || fallback to 9100
+      expect(config.PORT).toBe(9100);
     });
 
     test('SNAPSHOT_TTL_DAYS should be a number', async () => {

@@ -8,7 +8,7 @@
 import { logger } from '../utils/logger.js';
 
 export class HealthChecker {
-  constructor(baseUrl = 'http://localhost:3030', db = null, conversationSyncs = null) {
+  constructor(baseUrl = 'http://localhost:9100', db = null, conversationSyncs = null) {
     this.baseUrl = baseUrl;
     this.db = db;
     this.conversationSyncs = conversationSyncs;

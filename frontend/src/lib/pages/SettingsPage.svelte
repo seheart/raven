@@ -6,10 +6,13 @@
   import { settings } from '../stores/settingsStore.js';
   import EmergencyStopButton from '../EmergencyStopButton.svelte';
 
-  // Subscribe to settings
+  // Subscribe to settings (cleaned up via $effect)
   let currentSettings = $state({});
-  settings.subscribe(value => {
-    currentSettings = value;
+  $effect(() => {
+    const unsubscribe = settings.subscribe(value => {
+      currentSettings = value;
+    });
+    return unsubscribe;
   });
 
   // Last modified timestamp

@@ -204,9 +204,18 @@ export class RavenDB {
         duration_ms INTEGER,
         message TEXT NOT NULL,
         metadata TEXT,
-        session_id TEXT
+        session_id TEXT,
+        project_name TEXT
       )
     `);
+
+    // Migrate existing databases: add project_name if missing
+    const agentEventCols = this.db.prepare('PRAGMA table_info(agent_events)').all() as Array<{
+      name: string;
+    }>;
+    if (!agentEventCols.some(c => c.name === 'project_name')) {
+      this.db.exec('ALTER TABLE agent_events ADD COLUMN project_name TEXT');
+    }
 
     // Performance metrics table
     this.db.exec(`

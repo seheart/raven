@@ -146,7 +146,7 @@ test.describe('Health API Endpoints', () => {
 
   test('should successfully fetch health data', async ({ page, request }) => {
     // Test the health API endpoint directly
-    const response = await request.get('http://localhost:3030/api/health');
+    const response = await request.get('http://localhost:9100/api/health');
 
     expect(response.ok()).toBeTruthy();
 
@@ -156,7 +156,7 @@ test.describe('Health API Endpoints', () => {
   });
 
   test('should successfully fetch health checks', async ({ page, request }) => {
-    const response = await request.get('http://localhost:3030/api/health-checks');
+    const response = await request.get('http://localhost:9100/api/health-checks');
 
     expect(response.ok()).toBeTruthy();
 
@@ -166,7 +166,7 @@ test.describe('Health API Endpoints', () => {
   });
 
   test('should successfully fetch project health', async ({ page, request }) => {
-    const response = await request.get('http://localhost:3030/api/health/projects');
+    const response = await request.get('http://localhost:9100/api/health/projects');
 
     expect(response.ok()).toBeTruthy();
 
@@ -176,7 +176,7 @@ test.describe('Health API Endpoints', () => {
   });
 
   test('should successfully fetch session ID', async ({ page, request }) => {
-    const response = await request.get('http://localhost:3030/api/session-id');
+    const response = await request.get('http://localhost:9100/api/session-id');
 
     expect(response.ok()).toBeTruthy();
 
@@ -186,7 +186,7 @@ test.describe('Health API Endpoints', () => {
   });
 
   test('should successfully fetch status', async ({ page, request }) => {
-    const response = await request.get('http://localhost:3030/api/status');
+    const response = await request.get('http://localhost:9100/api/status');
 
     expect(response.ok()).toBeTruthy();
 

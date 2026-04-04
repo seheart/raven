@@ -15,7 +15,7 @@ const args = process.argv.slice(2);
 const failFast = args.includes('--fail-fast');
 const waitArg = args.find(arg => arg.startsWith('--wait='));
 const waitSeconds = waitArg ? parseInt(waitArg.split('=')[1]) : 0;
-const baseUrl = process.env.API_BASE || 'http://localhost:3030';
+const baseUrl = process.env.API_BASE || 'http://localhost:9100';
 
 async function main() {
   // Wait if specified

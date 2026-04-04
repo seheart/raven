@@ -31,11 +31,11 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: 'http://localhost:9000',
     methods: ['GET', 'POST']
   }
 });
-const PORT = 3030;
+const PORT = 9100;
 
 // Middleware
 app.use(cors());
@@ -58,7 +58,7 @@ const SESSION_ID = randomUUID();
 /**
  * Wire EventBus events to database and WebSocket
  */
-EventBus.onFileEvent(async (event) => {
+EventBus.onFileEvent(async event => {
   try {
     // Insert into database
     const eventId = db.insertEvent(
@@ -94,7 +94,7 @@ EventBus.onFileEvent(async (event) => {
   }
 });
 
-EventBus.onGitStatus((status) => {
+EventBus.onGitStatus(status => {
   logger.info(
     `🔀 Git status: ${status.branch} (${status.modified.length} modified, ${status.created.length} created)`
   );
@@ -103,7 +103,7 @@ EventBus.onGitStatus((status) => {
   io.emit('git-status', status);
 });
 
-EventBus.onTelemetry((telemetry) => {
+EventBus.onTelemetry(telemetry => {
   // Insert into database
   db.insertSystemMetrics(
     new Date(telemetry.ts).toISOString(),
@@ -169,7 +169,7 @@ app.get('/api/file-events', (req, res) => {
 
 // ==================== WebSocket ====================
 
-io.on('connection', (socket) => {
+io.on('connection', socket => {
   logger.info('🔌 WebSocket client connected:', socket.id);
 
   socket.on('disconnect', () => {
@@ -192,12 +192,7 @@ logger.info(`
 // Initialize FileWatcher
 const fileWatcher = new FileWatcher({
   watchPath: WATCH_PATH,
-  ignored: [
-    '**/node_modules/**',
-    '**/.git/**',
-    '**/target/**',
-    '**/.raven/**'
-  ],
+  ignored: ['**/node_modules/**', '**/.git/**', '**/target/**', '**/.raven/**'],
   debounceMs: 50
 });
 

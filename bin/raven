@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-RAVEN_DIR="/home/seth/Projects/raven"
+RAVEN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_PORT=9100
 FRONTEND_PORT=9000
 

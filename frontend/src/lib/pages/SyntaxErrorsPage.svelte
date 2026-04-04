@@ -145,15 +145,13 @@
   // Resolve error
   async function resolveError(errorId) {
     try {
-      await fetch(`http://localhost:9100/api/syntax-errors/${errorId}/resolve`, {
-        method: 'POST'
-      });
+      await api.post(`/api/syntax-errors/${errorId}/resolve`);
 
       // Reload errors
       await loadErrors();
     } catch (err) {
       logger.error('Failed to resolve error:', err);
-      alert(`Failed to resolve error: ${error.message}`);
+      alert(`Failed to resolve error: ${err.message}`);
     }
   }
 

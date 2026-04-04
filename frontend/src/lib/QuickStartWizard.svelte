@@ -11,7 +11,7 @@
 
   // Wizard state
   let currentStep = $state(0);
-  let projectPath = $state('/home/seth/Projects');
+  let projectPath = $state('');
   let selectedTemplate = $state('ai-safety-basic');
   let notificationsEnabled = $state(false);
   let error = $state(null);

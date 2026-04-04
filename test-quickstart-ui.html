@@ -90,7 +90,7 @@
         async function testBackendAPI() {
             logMessage('Testing backend API...', 'info');
             try {
-                const response = await fetch('http://localhost:3030/api/projects');
+                const response = await fetch('http://localhost:9100/api/projects');
                 const data = await response.json();
                 logMessage(`✓ Backend API working. basePath: ${data.basePath}`, 'pass');
                 return data;
@@ -109,7 +109,7 @@
             logMessage(`⚠ Create it manually with: mkdir -p ${projectPath}`, 'info');
 
             try {
-                const response = await fetch('http://localhost:3030/api/projects', {
+                const response = await fetch('http://localhost:9100/api/projects', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -147,7 +147,7 @@
             logMessage(`Applying template ${template} to project ${projectId}`, 'info');
 
             try {
-                const response = await fetch(`http://localhost:3030/api/alerts/templates/${template}/apply`, {
+                const response = await fetch(`http://localhost:9100/api/alerts/templates/${template}/apply`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ projectId })
@@ -197,7 +197,7 @@
 
                 // Cleanup
                 logMessage('Cleaning up test project...', 'info');
-                await fetch(`http://localhost:3030/api/projects/${project.id}`, {
+                await fetch(`http://localhost:9100/api/projects/${project.id}`, {
                     method: 'DELETE'
                 });
                 logMessage('✓ Cleanup complete', 'pass');
@@ -209,7 +209,7 @@
 
         function openQuickStartWizard() {
             logMessage('Opening Quick Start Wizard in new window...', 'info');
-            window.open('http://localhost:5173', 'quickstart', 'width=1200,height=800');
+            window.open('http://localhost:9000', 'quickstart', 'width=1200,height=800');
             logMessage('Check browser console in wizard window for debug logs', 'info');
             logMessage('Look for messages starting with [QuickStart]', 'info');
         }

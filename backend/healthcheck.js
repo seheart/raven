@@ -9,13 +9,13 @@ import http from 'node:http';
 
 const options = {
   hostname: 'localhost',
-  port: 3030,
+  port: 9100,
   path: '/health',
   method: 'GET',
   timeout: 5000 // 5 second timeout
 };
 
-const req = http.request(options, (res) => {
+const req = http.request(options, res => {
   if (res.statusCode === 200) {
     process.exit(0); // Success
   } else {

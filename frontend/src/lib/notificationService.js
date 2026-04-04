@@ -1,7 +1,7 @@
 import { logger } from './logger.js';
 import { toasts } from './toastStore.js';
-import { settings as settingsStore } from './settingsStore.js';
-import { notificationHistory } from './notificationHistory.js';
+import { settings as settingsStore } from './stores/settingsStore.js';
+import { notificationHistory } from './stores/notificationHistory.js';
 
 /**
  * @typedef {'info'|'success'|'warning'|'error'|'trigger'|'performance'} NotificationType

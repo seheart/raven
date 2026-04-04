@@ -20,7 +20,7 @@ const path = require('path');
 const http = require('http');
 
 // Configuration
-const RAVEN_API = 'http://localhost:3030';
+const RAVEN_API = 'http://localhost:9100';
 const AGENT_NAME = 'claude-code';
 const WATCH_DIR = process.argv[2] || process.cwd();
 const PROJECT_NAME = path.basename(WATCH_DIR);
@@ -142,7 +142,7 @@ function sendTelemetry(eventType, filepath, linesChanged = null, message = null,
 
   const options = {
     hostname: 'localhost',
-    port: 3030,
+    port: 9100,
     path: '/telemetry',
     method: 'POST',
     headers: {

@@ -22,10 +22,10 @@ describe('ServerConfig', () => {
   });
 
   describe('serverConfig object', () => {
-    test('should have default port 3030', async () => {
+    test('should have default port 9100', async () => {
       delete process.env.PORT;
       const module = await import('../../config/server-config.js');
-      expect(module.serverConfig.port).toBe(3030);
+      expect(module.serverConfig.port).toBe(9100);
     });
 
     test('should use PORT from environment', async () => {
@@ -63,7 +63,7 @@ describe('ServerConfig', () => {
     test('should have default CORS origin', async () => {
       delete process.env.CORS_ORIGIN;
       const module = await import('../../config/server-config.js');
-      expect(module.serverConfig.cors.origin).toBe('http://localhost:5173');
+      expect(module.serverConfig.cors.origin).toBe('http://localhost:9000');
     });
 
     test('should use CORS_ORIGIN from environment', async () => {
@@ -489,7 +489,7 @@ describe('ServerConfig', () => {
 
   describe('validateConfig()', () => {
     test('should pass validation with valid configuration', async () => {
-      process.env.PORT = '3030';
+      process.env.PORT = '9100';
       process.env.NODE_ENV = 'development';
 
       const module = await import('../../config/server-config.js');
@@ -534,7 +534,7 @@ describe('ServerConfig', () => {
 
     test('should pass validation in production with all required secrets', async () => {
       process.env.NODE_ENV = 'production';
-      process.env.PORT = '3030';
+      process.env.PORT = '9100';
       process.env.JWT_SECRET = 'test-jwt-secret';
       process.env.SESSION_SECRET = 'test-session-secret';
 

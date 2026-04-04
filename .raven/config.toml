@@ -96,7 +96,7 @@ skip_projects = [
 # To manually configure projects, uncomment and add:
 # [[projects.available]]
 # name = "raven"
-# path = "/home/seth/Projects/raven"
+# path = "/path/to/your/project"
 # description = "Raven monitoring project"
 
 # ==================== Custom Triggers ====================

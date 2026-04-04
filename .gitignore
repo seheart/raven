@@ -1,10 +1,12 @@
-# Runtime data - Database files
+# Runtime data - Database files and local config
 /.raven/db/*.db
 /.raven/db/*.db-shm
 /.raven/db/*.db-wal
 /.raven/db/*.db-journal
 /.raven/snapshots/*
 /.raven/*.log
+/.raven/raven.db
+/.raven/projects.json
 
 # Backend database files (avoid duplicate/orphaned files)
 /backend/*.db
@@ -72,6 +74,9 @@ Thumbs.db
 /test_workspace/**
 !/test_workspace/README.md
 .raven/.jwt-secret
+
+# Test output
+**/test-results.json
 
 # Playwright test artifacts
 playwright-report/

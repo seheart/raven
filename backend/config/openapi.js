@@ -47,7 +47,7 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
       description: 'Development server'
     },
     {
-      url: 'http://localhost:3030',
+      url: 'http://localhost:9100',
       description: 'Default local server'
     }
   ],
