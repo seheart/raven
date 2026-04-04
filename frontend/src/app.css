@@ -446,7 +446,7 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), .btn:focus:not(:f
 }
 
 /* === Logo === */
-.raven-logo { fill: var(--text); }
+.raven-logo { fill: #0d0d1a; }
 
 /* === Animations (minimal) === */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

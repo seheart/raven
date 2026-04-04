@@ -8,7 +8,8 @@
 </script>
 
 <svg
-  class="fill-current transition-colors"
+  class="transition-colors"
+  style="fill: #0d0d1a;"
   width={size}
   height={size}
   viewBox="0 0 360.416 360.416"
