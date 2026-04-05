@@ -93,7 +93,10 @@
     };
 
     window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      dataService.stopBackgroundRefresh();
+    };
   });
 
   function handleWelcomeClose() {

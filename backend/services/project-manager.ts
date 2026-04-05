@@ -520,7 +520,7 @@ export class ProjectManager {
     return this.availableProjects.map(name => ({
       name,
       path: this.projectPaths.get(name),
-      database: (this.projectDatabases.get(name) as any)?.dbPath,
+      database: this.projectState.get(name)?.database,
       state: this.projectState.get(name),
       isActive: name === this.activeProject
     }));

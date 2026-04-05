@@ -240,9 +240,10 @@
     websocketService.on('system-metrics', handleMetrics);
     websocketService.on('file-changed', handleFileChanged);
     websocketService.on('agent-event', handleAgentEvent);
-    websocketService.on('app-error', () => {
+    const handleAppError = () => {
       stats.app_errors++;
-    });
+    };
+    websocketService.on('app-error', handleAppError);
 
     themeObserver = createThemeObserver(() => createCharts());
 
@@ -253,6 +254,7 @@
       websocketService.off('system-metrics', handleMetrics);
       websocketService.off('file-changed', handleFileChanged);
       websocketService.off('agent-event', handleAgentEvent);
+      websocketService.off('app-error', handleAppError);
       if (themeObserver) themeObserver.disconnect();
       if (activityChart) destroyChart(activityChart);
       if (trendChart) destroyChart(trendChart);

@@ -551,8 +551,8 @@ export class RavenDB {
 
   getRecentFileEvents(limit: number = 100, includeDiff: boolean = false): FileEvent[] {
     const fields = includeDiff
-      ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name'
-      : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name';
+      ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name, agent_source'
+      : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name, agent_source';
 
     const stmt = this.db.prepare(`
       SELECT ${fields}
@@ -566,7 +566,7 @@ export class RavenDB {
 
   getEventsBySession(session_id: string): FileEvent[] {
     const stmt = this.db.prepare(`
-      SELECT id, timestamp, filepath, change_type, diff, cpu, mem, project_name
+      SELECT id, timestamp, filepath, change_type, diff, cpu, mem, project_name, agent_source
       FROM events
       WHERE session_id = ?
       ORDER BY timestamp ASC

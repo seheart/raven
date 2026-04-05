@@ -859,7 +859,6 @@ app.all('/ollama/*', async (req: Request, res: Response): Promise<any> => {
 
       const reader = ollamaResponse.body.getReader();
       const decoder = new TextDecoder();
-      let fullResponse = '';
       let modelName = req.body?.model || 'unknown';
       let totalTokens = 0;
 
@@ -869,10 +868,15 @@ app.all('/ollama/*', async (req: Request, res: Response): Promise<any> => {
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          res.write(chunk);
-          fullResponse += chunk;
 
-          // Parse NDJSON lines to extract token counts
+          // Write to client — if client disconnected, stop reading
+          try {
+            res.write(chunk);
+          } catch {
+            break;
+          }
+
+          // Parse NDJSON lines to extract token counts (only the final line has totals)
           for (const line of chunk.split('\n').filter(Boolean)) {
             try {
               const parsed = JSON.parse(line);
@@ -884,8 +888,19 @@ app.all('/ollama/*', async (req: Request, res: Response): Promise<any> => {
             }
           }
         }
+      } catch (readError: any) {
+        logger.warn(`Ollama stream interrupted: ${readError.message}`);
       } finally {
-        res.end();
+        try {
+          reader.cancel();
+        } catch {
+          /* already closed */
+        }
+        try {
+          res.end();
+        } catch {
+          /* already ended */
+        }
       }
 
       // Log telemetry after stream completes

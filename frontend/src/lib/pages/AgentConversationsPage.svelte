@@ -34,6 +34,7 @@
   let hasMore = $state(true);
   let lastUpdate = $state(null);
   let autoRefresh = $state(true);
+  let conversationHandler = null;
 
   // New features
   let dateRange = $state('all'); // 'all', 'today', '7d', '30d'
@@ -341,11 +342,12 @@
 
   function setupWebSocket() {
     // Listen for new conversation events
-    websocketService.on('conversation', () => {
+    conversationHandler = () => {
       if (autoRefresh) {
         loadConversations();
       }
-    });
+    };
+    websocketService.on('conversation', conversationHandler);
 
     // NOTE: Removed file-changed listener - it caused feedback loops
     // since Raven's own log writes trigger file-changed events
@@ -522,7 +524,7 @@
     // Cleanup function
     return () => {
       // Clean up WebSocket listeners
-      websocketService.off('conversation', loadConversations);
+      if (conversationHandler) websocketService.off('conversation', conversationHandler);
 
       // Disconnect theme observer
       if (themeObserver) {
