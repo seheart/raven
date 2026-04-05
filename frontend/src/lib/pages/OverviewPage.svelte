@@ -51,6 +51,28 @@
   let trendChart = null;
   let themeObserver = null;
 
+  // Visual enhancements
+  let prevStats = $state({
+    total_events: 0,
+    total_files: 0,
+    creates: 0,
+    edits: 0,
+    deletes: 0,
+    app_errors: 0
+  });
+  let statsFlash = $state({});
+  let cpuHistory = $state(new Array(30).fill(0));
+  let memHistory = $state(new Array(30).fill(0));
+  let activityLevel = $state(0); // 0-1, drives ambient warmth
+  let workingStates = $state({}); // agentName -> { text, cycle }
+  const workingTexts = [
+    'Reading files...',
+    'Analyzing...',
+    'Generating...',
+    'Writing code...',
+    'Thinking...'
+  ];
+
   // Derived
   const cpuColor = $derived(
     systemMetrics.cpu_percent > 80
@@ -103,10 +125,23 @@
 
   function markAgentWorking(agentName) {
     workingAgents = new Set([...workingAgents, agentName]);
+    // Cycle working text
+    const cycle = (workingStates[agentName]?.cycle || 0) + 1;
+    workingStates = {
+      ...workingStates,
+      [agentName]: { text: workingTexts[cycle % workingTexts.length], cycle }
+    };
+    // Update activity level
+    activityLevel = Math.min(1, activityLevel + 0.15);
+    setTimeout(() => {
+      activityLevel = Math.max(0, activityLevel - 0.05);
+    }, 3000);
     // Clear working state after 8s of inactivity
     clearTimeout(workingAgentTimers[agentName]);
     workingAgentTimers[agentName] = setTimeout(() => {
       workingAgents = new Set([...workingAgents].filter(a => a !== agentName));
+      const { [agentName]: _, ...rest } = workingStates;
+      workingStates = rest;
     }, 8000);
   }
 
@@ -122,6 +157,50 @@
       copilot: '#0EA5E9'
     };
     return colors[name] || '#6b7280';
+  }
+
+  // Sparkline SVG path generator
+  function sparklinePath(data, width = 80, height = 20) {
+    if (!data || data.length < 2) return '';
+    const max = Math.max(...data, 1);
+    const step = width / (data.length - 1);
+    return data
+      .map((v, i) => {
+        const x = i * step;
+        const y = height - (v / max) * height;
+        return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+  }
+
+  // Heartbeat SVG path for agents
+  function heartbeatPath(state) {
+    if (state === 'working')
+      return 'M0,15 L8,15 L10,5 L12,25 L14,10 L16,20 L18,15 L26,15 L28,5 L30,25 L32,10 L34,20 L36,15 L44,15';
+    if (state === 'running') return 'M0,15 L15,15 L17,8 L19,22 L21,15 L44,15';
+    return 'M0,15 L44,15'; // flatline
+  }
+
+  // Flash stat on change
+  function checkStatChanges(newStats) {
+    const flashes = {};
+    for (const key of [
+      'total_events',
+      'total_files',
+      'creates',
+      'edits',
+      'deletes',
+      'app_errors'
+    ]) {
+      if (newStats[key] !== prevStats[key] && prevStats[key] > 0) {
+        flashes[key] = true;
+        setTimeout(() => {
+          statsFlash = { ...statsFlash, [key]: false };
+        }, 1000);
+      }
+    }
+    statsFlash = flashes;
+    prevStats = { ...newStats };
   }
 
   function getChangeColor(type) {
@@ -226,6 +305,7 @@
         api.get('/agents-status').catch(() => [])
       ]);
 
+      checkStatChanges(statsData);
       stats = statsData;
       systemMetrics = Array.isArray(metricsData) && metricsData[0] ? metricsData[0] : systemMetrics;
       recentFiles = Array.isArray(fileEvents) ? fileEvents : [];
@@ -245,6 +325,9 @@
   // WebSocket: live updates
   const handleMetrics = data => {
     systemMetrics = data;
+    // Track history for sparklines
+    cpuHistory = [...cpuHistory.slice(1), data.cpu_percent || 0];
+    memHistory = [...memHistory.slice(1), data.memory_percent || 0];
   };
 
   const handleFileChanged = event => {
@@ -400,7 +483,11 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
+<div
+  class="min-h-screen p-6 pb-20 transition-all duration-[3000ms]"
+  style="background: color-mix(in srgb, var(--bg) {100 -
+    activityLevel * 8}%, var(--accent) {activityLevel * 8}%)"
+>
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
@@ -432,42 +519,22 @@
 
     <!-- Top Stats Row -->
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-          Events
+      {#each [{ key: 'total_events', label: 'Events', value: stats.total_events }, { key: 'total_files', label: 'Files', value: stats.total_files }, { key: 'edits', label: 'Modified', value: stats.edits }, { key: 'creates', label: 'Created', value: stats.creates }, { key: 'deletes', label: 'Deleted', value: stats.deletes }, { key: 'rate', label: 'Rate', value: null }] as stat (stat.key)}
+        <div
+          class="stat-card bg-[var(--surface)] border border-[var(--border)] rounded p-4 transition-all duration-300 {statsFlash[
+            stat.key
+          ]
+            ? 'stat-flash'
+            : ''}"
+        >
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            {stat.label}
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
+            {stat.value !== null ? formatNumber(stat.value) : `${eventsPerMin}/min`}
+          </div>
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{formatNumber(stats.total_events)}</div>
-      </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-          Files
-        </div>
-        <div class="text-sm font-mono text-[var(--text)]">{formatNumber(stats.total_files)}</div>
-      </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-          Modified
-        </div>
-        <div class="text-sm font-mono text-[var(--text)]">{formatNumber(stats.edits)}</div>
-      </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-          Created
-        </div>
-        <div class="text-sm font-mono text-[var(--text)]">{formatNumber(stats.creates)}</div>
-      </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-          Deleted
-        </div>
-        <div class="text-sm font-mono text-[var(--text)]">{formatNumber(stats.deletes)}</div>
-      </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-          Rate
-        </div>
-        <div class="text-sm font-mono text-[var(--text)]">{eventsPerMin}/min</div>
-      </div>
+      {/each}
       <div
         class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 cursor-pointer hover:border-[var(--accent)] transition-colors"
         class:border-[var(--error)]={stats.app_errors > 0}
@@ -484,71 +551,6 @@
             <span class="w-2 h-2 rounded-full bg-[var(--error)]"></span>
           {/if}
           <span class="text-sm font-mono text-[var(--text)]">{stats.app_errors}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- System + Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-      <!-- System Resources -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          System Resources
-        </h3>
-        <div class="space-y-4">
-          <div>
-            <div class="flex justify-between text-sm mb-1">
-              <span class="text-[var(--muted)]">CPU</span>
-              <span class="font-mono text-[var(--text)]"
-                >{systemMetrics.cpu_percent?.toFixed(1) || 0}%</span
-              >
-            </div>
-            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
-              <div
-                class="h-full transition-all duration-500"
-                style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"
-              ></div>
-            </div>
-          </div>
-          <div>
-            <div class="flex justify-between text-sm mb-1">
-              <span class="text-[var(--muted)]">Memory</span>
-              <span class="font-mono text-[var(--text)]"
-                >{systemMetrics.memory_percent?.toFixed(1) || 0}%</span
-              >
-            </div>
-            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
-              <div
-                class="h-full transition-all duration-500"
-                style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"
-              ></div>
-            </div>
-            <div class="text-xs text-[var(--muted)] font-mono mt-1">
-              {formatNumber(Math.round(systemMetrics.memory_used_mb || 0))} / {formatNumber(
-                Math.round(systemMetrics.memory_total_mb || 0)
-              )} MB
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Activity Distribution -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          Activity Breakdown
-        </h3>
-        <div class="h-[180px]">
-          <canvas id="chart-activity"></canvas>
-        </div>
-      </div>
-
-      <!-- Activity Trend -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          Activity (24h)
-        </h3>
-        <div class="h-[180px]">
-          <canvas id="chart-trend"></canvas>
         </div>
       </div>
     </div>
@@ -570,23 +572,27 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {#each agents as agent (agent.agent_name)}
             {@const isWorking = workingAgents.has(agent.agent_name)}
+            {@const agentState = isWorking ? 'working' : agent.is_running ? 'running' : 'idle'}
             <div
               class="flex items-center gap-3 p-3 bg-[var(--bg)] rounded border transition-all duration-300 {isWorking
-                ? 'border-[var(--accent)] shadow-sm shadow-[var(--accent)]'
+                ? 'border-[var(--accent)] shadow-sm shadow-[var(--accent)] agent-breathing'
                 : 'border-[var(--border)]'}"
             >
-              <div class="flex-shrink-0 relative">
-                <span
-                  class="w-3 h-3 rounded-full inline-block {agent.is_running
-                    ? 'animate-pulse'
-                    : ''}"
-                  style="background: {agent.color || 'var(--muted)'}"
-                ></span>
-                {#if isWorking}
-                  <span
-                    class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--accent)] animate-ping"
-                  ></span>
-                {/if}
+              <!-- Heartbeat waveform -->
+              <div class="flex-shrink-0 w-12">
+                <svg viewBox="0 0 44 30" class="w-full h-6 overflow-visible">
+                  <path
+                    d={heartbeatPath(agentState)}
+                    fill="none"
+                    stroke={agent.color || 'var(--muted)'}
+                    stroke-width="1.5"
+                    class={agentState === 'working'
+                      ? 'heartbeat-working'
+                      : agentState === 'running'
+                        ? 'heartbeat-running'
+                        : ''}
+                  />
+                </svg>
               </div>
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-semibold text-[var(--text)] font-sans">
@@ -594,7 +600,9 @@
                 </div>
                 <div class="text-xs text-[var(--muted)] font-mono">
                   {#if isWorking}
-                    <span class="text-[var(--accent)]">Working...</span>
+                    <span class="text-[var(--accent)]"
+                      >{workingStates[agent.agent_name]?.text || 'Working...'}</span
+                    >
                   {:else if agent.models_available?.length > 0}
                     {agent.models_available.length} model{agent.models_available.length > 1
                       ? 's'
@@ -641,7 +649,9 @@
         </div>
         <div class="space-y-0.5 max-h-[400px] overflow-y-auto">
           {#if activityFeed.length === 0 && recentFiles.length === 0}
-            <div class="text-center py-8 text-sm text-[var(--muted)]">Waiting for activity...</div>
+            <div class="text-center py-8 text-sm text-[var(--muted)]">
+              <span class="inline-block idle-breathing">Waiting for activity</span>
+            </div>
           {:else}
             <!-- Show activity feed if populated, otherwise fall back to recent files -->
             {#each activityFeed.length > 0 ? activityFeed : recentFiles
@@ -649,9 +659,11 @@
                   .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
               <div
                 class="flex items-center gap-2 px-2 py-1.5 rounded transition-all duration-500 {item._new
-                  ? 'bg-[var(--accent-subtle)] scale-[1.01]'
+                  ? 'feed-slide-in'
                   : 'hover:bg-[var(--bg)]'}"
-                style="border-left: 2px solid {item.color}"
+                style="border-left: 2px solid {item.color}; {item._new
+                  ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
+                  : ''}"
               >
                 <span
                   class="w-5 text-center text-[10px] font-bold font-mono flex-shrink-0"
@@ -686,7 +698,7 @@
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
                 <span class="text-xs font-mono text-[var(--text)] truncate"
-                  >{latestDiff.filepath}</span
+                  >{latestDiff.filepath}<span class="cursor-blink">|</span></span
                 >
               </div>
               <div class="flex items-center gap-2">
@@ -771,5 +783,185 @@
         {/each}
       </div>
     {/if}
+
+    <!-- System + Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <!-- System Resources -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          System Resources
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between items-center text-sm mb-1">
+              <span class="text-[var(--muted)]">CPU</span>
+              <div class="flex items-center gap-2">
+                <svg viewBox="0 0 80 20" class="w-16 h-4">
+                  <path
+                    d={sparklinePath(cpuHistory)}
+                    fill="none"
+                    stroke={cpuColor}
+                    stroke-width="1.5"
+                  />
+                </svg>
+                <span class="font-mono text-[var(--text)]"
+                  >{systemMetrics.cpu_percent?.toFixed(1) || 0}%</span
+                >
+              </div>
+            </div>
+            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
+              <div
+                class="h-full transition-all duration-500"
+                style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"
+              ></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between items-center text-sm mb-1">
+              <span class="text-[var(--muted)]">Memory</span>
+              <div class="flex items-center gap-2">
+                <svg viewBox="0 0 80 20" class="w-16 h-4">
+                  <path
+                    d={sparklinePath(memHistory)}
+                    fill="none"
+                    stroke={memColor}
+                    stroke-width="1.5"
+                  />
+                </svg>
+                <span class="font-mono text-[var(--text)]"
+                  >{systemMetrics.memory_percent?.toFixed(1) || 0}%</span
+                >
+              </div>
+            </div>
+            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
+              <div
+                class="h-full transition-all duration-500"
+                style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"
+              ></div>
+            </div>
+            <div class="text-xs text-[var(--muted)] font-mono mt-1">
+              {formatNumber(Math.round(systemMetrics.memory_used_mb || 0))} / {formatNumber(
+                Math.round(systemMetrics.memory_total_mb || 0)
+              )} MB
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Distribution -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          Activity Breakdown
+        </h3>
+        <div class="h-[180px]">
+          <canvas id="chart-activity"></canvas>
+        </div>
+      </div>
+
+      <!-- Activity Trend -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          Activity (24h)
+        </h3>
+        <div class="h-[180px]">
+          <canvas id="chart-trend"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+<style>
+  /* Agent breathing animation */
+  :global(.agent-breathing) {
+    animation: breathe 3s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.008);
+    }
+  }
+
+  /* Heartbeat waveform animations */
+  :global(.heartbeat-working) {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: heartbeat-draw 1.2s linear infinite;
+  }
+  :global(.heartbeat-running) {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: heartbeat-draw 3s linear infinite;
+  }
+
+  @keyframes heartbeat-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Stat card flash on change */
+  :global(.stat-flash) {
+    animation: stat-glow 1s ease-out;
+  }
+
+  @keyframes stat-glow {
+    0% {
+      box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
+      border-color: var(--accent);
+    }
+    100% {
+      box-shadow: none;
+    }
+  }
+
+  /* Activity feed slide-in */
+  :global(.feed-slide-in) {
+    animation: slide-in 0.4s ease-out;
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Idle breathing dot */
+  :global(.idle-breathing) {
+    animation: idle-pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes idle-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* Cursor blink for diff filepath */
+  :global(.cursor-blink) {
+    animation: blink 1s step-end infinite;
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+</style>
