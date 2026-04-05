@@ -334,7 +334,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
         .prepare(
           `
         SELECT agent FROM agent_events
-        WHERE file LIKE ? AND timestamp > datetime('now', '-10 seconds')
+        WHERE file LIKE ? AND datetime(timestamp) > datetime('now', '-10 seconds')
         ORDER BY timestamp DESC LIMIT 1
       `
         )
@@ -348,7 +348,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
           .prepare(
             `
           SELECT agent FROM agent_events
-          WHERE timestamp > datetime('now', '-5 seconds')
+          WHERE datetime(timestamp) > datetime('now', '-5 seconds')
           AND event_type IN ('tool_call', 'inference')
           ORDER BY timestamp DESC LIMIT 1
         `
@@ -1430,7 +1430,7 @@ app.get('/api/health/projects', cacheMiddleware(5000), (req: Request, res: Respo
     const totalEvents = db.db.prepare('SELECT COUNT(*) as count FROM events').get() as any;
     const recentEvents = db.db
       .prepare(
-        "SELECT COUNT(*) as count FROM events WHERE timestamp >= datetime('now', '-24 hours')"
+        "SELECT COUNT(*) as count FROM events WHERE datetime(timestamp) >= datetime('now', '-24 hours')"
       )
       .get() as any;
     const lastActivity = db.db
@@ -1535,7 +1535,7 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
         `
       SELECT COUNT(*) as count
       FROM events
-      WHERE timestamp >= datetime('now', '-24 hours')
+      WHERE datetime(timestamp) >= datetime('now', '-24 hours')
     `
       )
       .get() as any;
@@ -1620,7 +1620,7 @@ app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
         `
       SELECT COUNT(*) / 7.0 as avg
       FROM events
-      WHERE timestamp >= datetime('now', '-7 days')
+      WHERE datetime(timestamp) >= datetime('now', '-7 days')
     `
       )
       .get() as any;

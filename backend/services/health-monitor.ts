@@ -362,7 +362,7 @@ export class HealthMonitor {
       const recentEvents = this.db.db
         .prepare(
           `SELECT COUNT(*) as count FROM events
-         WHERE timestamp > datetime('now', '-1 hour')`
+         WHERE datetime(timestamp) > datetime('now', '-1 hour')`
         )
         .get() as { count: number };
 
@@ -424,7 +424,7 @@ export class HealthMonitor {
         .prepare(
           `SELECT AVG(cpu_percent) as avg_cpu, AVG(memory_percent) as avg_memory
          FROM raven_metrics
-         WHERE timestamp > datetime('now', '-5 minutes')`
+         WHERE datetime(timestamp) > datetime('now', '-5 minutes')`
         )
         .get() as { avg_cpu: number; avg_memory: number };
 

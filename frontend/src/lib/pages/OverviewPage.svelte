@@ -45,6 +45,7 @@
   let workingAgentTimers = {};
   let diffDebounceTimer = null;
   let lastDiffFilepath = '';
+  let ephemeralTimers = []; // Track all short-lived timeouts for cleanup
 
   // Charts
   let activityChart = null;
@@ -113,14 +114,14 @@
   }
 
   function pushActivity(item) {
-    activityFeed = [
-      { ...item, _id: Date.now() + Math.random(), _new: true },
-      ...activityFeed
-    ].slice(0, 30);
+    const id = Date.now() + Math.random();
+    activityFeed = [{ ...item, _id: id, _new: true }, ...activityFeed].slice(0, 30);
     // Clear "new" flag after animation
-    setTimeout(() => {
-      activityFeed = activityFeed.map(a => (a._id === item._id ? { ...a, _new: false } : a));
-    }, 1500);
+    ephemeralTimers.push(
+      setTimeout(() => {
+        activityFeed = activityFeed.map(a => (a._id === id ? { ...a, _new: false } : a));
+      }, 1500)
+    );
   }
 
   function markAgentWorking(agentName) {
@@ -133,9 +134,11 @@
     };
     // Update activity level
     activityLevel = Math.min(1, activityLevel + 0.15);
-    setTimeout(() => {
-      activityLevel = Math.max(0, activityLevel - 0.05);
-    }, 3000);
+    ephemeralTimers.push(
+      setTimeout(() => {
+        activityLevel = Math.max(0, activityLevel - 0.05);
+      }, 3000)
+    );
     // Clear working state after 8s of inactivity
     clearTimeout(workingAgentTimers[agentName]);
     workingAgentTimers[agentName] = setTimeout(() => {
@@ -181,7 +184,7 @@
     return 'M0,15 L44,15'; // flatline
   }
 
-  // Flash stat on change
+  // Flash stat on change — single timeout clears all, no race condition
   function checkStatChanges(newStats) {
     const flashes = {};
     for (const key of [
@@ -194,13 +197,17 @@
     ]) {
       if (newStats[key] !== prevStats[key] && prevStats[key] > 0) {
         flashes[key] = true;
-        setTimeout(() => {
-          statsFlash = { ...statsFlash, [key]: false };
-        }, 1000);
       }
     }
     statsFlash = flashes;
     prevStats = { ...newStats };
+    if (Object.keys(flashes).length > 0) {
+      ephemeralTimers.push(
+        setTimeout(() => {
+          statsFlash = {};
+        }, 1000)
+      );
+    }
   }
 
   function getChangeColor(type) {
@@ -479,6 +486,7 @@
       unsubFilter();
       Object.values(workingAgentTimers).forEach(t => clearTimeout(t));
       clearTimeout(diffDebounceTimer);
+      ephemeralTimers.forEach(t => clearTimeout(t));
     };
   });
 </script>

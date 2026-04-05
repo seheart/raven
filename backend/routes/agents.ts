@@ -27,7 +27,7 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
         .prepare(
           `
         SELECT MAX(timestamp) as latest FROM agent_events
-        WHERE timestamp >= datetime('now', '-5 minutes')
+        WHERE datetime(timestamp) >= datetime('now', '-5 minutes')
       `
         )
         .get() as any;
