@@ -15,7 +15,7 @@
   } from '../utils/chartUtils.js';
   let agentsStatus = $state([]);
   let recentEvents = $state([]);
-  let loading = $state(true);
+  let loading = $state(false);
   let error = $state(null);
   let lastUpdated = $state(new Date());
   let autoRefresh = $state(true);
@@ -31,8 +31,8 @@
   let dateRange = $state('all'); // 'all', 'today', '7d', '30d'
 
   // Derived
-  const runningAgents = $derived(agentsStatus.filter(a => a.is_running || a.confidence > 0.7));
-  const idleAgents = $derived(agentsStatus.filter(a => !a.is_running && a.confidence <= 0.7));
+  const runningAgents = $derived(agentsStatus.filter(a => a.is_running));
+  const idleAgents = $derived(agentsStatus.filter(a => !a.is_running));
 
   // Get available event types
   const availableEventTypes = $derived.by(() => {
@@ -126,14 +126,14 @@
 
   function getEventIcon(eventType) {
     const icons = {
+      tool_call: '',
+      tool_result: '',
+      user_message: '',
+      assistant_text: '',
       file_change: '',
-      edit: '',
-      create: '',
-      delete: '',
-      read: '',
-      execute: '',
-      command: '',
-      conversation: ''
+      change: '',
+      add: '',
+      unlink: ''
     };
     return icons[eventType?.toLowerCase()] || '';
   }
@@ -161,7 +161,7 @@
 
     // Create agent utilization over time chart
     const utilizationCanvas = document.getElementById('agent-utilization-chart');
-    if (utilizationCanvas && runningAgents.length > 0) {
+    if (utilizationCanvas && recentEvents.length > 0) {
       // Group events by hour for the last 24 hours
       const hours = 24;
       const now = new Date();
@@ -324,22 +324,30 @@
 
   async function loadMonitoringData() {
     try {
-      loading = true;
       error = null;
 
-      // Fetch real-time data
       const [statusData, eventsData] = await Promise.all([
         api.get('/agents-status').catch(() => []),
-        api.get(`/agent-events?limit=${eventsLimit}`).catch(() => ({ events: [] }))
+        api.get(`/agent-events?limit=${eventsLimit}`).catch(() => [])
       ]);
 
-      agentsStatus = Array.isArray(statusData) ? statusData : statusData.agents || [];
-      recentEvents = Array.isArray(eventsData) ? eventsData : eventsData.events || [];
+      // Normalize agent status - add confidence from requests_handled
+      agentsStatus = (Array.isArray(statusData) ? statusData : []).map(a => ({
+        ...a,
+        confidence: a.confidence ?? (a.requests_handled > 0 ? 0.95 : 0)
+      }));
+
+      // Normalize events - map 'agent' to 'agent_name', add description
+      const rawEvents = Array.isArray(eventsData) ? eventsData : eventsData.events || [];
+      recentEvents = rawEvents.map(e => ({
+        ...e,
+        agent_name: e.agent_name || e.agent || 'Unknown',
+        description: e.message || e.file || e.event_type
+      }));
 
       loading = false;
       lastUpdated = new Date();
 
-      // Create charts after data loads
       setTimeout(createCharts, 100);
     } catch (err) {
       logger.error('Failed to load monitoring data:', err);
@@ -505,7 +513,7 @@
     {/if}
 
     <!-- Agent Activity Charts -->
-    {#if !loading && (runningAgents.length > 0 || recentEvents.length > 0)}
+    {#if !loading && recentEvents.length > 0}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <!-- Agent Activity Over Time -->
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
@@ -645,11 +653,11 @@
                   <td class="px-4 py-3">
                     <span
                       class="inline-block px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide font-mono"
-                      class:bg-[var(--success)]={agent.is_running || agent.confidence > 0.7}
-                      class:text-white={agent.is_running || agent.confidence > 0.7}
-                      class:bg-[var(--muted)]={!agent.is_running && agent.confidence <= 0.7}
+                      class:bg-[var(--success)]={agent.is_running}
+                      class:text-white={agent.is_running}
+                      class:bg-[var(--muted)]={!agent.is_running}
                     >
-                      {agent.is_running ? 'Running' : agent.confidence > 0.7 ? 'Active' : 'Idle'}
+                      {agent.is_running ? 'Running' : 'Idle'}
                     </span>
                   </td>
                   <td class="px-4 py-3">
@@ -679,42 +687,6 @@
           </table>
         </div>
       {/if}
-    </section>
-
-    <!-- Detection Info Box -->
-    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-      <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-3">
-        How Agent Detection Works
-      </h3>
-      <ul class="space-y-2 text-sm text-[var(--muted)] font-sans">
-        <li class="flex gap-2">
-          <span class="text-[var(--text)]">•</span>
-          <span
-            ><strong class="text-[var(--text)]">Process Scanning:</strong>Detects running AI coding
-            tools</span
-          >
-        </li>
-        <li class="flex gap-2">
-          <span class="text-[var(--text)]">•</span>
-          <span
-            ><strong class="text-[var(--text)]">Log Analysis:</strong>Correlates Claude Code session
-            logs</span
-          >
-        </li>
-        <li class="flex gap-2">
-          <span class="text-[var(--text)]">•</span>
-          <span
-            ><strong class="text-[var(--text)]">Pattern Matching:</strong>Identifies editing
-            patterns</span
-          >
-        </li>
-        <li class="flex gap-2">
-          <span class="text-[var(--text)]">•</span>
-          <span
-            ><strong class="text-[var(--text)]">Git Attribution:</strong>Analyzes commit authors</span
-          >
-        </li>
-      </ul>
     </section>
 
     <!-- Activity Timeline -->

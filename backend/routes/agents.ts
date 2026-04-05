@@ -26,7 +26,8 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
         const secondsSinceLastSeen = (now.getTime() - lastSeen.getTime()) / 1000;
         return {
           ...agent,
-          is_running: secondsSinceLastSeen < 30
+          is_running: secondsSinceLastSeen < 300, // 5 min tolerance for log watcher polling
+          confidence: agent.requests_handled > 100 ? 0.95 : agent.requests_handled > 10 ? 0.7 : 0.3
         };
       });
       res.json(agents);
