@@ -653,14 +653,7 @@ app.get('/api/events-by-agent/:agent', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/agent-stats', cacheMiddleware(3000), (req: Request, res: Response) => {
-  try {
-    const stats = db.getAgentStats();
-    return res.json(stats);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
+// agent-stats is handled by the agents router (routes/agents.ts)
 
 // Agent profiles API (for intelligence/persona tracking)
 app.get('/api/agent-profiles', cacheMiddleware(5000), (req: Request, res: Response) => {

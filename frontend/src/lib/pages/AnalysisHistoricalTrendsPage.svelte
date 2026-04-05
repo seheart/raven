@@ -17,7 +17,8 @@
 
   // State
   let trends = $state([]);
-  let loading = $state(true);
+  let loading = $state(false);
+  let initialized = $state(false);
   let error = $state(null);
   let period = $state('daily'); // hourly, daily, weekly
   let days = $state(7);
@@ -57,7 +58,6 @@
 
   async function loadTrends() {
     try {
-      if (trends.length === 0) loading = true;
       error = null;
       const data = await api.get(`/trends/historical?period=${period}&days=${days}`);
       trends = data.trends || [];
@@ -67,6 +67,7 @@
       error = err.message;
     } finally {
       loading = false;
+      initialized = true;
     }
   }
 
@@ -446,7 +447,7 @@
           Try Again
         </button>
       </div>
-    {:else if trends.length === 0}
+    {:else if initialized && trends.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
         <p class="text-sm text-[var(--muted)] font-sans mb-2">
           No activity data for the selected period

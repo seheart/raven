@@ -81,8 +81,48 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
     '/agent-stats',
     cacheMiddleware(3000),
     asyncHandler(async (req: Request, res: Response) => {
-      const stats = db.getAgentStats();
-      res.json(stats);
+      const agentEvents = db.getAgentStats();
+
+      const fileStats = db.db
+        .prepare(
+          `
+        SELECT
+          COUNT(*) as total_file_changes,
+          COUNT(DISTINCT filepath) as unique_files,
+          SUM(CASE WHEN change_type IN ('change', 'modified') THEN 1 ELSE 0 END) as edit_count,
+          SUM(CASE WHEN change_type = 'add' THEN 1 ELSE 0 END) as create_count,
+          SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as delete_count,
+          MIN(timestamp) as first_seen,
+          MAX(timestamp) as last_active
+        FROM events
+      `
+        )
+        .get() as any;
+
+      const toolBreakdown = db.db
+        .prepare(
+          `
+        SELECT message, COUNT(*) as count FROM agent_events
+        WHERE event_type = 'tool_call'
+        GROUP BY message ORDER BY count DESC LIMIT 10
+      `
+        )
+        .all();
+
+      const enriched = agentEvents.map((agent: any) => ({
+        ...agent,
+        agent_name: agent.agent_name || agent.agent,
+        total_file_changes: fileStats?.total_file_changes || 0,
+        unique_files: fileStats?.unique_files || 0,
+        edit_count: fileStats?.edit_count || 0,
+        create_count: fileStats?.create_count || 0,
+        delete_count: fileStats?.delete_count || 0,
+        first_seen: fileStats?.first_seen || null,
+        last_active: fileStats?.last_active || null,
+        tool_breakdown: toolBreakdown || []
+      }));
+
+      res.json(enriched);
     })
   );
 

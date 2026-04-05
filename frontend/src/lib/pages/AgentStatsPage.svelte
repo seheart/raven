@@ -317,86 +317,32 @@
       error = null;
 
       // Fetch agent stats and events
-      const [statsData, eventsData] = await Promise.all([
-        api.get('/agent-stats').catch(() => []),
-        api.get('/agent-events?limit=500').catch(() => [])
-      ]);
+      const statsData = await api.get('/agent-stats').catch(() => []);
+      const stats = Array.isArray(statsData) ? statsData : [];
 
-      const stats = Array.isArray(statsData) ? statsData : statsData.stats || [];
-      const events = Array.isArray(eventsData) ? eventsData : eventsData.events || [];
-
-      // Calculate detailed metrics per agent
-      const agentData = {};
-      events.forEach(event => {
-        const agentName = event.agent_name || event.agent || 'Unknown';
-        if (!agentData[agentName]) {
-          agentData[agentName] = {
-            lines_changed: 0,
-            files_modified: new Set(),
-            last_active: event.timestamp,
-            create_count: 0,
-            edit_count: 0,
-            delete_count: 0,
-            first_seen: event.timestamp,
-            total_change_size: 0,
-            event_count: 0
-          };
-        }
-
-        agentData[agentName].lines_changed += (event.lines_added || 0) + (event.lines_deleted || 0);
-        agentData[agentName].total_change_size +=
-          (event.lines_added || 0) + (event.lines_deleted || 0);
-        agentData[agentName].event_count++;
-
-        if (event.filepath) {
-          agentData[agentName].files_modified.add(event.filepath);
-        }
-
-        // Count event types
-        const eventType = (event.event_type || '').toLowerCase();
-        if (eventType.includes('create') || eventType.includes('add')) {
-          agentData[agentName].create_count++;
-        } else if (eventType.includes('delete') || eventType.includes('remove')) {
-          agentData[agentName].delete_count++;
-        } else if (
-          eventType.includes('edit') ||
-          eventType.includes('modify') ||
-          eventType.includes('change')
-        ) {
-          agentData[agentName].edit_count++;
-        }
-
-        // Update timestamps
-        if (new Date(event.timestamp) > new Date(agentData[agentName].last_active)) {
-          agentData[agentName].last_active = event.timestamp;
-        }
-        if (new Date(event.timestamp) < new Date(agentData[agentName].first_seen)) {
-          agentData[agentName].first_seen = event.timestamp;
-        }
-      });
-
-      // Merge stats with calculated data and add advanced metrics
       agentStats = stats.map(agent => {
-        const agentName = agent.agent_name || agent.agent || 'Unknown';
-        const data = agentData[agentName] || agentData[agent.agent] || {};
-        const daysSinceFirst = data.first_seen
-          ? Math.max(1, Math.ceil((new Date() - new Date(data.first_seen)) / (1000 * 60 * 60 * 24)))
+        const daysSinceFirst = agent.first_seen
+          ? Math.max(
+              1,
+              Math.ceil((new Date() - new Date(agent.first_seen)) / (1000 * 60 * 60 * 24))
+            )
           : 1;
+        const totalChanges =
+          (agent.edit_count || 0) + (agent.create_count || 0) + (agent.delete_count || 0);
 
         return {
           ...agent,
-          agent_name: agentName,
-          lines_changed: data.lines_changed || 0,
-          files_modified: data.files_modified?.size || 0,
-          last_active: data.last_active || null,
-          create_count: data.create_count || 0,
-          edit_count: data.edit_count || 0,
-          delete_count: data.delete_count || 0,
-          // Advanced metrics
-          changes_per_day: Math.round((data.event_count || 0) / daysSinceFirst),
-          avg_change_size:
-            data.event_count > 0 ? Math.round(data.total_change_size / data.event_count) : 0,
-          unique_files: data.files_modified?.size || 0
+          agent_name: agent.agent_name || agent.agent || 'Unknown',
+          lines_changed: agent.total_file_changes || 0,
+          files_modified: agent.unique_files || 0,
+          last_active: agent.last_active || null,
+          create_count: agent.create_count || 0,
+          edit_count: agent.edit_count || 0,
+          delete_count: agent.delete_count || 0,
+          changes_per_day: Math.round(totalChanges / daysSinceFirst),
+          avg_change_size: 0,
+          unique_files: agent.unique_files || 0,
+          tool_breakdown: agent.tool_breakdown || []
         };
       });
 

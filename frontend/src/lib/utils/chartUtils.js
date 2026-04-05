@@ -16,10 +16,11 @@ export function getCSSColor(varName) {
  */
 export function getChartColors() {
   return {
-    primary: getCSSColor('--accent') || '#3b82f6',
-    success: getCSSColor('--success') || '#10b981',
+    primary: getCSSColor('--accent') || '#4f7df5',
+    success: getCSSColor('--success') || '#22c55e',
     warning: getCSSColor('--warning') || '#f59e0b',
     error: getCSSColor('--error') || '#ef4444',
+    info: getCSSColor('--info') || '#38bdf8',
     text: getCSSColor('--text') || '#e2e8f0',
     textHeading: getCSSColor('--text-heading') || '#f1f5f9',
     muted: getCSSColor('--muted') || '#94a3b8',

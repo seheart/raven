@@ -17,13 +17,13 @@
   --color-gray-700: #1a1a2e;
   --color-gray-900: #0d0d1a;
   --color-blue-50: #ebf4ff;
-  --color-blue-600: #2b6cb0;
-  --color-blue-700: #1e5a94;
+  --color-blue-600: #4f7df5;
+  --color-blue-700: #3b69e0;
   --color-blue-900: #ffffff;
   --color-green-50: #edfcf2;
-  --color-green-600: #0d9f5f;
+  --color-green-600: #22c55e;
   --color-red-50: #fef2f2;
-  --color-red-700: #d1293d;
+  --color-red-700: #ef4444;
 }
 
 /* === Design Tokens === */
@@ -37,22 +37,22 @@
   --muted: #5c5f6a;
   --border: #e2e4e9;
 
-  --accent: #2b6cb0;
-  --accent-2: #1e5a94;
-  --success: #0d9f5f;
-  --error: #d1293d;
-  --warning: #c27800;
-  --info: #2b6cb0;
+  --accent: #4f7df5;
+  --accent-2: #3b69e0;
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --info: #38bdf8;
 
   /* Pills */
-  --pill-success: #0d9f5f;
-  --pill-error: #d1293d;
-  --pill-mod: #c27800;
+  --pill-success: #22c55e;
+  --pill-error: #ef4444;
+  --pill-mod: #f59e0b;
 
   /* Buttons */
-  --btn-primary-bg: #2b6cb0;
+  --btn-primary-bg: #4f7df5;
   --btn-primary-text: #ffffff;
-  --btn-primary-hover: #1e5a94;
+  --btn-primary-hover: #3b69e0;
   --btn-secondary-bg: #f0f2f5;
   --btn-secondary-text: #1a1a2e;
   --btn-secondary-hover: #e2e4e9;
@@ -63,21 +63,21 @@
   --btn-disabled-text: #9195a0;
 
   /* Links */
-  --link: #2b6cb0;
-  --link-hover: #1e5a94;
+  --link: #4f7df5;
+  --link-hover: #3b69e0;
   --link-visited: #6b46c1;
 
   /* Inputs */
   --input-bg: #ffffff;
   --input-border: #e2e4e9;
-  --input-focus-border: #2b6cb0;
+  --input-focus-border: #4f7df5;
   --input-text: #1a1a2e;
   --input-placeholder: #9195a0;
 
   /* Chips */
   --chip-bg: #f0f2f5;
   --chip-text: #1a1a2e;
-  --chip-accent: #2b6cb0;
+  --chip-accent: #4f7df5;
 
   /* Code */
   --code-bg: #f5f6f8;
@@ -85,8 +85,8 @@
   --code-border: #e2e4e9;
 
   /* Highlights */
-  --highlight: rgba(43, 108, 176, 0.1);
-  --selection: rgba(43, 108, 176, 0.2);
+  --highlight: rgba(79, 125, 245, 0.1);
+  --selection: rgba(79, 125, 245, 0.2);
 
   /* Semantic aliases */
   --text-primary: var(--text-heading);

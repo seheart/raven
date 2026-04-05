@@ -17,8 +17,7 @@
   let activeTriggers = $state(0);
   let totalSessions = $state(0);
   let triggeredEvents = $state([]);
-  let loading = $state(true);
-  let hasLoaded = $state(false);
+  let loading = $state(false);
   let error = $state(null);
   let lastUpdated = $state(new Date());
   let metricsHistory = $state([]);
@@ -46,7 +45,6 @@
   // Load analysis data
   async function loadAnalysisData() {
     try {
-      if (!hasLoaded) loading = true;
       error = null;
 
       const [systemMetrics, triggersData, sessionsData, triggeredEventsData] = await Promise.all([
@@ -79,7 +77,6 @@
 
       lastUpdated = new Date();
       loading = false;
-      hasLoaded = true;
     } catch (err) {
       logger.error('Failed to load analysis data:', err);
       error = err.message;
