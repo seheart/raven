@@ -19,7 +19,7 @@
     active_triggers: 0,
     trigger_counts: {}
   });
-  let loading = $state(true);
+  let loading = $state(false);
   let error = $state(null);
   let successMessage = $state(null);
   let lastUpdated = $state(null);
@@ -41,11 +41,12 @@
   // Success message timeouts
   let successMessageTimeouts = [];
 
-  // Debounce search query
+  // Debounce search query — read searchQuery synchronously to track it
   $effect(() => {
+    const query = searchQuery;
     clearTimeout(searchDebounceTimeout);
     searchDebounceTimeout = setTimeout(() => {
-      debouncedSearchQuery = searchQuery;
+      debouncedSearchQuery = query;
     }, 300);
   });
 
@@ -234,10 +235,11 @@
     if (trigger.file) conditions.push(`File: ${trigger.file}`);
     if (trigger.agent) conditions.push(`Agent: ${trigger.agent}`);
     if (trigger.event_type) conditions.push(`Type: ${trigger.event_type}`);
-    if (trigger.lines_changed) conditions.push(`Lines: ${trigger.lines_changed}`);
+    if (trigger.lines_changed) conditions.push(`Lines changed: ${trigger.lines_changed}`);
+    if (trigger.lines_deleted) conditions.push(`Lines deleted: ${trigger.lines_deleted}`);
     if (trigger.duration_ms) conditions.push(`Duration: ${trigger.duration_ms}ms`);
-    if (trigger.cpu_percent) conditions.push(`CPU: ${trigger.cpu_percent}%`);
-    if (trigger.memory_percent) conditions.push(`Memory: ${trigger.memory_percent}%`);
+    if (trigger.cpu_percent) conditions.push(`CPU: ${trigger.cpu_percent}`);
+    if (trigger.memory_percent) conditions.push(`Memory: ${trigger.memory_percent}`);
     return conditions;
   }
 
@@ -275,31 +277,14 @@
           Automated monitoring rules and real-time alerts
         </p>
       </div>
-      <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-xs text-[var(--muted)] font-mono">Updated {timeAgo}</span>
-        <button
-          onclick={reloadConfig}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors"
-        >
-          Reload Config
-        </button>
-        <button
-          onclick={clearCooldowns}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors"
-        >
-          Clear Cooldowns
-        </button>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-[var(--muted)] font-mono">{timeAgo}</span>
         <button
           onclick={() => loadAllData(true)}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] hover:border-[var(--accent)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {#if isManualRefresh}
-            <span class="inline-block animate-spin">↻</span>
-          {:else}
-            ↻
-          {/if}
-          Refresh
+          {loading ? '...' : '↻'} Refresh
         </button>
       </div>
     </div>
@@ -322,7 +307,7 @@
     {/if}
 
     <!-- Tabs -->
-    <div class="flex gap-2 mb-6 border-b-2 border-[var(--surface)]">
+    <div class="flex gap-2 mb-6 border-b border-[var(--border)]">
       <button
         onclick={() => (activeTab = 'rules')}
         class="px-4 py-2 text-sm font-sans transition-all border-b-2 {activeTab === 'rules'
@@ -352,10 +337,10 @@
     <!-- Tab Content -->
     <div>
       {#if loading}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {#each Array(6) as _, i (i)}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {#each Array(2) as _, i (i)}
             <div
-              class="h-48 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+              class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
             ></div>
           {/each}
         </div>
@@ -387,6 +372,18 @@
             >
               {filteredTriggers.length} / {triggers.length} triggers
             </div>
+            <button
+              onclick={reloadConfig}
+              class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors"
+            >
+              Reload Config
+            </button>
+            <button
+              onclick={clearCooldowns}
+              class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors"
+            >
+              Clear Cooldowns
+            </button>
           </div>
         {/if}
 
@@ -504,8 +501,19 @@
                   >
                     Test Fire
                   </button>
-                  <span class="text-xs font-semibold font-sans px-2 py-1 bg-[var(--bg)] rounded">
-                    {enabledTriggers.has(trigger.name) ? ' Enabled' : ' Disabled'}
+                  <span
+                    class="flex items-center gap-1.5 text-xs font-semibold font-sans px-2 py-1 bg-[var(--bg)] rounded {enabledTriggers.has(
+                      trigger.name
+                    )
+                      ? 'text-[var(--success)]'
+                      : 'text-[var(--muted)]'}"
+                  >
+                    <span
+                      class="w-1.5 h-1.5 rounded-full {enabledTriggers.has(trigger.name)
+                        ? 'bg-[var(--success)]'
+                        : 'bg-[var(--muted)]'}"
+                    ></span>
+                    {enabledTriggers.has(trigger.name) ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
               </div>

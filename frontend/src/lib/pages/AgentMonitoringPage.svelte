@@ -651,13 +651,14 @@
                     {agent.agent_name || 'Unknown'}
                   </td>
                   <td class="px-4 py-3">
-                    <span
-                      class="inline-block px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide font-mono"
-                      class:bg-[var(--success)]={agent.is_running}
-                      class:text-white={agent.is_running}
-                      class:bg-[var(--muted)]={!agent.is_running}
-                    >
-                      {agent.is_running ? 'Running' : 'Idle'}
+                    <span class="flex items-center gap-2 text-sm font-mono">
+                      <span
+                        class="w-2 h-2 rounded-full {agent.is_running
+                          ? 'bg-[var(--success)]'
+                          : 'bg-[var(--muted)]'}"
+                      ></span>
+                      <span class="text-[var(--text)]">{agent.is_running ? 'Running' : 'Idle'}</span
+                      >
                     </span>
                   </td>
                   <td class="px-4 py-3">

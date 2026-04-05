@@ -32,6 +32,7 @@ export interface TriggerRule {
   agent?: string;
   event_type?: string;
   lines_changed?: string;
+  lines_deleted?: string;
   duration_ms?: string;
   cpu_percent?: string;
   memory_percent?: string;
@@ -192,10 +193,11 @@ cooldown_seconds = 300
         // Record trigger
         const triggerEvent: TriggeredEventRecord = {
           trigger_name: name,
-          timestamp: Math.floor(now / 1000), // Unix timestamp in seconds
+          timestamp: Math.floor(now / 1000),
           message,
-          action: trigger.action
-        };
+          action: trigger.action,
+          file: event.file || null
+        } as any;
 
         this.triggeredEvents.unshift(triggerEvent);
         if (this.triggeredEvents.length > 1000) {
@@ -256,6 +258,13 @@ cooldown_seconds = 300
     // Check numeric conditions
     if (trigger.lines_changed && event.lines_changed !== undefined) {
       if (!this.checkNumericCondition(event.lines_changed, trigger.lines_changed)) {
+        return false;
+      }
+    }
+
+    // lines_deleted uses the same lines_changed event value
+    if (trigger.lines_deleted && event.lines_changed !== undefined) {
+      if (!this.checkNumericCondition(event.lines_changed, trigger.lines_deleted)) {
         return false;
       }
     }
@@ -324,10 +333,11 @@ cooldown_seconds = 300
       .replace(/\{file\}/g, String(event.file || ''))
       .replace(/\{agent\}/g, String(event.agent || ''))
       .replace(/\{event_type\}/g, String(event.event_type || ''))
-      .replace(/\{lines_changed\}/g, String(event.lines_changed || ''))
-      .replace(/\{duration_ms\}/g, String(event.duration_ms || ''))
-      .replace(/\{cpu_percent\}/g, String(event.cpu_percent || ''))
-      .replace(/\{memory_percent\}/g, String(event.memory_percent || ''));
+      .replace(/\{lines_changed\}/g, String(event.lines_changed || 0))
+      .replace(/\{lines_deleted\}/g, String(event.lines_changed || 0))
+      .replace(/\{duration_ms\}/g, String(event.duration_ms || 0))
+      .replace(/\{cpu_percent\}/g, String(event.cpu_percent || 0))
+      .replace(/\{memory_percent\}/g, String(event.memory_percent || 0));
   }
 
   /**

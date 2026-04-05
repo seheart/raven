@@ -601,7 +601,7 @@
     </div>
 
     <!-- Charts Section -->
-    {#if showCharts && !loading && stats.total > 0}
+    {#if !loading && stats.total > 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
         <div class="flex justify-between items-center mb-5">
           <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
@@ -609,34 +609,27 @@
           </h3>
           <button
             class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans cursor-pointer hover:border-[var(--accent)] transition-colors"
-            onclick={() => (showCharts = false)}
+            onclick={() => (showCharts = !showCharts)}
           >
-            Hide Charts
+            {showCharts ? 'Hide Charts' : 'Show Charts'}
           </button>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
-            <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Event Type Distribution</h4>
-            <div class="h-[250px] relative">
-              <canvas id="chart-type-breakdown"></canvas>
+        {#if showCharts}
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
+              <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Event Type Distribution</h4>
+              <div class="h-[250px] relative">
+                <canvas id="chart-type-breakdown"></canvas>
+              </div>
+            </div>
+            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
+              <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Top 10 Projects</h4>
+              <div class="h-[300px] relative">
+                <canvas id="chart-project-distribution"></canvas>
+              </div>
             </div>
           </div>
-          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
-            <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Top 10 Projects</h4>
-            <div class="h-[300px] relative">
-              <canvas id="chart-project-distribution"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    {:else if !showCharts && !loading}
-      <div class="text-center p-5 mb-6">
-        <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans cursor-pointer hover:border-[var(--accent)] transition-colors"
-          onclick={() => (showCharts = true)}
-        >
-          Show Analytics Charts
-        </button>
+        {/if}
       </div>
     {/if}
 
@@ -682,25 +675,10 @@
 
         <button
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
-          onclick={loadConversations}
-          disabled={loading}
-        >
-          {#if loading}{:else}{/if} Refresh
-        </button>
-
-        <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
           onclick={toggleExpandAll}
           disabled={filteredConversations.length === 0}
         >
-          {#if allExpanded}{:else}{/if}
           {allExpanded ? 'Collapse All' : 'Expand All'}
-        </button>
-
-        <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
-          onclick={() => (showImportDialog = true)}
-          >Import
         </button>
 
         <button
@@ -876,13 +854,7 @@
       </div>
     {:else if filteredConversations.length === 0}
       <div class="text-center p-12 text-[var(--muted)]">
-        <p class="mb-4 text-sm">No conversations found</p>
-        <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
-          onclick={() => (showImportDialog = true)}
-        >
-          Import Claude Sessions
-        </button>
+        <p class="text-sm">No conversations found</p>
       </div>
     {:else}
       <div class="flex flex-col gap-3">
@@ -909,11 +881,11 @@
               ) === 'user'
                 ? 'border-l-4 border-l-[var(--accent)]'
                 : getEventClass(conv.event_type) === 'assistant'
-                  ? 'border-l-4 border-l-[var(--accent-2)]'
+                  ? 'border-l-4 border-l-[var(--info)]'
                   : getEventClass(conv.event_type) === 'tool-call'
-                    ? 'border-l-4 border-l-[#ffa500]'
+                    ? 'border-l-4 border-l-[var(--warning)]'
                     : getEventClass(conv.event_type) === 'tool-result'
-                      ? 'border-l-4 border-l-[#00c853]'
+                      ? 'border-l-4 border-l-[var(--success)]'
                       : ''}"
             >
               <button
@@ -926,28 +898,23 @@
                     <span class="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]"
                       >{conv.event_type}</span
                     >
-                    {#if conv.tool_name}
-                      <span class="text-xs px-2 py-0.5 rounded bg-[var(--bg)] text-[var(--muted)]"
-                        >{conv.tool_name}</span
+                    {#if conv.file}
+                      <span
+                        class="text-xs px-2 py-0.5 rounded bg-[var(--bg)] text-[var(--muted)] font-mono truncate max-w-[200px]"
+                        >{conv.file.split('/').slice(-2).join('/')}</span
                       >
                     {/if}
-                    {#if conv.project}
+                    {#if conv.project_name}
                       <span class="text-xs px-2 py-0.5 rounded bg-[var(--bg)] text-[var(--muted)]"
-                        >{conv.project}</span
+                        >{conv.project_name}</span
                       >
                     {/if}
                   </div>
-                  {#if viewMode === 'detailed'}
+                  {#if viewMode === 'detailed' && conv.message}
                     <div
                       class="text-xs text-[var(--text)] leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis"
                     >
-                      {#if conv.content}
-                        {truncateContent(conv.content)}
-                      {:else if conv.tool_name}
-                        Tool: {conv.tool_name}
-                      {:else if conv.tool_output}
-                        {truncateContent(conv.tool_output)}
-                      {/if}
+                      {truncateContent(conv.message, 120)}
                     </div>
                   {/if}
                 </div>
@@ -964,100 +931,70 @@
 
               {#if expandedConversations.includes(conv.id)}
                 <div class="border-t border-[var(--border)] p-5 bg-[var(--bg)]">
-                  {#if conv.content}
-                    <div class="mb-5">
+                  {#if conv.message}
+                    <div class="mb-4">
                       <div class="flex justify-between items-center mb-2">
                         <div
                           class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
                         >
-                          Content:
+                          Message
                         </div>
                         <button
-                          class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-[10px] cursor-pointer hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-colors"
-                          onclick={() => copyToClipboard(conv.content, 'Content')}
+                          class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors"
+                          onclick={() => copyToClipboard(conv.message, 'Message')}
                         >
                           Copy
                         </button>
                       </div>
                       <pre
-                        class="bg-[var(--surface)] border border-[var(--border)] rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words">{conv.content}</pre>
+                        class="bg-[var(--surface)] border border-[var(--border)] rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">{conv.message}</pre>
                     </div>
                   {/if}
 
-                  {#if conv.tool_input}
-                    <div class="mb-5">
-                      <div class="flex justify-between items-center mb-2">
-                        <div
-                          class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
-                        >
-                          Tool Input:
-                        </div>
-                        <button
-                          class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-[10px] cursor-pointer hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-colors"
-                          onclick={() =>
-                            copyToClipboard(formatToolInput(conv.tool_input), 'Tool Input')}
-                        >
-                          Copy
-                        </button>
+                  {#if conv.file}
+                    <div class="mb-4">
+                      <div
+                        class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] mb-2"
+                      >
+                        File
                       </div>
-                      <pre
-                        class="bg-[var(--surface)] border border-[var(--border)] rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words">{formatToolInput(
-                          conv.tool_input
-                        )}</pre>
-                    </div>
-                  {/if}
-
-                  {#if conv.tool_output}
-                    <div class="mb-5">
-                      <div class="flex justify-between items-center mb-2">
-                        <div
-                          class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
-                        >
-                          Tool Output:
-                        </div>
-                        <button
-                          class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-[10px] cursor-pointer hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-colors"
-                          onclick={() => copyToClipboard(conv.tool_output, 'Tool Output')}
-                        >
-                          Copy
-                        </button>
+                      <div
+                        class="text-sm font-mono text-[var(--text)] bg-[var(--surface)] border border-[var(--border)] rounded p-3 break-all"
+                      >
+                        {conv.file}
                       </div>
-                      <pre
-                        class="bg-[var(--surface)] border border-[var(--border)] rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto">{conv.tool_output}</pre>
                     </div>
                   {/if}
 
                   <div
-                    class="flex flex-col gap-2 p-3 bg-[var(--surface)] border border-[var(--border)] rounded"
+                    class="flex flex-wrap gap-x-6 gap-y-2 p-3 bg-[var(--surface)] border border-[var(--border)] rounded text-xs"
                   >
-                    <div class="flex gap-3 text-xs">
-                      <span class="text-[var(--muted)] font-semibold min-w-[100px]"
-                        >Session ID:</span
-                      >
-                      <span class="text-[var(--text)] font-mono break-all"
-                        >{conv.claude_session_id}</span
+                    <div>
+                      <span class="text-[var(--muted)]">Agent</span>
+                      <span class="text-[var(--text)] font-mono ml-2"
+                        >{conv.agent || 'Unknown'}</span
                       >
                     </div>
-                    {#if conv.parent_uuid}
-                      <div class="flex gap-3 text-xs">
-                        <span class="text-[var(--muted)] font-semibold min-w-[100px]"
-                          >Parent UUID:</span
-                        >
-                        <span class="text-[var(--text)] font-mono break-all"
-                          >{conv.parent_uuid}</span
+                    {#if conv.session_id}
+                      <div>
+                        <span class="text-[var(--muted)]">Session</span>
+                        <span class="text-[var(--text)] font-mono ml-2"
+                          >{conv.session_id.slice(0, 12)}...</span
                         >
                       </div>
                     {/if}
-                    {#if conv.metadata}
-                      <div class="flex gap-3 text-xs">
-                        <span class="text-[var(--muted)] font-semibold min-w-[100px]"
-                          >Metadata:</span
-                        >
-                        <span class="text-[var(--text)] font-mono break-all"
-                          >{JSON.stringify(conv.metadata)}</span
-                        >
+                    {#if conv.project_name}
+                      <div>
+                        <span class="text-[var(--muted)]">Project</span>
+                        <span class="text-[var(--text)] font-mono ml-2">{conv.project_name}</span>
                       </div>
                     {/if}
+                    <div>
+                      <span class="text-[var(--muted)]">Timestamp</span>
+                      <span class="text-[var(--text)] font-mono ml-2"
+                        >{new Date(conv.timestamp).toLocaleString()}</span
+                      >
+                    </div>
                   </div>
                 </div>
               {/if}
@@ -1084,61 +1021,3 @@
     {/if}
   </div>
 </div>
-
-<!-- Import Section (inline) -->
-{#if showImportDialog}
-  <div class="mt-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 max-w-xl">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
-        Import Claude Conversations
-      </h3>
-      <button onclick={closeImportDialog} class="text-xs text-[var(--accent)] hover:underline"
-        >Cancel</button
-      >
-    </div>
-    <p class="text-xs text-[var(--muted)] mb-4">
-      Import conversation history from Claude Code .jsonl session files.
-    </p>
-    <div class="space-y-3">
-      <div>
-        <label for="sessionFile" class="block text-sm text-[var(--muted)] mb-1"
-          >Session File Path</label
-        >
-        <input
-          id="sessionFile"
-          type="text"
-          bind:value={importSessionFile}
-          placeholder="session-id.jsonl"
-          class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-        />
-      </div>
-      <div>
-        <label for="importProject" class="block text-sm text-[var(--muted)] mb-1"
-          >Project Name (optional)</label
-        >
-        <input
-          id="importProject"
-          type="text"
-          bind:value={importProject}
-          placeholder="raven"
-          class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-        />
-      </div>
-      <div class="flex gap-2 pt-3 border-t border-[var(--border)]">
-        <button
-          onclick={importConversations}
-          disabled={importing}
-          class="px-3 py-1.5 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {importing ? 'Importing...' : 'Import'}
-        </button>
-        <button
-          onclick={closeImportDialog}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--muted)] hover:border-[var(--accent)] transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
