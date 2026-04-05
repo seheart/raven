@@ -6,9 +6,10 @@ import { API_CONFIG } from '../config.js';
 
 const API_BASE = API_CONFIG.API_BASE;
 
-// Throttle timeout notifications to prevent toast spam during backend restarts
+// Throttle notifications to prevent toast spam during backend restarts or bursts
 let lastTimeoutNotification = 0;
-const TIMEOUT_NOTIFICATION_COOLDOWN = 10000; // 10s between timeout toasts
+let lastApiErrorNotification = 0;
+const NOTIFICATION_COOLDOWN = 5000; // 5s between error toasts
 
 /**
  * Enhanced fetch wrapper with automatic error notifications, JWT authentication, and timeouts
@@ -133,9 +134,13 @@ export async function apiFetch(endpoint, options = {}) {
         throw new Error('Unauthorized');
       }
 
-      // Don't show notifications for suppressed 404s/501s
+      // Don't show notifications for suppressed 404s/501s, and throttle others
       if (!shouldSuppress) {
-        notifications.apiError(endpoint, errorMessage);
+        const now = Date.now();
+        if (now - lastApiErrorNotification > NOTIFICATION_COOLDOWN) {
+          lastApiErrorNotification = now;
+          notifications.apiError(endpoint, errorMessage);
+        }
       }
 
       throw new Error(errorMessage);
@@ -157,7 +162,7 @@ export async function apiFetch(endpoint, options = {}) {
     if (error.name === 'AbortError') {
       const timeoutError = new Error(`Request timeout after ${timeout}ms: ${endpoint}`);
       const now = Date.now();
-      if (now - lastTimeoutNotification > TIMEOUT_NOTIFICATION_COOLDOWN) {
+      if (now - lastTimeoutNotification > NOTIFICATION_COOLDOWN) {
         lastTimeoutNotification = now;
         notifications.error(`Request timed out after ${Math.round(timeout / 1000)}s`, {
           title: 'Request Timeout',

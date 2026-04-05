@@ -43,6 +43,8 @@
   let syntaxAlerts = $state([]);
   let workingAgents = $state(new Set());
   let workingAgentTimers = {};
+  let diffDebounceTimer = null;
+  let lastDiffFilepath = '';
 
   // Charts
   let activityChart = null;
@@ -256,23 +258,28 @@
       timestamp: event.timestamp || new Date().toISOString()
     });
 
-    // Fetch latest diff for the live preview
+    // Debounced diff fetch — only fetch for the latest file, silently
     if (event.filepath && event.change_type !== 'unlink') {
-      api
-        .get(`/file-events?limit=1&diff=true&filepath=${encodeURIComponent(event.filepath)}`)
-        .then(data => {
-          const ev = Array.isArray(data) ? data[0] : null;
-          if (ev?.diff) {
-            latestDiff = {
-              filepath: ev.filepath,
-              diff: ev.diff,
-              change_type: ev.change_type,
-              agent_source: ev.agent_source,
-              timestamp: ev.timestamp
-            };
-          }
-        })
-        .catch(() => {});
+      lastDiffFilepath = event.filepath;
+      clearTimeout(diffDebounceTimer);
+      diffDebounceTimer = setTimeout(() => {
+        const fp = lastDiffFilepath;
+        fetch(`/api/file-events?limit=1&diff=true&filepath=${encodeURIComponent(fp)}`)
+          .then(r => (r.ok ? r.json() : null))
+          .then(data => {
+            const ev = Array.isArray(data) ? data[0] : null;
+            if (ev?.diff) {
+              latestDiff = {
+                filepath: ev.filepath,
+                diff: ev.diff,
+                change_type: ev.change_type,
+                agent_source: ev.agent_source,
+                timestamp: ev.timestamp
+              };
+            }
+          })
+          .catch(() => {});
+      }, 1000);
     }
 
     // Reload stats (debounced by cache)
@@ -388,6 +395,7 @@
       clearInterval(interval);
       unsubFilter();
       Object.values(workingAgentTimers).forEach(t => clearTimeout(t));
+      clearTimeout(diffDebounceTimer);
     };
   });
 </script>
