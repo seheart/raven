@@ -167,7 +167,7 @@
       ]);
 
       conversations = conversationsData.conversations || [];
-      stats = statsData;
+      stats = { total: 0, by_type: {}, by_project: {}, ...statsData };
       offset = conversations.length;
       hasMore = conversations.length >= limit;
       lastUpdate = new Date();
@@ -348,12 +348,8 @@
       }
     });
 
-    // Listen for file changes as trigger for conversation updates
-    websocketService.on('file-changed', () => {
-      if (autoRefresh) {
-        loadConversations();
-      }
-    });
+    // NOTE: Removed file-changed listener - it caused feedback loops
+    // since Raven's own log writes trigger file-changed events
   }
 
   function toggleSort(field) {
@@ -528,7 +524,6 @@
     return () => {
       // Clean up WebSocket listeners
       websocketService.off('conversation', loadConversations);
-      websocketService.off('file-changed', loadConversations);
 
       // Disconnect theme observer
       if (themeObserver) {
@@ -568,7 +563,7 @@
         <div class="flex-1">
           <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">User Messages</div>
           <div class="text-sm font-mono font-bold text-[var(--text)]">
-            {(stats.by_type.user_message || 0).toLocaleString()}
+            {(stats.by_type?.user_message || 0).toLocaleString()}
           </div>
         </div>
       </div>
@@ -582,7 +577,7 @@
             Assistant Responses
           </div>
           <div class="text-sm font-mono font-bold text-[var(--text)]">
-            {(stats.by_type.assistant_text || 0).toLocaleString()}
+            {(stats.by_type?.assistant_text || 0).toLocaleString()}
           </div>
         </div>
       </div>
@@ -594,7 +589,7 @@
         <div class="flex-1">
           <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">Tool Calls</div>
           <div class="text-sm font-mono font-bold text-[var(--text)]">
-            {(stats.by_type.tool_call || 0).toLocaleString()}
+            {(stats.by_type?.tool_call || 0).toLocaleString()}
           </div>
         </div>
       </div>
