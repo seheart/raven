@@ -13,8 +13,6 @@
     createThemeObserver,
     getChartColors
   } from '../utils/chartUtils.js';
-  import AgentsNav from '../components/layout/AgentsNav.svelte';
-
   let agentsStatus = $state([]);
   let recentEvents = $state([]);
   let loading = $state(true);
@@ -412,7 +410,6 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <AgentsNav />
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">

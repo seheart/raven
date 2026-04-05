@@ -6,7 +6,6 @@
    */
 
   import { onMount } from 'svelte';
-  import AgentsNav from '../components/layout/AgentsNav.svelte';
   import {
     createChart,
     destroyChart,
@@ -537,8 +536,6 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <AgentsNav />
-
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">

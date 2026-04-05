@@ -6,11 +6,9 @@
   import { navigate, getPath } from '../../utils/router.svelte.js';
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: '', path: '/agents' },
-    { id: 'activity', label: 'Recent Activity', icon: '', path: '/agents/monitoring' },
-    { id: 'stats', label: 'Agent Stats', icon: '', path: '/agents/stats' },
-    { id: 'conversations', label: 'Conversations', icon: '', path: '/agents/conversations' },
-    { id: 'setup', label: 'Setup Guide', icon: '', path: '/agents/setup' }
+    { id: 'stats', label: 'Agent Stats', path: '/analysis/stats' },
+    { id: 'monitoring', label: 'Monitoring', path: '/analysis/monitoring' },
+    { id: 'conversations', label: 'Conversations', path: '/analysis/conversations' }
   ];
 
   const currentPath = $derived(getPath());
@@ -30,7 +28,6 @@
           ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
           : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'}"
       >
-        <span class="mr-2">{tab.icon}</span>
         {tab.label}
       </button>
     {/each}

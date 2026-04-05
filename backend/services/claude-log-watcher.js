@@ -136,12 +136,29 @@ export class ClaudeLogWatcher {
   async handleLogFileAdded(filepath) {
     this.logger.info(`📄 New Claude session log: ${path.basename(filepath)}`);
 
-    // Initialize file position to end (don't process history on startup)
+    // Process existing content to populate history, then track from end
     try {
+      const content = await fs.promises.readFile(filepath, 'utf8');
+      const lines = content.split('\n').filter(line => line.trim());
+      let processed = 0;
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          await this.processLogEntry(entry, filepath);
+          processed++;
+        } catch (err) {
+          // Skip malformed lines
+        }
+      }
       const stats = await fs.promises.stat(filepath);
       this.filePositions.set(filepath, stats.size);
+      if (processed > 0) {
+        this.logger.info(
+          `   Processed ${processed} historical entries from ${path.basename(filepath)}`
+        );
+      }
     } catch (error) {
-      this.logger.error(`Error getting file stats for ${filepath}:`, error);
+      this.logger.error(`Error processing file ${filepath}:`, error);
       return;
     }
 
@@ -184,92 +201,124 @@ export class ClaudeLogWatcher {
         fs.closeSync(fd);
       }
 
-      // Update position
-      this.filePositions.set(filepath, stats.size);
-
-      // Parse new lines
+      // Parse new lines — only advance position past successfully parsed content
       const newContent = buffer.toString('utf8');
-      const lines = newContent.split('\n').filter(line => line.trim());
+      const lines = newContent.split('\n');
+      let bytesConsumed = 0;
 
       for (const line of lines) {
+        const lineBytes = Buffer.byteLength(line, 'utf8') + 1; // +1 for newline
+        if (!line.trim()) {
+          bytesConsumed += lineBytes;
+          continue;
+        }
         try {
           const entry = JSON.parse(line);
+          bytesConsumed += lineBytes;
           await this.processLogEntry(entry, filepath);
         } catch (err) {
-          // Skip malformed JSON lines (incomplete writes)
-          if (!line.endsWith('}')) continue;
-          this.logger.debug(`Failed to parse log line: ${err.message}`);
+          // Incomplete JSON — stop here, retry on next poll
+          break;
         }
       }
+
+      // Only advance position past successfully parsed lines
+      this.filePositions.set(filepath, lastPosition + bytesConsumed);
     } catch (err) {
       this.logger.error(`Error processing log file ${filepath}: ${err.message}`);
     }
   }
 
   /**
-   * Process a single log entry and extract file operations
+   * Process a single log entry and extract file operations + conversations
    */
   async processLogEntry(entry, logFilePath) {
-    // Only process assistant messages with tool use
-    if (entry.type !== 'assistant' || !entry.message?.content) {
-      return;
-    }
-
     const projectInfo = this.extractProjectFromPath(logFilePath);
     if (!projectInfo) return;
 
-    // Look for tool_use in content array
-    const toolUses = entry.message.content.filter(item => item.type === 'tool_use');
+    const timestamp = entry.timestamp || new Date().toISOString();
+    const baseEvent = {
+      projectName: projectInfo.projectName,
+      projectPath: projectInfo.projectPath,
+      sessionId: projectInfo.sessionId,
+      timestamp,
+      source: 'claude-code'
+    };
 
-    for (const toolUse of toolUses) {
-      const { name, input } = toolUse;
+    // Process assistant messages with tool use
+    if (entry.type === 'assistant' && entry.message?.content) {
+      const content = Array.isArray(entry.message.content) ? entry.message.content : [];
 
-      // Map Claude tool operations to Raven event types
-      let eventType = null;
-      let filePath = null;
+      // Extract tool uses
+      const toolUses = content.filter(item => item.type === 'tool_use');
+      for (const toolUse of toolUses) {
+        const { name, input } = toolUse;
 
-      switch (name) {
-        case 'Write':
-          eventType = 'add'; // New file created
-          filePath = input.file_path;
-          break;
+        // File change events
+        if (name === 'Write' || name === 'Edit') {
+          const filePath = input?.file_path;
+          if (filePath) {
+            await this.eventCallback({
+              ...baseEvent,
+              type: name === 'Write' ? 'add' : 'change',
+              path: filePath,
+              tool: name,
+              eventCategory: 'file_change'
+            });
+            this.logger.info(`📝 ${name} operation detected: ${path.basename(filePath)}`);
+          }
+        }
 
-        case 'Edit':
-          eventType = 'change'; // Existing file modified
-          filePath = input.file_path;
-          break;
-
-        case 'Read':
-          // We could track reads, but probably not necessary for file monitoring
-          // Uncomment if you want to track file reads:
-          // eventType = 'read';
-          // filePath = input.file_path;
-          break;
-
-        case 'Bash':
-          // Could parse bash commands for file operations (rm, mv, etc.)
-          // but probably not necessary - Write/Edit cover most cases
-          break;
-
-        default:
-          // Ignore other tools (Glob, Grep, etc.)
-          break;
+        // All tool uses as agent events
+        await this.eventCallback({
+          ...baseEvent,
+          type: 'tool_call',
+          tool: name,
+          file: input?.file_path || input?.command?.slice(0, 100) || null,
+          eventCategory: 'agent_event'
+        });
       }
 
-      if (eventType && filePath) {
-        // Emit file change event
+      // Assistant text responses
+      const textBlocks = content.filter(item => item.type === 'text');
+      if (textBlocks.length > 0) {
         await this.eventCallback({
-          type: eventType,
-          path: filePath,
-          projectName: projectInfo.projectName,
-          projectPath: projectInfo.projectPath,
-          sessionId: projectInfo.sessionId,
-          timestamp: entry.timestamp || new Date().toISOString(),
-          source: 'claude-code',
-          tool: name
+          ...baseEvent,
+          type: 'assistant_text',
+          content: textBlocks
+            .map(b => b.text)
+            .join('\n')
+            .slice(0, 500),
+          eventCategory: 'conversation'
         });
+      }
+    }
 
-        this.logger.info(`📝 ${name} operation detected: ${path.basename(filePath)}`);
+    // Process user messages
+    if (entry.type === 'user' && entry.message?.content) {
+      const content = Array.isArray(entry.message.content) ? entry.message.content : [];
+      const textBlocks = content.filter(item => item.type === 'text');
+      const toolResults = content.filter(item => item.type === 'tool_result');
+
+      if (textBlocks.length > 0) {
+        await this.eventCallback({
+          ...baseEvent,
+          type: 'user_message',
+          content: textBlocks
+            .map(b => b.text)
+            .join('\n')
+            .slice(0, 500),
+          eventCategory: 'conversation'
+        });
+      }
+
+      if (toolResults.length > 0) {
+        await this.eventCallback({
+          ...baseEvent,
+          type: 'tool_result',
+          tool: toolResults[0]?.tool_use_id || null,
+          eventCategory: 'agent_event'
+        });
       }
     }
   }

@@ -13,7 +13,6 @@
     createThemeObserver,
     getChartColors
   } from '../utils/chartUtils.js';
-  import AgentsNav from '../components/layout/AgentsNav.svelte';
 
   // Agent configuration with colors and icons
   const AGENT_CONFIG = {
@@ -319,17 +318,17 @@
 
       // Fetch agent stats and events
       const [statsData, eventsData] = await Promise.all([
-        api.get('/agent-stats').catch(() => ({ stats: [] })),
-        api.get('/agent-events').catch(() => ({ events: [] }))
+        api.get('/agent-stats').catch(() => []),
+        api.get('/agent-events?limit=500').catch(() => [])
       ]);
 
-      const stats = statsData.stats || [];
-      const events = eventsData.events || [];
+      const stats = Array.isArray(statsData) ? statsData : statsData.stats || [];
+      const events = Array.isArray(eventsData) ? eventsData : eventsData.events || [];
 
       // Calculate detailed metrics per agent
       const agentData = {};
       events.forEach(event => {
-        const agentName = event.agent_name || 'Unknown';
+        const agentName = event.agent_name || event.agent || 'Unknown';
         if (!agentData[agentName]) {
           agentData[agentName] = {
             lines_changed: 0,
@@ -378,13 +377,15 @@
 
       // Merge stats with calculated data and add advanced metrics
       agentStats = stats.map(agent => {
-        const data = agentData[agent.agent_name] || {};
+        const agentName = agent.agent_name || agent.agent || 'Unknown';
+        const data = agentData[agentName] || agentData[agent.agent] || {};
         const daysSinceFirst = data.first_seen
           ? Math.max(1, Math.ceil((new Date() - new Date(data.first_seen)) / (1000 * 60 * 60 * 24)))
           : 1;
 
         return {
           ...agent,
+          agent_name: agentName,
           lines_changed: data.lines_changed || 0,
           files_modified: data.files_modified?.size || 0,
           last_active: data.last_active || null,
@@ -441,7 +442,6 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <AgentsNav />
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">

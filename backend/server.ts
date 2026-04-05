@@ -129,11 +129,9 @@ healthMonitor.onAlert(report => {
 
 // Initialize Claude Code log watcher for automatic agent detection
 const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
-  // Handle Claude Code activity events
   const agentName = 'Claude Code';
   const timestamp = event.timestamp || new Date().toISOString();
-
-  logger.info(`Claude Code activity detected: ${event.type} - ${event.file || 'unknown file'}`);
+  const category = event.eventCategory || 'file_change';
 
   // Register/update Claude Code in agent registry
   if (!agentRegistry.has(agentName)) {
@@ -142,11 +140,7 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
       agent_type: 'claude-code',
       is_running: true,
       last_seen: timestamp,
-      models_available: [
-        'claude-3-5-sonnet-20241022',
-        'claude-3-5-haiku-20241022',
-        'claude-opus-4'
-      ],
+      models_available: [],
       requests_handled: 0,
       errors: 0,
       color: getAgentColor('claude')
@@ -154,23 +148,61 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
     logger.info('✅ Claude Code registered in agent registry');
   }
 
-  // Update agent status
-  const agentStatus = agentRegistry.get(agentName)!;
-  agentStatus.last_seen = timestamp;
+  const agentStatus = agentRegistry.get(agentName) as any;
+  if (!agentStatus.last_seen || new Date(timestamp) > new Date(agentStatus.last_seen)) {
+    agentStatus.last_seen = timestamp;
+  }
   agentStatus.requests_handled++;
   agentStatus.is_running = true;
 
-  // Emit via Socket.IO for real-time UI updates
-  io.emit('claude-activity', {
-    type: event.type,
-    file: event.file,
-    timestamp: timestamp
-  });
+  // Store agent events (tool calls, tool results)
+  if (category === 'agent_event') {
+    try {
+      const stmt = db.db.prepare(`
+        INSERT INTO agent_events (timestamp, agent, event_type, file, message, session_id, project_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(
+        timestamp,
+        agentName,
+        event.type,
+        event.file || event.path || null,
+        event.tool ? `${event.tool} call` : event.type,
+        event.sessionId || SESSION_ID,
+        event.projectName || null
+      );
+    } catch (err: any) {
+      logger.debug(`Failed to store agent event: ${err.message}`);
+    }
+  }
 
-  // Update agent status via Socket.IO
-  io.emit('agent-status-update', {
-    agent: agentName,
-    status: agentStatus
+  // Store conversation entries (user messages, assistant text)
+  if (category === 'conversation') {
+    try {
+      const stmt = db.db.prepare(`
+        INSERT INTO agent_events (timestamp, agent, event_type, message, session_id, project_name)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(
+        timestamp,
+        agentName,
+        event.type,
+        (event.content || '').slice(0, 500),
+        event.sessionId || SESSION_ID,
+        event.projectName || null
+      );
+    } catch (err: any) {
+      logger.debug(`Failed to store conversation: ${err.message}`);
+    }
+  }
+
+  // Emit via Socket.IO for real-time UI updates
+  io.emit('agent-event', {
+    type: event.type,
+    agent_name: agentName,
+    file: event.file || event.path,
+    timestamp: timestamp,
+    event_type: event.type
   });
 }, logger);
 
@@ -2681,19 +2713,70 @@ app.post('/api/storage/retention', async (req: Request, res: Response) => {
 app.get('/api/conversations', (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
   const offset = parseInt(req.query.offset as string) || 0;
-  const conversations = db.db
+  const eventType = req.query.event_type as string;
+
+  let query = `SELECT * FROM agent_events WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')`;
+  const params: any[] = [];
+
+  if (eventType && eventType !== 'all') {
+    query = `SELECT * FROM agent_events WHERE event_type = ?`;
+    params.push(eventType);
+  }
+
+  query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
+
+  const conversations = db.db.prepare(query).all(...params);
+  const totalResult = db.db
     .prepare(
-      'SELECT * FROM agent_events WHERE event_type = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?'
+      "SELECT COUNT(*) as total FROM agent_events WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')"
     )
-    .all('conversation', limit, offset);
-  return res.json({ conversations, total: conversations.length });
+    .get() as any;
+
+  return res.json({ conversations, total: totalResult?.total || 0 });
 });
 
 app.get('/api/conversations/stats', (req: Request, res: Response) => {
-  const result = db.db
-    .prepare("SELECT COUNT(*) as total FROM agent_events WHERE event_type = 'conversation'")
-    .get() as any;
-  return res.json({ total: result?.total || 0 });
+  const total =
+    (
+      db.db
+        .prepare(
+          "SELECT COUNT(*) as total FROM agent_events WHERE event_type IN ('conversation', 'user_message', 'assistant_text', 'tool_call', 'tool_result')"
+        )
+        .get() as any
+    )?.total || 0;
+
+  const typeRows = db.db
+    .prepare(
+      `
+      SELECT event_type, COUNT(*) as count FROM agent_events
+      WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')
+      GROUP BY event_type
+    `
+    )
+    .all() as any[];
+
+  const projectRows = db.db
+    .prepare(
+      `
+      SELECT project_name, COUNT(*) as count FROM agent_events
+      WHERE project_name IS NOT NULL
+      GROUP BY project_name
+    `
+    )
+    .all() as any[];
+
+  const by_type: Record<string, number> = {};
+  typeRows.forEach((r: any) => {
+    by_type[r.event_type] = r.count;
+  });
+
+  const by_project: Record<string, number> = {};
+  projectRows.forEach((r: any) => {
+    by_project[r.project_name] = r.count;
+  });
+
+  return res.json({ total, by_type, by_project });
 });
 
 // ==================== Errors ====================
@@ -2808,6 +2891,10 @@ httpServer.listen(PORT, async () => {
   // Resolve stale warnings/errors for Raven's own files
   db.resolvePatternWarningsForRaven();
   db.resolveSyntaxErrorsForRaven();
+
+  // Clear agent_events from previous sessions (will be repopulated from log history)
+  db.db.prepare('DELETE FROM agent_events').run();
+  logger.info('Cleared agent_events for fresh log import');
 
   // Start Claude Code log watcher
   logger.info('🤖 Starting Claude Code log watcher...');
