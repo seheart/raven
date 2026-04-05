@@ -10,6 +10,7 @@
   import Footer from './lib/components/layout/Footer.svelte';
   // Eagerly import frequently visited pages, lazy-load the rest
   import AnalysisPage from './lib/pages/AnalysisPage.svelte';
+  import ModelsPage from './lib/pages/ModelsPage.svelte';
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
   import ToastContainer from './lib/components/ui/ToastContainer.svelte';
   import WelcomeScreen from './lib/WelcomeScreen.svelte';
@@ -17,6 +18,7 @@
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { onMount } from 'svelte';
+  import { dataService } from './lib/dataService.js';
 
   // State
   let sessionId = $state('Loading...');
@@ -66,6 +68,13 @@
   onMount(() => {
     // Load session ID once on mount
     loadSessionId();
+
+    // Prefetch all data in parallel for instant page loads
+    dataService.prefetchAll().then(() => {
+      // Start background refresh to keep data warm
+      dataService.startBackgroundRefresh(15000);
+    });
+
     const welcomeSeen = localStorage.getItem('raven-welcome-seen');
     if (!welcomeSeen) {
       showWelcome = true;
@@ -252,6 +261,8 @@
       {:else if activeTab === 'analysis'}
         {#if !activeSubTab}
           <AnalysisPage />
+        {:else if activeSubTab === 'models'}
+          <ModelsPage />
         {:else if activeSubTab === 'performance'}
           {#await import('./lib/pages/AnalysisPerformancePage.svelte')}
             <PlaceholderPage title="Performance" description="Loading..." />

@@ -366,175 +366,105 @@ class DataService {
    * @param {Function} [onProgress] - Optional callback: (progress, message, status) => void
    * @returns {Promise<Object>} Object with success status, duration, and diagnostic results
    */
-  async preloadInitialData(onProgress = null) {
-    logger.info('Preloading initial data for site-wide caching...');
+  /**
+   * Prefetch all data in parallel for instant page loads.
+   * Call once on app startup. All fetches run concurrently.
+   */
+  async prefetchAll() {
     const startTime = Date.now();
-    const results = {
-      success: true,
-      duration: 0,
+    logger.info('Prefetching all data in parallel...');
+
+    const fetches = [
+      // Critical — dashboard and overview
+      this.fetchDashboardStats(),
+      this.fetchFileEvents(500),
+      this.fetchSystemMetrics(),
+      this.fetchProjects(),
+      this.fetchTopFiles(8),
+      this.fetchHealth(),
+
+      // Analysis — models and agents
+      this.fetch('/agents-status', { ttl: 5000 }),
+      this.fetch('/models', { ttl: 5000 }),
+      this.fetch('/local-models', { ttl: 10000 }),
+      this.fetch('/agent-stats', { ttl: 5000 }),
+
+      // System
+      this.fetchHealthChecks(),
+      this.fetch('/storage', { ttl: 30000 }),
+      this.fetch('/storage/projects', { ttl: 10000 }),
+      this.fetch('/errors?limit=50', { ttl: 10000 }),
+
+      // History
+      this.fetchAgentEvents(500),
+      this.fetch('/trends/historical?period=daily&days=7', { ttl: 30000 }),
+
+      // Git (optional, may fail)
+      this.fetchGitStatus(),
+      this.fetchGitHistory(5)
+    ];
+
+    const results = await Promise.allSettled(fetches);
+    const passed = results.filter(r => r.status === 'fulfilled').length;
+    const duration = Date.now() - startTime;
+
+    logger.info(`Prefetch complete: ${passed}/${results.length} in ${duration}ms`);
+    return { passed, total: results.length, duration };
+  }
+
+  /**
+   * Start background refresh cycle.
+   * Keeps cache warm so pages load instantly.
+   */
+  startBackgroundRefresh(intervalMs = 15000) {
+    if (this._bgInterval) return;
+
+    this._bgInterval = setInterval(async () => {
+      try {
+        // Refresh the most-accessed endpoints silently
+        await Promise.allSettled([
+          this.fetchDashboardStats(true),
+          this.fetchFileEvents(500, true),
+          this.fetchSystemMetrics(1, true),
+          this.fetch('/agents-status', { forceRefresh: true, ttl: 5000 }),
+          this.fetch('/models', { forceRefresh: true, ttl: 5000 })
+        ]);
+      } catch {
+        // Silent — background refresh is best-effort
+      }
+    }, intervalMs);
+
+    logger.info(`Background refresh started (every ${intervalMs / 1000}s)`);
+  }
+
+  /**
+   * Stop background refresh
+   */
+  stopBackgroundRefresh() {
+    if (this._bgInterval) {
+      clearInterval(this._bgInterval);
+      this._bgInterval = null;
+    }
+  }
+
+  /**
+   * Legacy preloadInitialData — calls prefetchAll for backward compatibility
+   */
+  async preloadInitialData(onProgress = null) {
+    if (onProgress) onProgress(0, 'Starting parallel prefetch...', 'loading');
+    const result = await this.prefetchAll();
+    if (onProgress) onProgress(100, `Loaded ${result.passed}/${result.total} endpoints`, 'success');
+    return {
+      success: result.passed >= result.total * 0.6,
+      duration: result.duration,
       diagnostics: {
-        total: 11,
-        passed: 0,
-        failed: 0,
+        total: result.total,
+        passed: result.passed,
+        failed: result.total - result.passed,
         warnings: 0,
         details: []
       }
     };
-
-    // Helper to update progress
-    const updateProgress = (step, total, message, status = 'success') => {
-      const progress = Math.round((step / total) * 100);
-      if (onProgress) {
-        onProgress(progress, message, status);
-      }
-
-      // Track diagnostics
-      if (status === 'success') results.diagnostics.passed++;
-      else if (status === 'error') results.diagnostics.failed++;
-      else if (status === 'warning') results.diagnostics.warnings++;
-
-      results.diagnostics.details.push({ step, message, status, timestamp: Date.now() });
-    };
-
-    try {
-      let step = 0;
-      const total = 11; // Total number of loading steps
-
-      // Step 1: File events (critical)
-      try {
-        updateProgress(++step, total, 'Loading file events...', 'loading');
-        await this.fetchFileEvents(500);
-        updateProgress(step, total, 'File events loaded (500 events)', 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Failed to load file events', 'error');
-        logger.error('File events fetch failed:', error);
-      }
-
-      // Step 2: Dashboard stats (critical)
-      try {
-        updateProgress(++step, total, 'Loading dashboard statistics...', 'loading');
-        await this.fetchDashboardStats();
-        updateProgress(step, total, 'Dashboard stats loaded', 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Failed to load dashboard stats', 'error');
-        logger.error('Dashboard stats fetch failed:', error);
-      }
-
-      // Step 3: System metrics (critical)
-      try {
-        updateProgress(++step, total, 'Loading system metrics...', 'loading');
-        await this.fetchSystemMetrics();
-        updateProgress(step, total, 'System metrics loaded', 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Failed to load system metrics', 'error');
-        logger.error('System metrics fetch failed:', error);
-      }
-
-      // Step 4: Projects list (critical)
-      try {
-        updateProgress(++step, total, 'Loading projects list...', 'loading');
-        const projects = await this.fetchProjects();
-        updateProgress(step, total, `Projects loaded (${projects.length} projects)`, 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Failed to load projects', 'error');
-        logger.error('Projects fetch failed:', error);
-      }
-
-      // Step 5: Top files (important)
-      try {
-        updateProgress(++step, total, 'Loading top modified files...', 'loading');
-        await this.fetchTopFiles(5);
-        updateProgress(step, total, 'Top files loaded', 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Failed to load top files', 'warning');
-        logger.warn('Top files fetch failed:', error);
-      }
-
-      // Step 6: Agent events (important)
-      try {
-        updateProgress(++step, total, 'Loading agent events...', 'loading');
-        const events = await this.fetchAgentEvents(500);
-        updateProgress(step, total, `Agent events loaded (${events.length} events)`, 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Failed to load agent events', 'warning');
-        logger.warn('Agent events fetch failed:', error);
-      }
-
-      // Step 7: Backend health (critical)
-      try {
-        updateProgress(++step, total, 'Checking backend health...', 'loading');
-        const health = await this.fetchHealth();
-        updateProgress(step, total, `Backend healthy (v${health.version || 'unknown'})`, 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Backend health check failed', 'error');
-        logger.error('Backend health fetch failed:', error);
-      }
-
-      // Step 8: Health checks (important)
-      try {
-        updateProgress(++step, total, 'Running system health checks...', 'loading');
-        const checks = await this.fetchHealthChecks();
-        const passed = checks.summary?.passed || 0;
-        const total_checks = checks.summary?.total || 0;
-        updateProgress(
-          step,
-          total,
-          `Health checks completed (${passed}/${total_checks} passed)`,
-          'success'
-        );
-      } catch (error) {
-        updateProgress(step, total, 'Health checks unavailable', 'warning');
-        logger.warn('Health checks fetch failed:', error);
-      }
-
-      // Step 9: Git status (optional)
-      try {
-        updateProgress(++step, total, 'Loading git status...', 'loading');
-        const gitStatus = await this.fetchGitStatus();
-        const modified = gitStatus.modified?.length || 0;
-        updateProgress(step, total, `Git status loaded (${modified} modified files)`, 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Git status unavailable (optional)', 'warning');
-        logger.debug('Git status fetch failed (optional):', error);
-      }
-
-      // Step 10: Git branches (optional)
-      try {
-        updateProgress(++step, total, 'Loading git branches...', 'loading');
-        const branches = await this.fetchGitBranches();
-        const count = branches.branches?.length || 0;
-        updateProgress(step, total, `Git branches loaded (${count} branches)`, 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Git branches unavailable (optional)', 'warning');
-        logger.debug('Git branches fetch failed (optional):', error);
-      }
-
-      // Step 11: Git history (optional)
-      try {
-        updateProgress(++step, total, 'Loading git history...', 'loading');
-        const history = await this.fetchGitHistory(5);
-        const commits = history.commits?.length || 0;
-        updateProgress(step, total, `Git history loaded (${commits} recent commits)`, 'success');
-      } catch (error) {
-        updateProgress(step, total, 'Git history unavailable (optional)', 'warning');
-        logger.debug('Git history fetch failed (optional):', error);
-      }
-
-      results.duration = Date.now() - startTime;
-      logger.info(`Initial data preloaded in ${results.duration}ms - all pages ready`);
-      logger.info(
-        `Diagnostics: ${results.diagnostics.passed} passed, ${results.diagnostics.failed} failed, ${results.diagnostics.warnings} warnings`
-      );
-
-      // Consider it successful if no critical failures (at least 7/11 passed)
-      results.success = results.diagnostics.passed >= 7;
-      return results;
-    } catch (error) {
-      logger.error('Failed to preload initial data:', error);
-      results.success = false;
-      results.duration = Date.now() - startTime;
-      return results;
-    }
   }
 
   /**

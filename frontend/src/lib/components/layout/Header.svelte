@@ -28,9 +28,9 @@
 
   const tabs = [
     { id: 'overview', label: 'Dashboard', path: '/overview' },
+    { id: 'analysis', label: 'Analysis', path: '/analysis' },
     { id: 'live', label: 'Code Changes', path: '/live' },
     { id: 'history', label: 'History', path: '/history' },
-    { id: 'analysis', label: 'Analysis', path: '/analysis' },
     { id: 'system', label: 'System', path: '/system' }
   ];
 
@@ -48,6 +48,7 @@
     ],
     analysis: [
       { id: '', label: 'Overview' },
+      { id: 'models', label: 'Models' },
       { id: 'performance', label: 'Performance' },
       { id: 'trends', label: 'Historical Trends' },
       { id: 'stats', label: 'Agent Stats' },

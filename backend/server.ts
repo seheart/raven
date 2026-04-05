@@ -725,6 +725,107 @@ app.get('/api/local-models', (req: Request, res: Response) => {
   });
 });
 
+// GET /api/models — Per-model stats across all agents
+app.get('/api/models', cacheMiddleware(5000), (req: Request, res: Response) => {
+  try {
+    // Get per-agent stats from agent_events
+    const agentStats = db.db
+      .prepare(
+        `
+      SELECT
+        agent,
+        COUNT(*) as total_events,
+        SUM(CASE WHEN event_type = 'inference' THEN 1 ELSE 0 END) as inferences,
+        SUM(CASE WHEN event_type = 'tool_call' THEN 1 ELSE 0 END) as tool_calls,
+        SUM(CASE WHEN event_type = 'assistant_text' THEN 1 ELSE 0 END) as responses,
+        SUM(CASE WHEN event_type = 'user_message' THEN 1 ELSE 0 END) as prompts,
+        AVG(CASE WHEN duration_ms > 0 THEN duration_ms ELSE NULL END) as avg_duration_ms,
+        SUM(lines_changed) as total_lines_changed,
+        MIN(timestamp) as first_seen,
+        MAX(timestamp) as last_active,
+        COUNT(DISTINCT file) as files_touched
+      FROM agent_events
+      GROUP BY agent
+      ORDER BY total_events DESC
+    `
+      )
+      .all() as any[];
+
+    // Get file change attribution stats
+    const attributionStats = db.db
+      .prepare(
+        `
+      SELECT
+        agent_source,
+        COUNT(*) as file_changes,
+        COUNT(DISTINCT filepath) as unique_files
+      FROM events
+      WHERE agent_source IS NOT NULL
+      GROUP BY agent_source
+    `
+      )
+      .all() as any[];
+    const attrMap = new Map(attributionStats.map((a: any) => [a.agent_source, a]));
+
+    // Merge with agent registry for status and model info
+    const models = agentStats.map((agent: any) => {
+      const registry =
+        agentRegistry.get(agent.agent) || agentRegistry.get(agent.agent.replace(/ /g, '-'));
+      const attr = attrMap.get(agent.agent);
+      return {
+        name: agent.agent,
+        type: registry?.agent_type || 'unknown',
+        color: registry?.color || getAgentColor(agent.agent),
+        is_running: registry?.is_running || false,
+        models_available: registry?.models_available || [],
+        total_events: agent.total_events,
+        inferences: agent.inferences,
+        tool_calls: agent.tool_calls,
+        responses: agent.responses,
+        prompts: agent.prompts,
+        avg_duration_ms: Math.round(agent.avg_duration_ms || 0),
+        total_lines_changed: agent.total_lines_changed || 0,
+        files_touched: agent.files_touched,
+        file_changes: attr?.file_changes || 0,
+        unique_files_changed: attr?.unique_files || 0,
+        first_seen: agent.first_seen,
+        last_active: agent.last_active
+      };
+    });
+
+    // Add detected-but-no-events agents (like Ollama before first use)
+    const existingNames = new Set(models.map((m: any) => m.name));
+    for (const [, agent] of agentRegistry) {
+      if (!existingNames.has(agent.agent_name)) {
+        models.push({
+          name: agent.agent_name,
+          type: agent.agent_type,
+          color: agent.color,
+          is_running: agent.is_running,
+          models_available: agent.models_available || [],
+          total_events: 0,
+          inferences: 0,
+          tool_calls: 0,
+          responses: 0,
+          prompts: 0,
+          avg_duration_ms: 0,
+          total_lines_changed: 0,
+          files_touched: 0,
+          file_changes: 0,
+          unique_files_changed: 0,
+          first_seen: null,
+          last_active: agent.last_seen
+        });
+      }
+    }
+
+    return res.json(models);
+  } catch (error: any) {
+    logger.error('Error getting model stats:', error);
+    return res.status(500).json({ error: 'Failed to get model stats' });
+  }
+});
+
 // ==================== Ollama Proxy ====================
 // Forward requests to Ollama while logging telemetry to Raven.
 // Tools point to http://localhost:9100/ollama instead of http://localhost:11434
