@@ -67,8 +67,8 @@
       metricsHistory = metrics.slice(0, 10);
 
       // Triggers
-      const triggers = triggersData.triggers || [];
-      activeTriggers = triggers.filter(t => t.enabled).length;
+      const triggers = triggersData.rules || triggersData.triggers || [];
+      activeTriggers = triggers.length;
 
       // Sessions
       totalSessions = (sessionsData.sessions || []).length;
@@ -337,16 +337,6 @@
           </div>
           <div class="text-sm font-mono text-[var(--text)]">{activeTriggers}</div>
         </button>
-
-        <button
-          onclick={() => navigate('/analysis/trends')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 text-left hover:border-[var(--accent)] transition-colors"
-        >
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-            Historical Data
-          </div>
-          <div class="text-sm font-mono text-[var(--text)]">Trends</div>
-        </button>
       </div>
 
       <!-- Recent Triggered Events -->
@@ -371,38 +361,6 @@
           </div>
         </div>
       {/if}
-
-      <!-- Quick Actions Grid -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          Quick Actions
-        </h3>
-        <div class="space-y-3 text-sm">
-          <button
-            onclick={() => navigate('/analysis/performance')}
-            class="w-full flex justify-between border-b border-[var(--border)] pb-2 hover:text-[var(--accent)] transition-colors text-left"
-          >
-            <span class="text-[var(--muted)]">Performance Metrics</span>
-            <span class="font-mono text-[var(--text)] text-xs">CPU, memory, correlations</span>
-          </button>
-
-          <button
-            onclick={() => navigate('/analysis/trends')}
-            class="w-full flex justify-between border-b border-[var(--border)] pb-2 hover:text-[var(--accent)] transition-colors text-left"
-          >
-            <span class="text-[var(--muted)]">Historical Trends</span>
-            <span class="font-mono text-[var(--text)] text-xs">Time-series analysis</span>
-          </button>
-
-          <button
-            onclick={() => navigate('/analysis/triggers')}
-            class="w-full flex justify-between pb-2 hover:text-[var(--accent)] transition-colors text-left"
-          >
-            <span class="text-[var(--muted)]">Configure Triggers</span>
-            <span class="font-mono text-[var(--text)] text-xs">Automated monitoring</span>
-          </button>
-        </div>
-      </div>
     {/if}
   </div>
 </div>

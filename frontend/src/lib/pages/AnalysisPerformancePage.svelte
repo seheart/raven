@@ -6,6 +6,7 @@
    * Svelte 5 + Tailwind CSS implementation
    */
 
+  import { onMount } from 'svelte';
   import { api } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
 
@@ -22,7 +23,19 @@
   let isManualRefresh = $state(false);
   let chartTimeRange = $state('1h'); // '15m', '1h', '6h', '24h'
 
-  // Chart instances (no Chart.js for now - using CSS-based charts like reference)
+  // Chart data filtered by time range
+  const chartMetrics = $derived.by(() => {
+    if (!systemMetrics.length) return [];
+    const now = Date.now();
+    const ranges = {
+      '15m': 15 * 60000,
+      '1h': 60 * 60000,
+      '6h': 6 * 60 * 60000,
+      '24h': 24 * 60 * 60000
+    };
+    const cutoff = now - (ranges[chartTimeRange] || ranges['1h']);
+    return systemMetrics.filter(m => new Date(m.timestamp).getTime() >= cutoff);
+  });
 
   // Performance thresholds
   let thresholds = $state({
@@ -43,6 +56,41 @@
     else if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     else return `${Math.floor(seconds / 3600)}h ago`;
   });
+
+  // Sorted correlations with anomaly detection
+  const sortedCorrelations = $derived.by(() => {
+    if (!correlations.length) return [];
+    return [...correlations].sort((a, b) => (b.cpu_percent || 0) - (a.cpu_percent || 0));
+  });
+
+  const correlationStats = $derived.by(() => {
+    if (!sortedCorrelations.length) return { elevated: 0, avgCpu: 0, avgMem: 0 };
+    const avgCpu =
+      sortedCorrelations.reduce((s, c) => s + (c.cpu_percent || 0), 0) / sortedCorrelations.length;
+    const avgMem =
+      sortedCorrelations.reduce((s, c) => s + (c.mem_percent || 0), 0) / sortedCorrelations.length;
+    const elevated = sortedCorrelations.filter(
+      c =>
+        (c.cpu_percent || 0) >= thresholds.cpu.warning ||
+        (c.mem_percent || 0) >= thresholds.memory.warning
+    ).length;
+    return { elevated, avgCpu, avgMem };
+  });
+
+  function isElevated(correlation) {
+    return (
+      (correlation.cpu_percent || 0) >= thresholds.cpu.warning ||
+      (correlation.mem_percent || 0) >= thresholds.memory.warning
+    );
+  }
+
+  function isAboveAvg(correlation) {
+    if (!correlationStats.avgCpu) return false;
+    return (
+      (correlation.cpu_percent || 0) > correlationStats.avgCpu * 1.5 ||
+      (correlation.mem_percent || 0) > correlationStats.avgMem * 1.5
+    );
+  }
 
   // Active alerts
   const activeAlerts = $derived.by(() => {
@@ -79,8 +127,7 @@
       isManualRefresh = manual;
       error = null;
 
-      // CRITICAL FIX: api.get returns parsed JSON directly
-      const systemData = await api.get('/system-metrics?limit=20');
+      const systemData = await api.get('/system-metrics?limit=500');
       systemMetrics = Array.isArray(systemData) ? systemData : systemData.metrics || [];
 
       // Fetch process metrics for selected agent
@@ -190,6 +237,8 @@
 
   function formatBytes(bytes) {
     if (!bytes) return 'N/A';
+    const gb = bytes / (1024 * 1024 * 1024);
+    if (gb >= 1) return gb.toFixed(2) + ' GB';
     const mb = bytes / (1024 * 1024);
     return mb.toFixed(2) + ' MB';
   }
@@ -199,17 +248,13 @@
     return num.toLocaleString();
   }
 
-  // Initialization effect
-  $effect(() => {
-    // Load initial data
+  onMount(() => {
     fetchAllData();
 
-    // Connect to WebSocket for real-time updates
     websocketService.connect();
     websocketService.on('system-metrics', handleSystemMetrics);
     websocketService.on('project-switched', handleProjectSwitched);
 
-    // Cleanup
     return () => {
       websocketService.off('system-metrics', handleSystemMetrics);
       websocketService.off('project-switched', handleProjectSwitched);
@@ -307,9 +352,9 @@
     <!-- Loading State -->
     {#if loading && systemMetrics.length === 0}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {#each Array(6) as _, i (i)}
+        {#each Array(3) as _, i (i)}
           <div
-            class="h-40 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
           ></div>
         {/each}
       </div>
@@ -492,42 +537,42 @@
       {/if}
     {:else if activeTab === 'charts'}
       <!-- TREND CHARTS TAB -->
-      {#if systemMetrics && systemMetrics.length > 0}
-        <div class="space-y-6">
+      {#if chartMetrics && chartMetrics.length > 0}
+        <div>
           <!-- Chart Controls -->
           <div
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex justify-between items-center"
+            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex justify-between items-center"
           >
-            <label class="text-sm text-[var(--text)]">
-              Time Range:
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-[var(--muted)]">Time Range</span>
               <select
                 bind:value={chartTimeRange}
-                class="ml-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
               >
                 <option value="15m">Last 15 minutes</option>
                 <option value="1h">Last 1 hour</option>
                 <option value="6h">Last 6 hours</option>
                 <option value="24h">Last 24 hours</option>
               </select>
-            </label>
+            </div>
             <div class="flex gap-4 text-xs font-mono">
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-[var(--accent)]"></span>CPU
+                <span class="w-2 h-2 rounded-full bg-[var(--accent)]"></span>CPU
               </span>
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-[var(--info)]"></span>Memory
+                <span class="w-2 h-2 rounded-full bg-[var(--info)]"></span>Memory
               </span>
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-[var(--warning)]"></span>Warning
+                <span class="w-2 h-2 rounded-full bg-[var(--warning)]"></span>Warning
               </span>
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-[var(--error)]"></span>Critical
+                <span class="w-2 h-2 rounded-full bg-[var(--error)]"></span>Critical
               </span>
             </div>
           </div>
 
           <!-- CPU Chart -->
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
             <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
               CPU Usage Over Time
             </h3>
@@ -564,7 +609,7 @@
                   >
                 </div>
                 <!-- Data points -->
-                {#each systemMetrics.slice().reverse() as metric, i (i)}
+                {#each chartMetrics.slice().reverse() as metric, i (i)}
                   {@const isAboveCritical = metric.cpu_percent >= thresholds.cpu.critical}
                   {@const isAboveWarning =
                     metric.cpu_percent >= thresholds.cpu.warning &&
@@ -575,7 +620,7 @@
                       : isAboveWarning
                         ? 'bg-[var(--warning)]'
                         : 'bg-[var(--accent)]'} hover:w-2.5 hover:h-2.5 transition-all cursor-pointer"
-                    style="left: {(i / (systemMetrics.length - 1)) *
+                    style="left: {(i / Math.max(chartMetrics.length - 1, 1)) *
                       100}%; bottom: {metric.cpu_percent}%; transform: translate(-50%, 50%)"
                     title="{formatTimestamp(metric.timestamp)}: {metric.cpu_percent.toFixed(1)}%"
                   ></div>
@@ -585,7 +630,7 @@
           </div>
 
           <!-- Memory Chart -->
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
             <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
               Memory Usage Over Time
             </h3>
@@ -622,7 +667,7 @@
                   >
                 </div>
                 <!-- Data points -->
-                {#each systemMetrics.slice().reverse() as metric, i (i)}
+                {#each chartMetrics.slice().reverse() as metric, i (i)}
                   {@const isAboveCritical = metric.memory_percent >= thresholds.memory.critical}
                   {@const isAboveWarning =
                     metric.memory_percent >= thresholds.memory.warning &&
@@ -633,7 +678,7 @@
                       : isAboveWarning
                         ? 'bg-[var(--warning)]'
                         : 'bg-[var(--info)]'} hover:w-2.5 hover:h-2.5 transition-all cursor-pointer"
-                    style="left: {(i / (systemMetrics.length - 1)) *
+                    style="left: {(i / Math.max(chartMetrics.length - 1, 1)) *
                       100}%; bottom: {metric.memory_percent}%; transform: translate(-50%, 50%)"
                     title="{formatTimestamp(metric.timestamp)}: {metric.memory_percent.toFixed(1)}%"
                   ></div>
@@ -649,8 +694,8 @@
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label for="cpu-warning" class="text-sm text-[var(--muted)] block mb-2"
-                  >CPU Warning (%):</label
+                <label for="cpu-warning" class="text-xs text-[var(--muted)] block mb-2"
+                  >CPU Warning (%)</label
                 >
                 <input
                   id="cpu-warning"
@@ -662,8 +707,8 @@
                 />
               </div>
               <div>
-                <label for="cpu-critical" class="text-sm text-[var(--muted)] block mb-2"
-                  >CPU Critical (%):</label
+                <label for="cpu-critical" class="text-xs text-[var(--muted)] block mb-2"
+                  >CPU Critical (%)</label
                 >
                 <input
                   id="cpu-critical"
@@ -675,8 +720,8 @@
                 />
               </div>
               <div>
-                <label for="memory-warning" class="text-sm text-[var(--muted)] block mb-2"
-                  >Memory Warning (%):</label
+                <label for="memory-warning" class="text-xs text-[var(--muted)] block mb-2"
+                  >Memory Warning (%)</label
                 >
                 <input
                   id="memory-warning"
@@ -688,8 +733,8 @@
                 />
               </div>
               <div>
-                <label for="memory-critical" class="text-sm text-[var(--muted)] block mb-2"
-                  >Memory Critical (%):</label
+                <label for="memory-critical" class="text-xs text-[var(--muted)] block mb-2"
+                  >Memory Critical (%)</label
                 >
                 <input
                   id="memory-critical"
@@ -713,71 +758,128 @@
       {/if}
     {:else if activeTab === 'correlations'}
       <!-- CORRELATIONS TAB -->
-      {#if correlations && correlations.length > 0}
-        <div class="space-y-4">
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-              Performance Correlations
-            </h3>
-            <p class="text-sm text-[var(--muted)]">
-              Events that occurred near CPU/memory spikes (within 10 seconds)
-            </p>
+      {#if sortedCorrelations.length > 0}
+        <div>
+          <!-- Summary -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+              <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                Events Analyzed
+              </div>
+              <div class="text-sm font-mono text-[var(--text)]">{sortedCorrelations.length}</div>
+            </div>
+            <div
+              class="bg-[var(--surface)] border border-[var(--border)] rounded p-4"
+              class:border-[var(--warning)]={correlationStats.elevated > 0}
+            >
+              <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                During Elevated Usage
+              </div>
+              <div class="flex items-center gap-2">
+                {#if correlationStats.elevated > 0}
+                  <span class="w-2 h-2 rounded-full bg-[var(--warning)]"></span>
+                {/if}
+                <span class="text-sm font-mono text-[var(--text)]">{correlationStats.elevated}</span
+                >
+              </div>
+            </div>
+            <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+              <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                Avg Nearby CPU / Memory
+              </div>
+              <div class="text-sm font-mono text-[var(--text)]">
+                {correlationStats.avgCpu.toFixed(1)}% / {correlationStats.avgMem.toFixed(1)}%
+              </div>
+            </div>
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {#each correlations as correlation (correlation)}
-              <div
-                class="bg-[var(--surface)] border-l-4 border-[var(--accent)] border-t border-r border-b border-[var(--border)] rounded-lg p-5"
-              >
-                <div class="flex justify-between items-start mb-3">
-                  <span class="text-sm font-mono text-[var(--text)] truncate flex-1"
-                    >{correlation.filepath}</span
-                  >
-                  <span
-                    class="ml-2 px-2 py-1 text-xs font-bold uppercase rounded {correlation.change_type ===
-                      'created' || correlation.change_type === 'add'
-                      ? 'bg-[var(--success-subtle)] text-[var(--success)]'
-                      : correlation.change_type === 'modified' ||
-                          correlation.change_type === 'change'
-                        ? 'bg-[var(--warning-subtle)] text-[var(--warning)]'
-                        : correlation.change_type === 'deleted' ||
-                            correlation.change_type === 'unlink'
-                          ? 'bg-[var(--error-subtle)] text-[var(--error)]'
-                          : 'bg-[var(--surface)] text-[var(--muted)]'}"
-                  >
-                    {correlation.change_type}
-                  </span>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                  <div>
-                    <span class="text-xs text-[var(--muted)] block mb-1">CPU Impact</span>
-                    <span class="text-sm font-mono text-[var(--text)]">
-                      {correlation.cpu_percent ? correlation.cpu_percent.toFixed(1) : 'N/A'}%
-                    </span>
-                  </div>
-                  <div>
-                    <span class="text-xs text-[var(--muted)] block mb-1">Memory Impact</span>
-                    <span class="text-sm font-mono text-[var(--text)]">
-                      {correlation.mem_percent ? correlation.mem_percent.toFixed(1) : 'N/A'}%
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  class="flex justify-between items-center pt-3 border-t border-[var(--border)] text-xs"
-                >
-                  <span class="text-[var(--muted)] font-mono"
-                    >{formatTimestamp(correlation.event_timestamp)}</span
-                  >
-                  {#if correlation.diff_size}
-                    <span class="text-[var(--muted)] font-mono"
-                      >{formatNumber(correlation.diff_size)} chars changed</span
+          <!-- Table -->
+          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+              File Changes by Resource Usage
+            </h3>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
+                  <tr class="text-left">
+                    <th
+                      class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+                      >File</th
                     >
-                  {/if}
-                </div>
-              </div>
-            {/each}
+                    <th
+                      class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+                      >Type</th
+                    >
+                    <th
+                      class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                      >CPU</th
+                    >
+                    <th
+                      class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                      >Memory</th
+                    >
+                    <th
+                      class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                      >Size</th
+                    >
+                    <th
+                      class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                      >Time</th
+                    >
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each sortedCorrelations as c (c.event_id)}
+                    {@const elevated = isElevated(c)}
+                    {@const aboveAvg = isAboveAvg(c)}
+                    <tr
+                      class="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors"
+                      class:bg-[var(--warning-subtle)]={elevated}
+                    >
+                      <td class="px-3 py-2 text-sm font-mono text-[var(--text)] max-w-xs truncate">
+                        {c.filepath?.split('/').slice(-2).join('/') || c.filepath}
+                      </td>
+                      <td class="px-3 py-2">
+                        <span
+                          class="text-xs font-semibold uppercase {c.change_type === 'add' ||
+                          c.change_type === 'created'
+                            ? 'text-[var(--success)]'
+                            : c.change_type === 'change' || c.change_type === 'modified'
+                              ? 'text-[var(--accent)]'
+                              : c.change_type === 'unlink' || c.change_type === 'deleted'
+                                ? 'text-[var(--error)]'
+                                : 'text-[var(--muted)]'}"
+                        >
+                          {c.change_type}
+                        </span>
+                      </td>
+                      <td
+                        class="px-3 py-2 text-sm font-mono text-right"
+                        class:text-[var(--warning)]={aboveAvg}
+                        class:font-bold={elevated}
+                        class:text-[var(--text)]={!aboveAvg}
+                      >
+                        {c.cpu_percent ? c.cpu_percent.toFixed(1) : '-'}%
+                      </td>
+                      <td
+                        class="px-3 py-2 text-sm font-mono text-right"
+                        class:text-[var(--warning)]={aboveAvg}
+                        class:font-bold={elevated}
+                        class:text-[var(--text)]={!aboveAvg}
+                      >
+                        {c.mem_percent ? c.mem_percent.toFixed(1) : '-'}%
+                      </td>
+                      <td class="px-3 py-2 text-xs font-mono text-[var(--muted)] text-right">
+                        {c.diff_size ? formatNumber(c.diff_size) : '-'}
+                      </td>
+                      <td class="px-3 py-2 text-xs font-mono text-[var(--muted)] text-right">
+                        {formatTimestamp(c.event_timestamp)}
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       {:else}

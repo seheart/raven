@@ -682,28 +682,25 @@ export class RavenDB {
   correlateEventsWithMetrics(time_window_seconds: number = 5): PerformanceCorrelation[] {
     const stmt = this.db.prepare(`
       SELECT
-        ae.id as event_id,
-        ae.timestamp as event_timestamp,
-        ae.agent,
-        ae.event_type,
-        ae.file as filepath,
-        ae.event_type as change_type,
-        ae.lines_changed as diff_size,
-        ae.duration_ms,
+        e.id as event_id,
+        e.timestamp as event_timestamp,
+        e.filepath,
+        e.change_type,
+        LENGTH(e.diff) as diff_size,
         AVG(rm.cpu_percent) as cpu_percent,
         AVG(rm.memory_percent) as mem_percent
-      FROM agent_events ae
-      LEFT JOIN raven_metrics rm
+      FROM events e
+      INNER JOIN raven_metrics rm
         ON datetime(rm.timestamp) BETWEEN
-           datetime(ae.timestamp) AND
-           datetime(ae.timestamp, '+' || ? || ' seconds')
-      WHERE ae.duration_ms IS NOT NULL
-      GROUP BY ae.id, ae.timestamp, ae.agent, ae.event_type, ae.file, ae.lines_changed, ae.duration_ms
-      ORDER BY ae.timestamp DESC
+           datetime(e.timestamp, '-' || ? || ' seconds') AND
+           datetime(e.timestamp, '+' || ? || ' seconds')
+      WHERE e.filepath IS NOT NULL
+      GROUP BY e.id, e.timestamp, e.filepath, e.change_type
+      ORDER BY e.timestamp DESC
       LIMIT 20
     `);
 
-    return stmt.all(time_window_seconds) as PerformanceCorrelation[];
+    return stmt.all(time_window_seconds, time_window_seconds) as PerformanceCorrelation[];
   }
 
   // ==================== Dashboard Statistics ====================
