@@ -227,7 +227,29 @@ cooldown_seconds = 300
       }
     }
 
+    // Trim expired cooldown entries to prevent unbounded map growth
+    this.trimExpiredCooldowns();
+
     return results;
+  }
+
+  /**
+   * Remove cooldown entries that have expired past the max cooldown time
+   */
+  private trimExpiredCooldowns(): void {
+    if (this.cooldowns.size <= this.triggers.size) return; // Nothing to trim
+
+    const now = Date.now();
+    let maxCooldownMs = 0;
+    for (const trigger of this.triggers.values()) {
+      maxCooldownMs = Math.max(maxCooldownMs, (trigger.cooldown_seconds || 60) * 1000);
+    }
+
+    for (const [name, lastFired] of this.cooldowns) {
+      if (now - lastFired > maxCooldownMs) {
+        this.cooldowns.delete(name);
+      }
+    }
   }
 
   /**
@@ -525,5 +547,13 @@ cooldown_seconds = 300
   clearCooldowns(): string {
     this.cooldowns.clear();
     return 'All trigger cooldowns cleared';
+  }
+
+  /**
+   * Clear all trigger counts
+   */
+  clearStats(): string {
+    this.triggerCounts.clear();
+    return 'All trigger counts cleared';
   }
 }

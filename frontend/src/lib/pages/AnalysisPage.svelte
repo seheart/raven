@@ -118,8 +118,10 @@
 
     if (cpuChart) {
       cpuChart.data.labels = labels;
-      cpuChart.data.datasets[0].data = cpuData;
-      cpuChart.data.datasets[1].data = memData;
+      if (cpuChart.data.datasets.length >= 2) {
+        cpuChart.data.datasets[0].data = cpuData;
+        cpuChart.data.datasets[1].data = memData;
+      }
       cpuChart.update();
     } else {
       cpuChart = new Chart(cpuChartCanvas, {

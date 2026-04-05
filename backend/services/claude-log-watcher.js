@@ -194,7 +194,13 @@ export class ClaudeLogWatcher {
       // Read only the new data
       const bytesToRead = stats.size - lastPosition;
       const buffer = Buffer.alloc(bytesToRead);
-      const fd = fs.openSync(filepath, 'r');
+      let fd;
+      try {
+        fd = fs.openSync(filepath, 'r');
+      } catch (openErr) {
+        this.logger.error(`Failed to open log file ${filepath}: ${openErr.message}`);
+        return;
+      }
       try {
         fs.readSync(fd, buffer, 0, bytesToRead, lastPosition);
       } finally {

@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   import { api } from '../apiClient.js';
   import { API_CONFIG } from '../../config.js';
@@ -28,7 +29,7 @@
   }
 
   // Check WebSocket status
-  $effect(() => {
+  onMount(() => {
     loadSessionId();
     websocketConnected = websocketService.isConnected();
 
@@ -38,6 +39,11 @@
     };
     websocketService.on('connect', updateStatus);
     websocketService.on('disconnect', updateStatus);
+
+    return () => {
+      websocketService.off('connect', updateStatus);
+      websocketService.off('disconnect', updateStatus);
+    };
   });
 </script>
 

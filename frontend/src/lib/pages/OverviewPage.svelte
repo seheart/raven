@@ -54,8 +54,9 @@
   );
   const eventsPerMin = $derived.by(() => {
     if (recentFiles.length < 2) return '0';
-    const newest = new Date(recentFiles[0]?.timestamp);
-    const oldest = new Date(recentFiles[recentFiles.length - 1]?.timestamp);
+    const newest = new Date(recentFiles[0]?.timestamp || 0);
+    const oldest = new Date(recentFiles[recentFiles.length - 1]?.timestamp || 0);
+    if (isNaN(newest.getTime()) || isNaN(oldest.getTime())) return '0';
     const minutes = Math.max(1, (newest - oldest) / 60000);
     return (recentFiles.length / minutes).toFixed(1);
   });
