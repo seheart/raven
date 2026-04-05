@@ -95,7 +95,10 @@
       error = null;
 
       const data = await api.get('/all-agent-events?limit=500');
-      events = Array.isArray(data) ? data : [];
+      events = (Array.isArray(data) ? data : []).map(e => ({
+        ...e,
+        filepath: e.file || e.filepath
+      }));
 
       loading = false;
     } catch (err) {

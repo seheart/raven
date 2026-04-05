@@ -93,7 +93,7 @@
         : '/file-events?limit=1000';
 
       const data = await api.get(endpoint);
-      const events = data.events || [];
+      const events = Array.isArray(data) ? data : data.events || [];
 
       // Build metadata map
       const metaMap = new Map();
@@ -665,11 +665,11 @@
                   <button
                     onclick={() => toggleFileType(ext)}
                     class="px-3 py-1 border rounded text-xs font-mono transition-colors"
-                    class:bg-accent={selectedFileTypes.includes(ext)}
+                    class:bg-[var(--accent)]={selectedFileTypes.includes(ext)}
                     class:text-white={selectedFileTypes.includes(ext)}
-                    class:border-accent={selectedFileTypes.includes(ext)}
-                    class:bg-surface={!selectedFileTypes.includes(ext)}
-                    class:border-border={!selectedFileTypes.includes(ext)}
+                    class:border-[var(--accent)]={selectedFileTypes.includes(ext)}
+                    class:bg-[var(--surface)]={!selectedFileTypes.includes(ext)}
+                    class:border-[var(--border)]={!selectedFileTypes.includes(ext)}
                     style={selectedFileTypes.includes(ext)
                       ? `background-color: ${getFileTypeColor(ext)}; border-color: ${getFileTypeColor(ext)}`
                       : ''}
@@ -699,7 +699,7 @@
               <button
                 onclick={() => toggleFileHistory(filepath)}
                 class="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg)] transition-colors text-left"
-                class:bg-bg={expandedFile === filepath}
+                class:bg-[var(--bg)]={expandedFile === filepath}
               >
                 <span
                   class="text-xs text-[var(--muted)] transition-transform"
@@ -765,24 +765,6 @@
 </div>
 
 <style>
-  .bg-accent {
-    background: var(--accent);
-  }
-  .text-white {
-    color: white;
-  }
-  .border-accent {
-    border-color: var(--accent);
-  }
-  .bg-surface {
-    background: var(--surface);
-  }
-  .border-border {
-    border-color: var(--border);
-  }
-  .bg-bg {
-    background: var(--bg);
-  }
   .rotate-90 {
     transform: rotate(90deg);
   }

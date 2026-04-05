@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   /**
    * Projects Comparison Page
@@ -7,7 +8,7 @@
   import { api } from '../apiClient.js';
 
   let projects = $state([]);
-  let loading = $state(true);
+  let loading = $state(false);
   let sortBy = $state('activity');
   let sortDesc = $state(true);
   let searchQuery = $state('');
@@ -186,7 +187,7 @@
             ...project,
             total_events: eventsData.total || 0,
             total_errors: 0,
-            last_activity: eventsData.events?.[0]?.timestamp || null
+            last_activity: eventsData[0]?.timestamp || null
           };
         } catch (error) {
           logger.error(`Failed to load stats for project ${project.name}:`, error);
@@ -202,7 +203,7 @@
     }
   }
 
-  $effect(() => {
+  onMount(() => {
     loadProjects();
   });
 </script>

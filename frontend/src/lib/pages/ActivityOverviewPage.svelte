@@ -17,7 +17,7 @@
   // State - using Svelte 5 runes
   let activities = $state([]);
   let total = $state(0);
-  let loading = $state(true);
+  let loading = $state(false);
   let searchQuery = $state('');
   let selectedType = $state('all');
   let expandedActivity = $state(null);

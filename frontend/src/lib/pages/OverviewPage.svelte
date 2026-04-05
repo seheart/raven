@@ -17,7 +17,7 @@
   let stats = $state({
     total_events: 0,
     session_duration_seconds: 0,
-    unique_files_modified: 0,
+    total_files: 0,
     creates: 0,
     edits: 0,
     deletes: 0
@@ -34,7 +34,7 @@
 
   let recentActivity = $state([]);
   let topFiles = $state([]);
-  let loading = $state(true);
+  let loading = $state(false);
   let lastUpdated = $state(null);
 
   // Chart instances
@@ -496,10 +496,7 @@
         </div>
         <div class="flex items-center gap-2 text-sm text-[var(--muted)] font-mono">
           <span></span>
-          <span
-            >{stats.unique_files_modified} file{stats.unique_files_modified !== 1 ? 's' : ''} changed
-            today</span
-          >
+          <span>{stats.total_files} file{stats.total_files !== 1 ? 's' : ''} changed today</span>
         </div>
       </div>
     </div>
@@ -744,7 +741,7 @@
             <div class="flex justify-between items-center">
               <span class="text-sm text-[var(--muted)] font-mono">Files touched:</span>
               <span class="text-sm font-semibold text-[var(--text)] font-mono">
-                {formatNumber(stats.unique_files_modified)}
+                {formatNumber(stats.total_files)}
               </span>
             </div>
             <div class="flex justify-between items-center">
@@ -833,7 +830,7 @@
                 {file.filepath}
               </span>
               <span class="text-[var(--muted)] text-sm ml-4 flex-shrink-0">
-                {formatNumber(file.edit_count || file.change_count)} changes
+                {formatNumber(file.edit_count)} changes
               </span>
             </div>
           {/each}

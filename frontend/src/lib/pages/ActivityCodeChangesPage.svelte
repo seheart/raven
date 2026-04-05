@@ -212,7 +212,7 @@
         <button
           onclick={togglePause}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
-          class:bg-warning={isPaused}
+          class:bg-[var(--warning)]={isPaused}
           class:text-white={isPaused}
         >
           {isPaused ? ' Resume' : ' Pause'}

@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   import { projectFilter } from '../projectFilterStore.js';
   /**
@@ -8,15 +9,30 @@
   import { api } from '../apiClient.js';
 
   let healthData = $state(null);
-  let trendsData = $state([]);
-  let loading = $state(true);
+  let projectsData = $state([]);
+  let loading = $state(false);
   let error = $state(null);
   let selectedProject = $derived($projectFilter.currentProject || 'all');
   let selectedDays = $state(7);
 
-  // Derived calculations
-  const overallStatus = $derived(healthData?.status || 'unknown');
-  const scoreColor = $derived(getScoreColor(healthData?.overall_score || 0));
+  // Derived: aggregate from projects data
+  const overallScore = $derived.by(() => {
+    if (!projectsData.length) return 0;
+    const avg =
+      projectsData.reduce((sum, p) => sum + (p.health_score || 0), 0) / projectsData.length;
+    return Math.round(avg);
+  });
+  const totalErrors = $derived(projectsData.reduce((sum, p) => sum + (p.error_count || 0), 0));
+  const totalEvents = $derived(projectsData.reduce((sum, p) => sum + (p.total_events || 0), 0));
+  const recentEvents = $derived(projectsData.reduce((sum, p) => sum + (p.recent_events || 0), 0));
+  const overallStatus = $derived.by(() => {
+    if (overallScore >= 90) return 'excellent';
+    if (overallScore >= 75) return 'good';
+    if (overallScore >= 60) return 'fair';
+    if (overallScore >= 40) return 'poor';
+    return 'critical';
+  });
+  const scoreColor = $derived(getScoreColor(overallScore));
 
   function getScoreColor(score) {
     if (score >= 90) return 'var(--success)';
@@ -52,13 +68,16 @@
       loading = true;
       error = null;
 
-      // Load comprehensive health summary
-      const summary = await api.get(
-        `/health/summary?project=${selectedProject}&days=${selectedDays}`
+      const response = await api.get(
+        `/health/projects?project=${selectedProject}&days=${selectedDays}`
       );
 
-      healthData = summary.current;
-      trendsData = summary.trend?.history || [];
+      projectsData = response.projects || [];
+      // Build a healthData shape from the projects for the template
+      healthData = {
+        overall_score: overallScore,
+        status: overallStatus
+      };
     } catch (err) {
       logger.error('Failed to load health summary:', err);
       error = err.message;
@@ -79,11 +98,8 @@
     }
   }
 
-  // Load health summary when project or time range changes
-  $effect(() => {
-    // Track dependencies: selectedProject and selectedDays
-    const project = selectedProject;
-    const days = selectedDays;
+  // Load on mount; reload when project or time range changes
+  onMount(() => {
     loadHealthSummary();
   });
 </script>
@@ -131,7 +147,7 @@
       </div>
     {:else if error}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-sm text-red-500 mb-2">{error}</p>
+        <p class="text-sm text-[var(--error)] mb-2">{error}</p>
         <button
           class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90 transition-opacity mt-4"
           onclick={loadHealthSummary}
@@ -149,15 +165,16 @@
             </h2>
             <p class="text-sm text-[var(--muted)]">
               {getStatusEmoji(overallStatus)}
-              <span class="capitalize">{overallStatus}</span> -{healthData.timestamp
-                ? new Date(healthData.timestamp).toLocaleString()
-                : 'Unknown time'}
+              <span class="capitalize">{overallStatus}</span> - {projectsData.length} project{projectsData.length !==
+              1
+                ? 's'
+                : ''}
             </p>
           </div>
 
           <div class="text-right">
             <div class="text-5xl font-bold font-mono mb-2" style="color: {scoreColor}">
-              {healthData.overall_score}
+              {overallScore}
             </div>
             <div class="text-sm text-[var(--muted)]">out of 100</div>
           </div>
@@ -167,287 +184,112 @@
         <div class="h-3 bg-[var(--bg)] rounded-full overflow-hidden">
           <div
             class="h-full transition-all duration-500"
-            style="width: {healthData.overall_score}%; background: {scoreColor}"
+            style="width: {overallScore}%; background: {scoreColor}"
           ></div>
         </div>
       </div>
 
-      <!-- Sub-Scores Grid -->
+      <!-- Summary Stats Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Error Score</div>
+          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Total Events</div>
           <div class="flex items-baseline gap-2">
             <span class="text-3xl font-bold font-mono text-[var(--text)]">
-              {healthData.scores.error_score}
+              {totalEvents.toLocaleString()}
             </span>
-            <span class="text-sm text-[var(--muted)]">/100</span>
-          </div>
-          <div class="h-2 bg-[var(--bg)] rounded-full overflow-hidden mt-3">
-            <div
-              class="h-full transition-all"
-              style="width: {healthData.scores.error_score}%; background: {getScoreColor(
-                healthData.scores.error_score
-              )}"
-            ></div>
           </div>
         </div>
 
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Activity Score</div>
+          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Recent Events</div>
           <div class="flex items-baseline gap-2">
             <span class="text-3xl font-bold font-mono text-[var(--text)]">
-              {healthData.scores.activity_score}
+              {recentEvents.toLocaleString()}
             </span>
-            <span class="text-sm text-[var(--muted)]">/100</span>
-          </div>
-          <div class="h-2 bg-[var(--bg)] rounded-full overflow-hidden mt-3">
-            <div
-              class="h-full transition-all"
-              style="width: {healthData.scores.activity_score}%; background: {getScoreColor(
-                healthData.scores.activity_score
-              )}"
-            ></div>
           </div>
         </div>
 
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">
-            Stability Score
-          </div>
+          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Total Errors</div>
           <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-bold font-mono text-[var(--text)]">
-              {healthData.scores.stability_score}
+            <span
+              class="text-3xl font-bold font-mono"
+              style="color: {totalErrors > 0 ? 'var(--error)' : 'var(--success)'}"
+            >
+              {totalErrors.toLocaleString()}
             </span>
-            <span class="text-sm text-[var(--muted)]">/100</span>
-          </div>
-          <div class="h-2 bg-[var(--bg)] rounded-full overflow-hidden mt-3">
-            <div
-              class="h-full transition-all"
-              style="width: {healthData.scores.stability_score}%; background: {getScoreColor(
-                healthData.scores.stability_score
-              )}"
-            ></div>
           </div>
         </div>
 
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">
-            Performance Score
-          </div>
+          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Projects</div>
           <div class="flex items-baseline gap-2">
             <span class="text-3xl font-bold font-mono text-[var(--text)]">
-              {healthData.scores.performance_score}
+              {projectsData.length}
             </span>
-            <span class="text-sm text-[var(--muted)]">/100</span>
-          </div>
-          <div class="h-2 bg-[var(--bg)] rounded-full overflow-hidden mt-3">
-            <div
-              class="h-full transition-all"
-              style="width: {healthData.scores.performance_score}%; background: {getScoreColor(
-                healthData.scores.performance_score
-              )}"
-            ></div>
           </div>
         </div>
       </div>
 
-      <!-- Recommendations -->
-      {#if healthData.recommendations && healthData.recommendations.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
+      <!-- Per-Project Health -->
+      {#if projectsData.length > 0}
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
           <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-            Recommendations
+            Project Health
           </h2>
 
           <div class="space-y-3">
-            {#each healthData.recommendations as rec (rec.title)}
-              <div
-                class="border-l-4 p-4 rounded bg-[var(--bg)]"
-                style="border-color: {getSeverityColor(rec.severity)}"
-              >
-                <div class="flex items-start justify-between mb-2">
-                  <div class="flex-1">
-                    <h3 class="font-semibold text-[var(--text)] mb-1">{rec.title}</h3>
-                    <p class="text-sm text-[var(--muted)]">{rec.description}</p>
-                  </div>
-                  <span
-                    class="px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide ml-4"
-                    style="background: {getSeverityColor(rec.severity)}22; color: {getSeverityColor(
-                      rec.severity
-                    )}"
-                  >
-                    {rec.severity}
-                  </span>
-                </div>
-                {#if rec.action}
-                  <div class="mt-2 text-sm font-mono text-[var(--accent)]">→ {rec.action}</div>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/if}
-
-      <!-- Health Trends -->
-      {#if trendsData.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
-          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-            Health Trends
-          </h2>
-
-          <div class="space-y-3">
-            {#each trendsData as trend (trend.date)}
+            {#each projectsData as project (project.project_name)}
               <div class="flex items-center gap-4">
-                <div class="text-sm font-mono text-[var(--muted)] w-24">{trend.date}</div>
+                <div
+                  class="text-sm font-mono text-[var(--accent)] w-40 truncate"
+                  title={project.project_name}
+                >
+                  {project.project_name}
+                </div>
 
                 <div class="flex-1 flex items-center gap-2">
-                  <div class="flex-1 h-8 bg-[var(--bg)] rounded-lg overflow-hidden flex">
+                  <div class="flex-1 h-6 bg-[var(--bg)] rounded-full overflow-hidden">
                     <div
-                      class="h-full flex items-center justify-center text-xs font-semibold text-white"
-                      style="width: {trend.error_score}%; background: var(--error)"
-                      title="Error Score: {trend.error_score}"
-                    >
-                      {trend.error_score > 15 ? `E: ${trend.error_score}` : ''}
-                    </div>
-                    <div
-                      class="h-full flex items-center justify-center text-xs font-semibold text-white"
-                      style="width: {trend.activity_score}%; background: var(--info)"
-                      title="Activity Score: {trend.activity_score}"
-                    >
-                      {trend.activity_score > 15 ? `A: ${trend.activity_score}` : ''}
-                    </div>
-                    <div
-                      class="h-full flex items-center justify-center text-xs font-semibold text-white"
-                      style="width: {trend.stability_score}%; background: var(--warning)"
-                      title="Stability Score: {trend.stability_score}"
-                    >
-                      {trend.stability_score > 15 ? `S: ${trend.stability_score}` : ''}
-                    </div>
-                    <div
-                      class="h-full flex items-center justify-center text-xs font-semibold text-white"
-                      style="width: {trend.performance_score}%; background: var(--success)"
-                      title="Performance Score: {trend.performance_score}"
-                    >
-                      {trend.performance_score > 15 ? `P: ${trend.performance_score}` : ''}
-                    </div>
+                      class="h-full transition-all rounded-full"
+                      style="width: {project.health_score || 0}%; background: {getScoreColor(
+                        project.health_score || 0
+                      )}"
+                    ></div>
                   </div>
 
                   <div
-                    class="text-lg font-bold font-mono w-16 text-right"
-                    style="color: {getScoreColor(trend.overall_score)}"
+                    class="text-lg font-bold font-mono w-12 text-right"
+                    style="color: {getScoreColor(project.health_score || 0)}"
                   >
-                    {trend.overall_score}
+                    {project.health_score || 0}
                   </div>
                 </div>
+
+                <div class="text-xs font-mono text-[var(--muted)] w-20 text-right">
+                  {project.error_count || 0} errors
+                </div>
+
+                <span
+                  class="px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide"
+                  style="background: {getSeverityColor(
+                    project.status === 'healthy'
+                      ? 'success'
+                      : project.status === 'warning'
+                        ? 'medium'
+                        : 'critical'
+                  )}22; color: {getSeverityColor(
+                    project.status === 'healthy'
+                      ? 'success'
+                      : project.status === 'warning'
+                        ? 'medium'
+                        : 'critical'
+                  )}"
+                >
+                  {project.status}
+                </span>
               </div>
             {/each}
-          </div>
-
-          <div class="mt-4 pt-4 border-t border-[var(--border)] flex items-center gap-4 text-xs">
-            <span class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded" style="background: var(--error)"></span>
-              Error
-            </span>
-            <span class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded" style="background: var(--info)"></span>
-              Activity
-            </span>
-            <span class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded" style="background: var(--warning)"></span>
-              Stability
-            </span>
-            <span class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded" style="background: var(--success)"></span>
-              Performance
-            </span>
-          </div>
-        </div>
-      {/if}
-
-      <!-- Detailed Metrics -->
-      {#if healthData.metrics}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Errors Breakdown -->
-          {#if healthData.metrics.errors_by_severity}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-                Errors by Severity
-              </h3>
-              <div class="space-y-2">
-                {#each healthData.metrics.errors_by_severity as err (err.severity)}
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm capitalize text-[var(--muted)]">{err.severity}</span>
-                    <span class="text-sm font-mono font-semibold text-[var(--text)]">
-                      {err.count}
-                    </span>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/if}
-
-          <!-- File Activity -->
-          {#if healthData.metrics.file_activity}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-                File Activity
-              </h3>
-              <div class="space-y-2">
-                {#each healthData.metrics.file_activity as activity (activity.change_type)}
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm capitalize text-[var(--muted)]"
-                      >{activity.change_type}</span
-                    >
-                    <span class="text-sm font-mono font-semibold text-[var(--text)]">
-                      {activity.count}
-                    </span>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/if}
-
-          <!-- Agent Interactions -->
-          {#if healthData.metrics.agent_interactions}
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-                Agent Interactions
-              </h3>
-              <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-[var(--muted)]">Total</span>
-                  <span class="text-sm font-mono font-semibold text-[var(--text)]">
-                    {healthData.metrics.agent_interactions.total || 0}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-[var(--muted)]">Successful</span>
-                  <span class="text-sm font-mono font-semibold text-green-500">
-                    {healthData.metrics.agent_interactions.successful || 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-          {/if}
-
-          <!-- Syntax Errors -->
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-              Active Syntax Errors
-            </h3>
-            <div class="text-center">
-              <div
-                class="text-4xl font-bold font-mono"
-                class:text-red-500={healthData.metrics.active_syntax_errors > 0}
-                class:text-green-500={healthData.metrics.active_syntax_errors === 0}
-              >
-                {healthData.metrics.active_syntax_errors || 0}
-              </div>
-              <div class="text-sm text-[var(--muted)] mt-2">
-                {healthData.metrics.active_syntax_errors === 0
-                  ? 'No issues detected'
-                  : 'Needs attention'}
-              </div>
-            </div>
           </div>
         </div>
       {/if}

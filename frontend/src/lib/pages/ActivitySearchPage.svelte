@@ -66,12 +66,10 @@
       const startTime = performance.now();
 
       // Search across multiple endpoints
-      const [eventsResp] = await Promise.all([
-        api.get('/all-agent-events?limit=1000').catch(() => ({ json: async () => [] })),
-        api.get('/tracked-files').catch(() => ({ json: async () => ({ files: [] }) }))
+      const [eventsData] = await Promise.all([
+        api.get('/all-agent-events?limit=1000').catch(() => []),
+        api.get('/tracked-files').catch(() => [])
       ]);
-
-      const eventsData = await eventsResp.json();
 
       const allEvents = Array.isArray(eventsData) ? eventsData : [];
       const query = searchQuery.toLowerCase();
@@ -191,44 +189,44 @@
         <button
           onclick={() => (searchType = 'all')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-accent={searchType === 'all'}
+          class:bg-[var(--accent)]={searchType === 'all'}
           class:text-white={searchType === 'all'}
-          class:bg-bg={searchType !== 'all'}
+          class:bg-[var(--bg)]={searchType !== 'all'}
           class:border={searchType !== 'all'}
-          class:border-border={searchType !== 'all'}
+          class:border-[var(--border)]={searchType !== 'all'}
         >
           All Results
         </button>
         <button
           onclick={() => (searchType = 'files')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-accent={searchType === 'files'}
+          class:bg-[var(--accent)]={searchType === 'files'}
           class:text-white={searchType === 'files'}
-          class:bg-bg={searchType !== 'files'}
+          class:bg-[var(--bg)]={searchType !== 'files'}
           class:border={searchType !== 'files'}
-          class:border-border={searchType !== 'files'}
+          class:border-[var(--border)]={searchType !== 'files'}
         >
           Files Only
         </button>
         <button
           onclick={() => (searchType = 'messages')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-accent={searchType === 'messages'}
+          class:bg-[var(--accent)]={searchType === 'messages'}
           class:text-white={searchType === 'messages'}
-          class:bg-bg={searchType !== 'messages'}
+          class:bg-[var(--bg)]={searchType !== 'messages'}
           class:border={searchType !== 'messages'}
-          class:border-border={searchType !== 'messages'}
+          class:border-[var(--border)]={searchType !== 'messages'}
         >
           Messages Only
         </button>
         <button
           onclick={() => (searchType = 'agents')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-accent={searchType === 'agents'}
+          class:bg-[var(--accent)]={searchType === 'agents'}
           class:text-white={searchType === 'agents'}
-          class:bg-bg={searchType !== 'agents'}
+          class:bg-[var(--bg)]={searchType !== 'agents'}
           class:border={searchType !== 'agents'}
-          class:border-border={searchType !== 'agents'}
+          class:border-[var(--border)]={searchType !== 'agents'}
         >
           Agents Only
         </button>
@@ -370,22 +368,6 @@
 </div>
 
 <style>
-  .bg-accent {
-    background: var(--accent);
-  }
-  .text-white {
-    color: white;
-  }
-  .bg-bg {
-    background: var(--bg);
-  }
-  .border {
-    border-width: 1px;
-  }
-  .border-border {
-    border-color: var(--border);
-  }
-
   :global(mark) {
     background: rgba(99, 102, 241, 0.3);
     color: var(--accent);
