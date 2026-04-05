@@ -240,7 +240,7 @@
     a.href = url;
     a.download = `agent-stats-${Date.now()}.json`;
     document.body.appendChild(a);
-    a.click;
+    a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }

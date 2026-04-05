@@ -44,7 +44,7 @@
         types.add(event.event_type);
       }
     });
-    return Array.from(types).sort;
+    return Array.from(types).sort();
   });
 
   // Filtered events
@@ -64,9 +64,9 @@
       if (dateRange === 'today') {
         cutoff.setHours(0, 0, 0, 0);
       } else if (dateRange === '7d') {
-        cutoff.setDate(now.getDate - 7);
+        cutoff.setDate(now.getDate() - 7);
       } else if (dateRange === '30d') {
-        cutoff.setDate(now.getDate - 30);
+        cutoff.setDate(now.getDate() - 30);
       }
 
       filtered = filtered.filter(event => {
@@ -355,22 +355,19 @@
 
     loadingMore = true;
     eventsLimit += 30;
-    await loadMonitoringData;
+    await loadMonitoringData();
     loadingMore = false;
   }
 
-  // Auto-refresh effect
+  // Auto-refresh effect - only reacts to autoRefresh toggle
   $effect(() => {
-    // Always clear any existing interval first
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-      refreshInterval = null;
-    }
-
     if (autoRefresh) {
       refreshInterval = setInterval(() => {
         loadMonitoringData();
-      }, 5000); // Refresh every 5 seconds
+      }, 5000);
+    } else if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = null;
     }
 
     return () => {

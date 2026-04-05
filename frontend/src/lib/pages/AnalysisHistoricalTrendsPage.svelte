@@ -344,11 +344,15 @@
     };
   });
 
-  // Reload trends when period or days changes
+  // Reload trends when period or days changes (skip initial mount - onMount handles that)
+  let mounted = false;
   $effect(() => {
     const currentPeriod = period;
     const currentDays = days;
-    loadTrends();
+    if (mounted) {
+      loadTrends();
+    }
+    mounted = true;
   });
 
   // Recreate charts when trends data or showCharts toggle changes

@@ -5,6 +5,7 @@
    * Visual chronological timeline of events
    */
 
+  import { onMount } from 'svelte';
   import { api } from '../apiClient.js';
 
   // State
@@ -161,7 +162,7 @@
     return date.toLocaleDateString();
   }
 
-  $effect(() => {
+  onMount(() => {
     loadEvents();
   });
 </script>

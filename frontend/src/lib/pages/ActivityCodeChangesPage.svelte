@@ -4,6 +4,7 @@
    * Activity Code Changes Page - Detailed file change log with real-time updates
    */
 
+  import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
   import { api } from '../apiClient.js';
   import { isSourceCodeFile, debounce } from '../utils/helpers.js';
@@ -157,7 +158,7 @@
   }
 
   // Lifecycle - mount
-  $effect(() => {
+  onMount(() => {
     // Load initial data
     loadEvents();
 
