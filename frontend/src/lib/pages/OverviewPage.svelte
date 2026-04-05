@@ -33,6 +33,8 @@
   let recentFiles = $state([]);
   let liveEvents = $state([]);
   let topFiles = $state([]);
+  let agents = $state([]);
+  let localModels = $state({ detected: [], running: 0 });
   let loading = $state(false);
   let lastUpdated = $state(new Date());
 
@@ -78,6 +80,20 @@
 
   function formatNumber(n) {
     return n?.toLocaleString() || '0';
+  }
+
+  function getAgentColorByName(name) {
+    const colors = {
+      'Claude Code': '#FF6B35',
+      claude: '#FF6B35',
+      Ollama: '#F39C12',
+      ollama: '#F39C12',
+      'lm-studio': '#22C55E',
+      cursor: '#10B981',
+      aider: '#8B5CF6',
+      copilot: '#0EA5E9'
+    };
+    return colors[name] || '#6b7280';
   }
 
   function getChangeColor(type) {
@@ -174,19 +190,23 @@
     try {
       const pf = get(projectFilter);
       const pq = pf && pf !== 'all' ? `&project=${encodeURIComponent(pf)}` : '';
-      const [statsData, metricsData, fileEvents, filesData, agentData] = await Promise.all([
-        api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
-        api.get('/system-metrics?limit=1').catch(() => []),
-        api.get(`/file-events?limit=100${pq}`).catch(() => []),
-        api.get(`/top-modified-files?limit=8${pq}`).catch(() => []),
-        api.get('/agents-status').catch(() => [])
-      ]);
+      const [statsData, metricsData, fileEvents, filesData, agentData, modelsData] =
+        await Promise.all([
+          api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
+          api.get('/system-metrics?limit=1').catch(() => []),
+          api.get(`/file-events?limit=100${pq}`).catch(() => []),
+          api.get(`/top-modified-files?limit=8${pq}`).catch(() => []),
+          api.get('/agents-status').catch(() => []),
+          api.get('/local-models').catch(() => ({ detected: [], running: 0 }))
+        ]);
 
       stats = statsData;
       systemMetrics = Array.isArray(metricsData) && metricsData[0] ? metricsData[0] : systemMetrics;
       recentFiles = Array.isArray(fileEvents) ? fileEvents : [];
       topFiles = Array.isArray(filesData) ? filesData : filesData.files || [];
-      agentStatus = Array.isArray(agentData) && agentData[0] ? agentData[0] : null;
+      agents = Array.isArray(agentData) ? agentData : [];
+      agentStatus = agents[0] || null;
+      localModels = modelsData;
 
       lastUpdated = new Date();
       loading = false;
@@ -395,6 +415,67 @@
       </div>
     </div>
 
+    <!-- Agent Activity -->
+    {#if agents.length > 0}
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+            AI Agents
+          </h3>
+          <button
+            onclick={() => navigate('/analysis/stats')}
+            class="text-xs text-[var(--accent)] hover:underline font-sans"
+          >
+            View Stats
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {#each agents as agent (agent.agent_name)}
+            <div
+              class="flex items-center gap-3 p-3 bg-[var(--bg)] rounded border border-[var(--border)]"
+            >
+              <div class="flex-shrink-0">
+                <span
+                  class="w-3 h-3 rounded-full inline-block {agent.is_running
+                    ? 'animate-pulse'
+                    : ''}"
+                  style="background: {agent.color || 'var(--muted)'}"
+                ></span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-[var(--text)] font-sans">
+                  {agent.agent_name}
+                </div>
+                <div class="text-xs text-[var(--muted)] font-mono">
+                  {#if agent.models_available?.length > 0}
+                    {agent.models_available.length} model{agent.models_available.length > 1
+                      ? 's'
+                      : ''}: {agent.models_available.slice(0, 2).join(', ')}{agent.models_available
+                      .length > 2
+                      ? '...'
+                      : ''}
+                  {:else if agent.requests_handled > 0}
+                    {formatNumber(agent.requests_handled)} events
+                  {:else}
+                    {agent.is_running ? 'Active' : 'Inactive'}
+                  {/if}
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <span
+                  class="text-xs font-mono {agent.is_running
+                    ? 'text-[var(--success)]'
+                    : 'text-[var(--muted)]'}"
+                >
+                  {agent.is_running ? 'Running' : 'Stopped'}
+                </span>
+              </div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    {/if}
+
     <!-- Live Feed + Top Files Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
       <!-- Live File Activity -->
@@ -420,6 +501,13 @@
                 <div class="flex-1 min-w-0">
                   <div class="text-sm font-mono text-[var(--text)] truncate">{event.filepath}</div>
                 </div>
+                {#if event.agent_source}
+                  <span
+                    class="px-1.5 py-0.5 text-[10px] font-bold rounded text-white flex-shrink-0"
+                    style="background: {getAgentColorByName(event.agent_source)}"
+                    >{event.agent_source}</span
+                  >
+                {/if}
                 <span class="text-xs text-[var(--muted)] font-mono flex-shrink-0"
                   >{formatTime(event.timestamp)}</span
                 >

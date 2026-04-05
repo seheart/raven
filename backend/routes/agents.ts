@@ -143,6 +143,27 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
         tool_breakdown: toolBreakdown || []
       }));
 
+      // Merge in detected agents from registry that have no events yet (e.g., local models)
+      const existingNames = new Set(enriched.map((a: any) => a.agent_name || a.agent));
+      for (const [, agent] of agentRegistry) {
+        if (!existingNames.has(agent.agent_name)) {
+          enriched.push({
+            agent: agent.agent_name,
+            agent_name: agent.agent_name,
+            agent_type: agent.agent_type,
+            is_running: agent.is_running,
+            color: agent.color,
+            models_available: agent.models_available || [],
+            total_events: 0,
+            event_count: 0,
+            total_file_changes: 0,
+            unique_files: 0,
+            last_active: agent.last_seen,
+            tool_breakdown: []
+          });
+        }
+      }
+
       res.json(enriched);
     })
   );

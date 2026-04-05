@@ -56,6 +56,8 @@ export class LocalModelWatcher {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private detectedModels: Map<string, DetectedModel> = new Map();
   private onModelDetected: ((model: DetectedModel) => void) | null = null;
+  private onModelStatusChanged: ((model: DetectedModel, previousStatus: string) => void) | null =
+    null;
   private pollMs: number;
 
   constructor(pollMs: number = 30000) {
@@ -65,8 +67,12 @@ export class LocalModelWatcher {
   /**
    * Start watching for local models
    */
-  async start(callback?: (model: DetectedModel) => void): Promise<void> {
+  async start(
+    callback?: (model: DetectedModel) => void,
+    statusCallback?: (model: DetectedModel, previousStatus: string) => void
+  ): Promise<void> {
     this.onModelDetected = callback || null;
+    this.onModelStatusChanged = statusCallback || null;
 
     // Initial scan
     await this.scan();
@@ -115,6 +121,9 @@ export class LocalModelWatcher {
           existing.status = 'stopped';
           existing.lastChecked = new Date().toISOString();
           this.detectedModels.set(endpoint.name, existing);
+          if (this.onModelStatusChanged) {
+            this.onModelStatusChanged(existing, 'running');
+          }
         }
       }
     }

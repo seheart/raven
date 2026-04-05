@@ -101,6 +101,19 @@ export function setupNotificationListeners() {
       notifications.trigger(`Trigger "${trigger.name}": ${trigger.message}`, {
         title: 'Trigger Fired'
       });
+    },
+
+    'model-status-changed': data => {
+      const modelInfo = data.models?.length > 0 ? ` (${data.models.join(', ')})` : '';
+      if (data.status === 'running') {
+        notifications.info(`${data.name}${modelInfo} is now running`, {
+          title: 'Model Started'
+        });
+      } else {
+        notifications.warning(`${data.name} has stopped`, {
+          title: 'Model Stopped'
+        });
+      }
     }
   };
 

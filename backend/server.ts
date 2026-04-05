@@ -326,6 +326,41 @@ EventBus.onFileEvent(async (event: FileEvent) => {
     // Prefix filepath with project name so it's identifiable across projects
     const storedPath = eventProjectName ? `${eventProjectName}/${event.path}` : event.path;
 
+    // Agent attribution: check if a recent agent event references this file
+    let agentSource: string | null = null;
+    try {
+      const recentAgent = db.db
+        .prepare(
+          `
+        SELECT agent FROM agent_events
+        WHERE file LIKE ? AND timestamp > datetime('now', '-10 seconds')
+        ORDER BY timestamp DESC LIMIT 1
+      `
+        )
+        .get(`%${event.path}%`) as { agent: string } | undefined;
+
+      if (recentAgent) {
+        agentSource = recentAgent.agent;
+      } else {
+        // Fallback: check if any agent had activity in the last 5 seconds
+        const activeAgent = db.db
+          .prepare(
+            `
+          SELECT agent FROM agent_events
+          WHERE timestamp > datetime('now', '-5 seconds')
+          AND event_type IN ('tool_call', 'inference')
+          ORDER BY timestamp DESC LIMIT 1
+        `
+          )
+          .get() as { agent: string } | undefined;
+        if (activeAgent) {
+          agentSource = activeAgent.agent;
+        }
+      }
+    } catch {
+      // Attribution is best-effort
+    }
+
     // Insert into database
     const eventId = db.insertEvent(
       new Date(event.ts).toISOString(),
@@ -337,7 +372,8 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       SESSION_ID,
       event.hash,
       event.size,
-      eventProjectName
+      eventProjectName,
+      agentSource
     );
 
     // Save snapshot
@@ -355,7 +391,8 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       change_type: event.type,
       event_size: event.size,
       file_hash: event.hash,
-      project_name: eventProjectName
+      project_name: eventProjectName,
+      agent_source: agentSource
     });
 
     // Check triggers
@@ -688,6 +725,201 @@ app.get('/api/local-models', (req: Request, res: Response) => {
   });
 });
 
+// ==================== Ollama Proxy ====================
+// Forward requests to Ollama while logging telemetry to Raven.
+// Tools point to http://localhost:9100/ollama instead of http://localhost:11434
+
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+
+app.all('/ollama/*', async (req: Request, res: Response): Promise<any> => {
+  const ollamaPath = req.path.replace('/ollama', '');
+  const targetUrl = `${OLLAMA_URL}${ollamaPath}`;
+  const startTime = Date.now();
+
+  try {
+    // Forward the request to Ollama
+    const fetchOptions: RequestInit = {
+      method: req.method,
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      fetchOptions.body = JSON.stringify(req.body);
+    }
+
+    const ollamaResponse = await fetch(targetUrl, fetchOptions);
+    const isStreaming =
+      req.body?.stream !== false && (ollamaPath === '/api/generate' || ollamaPath === '/api/chat');
+
+    if (isStreaming && ollamaResponse.body) {
+      // Stream response back to client while capturing telemetry
+      res.setHeader('Content-Type', 'application/x-ndjson');
+      res.setHeader('Transfer-Encoding', 'chunked');
+
+      const reader = ollamaResponse.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      let modelName = req.body?.model || 'unknown';
+      let totalTokens = 0;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          res.write(chunk);
+          fullResponse += chunk;
+
+          // Parse NDJSON lines to extract token counts
+          for (const line of chunk.split('\n').filter(Boolean)) {
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.done && parsed.total_duration) {
+                totalTokens = (parsed.prompt_eval_count || 0) + (parsed.eval_count || 0);
+              }
+            } catch {
+              // Partial JSON, skip
+            }
+          }
+        }
+      } finally {
+        res.end();
+      }
+
+      // Log telemetry after stream completes
+      const durationMs = Date.now() - startTime;
+      db.insertAgentEvent(
+        new Date().toISOString(),
+        modelName,
+        'inference',
+        null,
+        null,
+        durationMs,
+        `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${totalTokens} tokens)`,
+        {
+          model: modelName,
+          tokens: totalTokens,
+          endpoint: ollamaPath,
+          prompt_preview:
+            typeof req.body?.prompt === 'string' ? req.body.prompt.substring(0, 100) : undefined
+        },
+        SESSION_ID,
+        null
+      );
+
+      // Update agent registry
+      if (!agentRegistry.has(modelName)) {
+        agentRegistry.set(modelName, {
+          agent_name: modelName,
+          agent_type: 'ollama',
+          is_running: true,
+          last_seen: new Date().toISOString(),
+          models_available: [modelName],
+          requests_handled: 1,
+          errors: 0,
+          color: getAgentColor(modelName)
+        });
+      } else {
+        const agent = agentRegistry.get(modelName)!;
+        agent.requests_handled++;
+        agent.last_seen = new Date().toISOString();
+        agent.is_running = true;
+      }
+
+      // Emit to WebSocket
+      io.emit('agent-event', {
+        type: 'inference',
+        agent_name: modelName,
+        duration_ms: durationMs,
+        tokens: totalTokens,
+        timestamp: new Date().toISOString()
+      });
+
+      logger.info(`🤖 Ollama ${modelName}: ${ollamaPath} (${totalTokens} tokens, ${durationMs}ms)`);
+    } else {
+      // Non-streaming: forward response directly
+      const data = await ollamaResponse.text();
+      res.status(ollamaResponse.status).send(data);
+
+      const durationMs = Date.now() - startTime;
+      const modelName = req.body?.model || 'Ollama';
+
+      // Log inference for generate/chat endpoints
+      if (ollamaPath === '/api/generate' || ollamaPath === '/api/chat') {
+        let tokens = 0;
+        try {
+          const parsed = JSON.parse(data);
+          tokens = (parsed.prompt_eval_count || 0) + (parsed.eval_count || 0);
+        } catch {
+          /* not JSON */
+        }
+
+        db.insertAgentEvent(
+          new Date().toISOString(),
+          modelName,
+          'inference',
+          null,
+          null,
+          durationMs,
+          `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${tokens} tokens)`,
+          { model: modelName, tokens, endpoint: ollamaPath },
+          SESSION_ID,
+          null
+        );
+
+        // Update agent registry
+        if (!agentRegistry.has(modelName)) {
+          agentRegistry.set(modelName, {
+            agent_name: modelName,
+            agent_type: 'ollama',
+            is_running: true,
+            last_seen: new Date().toISOString(),
+            models_available: [modelName],
+            requests_handled: 1,
+            errors: 0,
+            color: getAgentColor(modelName)
+          });
+        } else {
+          const agent = agentRegistry.get(modelName)!;
+          agent.requests_handled++;
+          agent.last_seen = new Date().toISOString();
+        }
+
+        io.emit('agent-event', {
+          type: 'inference',
+          agent_name: modelName,
+          duration_ms: durationMs,
+          tokens,
+          timestamp: new Date().toISOString()
+        });
+
+        logger.info(`🤖 Ollama ${modelName}: ${ollamaPath} (${tokens} tokens, ${durationMs}ms)`);
+      } else if (ollamaPath !== '/api/tags' && ollamaPath !== '/') {
+        // Log other API calls
+        db.insertAgentEvent(
+          new Date().toISOString(),
+          modelName,
+          'api_call',
+          null,
+          null,
+          durationMs,
+          `Ollama API: ${req.method} ${ollamaPath}`,
+          { endpoint: ollamaPath, method: req.method },
+          SESSION_ID,
+          null
+        );
+      }
+    }
+  } catch (error: any) {
+    logger.error(`Ollama proxy error: ${error.message}`);
+    return res.status(502).json({
+      error: 'Ollama not reachable',
+      message: `Could not connect to ${OLLAMA_URL}. Is Ollama running?`
+    });
+  }
+});
+
 // ==================== File Events ====================
 
 app.get('/api/file-events', cacheMiddleware(5000), (req: Request, res: Response) => {
@@ -700,8 +932,8 @@ app.get('/api/file-events', cacheMiddleware(5000), (req: Request, res: Response)
 
     // Build query with optional filtering
     const fields = includeDiff
-      ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name'
-      : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name';
+      ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name, agent_source'
+      : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name, agent_source';
 
     let query = `SELECT ${fields} FROM events`;
     const params: any[] = [];
@@ -3071,37 +3303,60 @@ httpServer.listen(PORT, async () => {
 
   // Start local model watcher
   logger.info('🤖 Starting local model watcher...');
-  await localModelWatcher.start(model => {
-    logger.info(
-      `🤖 Local model detected: ${model.name} (${model.models.join(', ') || 'no models loaded'})`
-    );
-    // Register detected model in agent registry
-    if (!agentRegistry.has(model.name)) {
-      agentRegistry.set(model.name, {
+  await localModelWatcher.start(
+    model => {
+      logger.info(
+        `🤖 Local model detected: ${model.name} (${model.models.join(', ') || 'no models loaded'})`
+      );
+      // Register detected model in agent registry
+      if (!agentRegistry.has(model.name)) {
+        agentRegistry.set(model.name, {
+          agent_name: model.name,
+          agent_type: model.type,
+          is_running: model.status === 'running',
+          last_seen: model.lastChecked,
+          models_available: model.models,
+          requests_handled: 0,
+          errors: 0,
+          color: getAgentColor(model.name)
+        });
+      } else {
+        const existing = agentRegistry.get(model.name)!;
+        existing.is_running = model.status === 'running';
+        existing.last_seen = model.lastChecked;
+        existing.models_available = model.models;
+      }
+      // Emit to WebSocket
+      io.emit('agent-event', {
+        type: 'model_detected',
         agent_name: model.name,
-        agent_type: model.type,
-        is_running: model.status === 'running',
-        last_seen: model.lastChecked,
-        models_available: model.models,
-        requests_handled: 0,
-        errors: 0,
-        color: getAgentColor(model.name)
+        models: model.models,
+        status: model.status,
+        timestamp: model.lastChecked
       });
-    } else {
-      const existing = agentRegistry.get(model.name)!;
-      existing.is_running = model.status === 'running';
-      existing.last_seen = model.lastChecked;
-      existing.models_available = model.models;
+    },
+    (model, previousStatus) => {
+      // Model status changed (e.g., running → stopped or stopped → running)
+      logger.info(`🤖 Model status change: ${model.name} ${previousStatus} → ${model.status}`);
+
+      // Update agent registry
+      const existing = agentRegistry.get(model.name);
+      if (existing) {
+        existing.is_running = model.status === 'running';
+        existing.last_seen = model.lastChecked;
+      }
+
+      // Emit notification via WebSocket
+      io.emit('model-status-changed', {
+        name: model.name,
+        type: model.type,
+        status: model.status,
+        previousStatus,
+        models: model.models,
+        timestamp: model.lastChecked
+      });
     }
-    // Emit to WebSocket
-    io.emit('agent-event', {
-      type: 'model_detected',
-      agent_name: model.name,
-      models: model.models,
-      status: model.status,
-      timestamp: model.lastChecked
-    });
-  });
+  );
 
   // Start metrics collector
   logger.info('📊 Starting metrics collector...');

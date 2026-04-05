@@ -189,7 +189,8 @@ export class RavenDB {
         session_id TEXT,
         file_hash TEXT,
         event_size INTEGER,
-        project_name TEXT
+        project_name TEXT,
+        agent_source TEXT
       )
     `);
 
@@ -334,6 +335,14 @@ export class RavenDB {
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_session_id ON events(session_id)`);
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_project_name ON events(project_name)`);
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_change_type ON events(change_type)`);
+
+    // Safe migration: add agent_source column if it doesn't exist
+    try {
+      this.db.exec(`ALTER TABLE events ADD COLUMN agent_source TEXT`);
+    } catch {
+      // Column already exists
+    }
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_agent_source ON events(agent_source)`);
 
     // Agent events indexes
     this.db.exec(
@@ -515,11 +524,12 @@ export class RavenDB {
     session_id: string | null | undefined,
     file_hash: string | null | undefined,
     event_size: number | null | undefined,
-    project_name: string | null | undefined
+    project_name: string | null | undefined,
+    agent_source: string | null | undefined = null
   ): number {
     const stmt = this.db.prepare(`
-      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size, project_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size, project_name, agent_source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -532,7 +542,8 @@ export class RavenDB {
       session_id || null,
       file_hash || null,
       event_size || null,
-      project_name || null
+      project_name || null,
+      agent_source || null
     );
 
     return Number(result.lastInsertRowid);
