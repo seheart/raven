@@ -22,6 +22,8 @@ export interface WatcherConfig {
     stabilityThreshold: number;
     pollInterval: number;
   };
+  projectName?: string;
+  projectPath?: string;
 }
 
 export class FileWatcher {
@@ -220,14 +222,16 @@ export class FileWatcher {
         this.pendingOps.delete(filepath);
       }
 
-      // Create event
+      // Create event with project tagging
       const event: FileEvent = {
         type: eventType,
         path: relPath,
         ts: Date.now(),
         content,
         hash,
-        size
+        size,
+        projectName: this.config.projectName,
+        projectPath: this.config.projectPath || this.config.watchPath
       };
 
       // Emit to EventBus

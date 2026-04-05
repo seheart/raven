@@ -224,7 +224,7 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? ' Loading' : ' Refresh'}
+          {loading ? '...' : '&#8635;'} Refresh
         </button>
       </div>
     </div>

@@ -41,6 +41,7 @@ import { createAgentsRouter } from './routes/agents.js';
 import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
 import { HealthMonitor } from './services/health-monitor.js';
 import { createHealthMonitoringRouter } from './routes/health-monitoring.js';
+import { ProjectManager } from './services/project-manager.js';
 
 // ==================== Configuration ====================
 
@@ -74,6 +75,15 @@ function isValidTableName(tableName: string): boolean {
   // SQLite table names must match this pattern
   const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
   return validPattern.test(tableName) && tableName.length <= 64;
+}
+
+/**
+ * Safely parse an integer from a query param with a default value.
+ * Unlike `parseInt(v) || default`, this correctly handles 0 as a valid value.
+ */
+function safeInt(value: unknown, defaultValue: number): number {
+  const parsed = parseInt(value as string, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
 }
 const DB_PATH = join(RAVEN_DIR, 'db', 'raven.db');
 
@@ -213,8 +223,11 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
   });
 }, logger);
 
+// Single-project fallback watcher (used if ProjectManager hasn't started yet)
 const fileWatcher = new FileWatcher({
   watchPath: WATCH_PATH,
+  projectName: PROJECT_NAME,
+  projectPath: WATCH_PATH,
   ignored: [
     '**/node_modules/**',
     '**/.git/**',
@@ -224,6 +237,9 @@ const fileWatcher = new FileWatcher({
     '**/dist/**'
   ]
 });
+
+// Multi-project manager
+const projectManager = new ProjectManager({ ravenDir: RAVEN_DIR });
 
 const gitMonitor = new GitMonitor({
   repoPath: WATCH_PATH,
@@ -274,9 +290,16 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       return; // Skip event processing when paused
     }
 
+    // Resolve project name from event (multi-project) or fallback to default
+    const eventProjectName = event.projectName || PROJECT_NAME;
+    const eventProjectPath = event.projectPath || WATCH_PATH;
+
     // Generate diff if this is a change event and we have old content
     let diff: string | null = null;
-    const oldContent = fileWatcher.getCachedContent(join(WATCH_PATH, event.path));
+    const absolutePath = join(eventProjectPath, event.path);
+    const oldContent =
+      projectManager.getCachedContentForPath(absolutePath) ||
+      fileWatcher.getCachedContent(absolutePath);
 
     if (event.type === 'change' && oldContent && event.content) {
       diff = getDiff(oldContent, event.content)
@@ -284,10 +307,13 @@ EventBus.onFileEvent(async (event: FileEvent) => {
         .join('');
     }
 
+    // Prefix filepath with project name so it's identifiable across projects
+    const storedPath = eventProjectName ? `${eventProjectName}/${event.path}` : event.path;
+
     // Insert into database
     const eventId = db.insertEvent(
       new Date(event.ts).toISOString(),
-      event.path,
+      storedPath,
       event.type,
       diff,
       0, // CPU will be added later
@@ -295,7 +321,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       SESSION_ID,
       event.hash,
       event.size,
-      PROJECT_NAME
+      eventProjectName
     );
 
     // Save snapshot
@@ -303,16 +329,17 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       await saveSnapshot(event.path, event.content);
     }
 
-    logger.info(`📁 File ${event.type}: ${event.path} (ID: ${eventId})`);
+    logger.info(`📁 File ${event.type}: ${storedPath} (ID: ${eventId})`);
 
     // Emit to WebSocket
     io.emit('file-changed', {
       id: eventId,
       timestamp: new Date(event.ts).toISOString(),
-      filepath: event.path,
+      filepath: storedPath,
       change_type: event.type,
       event_size: event.size,
-      file_hash: event.hash
+      file_hash: event.hash,
+      project_name: eventProjectName
     });
 
     // Check triggers
@@ -324,7 +351,7 @@ EventBus.onFileEvent(async (event: FileEvent) => {
     });
 
     // Check syntax if file type is supported (skip Raven's own files)
-    const filePath = join(WATCH_PATH, event.path);
+    const filePath = join(eventProjectPath, event.path);
     const isRavenFile =
       event.path.includes('raven/backend/') || event.path.includes('raven/frontend/');
     if (
@@ -492,14 +519,18 @@ app.get('/api/health', (req: Request, res: Response) => {
   }
   return res.json({
     status: 'healthy',
-    version: '2.1.0',
+    version: '2.2.0',
     session_id: SESSION_ID,
     uptime: process.uptime(),
     active_agents: agentRegistry.size,
     modules: {
-      watcher: fileWatcher.isRunning(),
+      watcher: projectManager.isWatching() || fileWatcher.isRunning(),
       git: gitMonitor.isRunning(),
       metrics: metricsCollector.isCollectorRunning()
+    },
+    project_watchers: {
+      active: projectManager.activeWatcherCount(),
+      projects: projectManager.getWatcherStatus()
     },
     database: DB_PATH,
     database_health: { status: dbHealthy ? 'healthy' : 'error', accessible: dbHealthy }
@@ -581,7 +612,7 @@ app.get('/api/dashboard-stats', cacheMiddleware(3000), (req: Request, res: Respo
 
 app.get('/api/top-modified-files', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = safeInt(req.query.limit, 10);
     const files = db.db
       .prepare(
         `
@@ -602,7 +633,7 @@ app.get('/api/top-modified-files', cacheMiddleware(5000), (req: Request, res: Re
 
 app.get('/api/longest-edits', cacheMiddleware(10000), (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = safeInt(req.query.limit, 10);
     const edits = db.getLongestEdits(limit);
     return res.json(edits);
   } catch (error: any) {
@@ -618,7 +649,7 @@ app.get('/api/longest-edits', cacheMiddleware(10000), (req: Request, res: Respon
 
 app.get('/api/file-events', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = safeInt(req.query.limit, 100);
     const includeDiff = req.query.diff === 'true';
     const startTime = req.query.start_time as string;
     const endTime = req.query.end_time as string;
@@ -750,7 +781,7 @@ app.get(
 
 app.get('/api/system-metrics', cacheMiddleware(2000), (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = safeInt(req.query.limit, 100);
     const startTime = req.query.start_time as string;
     const endTime = req.query.end_time as string;
 
@@ -785,7 +816,7 @@ app.get('/api/system-metrics', cacheMiddleware(2000), (req: Request, res: Respon
 app.get('/api/process-metrics/:agent', (req: Request, res: Response) => {
   try {
     const { agent } = req.params;
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = safeInt(req.query.limit, 100);
     const metrics = db.getProcessMetricsByAgent(agent, limit);
     return res.json(metrics);
   } catch (error: any) {
@@ -808,7 +839,7 @@ app.get('/api/metrics-stats', (req: Request, res: Response) => {
 
 app.get('/api/performance-correlations', (req: Request, res: Response) => {
   try {
-    const time_window_seconds = parseInt(req.query.time_window_seconds as string) || 5;
+    const time_window_seconds = safeInt(req.query.time_window_seconds, 5);
     const correlations = db.correlateEventsWithMetrics(time_window_seconds);
     return res.json(correlations);
   } catch (error: any) {
@@ -847,7 +878,7 @@ app.get('/api/git/branches', async (req: Request, res: Response) => {
 
 app.get('/api/git/history', async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = safeInt(req.query.limit, 10);
     const commits = await gitMonitor.getCommitHistory(limit);
     return res.json({ commits });
   } catch (error: any) {
@@ -868,7 +899,7 @@ app.get('/api/triggers-config', (req: Request, res: Response) => {
 
 app.get('/api/triggered-events', (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = safeInt(req.query.limit, 100);
     const events = triggerEngine.getTriggeredEvents(limit);
     return res.json(events);
   } catch (error: any) {
@@ -911,6 +942,17 @@ app.post('/telemetry', (req: Request, res: Response) => {
 
     if (!agent || !event || !message) {
       return res.status(400).json({ error: 'Missing required fields: agent, event, message' });
+    }
+
+    // Input length validation to prevent abuse
+    const MAX_FIELD_LEN = 10000;
+    if (
+      (typeof agent === 'string' && agent.length > 200) ||
+      (typeof event === 'string' && event.length > 200) ||
+      (typeof message === 'string' && message.length > MAX_FIELD_LEN) ||
+      (typeof file === 'string' && file.length > 1000)
+    ) {
+      return res.status(400).json({ error: 'Field exceeds maximum allowed length' });
     }
 
     const timestamp = new Date().toISOString();
@@ -1327,32 +1369,22 @@ app.get('/api/projects', cacheMiddleware(5000), async (req: Request, res: Respon
   try {
     const config = await loadProjectsConfig();
 
-    // Get database stats for each project
+    // Get stats for each project from the shared database
     const projectsWithStats = await Promise.all(
       config.projects.map(async project => {
-        const dbPath = join(RAVEN_DIR, 'db', `${project.id}.db`);
-        let dbSize = 0;
         let eventCount = 0;
 
         try {
-          const stats = await fs.stat(dbPath);
-          dbSize = stats.size;
-
-          // Get event count from database
-          const Database = (await import('better-sqlite3')).default;
-          const dbConn = new Database(dbPath, { readonly: true });
-          const result = dbConn.prepare('SELECT COUNT(*) as count FROM events').get() as {
-            count: number;
-          };
+          const result = db.db
+            .prepare('SELECT COUNT(*) as count FROM events WHERE project_name = ?')
+            .get(project.name) as { count: number };
           eventCount = result.count;
-          dbConn.close();
         } catch (err) {
-          // Database doesn't exist yet
+          // Query failed
         }
 
         return {
           ...project,
-          dbSize,
           eventCount
         };
       })
@@ -1449,6 +1481,11 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     config.projects.push(newProject);
     await saveProjectsConfig(config);
 
+    // Auto-start watcher if project is enabled
+    if (newProject.enabled) {
+      await projectManager.startWatcher(newProject);
+    }
+
     return res.json({ success: true, project: newProject });
   } catch (error: any) {
     logger.error('[POST /api/projects] Error:', error);
@@ -1511,6 +1548,8 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
       }
     }
 
+    const previousEnabled = config.projects[projectIndex].enabled;
+
     // Update project with sanitized fields only
     config.projects[projectIndex] = {
       ...config.projects[projectIndex],
@@ -1520,7 +1559,17 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
 
     await saveProjectsConfig(config);
 
-    return res.json({ success: true, project: config.projects[projectIndex] });
+    // Toggle watcher based on enabled state change
+    const updatedProject = config.projects[projectIndex];
+    if (sanitizedUpdates.enabled !== undefined && sanitizedUpdates.enabled !== previousEnabled) {
+      if (updatedProject.enabled) {
+        await projectManager.startWatcher(updatedProject);
+      } else {
+        await projectManager.stopWatcher(updatedProject.id);
+      }
+    }
+
+    return res.json({ success: true, project: updatedProject });
   } catch (error: any) {
     logger.error('[PUT /api/projects/:id] Error:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -1545,6 +1594,9 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    // Stop watcher before removing
+    await projectManager.stopWatcher(id);
+
     // Remove from config
     config.projects.splice(projectIndex, 1);
     await saveProjectsConfig(config);
@@ -1555,9 +1607,10 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
       const safeId = sanitizeProjectId(id);
       const dbPath = join(RAVEN_DIR, 'db', `${safeId}.db`);
 
-      // Security: Verify path is within database directory
-      const dbDir = join(RAVEN_DIR, 'db');
-      if (!dbPath.startsWith(dbDir)) {
+      // Security: Verify path is within database directory using resolve + relative check
+      const dbDir = resolve(RAVEN_DIR, 'db');
+      const resolvedDbPath = resolve(dbPath);
+      if (!resolvedDbPath.startsWith(dbDir + '/')) {
         logger.warn('[Security] [DELETE /api/projects/:id] Path traversal attempt:', dbPath);
         return res.status(403).json({ error: 'Forbidden' });
       }
@@ -1648,7 +1701,19 @@ app.post('/api/projects/discover', async (req: Request, res: Response) => {
       }
     }
 
-    return res.json({ discovered, basePath });
+    // Auto-register: if autoRegister flag is set, add all discovered and start watchers
+    const autoRegister = req.body.autoRegister === true;
+    if (autoRegister && discovered.length > 0) {
+      for (const project of discovered) {
+        project.enabled = true;
+        config.projects.push(project);
+        await projectManager.startWatcher(project);
+      }
+      await saveProjectsConfig(config);
+      logger.info(`Auto-registered ${discovered.length} discovered projects`);
+    }
+
+    return res.json({ discovered, basePath, autoRegistered: autoRegister ? discovered.length : 0 });
   } catch (error: any) {
     logger.error('[POST /api/projects/discover] Error:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -1683,7 +1748,7 @@ app.put('/api/projects/config', async (req: Request, res: Response) => {
 app.get('/api/search/global', (req: Request, res: Response) => {
   try {
     const query = (req.query.q as string) || '';
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = safeInt(req.query.limit, 100);
 
     if (query.length < 2) {
       return res.json({ results: [], total: 0, categories: {} });
@@ -1821,7 +1886,7 @@ app.get('/api/search/global', (req: Request, res: Response) => {
 app.get('/api/trends/historical', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || 'hourly';
-    const days = parseInt(req.query.days as string) || 7;
+    const days = safeInt(req.query.days, 7);
     const startTime = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     let groupBy = '';
@@ -2008,7 +2073,7 @@ app.get('/api/alerts/status', async (req: Request, res: Response) => {
 // GET /api/syntax-errors - Get all unresolved syntax errors
 app.get('/api/syntax-errors', async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = safeInt(req.query.limit, 100);
     const errors = db.getSyntaxErrors(limit);
     return res.json({ errors, count: errors.length });
   } catch (error: any) {
@@ -2151,7 +2216,7 @@ app.get('/api/sessions/:sessionId/preview', async (req: Request, res: Response) 
 // GET /api/pattern-warnings - Get all unresolved pattern warnings
 app.get('/api/pattern-warnings', async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = safeInt(req.query.limit, 100);
     const warnings = db.getPatternWarnings(limit);
     return res.json({ warnings, count: warnings.length });
   } catch (error: any) {
@@ -2365,6 +2430,59 @@ app.get('/api/storage', cacheMiddleware(30000), async (req: Request, res: Respon
   } catch (error: any) {
     logger.error('❌ Error getting storage stats:', error);
     return res.status(500).json({ error: 'Failed to get storage statistics' });
+  }
+});
+
+// GET /api/storage/projects - Per-project storage breakdown
+app.get('/api/storage/projects', cacheMiddleware(10000), (req: Request, res: Response) => {
+  try {
+    const projects = db.db
+      .prepare(
+        `
+      SELECT
+        project_name,
+        COUNT(*) as event_count,
+        COUNT(DISTINCT filepath) as file_count,
+        MIN(timestamp) as first_event,
+        MAX(timestamp) as last_event,
+        SUM(COALESCE(event_size, 0)) as total_size
+      FROM events
+      WHERE project_name IS NOT NULL
+      GROUP BY project_name
+      ORDER BY event_count DESC
+    `
+      )
+      .all() as any[];
+
+    const agentEvents = db.db
+      .prepare(
+        `
+      SELECT
+        project_name,
+        COUNT(*) as agent_event_count
+      FROM agent_events
+      WHERE project_name IS NOT NULL
+      GROUP BY project_name
+    `
+      )
+      .all() as any[];
+
+    const agentMap = new Map(agentEvents.map((a: any) => [a.project_name, a.agent_event_count]));
+
+    const result = projects.map((p: any) => ({
+      project_name: p.project_name,
+      event_count: p.event_count,
+      file_count: p.file_count,
+      agent_event_count: agentMap.get(p.project_name) || 0,
+      first_event: p.first_event,
+      last_event: p.last_event,
+      estimated_size: p.total_size
+    }));
+
+    return res.json(result);
+  } catch (error: any) {
+    logger.error('Error getting per-project storage:', error);
+    return res.status(500).json({ error: 'Failed to get project storage stats' });
   }
 });
 
@@ -2617,8 +2735,8 @@ app.post('/api/storage/retention', async (req: Request, res: Response) => {
 // ==================== Conversations ====================
 
 app.get('/api/conversations', cacheMiddleware(5000), (req: Request, res: Response) => {
-  const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
-  const offset = parseInt(req.query.offset as string) || 0;
+  const limit = Math.min(safeInt(req.query.limit, 50), 500);
+  const offset = safeInt(req.query.offset, 0);
   const eventType = req.query.event_type as string;
 
   let query = `SELECT * FROM agent_events WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')`;
@@ -2688,7 +2806,7 @@ app.get('/api/conversations/stats', cacheMiddleware(5000), (req: Request, res: R
 // ==================== Errors ====================
 
 app.get('/api/errors', cacheMiddleware(5000), (req: Request, res: Response) => {
-  const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+  const limit = Math.min(safeInt(req.query.limit, 50), 500);
   const errors = db.db
     .prepare('SELECT * FROM app_errors ORDER BY timestamp DESC LIMIT ?')
     .all(limit);
@@ -2757,7 +2875,7 @@ app.delete('/api/errors/clear', (req: Request, res: Response) => {
 // ==================== Notifications ====================
 
 app.get('/api/notifications', (req: Request, res: Response) => {
-  const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+  const limit = Math.min(safeInt(req.query.limit, 50), 500);
   const notifications = db.db
     .prepare('SELECT * FROM health_issues ORDER BY timestamp DESC LIMIT ?')
     .all(limit);
@@ -2773,7 +2891,7 @@ app.get('/api/notifications/stats', (req: Request, res: Response) => {
 app.get('/api/files/:filepath/history', (req: Request, res: Response) => {
   try {
     const filepath = decodeURIComponent(req.params.filepath);
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+    const limit = Math.min(safeInt(req.query.limit, 50), 500);
 
     const events = db.db
       .prepare(
@@ -2808,7 +2926,7 @@ app.delete('/api/notifications/:id', (req: Request, res: Response) => {
 // ==================== All Agent Events ====================
 
 app.get('/api/all-agent-events', cacheMiddleware(5000), (req: Request, res: Response) => {
-  const limit = Math.min(parseInt(req.query.limit as string) || 100, 1000);
+  const limit = Math.min(safeInt(req.query.limit, 100), 1000);
   const events = db.getRecentAgentEvents(limit);
   return res.json(events);
 });
@@ -2863,9 +2981,20 @@ httpServer.listen(PORT, async () => {
   logger.info('🤖 Starting Claude Code log watcher...');
   await claudeLogWatcher.start();
 
-  // Start file watcher
-  logger.info('📁 Starting file watcher...');
-  fileWatcher.start();
+  // Start multi-project file watchers
+  logger.info('📁 Starting multi-project file watchers...');
+  try {
+    const result = await projectManager.initializeWithWatchers();
+    logger.info(
+      `📁 Project watchers: ${result.watching} active, ${result.discovered} newly discovered`
+    );
+    if (result.projects.length > 0) {
+      logger.info(`📁 Monitored projects: ${result.projects.join(', ')}`);
+    }
+  } catch (err: any) {
+    logger.error('Failed to initialize project watchers, falling back to single watcher:', err);
+    fileWatcher.start();
+  }
 
   // Start git monitor (if git repo)
   const isRepo = await gitMonitor.isGitRepo();
@@ -2927,8 +3056,9 @@ async function gracefulShutdown(signal: string) {
     logger.info('🛑 Stopping Claude Code log watcher...');
     await claudeLogWatcher.stop();
 
-    // Stop file watcher
-    logger.info('🛑 Stopping file watcher...');
+    // Stop all project watchers
+    logger.info('🛑 Stopping project watchers...');
+    await projectManager.stopAllWatchers();
     await fileWatcher.stop();
 
     // Stop git monitor

@@ -205,6 +205,10 @@ export class HealthMonitor {
       for (const schema of expectedSchemas) {
         try {
           // Get actual columns
+          // Validate table name even though it's hardcoded — defense in depth
+          if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schema.table)) {
+            continue;
+          }
           const columns = this.db.db.prepare(`PRAGMA table_info(${schema.table})`).all() as Array<{
             name: string;
           }>;

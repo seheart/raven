@@ -48,7 +48,8 @@
       { id: '', label: 'Overview' },
       { id: 'health-monitor', label: 'Health Monitor' },
       { id: 'errors', label: 'Errors' },
-      { id: 'projects', label: 'Projects' }
+      { id: 'projects', label: 'Projects' },
+      { id: 'storage', label: 'Storage' }
     ],
     settings: []
   };

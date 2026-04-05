@@ -101,6 +101,8 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
     asyncHandler(async (req: Request, res: Response) => {
       const agentEvents = db.getAgentStats();
 
+      // Use a 30-day window to avoid full table scan on large datasets
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const fileStats = db.db
         .prepare(
           `
@@ -113,9 +115,10 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
           MIN(timestamp) as first_seen,
           MAX(timestamp) as last_active
         FROM events
+        WHERE timestamp > ?
       `
         )
-        .get() as any;
+        .get(cutoff) as any;
 
       const toolBreakdown = db.db
         .prepare(

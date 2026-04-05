@@ -2,111 +2,112 @@ import { logger } from './logger.js';
 import { websocketService } from './services/websocket.js';
 import { notifications } from './notificationService.js';
 
+// Store callbacks so we can remove them on teardown
+const listeners = new Map();
+
 /**
  * Central listener for backend WebSocket events that trigger notifications
  * Call setupNotificationListeners() once during app initialization
  */
 export function setupNotificationListeners() {
-  // Error logged events
-  websocketService.on('error-logged', error => {
-    const severity = error.severity || 'error';
-    const message = `${error.component || 'System'}: ${error.message}`;
+  const handlers = {
+    'error-logged': error => {
+      const severity = error.severity || 'error';
+      const message = `${error.component || 'System'}: ${error.message}`;
 
-    if (severity === 'error' || severity === 'critical') {
-      notifications.error(message, {
-        title: 'Error Logged',
-        browserNotification: severity === 'critical'
-      });
-    } else if (severity === 'warning') {
-      notifications.warning(message, {
-        title: 'Warning'
-      });
-    }
-  });
-
-  // Notification events from backend
-  websocketService.on('notification', notification => {
-    const { type, title, message, severity } = notification;
-
-    if (severity === 'critical' || severity === 'error') {
-      notifications.error(message, {
-        title: title || 'Error',
-        browserNotification: true
-      });
-    } else if (severity === 'warning') {
-      notifications.warning(message, {
-        title: title || 'Warning'
-      });
-    } else if (type === 'trigger') {
-      notifications.trigger(message, {
-        title: title || 'Trigger Alert'
-      });
-    } else {
-      notifications.info(message, {
-        title: title || 'Notification'
-      });
-    }
-  });
-
-  // Agent status changes
-  websocketService.on('agent-event', agentEvent => {
-    if (agentEvent.event_type === 'status_change') {
-      const agentName = agentEvent.agent_name || 'Unknown Agent';
-      const newStatus = agentEvent.metadata?.status || agentEvent.status;
-
-      if (newStatus) {
-        notifications.agentStatusChange(agentName, newStatus);
+      if (severity === 'error' || severity === 'critical') {
+        notifications.error(message, {
+          title: 'Error Logged',
+          browserNotification: severity === 'critical'
+        });
+      } else if (severity === 'warning') {
+        notifications.warning(message, {
+          title: 'Warning'
+        });
       }
-    }
+    },
 
-    // Agent errors
-    if (agentEvent.event_type === 'error') {
-      notifications.error(
-        `Agent ${agentEvent.agent_name}: ${agentEvent.metadata?.error || 'Unknown error'}`,
-        {
-          title: 'Agent Error',
+    notification: notification => {
+      const { type, title, message, severity } = notification;
+
+      if (severity === 'critical' || severity === 'error') {
+        notifications.error(message, {
+          title: title || 'Error',
           browserNotification: true
+        });
+      } else if (severity === 'warning') {
+        notifications.warning(message, {
+          title: title || 'Warning'
+        });
+      } else if (type === 'trigger') {
+        notifications.trigger(message, {
+          title: title || 'Trigger Alert'
+        });
+      } else {
+        notifications.info(message, {
+          title: title || 'Notification'
+        });
+      }
+    },
+
+    'agent-event': agentEvent => {
+      if (agentEvent.event_type === 'status_change') {
+        const agentName = agentEvent.agent_name || 'Unknown Agent';
+        const newStatus = agentEvent.metadata?.status || agentEvent.status;
+
+        if (newStatus) {
+          notifications.agentStatusChange(agentName, newStatus);
         }
-      );
+      }
+
+      if (agentEvent.event_type === 'error') {
+        notifications.error(
+          `Agent ${agentEvent.agent_name}: ${agentEvent.metadata?.error || 'Unknown error'}`,
+          {
+            title: 'Agent Error',
+            browserNotification: true
+          }
+        );
+      }
+    },
+
+    'sync-complete': data => {
+      if (data.success) {
+        notifications.syncComplete();
+      } else {
+        notifications.syncFailed(data.error || 'Unknown error');
+      }
+    },
+
+    'file-watcher-error': error => {
+      notifications.fileWatcherError(error.message || 'File watcher error');
+    },
+
+    'performance-alert': alert => {
+      notifications.performance(alert.message, {
+        title: alert.title || 'Performance Alert'
+      });
+    },
+
+    'storage-warning': data => {
+      if (data.critical) {
+        notifications.storageCritical(data.percentage);
+      } else {
+        notifications.storageWarning(data.percentage);
+      }
+    },
+
+    'trigger-fired': trigger => {
+      notifications.trigger(`Trigger "${trigger.name}": ${trigger.message}`, {
+        title: 'Trigger Fired'
+      });
     }
-  });
+  };
 
-  // Sync completion
-  websocketService.on('sync-complete', data => {
-    if (data.success) {
-      notifications.syncComplete();
-    } else {
-      notifications.syncFailed(data.error || 'Unknown error');
-    }
-  });
-
-  // File change errors (file watcher issues)
-  websocketService.on('file-watcher-error', error => {
-    notifications.fileWatcherError(error.message || 'File watcher error');
-  });
-
-  // Performance alerts
-  websocketService.on('performance-alert', alert => {
-    notifications.performance(alert.message, {
-      title: alert.title || 'Performance Alert'
-    });
-  });
-
-  // Storage warnings (we'll add backend emission for this)
-  websocketService.on('storage-warning', data => {
-    if (data.critical) {
-      notifications.storageCritical(data.percentage);
-    } else {
-      notifications.storageWarning(data.percentage);
-    }
-  });
-
-  // Trigger events
-  websocketService.on('trigger-fired', trigger => {
-    notifications.trigger(`Trigger "${trigger.name}": ${trigger.message}`, {
-      title: 'Trigger Fired'
-    });
-  });
+  for (const [eventName, handler] of Object.entries(handlers)) {
+    listeners.set(eventName, handler);
+    websocketService.on(eventName, handler);
+  }
 
   logger.info(' Notification listeners initialized');
 }
@@ -115,19 +116,8 @@ export function setupNotificationListeners() {
  * Remove all notification listeners (cleanup)
  */
 export function teardownNotificationListeners() {
-  const events = [
-    'error-logged',
-    'notification',
-    'agent-event',
-    'sync-complete',
-    'file-watcher-error',
-    'performance-alert',
-    'storage-warning',
-    'trigger-fired'
-  ];
-
-  events.forEach(eventName => {
-    // Note: We'd need to store callbacks to properly remove them
-    // For now, disconnect will handle cleanup
-  });
+  for (const [eventName, handler] of listeners) {
+    websocketService.off(eventName, handler);
+  }
+  listeners.clear();
 }

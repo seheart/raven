@@ -45,7 +45,7 @@
   let searchQuery = $state('');
 
   // Filter options based on search
-  const filteredOptions = $derived(() => {
+  const filteredOptions = $derived.by(() => {
     if (!searchQuery) return options;
 
     return options.filter(option => {

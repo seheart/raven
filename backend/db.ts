@@ -385,6 +385,9 @@ export class RavenDB {
     this.db.exec(
       `CREATE INDEX IF NOT EXISTS idx_pattern_warnings_resolved ON pattern_warnings(resolved)`
     );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_pattern_warnings_filepath_resolved ON pattern_warnings(filepath, resolved)`
+    );
 
     // Test results indexes
     this.db.exec(

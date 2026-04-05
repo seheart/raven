@@ -204,11 +204,11 @@ export class DatabaseMigrator {
           logger.info(`✓ Rolled back migration ${migration.version}: ${migration.name}`);
         } catch (_err) {
           this.db.prepare('ROLLBACK').run();
-          throw err;
+          throw _err;
         }
       } catch (_err) {
-        logger.error(`✗ Failed to rollback migration ${migration.filename}:`, err);
-        throw err;
+        logger.error(`✗ Failed to rollback migration ${migration.filename}:`, _err);
+        throw _err;
       }
     }
 
@@ -289,8 +289,8 @@ export async function migrateAllProjects(projectDatabases) {
       const migrator = new DatabaseMigrator(projectDb.db, projectName);
       results[projectName] = await migrator.migrate();
     } catch (_err) {
-      logger.error(`Failed to migrate ${projectName}:`, err);
-      results[projectName] = { error: err.message };
+      logger.error(`Failed to migrate ${projectName}:`, _err);
+      results[projectName] = { error: _err.message };
     }
   }
 

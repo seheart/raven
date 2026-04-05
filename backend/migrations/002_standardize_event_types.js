@@ -33,7 +33,9 @@ function migrateDatabase(dbPath, projectName) {
 
   try {
     // Check if events table exists
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='events'").all();
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='events'")
+      .all();
     if (tables.length === 0) {
       console.log('  ⊙ No events table - skipping');
       db.close();
@@ -59,11 +61,15 @@ function migrateDatabase(dbPath, projectName) {
     }
 
     // 2. Count existing events by type (before migration)
-    const beforeCounts = db.prepare(`
+    const beforeCounts = db
+      .prepare(
+        `
       SELECT change_type, COUNT(*) as count
       FROM events
       GROUP BY change_type
-    `).all();
+    `
+      )
+      .all();
 
     console.log('  📊 Before migration:');
     beforeCounts.forEach(row => {
@@ -73,33 +79,49 @@ function migrateDatabase(dbPath, projectName) {
     // 3. Update change_type values
     console.log('  🔄 Updating change_type values...');
 
-    const addCount = db.prepare(`
+    const addCount = db
+      .prepare(
+        `
       UPDATE events
       SET change_type = 'create'
       WHERE change_type = 'add'
-    `).run();
+    `
+      )
+      .run();
     console.log(`     - add → create: ${addCount.changes} rows`);
 
-    const changeCount = db.prepare(`
+    const changeCount = db
+      .prepare(
+        `
       UPDATE events
       SET change_type = 'edit'
       WHERE change_type = 'change'
-    `).run();
+    `
+      )
+      .run();
     console.log(`     - change → edit: ${changeCount.changes} rows`);
 
-    const unlinkCount = db.prepare(`
+    const unlinkCount = db
+      .prepare(
+        `
       UPDATE events
       SET change_type = 'delete'
       WHERE change_type = 'unlink'
-    `).run();
+    `
+      )
+      .run();
     console.log(`     - unlink → delete: ${unlinkCount.changes} rows`);
 
     // 4. Verify migration
-    const afterCounts = db.prepare(`
+    const afterCounts = db
+      .prepare(
+        `
       SELECT change_type, COUNT(*) as count
       FROM events
       GROUP BY change_type
-    `).all();
+    `
+      )
+      .all();
 
     console.log('  📊 After migration:');
     afterCounts.forEach(row => {
@@ -124,7 +146,6 @@ function migrateDatabase(dbPath, projectName) {
       success: true,
       migrated: addCount.changes + changeCount.changes + unlinkCount.changes
     };
-
   } catch (err) {
     // Rollback on error
     try {
@@ -135,7 +156,6 @@ function migrateDatabase(dbPath, projectName) {
 
     console.error(`  ❌ Migration failed for ${projectName}:`, err.message);
     return { success: false, error: err.message };
-
   } finally {
     db.close();
   }

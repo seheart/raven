@@ -254,7 +254,7 @@
                   <div class="text-xs text-[var(--muted)] truncate">{project.path}</div>
                 </div>
                 <div class="text-xs text-[var(--muted)] font-mono flex-shrink-0">
-                  {formatBytes(project.dbSize)} · {project.eventCount || 0} events
+                  {project.eventCount || 0} events
                 </div>
                 <div class="flex gap-2 flex-shrink-0">
                   <button

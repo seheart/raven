@@ -1,10 +1,25 @@
 <script>
+  import { websocketService } from '../../services/websocket.js';
+  import { onMount } from 'svelte';
+
   let {
-    version = '2.0.1',
+    version = '2.2.0',
     sessionId = 'Loading...',
     onSessionClick = () => {},
     onAboutClick = () => {}
   } = $props();
+
+  let connected = $state(false);
+
+  onMount(() => {
+    // Poll connection status every 2s (lightweight check)
+    const interval = setInterval(() => {
+      connected = websocketService.isConnected();
+    }, 2000);
+    connected = websocketService.isConnected();
+
+    return () => clearInterval(interval);
+  });
 </script>
 
 <footer
@@ -41,9 +56,19 @@
         GitHub
       </a>
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-      <span class="flex items-center gap-2 text-[var(--success)] text-xs" role="status">
-        <span class="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse"></span>
-        Monitoring Active
+      <span
+        class="flex items-center gap-2 text-xs {connected
+          ? 'text-[var(--success)]'
+          : 'text-[var(--warning)]'}"
+        role="status"
+        aria-label={connected ? 'Monitoring active' : 'Monitoring disconnected'}
+      >
+        <span
+          class="w-2 h-2 rounded-full {connected
+            ? 'bg-[var(--success)] animate-pulse'
+            : 'bg-[var(--warning)]'}"
+        ></span>
+        {connected ? 'Monitoring Active' : 'Disconnected'}
       </span>
     </nav>
   </div>

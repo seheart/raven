@@ -24,6 +24,8 @@ export interface FileEvent {
   content?: string;
   hash?: string;
   size?: number;
+  projectName?: string;
+  projectPath?: string;
 }
 
 /**
@@ -125,11 +127,19 @@ class RavenEventBus extends EventEmitter {
     this.on('file_event', listener);
   }
 
+  offFileEvent(listener: (event: FileEvent) => void): void {
+    this.off('file_event', listener);
+  }
+
   /**
    * Listen for git status events
    */
   onGitStatus(listener: (event: GitStatusEvent) => void): void {
     this.on('git_status', listener);
+  }
+
+  offGitStatus(listener: (event: GitStatusEvent) => void): void {
+    this.off('git_status', listener);
   }
 
   /**
@@ -139,6 +149,10 @@ class RavenEventBus extends EventEmitter {
     this.on('telemetry', listener);
   }
 
+  offTelemetry(listener: (event: TelemetryEvent) => void): void {
+    this.off('telemetry', listener);
+  }
+
   /**
    * Listen for trigger fired events
    */
@@ -146,11 +160,26 @@ class RavenEventBus extends EventEmitter {
     this.on('trigger_fired', listener);
   }
 
+  offTriggerFired(listener: (event: TriggerFiredEvent) => void): void {
+    this.off('trigger_fired', listener);
+  }
+
   /**
    * Listen for agent events
    */
   onAgentEvent(listener: (event: AgentEvent) => void): void {
     this.on('agent_event', listener);
+  }
+
+  offAgentEvent(listener: (event: AgentEvent) => void): void {
+    this.off('agent_event', listener);
+  }
+
+  /**
+   * Remove all listeners (for cleanup/shutdown)
+   */
+  removeAllEventListeners(): void {
+    this.removeAllListeners();
   }
 }
 

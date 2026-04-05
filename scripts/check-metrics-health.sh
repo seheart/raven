@@ -21,7 +21,7 @@ echo "==========================================="
 echo ""
 
 # Check if Raven is running
-if ! raven status &>/dev/null; then
+if ! curl -s http://localhost:9100/api/status > /dev/null 2>&1; then
     echo -e "${RED}❌ Raven is not running${NC}"
     exit 1
 fi
@@ -88,7 +88,7 @@ if [[ "$LATEST_METRIC" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}
         echo -e "${RED}❌${NC} Metrics collection may be stalled (> ${MAX_AGE_MINUTES} min old)"
         echo ""
         echo "To fix this, restart Raven:"
-        echo "  cd $RAVEN_DIR && raven restart"
+        echo "  cd $RAVEN_DIR && ./restart.sh"
         exit 1
     fi
 else

@@ -94,7 +94,7 @@ disown
 cd ..
 
 # Step 5: Wait for both servers to be ready
-echo -e "${YELLOW}[5/7]${NC} Waiting for servers to complete professional boot sequence..."
+echo -e "${YELLOW}[5/6]${NC} Waiting for servers to complete professional boot sequence..."
 echo -e "  ${BLUE}ℹ${NC}  Backend is running 7-phase startup with verification..."
 
 # Wait for backend (max 30 seconds for professional boot sequence)
