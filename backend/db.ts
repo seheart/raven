@@ -943,7 +943,6 @@ export class RavenDB {
     pattern_name: string,
     severity: string,
     category: string,
-    message: string,
     match_text: string,
     context: string,
     session_id: string | undefined

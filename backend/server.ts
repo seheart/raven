@@ -411,7 +411,6 @@ EventBus.onFileEvent(async (event: FileEvent) => {
             match.pattern.name,
             match.pattern.severity,
             match.pattern.category,
-            `Pattern '${match.pattern.name}' detected`,
             match.match,
             match.context,
             SESSION_ID

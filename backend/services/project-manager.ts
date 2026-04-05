@@ -62,7 +62,7 @@ export class ProjectManager {
   private watchers: Map<string, ManagedWatcher> = new Map();
 
   constructor(options: ProjectManagerOptions & { ravenDir?: string } = {}) {
-    this.RAVEN_DIR = options.ravenDir || options.ravenDir || join(process.cwd(), '.raven');
+    this.RAVEN_DIR = options.ravenDir || join(process.cwd(), '.raven');
     this.CONFIG_PATH = options.configPath || join(this.RAVEN_DIR, 'config.toml');
     this.PROJECTS_CONFIG_PATH = join(this.RAVEN_DIR, 'projects.json');
     this.DB_DIR = options.dbDir || join(this.RAVEN_DIR, 'db');

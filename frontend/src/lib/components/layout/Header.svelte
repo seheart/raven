@@ -18,7 +18,6 @@
     { id: 'live', label: 'Code Changes', path: '/live' },
     { id: 'history', label: 'History', path: '/history' },
     { id: 'analysis', label: 'Analysis', path: '/analysis' },
-    { id: 'safety', label: 'Safety', path: '/safety' },
     { id: 'system', label: 'System', path: '/system' }
   ];
 
@@ -43,10 +42,10 @@
       { id: 'conversations', label: 'Agent Conversations' },
       { id: 'triggers', label: 'Triggers' }
     ],
-    safety: [],
     system: [
       { id: '', label: 'Overview' },
       { id: 'health-monitor', label: 'Health Monitor' },
+      { id: 'safety', label: 'Safety' },
       { id: 'errors', label: 'Errors' },
       { id: 'projects', label: 'Projects' },
       { id: 'storage', label: 'Storage' }

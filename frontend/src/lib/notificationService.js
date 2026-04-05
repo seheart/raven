@@ -269,9 +269,9 @@ class NotificationService {
       if (type === 'error') {
         finalLink = '/system';
       } else if (type === 'warning') {
-        finalLink = '/safety';
+        finalLink = '/system/safety';
       } else if (type === 'trigger') {
-        finalLink = '/activity';
+        finalLink = '/history';
       } else if (type === 'performance') {
         finalLink = '/analysis';
       }

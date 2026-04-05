@@ -181,7 +181,7 @@
       // Use data already in the projects response
       projects = projectsList.map(project => ({
         ...project,
-        total_events: project.eventCount || 0,
+        total_events: project.eventCount || project.event_count || 0,
         total_errors: 0,
         last_activity: null // Will be set from file-events if needed
       }));
