@@ -176,26 +176,31 @@
       const data = await api.get('/projects');
       const projectsList = data.projects || [];
 
-      // Load stats for each project
-      const statsPromises = projectsList.map(async project => {
+      // Use data already in the projects response
+      projects = projectsList.map(project => ({
+        ...project,
+        total_events: project.eventCount || 0,
+        total_errors: 0,
+        last_activity: null // Will be set from file-events if needed
+      }));
+
+      // Load last activity timestamp for each project
+      const activityPromises = projects.map(async project => {
         try {
-          const eventsData = await api.get(
+          const events = await api.get(
             `/file-events?limit=1&project=${encodeURIComponent(project.name)}`
           );
-
+          const eventsArray = Array.isArray(events) ? events : [];
           return {
             ...project,
-            total_events: eventsData.total || 0,
-            total_errors: 0,
-            last_activity: eventsData[0]?.timestamp || null
+            last_activity: eventsArray[0]?.timestamp || null
           };
-        } catch (error) {
-          logger.error(`Failed to load stats for project ${project.name}:`, error);
-          return { ...project, total_events: 0, total_errors: 0, last_activity: null };
+        } catch {
+          return project;
         }
       });
 
-      projects = await Promise.all(statsPromises);
+      projects = await Promise.all(activityPromises);
     } catch (error) {
       logger.error('Failed to load projects:', error);
     } finally {
@@ -211,68 +216,52 @@
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Projects Comparison</h1>
-      <p class="text-sm text-[var(--muted)] font-sans">
-        Compare all monitored projects side-by-side
-      </p>
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Projects Comparison</h1>
+        <p class="text-sm text-[var(--muted)] font-sans">
+          Compare all monitored projects side-by-side
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button
+          onclick={exportCSV}
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+        >
+          Export
+        </button>
+        <button
+          onclick={() => loadProjects()}
+          disabled={loading}
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+        >
+          {loading ? '...' : '↻'} Refresh
+        </button>
+      </div>
     </div>
 
     <!-- Controls -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
-      <div class="flex flex-wrap gap-3 mb-3">
-        <input
-          type="text"
-          placeholder=" Search projects..."
-          bind:value={searchQuery}
-          class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] font-mono"
-        />
-
-        <select
-          bind:value={filterStatus}
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text)] font-mono cursor-pointer"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="recent">Recent</option>
-          <option value="idle">Idle</option>
-          <option value="never">Never</option>
-        </select>
-
-        <label
-          class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm cursor-pointer"
-        >
-          <input type="checkbox" bind:checked={autoRefresh} />
-          <span class="font-mono">Auto-refresh</span>
-        </label>
-
-        <button
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all disabled:opacity-50"
-          onclick={() => loadProjects()}
-          disabled={loading}
-        >
-          <span>{loading ? '' : ''}</span> Refresh
-        </button>
-
-        <button
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all"
-          onclick={exportCSV}
-        >
-          <span></span> CSV
-        </button>
-
-        <button
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all"
-          onclick={exportJSON}
-        >
-          <span></span> JSON
-        </button>
-      </div>
-
-      <div class="text-sm text-[var(--muted)] font-mono">
-        Sorted by: <strong class="text-[var(--accent)]">{sortBy}</strong> ({sortDesc
-          ? 'desc'
-          : 'asc'})
+    <div
+      class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex flex-wrap gap-3 items-center"
+    >
+      <input
+        type="text"
+        placeholder="Search projects..."
+        bind:value={searchQuery}
+        class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+      />
+      <select
+        bind:value={filterStatus}
+        class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] cursor-pointer"
+      >
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="recent">Recent</option>
+        <option value="idle">Idle</option>
+        <option value="never">Never</option>
+      </select>
+      <div class="text-xs text-[var(--muted)] font-mono">
+        {filteredProjects.length} of {projects.length} projects
       </div>
     </div>
 
@@ -298,11 +287,6 @@
         </p>
       </div>
     {:else}
-      <div class="text-sm text-[var(--muted)] mb-3 font-mono">
-        Showing <strong class="text-[var(--accent)]">{filteredProjects.length}</strong> of
-        <strong class="text-[var(--accent)]">{projects.length}</strong> projects
-      </div>
-
       <!-- Table -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
@@ -310,37 +294,37 @@
             <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
               <tr class="text-left">
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
                   onclick={() => handleSort('name')}
                 >
                   Project {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
                   onclick={() => handleSort('path')}
                 >
                   Path {sortBy === 'path' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
                   onclick={() => handleSort('events')}
                 >
                   Events {sortBy === 'events' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
                   onclick={() => handleSort('errors')}
                 >
                   Errors {sortBy === 'errors' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
                   onclick={() => handleSort('activity')}
                 >
                   Last Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
                 >
                   Status
                 </th>
@@ -373,7 +357,7 @@
                   >
                     {formatNumber(project.total_events)}
                   </td>
-                  <td class="px-4 py-3 text-sm font-semibold text-red-500 font-mono text-right">
+                  <td class="px-4 py-3 text-sm font-mono text-[var(--text)] text-right">
                     {formatNumber(project.total_errors)}
                   </td>
                   <td class="px-4 py-3 text-sm text-[var(--text)] font-mono">
@@ -384,20 +368,17 @@
                     {/if}
                   </td>
                   <td class="px-4 py-3">
-                    <span
-                      class="inline-block px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide font-mono"
-                      class:bg-green-500={status.class === 'active'}
-                      class:bg-blue-500={status.class === 'recent'}
-                      class:bg-gray-500={status.class === 'idle'}
-                      class:bg-transparent={status.class === 'never'}
-                      class:text-white={status.class === 'active' ||
-                        status.class === 'recent' ||
-                        status.class === 'idle'}
-                      class:text-[var(--muted)]={status.class === 'never'}
-                      class:border={status.class === 'never'}
-                      class:border-[var(--border)]={status.class === 'never'}
-                    >
-                      {status.label}
+                    <span class="flex items-center gap-2 text-sm font-mono">
+                      <span
+                        class="w-2 h-2 rounded-full {status.class === 'active'
+                          ? 'bg-[var(--success)]'
+                          : status.class === 'recent'
+                            ? 'bg-[var(--info)]'
+                            : status.class === 'idle'
+                              ? 'bg-[var(--muted)]'
+                              : 'bg-[var(--border)]'}"
+                      ></span>
+                      <span class="text-[var(--text)]">{status.label}</span>
                     </span>
                   </td>
                 </tr>

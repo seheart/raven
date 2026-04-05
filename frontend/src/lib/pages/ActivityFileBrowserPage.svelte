@@ -10,7 +10,7 @@
   // State
   let files = $state([]);
   let fileMetadata = $state(new Map());
-  let loading = $state(true);
+  let loading = $state(false);
   let error = $state(null);
   let expandedFile = $state(null);
   let selectedProject = $state('');
@@ -177,13 +177,13 @@
       '.jsx': getColor('--warning', '#f59e0b'),
       '.ts': getColor('--accent', '#3b82f6'),
       '.tsx': getColor('--accent', '#3b82f6'),
-      '.svelte': '#ff3e00',
+      '.svelte': getColor('--error', '#ef4444'),
       '.json': getColor('--success', '#10b981'),
       '.css': getColor('--accent', '#3b82f6'),
       '.scss': getColor('--accent', '#3b82f6'),
       '.html': getColor('--error', '#ef4444'),
       '.md': getColor('--muted', '#6b7280'),
-      '.rs': '#f97316',
+      '.rs': getColor('--warning', '#f59e0b'),
       '.toml': getColor('--muted', '#6b7280'),
       '.yml': getColor('--muted', '#6b7280'),
       '.yaml': getColor('--muted', '#6b7280')
@@ -494,32 +494,27 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-6xl mx-auto space-y-6">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex justify-between items-start">
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1 font-mono">File Browser</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">File Browser</h1>
         <p class="text-sm text-[var(--muted)] font-sans">Browse and track file modifications</p>
       </div>
       <div class="flex items-center gap-3">
+        <span class="text-xs text-[var(--muted)] font-mono">{stats.totalFiles} files tracked</span>
         <button
           onclick={refresh}
           disabled={loading}
-          class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? ' Loading' : ' Refresh'}
-        </button>
-        <button
-          onclick={() => (showCharts = !showCharts)}
-          class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
-        >
-          {showCharts ? ' Hide Charts' : ' Show Charts'}
+          {loading ? '...' : '↻'} Refresh
         </button>
       </div>
     </div>
 
     {#if error}
-      <div class="bg-[var(--error-bg)] border border-[var(--error)] rounded-lg p-4">
+      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4">
         <p class="text-sm text-[var(--error)] font-sans">{error}</p>
         <button
           onclick={loadFiles}
@@ -539,39 +534,32 @@
       </div>
     {:else}
       <!-- Statistics Header -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
             Total Files
           </div>
-          <div class="text-sm font-bold text-[var(--text)] font-mono">
-            {stats.totalFiles}
-          </div>
+          <div class="text-sm font-mono text-[var(--text)]">{stats.totalFiles}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
-            Filtered
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            File Types
           </div>
-          <div class="text-sm font-bold text-[var(--text)] font-mono">
-            {stats.filteredFiles}
-          </div>
+          <div class="text-sm font-mono text-[var(--text)]">{availableFileTypes.length}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
             Last Updated
           </div>
-          <div class="text-sm font-semibold text-[var(--text)] font-mono">
+          <div class="text-sm font-mono text-[var(--text)]">
             {formatTimestamp(stats.lastUpdated)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide mb-1">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
             Most Changed
           </div>
-          <div
-            class="text-sm font-semibold text-[var(--text)] font-mono truncate"
-            title={stats.mostChangedFile}
-          >
+          <div class="text-sm font-mono text-[var(--text)] truncate" title={stats.mostChangedFile}>
             {getFileName(stats.mostChangedFile)}
           </div>
         </div>
@@ -579,7 +567,7 @@
 
       <!-- File Type Breakdown -->
       {#if stats.fileTypeBreakdown.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
           <div class="flex items-center gap-4 flex-wrap">
             <span class="text-sm font-semibold text-[var(--muted)] font-sans">Top File Types:</span>
             <div class="flex gap-3 flex-wrap">
@@ -598,7 +586,7 @@
 
       <!-- Charts Section -->
       {#if showCharts}
-        <div class="space-y-4">
+        <div class="mb-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
               <div class="h-[200px]">
@@ -620,13 +608,13 @@
       {/if}
 
       <!-- Search and Filter Controls -->
-      <div class="space-y-4">
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 space-y-3">
         <div class="relative">
           <input
             type="text"
             bind:value={searchQuery}
             placeholder="Search files by name or path..."
-            class="w-full px-4 py-2 pr-10 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+            class="w-full px-3 py-1.5 pr-10 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
           />
           {#if searchQuery}
             <button
@@ -640,10 +628,10 @@
 
         <div class="flex flex-wrap gap-4 items-center">
           <div class="flex items-center gap-3">
-            <span class="text-sm font-semibold text-[var(--muted)] font-sans">Sort by:</span>
+            <span class="text-sm text-[var(--muted)]">Sort</span>
             <select
               bind:value={sortBy}
-              class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-mono focus:outline-none focus:border-[var(--accent)]"
+              class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
             >
               <option value="filename">Filename</option>
               <option value="lastModified">Last Modified</option>
@@ -651,7 +639,7 @@
             </select>
             <button
               onclick={toggleSortOrder}
-              class="px-2 py-2 bg-[var(--surface)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
+              class="px-2 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
             >
               {sortOrder === 'asc' ? '↓' : '↑'}
             </button>
@@ -659,7 +647,7 @@
 
           {#if availableFileTypes.length > 0}
             <div class="flex items-center gap-3 flex-wrap">
-              <span class="text-sm font-semibold text-[var(--muted)] font-sans">File Types:</span>
+              <span class="text-sm text-[var(--muted)]">Types</span>
               <div class="flex gap-2 flex-wrap">
                 {#each availableFileTypes as ext (ext)}
                   <button
@@ -684,7 +672,7 @@
       </div>
 
       <!-- File List -->
-      <div class="space-y-2">
+      <div class="space-y-2 mb-6">
         {#if filteredFiles.length === 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -730,13 +718,8 @@
                       <span></span>
                       {formatTimestamp(fileMetadata.get(filepath).lastModified)}
                     </div>
-                    <div class="flex items-center gap-1">
-                      <span class="text-xs"></span>
-                      <span
-                        class="px-2 py-0.5 bg-[var(--accent)] text-white text-xs font-semibold rounded"
-                      >
-                        {fileMetadata.get(filepath).changeCount}
-                      </span>
+                    <div class="text-xs text-[var(--muted)] font-mono">
+                      {fileMetadata.get(filepath).changeCount} changes
                     </div>
                   {/if}
                 </div>

@@ -76,8 +76,8 @@ function isValidTableName(tableName: string): boolean {
 }
 const DB_PATH = join(RAVEN_DIR, 'db', 'raven.db');
 
-// Extract project name from watch path
-const PROJECT_NAME = basename(WATCH_PATH);
+// Extract project name - use parent of backend dir (the actual project root)
+const PROJECT_NAME = basename(join(process.cwd(), '..'));
 
 // Session ID
 const SESSION_ID = randomUUID();
@@ -2821,6 +2821,30 @@ app.get('/api/notifications', (req: Request, res: Response) => {
 app.get('/api/notifications/stats', (req: Request, res: Response) => {
   const result = db.db.prepare('SELECT COUNT(*) as total FROM health_issues').get() as any;
   return res.json({ total: result?.total || 0, unread: 0 });
+});
+
+// File history endpoint
+app.get('/api/files/:filepath/history', (req: Request, res: Response) => {
+  try {
+    const filepath = decodeURIComponent(req.params.filepath);
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+
+    const events = db.db
+      .prepare(
+        `
+      SELECT id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name
+      FROM events
+      WHERE filepath = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `
+      )
+      .all(filepath, limit);
+
+    return res.json(events);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 app.post('/api/notifications/:id/read', (req: Request, res: Response) => {

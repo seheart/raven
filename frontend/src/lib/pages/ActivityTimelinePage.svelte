@@ -10,7 +10,7 @@
 
   // State
   let events = $state([]);
-  let loading = $state(true);
+  let loading = $state(false);
   let error = $state(null);
   let filter = $state('all');
   let timeRange = $state('all'); // all, today, week, month
@@ -82,22 +82,29 @@
 
   const stats = $derived.by(() => {
     const total = events.length;
-    const creates = events.filter(e => e.change_type === 'create').length;
-    const edits = events.filter(e => e.change_type === 'edit').length;
-    const deletes = events.filter(e => e.change_type === 'delete').length;
+    const creates = events.filter(
+      e => e.change_type === 'add' || e.change_type === 'create'
+    ).length;
+    const edits = events.filter(
+      e => e.change_type === 'change' || e.change_type === 'edit' || e.change_type === 'modified'
+    ).length;
+    const deletes = events.filter(
+      e => e.change_type === 'unlink' || e.change_type === 'delete'
+    ).length;
     return { total, creates, edits, deletes };
   });
 
-  // Load events
+  // Load events from file-events (has change_type) for the timeline
   async function loadEvents() {
     try {
       loading = true;
       error = null;
 
-      const data = await api.get('/all-agent-events?limit=500');
+      const data = await api.get('/file-events?limit=500');
       events = (Array.isArray(data) ? data : []).map(e => ({
         ...e,
-        filepath: e.file || e.filepath
+        change_type: e.change_type || 'change',
+        filepath: e.filepath || e.file
       }));
 
       loading = false;
@@ -110,16 +117,16 @@
 
   function getEventIcon(changeType) {
     switch (changeType) {
+      case 'add':
       case 'create':
-        return '';
+        return '+';
+      case 'change':
       case 'edit':
-        return '';
+      case 'modified':
+        return '~';
+      case 'unlink':
       case 'delete':
-        return '';
-      case 'read':
-        return '';
-      case 'execute':
-        return '';
+        return '-';
       default:
         return '';
     }
@@ -127,18 +134,18 @@
 
   function getEventColor(changeType) {
     switch (changeType) {
+      case 'add':
       case 'create':
         return 'var(--success)';
+      case 'change':
       case 'edit':
+      case 'modified':
         return 'var(--accent)';
+      case 'unlink':
       case 'delete':
         return 'var(--error)';
-      case 'read':
-        return 'var(--muted)';
-      case 'execute':
-        return 'var(--warning)';
       default:
-        return 'var(--text)';
+        return 'var(--muted)';
     }
   }
 
@@ -171,19 +178,19 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-5xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex justify-between items-start mb-6">
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Activity Timeline</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">Chronological view of all events</p>
+        <p class="text-sm text-[var(--muted)] font-sans">Chronological view of file changes</p>
       </div>
       <button
         onclick={loadEvents}
         disabled={loading}
         class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
       >
-        {loading ? ' Loading' : ' Refresh'}
+        {loading ? '...' : '↻'} Refresh
       </button>
     </div>
 
@@ -195,74 +202,69 @@
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <div class="text-sm text-[var(--muted)] font-sans">Total Events</div>
-        <div class="text-sm font-bold font-mono text-[var(--text)]">{stats.total}</div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Total Events
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">{stats.total}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <div class="text-sm text-[var(--muted)] font-sans">Created</div>
-        <div class="text-sm font-bold font-mono text-[var(--success)]">{stats.creates}</div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Created
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">{stats.creates}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <div class="text-sm text-[var(--muted)] font-sans">Edited</div>
-        <div class="text-sm font-bold font-mono text-[var(--accent)]">{stats.edits}</div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Modified
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">{stats.edits}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <div class="text-sm text-[var(--muted)] font-sans">Deleted</div>
-        <div class="text-sm font-bold font-mono text-[var(--error)]">{stats.deletes}</div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Deleted
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">{stats.deletes}</div>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label for="timeline-event-type" class="block text-sm text-[var(--muted)] font-sans mb-2"
-            >Event Type</label
-          >
-          <select
-            id="timeline-event-type"
-            bind:value={filter}
-            class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-          >
-            <option value="all">All Types</option>
-            <option value="create">Create</option>
-            <option value="edit">Edit</option>
-            <option value="delete">Delete</option>
-            <option value="read">Read</option>
-            <option value="execute">Execute</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="timeline-time-range" class="block text-sm text-[var(--muted)] font-sans mb-2"
-            >Time Range</label
-          >
-          <select
-            id="timeline-time-range"
-            bind:value={timeRange}
-            class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-          >
-            <option value="all">All Time</option>
-            <option value="today">Today</option>
-            <option value="week">Last 7 Days</option>
-            <option value="month">Last 30 Days</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="timeline-group-by" class="block text-sm text-[var(--muted)] font-sans mb-2"
-            >Group By</label
-          >
-          <select
-            id="timeline-group-by"
-            bind:value={groupBy}
-            class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-          >
-            <option value="day">Day</option>
-            <option value="hour">Hour</option>
-          </select>
-        </div>
+    <div
+      class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex gap-4 flex-wrap items-center"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-[var(--muted)]">Type</span>
+        <select
+          bind:value={filter}
+          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+        >
+          <option value="all">All Types</option>
+          <option value="add">Created</option>
+          <option value="change">Modified</option>
+          <option value="unlink">Deleted</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-[var(--muted)]">Range</span>
+        <select
+          bind:value={timeRange}
+          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+        >
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">Last 7 Days</option>
+          <option value="month">Last 30 Days</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-[var(--muted)]">Group</span>
+        <select
+          bind:value={groupBy}
+          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+        >
+          <option value="day">Day</option>
+          <option value="hour">Hour</option>
+        </select>
       </div>
     </div>
 
@@ -281,84 +283,56 @@
         {#each groupedEvents as group, index (index)}
           <div class="relative">
             <!-- Date Header -->
-            <div class="sticky top-0 bg-[var(--bg)] z-10 pb-3">
+            <div class="sticky top-12 bg-[var(--bg)] z-10 pb-3">
               <div class="flex items-center gap-3">
                 <div
-                  class="bg-[var(--accent)] text-white px-4 py-2 rounded-lg font-semibold text-sm font-sans"
+                  class="bg-[var(--surface)] border border-[var(--border)] px-3 py-1.5 rounded text-sm font-mono text-[var(--text)]"
                 >
                   {group.date}
                 </div>
-                <div class="text-sm text-[var(--muted)] font-sans">
+                <div class="text-xs text-[var(--muted)] font-mono">
                   {group.events.length} event{group.events.length !== 1 ? 's' : ''}
                 </div>
               </div>
             </div>
 
             <!-- Timeline Events -->
-            <div class="relative pl-8 border-l-2 border-[var(--border)] ml-3">
+            <div class="space-y-3">
               {#each group.events as event, eventIndex (eventIndex)}
-                <div class="relative mb-6">
-                  <!-- Timeline Dot -->
-                  <div
-                    class="absolute -left-[34px] w-4 h-4 rounded-full border-2 border-[var(--bg)]"
-                    style="background: {getEventColor(event.change_type)}"
-                  ></div>
-
-                  <!-- Event Card -->
-                  <div
-                    class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
-                  >
-                    <div class="flex items-start gap-3">
-                      <span class="text-sm flex-shrink-0">{getEventIcon(event.change_type)}</span>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-baseline gap-3 mb-2">
-                          <span
-                            class="text-xs px-2 py-1 rounded font-semibold"
-                            style="background: {getEventColor(
-                              event.change_type
-                            )}20; color: {getEventColor(event.change_type)}"
-                          >
-                            {event.change_type?.toUpperCase() || 'UNKNOWN'}
-                          </span>
-                          <span class="text-sm text-[var(--muted)] font-sans">
-                            {formatTime(event.timestamp)}
-                          </span>
-                          <span class="text-xs text-[var(--muted)] font-sans">
-                            {getRelativeTime(event.timestamp)}
-                          </span>
-                        </div>
-
-                        {#if event.filepath}
-                          <div
-                            class="text-sm font-medium text-[var(--text)] font-mono mb-1 truncate"
-                          >
-                            {event.filepath}
-                          </div>
-                        {/if}
-
-                        {#if event.message}
-                          <div class="text-sm text-[var(--muted)] font-sans mb-2">
-                            {event.message}
-                          </div>
-                        {/if}
-
-                        <div class="flex flex-wrap gap-3 text-xs text-[var(--muted)]">
-                          {#if event.agent}
-                            <span class="font-mono"> {event.agent}</span>
-                          {/if}
-                          {#if event.event_size}
-                            <span class="font-mono"> {event.event_size}B</span>
-                          {/if}
-                          {#if event.duration_ms}
-                            <span class="font-mono"> {event.duration_ms}ms</span>
-                          {/if}
-                          {#if event.risk_level}
-                            <span class="font-mono">Risk: {event.risk_level}</span>
-                          {/if}
-                        </div>
-                      </div>
+                <div
+                  class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
+                  style="border-left: 3px solid {getEventColor(event.change_type)}"
+                >
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
+                        style="background: {getEventColor(
+                          event.change_type
+                        )}15; color: {getEventColor(event.change_type)}"
+                      >
+                        {event.change_type?.toUpperCase() || 'UNKNOWN'}
+                      </span>
+                      {#if event.project_name}
+                        <span class="text-xs text-[var(--muted)] font-mono"
+                          >{event.project_name}</span
+                        >
+                      {/if}
+                    </div>
+                    <div
+                      class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono flex-shrink-0"
+                    >
+                      <span>{formatTime(event.timestamp)}</span>
+                      <span class="text-[var(--border)]">·</span>
+                      <span>{getRelativeTime(event.timestamp)}</span>
                     </div>
                   </div>
+
+                  {#if event.filepath}
+                    <div class="text-sm font-mono text-[var(--text)] truncate">
+                      {event.filepath}
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>
@@ -368,7 +342,3 @@
     {/if}
   </div>
 </div>
-
-<style>
-  /* Custom styles for timeline */
-</style>

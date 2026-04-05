@@ -30,7 +30,7 @@
   const pathParts = $derived.by(() => {
     const parts = currentPath.split('/').filter(Boolean);
     return {
-      tab: parts[0] || 'live',
+      tab: parts[0] || 'overview',
       subTab: parts[1] || ''
     };
   });
@@ -40,9 +40,9 @@
 
   // Initialize route on mount
   $effect(() => {
-    // If on root path, redirect to /live
+    // If on root path, redirect to dashboard
     if (currentPath === '/') {
-      navigate('/live');
+      navigate('/overview');
     }
   });
 
@@ -145,15 +145,15 @@
         <PlaceholderPage title="Live Monitor" description="Failed to load" />
       {/await}
     {:else if activeTab === 'overview'}
+      {#await import('./lib/pages/OverviewPage.svelte')}
+        <PlaceholderPage title="Dashboard" description="Loading..." />
+      {:then { default: Component }}
+        <Component />
+      {:catch}
+        <PlaceholderPage title="Dashboard" description="Failed to load" />
+      {/await}
+    {:else if activeTab === 'history'}
       {#if !activeSubTab}
-        {#await import('./lib/pages/OverviewPage.svelte')}
-          <PlaceholderPage title="Overview" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Overview" description="Failed to load" />
-        {/await}
-      {:else if activeSubTab === 'activity-log'}
         {#await import('./lib/pages/ActivityOverviewPage.svelte')}
           <PlaceholderPage title="Activity Log" description="Loading..." />
         {:then { default: Component }}
@@ -210,7 +210,7 @@
           <PlaceholderPage title="Global Search" description="Failed to load" />
         {/await}
       {:else}
-        <PlaceholderPage title="Overview - {activeSubTab}" description="This page is coming soon" />
+        <PlaceholderPage title="History - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'safety'}
       {#await import('./lib/pages/SafetyPage.svelte')}

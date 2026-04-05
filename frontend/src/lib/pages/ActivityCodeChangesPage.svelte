@@ -12,7 +12,7 @@
 
   // State
   let events = $state([]);
-  let loading = $state(true);
+  let loading = $state(false);
   let error = $state(null);
   let searchQuery = $state('');
   let selectedType = $state('all');
@@ -111,7 +111,7 @@
         agent: event.agent,
         event_size: event.event_size || 0,
         duration_ms: event.duration_ms,
-        project: event.project,
+        project: event.filepath?.split('/')[0] || event.project_name || event.project,
         file_hash: event.file_hash
       }));
 
@@ -134,6 +134,23 @@
     if (bytes < 1024) return `${bytes}B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  }
+
+  async function viewDiff(event) {
+    try {
+      const data = await api.get(
+        `/file-events?limit=1&diff=true&filepath=${encodeURIComponent(event.filepath)}`
+      );
+      const events = Array.isArray(data) ? data : [];
+      if (events.length > 0 && events[0].diff) {
+        diffText = events[0].diff;
+        diffOldContent = '';
+        diffNewContent = '';
+        showDiff = true;
+      }
+    } catch (err) {
+      logger.error('Failed to load diff:', err);
+    }
   }
 
   function loadMore() {
@@ -186,43 +203,20 @@
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex justify-between items-start mb-6">
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Code Changes</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Detailed file change history • Source code only
-        </p>
+        <p class="text-sm text-[var(--muted)] font-sans">Source code file change history</p>
       </div>
       <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-[var(--muted)] font-sans">Status:</span>
-          <span
-            class="flex items-center gap-1 text-sm font-sans"
-            style="color: {websocketService.isConnected() ? 'var(--success)' : 'var(--error)'}"
-          >
-            <span
-              class="w-2 h-2 rounded-full"
-              style="background: {websocketService.isConnected()
-                ? 'var(--success)'
-                : 'var(--error)'}"
-            ></span>
-            {websocketService.isConnected() ? 'Live' : 'Offline'}
-          </span>
-        </div>
-        <button
-          onclick={togglePause}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
-          class:bg-[var(--warning)]={isPaused}
-          class:text-white={isPaused}
+        <span class="text-xs text-[var(--muted)] font-mono">{lastUpdated.toLocaleTimeString()}</span
         >
-          {isPaused ? ' Resume' : ' Pause'}
-        </button>
         <button
           onclick={loadEvents}
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '' : ''} Refresh
+          {loading ? '...' : '↻'} Refresh
         </button>
       </div>
     </div>
@@ -233,56 +227,54 @@
       </div>
     {/if}
 
-    {#if isPaused}
-      <div
-        class="bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] rounded-lg p-4 mb-6 text-center"
-      >
-        <span class="text-sm text-[var(--warning)] font-sans font-semibold"
-          >Live updates paused - Click Resume to continue</span
-        >
-      </div>
-    {/if}
-
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <div class="text-sm text-[var(--muted)] font-sans">Total Changes</div>
-        <div class="text-sm font-bold font-mono text-[var(--text)]">{stats.total}</div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Total Changes
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">{stats.total}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <div class="text-sm text-[var(--muted)] font-sans">Created</div>
-        <div class="text-sm font-bold font-mono text-[var(--success)]">{stats.created}</div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Created
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">{stats.created}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <div class="text-sm text-[var(--muted)] font-sans">Modified</div>
-        <div class="text-sm font-bold font-mono text-[var(--accent)]">{stats.modified}</div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Modified
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">{stats.modified}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-        <div class="text-sm text-[var(--muted)] font-sans">Deleted</div>
-        <div class="text-sm font-bold font-mono text-[var(--error)]">{stats.deleted}</div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Deleted
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">{stats.deleted}</div>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-4">
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
       <div class="flex flex-wrap gap-4 items-center">
         <input
           type="text"
           bind:value={searchQuery}
-          placeholder="Search files, agents, or projects..."
-          class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+          placeholder="Search files or projects..."
+          class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
         />
         <select
           bind:value={selectedType}
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
         >
           <option value="all">All Types</option>
           <option value="created">Created</option>
           <option value="modified">Modified</option>
           <option value="deleted">Deleted</option>
         </select>
-        <div class="text-xs text-[var(--muted)] font-sans">
-          Last updated: {lastUpdated.toLocaleTimeString()}
+        <div class="text-xs text-[var(--muted)] font-mono">
+          {filteredEvents.length} of {events.length} changes
         </div>
       </div>
     </div>
@@ -306,73 +298,58 @@
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
-              <tr>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+              <tr class="text-left">
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                   >Type</th
                 >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                   >File</th
                 >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                   >Project</th
                 >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
-                  >Agent</th
-                >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
-                  >Time</th
-                >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
                   >Size</th
                 >
-                <th class="px-4 py-3 text-left text-sm font-semibold text-[var(--muted)] font-sans"
-                  >Hash</th
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  >Time</th
                 >
               </tr>
             </thead>
-            <tbody class="divide-y divide-[var(--border)]">
+            <tbody>
               {#each filteredEvents as event (event.id)}
                 <tr
-                  class="hover:bg-[var(--bg)] transition-colors cursor-pointer"
+                  class="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors cursor-pointer"
                   onclick={() => viewDiff(event)}
                 >
-                  <td class="px-4 py-3">
+                  <td class="px-3 py-2">
                     <span
-                      class="text-xs px-2 py-1 rounded font-semibold"
+                      class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
                       style="background: {getChangeTypeColor(
                         event.change_type
-                      )}20; color: {getChangeTypeColor(event.change_type)}"
+                      )}15; color: {getChangeTypeColor(event.change_type)}"
                     >
                       {event.change_type?.toUpperCase() || 'UNKNOWN'}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-sm font-mono text-[var(--text)] max-w-md">
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] max-w-md">
                     <div class="truncate" title={event.filepath}>
                       {event.filepath || 'Unknown'}
                     </div>
                   </td>
-                  <td class="px-4 py-3 text-sm font-mono text-[var(--muted)]">
-                    {#if event.project}
-                      <span
-                        class="text-xs px-2 py-1 rounded bg-[var(--accent)] bg-opacity-20 text-[var(--accent)]"
-                      >
-                        {event.project}
-                      </span>
-                    {:else}
-                      <span class="text-[var(--muted)]">-</span>
-                    {/if}
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--muted)]">
+                    {event.project || '-'}
                   </td>
-                  <td class="px-4 py-3 text-sm font-mono text-[var(--muted)]">
-                    {event.agent || '-'}
-                  </td>
-                  <td class="px-4 py-3 text-sm text-[var(--muted)] font-sans">
-                    {formatTime(event.timestamp)}
-                  </td>
-                  <td class="px-4 py-3 text-sm text-[var(--muted)] font-mono">
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--muted)] text-right">
                     {formatBytes(event.event_size)}
                   </td>
-                  <td class="px-4 py-3 text-xs text-[var(--muted)] font-mono">
-                    {event.file_hash ? event.file_hash.substring(0, 8) : '-'}
+                  <td class="px-3 py-2 text-xs font-mono text-[var(--muted)] text-right">
+                    {formatTime(event.timestamp)}
                   </td>
                 </tr>
               {/each}
@@ -385,7 +362,7 @@
         <div class="mt-4 text-center">
           <button
             onclick={loadMore}
-            class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity"
+            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
           >
             Load More ({filteredEvents.length} of {events.length})
           </button>
@@ -408,12 +385,3 @@
     />
   {/if}
 </div>
-
-<style>
-  .border {
-    border-width: 1px;
-  }
-  .text-white {
-    color: white;
-  }
-</style>

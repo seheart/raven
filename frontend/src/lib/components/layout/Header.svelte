@@ -14,18 +14,19 @@
   let stats = $state({ files: 0, edits: 0, creates: 0, deletes: 0 });
 
   const tabs = [
+    { id: 'overview', label: 'Dashboard', path: '/overview' },
     { id: 'live', label: 'Code Changes', path: '/live' },
-    { id: 'overview', label: 'History', path: '/overview' },
+    { id: 'history', label: 'History', path: '/history' },
     { id: 'analysis', label: 'Analysis', path: '/analysis' },
     { id: 'safety', label: 'Safety', path: '/safety' },
     { id: 'system', label: 'System', path: '/system' }
   ];
 
   const subTabs = {
+    overview: [],
     live: [],
-    overview: [
-      { id: '', label: 'Dashboard' },
-      { id: 'activity-log', label: 'Activity Log' },
+    history: [
+      { id: '', label: 'Activity Log' },
       { id: 'timeline', label: 'Timeline' },
       { id: 'code', label: 'Code Changes' },
       { id: 'files', label: 'File Browser' },
@@ -91,9 +92,9 @@
   <div class="flex items-center gap-4 px-3 py-2 h-12">
     <!-- Logo -->
     <button
-      onclick={e => handleNavClick(e, '/live')}
+      onclick={e => handleNavClick(e, '/overview')}
       class="flex items-center gap-2 font-semibold text-[#0d0d1a] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0"
-      aria-label="Go to Code Changes"
+      aria-label="Go to Dashboard"
     >
       <RavenLogo size={18} />
       <span>Raven</span>

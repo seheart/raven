@@ -38,18 +38,12 @@
   });
 
   const stats = $derived.by(() => {
-    const byType = {
-      create: results.filter(r => r.change_type === 'create').length,
-      edit: results.filter(r => r.change_type === 'edit').length,
-      delete: results.filter(r => r.change_type === 'delete').length,
-      read: results.filter(r => r.change_type === 'read').length,
-      execute: results.filter(r => r.change_type === 'execute').length
-    };
-
     const filesFound = new Set(results.filter(r => r.filepath).map(r => r.filepath)).size;
     const agentsFound = new Set(results.filter(r => r.agent).map(r => r.agent)).size;
+    const fileChanges = results.filter(r => r.source === 'file').length;
+    const agentEvents = results.filter(r => r.source === 'agent').length;
 
-    return { byType, filesFound, agentsFound };
+    return { filesFound, agentsFound, fileChanges, agentEvents };
   });
 
   // Perform search
@@ -64,29 +58,52 @@
       loading = true;
       hasSearched = true;
       const startTime = performance.now();
-
-      // Search across multiple endpoints
-      const [eventsData] = await Promise.all([
-        api.get('/all-agent-events?limit=1000').catch(() => []),
-        api.get('/tracked-files').catch(() => [])
-      ]);
-
-      const allEvents = Array.isArray(eventsData) ? eventsData : [];
       const query = searchQuery.toLowerCase();
 
-      // Filter events based on search query
-      const matchedEvents = allEvents.filter(event => {
-        const filepath = event.filepath || event.file;
-        const changeType = event.change_type || event.event_type;
-        return (
-          filepath?.toLowerCase().includes(query) ||
-          event.message?.toLowerCase().includes(query) ||
-          event.agent?.toLowerCase().includes(query) ||
-          changeType?.toLowerCase().includes(query)
-        );
-      });
+      // Search both file events and agent events
+      const [fileEvents, agentEvents] = await Promise.all([
+        api.get('/file-events?limit=500&diff=false').catch(() => []),
+        api.get('/all-agent-events?limit=500').catch(() => [])
+      ]);
 
-      results = matchedEvents;
+      const fileArray = Array.isArray(fileEvents) ? fileEvents : [];
+      const agentArray = Array.isArray(agentEvents) ? agentEvents : [];
+
+      // Normalize and filter file events
+      const matchedFiles = fileArray
+        .filter(
+          e =>
+            e.filepath?.toLowerCase().includes(query) ||
+            e.change_type?.toLowerCase().includes(query)
+        )
+        .map(e => ({
+          ...e,
+          filepath: e.filepath,
+          change_type: e.change_type,
+          source: 'file'
+        }));
+
+      // Normalize and filter agent events
+      const matchedAgent = agentArray
+        .filter(
+          e =>
+            (e.file || '').toLowerCase().includes(query) ||
+            (e.message || '').toLowerCase().includes(query) ||
+            (e.agent || '').toLowerCase().includes(query) ||
+            (e.event_type || '').toLowerCase().includes(query)
+        )
+        .map(e => ({
+          ...e,
+          filepath: e.file || e.filepath,
+          change_type: e.event_type,
+          source: 'agent'
+        }));
+
+      // Combine and sort by timestamp
+      results = [...matchedFiles, ...matchedAgent].sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+      );
+
       const endTime = performance.now();
       searchTime = Math.round(endTime - startTime);
       loading = false;
@@ -113,37 +130,28 @@
     return DOMPurify.sanitize(highlighted, { ALLOWED_TAGS: ['mark'], ALLOWED_ATTR: [] });
   }
 
-  function getEventIcon(changeType) {
-    switch (changeType) {
-      case 'create':
-        return '';
-      case 'edit':
-        return '';
-      case 'delete':
-        return '';
-      case 'read':
-        return '';
-      case 'execute':
-        return '';
-      default:
-        return '';
-    }
-  }
-
   function getEventColor(changeType) {
     switch (changeType) {
+      case 'add':
       case 'create':
         return 'var(--success)';
+      case 'change':
       case 'edit':
+      case 'modified':
         return 'var(--accent)';
+      case 'unlink':
       case 'delete':
         return 'var(--error)';
-      case 'read':
-        return 'var(--muted)';
-      case 'execute':
+      case 'tool_call':
         return 'var(--warning)';
+      case 'tool_result':
+        return 'var(--info)';
+      case 'user_message':
+        return 'var(--accent)';
+      case 'assistant_text':
+        return 'var(--info)';
       default:
-        return 'var(--text)';
+        return 'var(--muted)';
     }
   }
 
@@ -156,35 +164,34 @@
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Global Search</h1>
-      <p class="text-sm text-[var(--muted)] font-sans">
-        Search across all files, events, and activity
-      </p>
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Global Search</h1>
+        <p class="text-sm text-[var(--muted)] font-sans">
+          Search across all files, events, and activity
+        </p>
+      </div>
     </div>
 
     <!-- Search Bar -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
-      <div class="flex gap-3 mb-4">
-        <div class="flex-1">
-          <input
-            type="text"
-            bind:value={searchQuery}
-            onkeypress={handleKeyPress}
-            placeholder="Search for files, messages, agents, or event types..."
-            class="w-full px-4 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
-          />
-        </div>
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
+      <div class="flex gap-3 mb-3">
+        <input
+          type="text"
+          bind:value={searchQuery}
+          onkeypress={handleKeyPress}
+          placeholder="Search files, messages, agents..."
+          class="flex-1 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+        />
         <button
           onclick={performSearch}
           disabled={loading || !searchQuery.trim()}
-          class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? ' Searching...' : ' Search'}
+          {loading ? '...' : '↻'} Search
         </button>
       </div>
 
-      <!-- Search Type Filter -->
       <div class="flex flex-wrap gap-2">
         <button
           onclick={() => (searchType = 'all')}
@@ -254,112 +261,77 @@
       </div>
     {:else}
       <!-- Results Header -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-4">
-        <div class="flex justify-between items-center">
-          <div>
-            <div class="text-sm font-semibold text-[var(--text-heading)] font-sans">
-              Found {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
-            </div>
-            <div class="text-sm text-[var(--muted)] font-sans">
-              Search completed in {searchTime}ms
-            </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Results
           </div>
-          <div class="flex gap-4 text-sm text-[var(--muted)] font-sans">
-            {#if stats.filesFound > 0}
-              <span> {stats.filesFound} files</span>
-            {/if}
-            {#if stats.agentsFound > 0}
-              <span> {stats.agentsFound} agents</span>
-            {/if}
+          <div class="text-sm font-mono text-[var(--text)]">
+            {filteredResults.length} in {searchTime}ms
           </div>
+        </div>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Unique Files
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">{stats.filesFound}</div>
+        </div>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            File Changes
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">{stats.fileChanges}</div>
+        </div>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Agent Events
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">{stats.agentEvents}</div>
         </div>
       </div>
-
-      <!-- Stats -->
-      {#if results.length > 0}
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
-            <div class="text-sm text-[var(--muted)] font-sans mb-1">Created</div>
-            <div class="text-sm font-bold font-mono text-[var(--success)]">
-              {stats.byType.create}
-            </div>
-          </div>
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
-            <div class="text-sm text-[var(--muted)] font-sans mb-1">Edited</div>
-            <div class="text-sm font-bold font-mono text-[var(--accent)]">{stats.byType.edit}</div>
-          </div>
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
-            <div class="text-sm text-[var(--muted)] font-sans mb-1">Deleted</div>
-            <div class="text-sm font-bold font-mono text-[var(--error)]">{stats.byType.delete}</div>
-          </div>
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
-            <div class="text-sm text-[var(--muted)] font-sans mb-1">Read</div>
-            <div class="text-sm font-bold font-mono text-[var(--text)]">{stats.byType.read}</div>
-          </div>
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
-            <div class="text-sm text-[var(--muted)] font-sans mb-1">Execute</div>
-            <div class="text-sm font-bold font-mono text-[var(--warning)]">
-              {stats.byType.execute}
-            </div>
-          </div>
-        </div>
-      {/if}
 
       <!-- Results List -->
       <div class="space-y-3">
         {#each filteredResults as result (result.id || result.timestamp)}
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
+            style="border-left: 3px solid {getEventColor(result.change_type)}"
           >
-            <div class="flex items-start gap-3">
-              <span class="text-sm flex-shrink-0"
-                >{getEventIcon(result.change_type || result.event_type)}</span
-              >
-              <div class="flex-1 min-w-0">
-                <div class="flex items-baseline gap-3 mb-2">
-                  <span
-                    class="text-xs px-2 py-1 rounded font-semibold"
-                    style="background: {getEventColor(
-                      result.change_type || result.event_type
-                    )}20; color: {getEventColor(result.change_type || result.event_type)}"
-                  >
-                    {(result.change_type || result.event_type)?.toUpperCase() || 'UNKNOWN'}
-                  </span>
-                  <span class="text-sm text-[var(--muted)] font-sans">
-                    {formatTimestamp(result.timestamp)}
-                  </span>
-                </div>
-
-                {#if result.filepath || result.file}
-                  <div class="text-sm font-medium text-[var(--text)] font-mono mb-1">
+            <div class="flex justify-between items-start mb-2">
+              <div class="flex items-center gap-2">
+                <span
+                  class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
+                  style="background: {getEventColor(result.change_type)}15; color: {getEventColor(
+                    result.change_type
+                  )}"
+                >
+                  {result.change_type?.toUpperCase() || 'EVENT'}
+                </span>
+                {#if result.agent}
+                  <span class="text-xs text-[var(--muted)] font-mono">
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    {@html highlightMatch(result.filepath || result.file, searchQuery)}
-                  </div>
+                    {@html highlightMatch(result.agent, searchQuery)}
+                  </span>
                 {/if}
-
-                {#if result.message}
-                  <div class="text-sm text-[var(--muted)] font-sans mb-2">
-                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    {@html highlightMatch(result.message, searchQuery)}
-                  </div>
-                {/if}
-
-                <div class="flex flex-wrap gap-3 text-xs text-[var(--muted)]">
-                  {#if result.agent}
-                    <span class="font-mono">
-                      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                      {@html highlightMatch(result.agent, searchQuery)}</span
-                    >
-                  {/if}
-                  {#if result.event_size}
-                    <span class="font-mono"> {result.event_size}B</span>
-                  {/if}
-                  {#if result.duration_ms}
-                    <span class="font-mono"> {result.duration_ms}ms</span>
-                  {/if}
-                </div>
               </div>
+              <span class="text-xs text-[var(--muted)] font-mono flex-shrink-0">
+                {formatTimestamp(result.timestamp)}
+              </span>
             </div>
+
+            {#if result.filepath}
+              <div class="text-sm font-mono text-[var(--text)] truncate mb-1">
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                {@html highlightMatch(result.filepath, searchQuery)}
+              </div>
+            {/if}
+
+            {#if result.message}
+              <div class="text-xs text-[var(--muted)] font-mono truncate">
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                {@html highlightMatch(result.message, searchQuery)}
+              </div>
+            {/if}
           </div>
         {/each}
       </div>

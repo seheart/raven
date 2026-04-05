@@ -41,21 +41,10 @@
     return 'var(--error)';
   }
 
-  function getStatusEmoji(status) {
-    const map = {
-      excellent: '',
-      good: '',
-      fair: '',
-      poor: '',
-      critical: ''
-    };
-    return map[status] || '';
-  }
-
   function getSeverityColor(severity) {
     const colors = {
       critical: 'var(--error)',
-      high: '#f59e0b',
+      high: 'var(--warning)',
       medium: 'var(--warning)',
       low: 'var(--info)',
       success: 'var(--success)'
@@ -72,28 +61,17 @@
         `/health/projects?project=${selectedProject}&days=${selectedDays}`
       );
 
-      projectsData = response.projects || [];
-      // Build a healthData shape from the projects for the template
-      healthData = {
-        overall_score: overallScore,
-        status: overallStatus
-      };
+      // Normalize field names
+      projectsData = (response.projects || []).map(p => ({
+        ...p,
+        project_name: p.project_name || p.name,
+        total_events: p.total_events || p.recent_events || 0
+      }));
+      healthData = { overall_score: overallScore, status: overallStatus };
     } catch (err) {
       logger.error('Failed to load health summary:', err);
       error = err.message;
     } finally {
-      loading = false;
-    }
-  }
-
-  async function recalculateHealth() {
-    try {
-      loading = true;
-      await api.post('/health/calculate', { project: selectedProject });
-      await loadHealthSummary();
-    } catch (err) {
-      logger.error('Failed to recalculate health:', err);
-      error = err.message;
       loading = false;
     }
   }
@@ -107,33 +85,29 @@
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="mb-6 flex items-center justify-between">
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Project Health</h1>
         <p class="text-sm text-[var(--muted)] font-sans">
-          Comprehensive health analysis for {selectedProject === 'all'
-            ? 'all projects'
-            : selectedProject}
+          Health analysis for {selectedProject === 'all' ? 'all projects' : selectedProject}
         </p>
       </div>
-
       <div class="flex items-center gap-3">
         <select
           bind:value={selectedDays}
           onchange={loadHealthSummary}
-          class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm text-[var(--text)] font-mono cursor-pointer"
+          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] cursor-pointer"
         >
           <option value={1}>Last 24 hours</option>
           <option value={7}>Last 7 days</option>
           <option value={30}>Last 30 days</option>
         </select>
-
         <button
-          class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90 transition-opacity"
-          onclick={recalculateHealth}
+          onclick={loadHealthSummary}
           disabled={loading}
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? ' Loading...' : ' Refresh'}
+          {loading ? '...' : '↻'} Refresh
         </button>
       </div>
     </div>
@@ -149,7 +123,7 @@
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
         <p class="text-sm text-[var(--error)] mb-2">{error}</p>
         <button
-          class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90 transition-opacity mt-4"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors mt-4"
           onclick={loadHealthSummary}
         >
           Try Again
@@ -157,31 +131,27 @@
       </div>
     {:else if healthData}
       <!-- Overall Health Score -->
-      <div class="bg-[var(--surface)] border-2 border-[var(--border)] rounded-lg p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+        <div class="flex items-center justify-between mb-3">
           <div>
-            <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1">
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
               Overall Health Score
-            </h2>
+            </h3>
             <p class="text-sm text-[var(--muted)]">
-              {getStatusEmoji(overallStatus)}
-              <span class="capitalize">{overallStatus}</span> - {projectsData.length} project{projectsData.length !==
+              <span class="capitalize">{overallStatus}</span> — {projectsData.length} project{projectsData.length !==
               1
                 ? 's'
                 : ''}
             </p>
           </div>
-
-          <div class="text-right">
-            <div class="text-5xl font-bold font-mono mb-2" style="color: {scoreColor}">
+          <div class="flex items-center gap-3">
+            <div class="text-2xl font-bold font-mono" style="color: {scoreColor}">
               {overallScore}
             </div>
-            <div class="text-sm text-[var(--muted)]">out of 100</div>
+            <div class="text-xs text-[var(--muted)]">/ 100</div>
           </div>
         </div>
-
-        <!-- Health Bar -->
-        <div class="h-3 bg-[var(--bg)] rounded-full overflow-hidden">
+        <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
           <div
             class="h-full transition-all duration-500"
             style="width: {overallScore}%; background: {scoreColor}"
@@ -190,103 +160,92 @@
       </div>
 
       <!-- Summary Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Total Events</div>
-          <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-bold font-mono text-[var(--text)]">
-              {totalEvents.toLocaleString()}
-            </span>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Total Events
           </div>
+          <div class="text-sm font-mono text-[var(--text)]">{totalEvents.toLocaleString()}</div>
         </div>
-
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Recent Events</div>
-          <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-bold font-mono text-[var(--text)]">
-              {recentEvents.toLocaleString()}
-            </span>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Recent Events
           </div>
+          <div class="text-sm font-mono text-[var(--text)]">{recentEvents.toLocaleString()}</div>
         </div>
-
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Total Errors</div>
-          <div class="flex items-baseline gap-2">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Total Errors
+          </div>
+          <div class="flex items-center gap-2">
             <span
-              class="text-3xl font-bold font-mono"
-              style="color: {totalErrors > 0 ? 'var(--error)' : 'var(--success)'}"
-            >
-              {totalErrors.toLocaleString()}
-            </span>
+              class="w-2 h-2 rounded-full {totalErrors > 0
+                ? 'bg-[var(--error)]'
+                : 'bg-[var(--success)]'}"
+            ></span>
+            <span class="text-sm font-mono text-[var(--text)]">{totalErrors.toLocaleString()}</span>
           </div>
         </div>
-
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-2 uppercase tracking-wide">Projects</div>
-          <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-bold font-mono text-[var(--text)]">
-              {projectsData.length}
-            </span>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Projects
           </div>
+          <div class="text-sm font-mono text-[var(--text)]">{projectsData.length}</div>
         </div>
       </div>
 
       <!-- Per-Project Health -->
       {#if projectsData.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-            Project Health
-          </h2>
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+            Per-Project Health
+          </h3>
 
           <div class="space-y-3">
             {#each projectsData as project (project.project_name)}
-              <div class="flex items-center gap-4">
+              <div
+                class="flex items-center gap-4 p-3 bg-[var(--bg)] border border-[var(--border)] rounded"
+              >
                 <div
-                  class="text-sm font-mono text-[var(--accent)] w-40 truncate"
+                  class="text-sm font-mono text-[var(--text)] w-32 truncate"
                   title={project.project_name}
                 >
                   {project.project_name}
                 </div>
 
-                <div class="flex-1 flex items-center gap-2">
-                  <div class="flex-1 h-6 bg-[var(--bg)] rounded-full overflow-hidden">
+                <div class="flex-1 flex items-center gap-3">
+                  <div class="flex-1 h-2 bg-[var(--surface)] rounded overflow-hidden">
                     <div
-                      class="h-full transition-all rounded-full"
+                      class="h-full transition-all"
                       style="width: {project.health_score || 0}%; background: {getScoreColor(
                         project.health_score || 0
                       )}"
                     ></div>
                   </div>
-
-                  <div
-                    class="text-lg font-bold font-mono w-12 text-right"
+                  <span
+                    class="text-sm font-mono w-8 text-right"
                     style="color: {getScoreColor(project.health_score || 0)}"
                   >
                     {project.health_score || 0}
-                  </div>
+                  </span>
                 </div>
 
                 <div class="text-xs font-mono text-[var(--muted)] w-20 text-right">
                   {project.error_count || 0} errors
                 </div>
 
-                <span
-                  class="px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide"
-                  style="background: {getSeverityColor(
-                    project.status === 'healthy'
-                      ? 'success'
-                      : project.status === 'warning'
-                        ? 'medium'
-                        : 'critical'
-                  )}22; color: {getSeverityColor(
-                    project.status === 'healthy'
-                      ? 'success'
-                      : project.status === 'warning'
-                        ? 'medium'
-                        : 'critical'
-                  )}"
-                >
-                  {project.status}
+                <span class="flex items-center gap-1.5 text-xs font-mono">
+                  <span
+                    class="w-2 h-2 rounded-full"
+                    style="background: {getSeverityColor(
+                      project.status === 'active'
+                        ? 'success'
+                        : project.status === 'recent'
+                          ? 'low'
+                          : 'medium'
+                    )}"
+                  ></span>
+                  <span class="text-[var(--text)]">{project.status}</span>
                 </span>
               </div>
             {/each}
