@@ -1,2 +1,0 @@
-Testing ClaudeLogWatcher with polling mode enabled.
-This should be detected within 1-2 seconds.
