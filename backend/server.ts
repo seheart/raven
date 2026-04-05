@@ -1880,7 +1880,7 @@ app.get('/api/search/global', (req: Request, res: Response) => {
 
 // ==================== Historical Trends API ====================
 
-app.get('/api/trends/historical', (req: Request, res: Response) => {
+app.get('/api/trends/historical', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || 'hourly';
     const days = parseInt(req.query.days as string) || 7;
@@ -1907,7 +1907,7 @@ app.get('/api/trends/historical', (req: Request, res: Response) => {
       SELECT
         ${groupBy} as period,
         COUNT(*) as event_count,
-        SUM(CASE WHEN change_type = 'modified' THEN 1 ELSE 0 END) as modifications,
+        SUM(CASE WHEN change_type IN ('change', 'modified') THEN 1 ELSE 0 END) as modifications,
         SUM(CASE WHEN change_type = 'add' THEN 1 ELSE 0 END) as creations,
         SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as deletions,
         COUNT(DISTINCT filepath) as unique_files,

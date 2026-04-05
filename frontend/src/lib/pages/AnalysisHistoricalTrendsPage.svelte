@@ -33,6 +33,7 @@
   const totalModifications = $derived(trends.reduce((sum, t) => sum + (t.modifications || 0), 0));
   const totalCreations = $derived(trends.reduce((sum, t) => sum + (t.creations || 0), 0));
   const totalDeletions = $derived(trends.reduce((sum, t) => sum + (t.deletions || 0), 0));
+  const totalUniqueFiles = $derived(Math.max(...trends.map(t => t.unique_files || 0), 0));
 
   const timeSinceUpdate = $derived.by(() => {
     const seconds = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
@@ -56,7 +57,7 @@
 
   async function loadTrends() {
     try {
-      loading = true;
+      if (trends.length === 0) loading = true;
       error = null;
       const data = await api.get(`/trends/historical?period=${period}&days=${days}`);
       trends = data.trends || [];
@@ -309,17 +310,12 @@
     loadTrends();
 
     // WebSocket event handlers
-    const handleFileChanged = async () => {
-      await loadTrends();
-    };
-
     const handleProjectSwitched = async () => {
       await loadTrends();
     };
 
     // Connect to WebSocket
     websocketService.connect();
-    websocketService.on('file-changed', handleFileChanged);
     websocketService.on('project-switched', handleProjectSwitched);
 
     // Create theme observer
@@ -331,7 +327,6 @@
     // Cleanup function
     return () => {
       // Clean up WebSocket listeners
-      websocketService.off('file-changed', handleFileChanged);
       websocketService.off('project-switched', handleProjectSwitched);
 
       // Disconnect theme observer
@@ -374,7 +369,7 @@
         <p class="text-sm text-[var(--muted)] font-sans">Activity patterns over time</p>
       </div>
       <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-xs text-[var(--muted)] font-mono">Updated: {timeSinceUpdate}</span>
+        <span class="text-xs text-[var(--muted)] font-mono">{timeSinceUpdate}</span>
         <button
           onclick={exportToCSV}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
@@ -402,9 +397,7 @@
       class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex gap-6 flex-wrap"
     >
       <div class="flex items-center gap-3">
-        <label for="period-select" class="text-sm text-[var(--muted)] font-sans font-medium"
-          >Period:</label
-        >
+        <label for="period-select" class="text-sm text-[var(--muted)]">Period</label>
         <select
           id="period-select"
           value={period}
@@ -417,9 +410,7 @@
         </select>
       </div>
       <div class="flex items-center gap-3">
-        <label for="days-select" class="text-sm text-[var(--muted)] font-sans font-medium"
-          >Last:</label
-        >
+        <label for="days-select" class="text-sm text-[var(--muted)]">Last</label>
         <select
           id="days-select"
           value={days}
@@ -436,10 +427,10 @@
     </div>
 
     {#if loading}
-      <div class="grid grid-cols-1 gap-4">
-        {#each Array(3) as _, i (i)}
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {#each Array(4) as _, i (i)}
           <div
-            class="h-64 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
           ></div>
         {/each}
       </div>
@@ -464,7 +455,7 @@
       </div>
     {:else}
       <!-- Summary Stats -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
           <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
             Total Events
@@ -495,6 +486,14 @@
           </div>
           <div class="text-sm font-mono text-[var(--text)]">
             {totalDeletions.toLocaleString()}
+          </div>
+        </div>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Unique Files
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
+            {totalUniqueFiles.toLocaleString()}
           </div>
         </div>
       </div>
@@ -530,6 +529,69 @@
             </div>
           </div>
         {/if}
+      </div>
+
+      <!-- Data Table -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          Period Breakdown
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
+              <tr class="text-left">
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+                  >Period</th
+                >
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  >Events</th
+                >
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  >Modified</th
+                >
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  >Created</th
+                >
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  >Deleted</th
+                >
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  >Files</th
+                >
+              </tr>
+            </thead>
+            <tbody>
+              {#each trends as t (t.period)}
+                <tr class="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)]"
+                    >{formatPeriod(t.period)}</td
+                  >
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                    >{(t.event_count || 0).toLocaleString()}</td
+                  >
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                    >{(t.modifications || 0).toLocaleString()}</td
+                  >
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                    >{(t.creations || 0).toLocaleString()}</td
+                  >
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                    >{(t.deletions || 0).toLocaleString()}</td
+                  >
+                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                    >{(t.unique_files || 0).toLocaleString()}</td
+                  >
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
       </div>
     {/if}
   </div>
