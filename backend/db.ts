@@ -123,6 +123,7 @@ export interface DashboardStats {
   creates: number;
   edits: number;
   deletes: number;
+  app_errors: number;
 }
 
 /**
@@ -281,6 +282,30 @@ export class RavenDB {
         resolved INTEGER DEFAULT 0,
         session_id TEXT
       )
+    `);
+
+    // Application error logs
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS app_errors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        error_type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        stack TEXT,
+        component TEXT,
+        severity TEXT DEFAULT 'error',
+        url TEXT,
+        user_agent TEXT,
+        metadata TEXT,
+        resolved INTEGER DEFAULT 0
+      )
+    `);
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_app_errors_timestamp ON app_errors(timestamp DESC)
+    `);
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_app_errors_resolved ON app_errors(resolved)
     `);
 
     // Test results table
@@ -817,7 +842,8 @@ export class RavenDB {
       active_files_today: activeToday.size,
       creates,
       edits,
-      deletes
+      deletes,
+      app_errors: 0 // Updated by server.ts
     };
   }
 

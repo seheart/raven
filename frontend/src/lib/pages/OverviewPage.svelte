@@ -17,7 +17,8 @@
     creates: 0,
     edits: 0,
     deletes: 0,
-    total_agents: 0
+    total_agents: 0,
+    app_errors: 0
   });
   let systemMetrics = $state({
     cpu_percent: 0,
@@ -209,6 +210,9 @@
     websocketService.on('system-metrics', handleMetrics);
     websocketService.on('file-changed', handleFileChanged);
     websocketService.on('agent-event', handleAgentEvent);
+    websocketService.on('app-error', () => {
+      stats.app_errors++;
+    });
 
     themeObserver = createThemeObserver(() => createCharts());
 
@@ -258,7 +262,7 @@
     </div>
 
     <!-- Top Stats Row -->
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
         <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
           Events
@@ -294,6 +298,20 @@
           Rate
         </div>
         <div class="text-sm font-mono text-[var(--text)]">{eventsPerMin}/min</div>
+      </div>
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded p-4"
+        class:border-[var(--error)]={stats.app_errors > 0}
+      >
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Errors
+        </div>
+        <div class="flex items-center gap-2">
+          {#if stats.app_errors > 0}
+            <span class="w-2 h-2 rounded-full bg-[var(--error)]"></span>
+          {/if}
+          <span class="text-sm font-mono text-[var(--text)]">{stats.app_errors}</span>
+        </div>
       </div>
     </div>
 

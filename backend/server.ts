@@ -568,6 +568,9 @@ app.get('/api/dashboard-stats', cacheMiddleware(3000), (req: Request, res: Respo
   try {
     const stats = db.getDashboardStats(SESSION_ID);
     stats.total_agents = agentRegistry.size;
+    stats.app_errors =
+      (db.db.prepare('SELECT COUNT(*) as count FROM app_errors WHERE resolved = 0').get() as any)
+        ?.count || 0;
     return res.json(stats);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -2685,25 +2688,58 @@ app.get('/api/conversations/stats', (req: Request, res: Response) => {
 app.get('/api/errors', (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
   const errors = db.db
-    .prepare('SELECT * FROM syntax_errors ORDER BY timestamp DESC LIMIT ?')
+    .prepare('SELECT * FROM app_errors ORDER BY timestamp DESC LIMIT ?')
     .all(limit);
   return res.json({ errors, total: errors.length });
 });
 
+// App error tracking
 app.post('/api/errors', (req: Request, res: Response) => {
-  const { message, stack, component, severity } = req.body;
+  const { error_type, message, stack, component, severity, url, user_agent, metadata } = req.body;
   db.db
     .prepare(
-      'INSERT INTO syntax_errors (timestamp, file, line, message, severity) VALUES (?, ?, ?, ?, ?)'
+      `INSERT INTO app_errors (timestamp, error_type, message, stack, component, severity, url, user_agent, metadata)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       new Date().toISOString(),
-      component || 'frontend',
-      0,
-      message || stack || 'Unknown error',
-      severity || 'error'
+      error_type || 'Error',
+      message || 'Unknown error',
+      stack || null,
+      component || 'unknown',
+      severity || 'error',
+      url || null,
+      user_agent || null,
+      metadata ? JSON.stringify(metadata) : null
     );
+  io.emit('app-error', {
+    error_type,
+    message,
+    component,
+    severity,
+    timestamp: new Date().toISOString()
+  });
   return res.json({ success: true });
+});
+
+app.get('/api/errors/stats', (req: Request, res: Response) => {
+  const total =
+    (db.db.prepare('SELECT COUNT(*) as total FROM app_errors WHERE resolved = 0').get() as any)
+      ?.total || 0;
+  const bySeverity = db.db
+    .prepare(
+      'SELECT severity, COUNT(*) as count FROM app_errors WHERE resolved = 0 GROUP BY severity'
+    )
+    .all();
+  const byComponent = db.db
+    .prepare(
+      'SELECT component, COUNT(*) as count FROM app_errors WHERE resolved = 0 GROUP BY component ORDER BY count DESC LIMIT 10'
+    )
+    .all();
+  const recent = db.db
+    .prepare('SELECT * FROM app_errors WHERE resolved = 0 ORDER BY timestamp DESC LIMIT 5')
+    .all();
+  return res.json({ total, bySeverity, byComponent, recent });
 });
 
 app.get('/api/errors/stats', (req: Request, res: Response) => {
