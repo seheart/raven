@@ -10,15 +10,24 @@
   } = $props();
 
   let connected = $state(false);
+  let gitBranch = $state('');
 
   onMount(() => {
-    // Poll connection status every 2s (lightweight check)
     const interval = setInterval(() => {
       connected = websocketService.isConnected();
     }, 2000);
     connected = websocketService.isConnected();
 
-    return () => clearInterval(interval);
+    // Listen for git status updates
+    const handleGit = data => {
+      gitBranch = data?.branch || data?.current || '';
+    };
+    websocketService.on('git-status', handleGit);
+
+    return () => {
+      clearInterval(interval);
+      websocketService.off('git-status', handleGit);
+    };
   });
 </script>
 
@@ -55,6 +64,10 @@
       >
         GitHub
       </a>
+      {#if gitBranch}
+        <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+        <span class="text-xs text-[var(--muted)] font-mono">{gitBranch}</span>
+      {/if}
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <span
         class="flex items-center gap-2 text-xs {connected
