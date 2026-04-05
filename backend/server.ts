@@ -572,7 +572,18 @@ app.get('/api/dashboard-stats', cacheMiddleware(3000), (req: Request, res: Respo
 app.get('/api/top-modified-files', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
-    const files = db.getTopModifiedFiles(SESSION_ID, limit);
+    const files = db.db
+      .prepare(
+        `
+      SELECT filepath, COUNT(*) as edit_count, MAX(timestamp) as last_modified
+      FROM events
+      WHERE filepath IS NOT NULL
+      GROUP BY filepath
+      ORDER BY edit_count DESC
+      LIMIT ?
+    `
+      )
+      .all(limit);
     return res.json(files);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
