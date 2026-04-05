@@ -72,7 +72,9 @@ export class TelemetryCollector {
       const cpu = Math.round(cpuLoad.currentLoad || 0);
 
       // Calculate memory percentage
-      const mem = Math.round((memInfo.used / memInfo.total) * 100);
+      // Use active memory (excludes disk cache) for accurate reporting on Linux
+      const activeMemory = memInfo.active || memInfo.total - memInfo.available;
+      const mem = Math.round((activeMemory / memInfo.total) * 100);
 
       // Calculate network delta (bytes since last measurement)
       let networkRx: number | undefined;

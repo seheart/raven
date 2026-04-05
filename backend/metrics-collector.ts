@@ -57,7 +57,8 @@ export class MetricsCollector {
     try {
       // Get memory info for MB values
       const mem = await si.mem();
-      const memory_used_mb = Math.floor(mem.used / (1024 * 1024));
+      // Use active memory (excludes disk cache) for accurate reporting on Linux
+      const memory_used_mb = Math.floor((mem.active || mem.total - mem.available) / (1024 * 1024));
       const memory_total_mb = Math.floor(mem.total / (1024 * 1024));
 
       // Insert into database
@@ -72,7 +73,9 @@ export class MetricsCollector {
         this.sessionId
       );
 
-      logger.info(`📊 System metrics: CPU ${event.cpu.toFixed(1)}% | RAM ${event.mem.toFixed(1)}% (${memory_used_mb}MB/${memory_total_mb}MB)`);
+      logger.info(
+        `📊 System metrics: CPU ${event.cpu.toFixed(1)}% | RAM ${event.mem.toFixed(1)}% (${memory_used_mb}MB/${memory_total_mb}MB)`
+      );
 
       // Emit to Socket.IO
       if (this.io) {
@@ -87,7 +90,10 @@ export class MetricsCollector {
         });
       }
     } catch (error) {
-      logger.error('❌ Error handling telemetry event:', error instanceof Error ? error : new Error(String(error)));
+      logger.error(
+        '❌ Error handling telemetry event:',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 
@@ -122,11 +128,16 @@ export class MetricsCollector {
             this.sessionId
           );
 
-          logger.info(`🤖 Process metrics: ${name} (PID ${proc.pid}) - CPU ${cpu_usage.toFixed(1)}% | RAM ${memory_mb}MB`);
+          logger.info(
+            `🤖 Process metrics: ${name} (PID ${proc.pid}) - CPU ${cpu_usage.toFixed(1)}% | RAM ${memory_mb}MB`
+          );
         }
       }
     } catch (error) {
-      logger.error('❌ Error collecting process metrics:', error instanceof Error ? error : new Error(String(error)));
+      logger.error(
+        '❌ Error collecting process metrics:',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 
