@@ -11,6 +11,7 @@
  */
 
 import express, { Request, Response } from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
@@ -84,6 +85,7 @@ const SESSION_ID = randomUUID();
 
 // ==================== Middleware ====================
 
+app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(performanceMonitoring);
@@ -614,7 +616,7 @@ app.get('/api/longest-edits', cacheMiddleware(10000), (req: Request, res: Respon
 
 // ==================== File Events ====================
 
-app.get('/api/file-events', (req: Request, res: Response) => {
+app.get('/api/file-events', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
     const includeDiff = req.query.diff === 'true';
@@ -2614,7 +2616,7 @@ app.post('/api/storage/retention', async (req: Request, res: Response) => {
 
 // ==================== Conversations ====================
 
-app.get('/api/conversations', (req: Request, res: Response) => {
+app.get('/api/conversations', cacheMiddleware(5000), (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
   const offset = parseInt(req.query.offset as string) || 0;
   const eventType = req.query.event_type as string;
@@ -2640,7 +2642,7 @@ app.get('/api/conversations', (req: Request, res: Response) => {
   return res.json({ conversations, total: totalResult?.total || 0 });
 });
 
-app.get('/api/conversations/stats', (req: Request, res: Response) => {
+app.get('/api/conversations/stats', cacheMiddleware(5000), (req: Request, res: Response) => {
   const total =
     (
       db.db
@@ -2685,7 +2687,7 @@ app.get('/api/conversations/stats', (req: Request, res: Response) => {
 
 // ==================== Errors ====================
 
-app.get('/api/errors', (req: Request, res: Response) => {
+app.get('/api/errors', cacheMiddleware(5000), (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
   const errors = db.db
     .prepare('SELECT * FROM app_errors ORDER BY timestamp DESC LIMIT ?')
@@ -2722,7 +2724,7 @@ app.post('/api/errors', (req: Request, res: Response) => {
   return res.json({ success: true });
 });
 
-app.get('/api/errors/stats', (req: Request, res: Response) => {
+app.get('/api/errors/stats', cacheMiddleware(5000), (req: Request, res: Response) => {
   const total =
     (db.db.prepare('SELECT COUNT(*) as total FROM app_errors WHERE resolved = 0').get() as any)
       ?.total || 0;
@@ -2742,7 +2744,7 @@ app.get('/api/errors/stats', (req: Request, res: Response) => {
   return res.json({ total, bySeverity, byComponent, recent });
 });
 
-app.get('/api/errors/stats', (req: Request, res: Response) => {
+app.get('/api/errors/stats', cacheMiddleware(5000), (req: Request, res: Response) => {
   const result = db.db.prepare('SELECT COUNT(*) as total FROM syntax_errors').get() as any;
   return res.json({ total: result?.total || 0 });
 });
@@ -2805,7 +2807,7 @@ app.delete('/api/notifications/:id', (req: Request, res: Response) => {
 
 // ==================== All Agent Events ====================
 
-app.get('/api/all-agent-events', (req: Request, res: Response) => {
+app.get('/api/all-agent-events', cacheMiddleware(5000), (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 100, 1000);
   const events = db.getRecentAgentEvents(limit);
   return res.json(events);

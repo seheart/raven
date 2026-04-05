@@ -21,7 +21,7 @@ export class TelemetryCollector {
 
   constructor(config: Partial<TelemetryConfig> = {}) {
     this.config = {
-      intervalMs: config.intervalMs || 3000,
+      intervalMs: config.intervalMs || 10000,
       enableNetworkMetrics: config.enableNetworkMetrics ?? true
     };
   }

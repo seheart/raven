@@ -781,68 +781,61 @@ export class RavenDB {
    * @returns Complete dashboard statistics including event counts, agent stats, and metrics
    */
   getDashboardStats(session_id: string): DashboardStats {
-    // Get ALL historical events (not just current session)
-    const agentEvents: any[] = this.db
-      .prepare(`SELECT * FROM agent_events ORDER BY timestamp DESC`)
-      .all();
+    // Aggregate file event stats in a single query
+    const eventStats = this.db
+      .prepare(
+        `SELECT
+          COUNT(*) as total_events,
+          COUNT(DISTINCT filepath) as total_files,
+          SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END) as creates,
+          SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits,
+          SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes
+        FROM events`
+      )
+      .get() as any;
 
-    // Get ALL file events (from file watcher)
-    const fileEvents: any[] = this.db.prepare(`SELECT * FROM events ORDER BY timestamp DESC`).all();
+    // Session duration from min/max timestamps across both tables
+    const durationRow = this.db
+      .prepare(
+        `SELECT
+          MIN(ts) as first_ts,
+          MAX(ts) as last_ts
+        FROM (
+          SELECT timestamp as ts FROM events
+          UNION ALL
+          SELECT timestamp as ts FROM agent_events
+        )`
+      )
+      .get() as any;
 
-    // Combine all events
-    const allEvents = [...agentEvents, ...fileEvents];
-
-    // Get unique files from all events
-    const trackedFiles = new Set<string>();
-    for (const event of allEvents) {
-      if (event.filepath) {
-        trackedFiles.add(event.filepath);
-      }
-    }
-
-    // Calculate session duration
     let session_duration_seconds = 0;
-    if (allEvents.length > 0) {
-      const timestamps = allEvents.map(e => new Date(e.timestamp).getTime()).filter(t => !isNaN(t));
-
-      if (timestamps.length > 0) {
-        const first = Math.min(...timestamps);
-        const last = Math.max(...timestamps);
+    if (durationRow?.first_ts && durationRow?.last_ts) {
+      const first = new Date(durationRow.first_ts).getTime();
+      const last = new Date(durationRow.last_ts).getTime();
+      if (!isNaN(first) && !isNaN(last)) {
         session_duration_seconds = Math.floor((last - first) / 1000);
       }
     }
 
-    // Count active files today
+    // Active files today
     const today = new Date().toISOString().split('T')[0];
-    const activeToday = new Set<string>();
-
-    for (const event of fileEvents) {
-      const eventDate = event.timestamp.split('T')[0];
-      if (eventDate === today && event.filepath) {
-        activeToday.add(event.filepath);
-      }
-    }
-
-    // Count event types for Activity Distribution chart
-    const creates = fileEvents.filter(
-      e => e.change_type === 'create' || e.change_type === 'add'
-    ).length;
-    const edits = fileEvents.filter(
-      e => e.change_type === 'edit' || e.change_type === 'change'
-    ).length;
-    const deletes = fileEvents.filter(
-      e => e.change_type === 'delete' || e.change_type === 'unlink'
-    ).length;
+    const activeTodayRow = this.db
+      .prepare(
+        `SELECT COUNT(DISTINCT filepath) as count
+        FROM events
+        WHERE filepath IS NOT NULL AND timestamp >= ?`
+      )
+      .get(today + 'T00:00:00') as any;
 
     return {
-      total_events: fileEvents.length, // Use file events for total count
-      total_files: trackedFiles.size,
+      total_events: eventStats?.total_events || 0,
+      total_files: eventStats?.total_files || 0,
       total_agents: 0, // Will be updated by agent registry
       session_duration_seconds,
-      active_files_today: activeToday.size,
-      creates,
-      edits,
-      deletes,
+      active_files_today: activeTodayRow?.count || 0,
+      creates: eventStats?.creates || 0,
+      edits: eventStats?.edits || 0,
+      deletes: eventStats?.deletes || 0,
       app_errors: 0 // Updated by server.ts
     };
   }
