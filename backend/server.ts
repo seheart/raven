@@ -135,6 +135,11 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
 
   // Register/update Claude Code in agent registry
   if (!agentRegistry.has(agentName)) {
+    // Cap agentRegistry at 100 entries
+    if (agentRegistry.size >= 100) {
+      const oldestKey = agentRegistry.keys().next().value;
+      if (oldestKey) agentRegistry.delete(oldestKey);
+    }
     agentRegistry.set(agentName, {
       agent_name: agentName,
       agent_type: 'claude-code',
@@ -920,6 +925,11 @@ app.post('/telemetry', (req: Request, res: Response) => {
 
     // Update agent registry
     if (!agentRegistry.has(agent)) {
+      // Cap agentRegistry at 100 entries
+      if (agentRegistry.size >= 100) {
+        const oldestKey = agentRegistry.keys().next().value;
+        if (oldestKey) agentRegistry.delete(oldestKey);
+      }
       agentRegistry.set(agent, {
         agent_name: agent,
         agent_type: agent,
@@ -970,7 +980,7 @@ app.post('/telemetry', (req: Request, res: Response) => {
 
 // ==================== Multi-Project Health API ====================
 
-app.get('/api/health/projects', (req: Request, res: Response) => {
+app.get('/api/health/projects', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     // Database doesn't track projects separately, so get aggregate stats
     const totalEvents = db.db.prepare('SELECT COUNT(*) as count FROM events').get() as any;

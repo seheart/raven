@@ -7,14 +7,19 @@ const AUTH_API = `${API_CONFIG.BASE_URL}/auth`;
 
 // Create writable stores
 const token = writable(localStorage.getItem('raven-auth-token') || null);
-const user = writable(JSON.parse(localStorage.getItem('raven-auth-user') || 'null'));
+const user = writable(
+  (() => {
+    try {
+      return JSON.parse(localStorage.getItem('raven-auth-user') || 'null');
+    } catch {
+      return null;
+    }
+  })()
+);
 const loading = writable(false);
 
 // Derived store for authentication status
-export const isAuthenticated = derived(
-  [token, user],
-  ([$token, $user]) => !!$token && !!$user
-);
+export const isAuthenticated = derived([token, user], ([$token, $user]) => !!$token && !!$user);
 
 /**
  * Authentication Service
@@ -80,8 +85,12 @@ export const authService = {
    * Get current user
    */
   getUser() {
-    const userStr = localStorage.getItem('raven-auth-user');
-    return userStr ? JSON.parse(userStr) : null;
+    try {
+      const userStr = localStorage.getItem('raven-auth-user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      return null;
+    }
   },
 
   /**
@@ -103,7 +112,7 @@ export const authService = {
     try {
       const response = await fetch(`${AUTH_API}/me`, {
         headers: {
-          'Authorization': `Bearer ${currentToken}`
+          Authorization: `Bearer ${currentToken}`
         }
       });
 

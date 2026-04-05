@@ -185,6 +185,11 @@ export class FileWatcher {
             size = content.length;
             hash = this.calculateFileHash(content);
 
+            // Cap fileCache at 5000 entries
+            if (!this.fileCache.has(filepath) && this.fileCache.size >= 5000) {
+              const oldestKey = this.fileCache.keys().next().value;
+              if (oldestKey) this.fileCache.delete(oldestKey);
+            }
             // Update cache atomically after read
             this.fileCache.set(filepath, content);
           } catch (readError) {

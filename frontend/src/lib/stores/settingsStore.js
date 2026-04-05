@@ -22,7 +22,8 @@ const DEFAULT_SETTINGS = {
     animationsEnabled: true,
     autoRefresh: true,
     refreshInterval: 10,
-    timeFormat: '24h' // '12h' or '24h'
+    timeFormat: '24h', // '12h' or '24h'
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // auto-detect
   },
   editor: {
     defaultEditor: 'auto'

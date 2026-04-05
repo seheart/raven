@@ -5,13 +5,13 @@
  * Supports multiple languages and provides detailed error reporting.
  */
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
 import { readFile } from 'fs/promises';
 import { logger } from './utils/logger.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface SyntaxError {
   file: string;
@@ -46,7 +46,7 @@ export class SyntaxChecker {
       ['.py', 'python'],
       ['.json', 'json'],
       ['.yaml', 'yaml'],
-      ['.yml', 'yaml'],
+      ['.yml', 'yaml']
     ]);
   }
 
@@ -123,7 +123,7 @@ export class SyntaxChecker {
   private async checkJavaScript(filePath: string): Promise<SyntaxError[]> {
     try {
       // Use node --check to validate syntax
-      await execAsync(`node --check "${filePath}"`, { timeout: 5000 });
+      await execFileAsync('node', ['--check', filePath], { timeout: 5000 });
       return [];
     } catch (error: any) {
       const errors: SyntaxError[] = [];
@@ -172,7 +172,7 @@ export class SyntaxChecker {
   private async checkTypeScript(filePath: string): Promise<SyntaxError[]> {
     try {
       // Try using tsc if available
-      await execAsync(`npx tsc --noEmit --skipLibCheck "${filePath}"`, {
+      await execFileAsync('npx', ['tsc', '--noEmit', '--skipLibCheck', filePath], {
         timeout: 10000,
         cwd: join(filePath, '..')
       });
@@ -212,7 +212,7 @@ export class SyntaxChecker {
   private async checkPython(filePath: string): Promise<SyntaxError[]> {
     try {
       // Use python -m py_compile to check syntax
-      await execAsync(`python3 -m py_compile "${filePath}"`, { timeout: 5000 });
+      await execFileAsync('python3', ['-m', 'py_compile', filePath], { timeout: 5000 });
       return [];
     } catch (error: any) {
       const errors: SyntaxError[] = [];
@@ -310,13 +310,15 @@ export class SyntaxChecker {
 
       return errors;
     } catch (error: any) {
-      return [{
-        file: filePath,
-        line: 1,
-        message: error.message || 'YAML syntax error',
-        severity: 'error',
-        language: 'yaml'
-      }];
+      return [
+        {
+          file: filePath,
+          line: 1,
+          message: error.message || 'YAML syntax error',
+          severity: 'error',
+          language: 'yaml'
+        }
+      ];
     }
   }
 

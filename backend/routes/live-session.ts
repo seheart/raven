@@ -5,13 +5,13 @@
 
 import express, { Request, Response } from 'express';
 import { RavenDB } from '../db.js';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import type { Database } from 'better-sqlite3';
 import { logger } from '../utils/logger.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export function createLiveSessionRouter(ravenDB: RavenDB) {
   const router = express.Router();
@@ -39,7 +39,7 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       const gitStats: Record<string, { added: number; removed: number }> = {};
 
       try {
-        const { stdout } = await execAsync('git diff --numstat HEAD');
+        const { stdout } = await execFileAsync('git', ['diff', '--numstat', 'HEAD']);
         const lines = stdout.trim().split('\n');
 
         lines.forEach(line => {
@@ -90,7 +90,7 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       const filePath = decodeURIComponent(req.params.path);
 
       // Get git diff for the file
-      const { stdout } = await execAsync(`git diff HEAD -- "${filePath}"`);
+      const { stdout } = await execFileAsync('git', ['diff', 'HEAD', '--', filePath]);
 
       res.json({
         filePath,
@@ -124,7 +124,7 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       let linesRemoved = 0;
 
       try {
-        const { stdout } = await execAsync('git diff --numstat HEAD');
+        const { stdout } = await execFileAsync('git', ['diff', '--numstat', 'HEAD']);
         const lines = stdout.trim().split('\n');
 
         lines.forEach(line => {

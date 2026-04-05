@@ -65,13 +65,15 @@
     }, 300);
   }
 
+  const onErrorLogged = () => loadErrors();
+
   onMount(() => {
     loadErrors();
-    websocketService.on('error-logged', () => loadErrors());
+    websocketService.on('error-logged', onErrorLogged);
   });
 
   onDestroy(() => {
-    websocketService.off('error-logged');
+    websocketService.off('error-logged', onErrorLogged);
     clearTimeout(searchTimeout);
   });
 </script>

@@ -20,6 +20,7 @@
 
   // State
   let sessionId = $state('Loading...');
+  let appVersion = $state('');
   let showWelcome = $state(false);
   let showKeyboardShortcuts = $state(false);
 
@@ -49,8 +50,12 @@
   // Load session ID on mount
   async function loadSessionId() {
     try {
-      const data = await api.get('/session-id');
-      sessionId = data.session_id || 'Unknown';
+      const [sessionData, healthData] = await Promise.all([
+        api.get('/session-id').catch(() => ({})),
+        api.get('/health').catch(() => ({}))
+      ]);
+      sessionId = sessionData.session_id || 'Unknown';
+      appVersion = healthData.version || '';
     } catch (error) {
       sessionId = 'Offline';
       logger.error('Failed to load session ID:', error);
@@ -311,16 +316,20 @@
         <PlaceholderPage title="System - {activeSubTab}" description="This page is coming soon" />
       {/if}
     {:else if activeTab === 'settings'}
-      {#await import('./lib/pages/SettingsPage.svelte') then { default: Component }}
+      {#await import('./lib/pages/SettingsPage.svelte')}
+        <PlaceholderPage title="Settings" description="Loading..." />
+      {:then { default: Component }}
         <Component />
       {:catch}
-        <PlaceholderPage title="Settings" description="Loading..." />
+        <PlaceholderPage title="Settings" description="Failed to load" />
       {/await}
     {:else if activeTab === 'about'}
-      {#await import('./lib/pages/AboutPage.svelte') then { default: Component }}
+      {#await import('./lib/pages/AboutPage.svelte')}
+        <PlaceholderPage title="About" description="Loading..." />
+      {:then { default: Component }}
         <Component />
       {:catch}
-        <PlaceholderPage title="About" description="Loading..." />
+        <PlaceholderPage title="About" description="Failed to load" />
       {/await}
     {:else if activeTab === 'quickstart'}
       <QuickStartWizard
@@ -345,7 +354,7 @@
   <!-- Footer -->
   <Footer
     {sessionId}
-    version="2.0.1-corvus"
+    version={appVersion}
     onSessionClick={handleSessionClick}
     onAboutClick={handleAboutClick}
   />
