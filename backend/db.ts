@@ -883,6 +883,19 @@ export class RavenDB {
     stmt.run(id);
   }
 
+  resolveSyntaxErrorsForRaven(): void {
+    const stmt = this.db.prepare(`
+      UPDATE syntax_errors
+      SET resolved = 1
+      WHERE resolved = 0
+        AND (filepath LIKE '%raven/backend/%' OR filepath LIKE '%raven/frontend/%')
+    `);
+    const result = stmt.run();
+    if (result.changes > 0) {
+      logger.info(`Resolved ${result.changes} stale syntax error(s) for Raven's own files`);
+    }
+  }
+
   resolveSyntaxErrorsByFile(filepath: string): void {
     const stmt = this.db.prepare(`
       UPDATE syntax_errors
@@ -963,6 +976,19 @@ export class RavenDB {
       WHERE id = ?
     `);
     stmt.run(id);
+  }
+
+  resolvePatternWarningsForRaven(): void {
+    const stmt = this.db.prepare(`
+      UPDATE pattern_warnings
+      SET resolved = 1
+      WHERE resolved = 0
+        AND (filepath LIKE '%raven/backend/%' OR filepath LIKE '%raven/frontend/%')
+    `);
+    const result = stmt.run();
+    if (result.changes > 0) {
+      logger.info(`Resolved ${result.changes} stale pattern warning(s) for Raven's own files`);
+    }
   }
 
   resolvePatternWarningsByFile(filepath: string): void {

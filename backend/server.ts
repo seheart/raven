@@ -284,9 +284,15 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       event_size: event.size
     });
 
-    // Check syntax if file type is supported
+    // Check syntax if file type is supported (skip Raven's own files)
     const filePath = join(WATCH_PATH, event.path);
-    if (syntaxChecker.isSupported(filePath) && (event.type === 'change' || event.type === 'add')) {
+    const isRavenFile =
+      event.path.includes('raven/backend/') || event.path.includes('raven/frontend/');
+    if (
+      !isRavenFile &&
+      syntaxChecker.isSupported(filePath) &&
+      (event.type === 'change' || event.type === 'add')
+    ) {
       const result = await syntaxChecker.check(filePath);
 
       if (!result.valid && result.errors.length > 0) {
@@ -2798,6 +2804,10 @@ httpServer.listen(PORT, async () => {
 ║  Database:   ${DB_PATH.slice(-30).padEnd(30)} ║
 ╚════════════════════════════════════════════════╝
   `);
+
+  // Resolve stale warnings/errors for Raven's own files
+  db.resolvePatternWarningsForRaven();
+  db.resolveSyntaxErrorsForRaven();
 
   // Start Claude Code log watcher
   logger.info('🤖 Starting Claude Code log watcher...');
