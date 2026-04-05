@@ -330,9 +330,20 @@
         const totalChanges =
           (agent.edit_count || 0) + (agent.create_count || 0) + (agent.delete_count || 0);
 
+        const avgSize =
+          totalChanges > 0 ? Math.round((agent.total_file_changes || 0) / totalChanges) : 0;
+        const totalDurationSec =
+          agent.first_seen && agent.last_active
+            ? Math.round(
+                (new Date(agent.last_active).getTime() - new Date(agent.first_seen).getTime()) /
+                  1000
+              )
+            : 0;
+
         return {
           ...agent,
           agent_name: agent.agent_name || agent.agent || 'Unknown',
+          total_events: agent.event_count || 0,
           lines_changed: agent.total_file_changes || 0,
           files_modified: agent.unique_files || 0,
           last_active: agent.last_active || null,
@@ -340,8 +351,9 @@
           edit_count: agent.edit_count || 0,
           delete_count: agent.delete_count || 0,
           changes_per_day: Math.round(totalChanges / daysSinceFirst),
-          avg_change_size: 0,
+          avg_change_size: avgSize,
           unique_files: agent.unique_files || 0,
+          total_duration_seconds: totalDurationSec,
           tool_breakdown: agent.tool_breakdown || []
         };
       });
@@ -454,7 +466,7 @@
         </div>
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
           <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-            Lines Changed
+            File Changes
           </div>
           <div class="text-sm font-mono text-[var(--text)]">
             {formatNumber(summaryStats.total_lines)}
@@ -618,7 +630,7 @@
               </div>
               <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
                 <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-                  Lines Changed
+                  File Changes
                 </div>
                 <div class="text-sm font-mono text-[var(--text)]">
                   {formatNumber(agent.lines_changed)}
@@ -642,7 +654,7 @@
               </div>
               <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
                 <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-                  Avg Size
+                  Avg Files/Op
                 </div>
                 <div class="text-sm font-mono text-[var(--text)]">
                   {agent.avg_change_size || 0}
