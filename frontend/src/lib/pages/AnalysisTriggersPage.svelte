@@ -276,7 +276,7 @@
         </p>
       </div>
       <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-sm text-[var(--muted)] font-mono">Updated {timeAgo}</span>
+        <span class="text-xs text-[var(--muted)] font-mono">Updated {timeAgo}</span>
         <button
           onclick={reloadConfig}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors"
@@ -307,7 +307,7 @@
     <!-- Success/Error Messages -->
     {#if successMessage}
       <div
-        class="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-4 text-sm text-green-400 font-sans"
+        class="bg-[var(--success-subtle)] border border-[var(--success)] rounded-lg p-3 mb-4 text-sm text-[var(--success)] font-sans"
       >
         {successMessage}
       </div>
@@ -315,7 +315,7 @@
 
     {#if error}
       <div
-        class="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 text-sm text-red-400 font-sans"
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-3 mb-4 text-sm text-[var(--error)] font-sans"
       >
         {error}
       </div>
@@ -326,7 +326,7 @@
       <button
         onclick={() => (activeTab = 'rules')}
         class="px-4 py-2 text-sm font-sans transition-all border-b-2 {activeTab === 'rules'
-          ? 'text-[var(--warning)] border-[var(--warning)]'
+          ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)] hover:bg-[var(--surface)]'}"
       >
         Rules ({triggers.length})
@@ -334,7 +334,7 @@
       <button
         onclick={() => (activeTab = 'events')}
         class="px-4 py-2 text-sm font-sans transition-all border-b-2 {activeTab === 'events'
-          ? 'text-[var(--warning)] border-[var(--warning)]'
+          ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)] hover:bg-[var(--surface)]'}"
       >
         Events ({filteredEvents.length})
@@ -342,7 +342,7 @@
       <button
         onclick={() => (activeTab = 'stats')}
         class="px-4 py-2 text-sm font-sans transition-all border-b-2 {activeTab === 'stats'
-          ? 'text-[var(--warning)] border-[var(--warning)]'
+          ? 'text-[var(--accent)] border-[var(--accent)]'
           : 'text-[var(--muted)] border-transparent hover:text-[var(--text)] hover:bg-[var(--surface)]'}"
       >
         Stats
@@ -371,11 +371,11 @@
               type="text"
               bind:value={searchQuery}
               placeholder="Search triggers by name, message, or file..."
-              class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)]"
+              class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
             <select
               bind:value={selectedActionFilter}
-              class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] cursor-pointer"
+              class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] cursor-pointer"
             >
               <option value="all">All Actions</option>
               <option value="notify">Notify</option>
@@ -393,10 +393,7 @@
         <!-- Trigger Rules Grid -->
         {#if filteredTriggers.length === 0 && triggers.length > 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3"></div>
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
               No Matching Triggers
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -405,15 +402,12 @@
           </div>
         {:else if triggers.length === 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3"></div>
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
               No Triggers Configured
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans mb-2">
               Create triggers in <code
-                class="bg-[var(--bg)] px-2 py-1 rounded text-[var(--warning)] font-mono"
+                class="bg-[var(--bg)] px-2 py-1 rounded text-[var(--accent)] font-mono"
                 >.raven/config.toml</code
               > to get started.
             </p>
@@ -428,7 +422,7 @@
                 class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 transition-all {enabledTriggers.has(
                   trigger.name
                 )
-                  ? 'hover:border-[var(--warning)] hover:shadow-lg'
+                  ? 'hover:border-[var(--accent)] hover:shadow-lg'
                   : 'opacity-50 grayscale'}"
               >
                 <!-- Header -->
@@ -440,7 +434,7 @@
                       {trigger.name}
                     </div>
                     <span
-                      class="inline-block bg-[var(--bg)] px-2 py-1 rounded text-xs text-[var(--warning)] font-sans capitalize"
+                      class="inline-block bg-[var(--bg)] px-2 py-1 rounded text-xs text-[var(--accent)] font-sans capitalize"
                     >
                       {getActionIcon(trigger.action)}
                       {trigger.action}
@@ -455,7 +449,7 @@
                       class="opacity-0 w-0 h-0 peer"
                     />
                     <span
-                      class="absolute inset-0 bg-[var(--surface-2)] border border-[var(--border)] rounded-full transition-all peer-checked:bg-[var(--warning)] peer-checked:border-[var(--warning)]"
+                      class="absolute inset-0 bg-[var(--surface-2)] border border-[var(--border)] rounded-full transition-all peer-checked:bg-[var(--accent)] peer-checked:border-[var(--accent)]"
                     ></span>
                     <span
                       class="absolute left-1 top-1 w-4 h-4 bg-[var(--muted)] rounded-full transition-all peer-checked:translate-x-5 peer-checked:bg-white"
@@ -506,7 +500,7 @@
                   <button
                     onclick={() => testTrigger(trigger)}
                     disabled={!enabledTriggers.has(trigger.name)}
-                    class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-sans text-[var(--text)] hover:bg-[var(--warning)] hover:text-white hover:border-[var(--warning)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-sans text-[var(--text)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Test Fire
                   </button>
@@ -530,7 +524,7 @@
             >
             <select
               bind:value={selectedProjectFilter}
-              class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] cursor-pointer"
+              class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] cursor-pointer"
             >
               <option value="all">All Projects</option>
               {#each availableProjects as project (project)}
@@ -548,20 +542,14 @@
         <!-- Triggered Events -->
         {#if filteredEvents.length === 0 && triggeredEvents.length > 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3"></div>
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
               No Events for Selected Project
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">Try selecting a different project.</p>
           </div>
         {:else if triggeredEvents.length === 0}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3"></div>
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
               No Triggered Events
             </h3>
             <p class="text-sm text-[var(--muted)] font-sans">
@@ -580,7 +568,7 @@
                 <span class="text-xl flex-shrink-0">{getActionIcon(event.action)}</span>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-1 flex-wrap">
-                    <span class="font-semibold text-sm text-[var(--warning)] font-mono"
+                    <span class="font-semibold text-sm text-[var(--accent)] font-mono"
                       >{event.trigger_name}</span
                     >
                     {#if event.project}
@@ -611,24 +599,20 @@
         <div class="space-y-6">
           <!-- Summary Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div
-              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
-            >
-              <div class="text-4xl font-bold text-[var(--warning)] font-mono mb-2">
-                {stats.total_triggers}
-              </div>
-              <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">
+            <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+              <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
                 Total Triggers Fired
               </div>
-            </div>
-            <div
-              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center"
-            >
-              <div class="text-4xl font-bold text-[var(--warning)] font-mono mb-2">
-                {stats.active_triggers}
+              <div class="text-sm font-mono text-[var(--text)]">
+                {stats.total_triggers}
               </div>
-              <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">
+            </div>
+            <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+              <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
                 Active Trigger Rules
+              </div>
+              <div class="text-sm font-mono text-[var(--text)]">
+                {stats.active_triggers}
               </div>
             </div>
           </div>
@@ -636,19 +620,17 @@
           <!-- Trigger Fire Counts -->
           {#if Object.keys(stats?.trigger_counts || {}).length > 0}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-              <h3
-                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans mb-4"
-              >
+              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
                 Trigger Fire Counts
               </h3>
               <div class="space-y-2">
                 {#each Object.entries(stats.trigger_counts).sort((a, b) => b[1] - a[1]) as [name, count] (name)}
                   <div
-                    class="flex justify-between items-center bg-[var(--bg)] border border-[var(--border)] rounded p-3 hover:border-[var(--warning)] transition-colors"
+                    class="flex justify-between items-center bg-[var(--bg)] border border-[var(--border)] rounded p-3 hover:border-[var(--accent)] transition-colors"
                   >
                     <span class="text-sm text-[var(--text)] font-mono font-medium">{name}</span>
                     <span
-                      class="text-sm font-bold text-[var(--warning)] bg-[var(--surface)] px-3 py-1 rounded font-mono"
+                      class="text-sm font-mono text-[var(--text)] bg-[var(--surface)] px-3 py-1 rounded"
                       >{count}</span
                     >
                   </div>
@@ -659,10 +641,7 @@
             <div
               class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center"
             >
-              <div class="text-4xl mb-3"></div>
-              <h3
-                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
-              >
+              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
                 No Statistics Available
               </h3>
               <p class="text-sm text-[var(--muted)] font-sans">

@@ -536,61 +536,69 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] pb-20">
+<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <AgentsNav />
 
-  <div class="max-w-6xl mx-auto p-6 pb-20">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Conversations</h1>
+        <p class="text-sm text-[var(--muted)] font-sans">
+          View and search agent conversations and interactions
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        {#if lastUpdate}
+          <span class="text-xs text-[var(--muted)] font-mono"
+            >{formatTime(lastUpdate.toISOString())}</span
+          >
+        {/if}
+        <button
+          onclick={loadConversations}
+          disabled={loading}
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+        >
+          {loading ? '...' : '↻'} Refresh
+        </button>
+      </div>
+    </div>
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex items-center gap-4"
-      >
-        <div class="text-xs"></div>
-        <div class="flex-1">
-          <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">
-            Total Conversations
-          </div>
-          <div class="text-sm font-mono font-bold text-[var(--text)]">
-            {stats.total.toLocaleString()}
-          </div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Total Conversations
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">
+          {stats.total.toLocaleString()}
         </div>
       </div>
 
-      <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex items-center gap-4"
-      >
-        <div class="text-xs"></div>
-        <div class="flex-1">
-          <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">User Messages</div>
-          <div class="text-sm font-mono font-bold text-[var(--text)]">
-            {(stats.by_type?.user_message || 0).toLocaleString()}
-          </div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          User Messages
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">
+          {(stats.by_type?.user_message || 0).toLocaleString()}
         </div>
       </div>
 
-      <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex items-center gap-4"
-      >
-        <div class="text-xs"></div>
-        <div class="flex-1">
-          <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">
-            Assistant Responses
-          </div>
-          <div class="text-sm font-mono font-bold text-[var(--text)]">
-            {(stats.by_type?.assistant_text || 0).toLocaleString()}
-          </div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Assistant Responses
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">
+          {(stats.by_type?.assistant_text || 0).toLocaleString()}
         </div>
       </div>
 
-      <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex items-center gap-4"
-      >
-        <div class="text-xs"></div>
-        <div class="flex-1">
-          <div class="text-xs text-[var(--muted)] uppercase tracking-wide mb-1">Tool Calls</div>
-          <div class="text-sm font-mono font-bold text-[var(--text)]">
-            {(stats.by_type?.tool_call || 0).toLocaleString()}
-          </div>
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          Tool Calls
+        </div>
+        <div class="text-sm font-mono text-[var(--text)]">
+          {(stats.by_type?.tool_call || 0).toLocaleString()}
         </div>
       </div>
     </div>
@@ -599,9 +607,11 @@
     {#if showCharts && !loading && stats.total > 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
         <div class="flex justify-between items-center mb-5">
-          <h3 class="text-sm font-semibold text-[var(--accent)]">Analytics</h3>
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+            Analytics
+          </h3>
           <button
-            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-mono cursor-pointer hover:bg-[var(--accent)] hover:text-white transition-colors"
+            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans cursor-pointer hover:border-[var(--accent)] transition-colors"
             onclick={() => (showCharts = false)}
           >
             Hide Charts
@@ -625,7 +635,7 @@
     {:else if !showCharts && !loading}
       <div class="text-center p-5 mb-6">
         <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-mono cursor-pointer hover:bg-[var(--accent)] hover:text-white transition-colors"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans cursor-pointer hover:border-[var(--accent)] transition-colors"
           onclick={() => (showCharts = true)}
         >
           Show Analytics Charts
@@ -638,13 +648,13 @@
       <div class="flex gap-3 flex-wrap items-center">
         <input
           type="text"
-          class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs"
-          placeholder=" Search conversations..."
+          class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm"
+          placeholder="Search conversations..."
           bind:value={searchQuery}
         />
 
         <select
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer"
+          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer"
           bind:value={filterType}
           onchange={loadConversations}
         >
@@ -656,7 +666,7 @@
         </select>
 
         <select
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer"
+          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer"
           bind:value={filterProject}
           onchange={loadConversations}
         >
@@ -667,14 +677,14 @@
         </select>
 
         <label
-          class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer text-xs"
+          class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer text-sm"
         >
           <input type="checkbox" class="cursor-pointer" bind:checked={autoRefresh} />
           Auto-refresh
         </label>
 
         <button
-          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
           onclick={loadConversations}
           disabled={loading}
         >
@@ -682,7 +692,7 @@
         </button>
 
         <button
-          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
           onclick={toggleExpandAll}
           disabled={filteredConversations.length === 0}
         >
@@ -691,13 +701,13 @@
         </button>
 
         <button
-          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 transition-all"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
           onclick={() => (showImportDialog = true)}
           >Import
         </button>
 
         <button
-          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 transition-all"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
           onclick={exportConversations}
           >Export
         </button>
@@ -710,7 +720,7 @@
             >Date Range:</span
           >
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
             'all'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -719,7 +729,7 @@
             All Time
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
             'today'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -728,7 +738,7 @@
             Today
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
             '7d'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -737,7 +747,7 @@
             7 Days
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
             '30d'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -752,7 +762,7 @@
             >Sort By:</span
           >
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
             'timestamp'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -761,7 +771,7 @@
             Time {sortBy === 'timestamp' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
             'type'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -770,7 +780,7 @@
             Type {sortBy === 'type' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
             'project'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -785,7 +795,7 @@
             >View:</span
           >
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {viewMode ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {viewMode ===
             'compact'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -794,7 +804,7 @@
             Compact
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {viewMode ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {viewMode ===
             'detailed'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -809,7 +819,7 @@
             >Group:</span
           >
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
             'none'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -818,7 +828,7 @@
             None
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
             'session'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -827,7 +837,7 @@
             Session
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
             'project'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -836,7 +846,7 @@
             Project
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
             'date'
               ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
               : ''}"
@@ -846,12 +856,6 @@
           </button>
         </div>
       </div>
-
-      {#if lastUpdate}
-        <div class="mt-3 text-xs text-[var(--muted)]">
-          Updated: {formatTime(lastUpdate.toISOString())}
-        </div>
-      {/if}
     </div>
 
     <!-- Conversations Timeline -->
@@ -875,9 +879,9 @@
       </div>
     {:else if filteredConversations.length === 0}
       <div class="text-center p-12 text-[var(--muted)]">
-        <p class="mb-4 text-xs">No conversations found</p>
+        <p class="mb-4 text-sm">No conversations found</p>
         <button
-          class="px-4 py-2 bg-[var(--accent)] text-white border-none rounded font-mono text-xs cursor-pointer hover:brightness-120 transition-all"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
           onclick={() => (showImportDialog = true)}
         >
           Import Claude Sessions
@@ -1067,7 +1071,7 @@
         {#if hasMore}
           <div class="flex justify-center p-4">
             <button
-              class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:bg-[var(--accent)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
               onclick={loadMore}
               disabled={loadingMore}
             >

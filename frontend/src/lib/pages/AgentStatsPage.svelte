@@ -440,15 +440,27 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] pb-20">
+<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <AgentsNav />
-  <div class="max-w-6xl mx-auto space-y-6 px-6">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Statistics</h1>
-      <p class="text-sm text-[var(--muted)] font-sans">
-        Comprehensive agent statistics and performance metrics
-      </p>
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Statistics</h1>
+        <p class="text-sm text-[var(--muted)] font-sans">
+          Comprehensive agent statistics and performance metrics
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-[var(--muted)] font-mono">{timeAgo}</span>
+        <button
+          onclick={loadStats}
+          disabled={loading}
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+        >
+          {loading ? '...' : '↻'} Refresh
+        </button>
+      </div>
     </div>
 
     {#if error}
@@ -478,33 +490,43 @@
       </div>
     {:else}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-1 font-sans">Total Agents</div>
-          <div class="text-2xl font-bold text-[var(--accent)] font-mono">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Total Agents
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
             {formatNumber(summaryStats.total_agents)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-1 font-sans">Total Events</div>
-          <div class="text-2xl font-bold text-[var(--accent)] font-mono">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Total Events
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
             {formatNumber(summaryStats.total_events)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-1 font-sans">Lines Changed</div>
-          <div class="text-2xl font-bold text-[var(--accent)] font-mono">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Lines Changed
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
             {formatNumber(summaryStats.total_lines)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-1 font-sans">Files Modified</div>
-          <div class="text-2xl font-bold text-[var(--accent)] font-mono">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Files Modified
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
             {formatNumber(summaryStats.total_files)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="text-sm text-[var(--muted)] mb-1 font-sans">Total Duration</div>
-          <div class="text-2xl font-bold text-[var(--accent)] font-mono">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Total Duration
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
             {formatDuration(summaryStats.total_duration)}
           </div>
         </div>
@@ -512,35 +534,35 @@
     {/if}
 
     <!-- Controls -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
       <div class="flex flex-wrap gap-3 mb-3">
         <input
           type="text"
-          placeholder=" Search agents..."
+          placeholder="Search agents..."
           bind:value={searchQuery}
           class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] font-mono"
         />
 
         <button
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all disabled:opacity-50"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
           onclick={loadStats}
           disabled={loading}
         >
-          <span>{loading ? '' : ''}</span>Refresh
+          {loading ? '...' : '↻'} Refresh
         </button>
 
         <button
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
           onclick={exportCSV}
         >
-          <span></span>CSV
+          CSV
         </button>
 
         <button
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
           onclick={exportJSON}
         >
-          <span></span>JSON
+          JSON
         </button>
       </div>
 
@@ -574,7 +596,6 @@
       </div>
     {:else if agentStats.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <span class="text-4xl block mb-3"></span>
         <p class="text-sm text-[var(--muted)] mb-2 font-sans">No agent statistics available</p>
         <p class="text-sm text-[var(--muted)] opacity-80 font-sans">
           Agent activity will appear here once detected by Raven.
@@ -612,12 +633,6 @@
             <!-- Agent Header -->
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
-                <div
-                  class="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
-                  style="background-color: {config.color}20;"
-                >
-                  {config.icon}
-                </div>
                 <div>
                   <div class="flex items-center gap-2">
                     <h3 class="text-sm font-bold text-[var(--text-heading)] font-mono">
@@ -647,39 +662,51 @@
 
             <!-- Metrics Grid -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-              <div class="bg-[var(--bg)] rounded p-3">
-                <div class="text-xs text-[var(--muted)] font-sans mb-1">Events</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
+                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                  Events
+                </div>
+                <div class="text-sm font-mono text-[var(--text)]">
                   {formatNumber(agent.total_events)}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] rounded p-3">
-                <div class="text-xs text-[var(--muted)] font-sans mb-1">Lines Changed</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
+                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                  Lines Changed
+                </div>
+                <div class="text-sm font-mono text-[var(--text)]">
                   {formatNumber(agent.lines_changed)}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] rounded p-3">
-                <div class="text-xs text-[var(--muted)] font-sans mb-1">Files Modified</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
+                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                  Files Modified
+                </div>
+                <div class="text-sm font-mono text-[var(--text)]">
                   {formatNumber(agent.files_modified)}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] rounded p-3">
-                <div class="text-xs text-[var(--muted)] font-sans mb-1">Changes/Day</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
+                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                  Changes/Day
+                </div>
+                <div class="text-sm font-mono text-[var(--text)]">
                   {agent.changes_per_day || 0}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] rounded p-3">
-                <div class="text-xs text-[var(--muted)] font-sans mb-1">Avg Size</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
+                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                  Avg Size
+                </div>
+                <div class="text-sm font-mono text-[var(--text)]">
                   {agent.avg_change_size || 0}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] rounded p-3">
-                <div class="text-xs text-[var(--muted)] font-sans mb-1">Duration</div>
-                <div class="text-xl font-bold text-[var(--accent)] font-mono">
+              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
+                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+                  Duration
+                </div>
+                <div class="text-sm font-mono text-[var(--text)]">
                   {formatDuration(agent.total_duration_seconds)}
                 </div>
               </div>
@@ -689,7 +716,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <!-- Activity Breakdown Chart -->
               <div class="space-y-2">
-                <div class="text-sm text-[var(--muted)] font-sans font-semibold">
+                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
                   Activity Breakdown
                 </div>
                 <div class="h-40 flex items-center justify-center bg-[var(--bg)] rounded p-2">
@@ -705,7 +732,7 @@
 
               <!-- Change Distribution Bar -->
               <div class="space-y-2">
-                <div class="text-sm text-[var(--muted)] font-sans font-semibold">
+                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
                   Change Distribution
                 </div>
                 <div class="h-40 flex flex-col justify-center">

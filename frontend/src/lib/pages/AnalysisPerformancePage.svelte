@@ -220,34 +220,33 @@
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1 font-sans">
-          Performance Profiling
-        </h1>
-        <p class="text-sm text-[var(--muted)] font-mono">
-          Updated: {timeAgo}
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Performance Profiling</h1>
+        <p class="text-sm text-[var(--muted)] font-sans">
+          System resource monitoring and performance analysis
         </p>
       </div>
       <div class="flex items-center gap-3 flex-wrap">
+        <span class="text-xs text-[var(--muted)] font-mono">{timeAgo}</span>
         <button
           onclick={exportToJSON}
-          class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
         >
           Export JSON
         </button>
         <button
           onclick={exportToCSV}
-          class="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
         >
           Export CSV
         </button>
         <button
           onclick={() => fetchAllData(true)}
           disabled={loading}
-          class="px-3 py-2 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          <span class="inline-block" class:animate-spin={isManualRefresh}>↻</span>Refresh
+          {loading ? '...' : '↻'} Refresh
         </button>
       </div>
     </div>
@@ -260,15 +259,14 @@
           {@const isWarning = alert.level === 'warning'}
           <div
             class="border rounded-lg p-4 flex items-center gap-3 {isCritical
-              ? 'bg-red-500/10 border-red-500'
-              : ''} {isWarning ? 'bg-yellow-500/10 border-yellow-500' : ''}"
+              ? 'bg-[var(--error-subtle)] border-[var(--error)]'
+              : ''} {isWarning ? 'bg-[var(--warning-subtle)] border-[var(--warning)]' : ''}"
           >
-            <span class="text-2xl">{isCritical ? '' : ''}</span>
             <div class="flex-1">
-              <div class="font-semibold text-[var(--text-heading)] font-sans">
+              <div class="font-semibold text-[var(--text-heading)]">
                 {alert.type.toUpperCase()} Alert
               </div>
-              <div class="text-sm text-[var(--muted)] font-sans">
+              <div class="text-sm text-[var(--muted)]">
                 {alert.message} (threshold: {alert.threshold}%)
               </div>
             </div>
@@ -319,15 +317,15 @@
       <!-- Error State -->
     {:else if error}
       <div
-        class="bg-red-500/10 border border-red-500 rounded-lg p-6 flex items-center justify-between"
+        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-6 flex items-center justify-between"
       >
         <div>
-          <p class="text-red-500 font-semibold font-sans mb-1">Error loading performance data</p>
-          <p class="text-sm text-[var(--muted)] font-sans">{error}</p>
+          <p class="text-[var(--error)] font-semibold mb-1">Error loading performance data</p>
+          <p class="text-sm text-[var(--muted)]">{error}</p>
         </div>
         <button
           onclick={() => fetchAllData()}
-          class="px-4 py-2 bg-red-500 text-white rounded text-sm font-sans hover:bg-red-600 transition-colors"
+          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
         >
           Try Again
         </button>
@@ -340,38 +338,24 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- System Metrics Card -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
               System Metrics
             </h3>
             <div class="space-y-3">
               <div class="flex justify-between items-center">
-                <span class="text-sm text-[var(--muted)] font-sans">CPU Usage:</span>
-                <span
-                  class="text-lg font-bold font-mono {latestMetrics.cpu_percent > 80
-                    ? 'text-red-500'
-                    : latestMetrics.cpu_percent > 50
-                      ? 'text-yellow-500'
-                      : 'text-green-500'}"
-                >
+                <span class="text-sm text-[var(--muted)]">CPU Usage</span>
+                <span class="text-sm font-mono text-[var(--text)]">
                   {latestMetrics.cpu_percent.toFixed(1)}%
                 </span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-sm text-[var(--muted)] font-sans">Memory:</span>
-                <span
-                  class="text-lg font-bold font-mono {latestMetrics.memory_percent > 80
-                    ? 'text-red-500'
-                    : latestMetrics.memory_percent > 50
-                      ? 'text-yellow-500'
-                      : 'text-green-500'}"
-                >
+                <span class="text-sm text-[var(--muted)]">Memory</span>
+                <span class="text-sm font-mono text-[var(--text)]">
                   {latestMetrics.memory_percent.toFixed(1)}%
                 </span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-sm text-[var(--muted)] font-sans">RAM Used:</span>
+                <span class="text-sm text-[var(--muted)]">RAM Used</span>
                 <span class="text-sm font-mono text-[var(--text)]">
                   {formatNumber(latestMetrics.memory_used_mb)} MB / {formatNumber(
                     latestMetrics.memory_total_mb
@@ -380,7 +364,7 @@
               </div>
               {#if latestMetrics.network_rx_bytes}
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Network RX:</span>
+                  <span class="text-sm text-[var(--muted)]">Network RX</span>
                   <span class="text-sm font-mono text-[var(--text)]"
                     >{formatBytes(latestMetrics.network_rx_bytes)}</span
                   >
@@ -388,7 +372,7 @@
               {/if}
               {#if latestMetrics.network_tx_bytes}
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Network TX:</span>
+                  <span class="text-sm text-[var(--muted)]">Network TX</span>
                   <span class="text-sm font-mono text-[var(--text)]"
                     >{formatBytes(latestMetrics.network_tx_bytes)}</span
                   >
@@ -405,45 +389,37 @@
           <!-- Process Metrics Card -->
           {#if latestProcessMetrics}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-              <h3
-                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
-              >
+              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
                 Process: {latestProcessMetrics.agent_name || selectedAgent}
               </h3>
               <div class="space-y-3">
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">PID:</span>
+                  <span class="text-sm text-[var(--muted)]">PID</span>
                   <span class="text-sm font-mono text-[var(--text)]"
                     >{latestProcessMetrics.pid}</span
                   >
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">CPU:</span>
-                  <span
-                    class="text-lg font-bold font-mono {latestProcessMetrics.cpu_usage > 80
-                      ? 'text-red-500'
-                      : latestProcessMetrics.cpu_usage > 50
-                        ? 'text-yellow-500'
-                        : 'text-green-500'}"
-                  >
+                  <span class="text-sm text-[var(--muted)]">CPU</span>
+                  <span class="text-sm font-mono text-[var(--text)]">
                     {latestProcessMetrics.cpu_usage.toFixed(1)}%
                   </span>
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Memory:</span>
+                  <span class="text-sm text-[var(--muted)]">Memory</span>
                   <span class="text-sm font-mono text-[var(--text)]"
                     >{formatNumber(latestProcessMetrics.memory_mb)} MB</span
                   >
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Virtual Mem:</span>
+                  <span class="text-sm text-[var(--muted)]">Virtual Mem</span>
                   <span class="text-sm font-mono text-[var(--text)]"
                     >{formatNumber(latestProcessMetrics.virtual_memory_mb)} MB</span
                   >
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Status:</span>
-                  <span class="text-sm font-mono text-green-500 capitalize"
+                  <span class="text-sm text-[var(--muted)]">Status</span>
+                  <span class="text-sm font-mono text-[var(--text)] capitalize"
                     >{latestProcessMetrics.status}</span
                   >
                 </div>
@@ -458,50 +434,46 @@
             <div
               class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 text-center"
             >
-              <h3
-                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
-              >
+              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
                 Process Metrics
               </h3>
-              <p class="text-sm text-[var(--muted)] font-sans">No process metrics available</p>
+              <p class="text-sm text-[var(--muted)]">No process metrics available</p>
             </div>
           {/if}
 
           <!-- Statistics Card -->
           {#if stats && stats.sample_count > 0}
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-              <h3
-                class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
-              >
+              <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
                 Last Hour Stats
               </h3>
               <div class="space-y-3">
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Avg CPU:</span>
-                  <span class="text-lg font-bold font-mono text-[var(--text)]"
+                  <span class="text-sm text-[var(--muted)]">Avg CPU</span>
+                  <span class="text-sm font-mono text-[var(--text)]"
                     >{stats.avg_cpu_percent.toFixed(1)}%</span
                   >
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Peak CPU:</span>
-                  <span class="text-lg font-bold font-mono text-red-500"
+                  <span class="text-sm text-[var(--muted)]">Peak CPU</span>
+                  <span class="text-sm font-mono text-[var(--text)]"
                     >{stats.max_cpu_percent.toFixed(1)}%</span
                   >
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Avg Memory:</span>
-                  <span class="text-lg font-bold font-mono text-[var(--text)]"
+                  <span class="text-sm text-[var(--muted)]">Avg Memory</span>
+                  <span class="text-sm font-mono text-[var(--text)]"
                     >{stats.avg_memory_percent.toFixed(1)}%</span
                   >
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Peak Memory:</span>
-                  <span class="text-lg font-bold font-mono text-red-500"
+                  <span class="text-sm text-[var(--muted)]">Peak Memory</span>
+                  <span class="text-sm font-mono text-[var(--text)]"
                     >{stats.max_memory_percent.toFixed(1)}%</span
                   >
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-[var(--muted)] font-sans">Samples:</span>
+                  <span class="text-sm text-[var(--muted)]">Samples</span>
                   <span class="text-sm font-mono text-[var(--text)]"
                     >{formatNumber(stats.sample_count)}</span
                   >
@@ -512,8 +484,8 @@
         </div>
       {:else}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <p class="text-[var(--muted)] font-sans text-sm">No performance data available yet.</p>
-          <p class="text-sm text-[var(--muted)] font-sans mt-2">
+          <p class="text-[var(--muted)] text-sm">No performance data available yet.</p>
+          <p class="text-sm text-[var(--muted)] mt-2">
             Metrics are collected automatically when monitoring is active.
           </p>
         </div>
@@ -526,11 +498,11 @@
           <div
             class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex justify-between items-center"
           >
-            <label class="text-sm font-sans text-[var(--text)]">
+            <label class="text-sm text-[var(--text)]">
               Time Range:
               <select
                 bind:value={chartTimeRange}
-                class="ml-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                class="ml-2 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
               >
                 <option value="15m">Last 15 minutes</option>
                 <option value="1h">Last 1 hour</option>
@@ -546,19 +518,17 @@
                 <span class="w-3 h-3 rounded-full bg-[var(--info)]"></span>Memory
               </span>
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-yellow-500"></span>Warning
+                <span class="w-3 h-3 rounded-full bg-[var(--warning)]"></span>Warning
               </span>
               <span class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-red-500"></span>Critical
+                <span class="w-3 h-3 rounded-full bg-[var(--error)]"></span>Critical
               </span>
             </div>
           </div>
 
           <!-- CPU Chart -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
               CPU Usage Over Time
             </h3>
             <div class="flex gap-3 h-48">
@@ -576,7 +546,7 @@
               <div class="flex-1 relative bg-[var(--bg)] border border-[var(--border)] rounded">
                 <!-- Threshold lines -->
                 <div
-                  class="absolute left-0 right-0 border-t-2 border-dashed border-red-500"
+                  class="absolute left-0 right-0 border-t-2 border-dashed border-[var(--error)]"
                   style="bottom: {thresholds.cpu.critical}%"
                 >
                   <span
@@ -585,7 +555,7 @@
                   >
                 </div>
                 <div
-                  class="absolute left-0 right-0 border-t-2 border-dashed border-yellow-500"
+                  class="absolute left-0 right-0 border-t-2 border-dashed border-[var(--warning)]"
                   style="bottom: {thresholds.cpu.warning}%"
                 >
                   <span
@@ -601,9 +571,9 @@
                     metric.cpu_percent < thresholds.cpu.critical}
                   <div
                     class="absolute w-1.5 h-1.5 rounded-full {isAboveCritical
-                      ? 'bg-red-500'
+                      ? 'bg-[var(--error)]'
                       : isAboveWarning
-                        ? 'bg-yellow-500'
+                        ? 'bg-[var(--warning)]'
                         : 'bg-[var(--accent)]'} hover:w-2.5 hover:h-2.5 transition-all cursor-pointer"
                     style="left: {(i / (systemMetrics.length - 1)) *
                       100}%; bottom: {metric.cpu_percent}%; transform: translate(-50%, 50%)"
@@ -616,9 +586,7 @@
 
           <!-- Memory Chart -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
               Memory Usage Over Time
             </h3>
             <div class="flex gap-3 h-48">
@@ -636,7 +604,7 @@
               <div class="flex-1 relative bg-[var(--bg)] border border-[var(--border)] rounded">
                 <!-- Threshold lines -->
                 <div
-                  class="absolute left-0 right-0 border-t-2 border-dashed border-red-500"
+                  class="absolute left-0 right-0 border-t-2 border-dashed border-[var(--error)]"
                   style="bottom: {thresholds.memory.critical}%"
                 >
                   <span
@@ -645,7 +613,7 @@
                   >
                 </div>
                 <div
-                  class="absolute left-0 right-0 border-t-2 border-dashed border-yellow-500"
+                  class="absolute left-0 right-0 border-t-2 border-dashed border-[var(--warning)]"
                   style="bottom: {thresholds.memory.warning}%"
                 >
                   <span
@@ -661,9 +629,9 @@
                     metric.memory_percent < thresholds.memory.critical}
                   <div
                     class="absolute w-1.5 h-1.5 rounded-full {isAboveCritical
-                      ? 'bg-red-500'
+                      ? 'bg-[var(--error)]'
                       : isAboveWarning
-                        ? 'bg-yellow-500'
+                        ? 'bg-[var(--warning)]'
                         : 'bg-[var(--info)]'} hover:w-2.5 hover:h-2.5 transition-all cursor-pointer"
                     style="left: {(i / (systemMetrics.length - 1)) *
                       100}%; bottom: {metric.memory_percent}%; transform: translate(-50%, 50%)"
@@ -676,14 +644,12 @@
 
           <!-- Threshold Configuration -->
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
               Alert Thresholds
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label for="cpu-warning" class="text-sm text-[var(--muted)] font-sans block mb-2"
+                <label for="cpu-warning" class="text-sm text-[var(--muted)] block mb-2"
                   >CPU Warning (%):</label
                 >
                 <input
@@ -692,11 +658,11 @@
                   bind:value={thresholds.cpu.warning}
                   min="0"
                   max="100"
-                  class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
                 />
               </div>
               <div>
-                <label for="cpu-critical" class="text-sm text-[var(--muted)] font-sans block mb-2"
+                <label for="cpu-critical" class="text-sm text-[var(--muted)] block mb-2"
                   >CPU Critical (%):</label
                 >
                 <input
@@ -705,11 +671,11 @@
                   bind:value={thresholds.cpu.critical}
                   min="0"
                   max="100"
-                  class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
                 />
               </div>
               <div>
-                <label for="memory-warning" class="text-sm text-[var(--muted)] font-sans block mb-2"
+                <label for="memory-warning" class="text-sm text-[var(--muted)] block mb-2"
                   >Memory Warning (%):</label
                 >
                 <input
@@ -718,13 +684,11 @@
                   bind:value={thresholds.memory.warning}
                   min="0"
                   max="100"
-                  class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
                 />
               </div>
               <div>
-                <label
-                  for="memory-critical"
-                  class="text-sm text-[var(--muted)] font-sans block mb-2"
+                <label for="memory-critical" class="text-sm text-[var(--muted)] block mb-2"
                   >Memory Critical (%):</label
                 >
                 <input
@@ -733,7 +697,7 @@
                   bind:value={thresholds.memory.critical}
                   min="0"
                   max="100"
-                  class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
                 />
               </div>
             </div>
@@ -741,8 +705,8 @@
         </div>
       {:else}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <p class="text-[var(--muted)] font-sans text-sm">No metrics data available for charts.</p>
-          <p class="text-sm text-[var(--muted)] font-sans mt-2">
+          <p class="text-[var(--muted)] text-sm">No metrics data available for charts.</p>
+          <p class="text-sm text-[var(--muted)] mt-2">
             Charts will appear once performance data is collected.
           </p>
         </div>
@@ -752,12 +716,10 @@
       {#if correlations && correlations.length > 0}
         <div class="space-y-4">
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-            <h3
-              class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 font-sans"
-            >
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
               Performance Correlations
             </h3>
-            <p class="text-sm text-[var(--muted)] font-sans">
+            <p class="text-sm text-[var(--muted)]">
               Events that occurred near CPU/memory spikes (within 10 seconds)
             </p>
           </div>
@@ -774,14 +736,14 @@
                   <span
                     class="ml-2 px-2 py-1 text-xs font-bold uppercase rounded {correlation.change_type ===
                       'created' || correlation.change_type === 'add'
-                      ? 'bg-green-500/20 text-green-500'
+                      ? 'bg-[var(--success-subtle)] text-[var(--success)]'
                       : correlation.change_type === 'modified' ||
                           correlation.change_type === 'change'
-                        ? 'bg-yellow-500/20 text-yellow-500'
+                        ? 'bg-[var(--warning-subtle)] text-[var(--warning)]'
                         : correlation.change_type === 'deleted' ||
                             correlation.change_type === 'unlink'
-                          ? 'bg-red-500/20 text-red-500'
-                          : 'bg-[var(--muted)]/20 text-[var(--muted)]'}"
+                          ? 'bg-[var(--error-subtle)] text-[var(--error)]'
+                          : 'bg-[var(--surface)] text-[var(--muted)]'}"
                   >
                     {correlation.change_type}
                   </span>
@@ -789,29 +751,14 @@
 
                 <div class="grid grid-cols-2 gap-3 mb-3">
                   <div>
-                    <span class="text-xs text-[var(--muted)] font-sans block mb-1">CPU Impact:</span
-                    >
-                    <span
-                      class="text-lg font-bold font-mono {(correlation.cpu_percent || 0) > 50
-                        ? 'text-red-500'
-                        : (correlation.cpu_percent || 0) > 25
-                          ? 'text-yellow-500'
-                          : 'text-green-500'}"
-                    >
+                    <span class="text-xs text-[var(--muted)] block mb-1">CPU Impact</span>
+                    <span class="text-sm font-mono text-[var(--text)]">
                       {correlation.cpu_percent ? correlation.cpu_percent.toFixed(1) : 'N/A'}%
                     </span>
                   </div>
                   <div>
-                    <span class="text-xs text-[var(--muted)] font-sans block mb-1"
-                      >Memory Impact:</span
-                    >
-                    <span
-                      class="text-lg font-bold font-mono {(correlation.mem_percent || 0) > 50
-                        ? 'text-red-500'
-                        : (correlation.mem_percent || 0) > 25
-                          ? 'text-yellow-500'
-                          : 'text-green-500'}"
-                    >
+                    <span class="text-xs text-[var(--muted)] block mb-1">Memory Impact</span>
+                    <span class="text-sm font-mono text-[var(--text)]">
                       {correlation.mem_percent ? correlation.mem_percent.toFixed(1) : 'N/A'}%
                     </span>
                   </div>
@@ -835,11 +782,11 @@
         </div>
       {:else}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <p class="text-[var(--muted)] font-sans text-sm">No performance correlations found.</p>
-          <p class="text-sm text-[var(--muted)] font-sans mt-2">
+          <p class="text-[var(--muted)] text-sm">No performance correlations found.</p>
+          <p class="text-sm text-[var(--muted)] mt-2">
             Correlations show which file changes coincide with CPU/memory spikes.
           </p>
-          <p class="text-xs text-[var(--muted)] font-sans mt-2">
+          <p class="text-xs text-[var(--muted)] mt-2">
             Make some file changes while the system is under load to see correlations.
           </p>
         </div>

@@ -411,11 +411,11 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] pb-20">
+<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <AgentsNav />
-  <div class="max-w-6xl mx-auto space-y-6 px-6">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex justify-between items-start mb-6">
+    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Monitoring</h1>
         <p class="text-sm text-[var(--muted)] font-sans">
@@ -430,7 +430,7 @@
           <span class="font-sans">Auto-refresh</span>
         </label>
         <span
-          class="text-sm font-sans"
+          class="text-xs font-mono"
           class:text-[var(--muted)]={!showNewEventAnimation}
           class:text-[var(--warning)]={showNewEventAnimation}
           class:font-bold={showNewEventAnimation}
@@ -446,7 +446,7 @@
           disabled={loading}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
         >
-          {loading ? '' : ''} Refresh
+          {loading ? '...' : '↻'} Refresh
         </button>
       </div>
     </div>
@@ -469,7 +469,7 @@
 
     <!-- Status Overview -->
     {#if loading}
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {#each Array(3) as _, i (i)}
           <div
             class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
@@ -477,40 +477,31 @@
         {/each}
       </div>
     {:else}
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl"></span>
-            <div>
-              <div class="text-2xl font-bold text-[var(--text-heading)] leading-none mb-1">
-                {formatNumber(agentsStatus.length)}
-              </div>
-              <div class="text-sm text-[var(--muted)] font-sans">Total Agents</div>
-            </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Total Agents
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
+            {formatNumber(agentsStatus.length)}
           </div>
         </div>
 
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl"></span>
-            <div>
-              <div class="text-2xl font-bold text-[var(--success)] leading-none mb-1">
-                {formatNumber(runningAgents.length)}
-              </div>
-              <div class="text-sm text-[var(--muted)] font-sans">Currently Running</div>
-            </div>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Currently Running
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
+            {formatNumber(runningAgents.length)}
           </div>
         </div>
 
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl"></span>
-            <div>
-              <div class="text-2xl font-bold text-[var(--muted)] leading-none mb-1">
-                {formatNumber(idleAgents.length)}
-              </div>
-              <div class="text-sm text-[var(--muted)] font-sans">Idle Agents</div>
-            </div>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Idle Agents
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
+            {formatNumber(idleAgents.length)}
           </div>
         </div>
       </div>
@@ -518,13 +509,10 @@
 
     <!-- Agent Activity Charts -->
     {#if !loading && (runningAgents.length > 0 || recentEvents.length > 0)}
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <!-- Agent Activity Over Time -->
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h2
-            class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans flex items-center gap-2"
-          >
-            <span></span>
+          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
             Agent Activity (Last 24h)
           </h2>
           <div class="h-64 bg-[var(--bg)] rounded p-3">
@@ -534,10 +522,7 @@
 
         <!-- Agent Distribution -->
         <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h2
-            class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans flex items-center gap-2"
-          >
-            <span></span>
+          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
             Event Distribution by Agent
           </h2>
           <div class="h-64 bg-[var(--bg)] rounded p-3">
@@ -548,9 +533,9 @@
     {/if}
 
     <!-- Currently Running Agents -->
-    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
           Currently Running Agents
         </h2>
         {#if autoRefresh}
@@ -565,7 +550,6 @@
         <div class="text-center py-8 text-sm text-[var(--muted)]">Loading agents...</div>
       {:else if runningAgents.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2"></span>
           <p class="text-sm text-[var(--muted)] font-sans">No agents currently running</p>
         </div>
       {:else}
@@ -577,7 +561,6 @@
             >
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                  <span class="text-xl"></span>
                   <span class="text-sm font-semibold text-[var(--text)] font-mono truncate">
                     {agent.agent_name || 'Unknown'}
                   </span>
@@ -618,8 +601,8 @@
     </section>
 
     <!-- All Agents Status -->
-    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans">
+    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
         All Agents Status
       </h2>
 
@@ -627,7 +610,6 @@
         <div class="text-center py-8 text-sm text-[var(--muted)]">Loading agents...</div>
       {:else if agentsStatus.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2"></span>
           <p class="text-sm text-[var(--muted)] font-sans">No agents detected</p>
         </div>
       {:else}
@@ -636,22 +618,22 @@
             <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
               <tr class="text-left">
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                  class="px-4 py-3 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                 >
                   Agent
                 </th>
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                  class="px-4 py-3 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                 >
                   Status
                 </th>
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                  class="px-4 py-3 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                 >
                   Confidence
                 </th>
                 <th
-                  class="px-4 py-3 text-sm font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                  class="px-4 py-3 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
                 >
                   Last Seen
                 </th>
@@ -666,9 +648,9 @@
                   <td class="px-4 py-3">
                     <span
                       class="inline-block px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide font-mono"
-                      class:bg-green-500={agent.is_running || agent.confidence > 0.7}
+                      class:bg-[var(--success)]={agent.is_running || agent.confidence > 0.7}
                       class:text-white={agent.is_running || agent.confidence > 0.7}
-                      class:bg-gray-500={!agent.is_running && agent.confidence <= 0.7}
+                      class:bg-[var(--muted)]={!agent.is_running && agent.confidence <= 0.7}
                     >
                       {agent.is_running ? 'Running' : agent.confidence > 0.7 ? 'Active' : 'Idle'}
                     </span>
@@ -703,11 +685,8 @@
     </section>
 
     <!-- Detection Info Box -->
-    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h3
-        class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-3 font-sans flex items-center gap-2"
-      >
-        <span></span>
+    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+      <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-3">
         How Agent Detection Works
       </h3>
       <ul class="space-y-2 text-sm text-[var(--muted)] font-sans">
@@ -742,8 +721,8 @@
     </section>
 
     <!-- Activity Timeline -->
-    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-sans">
+    <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+      <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
         Recent Activity Timeline
       </h2>
 
@@ -836,7 +815,6 @@
         <div class="text-center py-8 text-sm text-[var(--muted)]">Loading activity...</div>
       {:else if filteredEvents.length === 0}
         <div class="text-center py-8">
-          <span class="text-2xl block mb-2">{hasActiveFilters ? '' : ''}</span>
           <p class="text-sm text-[var(--muted)] font-sans">
             {hasActiveFilters ? 'No events match your filters' : 'No recent activity'}
           </p>

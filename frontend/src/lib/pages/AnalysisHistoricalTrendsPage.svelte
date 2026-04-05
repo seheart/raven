@@ -374,7 +374,7 @@
         <p class="text-sm text-[var(--muted)] font-sans">Activity patterns over time</p>
       </div>
       <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-sm text-[var(--muted)] font-mono">Updated: {timeSinceUpdate}</span>
+        <span class="text-xs text-[var(--muted)] font-mono">Updated: {timeSinceUpdate}</span>
         <button
           onclick={exportToCSV}
           class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
@@ -465,40 +465,44 @@
     {:else}
       <!-- Summary Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border-2 border-[var(--accent)] rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-[var(--accent)] font-mono mb-1">
-            {totalEvents.toLocaleString()}
-          </div>
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
             Total Events
           </div>
-        </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-[var(--info)] font-mono mb-1">
-            {totalModifications.toLocaleString()}
+          <div class="text-sm font-mono text-[var(--text)]">
+            {totalEvents.toLocaleString()}
           </div>
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">
+        </div>
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
             Modifications
           </div>
+          <div class="text-sm font-mono text-[var(--text)]">
+            {totalModifications.toLocaleString()}
+          </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-[var(--success)] font-mono mb-1">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Creations
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
             {totalCreations.toLocaleString()}
           </div>
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">Creations</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-[var(--error)] font-mono mb-1">
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            Deletions
+          </div>
+          <div class="text-sm font-mono text-[var(--text)]">
             {totalDeletions.toLocaleString()}
           </div>
-          <div class="text-xs text-[var(--muted)] font-sans uppercase tracking-wide">Deletions</div>
         </div>
       </div>
 
       <!-- Visualizations Section -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans">
+          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
             Analytics Visualizations
           </h2>
           <button
