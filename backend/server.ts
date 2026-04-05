@@ -245,8 +245,9 @@ const projectManager = new ProjectManager({ ravenDir: RAVEN_DIR });
 // Local model watcher — detects Ollama, LM Studio, llama.cpp, etc.
 const localModelWatcher = new LocalModelWatcher(30000);
 
+// Git monitor uses the Raven project root (one level up from backend/)
 const gitMonitor = new GitMonitor({
-  repoPath: WATCH_PATH,
+  repoPath: join(process.cwd(), '..'),
   pollIntervalMs: 5000,
   enableAutoPoll: false // Manual polling on file changes
 });

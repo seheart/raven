@@ -1,5 +1,6 @@
 <script>
   import { websocketService } from '../../services/websocket.js';
+  import { api } from '../../apiClient.js';
   import { onMount } from 'svelte';
 
   let {
@@ -18,7 +19,15 @@
     }, 2000);
     connected = websocketService.isConnected();
 
-    // Listen for git status updates
+    // Fetch git status immediately on mount
+    api
+      .get('/git/status')
+      .then(data => {
+        gitBranch = data?.current || data?.branch || '';
+      })
+      .catch(() => {});
+
+    // Listen for git status updates via WebSocket
     const handleGit = data => {
       gitBranch = data?.branch || data?.current || '';
     };
