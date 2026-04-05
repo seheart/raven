@@ -783,7 +783,11 @@ export class RavenDB {
    * @param session_id - Session identifier to filter by
    * @returns Complete dashboard statistics including event counts, agent stats, and metrics
    */
-  getDashboardStats(session_id: string): DashboardStats {
+  getDashboardStats(session_id: string, project?: string): DashboardStats {
+    const projectFilter = project && project !== 'all' ? project : null;
+    const whereClause = projectFilter ? 'WHERE project_name = ?' : '';
+    const params = projectFilter ? [projectFilter] : [];
+
     // Aggregate file event stats in a single query
     const eventStats = this.db
       .prepare(
@@ -793,23 +797,24 @@ export class RavenDB {
           SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END) as creates,
           SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits,
           SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes
-        FROM events`
+        FROM events ${whereClause}`
       )
-      .get() as any;
+      .get(...params) as any;
 
-    // Session duration from min/max timestamps across both tables
-    const durationRow = this.db
-      .prepare(
-        `SELECT
-          MIN(ts) as first_ts,
-          MAX(ts) as last_ts
-        FROM (
+    // Session duration from min/max timestamps
+    const durationSql = projectFilter
+      ? `SELECT MIN(ts) as first_ts, MAX(ts) as last_ts FROM (
+          SELECT timestamp as ts FROM events WHERE project_name = ?
+          UNION ALL
+          SELECT timestamp as ts FROM agent_events WHERE project_name = ?
+        )`
+      : `SELECT MIN(ts) as first_ts, MAX(ts) as last_ts FROM (
           SELECT timestamp as ts FROM events
           UNION ALL
           SELECT timestamp as ts FROM agent_events
-        )`
-      )
-      .get() as any;
+        )`;
+    const durationParams = projectFilter ? [projectFilter, projectFilter] : [];
+    const durationRow = this.db.prepare(durationSql).get(...durationParams) as any;
 
     let session_duration_seconds = 0;
     if (durationRow?.first_ts && durationRow?.last_ts) {
@@ -822,13 +827,13 @@ export class RavenDB {
 
     // Active files today
     const today = new Date().toISOString().split('T')[0];
-    const activeTodayRow = this.db
-      .prepare(
-        `SELECT COUNT(DISTINCT filepath) as count
-        FROM events
-        WHERE filepath IS NOT NULL AND timestamp >= ?`
-      )
-      .get(today + 'T00:00:00') as any;
+    const activeTodaySql = projectFilter
+      ? `SELECT COUNT(DISTINCT filepath) as count FROM events WHERE filepath IS NOT NULL AND timestamp >= ? AND project_name = ?`
+      : `SELECT COUNT(DISTINCT filepath) as count FROM events WHERE filepath IS NOT NULL AND timestamp >= ?`;
+    const activeTodayParams = projectFilter
+      ? [today + 'T00:00:00', projectFilter]
+      : [today + 'T00:00:00'];
+    const activeTodayRow = this.db.prepare(activeTodaySql).get(...activeTodayParams) as any;
 
     return {
       total_events: eventStats?.total_events || 0,

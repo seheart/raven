@@ -50,9 +50,13 @@
           valA = a.total_events || 0;
           valB = b.total_events || 0;
           break;
-        case 'errors':
-          valA = a.total_errors || 0;
-          valB = b.total_errors || 0;
+        case 'files':
+          valA = a.file_count || 0;
+          valB = b.file_count || 0;
+          break;
+        case 'agent':
+          valA = a.agent_events || 0;
+          valB = b.agent_events || 0;
           break;
         case 'name':
           valA = a.name;
@@ -121,12 +125,21 @@
   }
 
   function exportCSV() {
-    const headers = ['Project', 'Path', 'Total Events', 'Total Errors', 'Last Activity', 'Status'];
+    const headers = [
+      'Project',
+      'Path',
+      'Events',
+      'Files',
+      'Agent Events',
+      'Last Activity',
+      'Status'
+    ];
     const rows = filteredProjects.map(p => [
       p.name,
       p.path || '',
       p.total_events || 0,
-      p.total_errors || 0,
+      p.file_count || 0,
+      p.agent_events || 0,
       p.last_activity || 'Never',
       getActivityStatus(p.last_activity).label
     ]);
@@ -175,34 +188,28 @@
   async function loadProjects() {
     try {
       loading = true;
-      const data = await api.get('/projects');
-      const projectsList = data.projects || [];
+      const [configData, storageData] = await Promise.all([
+        api.get('/projects').catch(() => ({ projects: [] })),
+        api.get('/storage/projects').catch(() => [])
+      ]);
 
-      // Use data already in the projects response
-      projects = projectsList.map(project => ({
-        ...project,
-        total_events: project.eventCount || project.event_count || 0,
-        total_errors: 0,
-        last_activity: null // Will be set from file-events if needed
-      }));
+      const projectsList = configData.projects || [];
+      const storageMap = new Map(
+        (Array.isArray(storageData) ? storageData : []).map(s => [s.project_name, s])
+      );
 
-      // Load last activity timestamp for each project
-      const activityPromises = projects.map(async project => {
-        try {
-          const events = await api.get(
-            `/file-events?limit=1&project=${encodeURIComponent(project.name)}`
-          );
-          const eventsArray = Array.isArray(events) ? events : [];
-          return {
-            ...project,
-            last_activity: eventsArray[0]?.timestamp || null
-          };
-        } catch {
-          return project;
-        }
+      projects = projectsList.map(project => {
+        const storage = storageMap.get(project.name) || {};
+        return {
+          ...project,
+          total_events: storage.event_count || project.eventCount || project.event_count || 0,
+          agent_events: storage.agent_event_count || 0,
+          file_count: storage.file_count || 0,
+          total_errors: 0,
+          last_activity: storage.last_event || null,
+          first_activity: storage.first_event || null
+        };
       });
-
-      projects = await Promise.all(activityPromises);
     } catch (error) {
       logger.error('Failed to load projects:', error);
     } finally {
@@ -315,9 +322,15 @@
                 </th>
                 <th
                   class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
-                  onclick={() => handleSort('errors')}
+                  onclick={() => handleSort('files')}
                 >
-                  Errors {sortBy === 'errors' ? (sortDesc ? '▼' : '▲') : ''}
+                  Files {sortBy === 'files' ? (sortDesc ? '▼' : '▲') : ''}
+                </th>
+                <th
+                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
+                  onclick={() => handleSort('agent')}
+                >
+                  Agent Events {sortBy === 'agent' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
                   class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
@@ -360,7 +373,10 @@
                     {formatNumber(project.total_events)}
                   </td>
                   <td class="px-4 py-3 text-sm font-mono text-[var(--text)] text-right">
-                    {formatNumber(project.total_errors)}
+                    {formatNumber(project.file_count)}
+                  </td>
+                  <td class="px-4 py-3 text-sm font-mono text-[var(--text)] text-right">
+                    {formatNumber(project.agent_events)}
                   </td>
                   <td class="px-4 py-3 text-sm text-[var(--text)] font-mono">
                     {#if project.last_activity}
@@ -404,9 +420,9 @@
         </div>
         <div class="text-xs font-mono">
           <strong class="text-[var(--accent)] text-sm">
-            {formatNumber(filteredProjects.reduce((sum, p) => sum + (p.total_errors || 0), 0))}
+            {formatNumber(filteredProjects.reduce((sum, p) => sum + (p.agent_events || 0), 0))}
           </strong>
-          <span class="text-[var(--muted)] ml-1">total errors</span>
+          <span class="text-[var(--muted)] ml-1">agent events</span>
         </div>
         <div class="text-xs font-mono">
           <strong class="text-[var(--accent)] text-sm">

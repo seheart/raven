@@ -42,6 +42,7 @@ import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
 import { HealthMonitor } from './services/health-monitor.js';
 import { createHealthMonitoringRouter } from './routes/health-monitoring.js';
 import { ProjectManager } from './services/project-manager.js';
+import { LocalModelWatcher } from './services/local-model-watcher.js';
 
 // ==================== Configuration ====================
 
@@ -241,6 +242,9 @@ const fileWatcher = new FileWatcher({
 // Multi-project manager
 const projectManager = new ProjectManager({ ravenDir: RAVEN_DIR });
 
+// Local model watcher — detects Ollama, LM Studio, llama.cpp, etc.
+const localModelWatcher = new LocalModelWatcher(30000);
+
 const gitMonitor = new GitMonitor({
   repoPath: WATCH_PATH,
   pollIntervalMs: 5000,
@@ -267,6 +271,18 @@ const AGENT_COLORS: Record<string, string> = {
   gpt: '#10A37F',
   gemini: '#4285F4',
   ollama: '#F39C12',
+  llama: '#8B5CF6',
+  mistral: '#E11D48',
+  codellama: '#7C3AED',
+  deepseek: '#0EA5E9',
+  qwen: '#14B8A6',
+  phi: '#6366F1',
+  starcoder: '#D97706',
+  'lm-studio': '#22C55E',
+  'local-model': '#A855F7',
+  aider: '#8B5CF6',
+  cursor: '#10B981',
+  copilot: '#0EA5E9',
   default: '#6b7280'
 };
 
@@ -531,6 +547,15 @@ app.get('/api/health', (req: Request, res: Response) => {
       active: projectManager.activeWatcherCount(),
       projects: projectManager.getWatcherStatus()
     },
+    local_models: {
+      detected: localModelWatcher.getDetectedModels().length,
+      running: localModelWatcher.getRunningModels().length,
+      models: localModelWatcher.getRunningModels().map(m => ({
+        name: m.name,
+        type: m.type,
+        models: m.models
+      }))
+    },
     database: DB_PATH,
     database_health: { status: dbHealthy ? 'healthy' : 'error', accessible: dbHealthy }
   });
@@ -598,7 +623,8 @@ app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
 
 app.get('/api/dashboard-stats', cacheMiddleware(3000), (req: Request, res: Response) => {
   try {
-    const stats = db.getDashboardStats(SESSION_ID);
+    const project = req.query.project as string | undefined;
+    const stats = db.getDashboardStats(SESSION_ID, project);
     stats.total_agents = agentRegistry.size;
     stats.app_errors =
       (db.db.prepare('SELECT COUNT(*) as count FROM app_errors WHERE resolved = 0').get() as any)
@@ -612,18 +638,24 @@ app.get('/api/dashboard-stats', cacheMiddleware(3000), (req: Request, res: Respo
 app.get('/api/top-modified-files', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     const limit = safeInt(req.query.limit, 10);
+    const project = req.query.project as string | undefined;
+    const projectFilter = project && project !== 'all' ? project : null;
+
+    const whereClause = projectFilter
+      ? 'WHERE filepath IS NOT NULL AND project_name = ?'
+      : 'WHERE filepath IS NOT NULL';
+    const params = projectFilter ? [projectFilter, limit] : [limit];
+
     const files = db.db
       .prepare(
-        `
-      SELECT filepath, COUNT(*) as edit_count, MAX(timestamp) as last_modified
-      FROM events
-      WHERE filepath IS NOT NULL
-      GROUP BY filepath
-      ORDER BY edit_count DESC
-      LIMIT ?
-    `
+        `SELECT filepath, COUNT(*) as edit_count, MAX(timestamp) as last_modified
+        FROM events
+        ${whereClause}
+        GROUP BY filepath
+        ORDER BY edit_count DESC
+        LIMIT ?`
       )
-      .all(limit);
+      .all(...params);
     return res.json(files);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -644,6 +676,18 @@ app.get('/api/longest-edits', cacheMiddleware(10000), (req: Request, res: Respon
 // All agent routes (agents-status, agent-events, events-by-agent, agent-stats, agent-profiles)
 // are handled by the agents router (routes/agents.ts)
 
+// ==================== Local Models ====================
+
+app.get('/api/local-models', (req: Request, res: Response) => {
+  const detected = localModelWatcher.getDetectedModels();
+  const running = localModelWatcher.getRunningModels();
+  return res.json({
+    detected,
+    running: running.length,
+    total: detected.length
+  });
+});
+
 // ==================== File Events ====================
 
 app.get('/api/file-events', cacheMiddleware(5000), (req: Request, res: Response) => {
@@ -663,6 +707,11 @@ app.get('/api/file-events', cacheMiddleware(5000), (req: Request, res: Response)
     const params: any[] = [];
     const conditions: string[] = [];
 
+    const project = req.query.project as string | undefined;
+    if (project && project !== 'all') {
+      conditions.push('project_name = ?');
+      params.push(project);
+    }
     if (filepath) {
       conditions.push('filepath = ?');
       params.push(filepath);
@@ -2806,10 +2855,31 @@ app.get('/api/conversations/stats', cacheMiddleware(5000), (req: Request, res: R
 
 app.get('/api/errors', cacheMiddleware(5000), (req: Request, res: Response) => {
   const limit = Math.min(safeInt(req.query.limit, 50), 500);
+  const offset = Math.max(0, safeInt(req.query.offset, 0));
+  const search = req.query.search as string | undefined;
+  const severity = req.query.severity as string | undefined;
+
+  let whereClause = 'WHERE 1=1';
+  const params: any[] = [];
+
+  if (search) {
+    whereClause += ' AND (message LIKE ? OR component LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`);
+  }
+  if (severity && severity !== 'all') {
+    whereClause += ' AND severity = ?';
+    params.push(severity);
+  }
+
+  const totalResult = db.db
+    .prepare(`SELECT COUNT(*) as total FROM app_errors ${whereClause}`)
+    .get(...params) as { total: number };
+
   const errors = db.db
-    .prepare('SELECT * FROM app_errors ORDER BY timestamp DESC LIMIT ?')
-    .all(limit);
-  return res.json({ errors, total: errors.length });
+    .prepare(`SELECT * FROM app_errors ${whereClause} ORDER BY timestamp DESC LIMIT ? OFFSET ?`)
+    .all(...params, limit, offset);
+
+  return res.json({ errors, total: totalResult.total });
 });
 
 // App error tracking
@@ -2861,13 +2931,8 @@ app.get('/api/errors/stats', cacheMiddleware(5000), (req: Request, res: Response
   return res.json({ total, bySeverity, byComponent, recent });
 });
 
-app.get('/api/errors/stats', cacheMiddleware(5000), (req: Request, res: Response) => {
-  const result = db.db.prepare('SELECT COUNT(*) as total FROM syntax_errors').get() as any;
-  return res.json({ total: result?.total || 0 });
-});
-
 app.delete('/api/errors/clear', (req: Request, res: Response) => {
-  db.db.prepare('DELETE FROM syntax_errors').run();
+  db.db.prepare('DELETE FROM app_errors').run();
   return res.json({ success: true, message: 'All errors cleared' });
 });
 
@@ -3004,6 +3069,40 @@ httpServer.listen(PORT, async () => {
     logger.warn('⚠️  Not a git repository, skipping git monitor');
   }
 
+  // Start local model watcher
+  logger.info('🤖 Starting local model watcher...');
+  await localModelWatcher.start(model => {
+    logger.info(
+      `🤖 Local model detected: ${model.name} (${model.models.join(', ') || 'no models loaded'})`
+    );
+    // Register detected model in agent registry
+    if (!agentRegistry.has(model.name)) {
+      agentRegistry.set(model.name, {
+        agent_name: model.name,
+        agent_type: model.type,
+        is_running: model.status === 'running',
+        last_seen: model.lastChecked,
+        models_available: model.models,
+        requests_handled: 0,
+        errors: 0,
+        color: getAgentColor(model.name)
+      });
+    } else {
+      const existing = agentRegistry.get(model.name)!;
+      existing.is_running = model.status === 'running';
+      existing.last_seen = model.lastChecked;
+      existing.models_available = model.models;
+    }
+    // Emit to WebSocket
+    io.emit('agent-event', {
+      type: 'model_detected',
+      agent_name: model.name,
+      models: model.models,
+      status: model.status,
+      timestamp: model.lastChecked
+    });
+  });
+
   // Start metrics collector
   logger.info('📊 Starting metrics collector...');
   metricsCollector.start();
@@ -3063,6 +3162,10 @@ async function gracefulShutdown(signal: string) {
     // Stop git monitor
     logger.info('🛑 Stopping git monitor...');
     gitMonitor.stop();
+
+    // Stop local model watcher
+    logger.info('🛑 Stopping local model watcher...');
+    localModelWatcher.stop();
 
     // Stop metrics collector
     logger.info('🛑 Stopping metrics collector...');

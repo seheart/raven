@@ -3,6 +3,8 @@
   import { navigate } from '../../utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { api } from '../../apiClient.js';
+  import { projectFilter, availableProjects } from '../../projectFilterStore.js';
+  import { get } from 'svelte/store';
 
   let {
     activeTab = 'overview',
@@ -12,6 +14,17 @@
   } = $props();
 
   let stats = $state({ files: 0, edits: 0, creates: 0, deletes: 0 });
+  let projects = $state([]);
+  let currentFilter = $state(get(projectFilter));
+
+  // Sync store to local state
+  const unsubFilter = projectFilter.subscribe(v => {
+    currentFilter = v;
+  });
+
+  function setProjectFilter(value) {
+    projectFilter.set(value);
+  }
 
   const tabs = [
     { id: 'overview', label: 'Dashboard', path: '/overview' },
@@ -80,11 +93,25 @@
     }
   }
 
+  async function loadProjects() {
+    try {
+      const data = await api.get('/projects');
+      const names = (data.projects || []).filter(p => p.enabled).map(p => p.name);
+      projects = names;
+      availableProjects.set(names);
+    } catch {
+      // Silent fail
+    }
+  }
+
   onMount(() => {
     loadStats();
-    // Refresh stats every 30s
+    loadProjects();
     const interval = setInterval(loadStats, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      unsubFilter();
+    };
   });
 </script>
 
@@ -126,6 +153,23 @@
       <span class="text-[var(--success)]">+{stats.creates}</span>
       <span class="text-[var(--error)]">-{stats.deletes}</span>
     </div>
+
+    <!-- Project Filter -->
+    {#if projects.length > 0}
+      <div class="pl-3 border-l border-[var(--border)]">
+        <select
+          value={currentFilter}
+          onchange={e => setProjectFilter(e.target.value)}
+          class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-xs font-mono text-[var(--text)] cursor-pointer hover:border-[var(--accent)] transition-colors"
+          aria-label="Filter by project"
+        >
+          <option value="all">All Projects</option>
+          {#each projects as proj (proj)}
+            <option value={proj}>{proj}</option>
+          {/each}
+        </select>
+      </div>
+    {/if}
 
     <!-- Settings -->
     <button

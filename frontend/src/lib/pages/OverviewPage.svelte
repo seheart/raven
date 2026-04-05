@@ -2,7 +2,10 @@
   import { logger } from '../logger.js';
   import { onMount } from 'svelte';
   import { api } from '../apiClient.js';
+  import { navigate } from '../utils/router.svelte.js';
   import { websocketService } from '../services/websocket.js';
+  import { projectFilter } from '../projectFilterStore.js';
+  import { get } from 'svelte/store';
   import {
     createChart,
     destroyChart,
@@ -169,11 +172,13 @@
 
   async function loadData() {
     try {
+      const pf = get(projectFilter);
+      const pq = pf && pf !== 'all' ? `&project=${encodeURIComponent(pf)}` : '';
       const [statsData, metricsData, fileEvents, filesData, agentData] = await Promise.all([
-        api.get('/dashboard-stats').catch(() => stats),
+        api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
         api.get('/system-metrics?limit=1').catch(() => []),
-        api.get('/file-events?limit=100').catch(() => []),
-        api.get('/top-modified-files?limit=8').catch(() => []),
+        api.get(`/file-events?limit=100${pq}`).catch(() => []),
+        api.get(`/top-modified-files?limit=8${pq}`).catch(() => []),
         api.get('/agents-status').catch(() => [])
       ]);
 
@@ -203,6 +208,11 @@
     liveEvents = [{ ...event, _ts: Date.now() }, ...liveEvents].slice(0, 20);
   };
 
+  // Reload when project filter changes
+  const unsubFilter = projectFilter.subscribe(() => {
+    loadData();
+  });
+
   onMount(async () => {
     await loadData();
 
@@ -227,6 +237,7 @@
       if (activityChart) destroyChart(activityChart);
       if (trendChart) destroyChart(trendChart);
       clearInterval(interval);
+      unsubFilter();
     };
   });
 </script>
@@ -300,8 +311,12 @@
         <div class="text-sm font-mono text-[var(--text)]">{eventsPerMin}/min</div>
       </div>
       <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded p-4"
+        class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 cursor-pointer hover:border-[var(--accent)] transition-colors"
         class:border-[var(--error)]={stats.app_errors > 0}
+        onclick={() => navigate('/system/errors')}
+        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/system/errors')}
+        role="link"
+        tabindex="0"
       >
         <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
           Errors
@@ -397,7 +412,7 @@
           {#if recentFiles.length === 0}
             <div class="text-center py-8 text-sm text-[var(--muted)]">No recent file changes</div>
           {:else}
-            {#each recentFiles.slice(0, 15) as event (event.id || event.timestamp)}
+            {#each recentFiles.slice(0, 15) as event, i (event.id ?? `${event.timestamp}-${i}`)}
               <div
                 class="flex items-center gap-3 p-2 rounded hover:bg-[var(--bg)] transition-colors"
                 style="border-left: 2px solid {getChangeColor(event.change_type)}"
@@ -455,7 +470,7 @@
           <span class="text-xs text-[var(--muted)] font-mono">{liveEvents.length} events</span>
         </div>
         <div class="space-y-1 max-h-[200px] overflow-y-auto">
-          {#each liveEvents as event (event._ts)}
+          {#each liveEvents as event, i (event._ts ? `${event._ts}-${i}` : i)}
             <div
               class="flex items-center gap-3 p-2 rounded hover:bg-[var(--bg)] transition-colors text-sm"
             >

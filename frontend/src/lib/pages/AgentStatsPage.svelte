@@ -16,14 +16,23 @@
 
   // Agent configuration with colors and icons
   const AGENT_CONFIG = {
-    'claude-code': { icon: '', color: '#6366f1', name: 'Claude Code' },
-    claude: { icon: '', color: '#6366f1', name: 'Claude' },
+    'claude-code': { icon: '', color: '#FF6B35', name: 'Claude Code' },
+    claude: { icon: '', color: '#FF6B35', name: 'Claude' },
     cursor: { icon: '', color: '#10b981', name: 'Cursor' },
     copilot: { icon: '', color: '#0ea5e9', name: 'Copilot' },
-    ant: { icon: '', color: '#f59e0b', name: 'ANT' },
     aider: { icon: '', color: '#8b5cf6', name: 'Aider' },
     chatgpt: { icon: '', color: '#10a37f', name: 'ChatGPT' },
     gpt: { icon: '', color: '#10a37f', name: 'GPT' },
+    ollama: { icon: '', color: '#F39C12', name: 'Ollama' },
+    llama: { icon: '', color: '#8B5CF6', name: 'Llama' },
+    mistral: { icon: '', color: '#E11D48', name: 'Mistral' },
+    codellama: { icon: '', color: '#7C3AED', name: 'Code Llama' },
+    deepseek: { icon: '', color: '#0EA5E9', name: 'DeepSeek' },
+    qwen: { icon: '', color: '#14B8A6', name: 'Qwen' },
+    phi: { icon: '', color: '#6366F1', name: 'Phi' },
+    starcoder: { icon: '', color: '#D97706', name: 'StarCoder' },
+    'lm-studio': { icon: '', color: '#22C55E', name: 'LM Studio' },
+    'local-model': { icon: '', color: '#A855F7', name: 'Local Model' },
     manual: { icon: '', color: '#6b7280', name: 'Manual' },
     default: { icon: '', color: '#9ca3af', name: 'Unknown' }
   };
