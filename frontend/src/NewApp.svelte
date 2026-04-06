@@ -403,6 +403,12 @@
           on:complete={handleQuickStartComplete}
           on:skip={handleQuickStartSkip}
         />
+      {:else if activeTab === 'viz-lab'}
+        {#await import('./lib/pages/VizLabPage.svelte') then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Viz Lab" description="Failed to load" />
+        {/await}
       {:else if activeTab === 'welcome'}
         {#await import('./lib/WelcomePage.svelte') then { default: Component }}
           <Component />

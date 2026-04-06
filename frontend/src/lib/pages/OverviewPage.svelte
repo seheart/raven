@@ -12,7 +12,7 @@
     createThemeObserver,
     getChartColors
   } from '../utils/chartUtils.js';
-  import NeuralActivityGraph from '../components/NeuralActivityGraph.svelte';
+  import NebulaActivity from '../components/NebulaActivity.svelte';
 
   // State
   let stats = $state({
@@ -533,7 +533,7 @@
 
     <!-- Neural Activity Visualization -->
     <div class="mb-6">
-      <NeuralActivityGraph />
+      <NebulaActivity />
     </div>
 
     <!-- Top Stats Row -->
