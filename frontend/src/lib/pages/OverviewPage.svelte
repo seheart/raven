@@ -707,16 +707,18 @@
         </div>
         <div class="flex-1 overflow-auto">
           {#if latestDiff}
-            <pre class="text-[11px] font-mono p-3 m-0 bg-[var(--surface)]">{#each latestDiff.diff
+            <pre
+              class="text-[11px] font-mono m-0 bg-[var(--surface)] leading-[1.7]">{#each latestDiff.diff
                 .split('\n')
-                .slice(0, 50) as line, li (li)}{#if line.startsWith('+')}<span
-                    class="text-[var(--success)]"
-                    >{line}
-</span>{:else if line.startsWith('-')}<span class="text-[var(--error)]"
-                    >{line}
-</span>{:else}<span class="text-[var(--muted)]"
-                    >{line}
-</span>{/if}{/each}</pre>
+                .slice(0, 50) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span
+                    class="text-[var(--success)] block px-3"
+                    style="background: var(--success-subtle)">{line.slice(1)}</span
+                  >{:else if c === '-'}<span
+                    class="text-[var(--error)] block px-3"
+                    style="background: var(--error-subtle)">{line.slice(1)}</span
+                  >{:else}<span class="text-[var(--muted)] block px-3"
+                    >{c === ' ' ? line.slice(1) : line}</span
+                  >{/if}{/each}</pre>
           {:else}
             <div class="flex items-center justify-center h-full text-sm text-[var(--muted)]">
               Waiting for changes

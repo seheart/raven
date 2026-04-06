@@ -333,7 +333,14 @@ EventBus.onFileEvent(async (event: FileEvent) => {
 
     if (event.type === 'change' && oldContent && event.content) {
       diff = getDiff(oldContent, event.content)
-        .map(d => `${d.added ? '+' : d.removed ? '-' : ' '}${d.value}`)
+        .map(d => {
+          const prefix = d.added ? '+' : d.removed ? '-' : ' ';
+          // Apply prefix to each line within the chunk
+          return d.value
+            .split('\n')
+            .map(line => `${prefix}${line}`)
+            .join('\n');
+        })
         .join('');
     }
 
