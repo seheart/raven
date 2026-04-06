@@ -645,6 +645,91 @@
       </div>
     {/if}
 
+    <!-- System + Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <!-- System Resources -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          System Resources
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between items-center text-sm mb-1">
+              <span class="text-[var(--muted)]">CPU</span>
+              <div class="flex items-center gap-2">
+                <svg viewBox="0 0 80 20" class="w-16 h-4">
+                  <path
+                    d={sparklinePath(cpuHistory)}
+                    fill="none"
+                    stroke={cpuColor}
+                    stroke-width="1.5"
+                  />
+                </svg>
+                <span class="font-mono text-[var(--text)]"
+                  >{systemMetrics.cpu_percent?.toFixed(1) || 0}%</span
+                >
+              </div>
+            </div>
+            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
+              <div
+                class="h-full transition-all duration-500"
+                style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"
+              ></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between items-center text-sm mb-1">
+              <span class="text-[var(--muted)]">Memory</span>
+              <div class="flex items-center gap-2">
+                <svg viewBox="0 0 80 20" class="w-16 h-4">
+                  <path
+                    d={sparklinePath(memHistory)}
+                    fill="none"
+                    stroke={memColor}
+                    stroke-width="1.5"
+                  />
+                </svg>
+                <span class="font-mono text-[var(--text)]"
+                  >{systemMetrics.memory_percent?.toFixed(1) || 0}%</span
+                >
+              </div>
+            </div>
+            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
+              <div
+                class="h-full transition-all duration-500"
+                style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"
+              ></div>
+            </div>
+            <div class="text-xs text-[var(--muted)] font-mono mt-1">
+              {formatNumber(Math.round(systemMetrics.memory_used_mb || 0))} / {formatNumber(
+                Math.round(systemMetrics.memory_total_mb || 0)
+              )} MB
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Distribution -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          Activity Breakdown
+        </h3>
+        <div class="h-[180px]">
+          <canvas id="chart-activity"></canvas>
+        </div>
+      </div>
+
+      <!-- Activity Trend -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          Activity (24h)
+        </h3>
+        <div class="h-[180px]">
+          <canvas id="chart-trend"></canvas>
+        </div>
+      </div>
+    </div>
+
     <!-- Live Activity Feed + Latest Diff -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
       <!-- Live Activity Feed -->
@@ -794,91 +879,6 @@
         {/each}
       </div>
     {/if}
-
-    <!-- System + Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-      <!-- System Resources -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          System Resources
-        </h3>
-        <div class="space-y-4">
-          <div>
-            <div class="flex justify-between items-center text-sm mb-1">
-              <span class="text-[var(--muted)]">CPU</span>
-              <div class="flex items-center gap-2">
-                <svg viewBox="0 0 80 20" class="w-16 h-4">
-                  <path
-                    d={sparklinePath(cpuHistory)}
-                    fill="none"
-                    stroke={cpuColor}
-                    stroke-width="1.5"
-                  />
-                </svg>
-                <span class="font-mono text-[var(--text)]"
-                  >{systemMetrics.cpu_percent?.toFixed(1) || 0}%</span
-                >
-              </div>
-            </div>
-            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
-              <div
-                class="h-full transition-all duration-500"
-                style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"
-              ></div>
-            </div>
-          </div>
-          <div>
-            <div class="flex justify-between items-center text-sm mb-1">
-              <span class="text-[var(--muted)]">Memory</span>
-              <div class="flex items-center gap-2">
-                <svg viewBox="0 0 80 20" class="w-16 h-4">
-                  <path
-                    d={sparklinePath(memHistory)}
-                    fill="none"
-                    stroke={memColor}
-                    stroke-width="1.5"
-                  />
-                </svg>
-                <span class="font-mono text-[var(--text)]"
-                  >{systemMetrics.memory_percent?.toFixed(1) || 0}%</span
-                >
-              </div>
-            </div>
-            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
-              <div
-                class="h-full transition-all duration-500"
-                style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"
-              ></div>
-            </div>
-            <div class="text-xs text-[var(--muted)] font-mono mt-1">
-              {formatNumber(Math.round(systemMetrics.memory_used_mb || 0))} / {formatNumber(
-                Math.round(systemMetrics.memory_total_mb || 0)
-              )} MB
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Activity Distribution -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          Activity Breakdown
-        </h3>
-        <div class="h-[180px]">
-          <canvas id="chart-activity"></canvas>
-        </div>
-      </div>
-
-      <!-- Activity Trend -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          Activity (24h)
-        </h3>
-        <div class="h-[180px]">
-          <canvas id="chart-trend"></canvas>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
