@@ -20,6 +20,7 @@ import { randomUUID } from 'crypto';
 import { join, basename, resolve } from 'path';
 import fs from 'fs/promises';
 import os from 'os';
+import { execFile } from 'child_process';
 
 // Import TypeScript modules
 import { RavenDB } from './db.js';
@@ -267,6 +268,7 @@ interface AgentInfo {
 }
 
 const agentRegistry = new Map<string, AgentInfo>();
+let processCheckTimer: ReturnType<typeof setInterval> | null = null;
 
 const AGENT_COLORS: Record<string, string> = {
   claude: '#FF6B35',
@@ -3492,6 +3494,24 @@ httpServer.listen(PORT, async () => {
       });
   }
 
+  // Periodic process check for Claude Code — keeps agent status accurate
+  // even when no new log events are flowing (e.g., user is reading output)
+  const PROCESS_CHECK_INTERVAL = 30_000; // 30 seconds
+  processCheckTimer = setInterval(() => {
+    execFile('pgrep', ['-x', 'claude'], (err, stdout) => {
+      const agentName = 'Claude Code';
+      const agent = agentRegistry.get(agentName);
+      if (!agent) return;
+
+      const hasRunningProcess = !err && stdout.trim().length > 0;
+      if (hasRunningProcess) {
+        agent.last_seen = new Date().toISOString();
+        agent.is_running = true;
+      }
+    });
+  }, PROCESS_CHECK_INTERVAL);
+  processCheckTimer.unref(); // Don't prevent Node from exiting
+
   logger.info('✅ All services started successfully');
 });
 
@@ -3526,6 +3546,9 @@ async function gracefulShutdown(signal: string) {
     // Stop git monitor
     logger.info('🛑 Stopping git monitor...');
     gitMonitor.stop();
+
+    // Stop process check timer
+    if (processCheckTimer) clearInterval(processCheckTimer);
 
     // Stop local model watcher
     logger.info('🛑 Stopping local model watcher...');
