@@ -218,13 +218,18 @@ export class ClaudeLogWatcher {
           bytesConsumed += lineBytes;
           continue;
         }
+        let entry;
         try {
-          const entry = JSON.parse(line);
-          bytesConsumed += lineBytes;
+          entry = JSON.parse(line);
+        } catch (err) {
+          // Incomplete JSON — stop here, retry on next change
+          break;
+        }
+        bytesConsumed += lineBytes;
+        try {
           await this.processLogEntry(entry, filepath);
         } catch (err) {
-          // Incomplete JSON — stop here, retry on next poll
-          break;
+          this.logger.error(`Error processing log entry: ${err.message}`);
         }
       }
 

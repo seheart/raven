@@ -22,28 +22,12 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
     asyncHandler(async (req: Request, res: Response) => {
       const now = new Date();
 
-      // Check for recent activity in agent_events (more reliable than last_seen)
-      const recentActivity = db.db
-        .prepare(
-          `
-        SELECT MAX(timestamp) as latest FROM agent_events
-        WHERE datetime(timestamp) >= datetime('now', '-5 minutes')
-      `
-        )
-        .get() as any;
-      const hasRecentActivity = !!recentActivity?.latest;
-
       const agents = Array.from(agentRegistry.values()).map(agent => {
         const lastSeen = new Date(agent.last_seen);
         const secondsSinceLastSeen = (now.getTime() - lastSeen.getTime()) / 1000;
-        const isRunning = hasRecentActivity || secondsSinceLastSeen < 300;
         return {
           ...agent,
-          is_running: isRunning,
-          last_seen:
-            hasRecentActivity && recentActivity.latest > agent.last_seen
-              ? recentActivity.latest
-              : agent.last_seen,
+          is_running: secondsSinceLastSeen < 300,
           confidence: agent.requests_handled > 100 ? 0.95 : agent.requests_handled > 10 ? 0.7 : 0.3
         };
       });
