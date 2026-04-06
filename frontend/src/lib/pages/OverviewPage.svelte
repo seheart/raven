@@ -159,7 +159,7 @@
       ollama: 'var(--warning)',
       'lm-studio': 'var(--success)',
       cursor: 'var(--success)',
-      aider: '#8B5CF6',
+      aider: 'var(--accent)',
       copilot: 'var(--info)'
     };
     return agentColors[name] || 'var(--muted)';
