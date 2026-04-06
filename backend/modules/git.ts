@@ -69,7 +69,7 @@ export class GitMonitor {
     // Poll at intervals if enabled
     if (this.config.enableAutoPoll) {
       this.pollIntervalId = setInterval(() => {
-        this.checkStatus();
+        this.checkStatus().catch(err => logger.error('Git status check failed:', err));
       }, this.config.pollIntervalMs);
     }
   }

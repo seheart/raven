@@ -135,8 +135,8 @@
     const onDisconnect = () => {
       websocketStatus.connected = false;
     };
-    websocketService.socket?.on('connect', onConnect);
-    websocketService.socket?.on('disconnect', onDisconnect);
+    websocketService.on('connect', onConnect);
+    websocketService.on('disconnect', onDisconnect);
 
     // Re-check after socket has time to connect
     const checkTimer = setTimeout(() => {
@@ -144,8 +144,8 @@
     }, 2000);
 
     return () => {
-      websocketService.socket?.off('connect', onConnect);
-      websocketService.socket?.off('disconnect', onDisconnect);
+      websocketService.off('connect', onConnect);
+      websocketService.off('disconnect', onDisconnect);
       clearTimeout(checkTimer);
     };
   });

@@ -78,19 +78,22 @@ export const authService = {
    * Get current token
    */
   getToken() {
-    return localStorage.getItem('raven-auth-token');
+    let current;
+    token.subscribe(t => {
+      current = t;
+    })();
+    return current;
   },
 
   /**
    * Get current user
    */
   getUser() {
-    try {
-      const userStr = localStorage.getItem('raven-auth-user');
-      return userStr ? JSON.parse(userStr) : null;
-    } catch {
-      return null;
-    }
+    let current;
+    user.subscribe(u => {
+      current = u;
+    })();
+    return current;
   },
 
   /**

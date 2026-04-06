@@ -749,10 +749,12 @@
     }
   });
 
+  let prevShowCharts = false;
   $effect(() => {
-    if (showCharts && activities.length > 0) {
+    if (showCharts && !prevShowCharts) {
       setTimeout(createCharts, 100);
     }
+    prevShowCharts = showCharts;
   });
 
   onMount(async () => {

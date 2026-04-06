@@ -117,11 +117,11 @@
     const id = Date.now() + Math.random();
     activityFeed = [{ ...item, _id: id, _new: true }, ...activityFeed].slice(0, 30);
     // Clear "new" flag after animation
-    ephemeralTimers.push(
-      setTimeout(() => {
-        activityFeed = activityFeed.map(a => (a._id === id ? { ...a, _new: false } : a));
-      }, 1500)
-    );
+    const timer = setTimeout(() => {
+      activityFeed = activityFeed.map(a => (a._id === id ? { ...a, _new: false } : a));
+      ephemeralTimers = ephemeralTimers.filter(t => t !== timer);
+    }, 1500);
+    ephemeralTimers.push(timer);
   }
 
   function markAgentWorking(agentName) {
@@ -354,8 +354,8 @@
       clearTimeout(diffDebounceTimer);
       diffDebounceTimer = setTimeout(() => {
         const fp = lastDiffFilepath;
-        fetch(`/api/file-events?limit=1&diff=true&filepath=${encodeURIComponent(fp)}`)
-          .then(r => (r.ok ? r.json() : null))
+        api
+          .get(`/file-events?limit=1&diff=true&filepath=${encodeURIComponent(fp)}`)
           .then(data => {
             const ev = Array.isArray(data) ? data[0] : null;
             if (ev?.diff) {
@@ -368,7 +368,9 @@
               };
             }
           })
-          .catch(() => {});
+          .catch(() => {
+            /* diff is supplementary */
+          });
       }, 1000);
     }
 

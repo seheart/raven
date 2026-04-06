@@ -78,7 +78,9 @@ export class LocalModelWatcher {
     await this.scan();
 
     // Poll periodically
-    this.pollInterval = setInterval(() => this.scan(), this.pollMs);
+    this.pollInterval = setInterval(() => {
+      this.scan().catch(err => logger.error('Model scan failed:', err));
+    }, this.pollMs);
 
     logger.info(`Local model watcher started (polling every ${this.pollMs / 1000}s)`);
   }

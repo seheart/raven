@@ -795,7 +795,7 @@ export class RavenDB {
    * @returns Complete dashboard statistics including event counts, agent stats, and metrics
    */
   getDashboardStats(session_id: string, project?: string): DashboardStats {
-    const projectFilter = project && project !== 'all' ? project : null;
+    const projectFilter = project && project !== 'all' && project.trim() ? project : null;
     const whereClause = projectFilter ? 'WHERE project_name = ?' : '';
     const params = projectFilter ? [projectFilter] : [];
 
@@ -900,13 +900,14 @@ export class RavenDB {
     return stmt.all(limit) as SyntaxErrorRecord[];
   }
 
-  getSyntaxErrorsByFile(filepath: string): SyntaxErrorRecord[] {
+  getSyntaxErrorsByFile(filepath: string, limit = 100): SyntaxErrorRecord[] {
     const stmt = this.db.prepare(`
       SELECT * FROM syntax_errors
       WHERE filepath = ? AND resolved = 0
       ORDER BY timestamp DESC
+      LIMIT ?
     `);
-    return stmt.all(filepath) as SyntaxErrorRecord[];
+    return stmt.all(filepath, limit) as SyntaxErrorRecord[];
   }
 
   resolveSyntaxError(id: number): void {
@@ -994,13 +995,14 @@ export class RavenDB {
     return stmt.all(limit);
   }
 
-  getPatternWarningsByCategory(category: string): any[] {
+  getPatternWarningsByCategory(category: string, limit = 100): any[] {
     const stmt = this.db.prepare(`
       SELECT * FROM pattern_warnings
       WHERE category = ? AND resolved = 0
       ORDER BY timestamp DESC
+      LIMIT ?
     `);
-    return stmt.all(category);
+    return stmt.all(category, limit);
   }
 
   resolvePatternWarning(id: number): void {

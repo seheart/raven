@@ -1,0 +1,10 @@
+#!/bin/bash
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+cd "$DIR"
+
+case "${1:-start}" in
+  start)   ./start.sh ;;
+  stop)    ./stop.sh ;;
+  restart) ./restart.sh ;;
+  *)       echo "Usage: raven [start|stop|restart]" ;;
+esac

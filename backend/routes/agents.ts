@@ -191,27 +191,34 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
         )
         .all() as any[];
 
-      // Get event type distribution for each agent
-      const profiles = agents.map((agent: any) => {
-        const eventTypes = db.db
-          .prepare(
-            `SELECT event_type, COUNT(*) as count
-            FROM agent_events
-            WHERE agent = ?
-            GROUP BY event_type`
-          )
-          .all(agent.agent) as any[];
+      // Get event type distribution for all agents in a single query
+      const allEventTypes = db.db
+        .prepare(
+          `SELECT agent, event_type, COUNT(*) as count
+          FROM agent_events
+          GROUP BY agent, event_type
+          ORDER BY agent, count DESC`
+        )
+        .all() as any[];
 
-        return {
-          agent: agent.agent,
-          event_count: agent.event_count,
-          first_seen: agent.first_seen,
-          last_seen: agent.last_seen,
-          unique_files: agent.unique_files,
-          event_distribution: eventTypes,
-          activity_score: Math.min(100, Math.round((agent.event_count / 100) * 100))
-        };
-      });
+      // Group by agent name
+      const eventTypesByAgent = new Map<string, any[]>();
+      for (const row of allEventTypes) {
+        if (!eventTypesByAgent.has(row.agent)) {
+          eventTypesByAgent.set(row.agent, []);
+        }
+        eventTypesByAgent.get(row.agent)!.push({ event_type: row.event_type, count: row.count });
+      }
+
+      const profiles = agents.map((agent: any) => ({
+        agent: agent.agent,
+        event_count: agent.event_count,
+        first_seen: agent.first_seen,
+        last_seen: agent.last_seen,
+        unique_files: agent.unique_files,
+        event_distribution: eventTypesByAgent.get(agent.agent) || [],
+        activity_score: Math.min(100, Math.round((agent.event_count / 100) * 100))
+      }));
 
       res.json({ profiles });
     })

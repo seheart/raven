@@ -3,6 +3,7 @@
   import { websocketService } from './services/websocket.js';
   import { notifications } from './notificationService.js';
   import { dataService } from './dataService.js';
+  import { api } from './apiClient.js';
   import { logger } from './logger.js';
 
   // Health status
@@ -25,7 +26,7 @@
 
   let loading = true;
   let error = null;
-  let errorMessage = null;
+  let todayStats = null;
   let ws = null;
   let healthCheckTimeoutId = null; // Track timeout for cleanup
 
@@ -154,13 +155,10 @@
       // Fetch syntax error count
       let syntaxErrorCount = 0;
       try {
-        const syntaxResponse = await fetch('/api/syntax-errors/count');
-        if (syntaxResponse.ok) {
-          const syntaxData = await syntaxResponse.json();
-          syntaxErrorCount = syntaxData.count || 0;
-        }
-      } catch (error) {
-        logger.error('Failed to fetch syntax errors:', error);
+        const syntaxData = await api.get('/syntax-errors/count');
+        syntaxErrorCount = syntaxData.count || 0;
+      } catch (err) {
+        logger.error('Failed to fetch syntax errors:', err);
       }
 
       health.checks = {
@@ -184,7 +182,7 @@
       loading = false;
     } catch (err) {
       logger.error('Failed to fetch health:', err);
-      errorMessage = err.message;
+      error = err.message;
       loading = false;
     }
   }

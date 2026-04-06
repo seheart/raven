@@ -102,7 +102,11 @@ export function createEventsRouter(db: RavenDB): Router {
   router.get(
     '/event/:id',
     asyncHandler(async (req: Request, res: Response) => {
-      const eventId = parseInt(req.params.id);
+      const eventId = parseInt(req.params.id, 10);
+      if (isNaN(eventId)) {
+        res.status(400).json({ error: 'Invalid event ID' });
+        return;
+      }
       const event = db.db
         .prepare(
           `SELECT id, timestamp, filepath, change_type, diff, cpu, mem, session_id

@@ -89,8 +89,15 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
     try {
       const filePath = decodeURIComponent(req.params.path);
 
+      // Prevent path traversal
+      const normalized = path.normalize(filePath);
+      if (normalized.startsWith('..') || path.isAbsolute(normalized)) {
+        res.status(400).json({ error: 'Invalid file path' });
+        return;
+      }
+
       // Get git diff for the file
-      const { stdout } = await execFileAsync('git', ['diff', 'HEAD', '--', filePath]);
+      const { stdout } = await execFileAsync('git', ['diff', 'HEAD', '--', normalized]);
 
       res.json({
         filePath,
@@ -142,7 +149,7 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
         .get(oneHourAgo) as any;
 
       const sessionHealth =
-        recentErrors.count > 5 ? 'warning' : recentErrors.count > 10 ? 'error' : 'healthy';
+        recentErrors.count > 10 ? 'error' : recentErrors.count > 5 ? 'warning' : 'healthy';
 
       res.json({
         currentFile: latestChange?.filepath || null,
