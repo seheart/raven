@@ -107,10 +107,10 @@
         radius: 1 + Math.random() * 2.5,
         color,
         life: 1,
-        decay: 0.002 + Math.random() * 0.003,
+        decay: 0.0006 + Math.random() * 0.001,
         orbit: (0.001 + Math.random() * 0.004) * (Math.random() > 0.5 ? 1 : -1),
         label: i === 0 ? (label || '').slice(0, 20) : '',
-        labelLife: 1
+        labelLife: 1.5
       });
     }
 
@@ -244,7 +244,7 @@
 
       // Label
       if (p.label && p.labelLife > 0.05) {
-        p.labelLife -= 0.006;
+        p.labelLife -= 0.002;
         ctx.font = '9px "JetBrains Mono", monospace';
         ctx.fillStyle = rgba(p.color, p.labelLife * 0.5);
         ctx.fillText(p.label, p.x + p.radius + 4, p.y + 3);
@@ -334,7 +334,7 @@
 
 <div
   class="relative w-full rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]"
-  style="height: 280px;"
+  style="height: 260px;"
 >
   <canvas
     bind:this={canvas}

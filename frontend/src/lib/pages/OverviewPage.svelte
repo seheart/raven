@@ -49,7 +49,6 @@
   let ephemeralTimers = []; // Track all short-lived timeouts for cleanup
 
   // Charts
-  let activityChart = null;
   let trendChart = null;
   let themeObserver = null;
 
@@ -222,44 +221,24 @@
   function createCharts() {
     const colors = getChartColors();
 
-    // Activity distribution
-    if (activityChart) destroyChart(activityChart);
-    activityChart = createChart('chart-activity', {
-      type: 'doughnut',
-      data: {
-        labels: ['Modified', 'Created', 'Deleted'],
-        datasets: [
-          {
-            data: [stats.edits || 0, stats.creates || 0, stats.deletes || 0],
-            backgroundColor: [colors.primary, colors.success, colors.error],
-            borderWidth: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '70%',
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: colors.text, font: { size: 10, family: 'monospace' }, padding: 8 }
-          }
-        }
-      }
-    });
-
-    // Activity trend (24h)
+    // Activity trend (5m) — 30 buckets of 10 seconds each
     if (trendChart) destroyChart(trendChart);
-    const hourlyData = new Array(24).fill(0);
+    const bucketCount = 30;
+    const bucketMs = 10000; // 10 seconds per bucket
+    const bucketData = new Array(bucketCount).fill(0);
     const now = new Date();
     recentFiles.forEach(e => {
-      const diff = Math.floor((now - new Date(e.timestamp)) / 3600000);
-      if (diff < 24) hourlyData[23 - diff]++;
+      const diffMs = now - new Date(e.timestamp);
+      const bucket = Math.floor(diffMs / bucketMs);
+      if (bucket >= 0 && bucket < bucketCount) bucketData[bucketCount - 1 - bucket]++;
     });
-    const labels = Array.from({ length: 24 }, (_, i) => {
-      const h = (now.getHours() - 23 + i + 24) % 24;
-      return `${h}:00`;
+    const labels = Array.from({ length: bucketCount }, (_, i) => {
+      const secsAgo = (bucketCount - 1 - i) * 10;
+      const t = new Date(now.getTime() - secsAgo * 1000);
+      const h = String(t.getHours()).padStart(2, '0');
+      const m = String(t.getMinutes()).padStart(2, '0');
+      const s = String(t.getSeconds()).padStart(2, '0');
+      return `${h}:${m}:${s}`;
     });
 
     trendChart = createChart('chart-trend', {
@@ -268,7 +247,7 @@
         labels,
         datasets: [
           {
-            data: hourlyData,
+            data: bucketData,
             borderColor: colors.primary,
             backgroundColor: `${colors.primary}20`,
             fill: true,
@@ -486,7 +465,6 @@
       websocketService.off('health-alert', handleHealthAlert);
       websocketService.off('app-error', handleAppError);
       if (themeObserver) themeObserver.disconnect();
-      if (activityChart) destroyChart(activityChart);
       if (trendChart) destroyChart(trendChart);
       clearInterval(interval);
       unsubFilter();
@@ -498,16 +476,16 @@
 </script>
 
 <div
-  class="min-h-screen p-6 pb-20 transition-all duration-[3000ms]"
+  class="min-h-screen p-4 pb-16 transition-all duration-[3000ms]"
   style="background: color-mix(in srgb, var(--bg) {100 -
     activityLevel * 8}%, var(--accent) {activityLevel * 8}%)"
 >
-  <div class="max-w-6xl mx-auto">
+  <div class="mx-auto px-2">
     <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Dashboard</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">Real-time monitoring overview</p>
+    <div class="flex justify-between items-center mb-3 flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <h1 class="text-xl font-bold text-[var(--text-heading)]">Dashboard</h1>
+        <span class="text-xs text-[var(--muted)] font-sans">Real-time monitoring</span>
       </div>
       <div class="flex items-center gap-3">
         {#if agentStatus}
@@ -531,13 +509,60 @@
       </div>
     </div>
 
-    <!-- Neural Activity Visualization -->
-    <div class="mb-6">
-      <NebulaActivity />
+    <!-- AI Activity + Live Feed -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+      <div class="lg:col-span-2">
+        <NebulaActivity />
+      </div>
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex flex-col"
+        style="height: 260px;"
+      >
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+            Live Activity
+          </h3>
+          <span class="flex items-center gap-1.5 text-[10px] text-[var(--success)] font-mono">
+            <span class="w-1.5 h-1.5 bg-[var(--success)] rounded-full animate-pulse"></span>
+            Live
+          </span>
+        </div>
+        <div class="space-y-0.5 overflow-y-auto flex-1">
+          {#if activityFeed.length === 0 && recentFiles.length === 0}
+            <div class="text-center py-6 text-xs text-[var(--muted)]">
+              <span class="inline-block idle-breathing">Waiting for activity</span>
+            </div>
+          {:else}
+            {#each activityFeed.length > 0 ? activityFeed : recentFiles
+                  .slice(0, 15)
+                  .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
+              <div
+                class="flex items-center gap-1.5 px-1.5 py-1 rounded transition-all duration-500 {item._new
+                  ? 'feed-slide-in'
+                  : 'hover:bg-[var(--bg)]'}"
+                style="border-left: 2px solid {item.color}; {item._new
+                  ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
+                  : ''}"
+              >
+                <span
+                  class="w-4 text-center text-[9px] font-bold font-mono flex-shrink-0"
+                  style="color: {item.color}">{item.icon}</span
+                >
+                <div class="flex-1 min-w-0">
+                  <div class="text-[10px] font-mono text-[var(--text)] truncate">{item.text}</div>
+                </div>
+                <span class="text-[9px] text-[var(--muted)] font-mono flex-shrink-0"
+                  >{formatTime(item.timestamp)}</span
+                >
+              </div>
+            {/each}
+          {/if}
+        </div>
+      </div>
     </div>
 
     <!-- Top Stats Row -->
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-3">
       {#each [{ key: 'total_events', label: 'Events', value: stats.total_events }, { key: 'total_files', label: 'Files', value: stats.total_files }, { key: 'edits', label: 'Modified', value: stats.edits }, { key: 'creates', label: 'Created', value: stats.creates }, { key: 'deletes', label: 'Deleted', value: stats.deletes }, { key: 'rate', label: 'Rate', value: null }] as stat (stat.key)}
         <div
           class="stat-card bg-[var(--surface)] border border-[var(--border)] rounded p-4 transition-all duration-300 {statsFlash[
@@ -574,254 +599,117 @@
       </div>
     </div>
 
-    <!-- Agent Activity -->
-    {#if agents.length > 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
-            AI Agents
-          </h3>
-          <button
-            onclick={() => navigate('/analysis/stats')}
-            class="text-xs text-[var(--accent)] hover:underline font-sans"
-          >
-            View Stats
-          </button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    <!-- Agents + System Resources (compact row) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+      {#if agents.length > 0}
+        <div class="lg:col-span-2 flex flex-wrap gap-3">
           {#each agents as agent (agent.agent_name)}
             {@const isWorking = workingAgents.has(agent.agent_name)}
             {@const agentState = isWorking ? 'working' : agent.is_running ? 'running' : 'idle'}
             <div
-              class="flex items-center gap-3 p-3 bg-[var(--bg)] rounded border transition-all duration-300 {isWorking
-                ? 'border-[var(--accent)] shadow-sm shadow-[var(--accent)] agent-breathing'
+              class="flex items-center gap-2.5 px-3 py-2 bg-[var(--surface)] rounded border transition-all duration-300 {isWorking
+                ? 'border-[var(--accent)] agent-breathing'
                 : 'border-[var(--border)]'}"
             >
-              <!-- Heartbeat waveform -->
-              <div class="flex-shrink-0 w-12">
-                <svg viewBox="0 0 44 30" class="w-full h-6 overflow-visible">
-                  <path
-                    d={heartbeatPath(agentState)}
-                    fill="none"
-                    stroke={agent.color || 'var(--muted)'}
-                    stroke-width="1.5"
-                    class={agentState === 'working'
-                      ? 'heartbeat-working'
-                      : agentState === 'running'
-                        ? 'heartbeat-running'
-                        : ''}
-                  />
-                </svg>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-semibold text-[var(--text)] font-sans">
-                  {agent.agent_name}
-                </div>
-                <div class="text-xs text-[var(--muted)] font-mono">
-                  {#if isWorking}
-                    <span class="text-[var(--accent)]"
-                      >{workingStates[agent.agent_name]?.text || 'Working...'}</span
-                    >
-                  {:else if agent.models_available?.length > 0}
-                    {agent.models_available.length} model{agent.models_available.length > 1
-                      ? 's'
-                      : ''}: {agent.models_available.slice(0, 2).join(', ')}{agent.models_available
-                      .length > 2
-                      ? '...'
+              <svg viewBox="0 0 44 30" class="w-8 h-4 flex-shrink-0 overflow-visible">
+                <path
+                  d={heartbeatPath(agentState)}
+                  fill="none"
+                  stroke={agent.color || 'var(--muted)'}
+                  stroke-width="1.5"
+                  class={agentState === 'working'
+                    ? 'heartbeat-working'
+                    : agentState === 'running'
+                      ? 'heartbeat-running'
                       : ''}
-                  {:else if agent.requests_handled > 0}
-                    {formatNumber(agent.requests_handled)} events
-                  {:else}
-                    {agent.is_running ? 'Active' : 'Inactive'}
-                  {/if}
-                </div>
-              </div>
-              <div class="flex-shrink-0">
-                <span
-                  class="text-xs font-mono {isWorking
-                    ? 'text-[var(--accent)] font-bold'
-                    : agent.is_running
-                      ? 'text-[var(--success)]'
-                      : 'text-[var(--muted)]'}"
-                >
-                  {isWorking ? 'Working' : agent.is_running ? 'Running' : 'Stopped'}
-                </span>
-              </div>
+                />
+              </svg>
+              <span class="text-xs font-semibold text-[var(--text)] font-sans"
+                >{agent.agent_name}</span
+              >
+              <span
+                class="text-[10px] font-mono {isWorking
+                  ? 'text-[var(--accent)]'
+                  : agent.is_running
+                    ? 'text-[var(--success)]'
+                    : 'text-[var(--muted)]'}"
+              >
+                {isWorking ? 'Working' : agent.is_running ? 'Running' : 'Stopped'}
+              </span>
             </div>
           {/each}
         </div>
-      </div>
-    {/if}
-
-    <!-- System + Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-      <!-- System Resources -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          System Resources
-        </h3>
-        <div class="space-y-4">
-          <div>
-            <div class="flex justify-between items-center text-sm mb-1">
-              <span class="text-[var(--muted)]">CPU</span>
-              <div class="flex items-center gap-2">
-                <svg viewBox="0 0 80 20" class="w-16 h-4">
-                  <path
-                    d={sparklinePath(cpuHistory)}
-                    fill="none"
-                    stroke={cpuColor}
-                    stroke-width="1.5"
-                  />
-                </svg>
-                <span class="font-mono text-[var(--text)]"
-                  >{systemMetrics.cpu_percent?.toFixed(1) || 0}%</span
-                >
-              </div>
-            </div>
-            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
-              <div
-                class="h-full transition-all duration-500"
-                style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"
-              ></div>
-            </div>
+      {/if}
+      <div
+        class="flex items-center gap-6 px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded"
+      >
+        <div class="flex items-center gap-2 flex-1">
+          <span class="text-xs text-[var(--muted)]">CPU</span>
+          <div class="flex-1 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
+            <div
+              class="h-full transition-all duration-500"
+              style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"
+            ></div>
           </div>
-          <div>
-            <div class="flex justify-between items-center text-sm mb-1">
-              <span class="text-[var(--muted)]">Memory</span>
-              <div class="flex items-center gap-2">
-                <svg viewBox="0 0 80 20" class="w-16 h-4">
-                  <path
-                    d={sparklinePath(memHistory)}
-                    fill="none"
-                    stroke={memColor}
-                    stroke-width="1.5"
-                  />
-                </svg>
-                <span class="font-mono text-[var(--text)]"
-                  >{systemMetrics.memory_percent?.toFixed(1) || 0}%</span
-                >
-              </div>
-            </div>
-            <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
-              <div
-                class="h-full transition-all duration-500"
-                style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"
-              ></div>
-            </div>
-            <div class="text-xs text-[var(--muted)] font-mono mt-1">
-              {formatNumber(Math.round(systemMetrics.memory_used_mb || 0))} / {formatNumber(
-                Math.round(systemMetrics.memory_total_mb || 0)
-              )} MB
-            </div>
+          <span class="text-xs font-mono text-[var(--text)] w-10 text-right"
+            >{systemMetrics.cpu_percent?.toFixed(0) || 0}%</span
+          >
+        </div>
+        <div class="flex items-center gap-2 flex-1">
+          <span class="text-xs text-[var(--muted)]">MEM</span>
+          <div class="flex-1 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
+            <div
+              class="h-full transition-all duration-500"
+              style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"
+            ></div>
           </div>
-        </div>
-      </div>
-
-      <!-- Activity Distribution -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          Activity Breakdown
-        </h3>
-        <div class="h-[180px]">
-          <canvas id="chart-activity"></canvas>
-        </div>
-      </div>
-
-      <!-- Activity Trend -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-          Activity (24h)
-        </h3>
-        <div class="h-[180px]">
-          <canvas id="chart-trend"></canvas>
+          <span class="text-xs font-mono text-[var(--text)] w-10 text-right"
+            >{systemMetrics.memory_percent?.toFixed(0) || 0}%</span
+          >
         </div>
       </div>
     </div>
 
-    <!-- Live Activity Feed + Latest Diff -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-      <!-- Live Activity Feed -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
-            Live Activity
-          </h3>
-          <span class="flex items-center gap-2 text-xs text-[var(--success)] font-mono">
-            <span class="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse"></span>
-            Streaming
-          </span>
-        </div>
-        <div class="space-y-0.5 max-h-[400px] overflow-y-auto">
-          {#if activityFeed.length === 0 && recentFiles.length === 0}
-            <div class="text-center py-8 text-sm text-[var(--muted)]">
-              <span class="inline-block idle-breathing">Waiting for activity</span>
+    <!-- Latest Code Change + Activity Trend -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
+      <!-- Latest Diff -->
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col"
+        style="height: 250px;"
+      >
+        <div
+          class="flex justify-between items-center px-4 py-2 bg-[var(--bg)] border-b border-[var(--border)] flex-shrink-0"
+        >
+          {#if latestDiff}
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
+              <span class="text-xs font-mono text-[var(--text)] truncate"
+                >{latestDiff.filepath}<span class="cursor-blink">|</span></span
+              >
+            </div>
+            <div class="flex items-center gap-2">
+              {#if latestDiff.agent_source}
+                <span
+                  class="px-1 py-0.5 text-[9px] font-bold rounded text-white"
+                  style="background: {getAgentColorByName(latestDiff.agent_source)}"
+                  >{latestDiff.agent_source}</span
+                >
+              {/if}
+              <span class="text-[10px] text-[var(--muted)] font-mono"
+                >{formatTime(latestDiff.timestamp)}</span
+              >
             </div>
           {:else}
-            <!-- Show activity feed if populated, otherwise fall back to recent files -->
-            {#each activityFeed.length > 0 ? activityFeed : recentFiles
-                  .slice(0, 15)
-                  .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
-              <div
-                class="flex items-center gap-2 px-2 py-1.5 rounded transition-all duration-500 {item._new
-                  ? 'feed-slide-in'
-                  : 'hover:bg-[var(--bg)]'}"
-                style="border-left: 2px solid {item.color}; {item._new
-                  ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
-                  : ''}"
-              >
-                <span
-                  class="w-5 text-center text-[10px] font-bold font-mono flex-shrink-0"
-                  style="color: {item.color}">{item.icon}</span
-                >
-                <div class="flex-1 min-w-0">
-                  <div class="text-xs font-mono text-[var(--text)] truncate">{item.text}</div>
-                </div>
-                {#if item.agent}
-                  <span
-                    class="px-1 py-0.5 text-[9px] font-bold rounded text-white flex-shrink-0"
-                    style="background: {getAgentColorByName(item.agent)}">{item.agent}</span
-                  >
-                {/if}
-                <span class="text-[10px] text-[var(--muted)] font-mono flex-shrink-0"
-                  >{formatTime(item.timestamp)}</span
-                >
-              </div>
-            {/each}
+            <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+              >Latest Change</span
+            >
           {/if}
         </div>
-      </div>
-
-      <!-- Latest Code Change + Top Files -->
-      <div class="space-y-4">
-        <!-- Live Diff Preview -->
-        {#if latestDiff}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
-            <div
-              class="flex justify-between items-center px-4 py-2 bg-[var(--bg)] border-b border-[var(--border)]"
-            >
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
-                <span class="text-xs font-mono text-[var(--text)] truncate"
-                  >{latestDiff.filepath}<span class="cursor-blink">|</span></span
-                >
-              </div>
-              <div class="flex items-center gap-2">
-                {#if latestDiff.agent_source}
-                  <span
-                    class="px-1 py-0.5 text-[9px] font-bold rounded text-white"
-                    style="background: {getAgentColorByName(latestDiff.agent_source)}"
-                    >{latestDiff.agent_source}</span
-                  >
-                {/if}
-                <span class="text-[10px] text-[var(--muted)] font-mono"
-                  >{formatTime(latestDiff.timestamp)}</span
-                >
-              </div>
-            </div>
-            <pre
-              class="text-[11px] font-mono p-3 overflow-auto max-h-[200px] m-0 bg-[var(--surface)]">{#each latestDiff.diff
+        <div class="flex-1 overflow-auto">
+          {#if latestDiff}
+            <pre class="text-[11px] font-mono p-3 m-0 bg-[var(--surface)]">{#each latestDiff.diff
                 .split('\n')
-                .slice(0, 30) as line, li (li)}{#if line.startsWith('+')}<span
+                .slice(0, 50) as line, li (li)}{#if line.startsWith('+')}<span
                     class="text-[var(--success)]"
                     >{line}
 </span>{:else if line.startsWith('-')}<span class="text-[var(--error)]"
@@ -829,37 +717,26 @@
 </span>{:else}<span class="text-[var(--muted)]"
                     >{line}
 </span>{/if}{/each}</pre>
-          </div>
-        {/if}
-
-        <!-- Most Active Files -->
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-            Most Active Files
-          </h3>
-          {#if topFiles.length === 0}
-            <div class="text-center py-8 text-sm text-[var(--muted)]">No data yet</div>
           {:else}
-            <div class="space-y-2">
-              {#each topFiles as file (file.filepath)}
-                {@const maxCount = topFiles[0]?.edit_count || 1}
-                <div class="flex items-center gap-3">
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-mono text-[var(--text)] truncate">{file.filepath}</div>
-                  </div>
-                  <div class="w-24 h-2 bg-[var(--bg)] rounded overflow-hidden flex-shrink-0">
-                    <div
-                      class="h-full bg-[var(--accent)]"
-                      style="width: {(file.edit_count / maxCount) * 100}%"
-                    ></div>
-                  </div>
-                  <span class="text-xs font-mono text-[var(--muted)] w-8 text-right flex-shrink-0"
-                    >{file.edit_count}</span
-                  >
-                </div>
-              {/each}
+            <div class="flex items-center justify-center h-full text-sm text-[var(--muted)]">
+              Waiting for changes
             </div>
           {/if}
+        </div>
+      </div>
+
+      <!-- Activity Trend -->
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex flex-col"
+        style="height: 250px;"
+      >
+        <h3
+          class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 flex-shrink-0"
+        >
+          Activity (5m)
+        </h3>
+        <div class="flex-1">
+          <canvas id="chart-trend"></canvas>
         </div>
       </div>
     </div>
