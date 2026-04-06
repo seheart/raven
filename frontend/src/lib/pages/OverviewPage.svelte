@@ -434,6 +434,10 @@
     loadData(); // Refresh agent list
   };
 
+  const handleAppError = () => {
+    stats.app_errors++;
+  };
+
   const handleHealthAlert = data => {
     pushActivity({
       type: 'health',
@@ -461,9 +465,6 @@
     websocketService.on('git-status', handleGitStatus);
     websocketService.on('model-status-changed', handleModelStatus);
     websocketService.on('health-alert', handleHealthAlert);
-    const handleAppError = () => {
-      stats.app_errors++;
-    };
     websocketService.on('app-error', handleAppError);
 
     themeObserver = createThemeObserver(() => createCharts());
