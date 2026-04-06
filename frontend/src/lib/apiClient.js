@@ -3,6 +3,7 @@ import { notifications } from './notificationService.js';
 import { authService } from './authStore.js';
 import { logError } from './errorLogger.js';
 import { API_CONFIG } from '../config.js';
+import { websocketService } from './services/websocket.js';
 
 const API_BASE = API_CONFIG.API_BASE;
 
@@ -161,17 +162,20 @@ export async function apiFetch(endpoint, options = {}) {
     // Handle timeout errors specially
     if (error.name === 'AbortError') {
       const timeoutError = new Error(`Request timeout after ${timeout}ms: ${endpoint}`);
-      const now = Date.now();
-      if (now - lastTimeoutNotification > NOTIFICATION_COOLDOWN) {
-        lastTimeoutNotification = now;
-        notifications.error(`Request timed out after ${Math.round(timeout / 1000)}s`, {
-          title: 'Request Timeout',
-          duration: 5000
-        });
+      // Only show timeout toasts when backend is connected (skip during restarts)
+      if (websocketService.isConnected()) {
+        const now = Date.now();
+        if (now - lastTimeoutNotification > NOTIFICATION_COOLDOWN) {
+          lastTimeoutNotification = now;
+          notifications.error(`Request timed out after ${Math.round(timeout / 1000)}s`, {
+            title: 'Request Timeout',
+            duration: 5000
+          });
+        }
       }
 
-      // Log timeout error
-      if (!endpoint.includes('/errors')) {
+      // Log timeout error — but not when backend is down (expected during restarts)
+      if (!endpoint.includes('/errors') && websocketService.isConnected()) {
         logError(
           timeoutError,
           'API Client',
@@ -183,7 +187,6 @@ export async function apiFetch(endpoint, options = {}) {
           },
           'warning'
         ).catch(logError => {
-          // Fail silently to prevent infinite loops, but log to console for debugging
           logger.error(
             '[API Client] Failed to log error to backend:',
             logError.message || logError
@@ -194,12 +197,12 @@ export async function apiFetch(endpoint, options = {}) {
       throw timeoutError;
     }
 
-    // Network errors or other fetch failures
-    if (!error.message.includes('API error')) {
+    // Network errors or other fetch failures — skip noise during backend restarts
+    if (!error.message.includes('API error') && websocketService.isConnected()) {
       notifications.apiError(endpoint, error.message);
 
-      // Log network error to error log (but don't log errors from the error endpoint itself)
-      if (!endpoint.includes('/errors')) {
+      // Log network error — but not when backend is down (expected during restarts)
+      if (!endpoint.includes('/errors') && websocketService.isConnected()) {
         logError(
           error,
           'API Client',
@@ -210,7 +213,6 @@ export async function apiFetch(endpoint, options = {}) {
           },
           'error'
         ).catch(logError => {
-          // Fail silently to prevent infinite loops, but log to console for debugging
           logger.error(
             '[API Client] Failed to log error to backend:',
             logError.message || logError
