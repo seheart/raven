@@ -34,7 +34,7 @@ import type { FileEvent, GitStatusEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { rateLimitStatus, apiLimiter } from './middleware/security.js';
-import { cacheMiddleware } from './services/cache-service.js';
+import { cacheMiddleware, stopCacheCleanup } from './services/cache-service.js';
 import { performanceMonitoring } from './middleware/performance.js';
 import { createLiveSessionRouter } from './routes/live-session.js';
 import { createEventsRouter } from './routes/events.js';
@@ -49,7 +49,17 @@ import { LocalModelWatcher } from './services/local-model-watcher.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '9100', 10);
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:9000';
+const rawCorsOrigin = process.env.CORS_ORIGIN || 'http://localhost:9000';
+
+// Validate CORS origin is a proper URL
+let CORS_ORIGIN: string;
+try {
+  const parsed = new URL(rawCorsOrigin);
+  CORS_ORIGIN = parsed.origin;
+} catch {
+  logger.warn(`⚠️  Invalid CORS_ORIGIN "${rawCorsOrigin}", falling back to http://localhost:9000`);
+  CORS_ORIGIN = 'http://localhost:9000';
+}
 
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
@@ -3554,6 +3564,9 @@ async function gracefulShutdown(signal: string) {
     logger.info('🛑 Stopping local model watcher...');
     localModelWatcher.stop();
 
+    // Stop cache cleanup
+    stopCacheCleanup();
+
     // Stop metrics collector
     logger.info('🛑 Stopping metrics collector...');
     metricsCollector.stop();
@@ -3576,3 +3589,10 @@ async function gracefulShutdown(signal: string) {
 
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.error(
+    'Unhandled promise rejection:',
+    reason instanceof Error ? reason : new Error(String(reason))
+  );
+});

@@ -286,27 +286,31 @@ export class FileWatcherService {
       ...(isMacOS && ({ useFsEvents: false } as any)) // Disable fsEvents, use polling
     });
 
+    const safeHandle = (type: string, filepath: string) => {
+      try {
+        if (this.handleFileChange) {
+          this.handleFileChange(type, filepath);
+        }
+      } catch (err) {
+        logger.error(`File watcher callback error [${projectName}/${type}]:`, err as any);
+      }
+    };
+
     watcher
       .on('add', (filepath: string) => {
         this.stats.addEvents++;
         this.stats.totalEvents++;
-        if (this.handleFileChange) {
-          this.handleFileChange('add', filepath);
-        }
+        safeHandle('add', filepath);
       })
       .on('change', (filepath: string) => {
         this.stats.changeEvents++;
         this.stats.totalEvents++;
-        if (this.handleFileChange) {
-          this.handleFileChange('change', filepath);
-        }
+        safeHandle('change', filepath);
       })
       .on('unlink', (filepath: string) => {
         this.stats.unlinkEvents++;
         this.stats.totalEvents++;
-        if (this.handleFileChange) {
-          this.handleFileChange('unlink', filepath);
-        }
+        safeHandle('unlink', filepath);
       })
       .on('error', (error: unknown) => {
         const err = error as Error;

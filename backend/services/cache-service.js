@@ -83,12 +83,17 @@ class SimpleCache {
 
 export const cache = new SimpleCache(500);
 
-setInterval(() => {
+const cacheCleanupInterval = setInterval(() => {
   const cleaned = cache.cleanup();
   if (cleaned > 0) {
     console.log('[Cache] Cleaned up ' + cleaned + ' expired entries');
   }
 }, 60000);
+cacheCleanupInterval.unref();
+
+export function stopCacheCleanup() {
+  clearInterval(cacheCleanupInterval);
+}
 
 export function cacheMiddleware(ttl = 5000) {
   return (req, res, next) => {

@@ -12,6 +12,7 @@
     createThemeObserver,
     getChartColors
   } from '../utils/chartUtils.js';
+  import NeuralActivityGraph from '../components/NeuralActivityGraph.svelte';
 
   // State
   let stats = $state({
@@ -149,17 +150,19 @@
   }
 
   function getAgentColorByName(name) {
-    const colors = {
-      'Claude Code': '#FF6B35',
-      claude: '#FF6B35',
-      Ollama: '#F39C12',
-      ollama: '#F39C12',
-      'lm-studio': '#22C55E',
-      cursor: '#10B981',
+    // These are brand colors for agent identification — intentionally static
+    // They work on both light and dark backgrounds at these saturation levels
+    const agentColors = {
+      'Claude Code': 'var(--accent)',
+      claude: 'var(--accent)',
+      Ollama: 'var(--warning)',
+      ollama: 'var(--warning)',
+      'lm-studio': 'var(--success)',
+      cursor: 'var(--success)',
       aider: '#8B5CF6',
-      copilot: '#0EA5E9'
+      copilot: 'var(--info)'
     };
-    return colors[name] || '#6b7280';
+    return agentColors[name] || 'var(--muted)';
   }
 
   // Sparkline SVG path generator
@@ -526,6 +529,11 @@
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
+    </div>
+
+    <!-- Neural Activity Visualization -->
+    <div class="mb-6">
+      <NeuralActivityGraph />
     </div>
 
     <!-- Top Stats Row -->

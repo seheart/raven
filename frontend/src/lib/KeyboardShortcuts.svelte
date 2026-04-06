@@ -200,7 +200,7 @@
     font-size: 11px;
     font-weight: 600;
     color: var(--text);
-    box-shadow: 0 2px 0 #222;
+    box-shadow: 0 2px 0 var(--border);
     min-width: var(--icon-lg);
     text-align: center;
   }

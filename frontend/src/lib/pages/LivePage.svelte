@@ -114,6 +114,8 @@
               class="file-item"
               class:active={(file.filepath || file.path) === selectedFile}
               onclick={() => handleFileClick(file)}
+              aria-label="{getChangeType(file)} {getFileName(file)}"
+              aria-current={(file.filepath || file.path) === selectedFile ? 'true' : undefined}
             >
               <span class="change-indicator {getChangeClass(file)}">{getChangeType(file)}</span>
               <div class="file-info">

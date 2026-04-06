@@ -157,11 +157,15 @@ export class MetricsCollector {
     telemetryCollector.start();
 
     // Collect process metrics immediately
-    this.collectProcessMetrics();
+    this.collectProcessMetrics().catch(err => {
+      logger.error('❌ Initial process metrics collection failed:', err);
+    });
 
     // Start process metrics interval
     this.processInterval = setInterval(() => {
-      this.collectProcessMetrics();
+      this.collectProcessMetrics().catch(err => {
+        logger.error('❌ Process metrics collection failed:', err);
+      });
     }, this.processCollectionInterval);
   }
 

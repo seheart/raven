@@ -5,14 +5,15 @@
 
 class Router {
   path = $state(window.location.pathname);
+  #onPopState;
 
   constructor() {
     // Listen for browser back/forward navigation
-    window.addEventListener('popstate', () => {
+    this.#onPopState = () => {
       this.path = window.location.pathname;
-      // Scroll to top on back/forward navigation
       window.scrollTo(0, 0);
-    });
+    };
+    window.addEventListener('popstate', this.#onPopState);
   }
 
   /**
@@ -35,6 +36,10 @@ class Router {
    */
   isActive(path) {
     return this.path === path;
+  }
+
+  destroy() {
+    window.removeEventListener('popstate', this.#onPopState);
   }
 }
 

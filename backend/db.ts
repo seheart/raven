@@ -171,7 +171,12 @@ export class RavenDB {
 
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL'); // Better performance
-    this.initializeSchema();
+    try {
+      this.initializeSchema();
+    } catch (err) {
+      this.db.close();
+      throw err;
+    }
     logger.info(`✅ Database initialized at ${dbPath}`);
   }
 
