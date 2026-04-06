@@ -9,7 +9,7 @@
 
 <svg
   class="transition-colors"
-  style="fill: #0d0d1a;"
+  style="fill: var(--text-heading);"
   width={size}
   height={size}
   viewBox="0 0 360.416 360.416"

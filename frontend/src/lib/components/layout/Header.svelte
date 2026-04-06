@@ -145,7 +145,7 @@
     <!-- Logo -->
     <button
       onclick={e => handleNavClick(e, '/overview')}
-      class="flex items-center gap-2 font-semibold text-[#0d0d1a] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0"
+      class="flex items-center gap-2 font-semibold text-[var(--text-heading)] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0"
       aria-label="Go to Dashboard"
     >
       <RavenLogo size={18} />

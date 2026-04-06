@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS = {
     }
   },
   ui: {
-    theme: 'tokyo-night',
+    theme: 'dark',
     compactMode: false,
     animationsEnabled: true,
     autoRefresh: true,
@@ -138,40 +138,16 @@ export const settings = {
     if (updates.theme) {
       try {
         if (typeof document !== 'undefined') {
-          // Map theme IDs to CSS class names (matching NewApp.svelte)
-          const themeClassMap = {
-            'tokyo-night': 'theme--night',
-            catppuccin: 'theme--catppuccin',
-            everforest: 'theme--everforest',
-            gruvbox: 'theme--gruvbox',
-            'gruvbox-light': 'theme--day',
-            'osaka-jade': 'theme--osaka',
-            kanagawa: 'theme--kanagawa',
-            nord: 'theme--nord',
-            'matte-black': 'theme--matte',
-            ristretto: 'theme--dusk',
-            'flexoki-light': 'theme--flexoki',
-            'rose-pine': 'theme--rose',
-            'catppuccin-latte': 'theme--latte'
-          };
-
-          // Remove all theme classes
-          const classesToRemove = Array.from(document.body.classList).filter(className =>
-            className.startsWith('theme--')
-          );
-          classesToRemove.forEach(className => {
-            document.body.classList.remove(className);
-          });
-
-          // Add new theme class
-          const themeClass = themeClassMap[updates.theme] || 'theme--night';
-          document.body.classList.add(themeClass);
+          if (updates.theme === 'dark') {
+            document.body.classList.add('dark');
+          } else {
+            document.body.classList.remove('dark');
+          }
         }
         if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
           localStorage.setItem('raven-theme', updates.theme);
         }
       } catch (error) {
-        // localStorage may be unavailable in private browsing mode or due to quota
         logger.debug('[Settings] Failed to save theme:', error.message);
       }
     }

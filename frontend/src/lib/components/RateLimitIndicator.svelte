@@ -125,9 +125,9 @@
   }
 
   .indicator-button {
-    background: var(--bg-secondary, #2a2a2a);
-    border: 1px solid var(--border-color, #3a3a3a);
-    color: var(--text-primary, #e0e0e0);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
     padding: 0.125rem 0.5rem;
     border-radius: 4px;
     font-size: 0.75rem;
@@ -137,17 +137,17 @@
   }
 
   .indicator-button:hover {
-    background: var(--bg-tertiary, #353535);
-    border-color: var(--border-hover, #4a4a4a);
+    background: var(--surface-2);
+    border-color: var(--muted);
   }
 
   .indicator-button.status-warning {
-    border-color: #f59e0b;
+    border-color: var(--warning);
     background: rgba(245, 158, 11, 0.1);
   }
 
   .indicator-button.status-critical {
-    border-color: #ef4444;
+    border-color: var(--error);
     background: rgba(239, 68, 68, 0.1);
     animation: pulse 2s ease-in-out infinite;
   }

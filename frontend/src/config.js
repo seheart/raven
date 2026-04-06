@@ -62,11 +62,10 @@ export const WEBSOCKET_URL = getApiUrl();
 
 // UI Configuration
 export const UI_CONFIG = {
-  DEFAULT_THEME: 'theme--night',
+  DEFAULT_THEME: 'dark',
   THEMES: {
-    DAY: 'theme--day',
-    DUSK: 'theme--dusk',
-    NIGHT: 'theme--night'
+    LIGHT: 'light',
+    DARK: 'dark'
   },
   REFRESH_INTERVALS: {
     DEFAULT: 30, // seconds

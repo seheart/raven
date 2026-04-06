@@ -19,6 +19,7 @@
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { dataService } from './lib/dataService.js';
+  import { settings } from './lib/stores/settingsStore.js';
 
   // State
   let sessionId = $state('Loading...');
@@ -74,6 +75,14 @@
       // Start background refresh to keep data warm
       dataService.startBackgroundRefresh(15000);
     });
+
+    // Apply saved theme on load
+    const savedTheme = settings.getValue().ui.theme;
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
 
     const welcomeSeen = localStorage.getItem('raven-welcome-seen');
     if (!welcomeSeen) {
