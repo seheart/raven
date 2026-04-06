@@ -36,7 +36,9 @@
     if (!confirm('Clear all error logs?')) return;
     try {
       await api.delete('/errors/clear');
-      await loadErrors();
+      errors = [];
+      total = 0;
+      selectedError = null;
     } catch (err) {
       console.error('Failed to clear:', err);
     }
