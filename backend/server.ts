@@ -44,6 +44,8 @@ import { HealthMonitor } from './services/health-monitor.js';
 import { createHealthMonitoringRouter } from './routes/health-monitoring.js';
 import { ProjectManager } from './services/project-manager.js';
 import { LocalModelWatcher } from './services/local-model-watcher.js';
+import { InsightsService } from './services/insights-service.js';
+import { createInsightsRouter } from './routes/insights.js';
 
 // ==================== Configuration ====================
 
@@ -135,6 +137,7 @@ const metricsCollector = new MetricsCollector(db, SESSION_ID, io);
 const triggerEngine = new TriggerEngine(RAVEN_DIR, io);
 // Initialize health monitoring system
 const healthMonitor = new HealthMonitor(db);
+const insightsService = new InsightsService(db);
 
 // Set up health alert handler to emit via WebSocket
 healthMonitor.onAlert(report => {
@@ -667,6 +670,9 @@ app.use('/api', createAgentsRouter(db, agentRegistry));
 
 // Mount health monitoring routes
 app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
+
+// Mount insights routes (LLM-powered analysis)
+app.use('/api/insights', createInsightsRouter(insightsService));
 
 // ==================== Legacy Individual Route Handlers ====================
 

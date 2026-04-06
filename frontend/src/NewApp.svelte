@@ -207,6 +207,14 @@
         {:catch}
           <PlaceholderPage title="Dashboard" description="Failed to load" />
         {/await}
+      {:else if activeTab === 'insights'}
+        {#await import('./lib/pages/InsightsPage.svelte')}
+          <PlaceholderPage title="Insights" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Insights" description="Failed to load" />
+        {/await}
       {:else if activeTab === 'history'}
         {#if !activeSubTab}
           {#await import('./lib/pages/ActivityOverviewPage.svelte')}

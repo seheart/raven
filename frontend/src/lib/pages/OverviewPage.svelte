@@ -33,7 +33,6 @@
   let agentStatus = $state(null);
   let recentFiles = $state([]);
   let liveEvents = $state([]);
-  let topFiles = $state([]);
   let agents = $state([]);
   let loading = $state(false);
   let lastUpdated = $state(new Date());
@@ -47,6 +46,9 @@
   let diffDebounceTimer = null;
   let lastDiffFilepath = '';
   let ephemeralTimers = []; // Track all short-lived timeouts for cleanup
+
+  // AI Insights
+  let latestSummary = $state(null);
 
   // Charts
   let trendChart = null;
@@ -148,6 +150,23 @@
     }, 8000);
   }
 
+  function renderMarkdown(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/^### (.+)$/gm, '<strong class="text-[var(--text-heading)]">$1</strong>')
+      .replace(/^## (.+)$/gm, '<strong class="text-[var(--text-heading)]">$1</strong>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--text-heading)]">$1</strong>')
+      .replace(
+        /`([^`]+)`/g,
+        '<code class="px-1 py-0.5 bg-[var(--bg)] rounded text-[var(--accent)] text-[10px] font-mono">$1</code>'
+      )
+      .replace(/^- (.+)$/gm, '<span class="ml-2">- $1</span>')
+      .replace(/\n/g, '<br>');
+  }
+
   function getAgentColorByName(name) {
     // These are brand colors for agent identification — intentionally static
     // They work on both light and dark backgrounds at these saturation levels
@@ -162,20 +181,6 @@
       copilot: 'var(--info)'
     };
     return agentColors[name] || 'var(--muted)';
-  }
-
-  // Sparkline SVG path generator
-  function sparklinePath(data, width = 80, height = 20) {
-    if (!data || data.length < 2) return '';
-    const max = Math.max(...data, 1);
-    const step = width / (data.length - 1);
-    return data
-      .map((v, i) => {
-        const x = i * step;
-        const y = height - (v / max) * height;
-        return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(' ');
   }
 
   // Heartbeat SVG path for agents
@@ -286,11 +291,10 @@
     try {
       const pf = get(projectFilter);
       const pq = pf && pf !== 'all' ? `&project=${encodeURIComponent(pf)}` : '';
-      const [statsData, metricsData, fileEvents, filesData, agentData] = await Promise.all([
+      const [statsData, metricsData, fileEvents, agentData] = await Promise.all([
         api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
         api.get('/system-metrics?limit=1').catch(() => []),
         api.get(`/file-events?limit=100${pq}`).catch(() => []),
-        api.get(`/top-modified-files?limit=8${pq}`).catch(() => []),
         api.get('/agents-status').catch(() => [])
       ]);
 
@@ -298,13 +302,20 @@
       stats = statsData;
       systemMetrics = Array.isArray(metricsData) && metricsData[0] ? metricsData[0] : systemMetrics;
       recentFiles = Array.isArray(fileEvents) ? fileEvents : [];
-      topFiles = Array.isArray(filesData) ? filesData : filesData.files || [];
       agents = Array.isArray(agentData) ? agentData : [];
       agentStatus = agents[0] || null;
 
       lastUpdated = new Date();
       loading = false;
       setTimeout(createCharts, 100);
+
+      // Load latest AI insight (non-blocking)
+      api
+        .get('/insights/latest')
+        .then(data => {
+          if (data?.id) latestSummary = data;
+        })
+        .catch(() => {});
     } catch (err) {
       logger.error('Dashboard load failed:', err);
       loading = false;
@@ -742,6 +753,42 @@
         </div>
       </div>
     </div>
+
+    <!-- AI Insight Summary -->
+    {#if latestSummary}
+      <div
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden mb-3"
+      >
+        <div
+          class="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--bg)]"
+        >
+          <div class="flex items-center gap-2">
+            <span
+              class="px-1.5 py-0.5 text-[9px] font-bold rounded text-white"
+              style="background: var(--accent)">AI Summary</span
+            >
+            <span class="text-xs font-semibold text-[var(--text)] font-sans"
+              >{latestSummary.title}</span
+            >
+          </div>
+          <div class="flex items-center gap-3 text-[10px] text-[var(--muted)] font-mono">
+            <span>{latestSummary.model}</span>
+            <span>{(latestSummary.duration_ms / 1000).toFixed(1)}s</span>
+            <button
+              onclick={() => { window.location.hash = ''; import('../utils/router.svelte.js').then(r => r.navigate('/insights')); }}
+              class="text-[var(--accent)] hover:underline bg-transparent border-0 cursor-pointer p-0 font-mono text-[10px]"
+              >View all</button
+            >
+          </div>
+        </div>
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- Content is HTML-escaped in renderMarkdown -->
+        <div
+          class="px-4 py-3 text-xs text-[var(--text)] font-sans leading-relaxed max-h-[120px] overflow-auto"
+        >
+          {@html renderMarkdown(latestSummary.content)}
+        </div>
+      </div>
+    {/if}
 
     <!-- Syntax Alerts Banner -->
     {#if syntaxAlerts.length > 0}

@@ -32,6 +32,7 @@
 
   const tabs = [
     { id: 'overview', label: 'Dashboard', path: '/overview' },
+    { id: 'insights', label: 'Insights', path: '/insights' },
     { id: 'analysis', label: 'Analysis', path: '/analysis' },
     { id: 'live', label: 'Code Changes', path: '/live' },
     { id: 'history', label: 'History', path: '/history' },
@@ -40,6 +41,7 @@
 
   const subTabs = {
     overview: [],
+    insights: [],
     live: [],
     history: [
       { id: '', label: 'Activity Log' },
