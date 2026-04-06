@@ -328,7 +328,7 @@ export class FileWatcherService {
 
         // Attempt automatic recovery after 5 seconds
         logger.info(`Attempting to restart watcher for ${projectName} in 5 seconds...`);
-        setTimeout(() => {
+        const recoveryTimer = setTimeout(() => {
           this.restartWatcher(projectName)
             .then(() => {
               logger.info(`Watcher restarted successfully: ${projectName}`);
@@ -351,6 +351,7 @@ export class FileWatcherService {
               }
             });
         }, 5000); // Wait 5 seconds before restarting
+        recoveryTimer.unref();
       })
       .on('ready', () => {
         logger.info('File watcher ready', { projectName });

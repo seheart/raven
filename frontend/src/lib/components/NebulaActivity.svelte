@@ -19,6 +19,7 @@
 
   let eventTimestamps = [];
   let eventRate = 0;
+  let gridColor = 'rgba(100,100,140,0.04)'; // cached, updated on theme change
   let statusText = $state('Idle');
   let eventsPerMin = $state(0);
 
@@ -39,6 +40,13 @@
     colors.error = s.getPropertyValue('--error').trim() || colors.error;
     colors.warning = s.getPropertyValue('--warning').trim() || colors.warning;
     colors.muted = s.getPropertyValue('--muted').trim() || colors.muted;
+
+    const bg = s.getPropertyValue('--surface').trim();
+    const bgRgb = hexToRgb(bg);
+    gridColor =
+      bgRgb && (bgRgb.r + bgRgb.g + bgRgb.b) / 3 > 128
+        ? 'rgba(0,0,0,0.03)'
+        : 'rgba(100,100,140,0.04)';
   }
 
   function hexToRgb(hex) {
@@ -149,13 +157,7 @@
     updateEventRate();
     activity *= 0.998;
 
-    // Grid
-    const bg = getComputedStyle(document.body).getPropertyValue('--surface').trim();
-    const bgRgb = hexToRgb(bg);
-    const gridColor =
-      bgRgb && (bgRgb.r + bgRgb.g + bgRgb.b) / 3 > 128
-        ? 'rgba(0,0,0,0.03)'
-        : 'rgba(100,100,140,0.04)';
+    // Grid (gridColor cached, updated on theme change)
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5;
     for (let x = 0; x < width; x += 40) {
@@ -324,6 +326,7 @@
 
     return () => {
       cancelAnimationFrame(animId);
+      clearTimeout(themeDebounce);
       websocketService.off('agent-event', handleAgentEvent);
       websocketService.off('file-changed', handleFileChange);
       themeObs.disconnect();

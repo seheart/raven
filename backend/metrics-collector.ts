@@ -167,6 +167,7 @@ export class MetricsCollector {
         logger.error('❌ Process metrics collection failed:', err);
       });
     }, this.processCollectionInterval);
+    this.processInterval.unref();
   }
 
   /**
