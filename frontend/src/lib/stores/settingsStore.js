@@ -43,7 +43,7 @@ function loadSettings() {
     if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') {
       return { ...DEFAULT_SETTINGS };
     }
-  } catch (error) {
+  } catch (_error) {
     return { ...DEFAULT_SETTINGS };
   }
 

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { expect, afterEach, beforeAll, afterAll } from 'vitest';
+import { expect, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/svelte';
 // Temporarily disable MSW to avoid localStorage errors
 // import { server } from '../mocks/server.js';
@@ -40,7 +40,24 @@ global.IntersectionObserver = class IntersectionObserver {
   unobserve() {}
 };
 
-// localStorage mock is handled in global-setup.js to avoid security errors
+// Ensure localStorage is available in the jsdom test environment
+// (global-setup.js runs in a separate process and can't set this up for us)
+if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localStorage.getItem !== 'function') {
+  const store = new Map();
+  const localStorageMock = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => store.set(key, String(value)),
+    removeItem: (key) => store.delete(key),
+    clear: () => store.clear(),
+    get length() { return store.size; },
+    key: (index) => Array.from(store.keys())[index] ?? null
+  };
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: localStorageMock,
+    writable: true,
+    configurable: true
+  });
+}
 
 // Setup MSW for API mocking (disabled due to localStorage issues)
 // beforeAll(() => {

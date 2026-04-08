@@ -15,7 +15,7 @@
   // State
   let performanceMetrics = $state({ cpu: 0, memory: 0 });
   let activeTriggers = $state(0);
-  let totalSessions = $state(0);
+  let __totalSessions = $state(0);
   let triggeredEvents = $state([]);
   let loading = $state(false);
   let error = $state(null);
@@ -70,7 +70,7 @@
       activeTriggers = triggers.length;
 
       // Sessions
-      totalSessions = (sessionsData.sessions || []).length;
+      _totalSessions = (sessionsData.sessions || []).length;
 
       // Triggered events
       triggeredEvents = triggeredEventsData.events || [];

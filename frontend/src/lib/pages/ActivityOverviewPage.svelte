@@ -4,7 +4,6 @@
   import { api } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
-  import ProjectBadge from '../ProjectBadge.svelte';
   import { Chart, registerables } from 'chart.js';
 
   Chart.register(...registerables);
@@ -22,8 +21,8 @@
   let selectedType = $state('all');
   let expandedActivity = $state(null);
   let lastUpdated = $state(null);
-  let isManualRefresh = $state(false);
-  let recentActivity = $state([]);
+  let __isManualRefresh = $state(false);
+  let __recentActivity = $state([]);
 
   // Pagination
   let limit = $state(100);
@@ -71,15 +70,15 @@
     activitiesPerHour:
       activities.length > 0 && sessions.length > 0
         ? (
-            activities.length / Math.max(1, sessions.reduce((sum, s) => sum + s.duration, 0) / 3600)
-          ).toFixed(2)
+          activities.length / Math.max(1, sessions.reduce((sum, s) => sum + s.duration, 0) / 3600)
+        ).toFixed(2)
         : 0
   });
 
   async function loadActivities(manual = false) {
     try {
       loading = true;
-      isManualRefresh = manual;
+      _isManualRefresh = manual;
 
       // Load both file events and agent events from all projects
       const [fileEvents, agentEvents] = await Promise.all([
@@ -163,11 +162,11 @@
 
       lastUpdated = new Date();
       loading = false;
-      isManualRefresh = false;
+      _isManualRefresh = false;
     } catch (error) {
       logger.error('Failed to load activity log:', error);
       loading = false;
-      isManualRefresh = false;
+      _isManualRefresh = false;
     }
   }
 
@@ -186,7 +185,7 @@
         ...agentEventsArray.map(e => ({ ...e, type: 'agent' }))
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      recentActivity = combined.slice(0, 30);
+      _recentActivity = combined.slice(0, 30);
     } catch (error) {
       logger.error('Failed to load recent activity:', error);
     }
@@ -251,16 +250,16 @@
 
   function applySorting(sessionsArray) {
     switch (sortBy) {
-      case 'time_asc':
-        return sessionsArray.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-      case 'time_desc':
-        return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-      case 'duration_desc':
-        return sessionsArray.sort((a, b) => b.duration - a.duration);
-      case 'events_desc':
-        return sessionsArray.sort((a, b) => b.totalEvents - a.totalEvents);
-      default:
-        return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    case 'time_asc':
+      return sessionsArray.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    case 'time_desc':
+      return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    case 'duration_desc':
+      return sessionsArray.sort((a, b) => b.duration - a.duration);
+    case 'events_desc':
+      return sessionsArray.sort((a, b) => b.totalEvents - a.totalEvents);
+    default:
+      return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
     }
   }
 
@@ -297,7 +296,7 @@
     }
   }
 
-  async function togglePause() {
+  async function _togglePause() {
     try {
       const endpoint = isPaused ? '/resume' : '/pause';
       await api.post(endpoint);
@@ -346,7 +345,7 @@
     }
   }
 
-  async function exportToCSV() {
+  async function _exportToCSV() {
     try {
       const headers = ['Timestamp', 'Type', 'Category', 'Description', 'Target', 'Session ID'];
       const rows = activities.map(activity => [
@@ -386,71 +385,71 @@
     }
   }
 
-  function getChangeTypeIcon(changeType) {
+  function _getChangeTypeIcon(changeType) {
     switch (changeType) {
-      case 'add':
-      case 'create':
-      case 'created':
-        return '';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return '';
-      case 'unlink':
-      case 'delete':
-      case 'deleted':
-        return '';
-      default:
-        return '';
+    case 'add':
+    case 'create':
+    case 'created':
+      return '';
+    case 'change':
+    case 'edit':
+    case 'modified':
+      return '';
+    case 'unlink':
+    case 'delete':
+    case 'deleted':
+      return '';
+    default:
+      return '';
     }
   }
 
-  function getChangeTypeColor(changeType) {
+  function _getChangeTypeColor(changeType) {
     switch (changeType) {
-      case 'add':
-      case 'create':
-      case 'created':
-        return 'var(--success)';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return 'var(--warning)';
-      case 'unlink':
-      case 'delete':
-      case 'deleted':
-        return 'var(--error)';
-      default:
-        return 'var(--info)';
+    case 'add':
+    case 'create':
+    case 'created':
+      return 'var(--success)';
+    case 'change':
+    case 'edit':
+    case 'modified':
+      return 'var(--warning)';
+    case 'unlink':
+    case 'delete':
+    case 'deleted':
+      return 'var(--error)';
+    default:
+      return 'var(--info)';
     }
   }
 
   function getCategoryIcon(category) {
     switch (category) {
-      case 'file':
-        return '';
-      case 'agent':
-        return '';
-      case 'system':
-        return '';
-      default:
-        return '';
+    case 'file':
+      return '';
+    case 'agent':
+      return '';
+    case 'system':
+      return '';
+    default:
+      return '';
     }
   }
 
   function getCategoryColor(category) {
     switch (category) {
-      case 'file':
-        return 'var(--info)';
-      case 'agent':
-        return 'var(--accent)';
-      case 'system':
-        return 'var(--warning)';
-      default:
-        return 'var(--muted)';
+    case 'file':
+      return 'var(--info)';
+    case 'agent':
+      return 'var(--accent)';
+    case 'system':
+      return 'var(--warning)';
+    default:
+      return 'var(--muted)';
     }
   }
 
-  function truncatePath(path) {
+  function _truncatePath(path) {
     if (!path) return '';
     const parts = path.split('/');
     if (parts.length <= 2) return path;
@@ -712,22 +711,22 @@
     }
 
     switch (event.key) {
-      case '1':
-        setFilter('all');
-        break;
-      case '2':
-        setFilter('file');
-        break;
-      case '3':
-        setFilter('agent');
-        break;
-      case '4':
-        setFilter('system');
-        break;
-      case 'r':
-      case 'R':
-        loadActivities(true);
-        break;
+    case '1':
+      setFilter('all');
+      break;
+    case '2':
+      setFilter('file');
+      break;
+    case '3':
+      setFilter('agent');
+      break;
+    case '4':
+      setFilter('system');
+      break;
+    case 'r':
+    case 'R':
+      loadActivities(true);
+      break;
     }
   }
 

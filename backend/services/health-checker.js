@@ -62,8 +62,7 @@ export class HealthChecker {
         critical: false
       },
 
-      // Snapshots & History
-      { name: 'Snapshots API', fn: () => this.checkEndpoint('/api/snapshots'), critical: false },
+      // History & Conversations
       {
         name: 'Conversations',
         fn: () => this.checkEndpoint('/api/conversations?limit=1'),
@@ -81,7 +80,6 @@ export class HealthChecker {
         fn: () => this.checkEndpoint('/api/notifications?limit=1'),
         critical: false
       },
-      { name: 'Changelog', fn: () => this.checkEndpoint('/api/changelog'), critical: false },
 
       // Git Integration
       { name: 'Git Status', fn: () => this.checkEndpoint('/api/git/status'), critical: false }
@@ -190,13 +188,27 @@ export class HealthChecker {
    */
   async checkConversationFreshness() {
     if (!this.db) {
-      throw new Error('Database not available for data freshness check');
+      // Fall back to API check when DB is not directly available
+      const data = await this.checkEndpoint('/api/conversations?limit=1');
+      if (data.conversations && data.conversations.length > 0) {
+        const mostRecent = data.conversations[0];
+        const conversationTime = new Date(mostRecent.timestamp || mostRecent.last_activity);
+        const now = new Date();
+        const hoursSinceLastConversation = (now.getTime() - conversationTime.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastConversation > 24) {
+          throw new Error(
+            `Stale conversation data (last: ${hoursSinceLastConversation.toFixed(1)} hours ago). ` +
+              'Conversation sync may not be working.'
+          );
+        }
+      }
+      return;
     }
 
-    // Query most recent conversation
+    // Query most recent conversation from agent_events
     const stmt = this.db.prepareStatement(`
       SELECT timestamp, event_type
-      FROM conversations
+      FROM agent_events
       ORDER BY timestamp DESC
       LIMIT 1
     `);

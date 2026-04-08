@@ -2,7 +2,7 @@
  * Tests for Security Middleware
  */
 
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import {
@@ -12,8 +12,6 @@ import {
   telemetryLimiter,
   writeLimiter,
   requestLogger,
-  errorHandler,
-  notFoundHandler,
   setupCORS,
   setupRequestSizeLimit
 } from '../../middleware/security.js';
@@ -110,7 +108,7 @@ describe('Security Middleware', () => {
 
     test('should call next middleware', async () => {
       let nextCalled = false;
-      app.use((req, res, next) => {
+      app.use((req, res, _next) => {
         nextCalled = true;
         res.status(200).send('OK');
       });
@@ -118,217 +116,6 @@ describe('Security Middleware', () => {
       await request(app).get('/test');
 
       expect(nextCalled).toBe(true);
-    });
-  });
-
-  describe('errorHandler', () => {
-    let app;
-
-    beforeEach(() => {
-      app = express();
-      app.use(express.json());
-    });
-
-    test('should handle errors with default values', async () => {
-      app.get('/error', (req, res, next) => {
-        next(new Error('Test error'));
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.status).toBe(500);
-      expect(response.body.error).toHaveProperty('message');
-      expect(response.body.error).toHaveProperty('code');
-      expect(response.body.error).toHaveProperty('statusCode');
-    });
-
-    test('should use custom status code from error', async () => {
-      app.get('/error', (req, res, next) => {
-        const err = new Error('Not found');
-        err.statusCode = 404;
-        next(err);
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.status).toBe(404);
-    });
-
-    test('should use custom error code from error', async () => {
-      app.get('/error', (req, res, next) => {
-        const err = new Error('Validation failed');
-        err.statusCode = 400;
-        err.errorCode = 'VALIDATION_ERROR';
-        next(err);
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.status).toBe(400);
-      expect(response.body.error.code).toBe('VALIDATION_ERROR');
-    });
-
-    test('should include error details if provided', async () => {
-      app.get('/error', (req, res, next) => {
-        const err = new Error('Validation failed');
-        err.statusCode = 400;
-        err.details = { field: 'email', issue: 'invalid format' };
-        next(err);
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.body.error.details).toEqual({
-        field: 'email',
-        issue: 'invalid format'
-      });
-    });
-
-    test('should include stack trace in development', async () => {
-      process.env.NODE_ENV = 'development';
-
-      app.get('/error', (req, res, next) => {
-        next(new Error('Dev error'));
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.body.error).toHaveProperty('stack');
-      expect(Array.isArray(response.body.error.stack)).toBe(true);
-
-      process.env.NODE_ENV = 'test';
-    });
-
-    test('should not include stack trace in production', async () => {
-      process.env.NODE_ENV = 'production';
-
-      app.get('/error', (req, res, next) => {
-        next(new Error('Prod error'));
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.body.error.stack).toBeUndefined();
-
-      process.env.NODE_ENV = 'test';
-    });
-
-    test('should include request ID if available', async () => {
-      app.use((req, res, next) => {
-        req.id = 'test-request-123';
-        next();
-      });
-
-      app.get('/error', (req, res, next) => {
-        next(new Error('Test error'));
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.body.error.requestId).toBe('test-request-123');
-    });
-
-    test('should handle errors with status property', async () => {
-      app.get('/error', (req, res, next) => {
-        const err = new Error('Unauthorized');
-        err.status = 401;
-        next(err);
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.status).toBe(401);
-    });
-
-    test('should log server errors (5xx)', async () => {
-      app.get('/error', (req, res, next) => {
-        const err = new Error('Internal error');
-        err.statusCode = 500;
-        next(err);
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.status).toBe(500);
-    });
-
-    test('should log client errors (4xx)', async () => {
-      app.get('/error', (req, res, next) => {
-        const err = new Error('Bad request');
-        err.statusCode = 400;
-        next(err);
-      });
-      app.use(errorHandler);
-
-      const response = await request(app).get('/error');
-
-      expect(response.status).toBe(400);
-    });
-  });
-
-  describe('notFoundHandler', () => {
-    let app;
-
-    beforeEach(() => {
-      app = express();
-      app.use(notFoundHandler);
-    });
-
-    test('should return 404 status', async () => {
-      const response = await request(app).get('/nonexistent');
-
-      expect(response.status).toBe(404);
-    });
-
-    test('should return error object with message', async () => {
-      const response = await request(app).get('/nonexistent');
-
-      expect(response.body.error).toHaveProperty('message');
-      expect(response.body.error.message).toContain('Route not found');
-      expect(response.body.error.message).toContain('GET');
-      expect(response.body.error.message).toContain('/nonexistent');
-    });
-
-    test('should return NOT_FOUND error code', async () => {
-      const response = await request(app).get('/nonexistent');
-
-      expect(response.body.error.code).toBe('NOT_FOUND');
-    });
-
-    test('should return 404 statusCode in error', async () => {
-      const response = await request(app).get('/nonexistent');
-
-      expect(response.body.error.statusCode).toBe(404);
-    });
-
-    test('should work for POST requests', async () => {
-      const response = await request(app).post('/nonexistent');
-
-      expect(response.status).toBe(404);
-      expect(response.body.error.message).toContain('POST');
-    });
-
-    test('should work for PUT requests', async () => {
-      const response = await request(app).put('/nonexistent');
-
-      expect(response.status).toBe(404);
-      expect(response.body.error.message).toContain('PUT');
-    });
-
-    test('should work for DELETE requests', async () => {
-      const response = await request(app).delete('/nonexistent');
-
-      expect(response.status).toBe(404);
-      expect(response.body.error.message).toContain('DELETE');
     });
   });
 
@@ -369,7 +156,7 @@ describe('Security Middleware', () => {
       const allowedOrigins = ['http://localhost:3000'];
       const config = setupCORS(allowedOrigins);
 
-      config.origin('http://evil.com', (err, allowed) => {
+      config.origin('http://evil.com', (err, _allowed) => {
         expect(err).toBeInstanceOf(Error);
         expect(err.message).toBe('Not allowed by CORS');
         done();

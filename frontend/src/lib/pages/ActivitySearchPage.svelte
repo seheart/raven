@@ -22,14 +22,14 @@
     if (searchType !== 'all') {
       filtered = filtered.filter(r => {
         switch (searchType) {
-          case 'files':
-            return r.filepath;
-          case 'messages':
-            return r.message;
-          case 'agents':
-            return r.agent;
-          default:
-            return true;
+        case 'files':
+          return r.filepath;
+        case 'messages':
+          return r.message;
+        case 'agents':
+          return r.agent;
+        default:
+          return true;
         }
       });
     }
@@ -132,26 +132,26 @@
 
   function getEventColor(changeType) {
     switch (changeType) {
-      case 'add':
-      case 'create':
-        return 'var(--success)';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return 'var(--accent)';
-      case 'unlink':
-      case 'delete':
-        return 'var(--error)';
-      case 'tool_call':
-        return 'var(--warning)';
-      case 'tool_result':
-        return 'var(--info)';
-      case 'user_message':
-        return 'var(--accent)';
-      case 'assistant_text':
-        return 'var(--info)';
-      default:
-        return 'var(--muted)';
+    case 'add':
+    case 'create':
+      return 'var(--success)';
+    case 'change':
+    case 'edit':
+    case 'modified':
+      return 'var(--accent)';
+    case 'unlink':
+    case 'delete':
+      return 'var(--error)';
+    case 'tool_call':
+      return 'var(--warning)';
+    case 'tool_result':
+      return 'var(--info)';
+    case 'user_message':
+      return 'var(--accent)';
+    case 'assistant_text':
+      return 'var(--info)';
+    default:
+      return 'var(--muted)';
     }
   }
 

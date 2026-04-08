@@ -13,7 +13,7 @@
   let sortDesc = $state(true);
   let searchQuery = $state('');
   let filterStatus = $state('all');
-  let autoRefresh = $state(true);
+  let _autoRefresh = $state(true);
 
   // Filtered projects
   const filteredProjects = $derived.by(() => {
@@ -42,33 +42,33 @@
     sorted.sort((a, b) => {
       let valA, valB;
       switch (sortBy) {
-        case 'activity':
-          valA = a.last_activity ? new Date(a.last_activity).getTime() : 0;
-          valB = b.last_activity ? new Date(b.last_activity).getTime() : 0;
-          break;
-        case 'events':
-          valA = a.total_events || 0;
-          valB = b.total_events || 0;
-          break;
-        case 'files':
-          valA = a.file_count || 0;
-          valB = b.file_count || 0;
-          break;
-        case 'agent':
-          valA = a.agent_events || 0;
-          valB = b.agent_events || 0;
-          break;
-        case 'name':
-          valA = a.name;
-          valB = b.name;
-          return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
-        case 'path':
-          valA = a.path || '';
-          valB = b.path || '';
-          return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
-        default:
-          valA = 0;
-          valB = 0;
+      case 'activity':
+        valA = a.last_activity ? new Date(a.last_activity).getTime() : 0;
+        valB = b.last_activity ? new Date(b.last_activity).getTime() : 0;
+        break;
+      case 'events':
+        valA = a.total_events || 0;
+        valB = b.total_events || 0;
+        break;
+      case 'files':
+        valA = a.file_count || 0;
+        valB = b.file_count || 0;
+        break;
+      case 'agent':
+        valA = a.agent_events || 0;
+        valB = b.agent_events || 0;
+        break;
+      case 'name':
+        valA = a.name;
+        valB = b.name;
+        return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+      case 'path':
+        valA = a.path || '';
+        valB = b.path || '';
+        return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+      default:
+        valA = 0;
+        valB = 0;
       }
       return sortDesc ? valB - valA : valA - valB;
     });
@@ -159,7 +159,7 @@
     URL.revokeObjectURL(url);
   }
 
-  function exportJSON() {
+  function _exportJSON() {
     const exportData = {
       exported_at: new Date().toISOString(),
       total_projects: filteredProjects.length,

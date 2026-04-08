@@ -343,8 +343,8 @@
   // Reload trends when period or days changes (skip initial mount - onMount handles that)
   let mounted = false;
   $effect(() => {
-    const currentPeriod = period;
-    const currentDays = days;
+    const _currentPeriod = period;
+    const _currentDays = days;
     if (mounted) {
       loadTrends();
     }

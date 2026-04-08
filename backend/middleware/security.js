@@ -26,7 +26,6 @@ function createTrackingStore(limiterName) {
 
   return {
     async increment(key) {
-      const now = Date.now();
       const count = (hits.get(key) || 0) + 1;
       hits.set(key, count);
 

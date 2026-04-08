@@ -1,6 +1,5 @@
 <script>
   import { onMount } from 'svelte';
-  import { api } from '../apiClient.js';
   import { dataService } from '../dataService.js';
   import { logger } from '../logger.js';
 

@@ -303,13 +303,13 @@ describe('ClaudeLogWatcher', () => {
       fs.writeFileSync(testFile, '');
       watcher.filePositions.set(testFile, 0);
 
-      // Add malformed JSON that ends with } (to trigger debug log)
+      // Add malformed JSON — parser will break on it, no callback emitted
       fs.writeFileSync(testFile, '{invalid json that is malformed}\n');
 
       await watcher.handleLogFileChanged(testFile);
 
-      // Should not throw, just skip or log
-      expect(mockLogger.debug).toHaveBeenCalled();
+      // Should not throw, just silently skip the malformed line
+      expect(mockCallback).not.toHaveBeenCalled();
     });
 
     test('should handle file read errors', async () => {
@@ -390,7 +390,7 @@ describe('ClaudeLogWatcher', () => {
       );
     });
 
-    test('should ignore Read tool operations', async () => {
+    test('should not emit file_change for Read tool operations', async () => {
       const projectDir = path.join(testDir, '-home-user-project');
       fs.mkdirSync(projectDir, { recursive: true });
       const logFile = path.join(projectDir, 'session-123.jsonl');
@@ -410,10 +410,21 @@ describe('ClaudeLogWatcher', () => {
 
       await watcher.processLogEntry(entry, logFile);
 
-      expect(mockCallback).not.toHaveBeenCalled();
+      // Read emits an agent_event but not a file_change
+      const fileChangeCalls = mockCallback.mock.calls.filter(
+        call => call[0].eventCategory === 'file_change'
+      );
+      expect(fileChangeCalls).toHaveLength(0);
+      expect(mockCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'tool_call',
+          tool: 'Read',
+          eventCategory: 'agent_event'
+        })
+      );
     });
 
-    test('should ignore Bash tool operations', async () => {
+    test('should not emit file_change for Bash tool operations', async () => {
       const projectDir = path.join(testDir, '-home-user-project');
       fs.mkdirSync(projectDir, { recursive: true });
       const logFile = path.join(projectDir, 'session-123.jsonl');
@@ -433,7 +444,18 @@ describe('ClaudeLogWatcher', () => {
 
       await watcher.processLogEntry(entry, logFile);
 
-      expect(mockCallback).not.toHaveBeenCalled();
+      // Bash emits an agent_event but not a file_change
+      const fileChangeCalls = mockCallback.mock.calls.filter(
+        call => call[0].eventCategory === 'file_change'
+      );
+      expect(fileChangeCalls).toHaveLength(0);
+      expect(mockCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'tool_call',
+          tool: 'Bash',
+          eventCategory: 'agent_event'
+        })
+      );
     });
 
     test('should ignore non-assistant messages', async () => {
@@ -487,7 +509,12 @@ describe('ClaudeLogWatcher', () => {
 
       await watcher.processLogEntry(entry, logFile);
 
-      expect(mockCallback).toHaveBeenCalledTimes(2);
+      // Each tool emits a file_change + an agent_event = 4 calls total
+      expect(mockCallback).toHaveBeenCalledTimes(4);
+      const fileChangeCalls = mockCallback.mock.calls.filter(
+        call => call[0].eventCategory === 'file_change'
+      );
+      expect(fileChangeCalls).toHaveLength(2);
     });
 
     test('should return early when no project info can be extracted', async () => {
@@ -778,7 +805,7 @@ describe('ClaudeLogWatcher', () => {
       fs.readdirSync = originalReaddirSync;
     });
 
-    test('should ignore unknown tool operations', async () => {
+    test('should emit agent_event for unknown tool operations but not file_change', async () => {
       watcher = new ClaudeLogWatcher(mockCallback, mockLogger);
       watcher.claudeProjectsDir = testDir;
 
@@ -801,7 +828,19 @@ describe('ClaudeLogWatcher', () => {
 
       await watcher.processLogEntry(entry, logFile);
 
-      expect(mockCallback).not.toHaveBeenCalled();
+      // Unknown tools still emit an agent_event (tool_call) but not a file_change
+      expect(mockCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'tool_call',
+          tool: 'UnknownTool',
+          eventCategory: 'agent_event'
+        })
+      );
+      // Should NOT have been called with file_change category
+      const fileChangeCalls = mockCallback.mock.calls.filter(
+        call => call[0].eventCategory === 'file_change'
+      );
+      expect(fileChangeCalls).toHaveLength(0);
     });
   });
 });

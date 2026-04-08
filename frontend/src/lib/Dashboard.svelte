@@ -325,8 +325,8 @@
                       class="agent-meta"
                       aria-label="{agent?.models_available?.length ||
                         0} models available{agent?.requests_handled > 0
-                        ? `, ${agent.requests_handled} requests handled`
-                        : ''}"
+                          ? `, ${agent.requests_handled} requests handled`
+                          : ''}"
                     >
                       {agent?.models_available?.length || 0} models
                       {#if agent?.requests_handled > 0}

@@ -74,33 +74,33 @@
     sorted.sort((a, b) => {
       let valA, valB;
       switch (sortBy) {
-        case 'agent_name':
-          valA = a.agent_name || '';
-          valB = b.agent_name || '';
-          return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
-        case 'total_events':
-          valA = a.total_events || 0;
-          valB = b.total_events || 0;
-          break;
-        case 'lines_changed':
-          valA = a.lines_changed || 0;
-          valB = b.lines_changed || 0;
-          break;
-        case 'files_modified':
-          valA = a.files_modified || 0;
-          valB = b.files_modified || 0;
-          break;
-        case 'total_duration_seconds':
-          valA = a.total_duration_seconds || 0;
-          valB = b.total_duration_seconds || 0;
-          break;
-        case 'last_active':
-          valA = a.last_active ? new Date(a.last_active).getTime() : 0;
-          valB = b.last_active ? new Date(b.last_active).getTime() : 0;
-          break;
-        default:
-          valA = 0;
-          valB = 0;
+      case 'agent_name':
+        valA = a.agent_name || '';
+        valB = b.agent_name || '';
+        return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+      case 'total_events':
+        valA = a.total_events || 0;
+        valB = b.total_events || 0;
+        break;
+      case 'lines_changed':
+        valA = a.lines_changed || 0;
+        valB = b.lines_changed || 0;
+        break;
+      case 'files_modified':
+        valA = a.files_modified || 0;
+        valB = b.files_modified || 0;
+        break;
+      case 'total_duration_seconds':
+        valA = a.total_duration_seconds || 0;
+        valB = b.total_duration_seconds || 0;
+        break;
+      case 'last_active':
+        valA = a.last_active ? new Date(a.last_active).getTime() : 0;
+        valB = b.last_active ? new Date(b.last_active).getTime() : 0;
+        break;
+      default:
+        valA = 0;
+        valB = 0;
       }
       return sortDesc ? valB - valA : valA - valB;
     });
@@ -332,9 +332,9 @@
       agentStats = stats.map(agent => {
         const daysSinceFirst = agent.first_seen
           ? Math.max(
-              1,
-              Math.ceil((new Date() - new Date(agent.first_seen)) / (1000 * 60 * 60 * 24))
-            )
+            1,
+            Math.ceil((new Date() - new Date(agent.first_seen)) / (1000 * 60 * 60 * 24))
+          )
           : 1;
         const totalChanges =
           (agent.edit_count || 0) + (agent.create_count || 0) + (agent.delete_count || 0);
@@ -344,9 +344,9 @@
         const totalDurationSec =
           agent.first_seen && agent.last_active
             ? Math.round(
-                (new Date(agent.last_active).getTime() - new Date(agent.first_seen).getTime()) /
+              (new Date(agent.last_active).getTime() - new Date(agent.first_seen).getTime()) /
                   1000
-              )
+            )
             : 0;
 
         return {

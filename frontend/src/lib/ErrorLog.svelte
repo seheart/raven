@@ -245,27 +245,27 @@
 
   function getSeverityColor(severity) {
     switch (severity) {
-      case 'error':
-        return 'var(--error)';
-      case 'warning':
-        return 'var(--warning)';
-      case 'info':
-        return 'var(--info)';
-      default:
-        return 'var(--muted)';
+    case 'error':
+      return 'var(--error)';
+    case 'warning':
+      return 'var(--warning)';
+    case 'info':
+      return 'var(--info)';
+    default:
+      return 'var(--muted)';
     }
   }
 
   function getSeverityIcon(severity) {
     switch (severity) {
-      case 'error':
-        return '';
-      case 'warning':
-        return '';
-      case 'info':
-        return '';
-      default:
-        return '';
+    case 'error':
+      return '';
+    case 'warning':
+      return '';
+    case 'info':
+      return '';
+    default:
+      return '';
     }
   }
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * API Performance Tests
  * Tests high-traffic endpoints for performance and throughput

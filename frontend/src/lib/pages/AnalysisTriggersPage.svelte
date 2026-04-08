@@ -23,7 +23,7 @@
   let error = $state(null);
   let successMessage = $state(null);
   let lastUpdated = $state(null);
-  let isManualRefresh = $state(false);
+  let _isManualRefresh = $state(false);
 
   // Filters
   let searchQuery = $state('');
@@ -116,7 +116,7 @@
 
   async function loadAllData(manual = false) {
     loading = true;
-    isManualRefresh = manual;
+    _isManualRefresh = manual;
     error = null;
 
     try {
@@ -148,7 +148,7 @@
       logger.error(error);
     } finally {
       loading = false;
-      isManualRefresh = false;
+      _isManualRefresh = false;
     }
   }
 
@@ -219,14 +219,14 @@
 
   function getActionIcon(action) {
     switch (action?.toLowerCase()) {
-      case 'notify':
-        return '';
-      case 'log':
-        return '';
-      case 'command':
-        return '';
-      default:
-        return '';
+    case 'notify':
+      return '';
+    case 'log':
+      return '';
+    case 'command':
+      return '';
+    default:
+      return '';
     }
   }
 

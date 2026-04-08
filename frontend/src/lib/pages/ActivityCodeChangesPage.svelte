@@ -157,20 +157,20 @@
     eventsLimit += 50;
   }
 
-  function togglePause() {
+  function _togglePause() {
     isPaused = !isPaused;
   }
 
   function getChangeTypeColor(changeType) {
     switch (changeType) {
-      case 'created':
-        return 'var(--success)';
-      case 'modified':
-        return 'var(--accent)';
-      case 'deleted':
-        return 'var(--error)';
-      default:
-        return 'var(--text)';
+    case 'created':
+      return 'var(--success)';
+    case 'modified':
+      return 'var(--accent)';
+    case 'deleted':
+      return 'var(--error)';
+    default:
+      return 'var(--text)';
     }
   }
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Authentication Service for Raven
  * Manages user accounts and authentication

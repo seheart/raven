@@ -54,9 +54,9 @@ jest.doMock('express-rate-limit', () => {
 import http from 'http';
 const originalWriteHead = http.ServerResponse.prototype.writeHead;
 http.ServerResponse.prototype.writeHead = function patchedWriteHead(
-  statusCode,
-  statusMessage,
-  headers
+  _statusCode,
+  _statusMessage,
+  _headers
 ) {
   try {
     const hasLimit = this.getHeader && this.getHeader('RateLimit-Limit') !== undefined;

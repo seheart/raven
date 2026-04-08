@@ -38,28 +38,28 @@
   function getStatusIcon(status) {
     if (!status) return '—';
     switch (status.status) {
-      case 'ok':
-        return '●';
-      case 'warning':
-        return '●';
-      case 'critical':
-        return '●';
-      default:
-        return '○';
+    case 'ok':
+      return '●';
+    case 'warning':
+      return '●';
+    case 'critical':
+      return '●';
+    default:
+      return '○';
     }
   }
 
   function getStatusClass(status) {
     if (!status) return '';
     switch (status.status) {
-      case 'ok':
-        return 'status-ok';
-      case 'warning':
-        return 'status-warning';
-      case 'critical':
-        return 'status-critical';
-      default:
-        return '';
+    case 'ok':
+      return 'status-ok';
+    case 'warning':
+      return 'status-warning';
+    case 'critical':
+      return 'status-critical';
+    default:
+      return '';
     }
   }
 

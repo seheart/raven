@@ -32,8 +32,8 @@
           quality = qualityData.quality;
           // Use recommendation from quality endpoint if available
           breakRecommendation = qualityData.quality?.recommendation || null;
-        } catch (error) {
-          logger.warn('Quality metrics not available:', err);
+        } catch (_error) {
+          logger.warn('Quality metrics not available:', _error);
           quality = null;
           breakRecommendation = null;
         }
@@ -46,8 +46,8 @@
       try {
         const statsData = await api.get(`/sessions/stats?project=${project}&days=30`);
         stats = statsData.stats;
-      } catch (error) {
-        logger.warn('Session stats not available:', err);
+      } catch (_error) {
+        logger.warn('Session stats not available:', _error);
         stats = null;
       }
     } catch (error) {

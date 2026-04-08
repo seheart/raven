@@ -3,7 +3,6 @@
   import { api } from '../apiClient.js';
   import { onMount } from 'svelte';
   import { navigate } from '../utils/router.svelte.js';
-  import { projectFilter, availableProjects } from '../projectFilterStore.js';
   import { websocketService } from '../services/websocket.js';
 
   let backendHealth = $state({
@@ -37,7 +36,7 @@
   let errorCount = $state(0);
   let loading = $state(true);
   let lastUpdated = $state(null);
-  let healthExpanded = $state(false);
+  let _healthExpanded = $state(false);
 
   const timeAgo = $derived.by(() => {
     if (!lastUpdated) return 'Just now';
@@ -297,8 +296,8 @@
             style="background: {healthChecks.status === 'healthy'
               ? 'var(--success-subtle)'
               : 'var(--error-subtle)'}; color: {healthChecks.status === 'healthy'
-              ? 'var(--success)'
-              : 'var(--error)'}"
+                ? 'var(--success)'
+                : 'var(--error)'}"
           >
             {healthChecks.status === 'healthy'
               ? 'All Systems Operational'

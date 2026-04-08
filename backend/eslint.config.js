@@ -19,7 +19,7 @@ export default [
       }
     },
     rules: {
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],  // Warn for console usage; tests may use console
       semi: ['error', 'always'],
       quotes: ['error', 'single', { avoidEscape: true }],

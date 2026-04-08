@@ -32,7 +32,7 @@ export default [{
     }
   },
   rules: {
-    'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
     'semi': ['error', 'always'],
     'quotes': ['error', 'single', { avoidEscape: true }],
     'indent': ['error', 2],
@@ -40,6 +40,7 @@ export default [{
     'eol-last': ['error', 'always'],
     // Disable Svelte 5 runes rules (project uses Svelte 4)
     'svelte/prefer-svelte-reactivity': 'off',
-    'svelte/no-immutable-reactive-statements': 'off'
+    'svelte/no-immutable-reactive-statements': 'off',
+    'svelte/no-at-html-tags': 'warn'
   }
 }, ...storybook.configs['flat/recommended']];

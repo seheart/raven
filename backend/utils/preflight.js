@@ -277,7 +277,7 @@ async function checkDatabaseIntegrity(ravenDir) {
         corrupt++;
         corruptFiles.push(dbFile);
       }
-    } catch (error) {
+    } catch (_error) {
       corrupt++;
       corruptFiles.push(dbFile);
     }

@@ -179,7 +179,7 @@ describe('Cache Utilities', () => {
       const data2 = { status: 'healthy', uptime: 200 };
 
       updateHealthCache(data1);
-      const firstUpdate = Date.now();
+      const _firstUpdate = Date.now();
 
       // Wait a bit
       setTimeout(() => {

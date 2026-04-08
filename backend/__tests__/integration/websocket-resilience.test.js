@@ -3,7 +3,7 @@
  * Tests WebSocket connection handling, reconnection, and error recovery
  */
 
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { io as ClientIO } from 'socket.io-client';
@@ -122,7 +122,7 @@ describe('WebSocket Resilience Integration', () => {
     });
 
     let reconnected = false;
-    let eventReceived = false;
+    let _eventReceived = false;
 
     // Server emits test event
     io.on('connection', socket => {
@@ -141,7 +141,7 @@ describe('WebSocket Resilience Integration', () => {
     });
 
     clientSocket.on('test-event', data => {
-      eventReceived = true;
+      _eventReceived = true;
       expect(data.data).toBe('test');
       expect(reconnected).toBe(true);
       done();

@@ -3307,7 +3307,7 @@ app.delete('/api/errors/clear', (req: Request, res: Response) => {
 app.get('/api/notifications', (req: Request, res: Response) => {
   const limit = Math.min(safeInt(req.query.limit, 50), 500);
   const notifications = db.db
-    .prepare('SELECT * FROM health_issues ORDER BY timestamp DESC LIMIT ?')
+    .prepare('SELECT * FROM health_issues ORDER BY created_at DESC LIMIT ?')
     .all(limit);
   return res.json({ notifications, total: notifications.length });
 });

@@ -23,7 +23,7 @@ export function createTestChildren(content) {
  * Helper to render text content in a Svelte 5 snippet
  */
 export function textSnippet(text) {
-  return (anchor, props) => {
+  return (anchor, _props) => {
     const node = document.createTextNode(text);
     anchor.appendChild(node);
     return () => node.remove();

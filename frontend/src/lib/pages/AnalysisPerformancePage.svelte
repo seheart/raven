@@ -20,7 +20,7 @@
   let loading = $state(true);
   let error = $state(null);
   let lastUpdated = $state(null);
-  let isManualRefresh = $state(false);
+  let _isManualRefresh = $state(false);
   let chartTimeRange = $state('1h'); // '15m', '1h', '6h', '24h'
 
   // Chart data filtered by time range
@@ -124,7 +124,7 @@
   async function fetchAllData(manual = false) {
     try {
       loading = true;
-      isManualRefresh = manual;
+      _isManualRefresh = manual;
       error = null;
 
       const systemData = await api.get('/system-metrics?limit=500');
@@ -152,12 +152,12 @@
 
       lastUpdated = new Date();
       loading = false;
-      isManualRefresh = false;
+      _isManualRefresh = false;
     } catch (err) {
       logger.error('Failed to load performance data:', err);
       error = err.message || 'Failed to load performance data';
       loading = false;
-      isManualRefresh = false;
+      _isManualRefresh = false;
     }
   }
 

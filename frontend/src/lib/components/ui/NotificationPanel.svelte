@@ -19,19 +19,19 @@
 
   function getIcon(type) {
     switch (type) {
-      case 'success':
-        return '';
-      case 'error':
-        return '';
-      case 'warning':
-        return '';
-      case 'trigger':
-        return '';
-      case 'performance':
-        return '';
-      case 'info':
-      default:
-        return '';
+    case 'success':
+      return '';
+    case 'error':
+      return '';
+    case 'warning':
+      return '';
+    case 'trigger':
+      return '';
+    case 'performance':
+      return '';
+    case 'info':
+    default:
+      return '';
     }
   }
 

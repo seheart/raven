@@ -2,7 +2,7 @@
  * Tests for SessionTracker Service
  */
 
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import Database from 'better-sqlite3';
 import { SessionTracker, createSessionTracker } from '../../services/session-tracker.js';
 
@@ -559,16 +559,22 @@ describe('SessionTracker', () => {
     });
 
     test('should calculate session statistics', () => {
-      // Insert test sessions
-      testDb.prepare(`
-        INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', '2025-10-27T10:00:00Z', '2025-10-27T12:00:00Z', 50, 5, 85);
+      // Insert test sessions with recent dates (within 30-day window)
+      const now = new Date();
+      const recentDate1Start = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      const recentDate1End = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString();
+      const recentDate2Start = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString();
+      const recentDate2End = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString();
 
       testDb.prepare(`
         INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', '2025-10-27T14:00:00Z', '2025-10-27T16:00:00Z', 40, 2, 90);
+      `).run('test-project', recentDate1Start, recentDate1End, 50, 5, 85);
+
+      testDb.prepare(`
+        INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('test-project', recentDate2Start, recentDate2End, 40, 2, 90);
 
       const result = tracker.getSessionStats('test-project');
 
@@ -579,16 +585,24 @@ describe('SessionTracker', () => {
     });
 
     test('should identify peak hours', () => {
-      // Insert sessions at different hours
-      testDb.prepare(`
-        INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', '2025-10-27T10:00:00Z', '2025-10-27T11:00:00Z', 50, 0, 90);
+      // Insert sessions at different hours with recent dates
+      const now = new Date();
+      const recentDate1Start = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+      recentDate1Start.setUTCHours(10, 0, 0, 0);
+      const recentDate1End = new Date(recentDate1Start.getTime() + 60 * 60 * 1000);
+      const recentDate2Start = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
+      recentDate2Start.setUTCHours(14, 0, 0, 0);
+      const recentDate2End = new Date(recentDate2Start.getTime() + 60 * 60 * 1000);
 
       testDb.prepare(`
         INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', '2025-10-27T14:00:00Z', '2025-10-27T15:00:00Z', 30, 0, 85);
+      `).run('test-project', recentDate1Start.toISOString(), recentDate1End.toISOString(), 50, 0, 90);
+
+      testDb.prepare(`
+        INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('test-project', recentDate2Start.toISOString(), recentDate2End.toISOString(), 30, 0, 85);
 
       const result = tracker.getSessionStats('test-project');
 
@@ -599,12 +613,15 @@ describe('SessionTracker', () => {
     });
 
     test('should limit recent sessions to 10', () => {
-      // Insert 15 sessions
+      // Insert 15 sessions with recent dates
+      const now = new Date();
       for (let i = 0; i < 15; i++) {
+        const startDate = new Date(now.getTime() - (15 - i) * 24 * 60 * 60 * 1000).toISOString();
+        const endDate = new Date(now.getTime() - (15 - i) * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString();
         testDb.prepare(`
           INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
           VALUES (?, ?, ?, ?, ?, ?)
-        `).run('test-project', `2025-10-${10 + i}T10:00:00Z`, `2025-10-${10 + i}T11:00:00Z`, 10, 0, 90);
+        `).run('test-project', startDate, endDate, 10, 0, 90);
       }
 
       const result = tracker.getSessionStats('test-project');

@@ -10,7 +10,7 @@
     activeTab = 'overview',
     activeSubTab = '',
     onSettingsClick = () => {},
-    onLogoutClick = () => {}
+    _onLogoutClick = () => {}
   } = $props();
 
   import { websocketService } from '../../services/websocket.js';

@@ -25,8 +25,8 @@
         onclick={() => navigate(tab.path)}
         class="px-4 py-3 text-sm font-medium transition-colors relative
           {isActive(tab.path)
-          ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
-          : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'}"
+            ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
+            : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'}"
       >
         {tab.label}
       </button>

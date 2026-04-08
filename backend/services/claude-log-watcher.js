@@ -146,7 +146,7 @@ export class ClaudeLogWatcher {
           const entry = JSON.parse(line);
           await this.processLogEntry(entry, filepath);
           processed++;
-        } catch (err) {
+        } catch (_err) {
           // Skip malformed lines
         }
       }
@@ -221,7 +221,7 @@ export class ClaudeLogWatcher {
         let entry;
         try {
           entry = JSON.parse(line);
-        } catch (err) {
+        } catch (_err) {
           // Incomplete JSON — stop here, retry on next change
           break;
         }

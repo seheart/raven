@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/svelte';
 
 // Mock websocket service - must be before component import
-vi.mock('../websocket.js', () => ({
+vi.mock('../services/websocket.js', () => ({
   websocketService: {
     subscribe: vi.fn(() => vi.fn()), // Return unsubscribe function
     on: vi.fn(),
@@ -32,7 +32,42 @@ vi.mock('../logger.js', () => ({
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn()
+  },
+  wsLogger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn()
   }
+}));
+
+// Mock apiClient
+vi.mock('../apiClient.js', () => ({
+  apiFetch: vi.fn(() => Promise.resolve({})),
+  api: {
+    get: vi.fn(() => Promise.resolve({})),
+    post: vi.fn(() => Promise.resolve({})),
+    put: vi.fn(() => Promise.resolve({})),
+    delete: vi.fn(() => Promise.resolve({}))
+  }
+}));
+
+// Mock errorLogger
+vi.mock('../errorLogger.js', () => ({
+  logError: vi.fn()
+}));
+
+// Mock authStore
+vi.mock('../authStore.js', () => ({
+  authService: {
+    getToken: vi.fn(() => null),
+    getUser: vi.fn(() => null),
+    isAuthenticated: vi.fn(() => false)
+  },
+  isAuthenticated: { subscribe: vi.fn(() => vi.fn()) },
+  authToken: { subscribe: vi.fn(() => vi.fn()) },
+  currentUser: { subscribe: vi.fn(() => vi.fn()) },
+  authLoading: { subscribe: vi.fn(() => vi.fn()) }
 }));
 
 // Mock dataService
@@ -45,9 +80,7 @@ vi.mock('../dataService.js', () => ({
 
 import HealthWidget from '../HealthWidget.svelte';
 import { dataService } from '../dataService.js';
-
-// Mock fetch
-global.fetch = vi.fn();
+import { api } from '../apiClient.js';
 
 describe('HealthWidget', () => {
   beforeEach(() => {
@@ -74,19 +107,15 @@ describe('HealthWidget', () => {
       }
     ]);
 
-    // Default mock responses for fetch (syntax errors endpoint)
-    global.fetch.mockImplementation(url => {
+    // Default mock for api.get (syntax errors endpoint)
+    api.get.mockImplementation((url) => {
       if (url.includes('/syntax-errors/count')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ count: 0 })
-        });
+        return Promise.resolve({ count: 0 });
       }
-
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({})
-      });
+      if (url.includes('/health')) {
+        return Promise.resolve({ status: 'healthy' });
+      }
+      return Promise.resolve({});
     });
   });
 
@@ -123,31 +152,15 @@ describe('HealthWidget', () => {
 
   describe('Health Status Indicators', () => {
     it('should show green status for healthy system', async () => {
-      global.fetch.mockImplementation(url => {
-        if (url.includes('/syntax-errors/count')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ count: 0 })
-          });
-        }
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([])
-          });
-        }
-        if (url.includes('/health-checks')) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: 'healthy',
-                summary: { total: 9, passed: 9, failed: 0 },
-                checks: []
-              })
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      dataService.fetchFileEvents.mockResolvedValue([]);
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'healthy',
+        summary: { total: 9, passed: 9, failed: 0 },
+        checks: []
+      });
+      api.get.mockImplementation((url) => {
+        if (url.includes('/syntax-errors/count')) return Promise.resolve({ count: 0 });
+        return Promise.resolve({});
       });
 
       render(HealthWidget);
@@ -184,20 +197,10 @@ describe('HealthWidget', () => {
     });
 
     it('should show critical status for serious issues', async () => {
-      global.fetch.mockImplementation(url => {
-        if (url.includes('/syntax-errors/count')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ count: 5 })
-          });
-        }
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([])
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      dataService.fetchFileEvents.mockResolvedValue([]);
+      api.get.mockImplementation((url) => {
+        if (url.includes('/syntax-errors/count')) return Promise.resolve({ count: 5 });
+        return Promise.resolve({});
       });
 
       render(HealthWidget);
@@ -249,20 +252,11 @@ describe('HealthWidget', () => {
 
   describe('Startup Health Checks', () => {
     it('should display pending state initially', async () => {
-      global.fetch.mockImplementation(url => {
-        if (url.includes('/health-checks')) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: 'pending',
-                message: 'Health checks have not run yet',
-                summary: { total: 0, passed: 0, failed: 0 },
-                checks: []
-              })
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'pending',
+        message: 'Health checks have not run yet',
+        summary: { total: 0, passed: 0, failed: 0 },
+        checks: []
       });
 
       render(HealthWidget);
@@ -274,31 +268,15 @@ describe('HealthWidget', () => {
     });
 
     it('should display healthy state when checks pass', async () => {
-      global.fetch.mockImplementation(url => {
-        if (url.includes('/health-checks')) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: 'healthy',
-                summary: { total: 9, passed: 9, failed: 0, allPassed: true },
-                checks: []
-              })
-          });
-        }
-        if (url.includes('/syntax-errors/count')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ count: 0 })
-          });
-        }
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([])
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'healthy',
+        summary: { total: 9, passed: 9, failed: 0, allPassed: true },
+        checks: []
+      });
+      dataService.fetchFileEvents.mockResolvedValue([]);
+      api.get.mockImplementation((url) => {
+        if (url.includes('/syntax-errors/count')) return Promise.resolve({ count: 0 });
+        return Promise.resolve({});
       });
 
       render(HealthWidget);
@@ -446,9 +424,9 @@ describe('HealthWidget', () => {
         }
       });
 
-      // Fetch should be called again
+      // api.get should be called again
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
+        expect(api.get).toHaveBeenCalled();
       });
     });
   });
@@ -479,33 +457,18 @@ describe('HealthWidget', () => {
     });
 
     it('should not flag small deletions', async () => {
-      global.fetch.mockImplementation(url => {
-        if (url.includes('/all-file-events')) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve([
-                {
-                  filepath: 'test.js',
-                  change_type: 'change',
-                  timestamp: new Date().toISOString(),
-                  lines_deleted: 50 // Under 100 threshold
-                }
-              ])
-          });
+      dataService.fetchFileEvents.mockResolvedValue([
+        {
+          filepath: 'test.js',
+          change_type: 'change',
+          timestamp: new Date().toISOString(),
+          lines_deleted: 50 // Under 100 threshold
         }
-        if (url.includes('/health-checks')) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: 'healthy',
-                summary: { total: 9, passed: 9, failed: 0 },
-                checks: []
-              })
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ count: 0 }) });
+      ]);
+      dataService.fetchHealthChecks.mockResolvedValue({
+        status: 'healthy',
+        summary: { total: 9, passed: 9, failed: 0 },
+        checks: []
       });
 
       render(HealthWidget);

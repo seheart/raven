@@ -7,7 +7,7 @@
   let currentSettings = $state(get(settings));
   let notificationPermission = $state('default');
 
-  function save() {
+  function _save() {
     settings.set(currentSettings);
   }
 

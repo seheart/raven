@@ -73,7 +73,7 @@ export async function waitFor(condition, options = {}) {
       if (result) {
         return true;
       }
-    } catch (error) {
+    } catch (_error) {
       // Condition threw error, continue waiting
     }
     await sleep(interval);
@@ -100,7 +100,7 @@ export async function isPortInUse(port) {
   try {
     const { stdout } = await execAsync(`lsof -ti:${port} 2>/dev/null || echo ""`);
     return stdout.trim().length > 0;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }

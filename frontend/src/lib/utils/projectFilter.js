@@ -121,7 +121,7 @@ export function getRecentProjects(limit = 5) {
   try {
     const recent = JSON.parse(localStorage.getItem('raven-recent-projects') || '[]');
     return recent.slice(0, limit);
-  } catch (error) {
+  } catch (_error) {
     return [];
   }
 }

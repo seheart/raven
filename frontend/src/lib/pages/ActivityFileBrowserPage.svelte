@@ -460,19 +460,19 @@
     const lastUpdated =
       files.length > 0
         ? Array.from(fileMetadata.values())
-            .map(m => m.lastModified)
-            .filter(t => t)
-            .sort()
-            .reverse()[0]
+          .map(m => m.lastModified)
+          .filter(t => t)
+          .sort()
+          .reverse()[0]
         : null;
 
     const mostChangedFile =
       files.length > 0
         ? files.reduce((max, file) => {
-            const count = fileMetadata.get(file)?.changeCount || 0;
-            const maxCount = fileMetadata.get(max)?.changeCount || 0;
-            return count > maxCount ? file : max;
-          }, files[0])
+          const count = fileMetadata.get(file)?.changeCount || 0;
+          const maxCount = fileMetadata.get(max)?.changeCount || 0;
+          return count > maxCount ? file : max;
+        }, files[0])
         : null;
 
     const fileTypeBreakdown = availableFileTypes

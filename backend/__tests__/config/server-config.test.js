@@ -5,7 +5,7 @@
 import { jest } from '@jest/globals';
 
 describe('ServerConfig', () => {
-  let serverConfig, validateConfig, getConfig;
+  let serverConfig, getConfig;
   let originalEnv;
 
   beforeEach(async () => {
@@ -198,7 +198,7 @@ describe('ServerConfig', () => {
       process.env.NODE_ENV = 'development';
       const module = await import('../../config/server-config.js');
 
-      expect(module.serverConfig.database.options.verbose).toBe(console.log);
+      expect(module.serverConfig.database.options.verbose).toBe(console.log); // eslint-disable-line no-console
     });
 
     test('should not have verbose logging in production', async () => {

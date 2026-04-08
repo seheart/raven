@@ -52,8 +52,7 @@ export class KeyboardService {
         return;
       }
 
-      // eslint-disable-next-line no-unused-vars
-      for (const [__, { key, handler, options }] of this.handlers) {
+      for (const [_id, { key, handler, options }] of this.handlers) {
         if (this._matchesShortcut(e, key, options)) {
           e.preventDefault();
           handler(e);

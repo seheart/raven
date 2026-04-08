@@ -246,14 +246,14 @@ describe('WebSocket Service', () => {
 
   describe('Multiple Clients', () => {
     let clientSocket2;
-    let serverSocket2;
+    let _serverSocket2;
 
     beforeEach((done) => {
       const port = httpServer.address().port;
 
       // Track second server socket connection
       const onSecondConnection = (socket) => {
-        serverSocket2 = socket;
+        _serverSocket2 = socket;
         io.off('connection', onSecondConnection);
       };
       io.on('connection', onSecondConnection);

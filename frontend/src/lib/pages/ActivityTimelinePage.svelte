@@ -31,15 +31,15 @@
       const cutoff = new Date();
 
       switch (timeRange) {
-        case 'today':
-          cutoff.setHours(0, 0, 0, 0);
-          break;
-        case 'week':
-          cutoff.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          cutoff.setMonth(now.getMonth() - 1);
-          break;
+      case 'today':
+        cutoff.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        cutoff.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        cutoff.setMonth(now.getMonth() - 1);
+        break;
       }
 
       filtered = filtered.filter(e => {
@@ -115,37 +115,37 @@
     }
   }
 
-  function getEventIcon(changeType) {
+  function _getEventIcon(changeType) {
     switch (changeType) {
-      case 'add':
-      case 'create':
-        return '+';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return '~';
-      case 'unlink':
-      case 'delete':
-        return '-';
-      default:
-        return '';
+    case 'add':
+    case 'create':
+      return '+';
+    case 'change':
+    case 'edit':
+    case 'modified':
+      return '~';
+    case 'unlink':
+    case 'delete':
+      return '-';
+    default:
+      return '';
     }
   }
 
   function getEventColor(changeType) {
     switch (changeType) {
-      case 'add':
-      case 'create':
-        return 'var(--success)';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return 'var(--accent)';
-      case 'unlink':
-      case 'delete':
-        return 'var(--error)';
-      default:
-        return 'var(--muted)';
+    case 'add':
+    case 'create':
+      return 'var(--success)';
+    case 'change':
+    case 'edit':
+    case 'modified':
+      return 'var(--accent)';
+    case 'unlink':
+    case 'delete':
+      return 'var(--error)';
+    default:
+      return 'var(--muted)';
     }
   }
 

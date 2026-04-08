@@ -2,9 +2,8 @@
  * Tests for Structured Logger
  */
 
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import { generateCorrelationId, StructuredLogger, createRequestLogger, logger } from '../../utils/structured-logger.js';
-import fs from 'fs';
 
 describe('Structured Logger', () => {
   let originalEnv;
@@ -47,7 +46,7 @@ describe('Structured Logger', () => {
       });
 
       test('should initialize with empty context', () => {
-        const emptyLogger = new StructuredLogger();
+        const _emptyLogger = new StructuredLogger();
         expect(testLogger.context).toBeDefined();
       });
     });
@@ -142,7 +141,7 @@ describe('Structured Logger', () => {
           path: '/api/test',
           query: { page: '1' },
           ip: '127.0.0.1',
-          get: (header) => 'Mozilla/5.0'
+          get: (_header) => 'Mozilla/5.0'
         };
 
         expect(() => testLogger.logRequest(mockReq)).not.toThrow();

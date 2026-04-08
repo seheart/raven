@@ -5,7 +5,6 @@
 
 import fs from 'fs';
 import { logger } from './logger.js';
-import { relative } from 'path';
 import { LIMITS } from '../config/constants.js';
 
 /**

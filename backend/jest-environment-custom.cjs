@@ -9,7 +9,7 @@ class CustomEnvironment extends NodeEnvironment {
       getItem: () => null,
       setItem: () => {},
       removeItem: () => {},
-      clear: () => {},
+      clear: () => {}
     };
   }
 }

@@ -215,7 +215,7 @@ export function createNotFoundError(resource) {
  * Middleware to handle errors globally
  * Place this after all routes as the last middleware
  */
-export function globalErrorHandler(err, req, res, next) {
+export function globalErrorHandler(err, req, res, _next) {
   // Log the error
   logger.error('Global error handler caught error', {
     error: err.message,

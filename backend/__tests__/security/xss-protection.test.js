@@ -58,17 +58,17 @@ describe('XSS Protection', () => {
 
   describe('Safe String Handling', () => {
     it('should not execute eval on user input', () => {
-      const userInput = 'alert("XSS")';
-      
+      const _userInput = 'alert("XSS")';
+
       // Never use eval
       expect(() => {
         // This test verifies we DON'T do this:
-        // eval(userInput); // NEVER DO THIS
+        // eval(_userInput); // NEVER DO THIS
       }).not.toThrow();
     });
 
     it('should not use Function constructor on user input', () => {
-      const userInput = 'return alert("XSS")';
+      const _userInput = 'return alert("XSS")';
       
       // Never use Function constructor
       expect(() => {

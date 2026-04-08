@@ -49,11 +49,11 @@
   let themeObserver = null;
 
   // Import dialog state
-  let showImportDialog = $state(false);
+  let _showImportDialog = $state(false);
   let importSessionFile = $state('');
   let importProject = $state('');
-  let importing = $state(false);
-  let importModalElement = $state();
+  let _importing = $state(false);
+  let _importModalElement = $state();
 
   // Derived values using Svelte 5 $derived
   const filteredConversations = $derived.by(() => {
@@ -225,35 +225,35 @@
 
   function getEventIcon(eventType) {
     switch (eventType) {
-      case 'user_message':
-        return '';
-      case 'assistant_text':
-        return '';
-      case 'tool_call':
-        return '';
-      case 'tool_result':
-        return '';
-      default:
-        return '';
+    case 'user_message':
+      return '';
+    case 'assistant_text':
+      return '';
+    case 'tool_call':
+      return '';
+    case 'tool_result':
+      return '';
+    default:
+      return '';
     }
   }
 
   function getEventClass(eventType) {
     switch (eventType) {
-      case 'user_message':
-        return 'user';
-      case 'assistant_text':
-        return 'assistant';
-      case 'tool_call':
-        return 'tool-call';
-      case 'tool_result':
-        return 'tool-result';
-      default:
-        return 'default';
+    case 'user_message':
+      return 'user';
+    case 'assistant_text':
+      return 'assistant';
+    case 'tool_call':
+      return 'tool-call';
+    case 'tool_result':
+      return 'tool-result';
+    default:
+      return 'default';
     }
   }
 
-  function formatToolInput(input) {
+  function _formatToolInput(input) {
     if (!input) return '';
     if (typeof input === 'string') return input;
     return JSON.stringify(input, null, 2);
@@ -307,14 +307,14 @@
     }
   }
 
-  async function importConversations() {
+  async function _importConversations() {
     if (!importSessionFile.trim()) {
       logger.warn('Please enter a session file path');
       return;
     }
 
     try {
-      importing = true;
+      _importing = true;
       const result = await api.post('/conversations/import', {
         sessionFile: importSessionFile,
         project: importProject || 'raven'
@@ -325,19 +325,19 @@
         sessionFile: result.sessionFile
       });
 
-      showImportDialog = false;
+      _showImportDialog = false;
       importSessionFile = '';
       importProject = '';
       loadConversations();
     } catch (error) {
       logger.error('Import failed:', error);
     } finally {
-      importing = false;
+      _importing = false;
     }
   }
 
-  function closeImportDialog() {
-    showImportDialog = false;
+  function _closeImportDialog() {
+    _showImportDialog = false;
   }
 
   function setupWebSocket() {

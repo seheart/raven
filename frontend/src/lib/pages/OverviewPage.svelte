@@ -47,8 +47,6 @@
   let lastDiffFilepath = '';
   let ephemeralTimers = []; // Track all short-lived timeouts for cleanup
 
-  // AI Insights
-  let latestSummary = $state(null);
 
   // Charts
   let trendChart = null;
@@ -145,27 +143,11 @@
     clearTimeout(workingAgentTimers[agentName]);
     workingAgentTimers[agentName] = setTimeout(() => {
       workingAgents = new Set([...workingAgents].filter(a => a !== agentName));
-      const { [agentName]: _, ...rest } = workingStates;
+      const { [agentName]: _removed, ...rest } = workingStates;
       workingStates = rest;
     }, 8000);
   }
 
-  function renderMarkdown(text) {
-    if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/^### (.+)$/gm, '<strong class="text-[var(--text-heading)]">$1</strong>')
-      .replace(/^## (.+)$/gm, '<strong class="text-[var(--text-heading)]">$1</strong>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--text-heading)]">$1</strong>')
-      .replace(
-        /`([^`]+)`/g,
-        '<code class="px-1 py-0.5 bg-[var(--bg)] rounded text-[var(--accent)] text-[10px] font-mono">$1</code>'
-      )
-      .replace(/^- (.+)$/gm, '<span class="ml-2">- $1</span>')
-      .replace(/\n/g, '<br>');
-  }
 
   function getAgentColorByName(name) {
     // These are brand colors for agent identification — intentionally static
@@ -279,6 +261,7 @@
           },
           y: {
             beginAtZero: true,
+            suggestedMax: Math.max(5, ...bucketData),
             ticks: { color: colors.muted, font: { size: 10, family: 'monospace' }, precision: 0 },
             grid: { color: `${colors.border}` }
           }
@@ -309,13 +292,6 @@
       loading = false;
       setTimeout(createCharts, 100);
 
-      // Load latest AI insight (non-blocking)
-      api
-        .get('/insights/latest')
-        .then(data => {
-          if (data?.id) latestSummary = data;
-        })
-        .catch(() => {});
     } catch (err) {
       logger.error('Dashboard load failed:', err);
       loading = false;
@@ -344,20 +320,20 @@
     // Debounced diff fetch — only fetch for the latest file, silently
     if (event.filepath && event.change_type !== 'unlink') {
       lastDiffFilepath = event.filepath;
+      const capturedEvent = { change_type: event.change_type, agent_source: event.agent_source, timestamp: event.timestamp };
       clearTimeout(diffDebounceTimer);
       diffDebounceTimer = setTimeout(() => {
         const fp = lastDiffFilepath;
         api
-          .get(`/file-events?limit=1&diff=true&filepath=${encodeURIComponent(fp)}`)
+          .get(`/file-diff/${encodeURIComponent(fp)}`)
           .then(data => {
-            const ev = Array.isArray(data) ? data[0] : null;
-            if (ev?.diff) {
+            if (data?.diff) {
               latestDiff = {
-                filepath: ev.filepath,
-                diff: ev.diff,
-                change_type: ev.change_type,
-                agent_source: ev.agent_source,
-                timestamp: ev.timestamp
+                filepath: data.filepath || fp,
+                diff: data.diff,
+                change_type: data.type || capturedEvent.change_type,
+                agent_source: capturedEvent.agent_source,
+                timestamp: capturedEvent.timestamp
               };
             }
           })
@@ -545,13 +521,13 @@
             </div>
           {:else}
             {#each activityFeed.length > 0 ? activityFeed : recentFiles
-                  .slice(0, 15)
-                  .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
+              .slice(0, 15)
+              .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
               <div
                 class="flex items-center gap-1.5 px-1.5 py-1 rounded transition-all duration-500 {item._new
                   ? 'feed-slide-in'
                   : 'hover:bg-[var(--bg)]'}"
-                style="border-left: 2px solid {item.color}; {item._new
+                style="border-left: 2px solid {item.color}; background: {item.icon === '+' ? 'var(--success-subtle)' : item.icon === '-' ? 'var(--error-subtle)' : 'transparent'}; {item._new
                   ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
                   : ''}"
               >
@@ -560,7 +536,7 @@
                   style="color: {item.color}">{item.icon}</span
                 >
                 <div class="flex-1 min-w-0">
-                  <div class="text-[10px] font-mono text-[var(--text)] truncate">{item.text}</div>
+                  <div class="text-[10px] font-mono truncate" style="color: {item.icon === '+' ? 'var(--success)' : item.icon === '-' ? 'var(--error)' : 'var(--text)'}">{item.text}</div>
                 </div>
                 <span class="text-[9px] text-[var(--muted)] font-mono flex-shrink-0"
                   >{formatTime(item.timestamp)}</span
@@ -754,41 +730,6 @@
       </div>
     </div>
 
-    <!-- AI Insight Summary -->
-    {#if latestSummary}
-      <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden mb-3"
-      >
-        <div
-          class="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--bg)]"
-        >
-          <div class="flex items-center gap-2">
-            <span
-              class="px-1.5 py-0.5 text-[9px] font-bold rounded text-white"
-              style="background: var(--accent)">AI Summary</span
-            >
-            <span class="text-xs font-semibold text-[var(--text)] font-sans"
-              >{latestSummary.title}</span
-            >
-          </div>
-          <div class="flex items-center gap-3 text-[10px] text-[var(--muted)] font-mono">
-            <span>{latestSummary.model}</span>
-            <span>{(latestSummary.duration_ms / 1000).toFixed(1)}s</span>
-            <button
-              onclick={() => { window.location.hash = ''; import('../utils/router.svelte.js').then(r => r.navigate('/insights')); }}
-              class="text-[var(--accent)] hover:underline bg-transparent border-0 cursor-pointer p-0 font-mono text-[10px]"
-              >View all</button
-            >
-          </div>
-        </div>
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -- Content is HTML-escaped in renderMarkdown -->
-        <div
-          class="px-4 py-3 text-xs text-[var(--text)] font-sans leading-relaxed max-h-[120px] overflow-auto"
-        >
-          {@html renderMarkdown(latestSummary.content)}
-        </div>
-      </div>
-    {/if}
 
     <!-- Syntax Alerts Banner -->
     {#if syntaxAlerts.length > 0}

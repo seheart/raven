@@ -133,26 +133,26 @@ export class SyntaxChecker {
   /**
    * Parse file content for syntax errors
    */
-  async parseForErrors(content, language, filepath) {
+  async parseForErrors(content, language, _filepath) {
     const errors = [];
 
     try {
       switch (language) {
-        case 'javascript':
-          await this.checkJavaScript(content, errors);
-          break;
-        case 'typescript':
-          await this.checkTypeScript(content, errors);
-          break;
-        case 'json':
-          this.checkJSON(content, errors);
-          break;
-        case 'python':
-          // Python syntax checking would require python-shell or similar
-          // Skipping for now
-          break;
-        default:
-          break;
+      case 'javascript':
+        await this.checkJavaScript(content, errors);
+        break;
+      case 'typescript':
+        await this.checkTypeScript(content, errors);
+        break;
+      case 'json':
+        this.checkJSON(content, errors);
+        break;
+      case 'python':
+        // Python syntax checking would require python-shell or similar
+        // Skipping for now
+        break;
+      default:
+        break;
       }
     } catch (error) {
       logger.error(`Parse error for ${language}:`, error);

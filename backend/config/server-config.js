@@ -78,7 +78,7 @@ export const serverConfig = {
     authDbPath: process.env.AUTH_DB_PATH || '.raven/db/auth.db',
     snapshotsDir: process.env.SNAPSHOTS_DIR || '.raven/snapshots',
     options: {
-      verbose: isDevelopment ? console.log : null,
+      verbose: isDevelopment ? console.log : null, // eslint-disable-line no-console
       timeout: 5000
     }
   },

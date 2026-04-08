@@ -219,8 +219,8 @@ describe('OpenAPI Specification', () => {
 
   describe('Response Schemas', () => {
     test('all paths should have response definitions', () => {
-      Object.entries(openApiSpec.paths).forEach(([path, methods]) => {
-        Object.entries(methods).forEach(([method, spec]) => {
+      Object.entries(openApiSpec.paths).forEach(([_path, methods]) => {
+        Object.entries(methods).forEach(([_method, spec]) => {
           expect(spec.responses).toBeDefined();
           expect(Object.keys(spec.responses).length).toBeGreaterThan(0);
         });
@@ -228,9 +228,9 @@ describe('OpenAPI Specification', () => {
     });
 
     test('all responses should have descriptions', () => {
-      Object.entries(openApiSpec.paths).forEach(([path, methods]) => {
-        Object.entries(methods).forEach(([method, spec]) => {
-          Object.entries(spec.responses).forEach(([code, response]) => {
+      Object.entries(openApiSpec.paths).forEach(([_path, methods]) => {
+        Object.entries(methods).forEach(([_method, spec]) => {
+          Object.entries(spec.responses).forEach(([_code, response]) => {
             expect(response.description).toBeDefined();
             expect(response.description.length).toBeGreaterThan(0);
           });
@@ -260,7 +260,7 @@ describe('OpenAPI Specification', () => {
     });
 
     test('all schemas should have type property', () => {
-      Object.entries(openApiSpec.components.schemas).forEach(([name, schema]) => {
+      Object.entries(openApiSpec.components.schemas).forEach(([_name, schema]) => {
         expect(schema.type).toBeDefined();
       });
     });

@@ -102,7 +102,7 @@
     }
   }
 
-  function formatBytes(bytes) {
+  function _formatBytes(bytes) {
     if (!bytes) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];

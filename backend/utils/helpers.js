@@ -216,7 +216,7 @@ export function deepClone(obj) {
   if (typeof structuredClone === 'function') {
     try {
       return structuredClone(obj);
-    } catch (err) {
+    } catch (_err) {
       // Fall through to JSON method
     }
   }

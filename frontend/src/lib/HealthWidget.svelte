@@ -26,7 +26,7 @@
 
   let loading = true;
   let error = null;
-  let todayStats = null;
+  let _todayStats = null;
   let ws = null;
   let healthCheckTimeoutId = null; // Track timeout for cleanup
 
@@ -178,7 +178,7 @@
       }
 
       health.lastCheck = new Date();
-      todayStats = { added: totalAdded, deleted: totalDeleted, files: todayFiles.size };
+      _todayStats = { added: totalAdded, deleted: totalDeleted, files: todayFiles.size };
       loading = false;
     } catch (err) {
       logger.error('Failed to fetch health:', err);
@@ -256,31 +256,31 @@
   // Startup health check helpers
   function getStartupStatusIcon(status) {
     switch (status) {
-      case 'healthy':
-        return '';
-      case 'unhealthy':
-        return '';
-      case 'error':
-        return '';
-      case 'pending':
-        return '';
-      default:
-        return '';
+    case 'healthy':
+      return '';
+    case 'unhealthy':
+      return '';
+    case 'error':
+      return '';
+    case 'pending':
+      return '';
+    default:
+      return '';
     }
   }
 
   function getStartupStatusColor(status) {
     switch (status) {
-      case 'healthy':
-        return 'var(--success)';
-      case 'unhealthy':
-        return 'var(--warning)';
-      case 'error':
-        return 'var(--error)';
-      case 'pending':
-        return 'var(--muted)';
-      default:
-        return 'var(--muted)';
+    case 'healthy':
+      return 'var(--success)';
+    case 'unhealthy':
+      return 'var(--warning)';
+    case 'error':
+      return 'var(--error)';
+    case 'pending':
+      return 'var(--muted)';
+    default:
+      return 'var(--muted)';
     }
   }
 
