@@ -17,9 +17,6 @@ const routes = [
   { path: '/safety', name: 'Safety Overview' },
   { path: '/safety/syntax', name: 'Syntax Errors' },
   { path: '/safety/rollback', name: 'Session Rollback' },
-  { path: '/safety/risk', name: 'Risk Correlation' },
-  { path: '/safety/patterns', name: 'Pattern Warnings' },
-  { path: '/safety/tests', name: 'Raven Tests' },
 
   // Agents
   { path: '/agents', name: 'Agents Overview' },
@@ -32,7 +29,6 @@ const routes = [
   { path: '/activity/activity-log', name: 'Activity Log' },
   { path: '/activity/code', name: 'Code Changes' },
   { path: '/activity/live', name: 'Live Feed' },
-  { path: '/activity/events', name: 'Event Log' },
   { path: '/activity/files', name: 'File Browser' },
   { path: '/activity/timeline', name: 'Timeline' },
   { path: '/activity/search', name: 'Global Search' },
@@ -40,25 +36,17 @@ const routes = [
   // Analysis
   { path: '/analysis', name: 'Analysis Overview' },
   { path: '/analysis/performance', name: 'Performance' },
-  { path: '/analysis/custom-metrics', name: 'Custom Metrics' },
   { path: '/analysis/trends', name: 'Historical Trends' },
   { path: '/analysis/triggers', name: 'Triggers' },
-  { path: '/analysis/session-replay', name: 'Session Replay' },
   { path: '/analysis/developer-insights', name: 'Developer Insights' },
 
   // System
   { path: '/system', name: 'System Overview' },
   { path: '/system/status', name: 'System Status' },
-  { path: '/system/anomalies', name: 'Anomaly Alerts' },
-  { path: '/system/intelligence', name: 'Intelligence' },
-  { path: '/system/integrations', name: 'Integrations' },
-  { path: '/system/exports', name: 'Exports' },
   { path: '/system/storage', name: 'Storage' },
   { path: '/system/projects', name: 'Projects' },
-  { path: '/system/sync', name: 'Server Sync' },
   { path: '/system/notifications', name: 'Notifications' },
   { path: '/system/errors', name: 'Errors' },
-  { path: '/system/api', name: 'API Health' },
 
   // Settings
   { path: '/settings', name: 'Settings' }

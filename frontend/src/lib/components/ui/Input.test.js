@@ -79,17 +79,6 @@ describe('Input Component', () => {
     });
   });
 
-  it.skip('renders different sizes', () => {
-    const { container: sm } = render(Input, { props: { size: 'sm' } });
-    expect(sm.querySelector('input')).toHaveClass('px-3', 'py-1.5', 'text-sm');
-
-    const { container: md } = render(Input, { props: { size: 'md' } });
-    expect(md.querySelector('input')).toHaveClass('px-4', 'py-2', 'text-base');
-
-    const { container: lg } = render(Input, { props: { size: 'lg' } });
-    expect(lg.querySelector('input')).toHaveClass('px-5', 'py-3', 'text-lg');
-  });
-
   it('handles disabled state', () => {
     const { container } = render(Input, {
       props: {
@@ -224,14 +213,4 @@ describe('Input Component', () => {
     expect(input).toHaveClass('outline-none');
   });
 
-  it.skip('handles fullWidth prop', () => {
-    const { container } = render(Input, {
-      props: {
-        fullWidth: true
-      }
-    });
-
-    const wrapper = container.querySelector('div');
-    expect(wrapper).toHaveClass('w-full');
-  });
 });

@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/svelte';
 import Select from './Select.svelte';
 
 describe('Select Component', () => {
@@ -35,23 +35,6 @@ describe('Select Component', () => {
     expect(select.value).toBe('b');
   });
 
-  it.skip('triggers change event on selection', async () => {
-    const options = [
-      { value: '1', label: 'One' },
-      { value: '2', label: 'Two' }
-    ];
-
-    const { component, container } = render(Select, { options });
-    const select = container.querySelector('select');
-
-    const changeHandler = vi.fn();
-    component.$on('change', changeHandler);
-
-    await fireEvent.change(select, { target: { value: '2' } });
-
-    expect(changeHandler).toHaveBeenCalled();
-  });
-
   it('renders with placeholder', () => {
     const options = [{ value: '1', label: 'Option' }];
     const placeholder = 'Choose an option';
@@ -71,13 +54,4 @@ describe('Select Component', () => {
     expect(select).toBeDisabled();
   });
 
-  it.skip('applies error class when error prop is true', () => {
-    const options = [{ value: '1', label: 'Option' }];
-    const error = true;
-
-    const { container } = render(Select, { options, error });
-
-    const select = container.querySelector('select');
-    expect(select).toHaveClass('error');
-  });
 });

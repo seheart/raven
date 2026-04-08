@@ -3,11 +3,6 @@ import { render, fireEvent } from '@testing-library/svelte';
 import Button from './Button.svelte';
 
 describe('Button Component', () => {
-  it.skip('renders with default props', () => {
-    // Skipped: Svelte 5 snippet/children testing needs E2E approach
-    // Core functionality is tested in other tests
-  });
-
   it('renders with primary variant', () => {
     const { container } = render(Button, {
       props: {
