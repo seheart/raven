@@ -34,7 +34,7 @@
   async function discoverProjects() {
     try {
       discovering = true;
-      const data = await api.post('/projects/discover', { basePath: config.basePath });
+      const data = await api.post('/projects/discover', { basePath: config.basePath, autoRegister: true });
       const count = data.discovered?.length || 0;
       if (count > 0) await loadConfig();
       alert(count > 0 ? `Found and added ${count} project(s)` : 'No new projects found');
