@@ -54,7 +54,7 @@
     ],
     analysis: [
       { id: '', label: 'Overview' },
-      { id: 'costs', label: 'Costs' },
+      { id: 'costs', label: 'Token Usage' },
       { id: 'subagents', label: 'Sub-Agents' },
       { id: 'models', label: 'Models' },
       { id: 'performance', label: 'Performance' },

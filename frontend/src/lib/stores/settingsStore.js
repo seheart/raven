@@ -33,6 +33,10 @@ const DEFAULT_SETTINGS = {
     metricsInterval: 10,
     enableFileWatcher: true,
     maxEventsDisplay: 100
+  },
+  billing: {
+    mode: 'subscription', // 'subscription' or 'api'
+    planName: 'Claude Max' // display label for current plan
   }
 };
 
@@ -56,7 +60,8 @@ function loadSettings() {
         notifications: { ...DEFAULT_SETTINGS.notifications, ...parsed.notifications },
         ui: { ...DEFAULT_SETTINGS.ui, ...parsed.ui },
         editor: { ...DEFAULT_SETTINGS.editor, ...parsed.editor },
-        performance: { ...DEFAULT_SETTINGS.performance, ...parsed.performance }
+        performance: { ...DEFAULT_SETTINGS.performance, ...parsed.performance },
+        billing: { ...DEFAULT_SETTINGS.billing, ...parsed.billing }
       };
     } catch (e) {
       logger.error('Failed to parse saved settings:', e);
@@ -193,7 +198,8 @@ export const settings = {
         notifications: { ...DEFAULT_SETTINGS.notifications, ...imported.notifications },
         ui: { ...DEFAULT_SETTINGS.ui, ...imported.ui },
         editor: { ...DEFAULT_SETTINGS.editor, ...imported.editor },
-        performance: { ...DEFAULT_SETTINGS.performance, ...imported.performance }
+        performance: { ...DEFAULT_SETTINGS.performance, ...imported.performance },
+        billing: { ...DEFAULT_SETTINGS.billing, ...imported.billing }
       };
       settingsStore.set(merged);
       return true;

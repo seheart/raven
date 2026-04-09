@@ -6,8 +6,21 @@
   import { websocketService } from '../services/websocket.js';
   import { Chart, registerables } from 'chart.js';
   import { createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import { settings } from '../stores/settingsStore.js';
+  import { get } from 'svelte/store';
 
   Chart.register(...registerables);
+
+  // Billing mode
+  let billingMode = $state(get(settings)?.billing?.mode || 'subscription');
+  let planName = $state(get(settings)?.billing?.planName || 'Claude Max');
+  const isApi = $derived(billingMode === 'api');
+
+  // Sync with settings store
+  const unsubSettings = settings.subscribe(s => {
+    billingMode = s?.billing?.mode || 'subscription';
+    planName = s?.billing?.planName || 'Claude Max';
+  });
 
   // State
   let summary = $state({ total_requests: 0, total_input_tokens: 0, total_output_tokens: 0, total_cache_creation_tokens: 0, total_cache_read_tokens: 0, total_cost_usd: 0 });
@@ -96,8 +109,8 @@
             return t.bucket?.split('T')[0] || t.bucket;
           }),
           datasets: [{
-            label: 'Cost ($)',
-            data: timeline.map(t => t.cost_usd),
+            label: isApi ? 'Cost ($)' : 'Tokens',
+            data: timeline.map(t => isApi ? t.cost_usd : (t.input_tokens + t.output_tokens)),
             backgroundColor: colors.accent + '80',
             borderColor: colors.accent,
             borderWidth: 1
@@ -110,7 +123,7 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: ctx => `$${ctx.parsed.y.toFixed(4)}`
+                label: ctx => isApi ? `$${ctx.parsed.y.toFixed(4)}` : `${formatTokens(ctx.parsed.y)} tokens`
               }
             }
           },
@@ -118,7 +131,7 @@
             y: {
               beginAtZero: true,
               ticks: {
-                callback: v => `$${Number(v).toFixed(3)}`,
+                callback: v => isApi ? `$${Number(v).toFixed(3)}` : formatTokens(Number(v)),
                 color: colors.muted
               },
               grid: { color: colors.border }
@@ -141,7 +154,7 @@
         data: {
           labels: byModel.map(m => m.model_family || m.model),
           datasets: [{
-            data: byModel.map(m => m.cost_usd),
+            data: byModel.map(m => isApi ? m.cost_usd : (m.input_tokens + m.output_tokens)),
             backgroundColor: palette.slice(0, byModel.length),
             borderWidth: 0
           }]
@@ -156,7 +169,7 @@
             },
             tooltip: {
               callbacks: {
-                label: ctx => `${ctx.label || 'Unknown'}: $${(ctx.parsed || 0).toFixed(4)}`
+                label: ctx => isApi ? `${ctx.label || 'Unknown'}: $${(ctx.parsed || 0).toFixed(4)}` : `${ctx.label || 'Unknown'}: ${formatTokens(ctx.parsed || 0)} tokens`
               }
             }
           }
@@ -195,6 +208,7 @@
 
     return () => {
       abortRequests();
+      unsubSettings();
       websocketService.off('token-usage', onTokenUsage);
       if (costChart) costChart.destroy();
       if (modelChart) modelChart.destroy();
@@ -208,10 +222,13 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Costs & Token Usage</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Claude API token consumption and estimated spend
-        </p>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Token Usage</h1>
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi ? 'bg-[var(--warning)] text-black' : 'bg-[var(--accent)] text-white'}">{isApi ? 'API Billing' : planName}</span>
+          <p class="text-sm text-[var(--muted)] font-sans">
+            {isApi ? 'Estimated API costs and token consumption' : 'Token consumption across sessions'}
+          </p>
+        </div>
       </div>
       <div class="flex items-center gap-3">
         <div class="flex bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden">
@@ -242,10 +259,17 @@
     {:else}
       <!-- Summary Cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Total Spend</div>
-          <div class="text-2xl font-bold text-[var(--accent)] font-mono">{formatCost(summary.total_cost_usd)}</div>
-        </div>
+        {#if isApi}
+          <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+            <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Est. Spend</div>
+            <div class="text-2xl font-bold text-[var(--accent)] font-mono">{formatCost(summary.total_cost_usd)}</div>
+          </div>
+        {:else}
+          <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
+            <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Total Tokens</div>
+            <div class="text-2xl font-bold text-[var(--accent)] font-mono">{formatTokens((summary.total_input_tokens || 0) + (summary.total_output_tokens || 0))}</div>
+          </div>
+        {/if}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
           <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Requests</div>
           <div class="text-2xl font-bold text-[var(--text)] font-mono">{summary.total_requests?.toLocaleString()}</div>
@@ -264,7 +288,7 @@
       <!-- Charts Row -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="md:col-span-2 bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Cost Over Time</h3>
+          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">{isApi ? 'Cost Over Time' : 'Tokens Over Time'}</h3>
           <div class="h-48">
             <canvas bind:this={costChartCanvas}></canvas>
           </div>
@@ -284,7 +308,7 @@
       <!-- Model Breakdown -->
       {#if byModel.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 mb-6">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Cost by Model</h3>
+          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Usage by Model</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-sm font-mono">
               <thead>
@@ -293,7 +317,7 @@
                   <th class="pb-2 pr-4 text-right">Requests</th>
                   <th class="pb-2 pr-4 text-right">Input</th>
                   <th class="pb-2 pr-4 text-right">Output</th>
-                  <th class="pb-2 text-right">Cost</th>
+                  {#if isApi}<th class="pb-2 text-right">Est. Cost</th>{/if}
                 </tr>
               </thead>
               <tbody>
@@ -302,8 +326,8 @@
                     <td class="py-2 pr-4 text-[var(--text)]">{model.model_family || model.model}</td>
                     <td class="py-2 pr-4 text-right text-[var(--muted)]">{model.requests}</td>
                     <td class="py-2 pr-4 text-right text-[var(--muted)]">{formatTokens(model.input_tokens)}</td>
-                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{formatTokens(model.output_tokens)}</td>
-                    <td class="py-2 text-right text-[var(--accent)] font-semibold">{formatCost(model.cost_usd)}</td>
+                    <td class="py-2 pr-4 text-right text-[var(--accent)] font-semibold">{formatTokens(model.output_tokens)}</td>
+                    {#if isApi}<td class="py-2 text-right text-[var(--accent)] font-semibold">{formatCost(model.cost_usd)}</td>{/if}
                   </tr>
                 {/each}
               </tbody>
@@ -315,7 +339,7 @@
       <!-- Project Breakdown -->
       {#if byProject.length > 0}
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 mb-6">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Cost by Project</h3>
+          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Usage by Project</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-sm font-mono">
               <thead>
@@ -324,7 +348,7 @@
                   <th class="pb-2 pr-4 text-right">Requests</th>
                   <th class="pb-2 pr-4 text-right">Input</th>
                   <th class="pb-2 pr-4 text-right">Output</th>
-                  <th class="pb-2 text-right">Cost</th>
+                  {#if isApi}<th class="pb-2 text-right">Est. Cost</th>{/if}
                 </tr>
               </thead>
               <tbody>
@@ -333,8 +357,8 @@
                     <td class="py-2 pr-4 text-[var(--text)]">{project.project_name || '(unknown)'}</td>
                     <td class="py-2 pr-4 text-right text-[var(--muted)]">{project.requests}</td>
                     <td class="py-2 pr-4 text-right text-[var(--muted)]">{formatTokens(project.input_tokens)}</td>
-                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{formatTokens(project.output_tokens)}</td>
-                    <td class="py-2 text-right text-[var(--accent)] font-semibold">{formatCost(project.cost_usd)}</td>
+                    <td class="py-2 pr-4 text-right text-[var(--accent)] font-semibold">{formatTokens(project.output_tokens)}</td>
+                    {#if isApi}<td class="py-2 text-right text-[var(--accent)] font-semibold">{formatCost(project.cost_usd)}</td>{/if}
                   </tr>
                 {/each}
               </tbody>
@@ -356,7 +380,9 @@
                 </div>
                 <div class="flex items-center gap-4">
                   <span class="text-xs text-[var(--muted)]">{formatTokens(session.input_tokens + session.output_tokens)} tokens</span>
-                  <span class="text-[var(--accent)] font-mono font-semibold">{formatCost(session.cost_usd)}</span>
+                  {#if isApi}
+                    <span class="text-[var(--accent)] font-mono font-semibold">{formatCost(session.cost_usd)}</span>
+                  {/if}
                 </div>
               </div>
             {/each}
@@ -369,8 +395,8 @@
           <div class="text-4xl mb-4">💰</div>
           <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2">No token usage recorded yet</h3>
           <p class="text-sm text-[var(--muted)]">
-            Token usage will appear here as Claude Code sessions generate API calls.
-            Historical data from existing logs will be imported on first startup.
+            Token usage will appear here as Claude Code sessions run.
+            Historical data from existing logs is imported on startup.
           </p>
         </div>
       {/if}

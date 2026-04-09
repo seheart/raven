@@ -330,6 +330,55 @@
         </div>
       </div>
 
+      <!-- Billing Mode -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          Billing Mode
+        </h3>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="text-sm text-[var(--text)]">Plan Type</div>
+              <div class="text-xs text-[var(--muted)]">Controls how token usage is displayed</div>
+            </div>
+            <select
+              bind:value={currentSettings.billing.mode}
+              class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] cursor-pointer"
+            >
+              <option value="subscription">Subscription (Max/Pro)</option>
+              <option value="api">API (pay-per-token)</option>
+            </select>
+          </div>
+          {#if currentSettings.billing?.mode === 'subscription'}
+            <div class="flex justify-between items-center">
+              <div>
+                <div class="text-sm text-[var(--text)]">Plan Name</div>
+                <div class="text-xs text-[var(--muted)]">Shown as a badge on the Token Usage page</div>
+              </div>
+              <select
+                bind:value={currentSettings.billing.planName}
+                class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] cursor-pointer"
+              >
+                <option value="Claude Max">Claude Max ($100/mo)</option>
+                <option value="Claude Pro">Claude Pro ($20/mo)</option>
+                <option value="Claude Team">Claude Team</option>
+                <option value="Claude Enterprise">Claude Enterprise</option>
+                <option value="Free">Free</option>
+              </select>
+            </div>
+            <div class="text-xs text-[var(--muted)] bg-[var(--bg)] rounded p-3">
+              On a subscription plan, token usage is tracked for visibility but you are not billed per token.
+              Cost estimates are hidden. Switch to API mode if you use pay-per-token billing.
+            </div>
+          {:else}
+            <div class="text-xs text-[var(--warning)] bg-[var(--bg)] rounded p-3">
+              API mode shows estimated costs based on published per-token pricing.
+              These are estimates — actual billing may differ.
+            </div>
+          {/if}
+        </div>
+      </div>
+
       <!-- Mobile Access -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
         <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">

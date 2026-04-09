@@ -39,7 +39,12 @@
   let lastUpdated = $state(new Date());
 
   // Costs & sub-agent state
+  import { settings } from '../stores/settingsStore.js';
   let sessionCosts = $state({ total_requests: 0, total_cost_usd: 0, total_input_tokens: 0, total_output_tokens: 0, total_cache_read_tokens: 0 });
+  let billingMode = $state(get(settings)?.billing?.mode || 'subscription');
+  const unsubBilling = settings.subscribe(s => {
+    billingMode = s?.billing?.mode || 'subscription';
+  });
   let recentSubagents = $state([]);
 
   // Live activity feed — unified stream of all events
@@ -519,6 +524,7 @@
       Object.values(workingAgentTimers).forEach(t => clearTimeout(t));
       clearTimeout(diffDebounceTimer);
       ephemeralTimers.forEach(t => clearTimeout(t));
+      unsubBilling();
     };
   });
 </script>
@@ -662,23 +668,6 @@
         </div>
       {/each}
 
-      <span class="text-[var(--border)]">|</span>
-
-      <!-- CPU/MEM inline -->
-      <div class="flex items-center gap-1.5">
-        <span class="text-[10px] text-[var(--muted)]">CPU</span>
-        <div class="w-10 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
-          <div class="h-full transition-all duration-500" style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"></div>
-        </div>
-        <span class="text-[10px] font-mono text-[var(--text)]">{systemMetrics.cpu_percent?.toFixed(0) || 0}%</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <span class="text-[10px] text-[var(--muted)]">MEM</span>
-        <div class="w-10 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
-          <div class="h-full transition-all duration-500" style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"></div>
-        </div>
-        <span class="text-[10px] font-mono text-[var(--text)]">{systemMetrics.memory_percent?.toFixed(0) || 0}%</span>
-      </div>
     </div>
 
     <!-- Costs + Sub-Agents + Latest Diff (3-column row) -->
@@ -692,10 +681,16 @@
         tabindex="0"
       >
         <div class="flex justify-between items-center mb-3">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Today's Costs</h3>
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Today's Tokens</h3>
           <span class="text-[10px] text-[var(--muted)]">→ Details</span>
         </div>
-        <div class="text-2xl font-bold text-[var(--accent)] font-mono mb-2">{formatCost(sessionCosts.total_cost_usd)}</div>
+        <div class="text-2xl font-bold text-[var(--accent)] font-mono mb-2">
+          {#if billingMode === 'api'}
+            {formatCost(sessionCosts.total_cost_usd)}
+          {:else}
+            {formatTokens((sessionCosts.total_input_tokens || 0) + (sessionCosts.total_output_tokens || 0))}
+          {/if}
+        </div>
         <div class="grid grid-cols-3 gap-2 text-[10px] font-mono">
           <div>
             <div class="text-[var(--muted)]">Requests</div>
