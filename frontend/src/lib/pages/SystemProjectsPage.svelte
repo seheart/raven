@@ -105,6 +105,32 @@
     }
   }
 
+  let healthNarratives = $state({});
+
+  async function getProjectHealth(projectName) {
+    healthNarratives = { ...healthNarratives, [projectName]: { loading: true, content: null, error: null } };
+    try {
+      const result = await api.post('/insights/generate/project-health', { projectName }, { timeout: 120000 });
+      healthNarratives = { ...healthNarratives, [projectName]: { loading: false, content: result?.content || 'No data available', error: null } };
+    } catch (err) {
+      healthNarratives = { ...healthNarratives, [projectName]: { loading: false, content: null, error: err.message } };
+    }
+  }
+
+  function renderMarkdown(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/^### (.+)$/gm, '<h4 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h4>')
+      .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--text-heading)]">$1</strong>')
+      .replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-[var(--bg)] rounded text-[var(--accent)] text-[11px] font-mono">$1</code>')
+      .replace(/^- (.+)$/gm, '<div class="flex gap-2 ml-2"><span class="text-[var(--muted)]">-</span><span>$1</span></div>')
+      .replace(/\n/g, '<br>');
+  }
+
   function _formatBytes(bytes) {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -261,6 +287,13 @@
                 </div>
                 <div class="flex gap-2 flex-shrink-0">
                   <button
+                    onclick={() => getProjectHealth(project.name)}
+                    disabled={healthNarratives[project.name]?.loading}
+                    class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
+                  >
+                    {healthNarratives[project.name]?.loading ? 'Analyzing...' : 'AI Summary'}
+                  </button>
+                  <button
                     onclick={() => toggleProject(project)}
                     class="px-2 py-1 rounded text-xs font-sans transition-colors {project.enabled
                       ? 'bg-[var(--success-subtle)] text-[var(--success)] border border-[var(--success)]'
@@ -282,6 +315,18 @@
                   </button>
                 </div>
               </div>
+              {#if healthNarratives[project.name]?.content}
+                <div class="px-5 pb-4 -mt-2">
+                  <!-- eslint-disable-next-line svelte/no-at-html-tags -- Content is HTML-escaped in renderMarkdown -->
+                  <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-sm text-[var(--text)] font-sans leading-relaxed">
+                    {@html renderMarkdown(healthNarratives[project.name].content)}
+                  </div>
+                </div>
+              {:else if healthNarratives[project.name]?.error}
+                <div class="px-5 pb-4 -mt-2">
+                  <div class="text-xs text-[var(--error)]">Failed: {healthNarratives[project.name].error}</div>
+                </div>
+              {/if}
             {/each}
           </div>
         </div>

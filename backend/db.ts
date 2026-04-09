@@ -127,6 +127,20 @@ export interface DashboardStats {
 }
 
 /**
+ * Diff risk score from LLM analysis
+ */
+export interface DiffRiskScore {
+  id: number;
+  event_id: number;
+  filepath: string;
+  score: number;
+  reason: string;
+  timestamp: string;
+  model: string;
+  session_id: string;
+}
+
+/**
  * Performance correlation data
  */
 export interface PerformanceCorrelation {
@@ -331,6 +345,20 @@ export class RavenDB {
       )
     `);
 
+    // Diff risk scores table (LLM-generated risk assessments for file changes)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS diff_risk_scores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER,
+        filepath TEXT NOT NULL,
+        score INTEGER NOT NULL,
+        reason TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        model TEXT,
+        session_id TEXT
+      )
+    `);
+
     // ==================== Performance Indexes ====================
     // These indexes dramatically improve query performance as tables grow
 
@@ -409,6 +437,17 @@ export class RavenDB {
     );
     this.db.exec(
       `CREATE INDEX IF NOT EXISTS idx_test_results_framework ON test_results(framework)`
+    );
+
+    // Diff risk scores indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_diff_risk_scores_timestamp ON diff_risk_scores(timestamp DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_diff_risk_scores_filepath ON diff_risk_scores(filepath)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_diff_risk_scores_score ON diff_risk_scores(score DESC)`
     );
   }
 
@@ -1143,6 +1182,41 @@ export class RavenDB {
     `);
     const result = stmt.get() as { count: number };
     return result.count;
+  }
+
+  // ==================== Diff Risk Scores ====================
+
+  insertDiffRiskScore(
+    event_id: number,
+    filepath: string,
+    score: number,
+    reason: string,
+    timestamp: string,
+    model: string | null,
+    session_id: string | null
+  ): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO diff_risk_scores (event_id, filepath, score, reason, timestamp, model, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(event_id, filepath, score, reason, timestamp, model, session_id);
+    return result.lastInsertRowid as number;
+  }
+
+  getRecentDiffRiskScores(limit: number = 20): DiffRiskScore[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM diff_risk_scores
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit) as DiffRiskScore[];
+  }
+
+  getDiffRiskScoreByEventId(eventId: number): DiffRiskScore | null {
+    const stmt = this.db.prepare(`
+      SELECT * FROM diff_risk_scores WHERE event_id = ?
+    `);
+    return (stmt.get(eventId) as DiffRiskScore) || null;
   }
 
   /**

@@ -47,6 +47,7 @@
   let diffDebounceTimer = null;
   let lastDiffFilepath = '';
   let ephemeralTimers = []; // Track all short-lived timeouts for cleanup
+  let riskScores = $state({}); // { [eventId]: { score, reason } }
 
 
   // Charts
@@ -311,6 +312,7 @@
     // Push to activity feed with animation
     pushActivity({
       type: 'file',
+      eventId: event.id,
       icon: event.change_type === 'add' ? '+' : event.change_type === 'unlink' ? '-' : '~',
       color: getChangeColor(event.change_type),
       text: event.filepath,
@@ -418,6 +420,20 @@
     });
   };
 
+  const handleDiffRiskScore = data => {
+    riskScores = { ...riskScores, [data.eventId]: { score: data.score, reason: data.reason } };
+  };
+
+  const handleAnomalyInsight = data => {
+    pushActivity({
+      type: 'insight',
+      icon: 'AI',
+      color: 'var(--accent)',
+      text: data.explanation,
+      timestamp: data.alertTimestamp || new Date().toISOString()
+    });
+  };
+
   // Reload when project filter changes
   const unsubFilter = projectFilter.subscribe(() => {
     loadData();
@@ -436,6 +452,8 @@
     websocketService.on('model-status-changed', handleModelStatus);
     websocketService.on('health-alert', handleHealthAlert);
     websocketService.on('app-error', handleAppError);
+    websocketService.on('diff-risk-score', handleDiffRiskScore);
+    websocketService.on('anomaly-insight', handleAnomalyInsight);
 
     themeObserver = createThemeObserver(() => createCharts());
 
@@ -452,6 +470,8 @@
       websocketService.off('model-status-changed', handleModelStatus);
       websocketService.off('health-alert', handleHealthAlert);
       websocketService.off('app-error', handleAppError);
+      websocketService.off('diff-risk-score', handleDiffRiskScore);
+      websocketService.off('anomaly-insight', handleAnomalyInsight);
       if (themeObserver) themeObserver.disconnect();
       if (trendChart) destroyChart(trendChart);
       clearInterval(interval);
@@ -498,11 +518,8 @@
       </div>
     </div>
 
-    <!-- AI Activity + Live Feed -->
+    <!-- Live Feed + AI Activity -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
-      <div class="lg:col-span-2">
-        <NebulaActivity />
-      </div>
       <div
         class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex flex-col"
         style="height: 260px;"
@@ -540,6 +557,16 @@
                 <div class="flex-1 min-w-0">
                   <div class="text-[10px] font-mono truncate" style="color: {item.icon === '+' ? 'var(--success)' : item.icon === '-' ? 'var(--error)' : 'var(--text)'}">{item.text}</div>
                 </div>
+                {#if item.eventId && riskScores[item.eventId]}
+                  {@const rs = riskScores[item.eventId]}
+                  <span
+                    class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0"
+                    style="background: {rs.score >= 7 ? 'var(--error)' : rs.score >= 4 ? 'var(--warning)' : 'var(--success)'}"
+                    title={rs.reason}
+                  >
+                    {rs.score}
+                  </span>
+                {/if}
                 <span class="text-[9px] text-[var(--muted)] font-mono flex-shrink-0"
                   >{formatTime(item.timestamp)}</span
                 >
@@ -547,6 +574,9 @@
             {/each}
           {/if}
         </div>
+      </div>
+      <div class="lg:col-span-2">
+        <NebulaActivity />
       </div>
     </div>
 

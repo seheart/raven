@@ -5,13 +5,12 @@
 import express, { Request, Response, Router } from 'express';
 import { asyncHandler } from '../middleware/async-handler.js';
 import type { InsightsService } from '../services/insights-service.js';
+import type { RavenDB } from '../db.js';
 
-export function createInsightsRouter(insightsService: InsightsService): Router {
+export function createInsightsRouter(insightsService: InsightsService, db: RavenDB): Router {
   const router = express.Router();
 
-  /**
-   * GET /api/insights — List recent insights
-   */
+  // GET /api/insights — List recent insights
   router.get(
     '/',
     asyncHandler(async (req: Request, res: Response) => {
@@ -22,9 +21,7 @@ export function createInsightsRouter(insightsService: InsightsService): Router {
     })
   );
 
-  /**
-   * GET /api/insights/latest — Get the latest insight of a type
-   */
+  // GET /api/insights/latest
   router.get(
     '/latest',
     asyncHandler(async (req: Request, res: Response) => {
@@ -34,9 +31,7 @@ export function createInsightsRouter(insightsService: InsightsService): Router {
     })
   );
 
-  /**
-   * GET /api/insights/status — Check Ollama availability and generation state
-   */
+  // GET /api/insights/status
   router.get(
     '/status',
     asyncHandler(async (req: Request, res: Response) => {
@@ -50,9 +45,7 @@ export function createInsightsRouter(insightsService: InsightsService): Router {
     })
   );
 
-  /**
-   * POST /api/insights/generate/summary — Generate a session summary
-   */
+  // POST /api/insights/generate/summary
   router.post(
     '/generate/summary',
     asyncHandler(async (req: Request, res: Response) => {
@@ -66,9 +59,7 @@ export function createInsightsRouter(insightsService: InsightsService): Router {
     })
   );
 
-  /**
-   * POST /api/insights/generate/review — Generate a code review
-   */
+  // POST /api/insights/generate/review
   router.post(
     '/generate/review',
     asyncHandler(async (req: Request, res: Response) => {
@@ -81,9 +72,61 @@ export function createInsightsRouter(insightsService: InsightsService): Router {
     })
   );
 
-  /**
-   * PUT /api/insights/model — Change the Ollama model
-   */
+  // POST /api/insights/generate/digest — Generate daily digest
+  router.post(
+    '/generate/digest',
+    asyncHandler(async (req: Request, res: Response) => {
+      const insight = await insightsService.generateDailyDigest();
+      if (!insight) {
+        res.status(202).json({ message: 'No activity to digest or generation in progress' });
+        return;
+      }
+      res.json(insight);
+    })
+  );
+
+  // POST /api/insights/generate/agent-comparison
+  router.post(
+    '/generate/agent-comparison',
+    asyncHandler(async (req: Request, res: Response) => {
+      const insight = await insightsService.generateAgentComparison();
+      if (!insight) {
+        res.status(202).json({ message: 'No agent data or generation in progress' });
+        return;
+      }
+      res.json(insight);
+    })
+  );
+
+  // POST /api/insights/generate/project-health
+  router.post(
+    '/generate/project-health',
+    asyncHandler(async (req: Request, res: Response) => {
+      const { projectName } = req.body;
+      if (!projectName) {
+        res.status(400).json({ error: 'projectName is required' });
+        return;
+      }
+      const insight = await insightsService.generateProjectHealth(projectName);
+      if (!insight) {
+        res.status(202).json({ message: 'No project data or generation in progress' });
+        return;
+      }
+      res.json(insight);
+    })
+  );
+
+  // GET /api/insights/diff-risk-scores
+  router.get(
+    '/diff-risk-scores',
+    asyncHandler(async (req: Request, res: Response) => {
+      const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 50);
+      const scores = db.getRecentDiffRiskScores(limit);
+      res.json(scores);
+    })
+  );
+
+  // PUT /api/insights/model
   router.put(
     '/model',
     asyncHandler(async (req: Request, res: Response) => {

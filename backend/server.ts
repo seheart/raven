@@ -159,13 +159,49 @@ healthMonitor.onAlert(report => {
     warnings: report.summary.warnings
   });
 
+  const criticalIssues = report.checks.filter(c => c.status === 'critical');
+
   // Emit health alert via Socket.IO for real-time notifications
   io.emit('health-alert', {
     status: report.overallStatus,
     summary: report.summary,
-    criticalIssues: report.checks.filter(c => c.status === 'critical')
+    criticalIssues
   });
+
+  // Fire-and-forget: generate LLM explanation for the anomaly
+  if (report.summary.critical > 0 || report.summary.warnings > 0) {
+    insightsService.generateAnomalyExplanation({
+      overallStatus: report.overallStatus,
+      criticalIssues,
+      summary: report.summary
+    }).then(insight => {
+      if (insight) {
+        io.emit('anomaly-insight', {
+          alertTimestamp: new Date().toISOString(),
+          explanation: insight.content,
+          insightId: insight.id
+        });
+      }
+    }).catch(() => { /* Ollama offline — silently ignore */ });
+  }
 });
+
+// Daily digest scheduler — checks hourly, generates at 6PM if no digest exists today
+setInterval(async () => {
+  const hour = new Date().getHours();
+  if (hour >= 18 && hour < 19) {
+    const today = new Date().toISOString().split('T')[0];
+    const existing = insightsService.getInsights('daily_digest', 1);
+    if (existing.length > 0 && existing[0].timestamp.startsWith(today)) {
+      return; // Already generated today
+    }
+    insightsService.generateDailyDigest().then(insight => {
+      if (insight) {
+        io.emit('daily-digest', { id: insight.id, title: insight.title, timestamp: insight.timestamp });
+      }
+    }).catch(() => {});
+  }
+}, 3600000); // Every hour
 
 // Initialize Claude Code log watcher for automatic agent detection
 const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
@@ -440,6 +476,24 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       event_size: event.size
     });
 
+    // Diff risk scoring for significant changes (>50 lines)
+    if (diff && diff.split('\n').length > 50) {
+      insightsService.scoreDiffRisk(eventId, storedPath, diff, event.type)
+        .then(result => {
+          if (result) {
+            db.insertDiffRiskScore(eventId, storedPath, result.score, result.reason, new Date().toISOString(), 'auto', SESSION_ID);
+            io.emit('diff-risk-score', {
+              eventId,
+              filepath: storedPath,
+              score: result.score,
+              reason: result.reason,
+              timestamp: new Date().toISOString()
+            });
+          }
+        })
+        .catch(() => { /* silently ignore */ });
+    }
+
     // Check syntax if file type is supported (skip Raven's own files)
     const filePath = join(eventProjectPath, event.path);
     const isRavenFile =
@@ -685,7 +739,7 @@ app.use('/api', createAgentsRouter(db, agentRegistry));
 app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
 
 // Mount insights routes (LLM-powered analysis)
-app.use('/api/insights', createInsightsRouter(insightsService));
+app.use('/api/insights', createInsightsRouter(insightsService, db));
 
 // ==================== Legacy Individual Route Handlers ====================
 

@@ -9,12 +9,17 @@
   let generating = $state(false);
   let selectedModel = $state('');
   let windowMinutes = $state(60);
+  let filterType = $state('all');
+
+  const filteredInsights = $derived(
+    filterType === 'all' ? insights : insights.filter(i => i.type === filterType)
+  );
 
   async function loadInsights() {
     loading = true;
     try {
       const [insightsData, statusData] = await Promise.all([
-        api.get('/insights?limit=30'),
+        api.get('/insights?limit=50'),
         api.get('/insights/status')
       ]);
       insights = insightsData || [];
@@ -28,40 +33,32 @@
     loading = false;
   }
 
-  async function generateSummary() {
+  async function setModelAndGenerate(fn) {
     generating = true;
     try {
-      if (selectedModel) {
-        await api.put('/insights/model', { model: selectedModel });
-      }
-      const result = await api.post(
-        '/insights/generate/summary',
-        { windowMinutes },
-        { timeout: 120000 }
-      );
-      if (result?.id) {
-        await loadInsights();
-      }
+      if (selectedModel) await api.put('/insights/model', { model: selectedModel });
+      const result = await fn();
+      if (result?.id) await loadInsights();
     } catch (err) {
-      console.error('Failed to generate summary:', err);
+      console.error('Generation failed:', err);
     }
     generating = false;
   }
 
-  async function generateReview() {
-    generating = true;
-    try {
-      if (selectedModel) {
-        await api.put('/insights/model', { model: selectedModel });
-      }
-      const result = await api.post('/insights/generate/review', {}, { timeout: 120000 });
-      if (result?.id) {
-        await loadInsights();
-      }
-    } catch (err) {
-      console.error('Failed to generate review:', err);
-    }
-    generating = false;
+  function generateSummary() {
+    setModelAndGenerate(() => api.post('/insights/generate/summary', { windowMinutes }, { timeout: 120000 }));
+  }
+
+  function generateReview() {
+    setModelAndGenerate(() => api.post('/insights/generate/review', {}, { timeout: 120000 }));
+  }
+
+  function generateDigest() {
+    setModelAndGenerate(() => api.post('/insights/generate/digest', {}, { timeout: 180000 }));
+  }
+
+  function generateAgentComparison() {
+    setModelAndGenerate(() => api.post('/insights/generate/agent-comparison', {}, { timeout: 180000 }));
   }
 
   function formatTime(ts) {
@@ -82,17 +79,29 @@
   }
 
   function typeLabel(type) {
-    if (type === 'session_summary') return 'Summary';
-    if (type === 'code_review') return 'Code Review';
-    if (type === 'anomaly') return 'Anomaly';
-    return type;
+    const labels = {
+      session_summary: 'Summary',
+      code_review: 'Code Review',
+      anomaly: 'Anomaly',
+      daily_digest: 'Digest',
+      diff_risk: 'Risk Score',
+      agent_comparison: 'Agent Comparison',
+      project_health: 'Project Health'
+    };
+    return labels[type] || type;
   }
 
   function typeColor(type) {
-    if (type === 'session_summary') return 'var(--accent)';
-    if (type === 'code_review') return 'var(--success)';
-    if (type === 'anomaly') return 'var(--warning)';
-    return 'var(--muted)';
+    const colors = {
+      session_summary: 'var(--accent)',
+      code_review: 'var(--success)',
+      anomaly: 'var(--warning)',
+      daily_digest: 'var(--accent)',
+      diff_risk: 'var(--error)',
+      agent_comparison: 'var(--success)',
+      project_health: 'var(--accent)'
+    };
+    return colors[type] || 'var(--muted)';
   }
 
   function renderMarkdown(text) {
@@ -100,7 +109,7 @@
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;') // escape HTML
+      .replace(/>/g, '&gt;')
       .replace(
         /^### (.+)$/gm,
         '<h4 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h4>'
@@ -153,7 +162,7 @@
 
     <!-- Controls -->
     <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-4">
-      <div class="flex items-center gap-4 flex-wrap">
+      <div class="flex items-center gap-3 flex-wrap">
         <div class="flex items-center gap-2">
           <label class="text-xs text-[var(--muted)] font-sans" for="model-select">Model</label>
           <select
@@ -181,41 +190,76 @@
             <option value={1440}>24 hours</option>
           </select>
         </div>
-        <button
-          onclick={generateSummary}
-          disabled={generating || !status.available}
-          class="px-3 py-1.5 bg-[var(--accent)] text-white rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
-        >
-          {generating ? 'Generating...' : 'Generate Summary'}
-        </button>
-        <button
-          onclick={generateReview}
-          disabled={generating || !status.available}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors disabled:opacity-40"
-        >
-          {generating ? '...' : 'Code Review'}
-        </button>
-        {#if generating}
-          <span class="text-xs text-[var(--muted)] font-mono animate-pulse"
-            >Running local LLM...</span
+        <div class="flex items-center gap-2 flex-wrap">
+          <button
+            onclick={generateSummary}
+            disabled={generating || !status.available}
+            class="px-3 py-1.5 bg-[var(--accent)] text-white rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
           >
+            {generating ? 'Generating...' : 'Summary'}
+          </button>
+          <button
+            onclick={generateReview}
+            disabled={generating || !status.available}
+            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors disabled:opacity-40"
+          >
+            Code Review
+          </button>
+          <button
+            onclick={generateDigest}
+            disabled={generating || !status.available}
+            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors disabled:opacity-40"
+          >
+            Daily Digest
+          </button>
+          <button
+            onclick={generateAgentComparison}
+            disabled={generating || !status.available}
+            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-sans text-[var(--text)] hover:border-[var(--accent)] transition-colors disabled:opacity-40"
+          >
+            Agent Comparison
+          </button>
+        </div>
+        {#if generating}
+          <span class="text-xs text-[var(--muted)] font-mono animate-pulse">Running local LLM...</span>
         {/if}
       </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex items-center gap-1 mb-4 flex-wrap">
+      {#each [
+        { value: 'all', label: 'All' },
+        { value: 'session_summary', label: 'Summaries' },
+        { value: 'code_review', label: 'Reviews' },
+        { value: 'daily_digest', label: 'Digests' },
+        { value: 'agent_comparison', label: 'Comparisons' },
+        { value: 'anomaly', label: 'Anomalies' },
+        { value: 'diff_risk', label: 'Risk Scores' },
+        { value: 'project_health', label: 'Project Health' }
+      ] as tab (tab.value)}
+        <button
+          class="px-2.5 py-1 text-xs font-sans rounded transition-colors {filterType === tab.value ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'}"
+          onclick={() => (filterType = tab.value)}
+        >
+          {tab.label}
+        </button>
+      {/each}
     </div>
 
     <!-- Insights List -->
     {#if loading}
       <div class="text-center py-12 text-sm text-[var(--muted)]">Loading insights...</div>
-    {:else if insights.length === 0}
+    {:else if filteredInsights.length === 0}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
         <div class="text-lg text-[var(--muted)] mb-2">No insights yet</div>
         <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Click "Generate Summary" to analyze recent AI activity using your local LLM.
+          Use the buttons above to generate AI-powered analysis of your development activity.
         </p>
       </div>
     {:else}
       <div class="space-y-3">
-        {#each insights as insight (insight.id)}
+        {#each filteredInsights as insight (insight.id)}
           <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
             <div
               class="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--bg)]"
