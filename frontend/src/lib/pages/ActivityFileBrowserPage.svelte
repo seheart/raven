@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
   import { Chart, registerables } from 'chart.js';
   import FileHistory from '../FileHistory.svelte';
@@ -59,6 +60,7 @@
   });
 
   onDestroy(() => {
+    abortRequests();
     if (themeObserver) {
       themeObserver.disconnect();
     }

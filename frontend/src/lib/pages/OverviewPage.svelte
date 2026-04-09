@@ -1,7 +1,8 @@
 <script>
   import { logger } from '../logger.js';
   import { onMount } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { navigate } from '../utils/router.svelte.js';
   import { websocketService } from '../services/websocket.js';
   import { projectFilter } from '../projectFilterStore.js';
@@ -454,6 +455,7 @@
       if (themeObserver) themeObserver.disconnect();
       if (trendChart) destroyChart(trendChart);
       clearInterval(interval);
+      abortRequests();
       unsubFilter();
       Object.values(workingAgentTimers).forEach(t => clearTimeout(t));
       clearTimeout(diffDebounceTimer);

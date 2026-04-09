@@ -1,6 +1,7 @@
 <script>
-  import { onMount } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { onMount, onDestroy } from 'svelte';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
 
   let insights = $state([]);
   let status = $state({ available: false, generating: false, models: [] });
@@ -123,6 +124,8 @@
   onMount(() => {
     loadInsights();
   });
+
+  onDestroy(() => abortRequests());
 </script>
 
 <div class="min-h-screen p-4 pb-16 bg-[var(--bg)]">

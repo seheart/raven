@@ -7,7 +7,8 @@
    */
 
   import { onMount } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
 
   // Svelte 5 reactive state
@@ -256,6 +257,7 @@
     websocketService.on('project-switched', handleProjectSwitched);
 
     return () => {
+      abortRequests();
       websocketService.off('system-metrics', handleSystemMetrics);
       websocketService.off('project-switched', handleProjectSwitched);
     };

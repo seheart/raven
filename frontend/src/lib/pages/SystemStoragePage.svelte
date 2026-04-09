@@ -1,6 +1,7 @@
 <script>
-  import { onMount } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { onMount, onDestroy } from 'svelte';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
 
   let storage = $state(null);
@@ -127,6 +128,8 @@
   }
 
   onMount(() => loadData());
+
+  onDestroy(() => abortRequests());
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">

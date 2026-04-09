@@ -6,7 +6,8 @@
 
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { isSourceCodeFile, debounce } from '../utils/helpers.js';
   import DiffViewer from '../DiffViewer.svelte';
 
@@ -189,6 +190,7 @@
 
     // Cleanup
     return () => {
+      abortRequests();
       websocketService.off('file-changed', handleFileChanged);
       websocketService.off('agent-event', handleAgentEvent);
       websocketService.off('project-switched', handleProjectSwitched);

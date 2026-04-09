@@ -1,11 +1,12 @@
 <script>
   import { logger } from '../logger.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
   /**
    * Agent Monitoring Page
    * Real-time agent monitoring with live status and activity timeline
    */
   import { onMount } from 'svelte';
+  const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import {
     createChart,
@@ -401,6 +402,7 @@
 
     // Cleanup
     return () => {
+      abortRequests();
       websocketService.off('agent-event', handleAgentEvent);
       websocketService.off('agent-status', handleAgentStatus);
 

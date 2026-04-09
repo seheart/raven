@@ -1,11 +1,12 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { logger } from '../logger.js';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
    */
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
 
   let projects = $state([]);
   let loading = $state(false);
@@ -220,6 +221,8 @@
   onMount(() => {
     loadProjects();
   });
+
+  onDestroy(() => abortRequests());
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">

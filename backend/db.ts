@@ -132,13 +132,11 @@ export interface DashboardStats {
 export interface PerformanceCorrelation {
   event_id: number;
   event_timestamp: string;
-  agent: string;
-  event_type: string;
-  duration_ms: number | null;
-  system_cpu_percent: number | null;
-  system_memory_percent: number | null;
-  process_cpu_percent: number | null;
-  process_memory_mb: number | null;
+  filepath: string;
+  change_type: string;
+  diff_size: number;
+  cpu_percent: number;
+  mem_percent: number;
 }
 
 /**
@@ -171,6 +169,7 @@ export class RavenDB {
 
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL'); // Better performance
+    this.db.pragma('busy_timeout = 5000'); // Wait up to 5s for locked database
     try {
       this.initializeSchema();
     } catch (err) {
@@ -340,6 +339,7 @@ export class RavenDB {
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_session_id ON events(session_id)`);
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_project_name ON events(project_name)`);
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_change_type ON events(change_type)`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_filepath ON events(filepath)`);
 
     // Safe migration: add agent_source column if it doesn't exist
     try {
@@ -724,27 +724,47 @@ export class RavenDB {
   // ==================== Performance Correlations ====================
 
   correlateEventsWithMetrics(time_window_seconds: number = 5): PerformanceCorrelation[] {
-    const stmt = this.db.prepare(`
-      SELECT
-        e.id as event_id,
-        e.timestamp as event_timestamp,
-        e.filepath,
-        e.change_type,
-        LENGTH(e.diff) as diff_size,
-        AVG(rm.cpu_percent) as cpu_percent,
-        AVG(rm.memory_percent) as mem_percent
-      FROM events e
-      INNER JOIN raven_metrics rm
-        ON datetime(rm.timestamp) BETWEEN
-           datetime(e.timestamp, '-' || ? || ' seconds') AND
-           datetime(e.timestamp, '+' || ? || ' seconds')
-      WHERE e.filepath IS NOT NULL
-      GROUP BY e.id, e.timestamp, e.filepath, e.change_type
-      ORDER BY e.timestamp DESC
+    // Get the 20 most recent events with filepaths
+    const recentEvents = this.db.prepare(`
+      SELECT id, timestamp, filepath, change_type, LENGTH(diff) as diff_size
+      FROM events
+      WHERE filepath IS NOT NULL
+      ORDER BY timestamp DESC
       LIMIT 20
+    `).all() as any[];
+
+    if (recentEvents.length === 0) return [];
+
+    // Use plain string comparison (ISO timestamps sort lexicographically)
+    // Compute time bounds in JS to avoid expensive datetime() calls in SQLite
+    const metricStmt = this.db.prepare(`
+      SELECT AVG(cpu_percent) as cpu_percent, AVG(memory_percent) as mem_percent
+      FROM raven_metrics
+      WHERE timestamp >= ? AND timestamp <= ?
     `);
 
-    return stmt.all(time_window_seconds, time_window_seconds) as PerformanceCorrelation[];
+    const windowMs = time_window_seconds * 1000;
+    const results: PerformanceCorrelation[] = [];
+
+    for (const event of recentEvents) {
+      const eventTime = new Date(event.timestamp).getTime();
+      const lower = new Date(eventTime - windowMs).toISOString();
+      const upper = new Date(eventTime + windowMs).toISOString();
+
+      const metrics = metricStmt.get(lower, upper) as any;
+
+      results.push({
+        event_id: event.id,
+        event_timestamp: event.timestamp,
+        filepath: event.filepath,
+        change_type: event.change_type,
+        diff_size: event.diff_size || 0,
+        cpu_percent: metrics?.cpu_percent || 0,
+        mem_percent: metrics?.mem_percent || 0
+      });
+    }
+
+    return results;
   }
 
   // ==================== Dashboard Statistics ====================

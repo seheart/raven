@@ -1,6 +1,7 @@
 <script>
-  import { onMount } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { onMount, onDestroy } from 'svelte';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
 
   let config = $state({ autoDiscover: true, basePath: '', projects: [] });
   let loading = $state(true);
@@ -17,6 +18,8 @@
   });
 
   onMount(() => loadConfig());
+
+  onDestroy(() => abortRequests());
 
   async function loadConfig() {
     try {

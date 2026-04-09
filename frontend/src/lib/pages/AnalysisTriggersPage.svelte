@@ -1,7 +1,8 @@
 <script>
   import { logger } from '../logger.js';
   import { onMount, onDestroy } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import ProjectBadge from '../ProjectBadge.svelte';
 
@@ -257,6 +258,7 @@
   });
 
   onDestroy(() => {
+    abortRequests();
     // Clean up WebSocket listeners
     websocketService.off('trigger-fired', handleTriggerFired);
     websocketService.off('trigger-stats', handleTriggerStats);

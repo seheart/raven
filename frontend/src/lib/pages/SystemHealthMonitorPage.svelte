@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
 
   let healthReport = $state(null);
   let loading = $state(true);
@@ -60,6 +61,7 @@
   });
 
   onDestroy(() => {
+    abortRequests();
     if (refreshInterval) clearInterval(refreshInterval);
   });
 </script>

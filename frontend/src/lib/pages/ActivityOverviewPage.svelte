@@ -1,7 +1,8 @@
 <script>
   import { logger } from '../logger.js';
   import { onMount } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
   import { Chart, registerables } from 'chart.js';
@@ -783,6 +784,7 @@
     });
 
     return () => {
+      abortRequests();
       websocketService.off('file-changed', handleFileChanged);
       websocketService.off('project-switched', handleProjectSwitched);
       window.removeEventListener('keydown', handleKeydown);

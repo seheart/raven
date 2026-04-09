@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   /**
    * Analysis Overview Page - Tailwind Version
    * Performance metrics, trends, and developer insights
@@ -70,7 +71,7 @@
       activeTriggers = triggers.length;
 
       // Sessions
-      _totalSessions = (sessionsData.sessions || []).length;
+      __totalSessions = (sessionsData.sessions || []).length;
 
       // Triggered events
       triggeredEvents = triggeredEventsData.events || [];
@@ -198,6 +199,7 @@
   });
 
   onDestroy(() => {
+    abortRequests();
     if (themeObserver) {
       themeObserver.disconnect();
     }

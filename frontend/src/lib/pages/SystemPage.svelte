@@ -1,7 +1,8 @@
 <script>
   import { logger } from '../logger.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
   import { onMount } from 'svelte';
+  const { api, abort: abortRequests } = createPageApi();
   import { navigate } from '../utils/router.svelte.js';
   import { websocketService } from '../services/websocket.js';
 
@@ -143,6 +144,7 @@
     }, 2000);
 
     return () => {
+      abortRequests();
       websocketService.off('connect', onConnect);
       websocketService.off('disconnect', onDisconnect);
       clearTimeout(checkTimer);

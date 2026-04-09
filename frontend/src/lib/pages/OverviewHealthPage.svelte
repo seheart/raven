@@ -1,12 +1,13 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { logger } from '../logger.js';
   import { projectFilter } from '../projectFilterStore.js';
   /**
    * Project Health Details Page
    * Comprehensive health analysis for a single project
    */
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
 
   let healthData = $state(null);
   let projectsData = $state([]);
@@ -80,6 +81,8 @@
   onMount(() => {
     loadHealthSummary();
   });
+
+  onDestroy(() => abortRequests());
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">

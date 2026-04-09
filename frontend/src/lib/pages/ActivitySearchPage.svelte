@@ -1,7 +1,11 @@
 <script>
+  import { onDestroy } from 'svelte';
   import DOMPurify from 'dompurify';
   import { logger } from '../logger.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
+
+  onDestroy(() => abortRequests());
   /**
    * Activity Search Page
    * Global search across all activity data

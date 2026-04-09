@@ -1,7 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { logger } from '../logger.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { API_CONFIG } from '../../config.js';
   import { websocketService } from '../services/websocket.js';
 
@@ -41,6 +42,7 @@
     websocketService.on('disconnect', updateStatus);
 
     return () => {
+      abortRequests();
       websocketService.off('connect', updateStatus);
       websocketService.off('disconnect', updateStatus);
     };

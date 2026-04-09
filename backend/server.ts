@@ -114,6 +114,19 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(performanceMonitoring);
 
+// Server-side request timeout — kill requests that take too long (30s default)
+app.use((req: Request, res: Response, next: Function) => {
+  const timeout = 30000;
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(503).json({ error: 'Request timed out on server' });
+    }
+  }, timeout);
+  res.on('finish', () => clearTimeout(timer));
+  res.on('close', () => clearTimeout(timer));
+  next();
+});
+
 // Rate limiting for expensive operations (database export, VACUUM)
 // Protects against resource exhaustion from concurrent expensive operations
 // Even though Raven is local-only, we need to prevent DoS from concurrent operations
@@ -1251,7 +1264,7 @@ app.get('/api/metrics-stats', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/performance-correlations', (req: Request, res: Response) => {
+app.get('/api/performance-correlations', cacheMiddleware(10000), (req: Request, res: Response) => {
   try {
     const time_window_seconds = safeInt(req.query.time_window_seconds, 5);
     const correlations = db.correlateEventsWithMetrics(time_window_seconds);
@@ -1530,7 +1543,7 @@ app.get('/api/health/projects', cacheMiddleware(5000), (req: Request, res: Respo
 
 // ==================== Custom Metrics Dashboard API ====================
 
-app.get('/api/metrics/dashboard', (req: Request, res: Response) => {
+app.get('/api/metrics/dashboard', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     // Total events
     const totalEvents = db.db.prepare(`SELECT COUNT(*) as count FROM events`).get() as any;
@@ -2351,7 +2364,7 @@ app.get('/api/trends/historical', cacheMiddleware(5000), (req: Request, res: Res
 
 // ==================== Performance Metrics API ====================
 
-app.get('/api/metrics/performance', async (req: Request, res: Response) => {
+app.get('/api/metrics/performance', cacheMiddleware(5000), async (req: Request, res: Response) => {
   try {
     const range = (req.query.range as string) || '1h';
 
@@ -2363,7 +2376,7 @@ app.get('/api/metrics/performance', async (req: Request, res: Response) => {
 
     const startTime = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
-    // Get metrics from database
+    // Get metrics from database (limit to 500 points max, downsample if needed)
     const metrics = db.db
       .prepare(
         `
@@ -2376,6 +2389,7 @@ app.get('/api/metrics/performance', async (req: Request, res: Response) => {
       FROM raven_metrics
       WHERE timestamp >= ?
       ORDER BY timestamp ASC
+      LIMIT 500
     `
       )
       .all(startTime) as any[];
@@ -2573,43 +2587,42 @@ app.get('/api/sessions/:sessionId/preview', async (req: Request, res: Response) 
       )
       .all(sessionId) as any[];
 
-    // For each file, find the snapshot before this session
+    // Read snapshots directory and session start time once (not per file)
+    let snapshots: string[] = [];
+    try {
+      snapshots = await fs.readdir(SNAPSHOTS_DIR);
+    } catch {
+      // Snapshots dir may not exist
+    }
+
+    const sessionStart = db.db
+      .prepare(`SELECT MIN(timestamp) as start_time FROM events WHERE session_id = ?`)
+      .get(sessionId) as any;
+    const sessionStartMs = sessionStart?.start_time
+      ? new Date(sessionStart.start_time).getTime()
+      : 0;
+
     const changes = [];
 
     for (const fileRecord of files) {
       const filepath = fileRecord.filepath;
+      const prefix = filepath.replace(/\//g, '_');
 
-      // Get all snapshots for this file
-      const snapshots = await fs.readdir(SNAPSHOTS_DIR);
       const fileSnapshots = snapshots
-        .filter(s => s.startsWith(filepath.replace(/\//g, '_')))
+        .filter(s => s.startsWith(prefix))
         .map(s => ({
           name: s,
           timestamp: parseInt(s.split('_').pop() || '0')
         }))
         .sort((a, b) => b.timestamp - a.timestamp);
 
-      // Find session start time
-      const sessionStart = db.db
-        .prepare(
-          `
-        SELECT MIN(timestamp) as start_time
-        FROM events
-        WHERE session_id = ?
-      `
-        )
-        .get(sessionId) as any;
-
-      const sessionStartMs = new Date(sessionStart.start_time).getTime();
-
-      // Find snapshot before session started
       const beforeSnapshot = fileSnapshots.find(s => s.timestamp < sessionStartMs);
 
       changes.push({
         filepath,
         hasBackup: !!beforeSnapshot,
         snapshotName: beforeSnapshot?.name,
-        currentExists: true // Will be checked when actually rolling back
+        currentExists: true
       });
     }
 
@@ -3608,4 +3621,9 @@ process.on('unhandledRejection', (reason: unknown) => {
     'Unhandled promise rejection:',
     reason instanceof Error ? reason : new Error(String(reason))
   );
+});
+
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught exception:', error);
+  gracefulShutdown('uncaughtException');
 });

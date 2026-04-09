@@ -159,8 +159,12 @@ export async function apiFetch(endpoint, options = {}) {
     // This is redundant with line 74 but ensures cleanup in all paths
     clearTimeout(timeoutId);
 
-    // Handle timeout errors specially
+    // Handle abort errors — distinguish navigation aborts from timeouts
     if (error.name === 'AbortError') {
+      // If an external signal was provided and it's aborted, this is a navigation cancel — silently ignore
+      if (options.signal && options.signal.aborted) {
+        throw error;
+      }
       const timeoutError = new Error(`Request timeout after ${timeout}ms: ${endpoint}`);
       // Only show timeout toasts when backend is connected (skip during restarts)
       if (websocketService.isConnected()) {
@@ -229,42 +233,43 @@ export async function apiFetch(endpoint, options = {}) {
  * Automatically handles JSON serialization and sets appropriate headers
  */
 export const api = {
-  /**
-   * Perform GET request
-   * @param {string} endpoint - API endpoint
-   * @param {Object} [options={}] - Additional fetch options
-   * @returns {Promise<any>} Response data
-   */
   get: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'GET' }),
 
-  /**
-   * Perform POST request with JSON body
-   * @param {string} endpoint - API endpoint
-   * @param {Object} data - Request body (will be JSON stringified)
-   * @param {Object} [options={}] - Additional fetch options
-   * @returns {Promise<any>} Response data
-   */
   post: (endpoint, data, options = {}) =>
     apiFetch(endpoint, { ...options, method: 'POST', body: JSON.stringify(data) }),
 
-  /**
-   * Perform PUT request with JSON body
-   * @param {string} endpoint - API endpoint
-   * @param {Object} data - Request body (will be JSON stringified)
-   * @param {Object} [options={}] - Additional fetch options
-   * @returns {Promise<any>} Response data
-   */
   put: (endpoint, data, options = {}) =>
     apiFetch(endpoint, { ...options, method: 'PUT', body: JSON.stringify(data) }),
 
-  /**
-   * Perform DELETE request
-   * @param {string} endpoint - API endpoint
-   * @param {Object} [options={}] - Additional fetch options
-   * @returns {Promise<any>} Response data
-   */
   delete: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'DELETE' })
 };
+
+/**
+ * Create an API wrapper bound to an AbortController.
+ * Call controller.abort() in onDestroy to cancel all in-flight requests when navigating away.
+ *
+ * @returns {{ api: typeof api, abort: () => void }}
+ */
+export function createPageApi() {
+  let controller = new AbortController();
+
+  const withSignal = (options = {}) => {
+    if (controller.signal.aborted) {
+      controller = new AbortController();
+    }
+    return { ...options, signal: controller.signal };
+  };
+
+  return {
+    api: {
+      get: (endpoint, options = {}) => api.get(endpoint, withSignal(options)),
+      post: (endpoint, data, options = {}) => api.post(endpoint, data, withSignal(options)),
+      put: (endpoint, data, options = {}) => api.put(endpoint, data, withSignal(options)),
+      delete: (endpoint, options = {}) => api.delete(endpoint, withSignal(options))
+    },
+    abort: () => controller.abort()
+  };
+}
 
 /**
  * Check server health status and show notifications for issues

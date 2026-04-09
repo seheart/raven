@@ -1,7 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { logger } from '../logger.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   /**
    * Historical Trends Page
    * Time-series analysis of activity patterns
@@ -327,6 +328,7 @@
 
     // Cleanup function
     return () => {
+      abortRequests();
       // Clean up WebSocket listeners
       websocketService.off('project-switched', handleProjectSwitched);
 

@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   /**
    * Agent Stats Page
    * Comprehensive agent statistics with search, filtering, and export
@@ -396,6 +397,7 @@
 
     // Cleanup
     return () => {
+      abortRequests();
       websocketService.off('agent-event', handleAgentEvent);
       websocketService.off('agent-stats', handleAgentStats);
 

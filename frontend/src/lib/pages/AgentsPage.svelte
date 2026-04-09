@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   /**
    * Agents Overview Page
    * Modern dashboard showing agent activity, stats, and insights
@@ -142,6 +143,7 @@
   // Load on mount
   $effect(() => {
     loadAllData();
+    return () => abortRequests();
   });
 </script>
 

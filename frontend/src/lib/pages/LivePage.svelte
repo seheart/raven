@@ -4,7 +4,8 @@
    * Two-panel layout: recent changes list + diff viewer
    */
   import { onMount, onDestroy } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import LiveStatusBar from '../components/live/LiveStatusBar.svelte';
   import DiffViewer from '../components/live/DiffViewer.svelte';
@@ -86,6 +87,7 @@
   });
 
   onDestroy(() => {
+    abortRequests();
     if (unsubscribe) unsubscribe();
     if (pollInterval) clearInterval(pollInterval);
   });

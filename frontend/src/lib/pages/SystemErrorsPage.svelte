@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
 
   let errors = $state([]);
@@ -75,6 +76,7 @@
   });
 
   onDestroy(() => {
+    abortRequests();
     websocketService.off('error-logged', onErrorLogged);
     clearTimeout(searchTimeout);
   });

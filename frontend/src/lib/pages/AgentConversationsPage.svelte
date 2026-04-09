@@ -1,5 +1,6 @@
 <script>
-  import { api } from '../apiClient.js';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
   /**
    * Agent Conversations Page
    * View and search agent conversations and interactions with full analytics
@@ -523,6 +524,7 @@
 
     // Cleanup function
     return () => {
+      abortRequests();
       // Clean up WebSocket listeners
       if (conversationHandler) websocketService.off('conversation', conversationHandler);
 

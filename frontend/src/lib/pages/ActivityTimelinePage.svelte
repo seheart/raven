@@ -5,8 +5,9 @@
    * Visual chronological timeline of events
    */
 
-  import { onMount } from 'svelte';
-  import { api } from '../apiClient.js';
+  import { onMount, onDestroy } from 'svelte';
+  import { createPageApi } from '../apiClient.js';
+  const { api, abort: abortRequests } = createPageApi();
 
   // State
   let events = $state([]);
@@ -175,6 +176,8 @@
   onMount(() => {
     loadEvents();
   });
+
+  onDestroy(() => abortRequests());
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
