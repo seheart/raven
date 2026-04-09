@@ -36,18 +36,18 @@ interface DetectedModel {
 const KNOWN_ENDPOINTS: ModelEndpoint[] = [
   {
     name: 'Ollama',
-    url: 'http://localhost:11434',
+    url: process.env.OLLAMA_URL || 'http://localhost:11434',
     type: 'ollama',
     modelsPath: join(os.homedir(), '.ollama', 'models')
   },
   {
     name: 'LM Studio',
-    url: 'http://localhost:1234',
+    url: process.env.LM_STUDIO_URL || 'http://localhost:1234',
     type: 'lm-studio'
   },
   {
     name: 'llama.cpp',
-    url: 'http://localhost:8080',
+    url: process.env.LLAMA_CPP_URL || 'http://localhost:8080',
     type: 'llamacpp'
   }
 ];

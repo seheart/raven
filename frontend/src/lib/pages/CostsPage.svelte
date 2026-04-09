@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { websocketService } from '../services/websocket.js';
   import { Chart, registerables } from 'chart.js';
   import { createThemeObserver, getChartColors } from '../utils/chartUtils.js';
@@ -70,11 +70,12 @@
       timeline = Array.isArray(timelineData) ? timelineData : [];
 
       lastUpdated = new Date();
-      updateCharts();
     } catch (err) {
       logger.error('Failed to load cost data:', err);
     } finally {
       loading = false;
+      await tick();
+      updateCharts();
     }
   }
 
@@ -155,7 +156,7 @@
             },
             tooltip: {
               callbacks: {
-                label: ctx => `${ctx.label}: $${ctx.parsed.toFixed(4)}`
+                label: ctx => `${ctx.label || 'Unknown'}: $${(ctx.parsed || 0).toFixed(4)}`
               }
             }
           }
@@ -279,6 +280,37 @@
           </div>
         </div>
       </div>
+
+      <!-- Model Breakdown -->
+      {#if byModel.length > 0}
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 mb-6">
+          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Cost by Model</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm font-mono">
+              <thead>
+                <tr class="text-left text-xs text-[var(--muted)] uppercase tracking-wide border-b border-[var(--border)]">
+                  <th class="pb-2 pr-4">Model</th>
+                  <th class="pb-2 pr-4 text-right">Requests</th>
+                  <th class="pb-2 pr-4 text-right">Input</th>
+                  <th class="pb-2 pr-4 text-right">Output</th>
+                  <th class="pb-2 text-right">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each byModel as model (model.model)}
+                  <tr class="border-b border-[var(--border)] border-opacity-50 hover:bg-[var(--bg)] transition-colors">
+                    <td class="py-2 pr-4 text-[var(--text)]">{model.model_family || model.model}</td>
+                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{model.requests}</td>
+                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{formatTokens(model.input_tokens)}</td>
+                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{formatTokens(model.output_tokens)}</td>
+                    <td class="py-2 text-right text-[var(--accent)] font-semibold">{formatCost(model.cost_usd)}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {/if}
 
       <!-- Project Breakdown -->
       {#if byProject.length > 0}

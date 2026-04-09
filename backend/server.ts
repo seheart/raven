@@ -312,6 +312,29 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
         event.agentId || null
       );
 
+      // Update subagent_tree running totals if this is a sub-agent request
+      if (event.agentId) {
+        try {
+          db.db.prepare(`
+            UPDATE subagent_tree SET
+              total_input_tokens = total_input_tokens + ?,
+              total_output_tokens = total_output_tokens + ?,
+              estimated_cost_usd = estimated_cost_usd + ?,
+              model = COALESCE(model, ?)
+            WHERE agent_id = ? AND session_id = ?
+          `).run(
+            usage.input_tokens,
+            usage.output_tokens,
+            cost,
+            event.model || null,
+            event.agentId,
+            event.sessionId || SESSION_ID
+          );
+        } catch (err: any) {
+          logger.debug(`Failed to update subagent token counts for ${event.agentId}: ${err.message}`);
+        }
+      }
+
       io.emit('token-usage', {
         timestamp,
         model: event.model,
@@ -332,8 +355,13 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
   if (category === 'subagent') {
     try {
       const stmt = db.db.prepare(`
-        INSERT OR IGNORE INTO subagent_tree (session_id, agent_id, parent_agent_id, agent_type, description, model, started_at, project_name)
+        INSERT INTO subagent_tree (session_id, agent_id, parent_agent_id, agent_type, description, model, started_at, project_name)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(session_id, agent_id) DO UPDATE SET
+          parent_agent_id = COALESCE(excluded.parent_agent_id, parent_agent_id),
+          agent_type = COALESCE(excluded.agent_type, agent_type),
+          description = COALESCE(excluded.description, description),
+          model = COALESCE(excluded.model, model)
       `);
       stmt.run(
         event.sessionId || SESSION_ID,

@@ -45,7 +45,14 @@ export function createCostsRouter(db: RavenDB): Router {
       }
 
       const row = db.db.prepare(query).get(...params) as any;
-      res.json(row);
+      res.json({
+        total_requests: row?.total_requests ?? 0,
+        total_input_tokens: row?.total_input_tokens ?? 0,
+        total_output_tokens: row?.total_output_tokens ?? 0,
+        total_cache_creation_tokens: row?.total_cache_creation_tokens ?? 0,
+        total_cache_read_tokens: row?.total_cache_read_tokens ?? 0,
+        total_cost_usd: row?.total_cost_usd ?? 0
+      });
     })
   );
 
@@ -176,8 +183,13 @@ export function createCostsRouter(db: RavenDB): Router {
     '/timeline',
     asyncHandler(async (req: Request, res: Response) => {
       const { start, end, project, bucket } = req.query;
-      // bucket: 'hour', 'day', 'week'
-      const bucketSize = bucket === 'hour' ? '%Y-%m-%dT%H' : bucket === 'week' ? '%Y-%W' : '%Y-%m-%d';
+      // Whitelist bucket formats to prevent SQL injection
+      const bucketFormats: Record<string, string> = {
+        'hour': '%Y-%m-%dT%H',
+        'week': '%Y-%W',
+        'day': '%Y-%m-%d'
+      };
+      const bucketSize = bucketFormats[String(bucket)] || bucketFormats['day'];
 
       let query = `
         SELECT

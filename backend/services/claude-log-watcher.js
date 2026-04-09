@@ -123,18 +123,21 @@ export class ClaudeLogWatcher {
    * Switch between active (100ms) and idle (5s) polling.
    * Reduces filesystem wake-ups when no agents are running.
    */
-  setIdle(idle) {
+  async setIdle(idle) {
     if (!this.logWatcher) return;
-    const newInterval = idle ? 5000 : 100;
-    // Chokidar doesn't support changing interval at runtime,
-    // so we close and re-create the watcher with the new interval
     if (this._currentIdle === idle) return;
+    if (this._idleSwitching) return; // Prevent concurrent switches
+    this._idleSwitching = true;
+
+    const newInterval = idle ? 5000 : 100;
     this._currentIdle = idle;
     this.logger.info(`Claude Log Watcher: switching to ${idle ? 'idle' : 'active'} polling (${newInterval}ms)`);
-    this.logWatcher.close().then(() => {
+
+    try {
+      await this.logWatcher.close();
       this.logWatcher = chokidar.watch(this.claudeProjectsDir, {
         persistent: true,
-        ignoreInitial: true, // Don't re-process existing files on restart
+        ignoreInitial: true,
         usePolling: true,
         interval: newInterval,
         binaryInterval: newInterval,
@@ -152,7 +155,11 @@ export class ClaudeLogWatcher {
       this.logWatcher.on('add', filepath => this.handleLogFileAdded(filepath));
       this.logWatcher.on('change', filepath => this.handleLogFileChanged(filepath));
       this.logWatcher.on('error', error => this.logger.error(`❌ Watcher error: ${error.message}`));
-    });
+    } catch (err) {
+      this.logger.error(`Failed to switch idle mode: ${err.message}`);
+    } finally {
+      this._idleSwitching = false;
+    }
   }
 
   /**

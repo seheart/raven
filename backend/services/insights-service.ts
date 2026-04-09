@@ -28,7 +28,7 @@ export class InsightsService {
   private lastAnomalyStatus = '';
   private static readonly ANOMALY_THROTTLE_MS = 60 * 60 * 1000; // 1 hour
 
-  constructor(db: RavenDB, ollamaUrl = 'http://localhost:11434', model = 'qwen2.5-coder:14b') {
+  constructor(db: RavenDB, ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434', model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:14b') {
     this.db = db;
     this.ollamaUrl = ollamaUrl;
     this.model = model;

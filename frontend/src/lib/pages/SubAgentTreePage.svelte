@@ -261,9 +261,9 @@
       {/if}
 
       <!-- Tokens / Cost -->
-      {#if node.tokens?.cost_usd > 0}
-        <span class="text-xs text-[var(--muted)]">{formatTokens((node.tokens?.input_tokens || 0) + (node.tokens?.output_tokens || 0))} tok</span>
-        <span class="text-xs font-mono text-[var(--accent)] font-semibold">{formatCost(node.tokens?.cost_usd)}</span>
+      {#if (node.tokens?.cost_usd ?? 0) > 0}
+        <span class="text-xs text-[var(--muted)]">{formatTokens((node.tokens?.input_tokens ?? 0) + (node.tokens?.output_tokens ?? 0))} tok</span>
+        <span class="text-xs font-mono text-[var(--accent)] font-semibold">{formatCost(node.tokens?.cost_usd ?? 0)}</span>
       {/if}
 
       <!-- Timestamp -->

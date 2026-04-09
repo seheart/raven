@@ -55,6 +55,7 @@ function resolvePricing(model: string): ModelPricing {
   if (lower.includes('haiku-4') || lower.includes('haiku-3')) return MODEL_PRICING['claude-haiku-4-5-20251001'];
 
   // Unknown model — use Sonnet pricing as a conservative default
+  // This is intentionally not logged at warn level since it fires per-request
   return MODEL_PRICING['claude-sonnet-4-6'];
 }
 

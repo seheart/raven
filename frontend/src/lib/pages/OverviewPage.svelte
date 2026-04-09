@@ -38,6 +38,10 @@
   let loading = $state(false);
   let lastUpdated = $state(new Date());
 
+  // Costs & sub-agent state
+  let sessionCosts = $state({ total_requests: 0, total_cost_usd: 0, total_input_tokens: 0, total_output_tokens: 0, total_cache_read_tokens: 0 });
+  let recentSubagents = $state([]);
+
   // Live activity feed — unified stream of all events
   let activityFeed = $state([]);
   let latestDiff = $state(null);
@@ -113,6 +117,25 @@
 
   function formatNumber(n) {
     return n?.toLocaleString() || '0';
+  }
+
+  function formatCost(usd) {
+    if (!usd || usd === 0) return '$0.00';
+    if (usd < 0.01) return `$${usd.toFixed(4)}`;
+    if (usd < 1) return `$${usd.toFixed(3)}`;
+    return `$${usd.toFixed(2)}`;
+  }
+
+  function formatTokens(n) {
+    if (!n) return '0';
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return n.toString();
+  }
+
+  function getTypeColor(type) {
+    const colors = { 'general-purpose': '#FF6B35', 'Explore': '#10A37F', 'Plan': '#4285F4', 'code-reviewer': '#F39C12' };
+    return colors[type] || '#6b7280';
   }
 
   function pushActivity(item) {
@@ -276,15 +299,20 @@
     try {
       const pf = get(projectFilter);
       const pq = pf && pf !== 'all' ? `&project=${encodeURIComponent(pf)}` : '';
-      const [statsData, metricsData, fileEvents, agentData] = await Promise.all([
+      const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+      const [statsData, metricsData, fileEvents, agentData, costsData, subagentsData] = await Promise.all([
         api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
         api.get('/system-metrics?limit=1').catch(() => []),
         api.get(`/file-events?limit=100${pq}`).catch(() => []),
-        api.get('/agents-status').catch(() => [])
+        api.get('/agents-status').catch(() => []),
+        api.get(`/costs/summary?start=${encodeURIComponent(todayStart)}`).catch(() => sessionCosts),
+        api.get('/subagents/recent?limit=8').catch(() => [])
       ]);
 
       checkStatChanges(statsData);
       stats = statsData;
+      sessionCosts = costsData || sessionCosts;
+      recentSubagents = Array.isArray(subagentsData) ? subagentsData : [];
       systemMetrics = Array.isArray(metricsData) && metricsData[0] ? metricsData[0] : systemMetrics;
       recentFiles = Array.isArray(fileEvents) ? fileEvents : [];
       agents = Array.isArray(agentData) ? agentData : [];
@@ -454,6 +482,15 @@
     websocketService.on('app-error', handleAppError);
     websocketService.on('diff-risk-score', handleDiffRiskScore);
     websocketService.on('anomaly-insight', handleAnomalyInsight);
+    const handleTokenUsage = () => {
+      const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+      api.get(`/costs/summary?start=${encodeURIComponent(todayStart)}`).then(d => { if (d) sessionCosts = d; }).catch(err => logger.debug('Costs refresh failed:', err));
+    };
+    const handleSubagentSpawn = () => {
+      api.get('/subagents/recent?limit=8').then(d => { if (Array.isArray(d)) recentSubagents = d; }).catch(err => logger.debug('Subagents refresh failed:', err));
+    };
+    websocketService.on('token-usage', handleTokenUsage);
+    websocketService.on('subagent-spawn', handleSubagentSpawn);
 
     themeObserver = createThemeObserver(() => createCharts());
 
@@ -472,6 +509,8 @@
       websocketService.off('app-error', handleAppError);
       websocketService.off('diff-risk-score', handleDiffRiskScore);
       websocketService.off('anomaly-insight', handleAnomalyInsight);
+      websocketService.off('token-usage', handleTokenUsage);
+      websocketService.off('subagent-spawn', handleSubagentSpawn);
       if (themeObserver) themeObserver.disconnect();
       if (trendChart) destroyChart(trendChart);
       clearInterval(interval);
@@ -580,185 +619,159 @@
       </div>
     </div>
 
-    <!-- Top Stats Row -->
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-3">
-      {#each [{ key: 'total_events', label: 'Events', value: stats.total_events }, { key: 'total_files', label: 'Files', value: stats.total_files }, { key: 'edits', label: 'Modified', value: stats.edits }, { key: 'creates', label: 'Created', value: stats.creates }, { key: 'deletes', label: 'Deleted', value: stats.deletes }, { key: 'rate', label: 'Rate', value: null }] as stat (stat.key)}
-        <div
-          class="stat-card bg-[var(--surface)] border border-[var(--border)] rounded p-4 transition-all duration-300 {statsFlash[
-            stat.key
-          ]
-            ? 'stat-flash'
-            : ''}"
-        >
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-            {stat.label}
-          </div>
-          <div class="text-sm font-mono text-[var(--text)]">
-            {stat.value !== null ? formatNumber(stat.value) : `${eventsPerMin}/min`}
-          </div>
+    <!-- Compact Stats + Agents + System bar -->
+    <div class="flex flex-wrap items-center gap-2 mb-3 bg-[var(--surface)] border border-[var(--border)] rounded px-3 py-2">
+      <!-- Stats inline -->
+      {#each [{ key: 'total_events', label: 'Events', value: stats.total_events }, { key: 'edits', label: 'Edits', value: stats.edits }, { key: 'creates', label: 'Creates', value: stats.creates, color: 'var(--success)' }, { key: 'deletes', label: 'Deletes', value: stats.deletes, color: 'var(--error)' }] as stat (stat.key)}
+        <span class="text-[11px] font-mono {statsFlash[stat.key] ? 'stat-flash' : ''}">
+          <span class="text-[var(--muted)]">{stat.label}</span>
+          <span class="font-semibold" style="color: {stat.color || 'var(--text)'}">{formatNumber(stat.value)}</span>
+        </span>
+        <span class="text-[var(--border)]">|</span>
+      {/each}
+      <span class="text-[11px] font-mono">
+        <span class="text-[var(--muted)]">Rate</span>
+        <span class="font-semibold text-[var(--text)]">{eventsPerMin}/m</span>
+      </span>
+
+      {#if stats.app_errors > 0}
+        <span class="text-[var(--border)]">|</span>
+        <button onclick={() => navigate('/system/errors')} class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0">
+          <span class="text-[var(--error)] font-semibold">{stats.app_errors} errors</span>
+        </button>
+      {/if}
+
+      <!-- Spacer -->
+      <div class="flex-1"></div>
+
+      <!-- Agents inline -->
+      {#each agents as agent (agent.agent_name)}
+        {@const isWorking = workingAgents.has(agent.agent_name)}
+        {@const agentState = isWorking ? 'working' : agent.is_running ? 'running' : 'idle'}
+        <div class="flex items-center gap-1.5 {isWorking ? 'agent-breathing' : ''}">
+          <svg viewBox="0 0 44 30" class="w-6 h-3 flex-shrink-0 overflow-visible">
+            <path
+              d={heartbeatPath(agentState)}
+              fill="none"
+              stroke={agent.color || 'var(--muted)'}
+              stroke-width="1.5"
+              class={agentState === 'working' ? 'heartbeat-working' : agentState === 'running' ? 'heartbeat-running' : ''}
+            />
+          </svg>
+          <span class="text-[10px] font-semibold text-[var(--text)]">{agent.agent_name}</span>
         </div>
       {/each}
+
+      <span class="text-[var(--border)]">|</span>
+
+      <!-- CPU/MEM inline -->
+      <div class="flex items-center gap-1.5">
+        <span class="text-[10px] text-[var(--muted)]">CPU</span>
+        <div class="w-10 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
+          <div class="h-full transition-all duration-500" style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"></div>
+        </div>
+        <span class="text-[10px] font-mono text-[var(--text)]">{systemMetrics.cpu_percent?.toFixed(0) || 0}%</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-[10px] text-[var(--muted)]">MEM</span>
+        <div class="w-10 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
+          <div class="h-full transition-all duration-500" style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"></div>
+        </div>
+        <span class="text-[10px] font-mono text-[var(--text)]">{systemMetrics.memory_percent?.toFixed(0) || 0}%</span>
+      </div>
+    </div>
+
+    <!-- Costs + Sub-Agents + Latest Diff (3-column row) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+      <!-- Session Costs -->
       <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 cursor-pointer hover:border-[var(--accent)] transition-colors"
-        class:border-[var(--error)]={stats.app_errors > 0}
-        onclick={() => navigate('/system/errors')}
-        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/system/errors')}
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 cursor-pointer hover:border-[var(--accent)] transition-colors"
+        onclick={() => navigate('/analysis/costs')}
+        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/costs')}
         role="link"
         tabindex="0"
       >
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-          Errors
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Today's Costs</h3>
+          <span class="text-[10px] text-[var(--muted)]">→ Details</span>
         </div>
-        <div class="flex items-center gap-2">
-          {#if stats.app_errors > 0}
-            <span class="w-2 h-2 rounded-full bg-[var(--error)]"></span>
-          {/if}
-          <span class="text-sm font-mono text-[var(--text)]">{stats.app_errors}</span>
+        <div class="text-2xl font-bold text-[var(--accent)] font-mono mb-2">{formatCost(sessionCosts.total_cost_usd)}</div>
+        <div class="grid grid-cols-3 gap-2 text-[10px] font-mono">
+          <div>
+            <div class="text-[var(--muted)]">Requests</div>
+            <div class="text-[var(--text)] font-semibold">{formatNumber(sessionCosts.total_requests)}</div>
+          </div>
+          <div>
+            <div class="text-[var(--muted)]">Input</div>
+            <div class="text-[var(--text)] font-semibold">{formatTokens(sessionCosts.total_input_tokens)}</div>
+          </div>
+          <div>
+            <div class="text-[var(--muted)]">Output</div>
+            <div class="text-[var(--text)] font-semibold">{formatTokens(sessionCosts.total_output_tokens)}</div>
+          </div>
         </div>
+        {#if sessionCosts.total_cache_read_tokens > 0}
+          <div class="text-[9px] text-[var(--muted)] mt-1">{formatTokens(sessionCosts.total_cache_read_tokens)} cache reads</div>
+        {/if}
       </div>
-    </div>
 
-    <!-- Agents + System Resources (compact row) -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
-      {#if agents.length > 0}
-        <div class="lg:col-span-2 flex flex-wrap gap-3">
-          {#each agents as agent (agent.agent_name)}
-            {@const isWorking = workingAgents.has(agent.agent_name)}
-            {@const agentState = isWorking ? 'working' : agent.is_running ? 'running' : 'idle'}
-            <div
-              class="flex items-center gap-2.5 px-3 py-2 bg-[var(--surface)] rounded border transition-all duration-300 {isWorking
-                ? 'border-[var(--accent)] agent-breathing'
-                : 'border-[var(--border)]'}"
-            >
-              <svg viewBox="0 0 44 30" class="w-8 h-4 flex-shrink-0 overflow-visible">
-                <path
-                  d={heartbeatPath(agentState)}
-                  fill="none"
-                  stroke={agent.color || 'var(--muted)'}
-                  stroke-width="1.5"
-                  class={agentState === 'working'
-                    ? 'heartbeat-working'
-                    : agentState === 'running'
-                      ? 'heartbeat-running'
-                      : ''}
-                />
-              </svg>
-              <span class="text-xs font-semibold text-[var(--text)] font-sans"
-                >{agent.agent_name}</span
-              >
-              <span
-                class="text-[10px] font-mono {isWorking
-                  ? 'text-[var(--accent)]'
-                  : agent.is_running
-                    ? 'text-[var(--success)]'
-                    : 'text-[var(--muted)]'}"
-              >
-                {isWorking ? 'Working' : agent.is_running ? 'Running' : 'Stopped'}
-              </span>
-            </div>
-          {/each}
-        </div>
-      {/if}
+      <!-- Sub-Agent Tree -->
       <div
-        class="flex items-center gap-6 px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded"
+        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 cursor-pointer hover:border-[var(--accent)] transition-colors"
+        onclick={() => navigate('/analysis/subagents')}
+        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/subagents')}
+        role="link"
+        tabindex="0"
       >
-        <div class="flex items-center gap-2 flex-1">
-          <span class="text-xs text-[var(--muted)]">CPU</span>
-          <div class="flex-1 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
-            <div
-              class="h-full transition-all duration-500"
-              style="width: {systemMetrics.cpu_percent || 0}%; background: {cpuColor}"
-            ></div>
-          </div>
-          <span class="text-xs font-mono text-[var(--text)] w-10 text-right"
-            >{systemMetrics.cpu_percent?.toFixed(0) || 0}%</span
-          >
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Sub-Agents</h3>
+          <span class="text-[10px] text-[var(--muted)]">→ Tree View</span>
         </div>
-        <div class="flex items-center gap-2 flex-1">
-          <span class="text-xs text-[var(--muted)]">MEM</span>
-          <div class="flex-1 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
-            <div
-              class="h-full transition-all duration-500"
-              style="width: {systemMetrics.memory_percent || 0}%; background: {memColor}"
-            ></div>
+        {#if recentSubagents.length > 0}
+          <div class="space-y-1">
+            {#each recentSubagents.slice(0, 5) as agent (agent.id)}
+              <div class="flex items-center gap-2 py-0.5">
+                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white" style="background: {getTypeColor(agent.agent_type)}">{agent.agent_type || 'agent'}</span>
+                <span class="text-[10px] text-[var(--text)] truncate flex-1">{agent.description || agent.agent_id?.slice(0, 12)}</span>
+                <span class="text-[9px] text-[var(--muted)]">{formatTime(agent.started_at)}</span>
+              </div>
+            {/each}
           </div>
-          <span class="text-xs font-mono text-[var(--text)] w-10 text-right"
-            >{systemMetrics.memory_percent?.toFixed(0) || 0}%</span
-          >
-        </div>
+        {:else}
+          <div class="flex items-center justify-center h-16 text-xs text-[var(--muted)]">No sub-agents yet</div>
+        {/if}
       </div>
-    </div>
 
-    <!-- Latest Code Change + Activity Trend -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
       <!-- Latest Diff -->
-      <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col"
-        style="height: 250px;"
-      >
-        <div
-          class="flex justify-between items-center px-4 py-2 bg-[var(--bg)] border-b border-[var(--border)] flex-shrink-0"
-        >
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col" style="max-height: 200px;">
+        <div class="flex justify-between items-center px-3 py-1.5 bg-[var(--bg)] border-b border-[var(--border)] flex-shrink-0">
           {#if latestDiff}
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
-              <span class="text-xs font-mono text-[var(--text)] truncate"
-                >{latestDiff.filepath}<span class="cursor-blink">|</span></span
-              >
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse flex-shrink-0"></span>
+              <span class="text-[10px] font-mono text-[var(--text)] truncate">{latestDiff.filepath}<span class="cursor-blink">|</span></span>
             </div>
-            <div class="flex items-center gap-2">
-              {#if latestDiff.agent_source}
-                <span
-                  class="px-1 py-0.5 text-[9px] font-bold rounded text-white"
-                  style="background: {getAgentColorByName(latestDiff.agent_source)}"
-                  >{latestDiff.agent_source}</span
-                >
-              {/if}
-              <span class="text-[10px] text-[var(--muted)] font-mono"
-                >{formatTime(latestDiff.timestamp)}</span
-              >
-            </div>
+            {#if latestDiff.agent_source}
+              <span class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0" style="background: {getAgentColorByName(latestDiff.agent_source)}">{latestDiff.agent_source}</span>
+            {/if}
           {:else}
-            <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
-              >Latest Change</span
-            >
+            <span class="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide">Latest Change</span>
           {/if}
         </div>
         <div class="flex-1 overflow-auto">
           {#if latestDiff}
-            <pre
-              class="text-[11px] font-mono m-0 bg-[var(--surface)] leading-[1.7]">{#each latestDiff.diff
-                .split('\n')
-                .slice(0, 50) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span
-                    class="text-[var(--success)] block px-3"
-                    style="background: var(--success-subtle)">{line.slice(1)}</span
-                  >{:else if c === '-'}<span
-                    class="text-[var(--error)] block px-3"
-                    style="background: var(--error-subtle)">{line.slice(1)}</span
-                  >{:else}<span class="text-[var(--muted)] block px-3"
-                    >{c === ' ' ? line.slice(1) : line}</span
-                  >{/if}{/each}</pre>
+            <pre class="text-[10px] font-mono m-0 bg-[var(--surface)] leading-[1.6]">{#each latestDiff.diff.split('\n').slice(0, 30) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span class="text-[var(--success)] block px-2" style="background: var(--success-subtle)">{line.slice(1)}</span>{:else if c === '-'}<span class="text-[var(--error)] block px-2" style="background: var(--error-subtle)">{line.slice(1)}</span>{:else}<span class="text-[var(--muted)] block px-2">{c === ' ' ? line.slice(1) : line}</span>{/if}{/each}</pre>
           {:else}
-            <div class="flex items-center justify-center h-full text-sm text-[var(--muted)]">
-              Waiting for changes
-            </div>
+            <div class="flex items-center justify-center h-full text-xs text-[var(--muted)]">Waiting for changes</div>
           {/if}
         </div>
       </div>
+    </div>
 
-      <!-- Activity Trend -->
-      <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 flex flex-col"
-        style="height: 250px;"
-      >
-        <h3
-          class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 flex-shrink-0"
-        >
-          Activity (5m)
-        </h3>
-        <div class="flex-1">
-          <canvas id="chart-trend"></canvas>
-        </div>
+    <!-- Activity Trend (compact) -->
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-3" style="height: 160px;">
+      <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 flex-shrink-0">Activity (5m)</h3>
+      <div style="height: 110px;">
+        <canvas id="chart-trend"></canvas>
       </div>
     </div>
 
