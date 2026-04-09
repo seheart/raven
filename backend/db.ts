@@ -359,6 +359,44 @@ export class RavenDB {
       )
     `);
 
+    // Token usage tracking (Claude API costs)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS token_usage (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        project_name TEXT,
+        model TEXT NOT NULL,
+        input_tokens INTEGER DEFAULT 0,
+        output_tokens INTEGER DEFAULT 0,
+        cache_creation_tokens INTEGER DEFAULT 0,
+        cache_read_tokens INTEGER DEFAULT 0,
+        estimated_cost_usd REAL DEFAULT 0,
+        request_id TEXT,
+        agent_id TEXT
+      )
+    `);
+
+    // Sub-agent tree tracking
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS subagent_tree (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        agent_id TEXT NOT NULL,
+        parent_agent_id TEXT,
+        agent_type TEXT,
+        description TEXT,
+        model TEXT,
+        started_at TEXT,
+        ended_at TEXT,
+        total_input_tokens INTEGER DEFAULT 0,
+        total_output_tokens INTEGER DEFAULT 0,
+        estimated_cost_usd REAL DEFAULT 0,
+        project_name TEXT,
+        UNIQUE(session_id, agent_id)
+      )
+    `);
+
     // ==================== Performance Indexes ====================
     // These indexes dramatically improve query performance as tables grow
 
@@ -448,6 +486,26 @@ export class RavenDB {
     );
     this.db.exec(
       `CREATE INDEX IF NOT EXISTS idx_diff_risk_scores_score ON diff_risk_scores(score DESC)`
+    );
+
+    // Token usage indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_token_usage_timestamp ON token_usage(timestamp DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_token_usage_session_id ON token_usage(session_id)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_token_usage_project_name ON token_usage(project_name)`
+    );
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_token_usage_model ON token_usage(model)`);
+
+    // Sub-agent tree indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_subagent_tree_session_id ON subagent_tree(session_id)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_subagent_tree_agent_id ON subagent_tree(agent_id)`
     );
   }
 

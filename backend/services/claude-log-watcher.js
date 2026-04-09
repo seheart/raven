@@ -292,6 +292,47 @@ export class ClaudeLogWatcher {
       source: 'claude-code'
     };
 
+    // Emit token usage for any assistant message with usage data
+    if (entry.type === 'assistant' && entry.message?.usage) {
+      const usage = entry.message.usage;
+      await this.eventCallback({
+        ...baseEvent,
+        type: 'token_usage',
+        eventCategory: 'token_usage',
+        model: entry.message.model || 'unknown',
+        inputTokens: usage.input_tokens || 0,
+        outputTokens: usage.output_tokens || 0,
+        cacheCreationTokens: usage.cache_creation_input_tokens || 0,
+        cacheReadTokens: usage.cache_read_input_tokens || 0,
+        requestId: entry.requestId || null,
+        agentId: entry.agentId || null,
+        isSidechain: entry.isSidechain || false,
+        parentUuid: entry.parentUuid || null,
+        uuid: entry.uuid || null
+      });
+    }
+
+    // Detect sub-agent spawning (tool_use with name "Agent")
+    if (entry.type === 'assistant' && entry.message?.content) {
+      const contentArr = Array.isArray(entry.message.content) ? entry.message.content : [];
+      const agentToolUses = contentArr.filter(
+        item => item.type === 'tool_use' && item.name === 'Agent'
+      );
+      for (const agentCall of agentToolUses) {
+        await this.eventCallback({
+          ...baseEvent,
+          type: 'subagent_spawn',
+          eventCategory: 'subagent',
+          agentId: entry.agentId || null,
+          description: agentCall.input?.description || agentCall.input?.prompt?.slice(0, 200) || '',
+          subagentType: agentCall.input?.subagent_type || 'general-purpose',
+          model: agentCall.input?.model || entry.message?.model || null,
+          parentUuid: entry.parentUuid || null,
+          uuid: entry.uuid || null
+        });
+      }
+    }
+
     // Process assistant messages with tool use
     if (entry.type === 'assistant' && entry.message?.content) {
       const content = Array.isArray(entry.message.content) ? entry.message.content : [];

@@ -17,7 +17,9 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { randomUUID } from 'crypto';
-import { join, basename, resolve } from 'path';
+import { join, basename, resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import os from 'os';
 import { execFile } from 'child_process';
@@ -46,6 +48,9 @@ import { ProjectManager } from './services/project-manager.js';
 import { LocalModelWatcher } from './services/local-model-watcher.js';
 import { InsightsService } from './services/insights-service.js';
 import { createInsightsRouter } from './routes/insights.js';
+import { calculateCost } from './services/token-cost-calculator.js';
+import { createCostsRouter } from './routes/costs.js';
+import { createSubagentsRouter } from './routes/subagents.js';
 
 // ==================== Configuration ====================
 
@@ -275,6 +280,84 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
       );
     } catch (err: any) {
       logger.debug(`Failed to store conversation: ${err.message}`);
+    }
+  }
+
+  // Store token usage data
+  if (category === 'token_usage') {
+    try {
+      const usage = {
+        input_tokens: event.inputTokens || 0,
+        output_tokens: event.outputTokens || 0,
+        cache_creation_input_tokens: event.cacheCreationTokens || 0,
+        cache_read_input_tokens: event.cacheReadTokens || 0
+      };
+      const cost = calculateCost(event.model || 'unknown', usage);
+
+      const stmt = db.db.prepare(`
+        INSERT INTO token_usage (timestamp, session_id, project_name, model, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, estimated_cost_usd, request_id, agent_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(
+        timestamp,
+        event.sessionId || SESSION_ID,
+        event.projectName || null,
+        event.model || 'unknown',
+        usage.input_tokens,
+        usage.output_tokens,
+        usage.cache_creation_input_tokens,
+        usage.cache_read_input_tokens,
+        cost,
+        event.requestId || null,
+        event.agentId || null
+      );
+
+      io.emit('token-usage', {
+        timestamp,
+        model: event.model,
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        cache_creation_tokens: usage.cache_creation_input_tokens,
+        cache_read_tokens: usage.cache_read_input_tokens,
+        estimated_cost_usd: cost,
+        project_name: event.projectName,
+        session_id: event.sessionId
+      });
+    } catch (err: any) {
+      logger.debug(`Failed to store token usage: ${err.message}`);
+    }
+  }
+
+  // Store sub-agent spawn events
+  if (category === 'subagent') {
+    try {
+      const stmt = db.db.prepare(`
+        INSERT OR IGNORE INTO subagent_tree (session_id, agent_id, parent_agent_id, agent_type, description, model, started_at, project_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(
+        event.sessionId || SESSION_ID,
+        event.uuid || `agent_${Date.now()}`,
+        event.parentUuid || null,
+        event.subagentType || 'general-purpose',
+        event.description || null,
+        event.model || null,
+        timestamp,
+        event.projectName || null
+      );
+
+      io.emit('subagent-spawn', {
+        timestamp,
+        agent_id: event.uuid,
+        parent_agent_id: event.parentUuid,
+        agent_type: event.subagentType,
+        description: event.description,
+        model: event.model,
+        session_id: event.sessionId,
+        project_name: event.projectName
+      });
+    } catch (err: any) {
+      logger.debug(`Failed to store subagent spawn: ${err.message}`);
     }
   }
 
@@ -740,6 +823,44 @@ app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
 
 // Mount insights routes (LLM-powered analysis)
 app.use('/api/insights', createInsightsRouter(insightsService, db));
+
+// Mount costs routes (token usage & cost tracking)
+app.use('/api/costs', createCostsRouter(db));
+
+// Mount sub-agent routes (agent tree visualization)
+app.use('/api/subagents', createSubagentsRouter(db));
+
+// Network info endpoint for mobile access QR code
+app.get('/api/network-info', (_req: Request, res: Response) => {
+  const nets = os.networkInterfaces();
+  const addresses: { name: string; address: string; family: string }[] = [];
+  for (const [name, ifaces] of Object.entries(nets)) {
+    for (const iface of ifaces || []) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        addresses.push({ name, address: iface.address, family: 'IPv4' });
+      }
+    }
+  }
+  const frontendPort = parseInt(process.env.FRONTEND_PORT || '9000', 10);
+  res.json({
+    addresses,
+    backend_port: PORT,
+    frontend_port: frontendPort,
+    lan_url: addresses.length > 0 ? `http://${addresses[0].address}:${frontendPort}` : null,
+    backend_url: addresses.length > 0 ? `http://${addresses[0].address}:${PORT}` : null
+  });
+});
+
+// Serve built frontend in production/npx mode (when frontend/dist exists)
+const frontendDistPath = join(dirname(fileURLToPath(import.meta.url)), '../../frontend/dist');
+if (existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  // SPA fallback — serve index.html for non-API routes
+  app.get(/^\/(?!api\/).*/, (_req: Request, res: Response) => {
+    res.sendFile(join(frontendDistPath, 'index.html'));
+  });
+  logger.info(`📦 Serving frontend from ${frontendDistPath}`);
+}
 
 // ==================== Legacy Individual Route Handlers ====================
 
@@ -3455,11 +3576,24 @@ app.use(errorHandler);
 // ==================== Server Startup ====================
 
 httpServer.listen(PORT, async () => {
+  // Detect LAN IP for mobile access
+  const nets = os.networkInterfaces();
+  const lanIps: string[] = [];
+  for (const ifaces of Object.values(nets)) {
+    for (const iface of ifaces || []) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        lanIps.push(iface.address);
+      }
+    }
+  }
+  const lanAddr = lanIps.length > 0 ? `http://${lanIps[0]}:${PORT}` : 'N/A';
+
   logger.info(`
 ╔════════════════════════════════════════════════╗
 ║     Raven Backend (TypeScript)                 ║
 ╠════════════════════════════════════════════════╣
 ║  Port:       ${PORT}                              ║
+║  LAN:        ${lanAddr.padEnd(34)} ║
 ║  Session:    ${SESSION_ID}     ║
 ║  Watch Path: ${WATCH_PATH.slice(-30).padEnd(30)} ║
 ║  Database:   ${DB_PATH.slice(-30).padEnd(30)} ║

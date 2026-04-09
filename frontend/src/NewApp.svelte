@@ -281,6 +281,22 @@
       {:else if activeTab === 'analysis'}
         {#if !activeSubTab}
           <AnalysisPage />
+        {:else if activeSubTab === 'costs'}
+          {#await import('./lib/pages/CostsPage.svelte')}
+            <PlaceholderPage title="Costs" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Costs" description="Failed to load" />
+          {/await}
+        {:else if activeSubTab === 'subagents'}
+          {#await import('./lib/pages/SubAgentTreePage.svelte')}
+            <PlaceholderPage title="Sub-Agents" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Sub-Agents" description="Failed to load" />
+          {/await}
         {:else if activeSubTab === 'models'}
           <ModelsPage />
         {:else if activeSubTab === 'performance'}

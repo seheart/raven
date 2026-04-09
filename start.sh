@@ -175,7 +175,11 @@ SESSION_INFO=$(curl -s http://localhost:9100/health | grep -o '"session_id":"[^"
 echo ""
 echo -e "  ${GREEN}${BOLD}Raven is running${NC}"
 echo ""
+LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 echo -e "  ${DIM}Frontend${NC}  http://localhost:9000"
+if [ -n "$LAN_IP" ]; then
+echo -e "  ${DIM}LAN${NC}       http://${LAN_IP}:9000"
+fi
 echo -e "  ${DIM}Backend${NC}   http://localhost:9100"
 echo -e "  ${DIM}Session${NC}   ${SESSION_INFO:0:36}"
 echo ""

@@ -54,6 +54,8 @@
     ],
     analysis: [
       { id: '', label: 'Overview' },
+      { id: 'costs', label: 'Costs' },
+      { id: 'subagents', label: 'Sub-Agents' },
       { id: 'models', label: 'Models' },
       { id: 'performance', label: 'Performance' },
       { id: 'trends', label: 'Historical Trends' },
@@ -155,11 +157,11 @@
     </button>
 
     <!-- Main Navigation -->
-    <nav class="flex gap-1 flex-1 font-sans" aria-label="Main navigation">
+    <nav class="flex gap-1 flex-1 font-sans overflow-x-auto" aria-label="Main navigation">
       {#each tabs as tab (tab.id)}
         <button
           onclick={e => handleNavClick(e, tab.path)}
-          class={`px-3 py-1.5 rounded text-sm transition-colors font-sans border-0 cursor-pointer ${
+          class={`px-3 py-1.5 rounded text-sm transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
             activeTab === tab.id
               ? 'bg-[var(--accent)] text-[#ffffff] font-semibold'
               : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] font-medium'
@@ -171,9 +173,9 @@
       {/each}
     </nav>
 
-    <!-- Activity Stats (real data) -->
+    <!-- Activity Stats (real data) — hidden on mobile -->
     <div
-      class="flex gap-3 text-xs font-mono text-[var(--muted)] pl-4 border-l border-[var(--border)]"
+      class="hidden md:flex gap-3 text-xs font-mono text-[var(--muted)] pl-4 border-l border-[var(--border)]"
     >
       <span>{stats.files} files</span>
       <span>{stats.edits} edits</span>
@@ -181,8 +183,8 @@
       <span class="text-[var(--error)]">-{stats.deletes}</span>
     </div>
 
-    <!-- CPU / Memory -->
-    <div class="flex items-center gap-3 pl-3 border-l border-[var(--border)] text-xs font-mono">
+    <!-- CPU / Memory — hidden on mobile -->
+    <div class="hidden lg:flex items-center gap-3 pl-3 border-l border-[var(--border)] text-xs font-mono">
       <div class="flex items-center gap-1.5" title="CPU: {cpu.toFixed(1)}%">
         <span class="text-[var(--muted)]">CPU</span>
         <div class="w-12 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
@@ -213,9 +215,9 @@
       </div>
     </div>
 
-    <!-- Project Filter -->
+    <!-- Project Filter — hidden on small screens -->
     {#if projects.length > 0}
-      <div class="pl-3 border-l border-[var(--border)]">
+      <div class="hidden sm:block pl-3 border-l border-[var(--border)]">
         <select
           value={currentFilter}
           onchange={e => setProjectFilter(e.target.value)}

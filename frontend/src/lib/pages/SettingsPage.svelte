@@ -4,8 +4,12 @@
   import { get } from 'svelte/store';
   import { settings } from '../stores/settingsStore.js';
 
+  import { createPageApi } from '../apiClient.js';
+  const { api } = createPageApi();
+
   let currentSettings = $state(get(settings));
   let notificationPermission = $state('default');
+  let networkInfo = $state(null);
 
   function _save() {
     settings.set(currentSettings);
@@ -68,6 +72,7 @@
 
   onMount(() => {
     updateNotificationPermission();
+    api.get('/network-info').then(data => { networkInfo = data; }).catch(() => {});
     const unsubscribe = settings.subscribe(value => {
       currentSettings = value;
     });
@@ -322,6 +327,37 @@
               class="w-20 px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] text-center"
             />
           </div>
+        </div>
+      </div>
+
+      <!-- Mobile Access -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+          Mobile Access
+        </h3>
+        <div class="space-y-3">
+          {#if networkInfo?.lan_url}
+            <div>
+              <div class="text-sm text-[var(--text)] mb-1">LAN Dashboard URL</div>
+              <div class="text-xs text-[var(--muted)] mb-2">Access Raven from any device on your local network</div>
+              <code class="block bg-[var(--bg)] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--accent)] select-all">
+                {networkInfo.lan_url}
+              </code>
+            </div>
+            <div>
+              <div class="text-sm text-[var(--text)] mb-1">LAN API URL</div>
+              <code class="block bg-[var(--bg)] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--muted)] select-all">
+                {networkInfo.backend_url}
+              </code>
+            </div>
+            <div class="text-xs text-[var(--muted)]">
+              Open the dashboard URL on your phone while connected to the same Wi-Fi network.
+            </div>
+          {:else}
+            <div class="text-sm text-[var(--muted)]">
+              No LAN address detected. Raven is accessible on localhost only.
+            </div>
+          {/if}
         </div>
       </div>
 
