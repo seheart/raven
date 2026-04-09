@@ -444,13 +444,17 @@
   };
 
   const handleHealthAlert = data => {
-    pushActivity({
-      type: 'health',
-      icon: '!!',
-      color: 'var(--error)',
-      text: `Health alert: ${data.message || data.overallStatus || 'system issue'}`,
-      timestamp: new Date().toISOString()
-    });
+    // Only show critical alerts in the feed — warnings are noisy and usually benign
+    if (data.status === 'critical') {
+      const issues = (data.criticalIssues || []).map(i => i.message || i.name).join(', ');
+      pushActivity({
+        type: 'health',
+        icon: '!!',
+        color: 'var(--error)',
+        text: `Critical: ${issues || 'system issue'}`,
+        timestamp: new Date().toISOString()
+      });
+    }
   };
 
   const handleDiffRiskScore = data => {

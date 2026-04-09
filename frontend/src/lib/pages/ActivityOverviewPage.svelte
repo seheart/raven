@@ -22,7 +22,7 @@
   let selectedType = $state('all');
   let expandedActivity = $state(null);
   let lastUpdated = $state(null);
-  let __isManualRefresh = $state(false);
+  let _isManualRefresh = $state(false);
   let __recentActivity = $state([]);
 
   // Pagination
