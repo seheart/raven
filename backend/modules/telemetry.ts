@@ -18,12 +18,31 @@ export interface TelemetryConfig {
 export class TelemetryCollector {
   private intervalId: NodeJS.Timeout | null = null;
   private config: TelemetryConfig;
+  private idleIntervalMs: number = 60000; // 60s when idle
+  private isIdle: boolean = false;
 
   constructor(config: Partial<TelemetryConfig> = {}) {
     this.config = {
       intervalMs: config.intervalMs || 10000,
       enableNetworkMetrics: config.enableNetworkMetrics ?? true
     };
+  }
+
+  /**
+   * Switch between active (10s) and idle (60s) collection intervals
+   */
+  setIdle(idle: boolean): void {
+    if (idle === this.isIdle) return;
+    this.isIdle = idle;
+    const newInterval = idle ? this.idleIntervalMs : this.config.intervalMs;
+
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = setInterval(() => {
+        this.collect();
+      }, newInterval);
+      logger.info(`📊 Telemetry: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`);
+    }
   }
 
   /**

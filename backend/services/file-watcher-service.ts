@@ -277,8 +277,8 @@ export class FileWatcherService {
       // Use polling for ALL projects to avoid hitting inotify limits
       // Polling is more resource-friendly when watching multiple large projects
       usePolling: true,
-      interval: 1000, // Poll every 1s for normal files
-      binaryInterval: 3000, // Poll every 3s for binary files
+      interval: 3000, // Poll every 3s for normal files
+      binaryInterval: 5000, // Poll every 5s for binary files
       // Limit depth to avoid deep node_modules recursion
       depth: isRavenProject ? 99 : 5, // Deep for raven (selective paths), shallow for others
       ignorePermissionErrors: true,

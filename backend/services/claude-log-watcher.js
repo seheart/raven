@@ -120,6 +120,42 @@ export class ClaudeLogWatcher {
   }
 
   /**
+   * Switch between active (100ms) and idle (5s) polling.
+   * Reduces filesystem wake-ups when no agents are running.
+   */
+  setIdle(idle) {
+    if (!this.logWatcher) return;
+    const newInterval = idle ? 5000 : 100;
+    // Chokidar doesn't support changing interval at runtime,
+    // so we close and re-create the watcher with the new interval
+    if (this._currentIdle === idle) return;
+    this._currentIdle = idle;
+    this.logger.info(`Claude Log Watcher: switching to ${idle ? 'idle' : 'active'} polling (${newInterval}ms)`);
+    this.logWatcher.close().then(() => {
+      this.logWatcher = chokidar.watch(this.claudeProjectsDir, {
+        persistent: true,
+        ignoreInitial: true, // Don't re-process existing files on restart
+        usePolling: true,
+        interval: newInterval,
+        binaryInterval: newInterval,
+        awaitWriteFinish: false,
+        ignorePermissionErrors: true,
+        alwaysStat: true,
+        depth: 2,
+        ignored: (watchPath, stats) => {
+          if (stats?.isFile()) {
+            return !watchPath.endsWith('.jsonl');
+          }
+          return false;
+        }
+      });
+      this.logWatcher.on('add', filepath => this.handleLogFileAdded(filepath));
+      this.logWatcher.on('change', filepath => this.handleLogFileChanged(filepath));
+      this.logWatcher.on('error', error => this.logger.error(`❌ Watcher error: ${error.message}`));
+    });
+  }
+
+  /**
    * Stop watching
    */
   async stop() {

@@ -36,9 +36,33 @@ export class HealthMonitor {
   private lastReport: HealthReport | null = null;
   private monitoringInterval: NodeJS.Timeout | null = null;
   private alertCallbacks: Array<(report: HealthReport) => void> = [];
+  private activeIntervalMs: number = 60000;
+  private idleIntervalMs: number = 300000; // 5 minutes when idle
+  private isIdle: boolean = false;
 
   constructor(db: RavenDB) {
     this.db = db;
+  }
+
+  /**
+   * Switch between active (60s) and idle (5min) health check intervals
+   */
+  setIdle(idle: boolean): void {
+    if (idle === this.isIdle) return;
+    this.isIdle = idle;
+    const newInterval = idle ? this.idleIntervalMs : this.activeIntervalMs;
+
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = setInterval(async () => {
+        try {
+          await this.runHealthCheck();
+        } catch (error: any) {
+          logger.error('Health check failed:', error);
+        }
+      }, newInterval);
+      logger.info(`🏥 Health monitoring: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`);
+    }
   }
 
   /**

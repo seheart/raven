@@ -24,6 +24,8 @@ export class MetricsCollector {
   private processInterval: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
   private processCollectionInterval: number = 5000; // 5 seconds for process metrics
+  private idleProcessInterval: number = 30000; // 30 seconds when idle
+  private isIdle: boolean = false;
 
   private agentPatterns: ProcessPattern[] = [
     { pattern: /claude/i, name: 'claude-sonnet-3.5' },
@@ -168,6 +170,30 @@ export class MetricsCollector {
       });
     }, this.processCollectionInterval);
     this.processInterval.unref();
+  }
+
+  /**
+   * Switch between active (5s) and idle (30s) process metrics collection.
+   * Also propagates idle state to the telemetry collector.
+   */
+  setIdle(idle: boolean): void {
+    if (idle === this.isIdle) return;
+    this.isIdle = idle;
+    const newInterval = idle ? this.idleProcessInterval : this.processCollectionInterval;
+
+    // Propagate to telemetry collector
+    telemetryCollector.setIdle(idle);
+
+    if (this.processInterval) {
+      clearInterval(this.processInterval);
+      this.processInterval = setInterval(() => {
+        this.collectProcessMetrics().catch(err => {
+          logger.error('❌ Process metrics collection failed:', err);
+        });
+      }, newInterval);
+      this.processInterval.unref();
+      logger.info(`📊 Metrics: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`);
+    }
   }
 
   /**

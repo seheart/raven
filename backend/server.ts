@@ -3587,6 +3587,7 @@ httpServer.listen(PORT, async () => {
   // Periodic process check for Claude Code — keeps agent status accurate
   // even when no new log events are flowing (e.g., user is reading output)
   const PROCESS_CHECK_INTERVAL = 30_000; // 30 seconds
+  let systemIsIdle = false;
   processCheckTimer = setInterval(() => {
     execFile('pgrep', ['-x', 'claude'], (err, stdout) => {
       const agentName = 'Claude Code';
@@ -3597,6 +3598,18 @@ httpServer.listen(PORT, async () => {
       if (hasRunningProcess) {
         agent.last_seen = new Date().toISOString();
         agent.is_running = true;
+      }
+
+      // Central idle detection — switch ALL services when no agents are active
+      const anyAgentActive = Array.from(agentRegistry.values()).some(a => a.is_running);
+      const shouldBeIdle = !anyAgentActive;
+      if (shouldBeIdle !== systemIsIdle) {
+        systemIsIdle = shouldBeIdle;
+        logger.info(`🌙 System ${shouldBeIdle ? 'entering idle mode' : 'resuming active mode'} — adjusting all polling intervals`);
+        localModelWatcher.setIdle(shouldBeIdle);
+        claudeLogWatcher.setIdle(shouldBeIdle);
+        healthMonitor.setIdle(shouldBeIdle);
+        metricsCollector.setIdle(shouldBeIdle);
       }
     });
   }, PROCESS_CHECK_INTERVAL);

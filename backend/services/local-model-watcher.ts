@@ -59,9 +59,31 @@ export class LocalModelWatcher {
   private onModelStatusChanged: ((model: DetectedModel, previousStatus: string) => void) | null =
     null;
   private pollMs: number;
+  private idlePollMs: number;
+  private isIdle: boolean = false;
 
-  constructor(pollMs: number = 30000) {
+  constructor(pollMs: number = 30000, idlePollMs: number = 300000) {
     this.pollMs = pollMs;
+    this.idlePollMs = idlePollMs; // 5 minutes when idle
+  }
+
+  /**
+   * Switch between active and idle polling rates.
+   * Call setIdle(true) when no agents are running to reduce GPU wake-ups.
+   */
+  setIdle(idle: boolean): void {
+    if (idle === this.isIdle) return;
+    this.isIdle = idle;
+    const newInterval = idle ? this.idlePollMs : this.pollMs;
+    logger.info(`Local model watcher: switching to ${idle ? 'idle' : 'active'} polling (${newInterval / 1000}s)`);
+
+    // Restart the interval at the new rate
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = setInterval(() => {
+        this.scan().catch(err => logger.error('Model scan failed:', err));
+      }, newInterval);
+    }
   }
 
   /**

@@ -24,6 +24,9 @@ export class InsightsService {
   private ollamaUrl: string;
   private model: string;
   private generating: Set<string> = new Set();
+  private lastAnomalyCallTime = 0;
+  private lastAnomalyStatus = '';
+  private static readonly ANOMALY_THROTTLE_MS = 60 * 60 * 1000; // 1 hour
 
   constructor(db: RavenDB, ollamaUrl = 'http://localhost:11434', model = 'qwen2.5-coder:14b') {
     this.db = db;
@@ -192,7 +195,17 @@ Be concise — 2-3 sentences per file max. Skip files that look fine.`;
     criticalIssues: Array<{ category?: string; name?: string; message?: string }>;
     summary: { critical: number; warnings: number };
   }): Promise<InsightSummary | null> {
-    const start = Date.now();
+    // Throttle: skip if same status was explained within the last hour
+    const now = Date.now();
+    if (
+      alertData.overallStatus === this.lastAnomalyStatus &&
+      now - this.lastAnomalyCallTime < InsightsService.ANOMALY_THROTTLE_MS
+    ) {
+      logger.debug(`Skipping anomaly explanation — same status "${alertData.overallStatus}" explained ${Math.round((now - this.lastAnomalyCallTime) / 60000)}m ago`);
+      return null;
+    }
+
+    const start = now;
 
     try {
       const issuesList = alertData.criticalIssues
@@ -220,6 +233,8 @@ In one sentence, explain what is happening and whether the developer should take
         alertData.summary.critical + alertData.summary.warnings
       );
 
+      this.lastAnomalyCallTime = Date.now();
+      this.lastAnomalyStatus = alertData.overallStatus;
       logger.info(`✨ Generated anomaly explanation in ${duration}ms`);
       return insight;
     } catch (err: any) {
