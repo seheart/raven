@@ -1319,6 +1319,46 @@ export class RavenDB {
   }
 
   /**
+   * Delete old data beyond retention limits.
+   * Returns number of rows deleted per table.
+   */
+  runRetentionCleanup(eventDays = 7, metricsDays = 30): Record<string, number> {
+    const results: Record<string, number> = {};
+
+    const tables: Array<{ name: string; days: number }> = [
+      { name: 'events', days: eventDays },
+      { name: 'agent_events', days: eventDays },
+      { name: 'syntax_errors', days: eventDays },
+      { name: 'pattern_warnings', days: eventDays },
+      { name: 'diff_risk_scores', days: eventDays },
+      { name: 'app_errors', days: eventDays },
+      { name: 'raven_metrics', days: metricsDays },
+      { name: 'process_metrics', days: metricsDays },
+      { name: 'token_usage', days: metricsDays },
+      { name: 'insights', days: metricsDays },
+      { name: 'test_results', days: metricsDays },
+      { name: 'subagent_tree', days: metricsDays },
+      { name: 'analysis_runs', days: metricsDays },
+      { name: 'analysis_checks', days: metricsDays },
+    ];
+
+    for (const { name, days } of tables) {
+      try {
+        const result = this.db.prepare(
+          `DELETE FROM ${name} WHERE timestamp < datetime('now', '-${days} days')`
+        ).run();
+        if (result.changes > 0) {
+          results[name] = result.changes;
+        }
+      } catch {
+        // Table may not exist yet — skip silently
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Close the database connection
    * Should be called during application shutdown to ensure data integrity
    */

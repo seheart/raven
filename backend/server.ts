@@ -181,6 +181,28 @@ insightsService.onDiffRiskResult((eventId, filepath, score, reason) => {
 });
 const selfAnalysisService = new SelfAnalysisService(db, SESSION_ID);
 
+// Database retention: clean old data on startup and nightly at 3 AM
+const RETENTION_EVENT_DAYS = parseInt(process.env.RETENTION_EVENT_DAYS || '7', 10);
+const RETENTION_METRICS_DAYS = parseInt(process.env.RETENTION_METRICS_DAYS || '30', 10);
+
+function runRetentionCleanup() {
+  const results = db.runRetentionCleanup(RETENTION_EVENT_DAYS, RETENTION_METRICS_DAYS);
+  const total = Object.values(results).reduce((s, n) => s + n, 0);
+  if (total > 0) {
+    logger.info(`🧹 Retention cleanup: deleted ${total} old rows`, results);
+  }
+}
+
+// Run immediately on startup
+runRetentionCleanup();
+
+// Schedule nightly at 3 AM
+const retentionInterval = setInterval(() => {
+  const hour = new Date().getHours();
+  if (hour === 3) runRetentionCleanup();
+}, 3600000); // check hourly
+retentionInterval.unref();
+
 // Set up health alert handler to emit via WebSocket
 healthMonitor.onAlert(report => {
   logger.warn(`🚨 Health alert: System status is ${report.overallStatus}`, {
@@ -1101,7 +1123,21 @@ app.get('/api/models', cacheMiddleware(5000), (req: Request, res: Response) => {
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 
-app.all('/ollama/*', async (req: Request, res: Response): Promise<any> => {
+// Rate limiter for ollama inference endpoints — prevent flooding the GPU
+const ollamaInferenceLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 inference requests per minute
+  message: { error: 'Ollama rate limit exceeded — max 10 inference requests per minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req: Request) => {
+    // Only limit inference endpoints, not health checks like /api/tags
+    const path = req.path.replace('/ollama', '');
+    return path !== '/api/generate' && path !== '/api/chat';
+  }
+});
+
+app.all('/ollama/*', ollamaInferenceLimiter, async (req: Request, res: Response): Promise<any> => {
   const ollamaPath = req.path.replace('/ollama', '');
   const targetUrl = `${OLLAMA_URL}${ollamaPath}`;
   const startTime = Date.now();

@@ -39,6 +39,13 @@ export class InsightsService {
   private ollamaQueue: Array<() => void> = [];
   private ollamaRunning = false;
 
+  // Circuit breaker: stop hammering ollama after repeated failures
+  private consecutiveFailures = 0;
+  private circuitOpenUntil = 0;
+  private static readonly CIRCUIT_FAILURE_THRESHOLD = 5;
+  private static readonly CIRCUIT_BASE_COOLDOWN_MS = 30000; // 30s, doubles each trip
+  private static readonly CIRCUIT_MAX_COOLDOWN_MS = 600000; // 10 min cap
+
   // Diff risk debounce: batch file changes before scoring
   private pendingDiffRisks: Array<{
     eventId: number;
@@ -811,6 +818,13 @@ Keep it under 150 words.`;
     numPredict: number,
     timeoutMs: number
   ): Promise<string | null> {
+    // Circuit breaker: reject immediately if circuit is open
+    if (this.isCircuitOpen()) {
+      const remainingSec = Math.ceil((this.circuitOpenUntil - Date.now()) / 1000);
+      logger.warn(`Circuit breaker OPEN — skipping ollama call (${remainingSec}s remaining)`);
+      return null;
+    }
+
     // Wait for global concurrency slot (max 1 concurrent ollama call)
     await this.acquireOllamaSlot();
 
@@ -833,17 +847,52 @@ Keep it under 150 words.`;
 
       if (!res.ok) {
         logger.error(`Ollama returned ${res.status}`);
+        this.recordFailure();
         return null;
       }
 
       const data: any = await res.json();
+      this.recordSuccess();
       return data.response?.trim() || null;
     } catch (err: any) {
       logger.error(`Ollama call failed: ${err.message}`);
+      this.recordFailure();
       return null;
     } finally {
       this.releaseOllamaSlot();
     }
+  }
+
+  private isCircuitOpen(): boolean {
+    if (this.consecutiveFailures < InsightsService.CIRCUIT_FAILURE_THRESHOLD) return false;
+    if (Date.now() >= this.circuitOpenUntil) {
+      // Half-open: allow one request through to test recovery
+      logger.info('Circuit breaker HALF-OPEN — allowing test request');
+      return false;
+    }
+    return true;
+  }
+
+  private recordFailure(): void {
+    this.consecutiveFailures++;
+    if (this.consecutiveFailures >= InsightsService.CIRCUIT_FAILURE_THRESHOLD) {
+      // Exponential backoff: 30s, 60s, 120s, ... capped at 10min
+      const trips = this.consecutiveFailures - InsightsService.CIRCUIT_FAILURE_THRESHOLD;
+      const cooldown = Math.min(
+        InsightsService.CIRCUIT_BASE_COOLDOWN_MS * Math.pow(2, trips),
+        InsightsService.CIRCUIT_MAX_COOLDOWN_MS
+      );
+      this.circuitOpenUntil = Date.now() + cooldown;
+      logger.warn(`Circuit breaker OPEN — ${this.consecutiveFailures} consecutive failures, cooldown ${cooldown / 1000}s`);
+    }
+  }
+
+  private recordSuccess(): void {
+    if (this.consecutiveFailures > 0) {
+      logger.info(`Circuit breaker CLOSED — ollama recovered after ${this.consecutiveFailures} failures`);
+    }
+    this.consecutiveFailures = 0;
+    this.circuitOpenUntil = 0;
   }
 
   private acquireOllamaSlot(): Promise<void> {
