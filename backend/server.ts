@@ -159,6 +159,26 @@ const triggerEngine = new TriggerEngine(RAVEN_DIR, io);
 // Initialize health monitoring system
 const healthMonitor = new HealthMonitor(db);
 const insightsService = new InsightsService(db);
+
+// Wire up diff risk result callback for DB storage and WebSocket emission
+insightsService.onDiffRiskResult((eventId, filepath, score, reason) => {
+  db.insertDiffRiskScore(
+    eventId,
+    filepath,
+    score,
+    reason,
+    new Date().toISOString(),
+    'auto',
+    SESSION_ID
+  );
+  io.emit('diff-risk-score', {
+    eventId,
+    filepath,
+    score,
+    reason,
+    timestamp: new Date().toISOString()
+  });
+});
 const selfAnalysisService = new SelfAnalysisService(db, SESSION_ID);
 
 // Set up health alert handler to emit via WebSocket
@@ -609,33 +629,9 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       event_size: event.size
     });
 
-    // Diff risk scoring for significant changes (>50 lines)
+    // Diff risk scoring for significant changes (>50 lines) — debounced to prevent VRAM pressure
     if (diff && diff.split('\n').length > 50) {
-      insightsService
-        .scoreDiffRisk(eventId, storedPath, diff, event.type)
-        .then(result => {
-          if (result) {
-            db.insertDiffRiskScore(
-              eventId,
-              storedPath,
-              result.score,
-              result.reason,
-              new Date().toISOString(),
-              'auto',
-              SESSION_ID
-            );
-            io.emit('diff-risk-score', {
-              eventId,
-              filepath: storedPath,
-              score: result.score,
-              reason: result.reason,
-              timestamp: new Date().toISOString()
-            });
-          }
-        })
-        .catch(() => {
-          /* silently ignore */
-        });
+      insightsService.queueDiffRisk(eventId, storedPath, diff, event.type);
     }
 
     // Check syntax if file type is supported (skip Raven's own files)

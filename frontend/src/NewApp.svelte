@@ -13,8 +13,6 @@
   import ModelsPage from './lib/pages/ModelsPage.svelte';
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
   import ToastContainer from './lib/components/ui/ToastContainer.svelte';
-  import WelcomeScreen from './lib/WelcomeScreen.svelte';
-  import QuickStartWizard from './lib/QuickStartWizard.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { onMount } from 'svelte';
@@ -25,7 +23,6 @@
   // State
   let sessionId = $state('Loading...');
   let appVersion = $state('');
-  let showWelcome = $state(false);
   let showKeyboardShortcuts = $state(false);
 
   // Get current path from router
@@ -91,11 +88,6 @@
       document.body.classList.remove('dark');
     }
 
-    const welcomeSeen = localStorage.getItem('raven-welcome-seen');
-    if (!welcomeSeen) {
-      showWelcome = true;
-    }
-
     // Add keyboard listener for ? key
     const handleKeyPress = e => {
       if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -115,26 +107,6 @@
     };
   });
 
-  function handleWelcomeClose() {
-    showWelcome = false;
-    localStorage.setItem('raven-welcome-seen', 'true');
-
-    // Check if quick start wizard should be shown
-    const quickStartCompleted = localStorage.getItem('raven-quick-start-completed');
-    if (!quickStartCompleted) {
-      navigate('/quickstart');
-    }
-  }
-
-  function handleQuickStartComplete() {
-    localStorage.setItem('raven-quick-start-completed', 'true');
-    navigate('/welcome');
-  }
-
-  function handleQuickStartSkip() {
-    localStorage.setItem('raven-quick-start-completed', 'true');
-    navigate('/overview');
-  }
 
   function handleAboutClick() {
     navigate('/about');
@@ -444,18 +416,6 @@
         {:catch}
           <PlaceholderPage title="About" description="Failed to load" />
         {/await}
-      {:else if activeTab === 'quickstart'}
-        <QuickStartWizard
-          asPage={true}
-          on:complete={handleQuickStartComplete}
-          on:skip={handleQuickStartSkip}
-        />
-      {:else if activeTab === 'welcome'}
-        {#await import('./lib/WelcomePage.svelte') then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Welcome" description="Loading..." />
-        {/await}
       {:else}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
           <div class="text-center max-w-md">
@@ -487,16 +447,10 @@
   <!-- Toast Notifications -->
   <ToastContainer />
 
-  <!-- Welcome Screen (first-time users) -->
-  {#if showWelcome}
-    <WelcomeScreen on:close={handleWelcomeClose} />
-  {/if}
-
-  <!-- Quick Start Wizard is now a route at /quickstart -->
-
   <!-- Keyboard Shortcuts Help -->
   <KeyboardShortcuts
     visible={showKeyboardShortcuts}
     onClose={() => (showKeyboardShortcuts = false)}
   />
 </div>
+

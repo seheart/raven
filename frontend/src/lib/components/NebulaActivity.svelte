@@ -336,8 +336,7 @@
 </script>
 
 <div
-  class="relative w-full rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]"
-  style="height: 260px;"
+  class="relative w-full h-full rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]"
 >
   <canvas
     bind:this={canvas}

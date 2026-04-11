@@ -35,10 +35,27 @@ export class InsightsService {
   private lastAnomalyStatus = '';
   private static readonly ANOMALY_THROTTLE_MS = 60 * 60 * 1000; // 1 hour
 
+  // Global concurrency: only 1 ollama call at a time to prevent VRAM pressure
+  private ollamaQueue: Array<() => void> = [];
+  private ollamaRunning = false;
+
+  // Diff risk debounce: batch file changes before scoring
+  private pendingDiffRisks: Array<{
+    eventId: number;
+    filepath: string;
+    diff: string;
+    changeType: string;
+  }> = [];
+  private diffRiskTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly DIFF_RISK_DEBOUNCE_MS = 15000; // 15 seconds
+  private diffRiskCallback:
+    | ((eventId: number, filepath: string, score: number, reason: string) => void)
+    | null = null;
+
   constructor(
     db: RavenDB,
     ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434',
-    model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:14b'
+    model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b'
   ) {
     this.db = db;
     this.ollamaUrl = ollamaUrl;
@@ -414,7 +431,42 @@ Keep it under 200 words. Be specific about file names and projects.`;
 
   // ==================== Diff Risk Scoring ====================
 
-  async scoreDiffRisk(
+  onDiffRiskResult(
+    cb: (eventId: number, filepath: string, score: number, reason: string) => void
+  ): void {
+    this.diffRiskCallback = cb;
+  }
+
+  /**
+   * Queue a diff for batched risk scoring. Files are collected over a 15-second
+   * window and then scored in a single ollama call to avoid VRAM pressure.
+   */
+  queueDiffRisk(
+    eventId: number,
+    filepath: string,
+    diff: string,
+    changeType: string
+  ): void {
+    this.pendingDiffRisks.push({ eventId, filepath, diff, changeType });
+
+    if (this.diffRiskTimer) clearTimeout(this.diffRiskTimer);
+    this.diffRiskTimer = setTimeout(() => {
+      this.flushDiffRiskQueue();
+    }, InsightsService.DIFF_RISK_DEBOUNCE_MS);
+  }
+
+  private async flushDiffRiskQueue(): Promise<void> {
+    const batch = this.pendingDiffRisks.splice(0);
+    this.diffRiskTimer = null;
+    if (batch.length === 0) return;
+
+    // Score each item sequentially (global concurrency gate handles the rest)
+    for (const item of batch) {
+      await this.scoreDiffRiskSingle(item.eventId, item.filepath, item.diff, item.changeType);
+    }
+  }
+
+  private async scoreDiffRiskSingle(
     eventId: number,
     filepath: string,
     diff: string,
@@ -463,6 +515,9 @@ Respond ONLY with JSON: {"score": <number 1-10>, "reason": "<one sentence>"}`;
       );
 
       logger.info(`✨ Scored diff risk for ${filepath}: ${score}/10 in ${duration}ms`);
+      if (this.diffRiskCallback) {
+        this.diffRiskCallback(eventId, filepath, score, reason);
+      }
       return { score, reason };
     } catch (err: any) {
       logger.error('Failed to score diff risk:', err);
@@ -756,6 +811,9 @@ Keep it under 150 words.`;
     numPredict: number,
     timeoutMs: number
   ): Promise<string | null> {
+    // Wait for global concurrency slot (max 1 concurrent ollama call)
+    await this.acquireOllamaSlot();
+
     try {
       const res = await fetch(`${this.ollamaUrl}/api/generate`, {
         method: 'POST',
@@ -764,6 +822,7 @@ Keep it under 150 words.`;
           model: this.model,
           prompt,
           stream: false,
+          keep_alive: '1m',
           options: {
             temperature: 0.3,
             num_predict: numPredict
@@ -782,6 +841,27 @@ Keep it under 150 words.`;
     } catch (err: any) {
       logger.error(`Ollama call failed: ${err.message}`);
       return null;
+    } finally {
+      this.releaseOllamaSlot();
+    }
+  }
+
+  private acquireOllamaSlot(): Promise<void> {
+    if (!this.ollamaRunning) {
+      this.ollamaRunning = true;
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      this.ollamaQueue.push(resolve);
+    });
+  }
+
+  private releaseOllamaSlot(): void {
+    const next = this.ollamaQueue.shift();
+    if (next) {
+      next();
+    } else {
+      this.ollamaRunning = false;
     }
   }
 
