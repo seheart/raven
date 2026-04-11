@@ -1,3 +1,5 @@
+import prettierConfig from 'eslint-config-prettier';
+
 export default [
   {
     ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.config.js']
@@ -19,13 +21,17 @@ export default [
       }
     },
     rules: {
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
-      'no-console': ['warn', { allow: ['warn', 'error'] }],  // Warn for console usage; tests may use console
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+      ],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       semi: ['error', 'always'],
       quotes: ['error', 'single', { avoidEscape: true }],
       indent: ['error', 2],
       'comma-dangle': ['error', 'never'],
       'eol-last': ['error', 'always']
     }
-  }
+  },
+  prettierConfig
 ];

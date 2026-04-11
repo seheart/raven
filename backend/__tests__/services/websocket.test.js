@@ -12,7 +12,7 @@ describe('WebSocket Service', () => {
   let serverSocket;
   let clientSocket;
 
-  beforeEach((done) => {
+  beforeEach(done => {
     // Create HTTP server
     httpServer = createServer();
 
@@ -24,7 +24,7 @@ describe('WebSocket Service', () => {
       const port = httpServer.address().port;
 
       // Set up one-time connection handler for first client
-      io.once('connection', (socket) => {
+      io.once('connection', socket => {
         serverSocket = socket;
       });
 
@@ -59,7 +59,7 @@ describe('WebSocket Service', () => {
       expect(serverSocket).toBeDefined();
     });
 
-    it('should handle disconnection', (done) => {
+    it('should handle disconnection', done => {
       clientSocket.on('disconnect', () => {
         expect(clientSocket.connected).toBe(false);
         done();
@@ -68,7 +68,7 @@ describe('WebSocket Service', () => {
       clientSocket.disconnect();
     });
 
-    it('should handle reconnection', (done) => {
+    it('should handle reconnection', done => {
       let wasDisconnected = false;
 
       // Track disconnection
@@ -94,14 +94,14 @@ describe('WebSocket Service', () => {
   });
 
   describe('Event Broadcasting', () => {
-    it('should broadcast file-changed event', (done) => {
+    it('should broadcast file-changed event', done => {
       const testData = {
         filepath: 'test.js',
         change_type: 'change',
         project: 'test-project'
       };
 
-      clientSocket.on('file-changed', (data) => {
+      clientSocket.on('file-changed', data => {
         expect(data).toEqual(testData);
         done();
       });
@@ -109,7 +109,7 @@ describe('WebSocket Service', () => {
       io.emit('file-changed', testData);
     });
 
-    it('should broadcast system-metrics event', (done) => {
+    it('should broadcast system-metrics event', done => {
       const testMetrics = {
         cpu_percent: 45.2,
         memory_percent: 62.1,
@@ -117,7 +117,7 @@ describe('WebSocket Service', () => {
         memory_total_mb: 8192
       };
 
-      clientSocket.on('system-metrics', (data) => {
+      clientSocket.on('system-metrics', data => {
         expect(data).toEqual(testMetrics);
         done();
       });
@@ -125,7 +125,7 @@ describe('WebSocket Service', () => {
       io.emit('system-metrics', testMetrics);
     });
 
-    it('should broadcast syntax-error event', (done) => {
+    it('should broadcast syntax-error event', done => {
       const errorData = {
         filepath: 'test.js',
         line: 42,
@@ -133,7 +133,7 @@ describe('WebSocket Service', () => {
         severity: 'error'
       };
 
-      clientSocket.on('syntax-error', (data) => {
+      clientSocket.on('syntax-error', data => {
         expect(data).toEqual(errorData);
         done();
       });
@@ -141,14 +141,14 @@ describe('WebSocket Service', () => {
       io.emit('syntax-error', errorData);
     });
 
-    it('should broadcast test-result event', (done) => {
+    it('should broadcast test-result event', done => {
       const testResult = {
         filepath: 'test.spec.js',
         passed: true,
         duration: 245
       };
 
-      clientSocket.on('test-result', (data) => {
+      clientSocket.on('test-result', data => {
         expect(data).toEqual(testResult);
         done();
       });
@@ -156,13 +156,13 @@ describe('WebSocket Service', () => {
       io.emit('test-result', testResult);
     });
 
-    it('should broadcast project-switched event', (done) => {
+    it('should broadcast project-switched event', done => {
       const projectData = {
         projectName: 'new-project',
         projectPath: '/path/to/new-project'
       };
 
-      clientSocket.on('project-switched', (data) => {
+      clientSocket.on('project-switched', data => {
         expect(data).toEqual(projectData);
         done();
       });
@@ -170,14 +170,14 @@ describe('WebSocket Service', () => {
       io.emit('project-switched', projectData);
     });
 
-    it('should broadcast storage-warning event', (done) => {
+    it('should broadcast storage-warning event', done => {
       const warningData = {
         percentage: '92.5',
         size: 950000000,
         critical: false
       };
 
-      clientSocket.on('storage-warning', (data) => {
+      clientSocket.on('storage-warning', data => {
         expect(data).toEqual(warningData);
         done();
       });
@@ -185,14 +185,14 @@ describe('WebSocket Service', () => {
       io.emit('storage-warning', warningData);
     });
 
-    it('should broadcast health-check-failed event', (done) => {
+    it('should broadcast health-check-failed event', done => {
       const healthData = {
         checkName: 'Database Connection',
         message: 'Connection timeout',
         severity: 'critical'
       };
 
-      clientSocket.on('health-check-failed', (data) => {
+      clientSocket.on('health-check-failed', data => {
         expect(data).toEqual(healthData);
         done();
       });
@@ -202,30 +202,30 @@ describe('WebSocket Service', () => {
   });
 
   describe('Room/Namespace Support', () => {
-    it('should support rooms for project-specific events', (done) => {
+    it('should support rooms for project-specific events', done => {
       const testData = { message: 'test' };
 
       clientSocket.emit('join-project', 'test-project');
 
-      serverSocket.on('join-project', (projectName) => {
+      serverSocket.on('join-project', projectName => {
         serverSocket.join(projectName);
 
         // Emit to room
         io.to('test-project').emit('project-event', testData);
       });
 
-      clientSocket.on('project-event', (data) => {
+      clientSocket.on('project-event', data => {
         expect(data).toEqual(testData);
         done();
       });
     });
 
-    it('should not receive events from other rooms', (done) => {
+    it('should not receive events from other rooms', done => {
       let receivedEvent = false;
 
       clientSocket.emit('join-project', 'project-a');
 
-      serverSocket.on('join-project', (projectName) => {
+      serverSocket.on('join-project', projectName => {
         serverSocket.join(projectName);
 
         // Emit to different room
@@ -248,11 +248,11 @@ describe('WebSocket Service', () => {
     let clientSocket2;
     let _serverSocket2;
 
-    beforeEach((done) => {
+    beforeEach(done => {
       const port = httpServer.address().port;
 
       // Track second server socket connection
-      const onSecondConnection = (socket) => {
+      const onSecondConnection = socket => {
         _serverSocket2 = socket;
         io.off('connection', onSecondConnection);
       };
@@ -270,18 +270,18 @@ describe('WebSocket Service', () => {
       }
     });
 
-    it('should broadcast to all connected clients', (done) => {
+    it('should broadcast to all connected clients', done => {
       const testData = { message: 'broadcast to all' };
       let client1Received = false;
       let client2Received = false;
 
-      clientSocket.on('broadcast-event', (data) => {
+      clientSocket.on('broadcast-event', data => {
         expect(data).toEqual(testData);
         client1Received = true;
         checkBothReceived();
       });
 
-      clientSocket2.on('broadcast-event', (data) => {
+      clientSocket2.on('broadcast-event', data => {
         expect(data).toEqual(testData);
         client2Received = true;
         checkBothReceived();
@@ -296,7 +296,7 @@ describe('WebSocket Service', () => {
       io.emit('broadcast-event', testData);
     });
 
-    it('should handle client-specific acknowledgments', (done) => {
+    it('should handle client-specific acknowledgments', done => {
       // Register listener BEFORE emitting the event
       clientSocket.on('request-ack', (data, callback) => {
         expect(data).toBe('test');
@@ -306,7 +306,7 @@ describe('WebSocket Service', () => {
       // Add small delay to ensure listener is registered
       setTimeout(() => {
         // Now emit the event with acknowledgment callback
-        serverSocket.emit('request-ack', 'test', (response) => {
+        serverSocket.emit('request-ack', 'test', response => {
           expect(response).toBe('acknowledged');
           done();
         });
@@ -315,8 +315,8 @@ describe('WebSocket Service', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle invalid event data gracefully', (done) => {
-      clientSocket.on('invalid-event', (data) => {
+    it('should handle invalid event data gracefully', done => {
+      clientSocket.on('invalid-event', data => {
         expect(data).toBeNull();
         done();
       });
@@ -324,7 +324,7 @@ describe('WebSocket Service', () => {
       io.emit('invalid-event', null);
     });
 
-    it('should handle connection errors', (done) => {
+    it('should handle connection errors', done => {
       const badPort = 9999;
 
       import('socket.io-client').then(({ io: ioClient }) => {
@@ -332,7 +332,7 @@ describe('WebSocket Service', () => {
           reconnection: false
         });
 
-        badClient.on('connect_error', (error) => {
+        badClient.on('connect_error', error => {
           expect(error).toBeDefined();
           badClient.close();
           done();
@@ -342,7 +342,7 @@ describe('WebSocket Service', () => {
   });
 
   describe('Event Throttling', () => {
-    it('should handle rapid event emission', (done) => {
+    it('should handle rapid event emission', done => {
       let receivedCount = 0;
       const expectedCount = 100;
 
@@ -367,7 +367,7 @@ describe('WebSocket Service', () => {
       expect(sockets.size).toBeGreaterThan(0);
     });
 
-    it('should decrease connection count on disconnect', (done) => {
+    it('should decrease connection count on disconnect', done => {
       const initialCount = io.sockets.sockets.size;
 
       serverSocket.on('disconnect', () => {

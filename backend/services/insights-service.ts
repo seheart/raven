@@ -11,7 +11,14 @@ import type { RavenDB } from '../db.js';
 interface InsightSummary {
   id: string;
   timestamp: string;
-  type: 'session_summary' | 'code_review' | 'anomaly' | 'daily_digest' | 'diff_risk' | 'agent_comparison' | 'project_health';
+  type:
+    | 'session_summary'
+    | 'code_review'
+    | 'anomaly'
+    | 'daily_digest'
+    | 'diff_risk'
+    | 'agent_comparison'
+    | 'project_health';
   title: string;
   content: string;
   model: string;
@@ -28,7 +35,11 @@ export class InsightsService {
   private lastAnomalyStatus = '';
   private static readonly ANOMALY_THROTTLE_MS = 60 * 60 * 1000; // 1 hour
 
-  constructor(db: RavenDB, ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434', model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:14b') {
+  constructor(
+    db: RavenDB,
+    ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434',
+    model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:14b'
+  ) {
     this.db = db;
     this.ollamaUrl = ollamaUrl;
     this.model = model;
@@ -88,11 +99,15 @@ export class InsightsService {
       const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
 
       const agentEvents = this.db.db
-        .prepare(`SELECT timestamp, agent, event_type, message, file, project_name FROM agent_events WHERE timestamp > ? ORDER BY timestamp DESC LIMIT 200`)
+        .prepare(
+          `SELECT timestamp, agent, event_type, message, file, project_name FROM agent_events WHERE timestamp > ? ORDER BY timestamp DESC LIMIT 200`
+        )
         .all(cutoff) as any[];
 
       const fileEvents = this.db.db
-        .prepare(`SELECT timestamp, filepath, change_type, project_name, agent_source FROM events WHERE timestamp > ? ORDER BY timestamp DESC LIMIT 100`)
+        .prepare(
+          `SELECT timestamp, filepath, change_type, project_name, agent_source FROM events WHERE timestamp > ? ORDER BY timestamp DESC LIMIT 100`
+        )
         .all(cutoff) as any[];
 
       if (agentEvents.length === 0 && fileEvents.length === 0) {
@@ -124,9 +139,18 @@ Keep it under 150 words. Be specific about file names and actions. No fluff.`;
       const totalEvents = agentEvents.length + fileEvents.length;
       const title = this.extractTitle(content, fileEvents);
 
-      const insight = this.saveInsight(`sum_${Date.now()}`, 'session_summary', title, content, duration, totalEvents);
+      const insight = this.saveInsight(
+        `sum_${Date.now()}`,
+        'session_summary',
+        title,
+        content,
+        duration,
+        totalEvents
+      );
 
-      logger.info(`✨ Generated session summary in ${duration}ms using ${this.model} (${totalEvents} events)`);
+      logger.info(
+        `✨ Generated session summary in ${duration}ms using ${this.model} (${totalEvents} events)`
+      );
       this.generating.delete('session_summary');
       return insight;
     } catch (err: any) {
@@ -145,7 +169,9 @@ Keep it under 150 words. Be specific about file names and actions. No fluff.`;
 
     try {
       const recentDiffs = this.db.db
-        .prepare(`SELECT filepath, change_type, diff, agent_source, timestamp FROM events WHERE diff IS NOT NULL AND diff != '' AND timestamp > datetime('now', '-30 minutes') ORDER BY timestamp DESC LIMIT 10`)
+        .prepare(
+          `SELECT filepath, change_type, diff, agent_source, timestamp FROM events WHERE diff IS NOT NULL AND diff != '' AND timestamp > datetime('now', '-30 minutes') ORDER BY timestamp DESC LIMIT 10`
+        )
         .all() as any[];
 
       if (recentDiffs.length === 0) {
@@ -176,7 +202,14 @@ Be concise — 2-3 sentences per file max. Skip files that look fine.`;
       }
 
       const duration = Date.now() - start;
-      const insight = this.saveInsight(`rev_${Date.now()}`, 'code_review', `Code review: ${recentDiffs.length} file${recentDiffs.length > 1 ? 's' : ''}`, content, duration, recentDiffs.length);
+      const insight = this.saveInsight(
+        `rev_${Date.now()}`,
+        'code_review',
+        `Code review: ${recentDiffs.length} file${recentDiffs.length > 1 ? 's' : ''}`,
+        content,
+        duration,
+        recentDiffs.length
+      );
 
       logger.info(`✨ Generated code review in ${duration}ms`);
       this.generating.delete('code_review');
@@ -201,7 +234,9 @@ Be concise — 2-3 sentences per file max. Skip files that look fine.`;
       alertData.overallStatus === this.lastAnomalyStatus &&
       now - this.lastAnomalyCallTime < InsightsService.ANOMALY_THROTTLE_MS
     ) {
-      logger.debug(`Skipping anomaly explanation — same status "${alertData.overallStatus}" explained ${Math.round((now - this.lastAnomalyCallTime) / 60000)}m ago`);
+      logger.debug(
+        `Skipping anomaly explanation — same status "${alertData.overallStatus}" explained ${Math.round((now - this.lastAnomalyCallTime) / 60000)}m ago`
+      );
       return null;
     }
 
@@ -254,41 +289,69 @@ In one sentence, explain what is happening and whether the developer should take
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
       // File event stats
-      const fileStats = this.db.db.prepare(`
+      const fileStats = this.db.db
+        .prepare(
+          `
         SELECT
           COUNT(*) as total,
           SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END) as creates,
           SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits,
           SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes
         FROM events WHERE timestamp > ?
-      `).get(cutoff) as any;
+      `
+        )
+        .get(cutoff) as any;
 
       // Active projects
-      const projects = this.db.db.prepare(`
+      const projects = this.db.db
+        .prepare(
+          `
         SELECT DISTINCT project_name FROM events WHERE timestamp > ? AND project_name IS NOT NULL
-      `).all(cutoff) as any[];
+      `
+        )
+        .all(cutoff) as any[];
 
       // Top edited files
-      const topFiles = this.db.db.prepare(`
+      const topFiles = this.db.db
+        .prepare(
+          `
         SELECT filepath, COUNT(*) as count FROM events WHERE timestamp > ? AND filepath IS NOT NULL GROUP BY filepath ORDER BY count DESC LIMIT 10
-      `).all(cutoff) as any[];
+      `
+        )
+        .all(cutoff) as any[];
 
       // Agent stats
-      const agentStats = this.db.db.prepare(`
+      const agentStats = this.db.db
+        .prepare(
+          `
         SELECT agent, COUNT(*) as count, SUM(lines_changed) as total_lines FROM agent_events WHERE timestamp > ? GROUP BY agent
-      `).all(cutoff) as any[];
+      `
+        )
+        .all(cutoff) as any[];
 
       const totalAgentEvents = agentStats.reduce((s: number, a: any) => s + a.count, 0);
       const totalLines = agentStats.reduce((s: number, a: any) => s + (a.total_lines || 0), 0);
 
       // Syntax errors and test results
-      const syntaxCount = (this.db.db.prepare(`SELECT COUNT(*) as count FROM syntax_errors WHERE timestamp > ?`).get(cutoff) as any)?.count || 0;
+      const syntaxCount =
+        (
+          this.db.db
+            .prepare(`SELECT COUNT(*) as count FROM syntax_errors WHERE timestamp > ?`)
+            .get(cutoff) as any
+        )?.count || 0;
 
       let testInfo = 'No test data';
       try {
-        const testResults = this.db.db.prepare(`SELECT passed_tests, failed_tests, total_tests FROM test_results WHERE timestamp > ? ORDER BY timestamp DESC LIMIT 1`).get(cutoff) as any;
-        if (testResults) testInfo = `${testResults.passed_tests}/${testResults.total_tests} passed, ${testResults.failed_tests} failed`;
-      } catch { /* table may not exist */ }
+        const testResults = this.db.db
+          .prepare(
+            `SELECT passed_tests, failed_tests, total_tests FROM test_results WHERE timestamp > ? ORDER BY timestamp DESC LIMIT 1`
+          )
+          .get(cutoff) as any;
+        if (testResults)
+          testInfo = `${testResults.passed_tests}/${testResults.total_tests} passed, ${testResults.failed_tests} failed`;
+      } catch {
+        /* table may not exist */
+      }
 
       if ((fileStats?.total || 0) === 0 && totalAgentEvents === 0) {
         this.generating.delete('daily_digest');
@@ -351,7 +414,12 @@ Keep it under 200 words. Be specific about file names and projects.`;
 
   // ==================== Diff Risk Scoring ====================
 
-  async scoreDiffRisk(eventId: number, filepath: string, diff: string, changeType: string): Promise<{ score: number; reason: string } | null> {
+  async scoreDiffRisk(
+    eventId: number,
+    filepath: string,
+    diff: string,
+    changeType: string
+  ): Promise<{ score: number; reason: string } | null> {
     const start = Date.now();
 
     try {
@@ -410,10 +478,14 @@ Respond ONLY with JSON: {"score": <number 1-10>, "reason": "<one sentence>"}`;
     const start = Date.now();
 
     try {
-      const agentStats = this.db.db.prepare(`
+      const agentStats = this.db.db
+        .prepare(
+          `
         SELECT agent, COUNT(*) as event_count, AVG(duration_ms) as avg_duration_ms, SUM(lines_changed) as total_lines_changed
         FROM agent_events GROUP BY agent ORDER BY event_count DESC
-      `).all() as any[];
+      `
+        )
+        .all() as any[];
 
       if (agentStats.length === 0) {
         this.generating.delete('agent_comparison');
@@ -421,13 +493,17 @@ Respond ONLY with JSON: {"score": <number 1-10>, "reason": "<one sentence>"}`;
       }
 
       // File operations by agent
-      const agentFileOps = this.db.db.prepare(`
+      const agentFileOps = this.db.db
+        .prepare(
+          `
         SELECT agent_source,
           SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END) as creates,
           SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits,
           SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes
         FROM events WHERE agent_source IS NOT NULL GROUP BY agent_source
-      `).all() as any[];
+      `
+        )
+        .all() as any[];
 
       const prompt = `You are an AI coding assistant analyst for Raven. Compare the behavior and productivity of the AI agents that have been active.
 
@@ -481,7 +557,9 @@ Keep it under 200 words.`;
 
     try {
       // Events for this project
-      const eventStats = this.db.db.prepare(`
+      const eventStats = this.db.db
+        .prepare(
+          `
         SELECT
           COUNT(*) as total,
           COUNT(DISTINCT filepath) as distinct_files,
@@ -489,30 +567,54 @@ Keep it under 200 words.`;
           SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits,
           SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes
         FROM events WHERE project_name = ?
-      `).get(projectName) as any;
+      `
+        )
+        .get(projectName) as any;
 
       // Syntax errors
-      const syntaxCount = (this.db.db.prepare(`
+      const syntaxCount =
+        (
+          this.db.db
+            .prepare(
+              `
         SELECT COUNT(*) as count FROM syntax_errors WHERE filepath LIKE ? AND resolved = 0
-      `).get(`${projectName}/%`) as any)?.count || 0;
+      `
+            )
+            .get(`${projectName}/%`) as any
+        )?.count || 0;
 
       // Pattern warnings
-      const patternStats = this.db.db.prepare(`
+      const patternStats = this.db.db
+        .prepare(
+          `
         SELECT COUNT(*) as count, SUM(CASE WHEN severity = 'critical' OR severity = 'high' THEN 1 ELSE 0 END) as critical
         FROM pattern_warnings WHERE filepath LIKE ? AND resolved = 0
-      `).get(`${projectName}/%`) as any;
+      `
+        )
+        .get(`${projectName}/%`) as any;
 
       // Latest test result
       let testInfo = 'No test data';
       try {
-        const test = this.db.db.prepare(`SELECT passed_tests, total_tests, failed_tests FROM test_results ORDER BY timestamp DESC LIMIT 1`).get() as any;
-        if (test) testInfo = `${test.passed_tests}/${test.total_tests} passed, ${test.failed_tests} failed`;
-      } catch { /* table may not exist */ }
+        const test = this.db.db
+          .prepare(
+            `SELECT passed_tests, total_tests, failed_tests FROM test_results ORDER BY timestamp DESC LIMIT 1`
+          )
+          .get() as any;
+        if (test)
+          testInfo = `${test.passed_tests}/${test.total_tests} passed, ${test.failed_tests} failed`;
+      } catch {
+        /* table may not exist */
+      }
 
       // Agent activity for project
-      const agentActivity = this.db.db.prepare(`
+      const agentActivity = this.db.db
+        .prepare(
+          `
         SELECT agent, COUNT(*) as count FROM agent_events WHERE project_name = ? GROUP BY agent
-      `).all(projectName) as any[];
+      `
+        )
+        .all(projectName) as any[];
 
       if ((eventStats?.total || 0) === 0 && agentActivity.length === 0) {
         this.generating.delete('project_health');
@@ -600,7 +702,14 @@ Keep it under 150 words.`;
 
   // ==================== Private Helpers ====================
 
-  private saveInsight(id: string, type: string, title: string, content: string, duration_ms: number, context_events: number): InsightSummary {
+  private saveInsight(
+    id: string,
+    type: string,
+    title: string,
+    content: string,
+    duration_ms: number,
+    context_events: number
+  ): InsightSummary {
     const insight: InsightSummary = {
       id,
       timestamp: new Date().toISOString(),
@@ -613,8 +722,19 @@ Keep it under 150 words.`;
     };
 
     this.db.db
-      .prepare(`INSERT INTO insights (id, timestamp, type, title, content, model, duration_ms, context_events) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(insight.id, insight.timestamp, insight.type, insight.title, insight.content, insight.model, insight.duration_ms, insight.context_events);
+      .prepare(
+        `INSERT INTO insights (id, timestamp, type, title, content, model, duration_ms, context_events) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        insight.id,
+        insight.timestamp,
+        insight.type,
+        insight.title,
+        insight.content,
+        insight.model,
+        insight.duration_ms,
+        insight.context_events
+      );
 
     return insight;
   }
@@ -631,7 +751,11 @@ Keep it under 150 words.`;
     return this.callOllamaWithOptions(prompt, 800, 180000);
   }
 
-  private async callOllamaWithOptions(prompt: string, numPredict: number, timeoutMs: number): Promise<string | null> {
+  private async callOllamaWithOptions(
+    prompt: string,
+    numPredict: number,
+    timeoutMs: number
+  ): Promise<string | null> {
     try {
       const res = await fetch(`${this.ollamaUrl}/api/generate`, {
         method: 'POST',
@@ -661,7 +785,11 @@ Keep it under 150 words.`;
     }
   }
 
-  private buildSummaryContext(agentEvents: any[], fileEvents: any[], windowMinutes: number): string {
+  private buildSummaryContext(
+    agentEvents: any[],
+    fileEvents: any[],
+    windowMinutes: number
+  ): string {
     const eventTypes: Record<string, number> = {};
     for (const e of agentEvents) {
       eventTypes[e.event_type] = (eventTypes[e.event_type] || 0) + 1;
@@ -676,7 +804,10 @@ Keep it under 150 words.`;
       if (e.filepath) filesChanged.add(e.filepath);
     }
 
-    const toolCalls = agentEvents.filter(e => e.event_type === 'tool_call').map(e => e.message).filter(Boolean);
+    const toolCalls = agentEvents
+      .filter(e => e.event_type === 'tool_call')
+      .map(e => e.message)
+      .filter(Boolean);
     const toolCounts: Record<string, number> = {};
     for (const t of toolCalls) {
       const name = t.replace(' call', '');

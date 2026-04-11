@@ -22,10 +22,10 @@
   } = $props();
 
   // Orientation classes
-  const orientationClasses = orientation === 'horizontal' ? 'w-full h-px' : 'w-px h-full';
+  const orientationClasses = $derived(orientation === 'horizontal' ? 'w-full h-px' : 'w-px h-full');
 
   // Base classes
-  const baseClasses = `bg-[var(--border)] ${orientationClasses}`;
+  const baseClasses = $derived(`bg-[var(--border)] ${orientationClasses}`);
 
   // Label alignment
   const labelAlignments = {

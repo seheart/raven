@@ -41,11 +41,12 @@ export class KeyboardService {
   start() {
     if (this.listening) return;
 
-    this.handleKeyDown = (e) => {
+    this.handleKeyDown = e => {
       // Don't trigger shortcuts when typing in input fields
-      const isInputField = e.target.tagName === 'INPUT' ||
-                          e.target.tagName === 'TEXTAREA' ||
-                          e.target.isContentEditable;
+      const isInputField =
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.isContentEditable;
 
       // Exception: Escape key should work in input fields
       if (isInputField && e.key !== 'Escape') {
@@ -89,7 +90,9 @@ export class KeyboardService {
       options.shiftKey ? 'shift' : '',
       options.altKey ? 'alt' : '',
       options.metaKey ? 'meta' : ''
-    ].filter(Boolean).join('+');
+    ]
+      .filter(Boolean)
+      .join('+');
 
     return modifiers ? `${modifiers}+${key}` : key;
   }

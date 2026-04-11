@@ -1,24 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>Clear Raven Cache</title>
-</head>
-<body>
-  <h1>Clearing Raven Cache...</h1>
-  <script>
-    // Clear all Raven localStorage flags
-    localStorage.removeItem('raven-quick-start-completed');
-    localStorage.removeItem('raven-welcome-seen');
-    localStorage.removeItem('raven-visited');
+  <head>
+    <title>Clear Raven Cache</title>
+  </head>
+  <body>
+    <h1>Clearing Raven Cache...</h1>
+    <script>
+      // Clear all Raven localStorage flags
+      localStorage.removeItem('raven-quick-start-completed');
+      localStorage.removeItem('raven-welcome-seen');
+      localStorage.removeItem('raven-visited');
 
-    console.log('✅ Cleared localStorage flags');
+      console.log('✅ Cleared localStorage flags');
 
-    // Redirect to main app after 1 second
-    setTimeout(() => {
-      window.location.href = 'http://localhost:9000';
-    }, 1000);
+      // Redirect to main app after 1 second
+      setTimeout(() => {
+        window.location.href = 'http://localhost:9000';
+      }, 1000);
 
-    document.body.innerHTML += '<p>✅ Cache cleared! Redirecting to app...</p>';
-  </script>
-</body>
+      document.body.innerHTML += '<p>✅ Cache cleared! Redirecting to app...</p>';
+    </script>
+  </body>
 </html>

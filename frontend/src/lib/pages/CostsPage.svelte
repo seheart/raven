@@ -232,7 +232,7 @@
       </div>
       <div class="flex items-center gap-3">
         <div class="flex bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden">
-          {#each [['today', 'Today'], ['7d', '7 Days'], ['30d', '30 Days'], ['all', 'All']] as [value, label]}
+          {#each [['today', 'Today'], ['7d', '7 Days'], ['30d', '30 Days'], ['all', 'All']] as [value, label] (value)}
             <button
               onclick={() => setTimeRange(value)}
               class="px-3 py-1.5 text-xs font-sans transition-colors border-0 cursor-pointer {timeRange === value ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted)] hover:text-[var(--text)]'}"

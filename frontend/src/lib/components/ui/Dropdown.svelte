@@ -63,11 +63,11 @@
   // Menu classes
   const menuBaseClasses =
     'absolute z-50 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg py-1 transition-all duration-150 origin-top font-sans';
-  const widthClasses = fullWidth ? 'w-full' : 'min-w-[200px]';
-  const visibilityClasses = open
+  const widthClasses = $derived(fullWidth ? 'w-full' : 'min-w-[200px]');
+  const visibilityClasses = $derived(open
     ? 'opacity-100 scale-100'
-    : 'opacity-0 scale-95 pointer-events-none';
-  const menuClasses = `${menuBaseClasses} ${positions[position]} ${widthClasses} ${visibilityClasses}`;
+    : 'opacity-0 scale-95 pointer-events-none');
+  const menuClasses = $derived(`${menuBaseClasses} ${positions[position]} ${widthClasses} ${visibilityClasses}`);
 </script>
 
 <svelte:window onclick={handleClickOutside} onkeydown={handleKeydown} />

@@ -3,7 +3,13 @@
  */
 
 import { jest } from '@jest/globals';
-import { generateToken, verifyToken, authenticate, authorize, authenticateSocket } from '../../middleware/auth.js';
+import {
+  generateToken,
+  verifyToken,
+  authenticate,
+  authorize,
+  authenticateSocket
+} from '../../middleware/auth.js';
 import { join } from 'path';
 
 describe('Authentication Middleware', () => {
@@ -20,11 +26,11 @@ describe('Authentication Middleware', () => {
     const statusCalls = [];
     const jsonCalls = [];
     res = {
-      status: (code) => {
+      status: code => {
         statusCalls.push(code);
         return res;
       },
-      json: (data) => {
+      json: data => {
         jsonCalls.push(data);
         return res;
       },
@@ -283,7 +289,7 @@ describe('Authentication Middleware', () => {
       };
 
       const socketNextCalls = [];
-      socketNext = (error) => socketNextCalls.push(error);
+      socketNext = error => socketNextCalls.push(error);
       socketNext._calls = socketNextCalls;
     });
 

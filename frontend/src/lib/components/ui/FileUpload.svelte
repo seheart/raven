@@ -117,7 +117,6 @@
       role="button"
       tabindex="0"
       onkeydown={e => e.key === 'Enter' && handleClick()}
-      aria-invalid={error ? 'true' : 'false'}
       aria-describedby={describedById}
       {...restProps}
     >

@@ -147,7 +147,9 @@ export function migrate(db) {
   db.exec('CREATE INDEX IF NOT EXISTS idx_events_anomaly ON events(is_anomaly)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_events_risk ON events(risk_level)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_rollbacks_event ON rollbacks(event_id)');
-  db.exec('CREATE INDEX IF NOT EXISTS idx_agent_stats_lookup ON agent_stats(project_name, agent, date)');
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_agent_stats_lookup ON agent_stats(project_name, agent, date)'
+  );
   db.exec('CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_name)');
   logger.info('✅ Created indexes');
 

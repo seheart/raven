@@ -66,6 +66,7 @@
     ],
     system: [
       { id: '', label: 'Overview' },
+      { id: 'code-health', label: 'Code Health' },
       { id: 'health-monitor', label: 'Health Monitor' },
       { id: 'safety', label: 'Safety' },
       { id: 'errors', label: 'Errors' },

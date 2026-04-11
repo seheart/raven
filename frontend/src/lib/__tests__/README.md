@@ -79,6 +79,7 @@ describe('YourComponent - Interactions', () => {
 **Target:** 30-50% coverage
 
 ### Tested Components
+
 - ✅ RavenLogo.svelte - Logo component with size props
 - ✅ Toast.svelte - Toast notification with types and close
 
@@ -123,14 +124,14 @@ it('should show as active', () => {
 
 ```javascript
 // Prefer (in order):
-getByRole('button', { name: 'Submit' })
-getByLabelText('Username')
-getByPlaceholderText('Enter name')
-getByText('Welcome')
+getByRole('button', { name: 'Submit' });
+getByLabelText('Username');
+getByPlaceholderText('Enter name');
+getByText('Welcome');
 
 // Avoid:
-getByTestId('submit-button')
-container.querySelector('.submit-btn')
+getByTestId('submit-button');
+container.querySelector('.submit-btn');
 ```
 
 ### 3. Test User Interactions
@@ -327,15 +328,18 @@ When adding new component tests:
 ## Goals
 
 **Short-term (Week 1):**
+
 - [ ] Add tests for 5 critical components
 - [ ] Achieve 10% component coverage
 
 **Medium-term (Month 1):**
+
 - [ ] Add tests for 20 components
 - [ ] Achieve 30% component coverage
 - [ ] Add E2E tests for main flows
 
 **Long-term (Quarter):**
+
 - [ ] 50%+ component coverage
 - [ ] Comprehensive E2E test suite
 - [ ] Integration tests for complex flows

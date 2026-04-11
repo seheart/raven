@@ -31,10 +31,10 @@
     full: 'max-w-full'
   };
 
-  const centerClass = center ? 'mx-auto' : '';
-  const paddingClass = padding ? 'px-4 sm:px-6 lg:px-8' : '';
+  const centerClass = $derived(center ? 'mx-auto' : '');
+  const paddingClass = $derived(padding ? 'px-4 sm:px-6 lg:px-8' : '');
 
-  const containerClasses = `${sizes[size]} ${centerClass} ${paddingClass} ${className}`;
+  const containerClasses = $derived(`${sizes[size]} ${centerClass} ${paddingClass} ${className}`);
 </script>
 
 <div class={containerClasses} {...restProps}>

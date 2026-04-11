@@ -67,8 +67,8 @@
 
   // Tab list classes
   const tabListBaseClasses = 'flex gap-2 font-sans';
-  const widthClasses = fullWidth ? 'w-full' : '';
-  const tabListClasses = `${tabListBaseClasses} ${tabListVariants[variant]} ${widthClasses} ${className}`;
+  const widthClasses = $derived(fullWidth ? 'w-full' : '');
+  const tabListClasses = $derived(`${tabListBaseClasses} ${tabListVariants[variant]} ${widthClasses} ${className}`);
 
   // Individual tab classes
   function getTabClasses(index) {

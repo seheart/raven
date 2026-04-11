@@ -29,7 +29,8 @@
     ...restProps
   } = $props();
 
-  // Track open items
+  // Track open items (defaultOpen is intentionally an initial value, not reactive)
+  // svelte-ignore state_referenced_locally
   let openItems = $state(new Set(defaultOpen));
 
   // Toggle item

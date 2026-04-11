@@ -26,7 +26,7 @@ describe('XSS Protection', () => {
         const hasScriptTag = /<script[\s\S]*?>[\s\S]*?<\/script>/gi.test(payload);
         const hasOnEvent = /\son\w+\s*=/gi.test(payload);
         const hasJavascriptProtocol = /javascript:/gi.test(payload);
-        
+
         const isDangerous = hasScriptTag || hasOnEvent || hasJavascriptProtocol;
         expect(isDangerous).toBe(true);
       });
@@ -69,7 +69,7 @@ describe('XSS Protection', () => {
 
     it('should not use Function constructor on user input', () => {
       const _userInput = 'return alert("XSS")';
-      
+
       // Never use Function constructor
       expect(() => {
         // This test verifies we DON'T do this:
@@ -105,7 +105,7 @@ describe('XSS Protection', () => {
     it('should handle JSON with script tags safely', () => {
       const jsonWithScript = '{"html":"<script>alert(\\"XSS\\")</script>"}';
       const parsed = JSON.parse(jsonWithScript);
-      
+
       // The script tag should be treated as a string, not executed
       expect(parsed.html).toContain('<script>');
       expect(typeof parsed.html).toBe('string');

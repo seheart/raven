@@ -38,7 +38,7 @@
   };
 
   // Collapse items if needed
-  const displayItems = $derived(() => {
+  const displayItems = $derived.by(() => {
     if (!maxItems || items.length <= maxItems) {
       return items;
     }
@@ -56,7 +56,7 @@
   }
 
   // Container classes
-  const containerClasses = `flex items-center gap-2 ${sizes[size]} font-sans ${className}`;
+  const containerClasses = $derived(`flex items-center gap-2 ${sizes[size]} font-sans ${className}`);
 
   // Item classes
   const itemBaseClasses = 'transition-colors duration-150';

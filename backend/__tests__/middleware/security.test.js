@@ -130,7 +130,7 @@ describe('Security Middleware', () => {
       expect(config).toHaveProperty('allowedHeaders');
     });
 
-    test('should allow requests with no origin', (done) => {
+    test('should allow requests with no origin', done => {
       const allowedOrigins = ['http://localhost:3000'];
       const config = setupCORS(allowedOrigins);
 
@@ -141,7 +141,7 @@ describe('Security Middleware', () => {
       });
     });
 
-    test('should allow whitelisted origins', (done) => {
+    test('should allow whitelisted origins', done => {
       const allowedOrigins = ['http://localhost:3000'];
       const config = setupCORS(allowedOrigins);
 
@@ -152,7 +152,7 @@ describe('Security Middleware', () => {
       });
     });
 
-    test('should reject non-whitelisted origins', (done) => {
+    test('should reject non-whitelisted origins', done => {
       const allowedOrigins = ['http://localhost:3000'];
       const config = setupCORS(allowedOrigins);
 
@@ -163,7 +163,7 @@ describe('Security Middleware', () => {
       });
     });
 
-    test('should allow all origins with wildcard', (done) => {
+    test('should allow all origins with wildcard', done => {
       const allowedOrigins = ['*'];
       const config = setupCORS(allowedOrigins);
 

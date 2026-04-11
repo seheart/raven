@@ -41,39 +41,39 @@ async function main() {
   const migrator = new DatabaseMigrator(db.db, 'developer');
 
   switch (command) {
-  case 'up':
-  case 'migrate':
-    await migrator.migrate();
-    break;
+    case 'up':
+    case 'migrate':
+      await migrator.migrate();
+      break;
 
-  case 'down':
-  case 'rollback':
-    const version = arg ? parseInt(arg) : null;
-    await migrator.rollback(version);
-    break;
+    case 'down':
+    case 'rollback':
+      const version = arg ? parseInt(arg) : null;
+      await migrator.rollback(version);
+      break;
 
-  case 'status': {
-    migrator.initMigrationsTable();
-    const current = migrator.getCurrentVersion();
-    const available = migrator.getAvailableMigrations();
-    const pending = available.filter(m => m.version > current);
+    case 'status': {
+      migrator.initMigrationsTable();
+      const current = migrator.getCurrentVersion();
+      const available = migrator.getAvailableMigrations();
+      const pending = available.filter(m => m.version > current);
 
-    logger.info('\n📊 Migration Status:');
-    logger.info(`Current version: ${current}`);
-    logger.info(`Available migrations: ${available.length}`);
-    logger.info(`Pending migrations: ${pending.length}`);
+      logger.info('\n📊 Migration Status:');
+      logger.info(`Current version: ${current}`);
+      logger.info(`Available migrations: ${available.length}`);
+      logger.info(`Pending migrations: ${pending.length}`);
 
-    if (pending.length > 0) {
-      logger.info('\nPending:');
-      pending.forEach(m => {
-        logger.info(`  ${m.version}: ${m.name}`);
-      });
+      if (pending.length > 0) {
+        logger.info('\nPending:');
+        pending.forEach(m => {
+          logger.info(`  ${m.version}: ${m.name}`);
+        });
+      }
+      break;
     }
-    break;
-  }
 
-  default:
-    logger.info(`
+    default:
+      logger.info(`
 Migration CLI
 
 Commands:

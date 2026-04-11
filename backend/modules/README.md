@@ -30,18 +30,18 @@ The EventBus is the central nervous system for all Raven events.
 import { EventBus } from './modules/index.js';
 
 // Listen for file events
-EventBus.onFileEvent((event) => {
+EventBus.onFileEvent(event => {
   console.log(`File ${event.type}: ${event.path}`);
   // Save to database, emit via WebSocket, etc.
 });
 
 // Listen for git status
-EventBus.onGitStatus((status) => {
+EventBus.onGitStatus(status => {
   console.log(`Branch: ${status.branch}, Modified: ${status.modified.length}`);
 });
 
 // Listen for telemetry
-EventBus.onTelemetry((telemetry) => {
+EventBus.onTelemetry(telemetry => {
   console.log(`CPU: ${telemetry.cpu}%, Memory: ${telemetry.mem}%`);
 });
 ```
@@ -158,7 +158,7 @@ const gitMonitor = new GitMonitor({
 });
 
 // Wire EventBus to existing systems
-EventBus.onFileEvent(async (event) => {
+EventBus.onFileEvent(async event => {
   // Save to database
   db.insertEvent(/* ... */);
 
@@ -171,11 +171,11 @@ EventBus.onFileEvent(async (event) => {
   }
 });
 
-EventBus.onGitStatus((status) => {
+EventBus.onGitStatus(status => {
   io.emit('git-status', status);
 });
 
-EventBus.onTelemetry((telemetry) => {
+EventBus.onTelemetry(telemetry => {
   db.insertMetrics(/* ... */);
   io.emit('metrics-update', telemetry);
 });

@@ -67,9 +67,12 @@ describe('createPageApi', () => {
   it('should abort in-flight requests when abort() is called', async () => {
     // Create a fetch that won't resolve immediately
     let rejectFetch;
-    fetch.mockImplementationOnce(() => new Promise((_, reject) => {
-      rejectFetch = reject;
-    }));
+    fetch.mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          rejectFetch = reject;
+        })
+    );
 
     const { api, abort } = createPageApi();
     const promise = api.get('/slow-endpoint');
@@ -130,7 +133,7 @@ describe('createPageApi', () => {
 
     try {
       await api.get('/test');
-    } catch (e) {
+    } catch (_e) {
       // Expected
     }
 

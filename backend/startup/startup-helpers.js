@@ -64,14 +64,17 @@ export function initializeProject({
  * Initialize ALL discovered projects for global monitoring
  */
 export function initializeAllProjects({ availableProjects, initializeProject, logger }) {
-  logger.info('Initializing projects for global monitoring', { projectCount: availableProjects.length });
+  logger.info('Initializing projects for global monitoring', {
+    projectCount: availableProjects.length
+  });
 
   let successCount = 0;
   let failCount = 0;
 
   for (const project of availableProjects) {
     const success = initializeProject(project.name);
-    if (success) successCount++; else failCount++;
+    if (success) successCount++;
+    else failCount++;
   }
 
   logger.info('Project initialization complete', {

@@ -19,7 +19,14 @@ export type {
 } from './eventBus.js';
 
 // Diff utilities
-export { getDiff, getCharDiff, createPatch, getDiffStats, areIdentical, getSimilarity } from './diff.js';
+export {
+  getDiff,
+  getCharDiff,
+  createPatch,
+  getDiffStats,
+  areIdentical,
+  getSimilarity
+} from './diff.js';
 export type { DiffResult, DiffStats } from './diff.js';
 
 // Telemetry collector

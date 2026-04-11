@@ -131,7 +131,9 @@ export class ClaudeLogWatcher {
 
     const newInterval = idle ? 5000 : 100;
     this._currentIdle = idle;
-    this.logger.info(`Claude Log Watcher: switching to ${idle ? 'idle' : 'active'} polling (${newInterval}ms)`);
+    this.logger.info(
+      `Claude Log Watcher: switching to ${idle ? 'idle' : 'active'} polling (${newInterval}ms)`
+    );
 
     try {
       await this.logWatcher.close();

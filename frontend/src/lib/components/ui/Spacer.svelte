@@ -31,11 +31,11 @@
     '2xl': 'h-24'
   };
 
-  const spacerClass = height || width ? className : `${sizes[size]} ${className}`;
-  const style =
+  const spacerClass = $derived(height || width ? className : `${sizes[size]} ${className}`);
+  const style = $derived(
     height || width
       ? `${height ? `height: ${height};` : ''} ${width ? `width: ${width};` : ''}`
-      : undefined;
+      : undefined);
 </script>
 
 <div class={spacerClass} {style} {...restProps}></div>

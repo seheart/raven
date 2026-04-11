@@ -19,9 +19,7 @@ export function createSubagentsRouter(db: RavenDB): Router {
     asyncHandler(async (req: Request, res: Response) => {
       const { sessionId } = req.params;
       const agents = db.db
-        .prepare(
-          `SELECT * FROM subagent_tree WHERE session_id = ? ORDER BY started_at ASC`
-        )
+        .prepare(`SELECT * FROM subagent_tree WHERE session_id = ? ORDER BY started_at ASC`)
         .all(sessionId);
 
       // Also get token usage grouped by agent_id for this session
@@ -62,9 +60,7 @@ export function createSubagentsRouter(db: RavenDB): Router {
     asyncHandler(async (req: Request, res: Response) => {
       const limit = Number(req.query.limit) || 50;
       const rows = db.db
-        .prepare(
-          `SELECT * FROM subagent_tree ORDER BY started_at DESC LIMIT ?`
-        )
+        .prepare(`SELECT * FROM subagent_tree ORDER BY started_at DESC LIMIT ?`)
         .all(limit);
       res.json(rows);
     })
@@ -102,9 +98,7 @@ export function createSubagentsRouter(db: RavenDB): Router {
   router.get(
     '/stats',
     asyncHandler(async (req: Request, res: Response) => {
-      const total = db.db
-        .prepare(`SELECT COUNT(*) as count FROM subagent_tree`)
-        .get() as any;
+      const total = db.db.prepare(`SELECT COUNT(*) as count FROM subagent_tree`).get() as any;
       const byType = db.db
         .prepare(
           `SELECT agent_type, COUNT(*) as count FROM subagent_tree GROUP BY agent_type ORDER BY count DESC`

@@ -75,7 +75,9 @@ export class LocalModelWatcher {
     if (idle === this.isIdle) return;
     this.isIdle = idle;
     const newInterval = idle ? this.idlePollMs : this.pollMs;
-    logger.info(`Local model watcher: switching to ${idle ? 'idle' : 'active'} polling (${newInterval / 1000}s)`);
+    logger.info(
+      `Local model watcher: switching to ${idle ? 'idle' : 'active'} polling (${newInterval / 1000}s)`
+    );
 
     // Restart the interval at the new rate
     if (this.pollInterval) {

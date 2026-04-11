@@ -31,12 +31,13 @@ export function detectProjectFromPath(filepath, projectPaths) {
 
   for (const [projectName, projectPath] of sortedProjects) {
     const normalizedProjectPath = normalize(projectPath);
-    if (normalizedPath.startsWith(normalizedProjectPath + '/') || normalizedPath === normalizedProjectPath) {
+    if (
+      normalizedPath.startsWith(normalizedProjectPath + '/') ||
+      normalizedPath === normalizedProjectPath
+    ) {
       return projectName;
     }
   }
 
   return null;
 }
-
-

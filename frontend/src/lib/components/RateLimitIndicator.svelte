@@ -92,7 +92,7 @@
     <div class="details-panel">
       <div class="details-header">
         <h3>Rate Limit Status</h3>
-        <button class="close-btn" on:click={toggleDetails}></button>
+        <button class="close-btn" on:click={toggleDetails} aria-label="Close rate limit details"></button>
       </div>
       <div class="details-content">
         {#each Object.entries(rateLimitStatus) as [name, status] (name)}

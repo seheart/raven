@@ -212,5 +212,4 @@ describe('Input Component', () => {
     expect(input).toHaveClass('border');
     expect(input).toHaveClass('outline-none');
   });
-
 });

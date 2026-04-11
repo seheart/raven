@@ -55,6 +55,7 @@ npm test -- __tests__/routes/events.test.js
 ## Test Coverage Status
 
 ### 🎯 Perfect Coverage (100%)
+
 The following files have **PERFECT 100% statement coverage**:
 
 - ✅ `routes/security.js` - Input validation and SQL injection protection
@@ -67,16 +68,19 @@ The following files have **PERFECT 100% statement coverage**:
 - ✅ `routes/health.js` - **100% line coverage** - Health checks and project status
 
 ### 🚀 Excellent Coverage (96-99%)
+
 - ⭐ `routes/metrics.js` - **98.58%** - Prometheus metrics and analytics
   - _Remaining: 2 lines - ES module static import limitation for error handler_
 - ⭐ `routes/storage.js` - **96.68%** - Database storage management
   - _Remaining: 6 lines - Extreme edge cases (invalid SQLite metadata, res.download race conditions)_
 
 ### ✨ Strong Coverage (89%+)
+
 - ⭐ `routes/snapshots.js` - **89.58%** - Snapshot creation and restoration
   - _Remaining: 7 lines - Has a bug on line 110 (undefined `project` variable) preventing full coverage_
 
 ### 📊 Overall Stats
+
 - **11 files** with 89%+ coverage
 - **8 files** at 100% coverage
 - **1700+ tests** passing
@@ -85,9 +89,11 @@ The following files have **PERFECT 100% statement coverage**:
 ## Testing TODO
 
 ### Priority 1: Fix Known Bugs
+
 - [ ] **snapshots.js line 110** - Fix undefined `project` variable in path traversal error handler
 
 ### Priority 2: Edge Case Coverage (Optional)
+
 These are extremely difficult to test and represent defensive coding:
 
 - [ ] **metrics.js lines 52-53** - Would require complex ES module mocking for Prometheus error handler
@@ -95,6 +101,7 @@ These are extremely difficult to test and represent defensive coding:
 - [ ] **storage.js lines 219-220** - Would require triggering res.download() error after headers sent (race condition)
 
 ### Priority 3: Future Enhancements
+
 - [ ] Add integration tests for WebSocket events
 - [ ] Add end-to-end tests for full restore workflow
 - [ ] Add performance benchmarking tests
@@ -126,22 +133,26 @@ backend/
 ## API Endpoints
 
 ### Events
+
 - `GET /api/tracked-files` - Get list of tracked files
 - `GET /api/file-events` - Get recent file events
 - `GET /api/all-file-events` - Get all events across projects
 - `GET /api/activity-log` - Get activity log with filters
 
 ### Snapshots
+
 - `GET /api/snapshots/:filepath` - Get snapshots for a file
 - `POST /api/restore` - Restore file from snapshot
 
 ### Health & Metrics
+
 - `GET /api/health` - System health status
 - `GET /api/health/projects` - Multi-project health scores
 - `GET /api/metrics` - Prometheus format metrics
 - `GET /api/metrics/json` - JSON format metrics
 
 ### Storage
+
 - `GET /api/storage` - Storage statistics
 - `GET /api/storage/export/:dbname` - Export database
 - `POST /api/storage/vacuum/:dbname` - Optimize database
@@ -159,6 +170,7 @@ backend/
 ## Contributing
 
 This project maintains high code quality standards:
+
 - All new features must include tests
 - Aim for 90%+ coverage on new code
 - Run `npm test` before committing

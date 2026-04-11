@@ -108,7 +108,7 @@
       'general-purpose': '#FF6B35',
       'Explore': '#10A37F',
       'Plan': '#4285F4',
-      'code-reviewer': '#F39C12',
+      'code-reviewer': '#F39C12'
     };
     return colors[type] || '#6b7280';
   }

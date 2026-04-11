@@ -26,7 +26,7 @@ export class SessionTracker {
     let session = this.activeSessions.get(projectName);
 
     // Check if we need to end previous session (30min inactivity)
-    if (session && (now - session.lastActivity) > this.sessionTimeout) {
+    if (session && now - session.lastActivity > this.sessionTimeout) {
       this.endSession(projectName);
       session = null;
     }
@@ -86,10 +86,14 @@ export class SessionTracker {
     const db = this.projectDatabases.get(projectName);
     if (db) {
       try {
-        const result = db.db.prepare(`
+        const result = db.db
+          .prepare(
+            `
           INSERT INTO sessions (project_name, start_time, changes_count, rollbacks_count, break_minutes, quality_score)
           VALUES (?, datetime('now'), 0, 0, 0, 100.0)
-        `).run(projectName);
+        `
+          )
+          .run(projectName);
 
         session.id = result.lastInsertRowid;
         logger.info('Started session', { sessionId: session.id, projectName });
@@ -111,19 +115,18 @@ export class SessionTracker {
     const db = this.projectDatabases.get(projectName);
     if (db && session.id) {
       try {
-        db.db.prepare(`
+        db.db
+          .prepare(
+            `
           UPDATE sessions SET
             end_time = datetime('now'),
             changes_count = ?,
             rollbacks_count = ?,
             quality_score = ?
           WHERE id = ?
-        `).run(
-          session.changesCount,
-          session.rollbacksCount,
-          session.qualityScore,
-          session.id
-        );
+        `
+          )
+          .run(session.changesCount, session.rollbacksCount, session.qualityScore, session.id);
 
         logger.info('Ended session', {
           sessionId: session.id,
@@ -149,18 +152,17 @@ export class SessionTracker {
     if (!db) return;
 
     try {
-      db.db.prepare(`
+      db.db
+        .prepare(
+          `
         UPDATE sessions SET
           changes_count = ?,
           rollbacks_count = ?,
           quality_score = ?
         WHERE id = ?
-      `).run(
-        session.changesCount,
-        session.rollbacksCount,
-        session.qualityScore,
-        session.id
-      );
+      `
+        )
+        .run(session.changesCount, session.rollbacksCount, session.qualityScore, session.id);
     } catch (e) {
       logger.error('Error updating session', { error: e, projectName, sessionId: session.id });
     }
@@ -206,9 +208,8 @@ export class SessionTracker {
     let qualityScore = 100;
 
     // Factor 1: Rollback rate in this session
-    const rollbackRate = session.changesCount > 0
-      ? session.rollbacksCount / session.changesCount
-      : 0;
+    const rollbackRate =
+      session.changesCount > 0 ? session.rollbacksCount / session.changesCount : 0;
 
     if (rollbackRate > 0.15) {
       const penalty = Math.min((rollbackRate - 0.15) * 100, 30);
@@ -270,7 +271,11 @@ export class SessionTracker {
       recommendation = {
         level: 'critical',
         message: 'Take a break now! Quality indicators suggest fatigue.',
-        actions: ['Take a 15-minute break', 'Set a checkpoint for safe rollback', 'Review recent changes']
+        actions: [
+          'Take a 15-minute break',
+          'Set a checkpoint for safe rollback',
+          'Review recent changes'
+        ]
       };
     } else if (qualityScore < 70) {
       recommendation = {
@@ -303,7 +308,9 @@ export class SessionTracker {
       const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
       // Get all sessions in time period
-      const sessions = db.db.prepare(`
+      const sessions = db.db
+        .prepare(
+          `
         SELECT
           id,
           start_time,
@@ -317,7 +324,9 @@ export class SessionTracker {
         WHERE project_name = ?
         AND start_time >= ?
         ORDER BY start_time DESC
-      `).all(projectName, cutoffDate);
+      `
+        )
+        .all(projectName, cutoffDate);
 
       if (sessions.length === 0) {
         return {
@@ -332,9 +341,10 @@ export class SessionTracker {
       // Calculate averages
       const avgDuration = sessions.reduce((sum, s) => sum + s.duration_hours, 0) / sessions.length;
       const avgQuality = sessions.reduce((sum, s) => sum + s.quality_score, 0) / sessions.length;
-      const avgRollbackRate = sessions.reduce((sum, s) => {
-        return sum + (s.changes_count > 0 ? s.rollbacks_count / s.changes_count : 0);
-      }, 0) / sessions.length;
+      const avgRollbackRate =
+        sessions.reduce((sum, s) => {
+          return sum + (s.changes_count > 0 ? s.rollbacks_count / s.changes_count : 0);
+        }, 0) / sessions.length;
 
       // Find peak productivity hours
       const hourlyActivity = new Map();

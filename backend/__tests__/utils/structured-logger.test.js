@@ -3,7 +3,12 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import { generateCorrelationId, StructuredLogger, createRequestLogger, logger } from '../../utils/structured-logger.js';
+import {
+  generateCorrelationId,
+  StructuredLogger,
+  createRequestLogger,
+  logger
+} from '../../utils/structured-logger.js';
 
 describe('Structured Logger', () => {
   let originalEnv;
@@ -141,7 +146,7 @@ describe('Structured Logger', () => {
           path: '/api/test',
           query: { page: '1' },
           ip: '127.0.0.1',
-          get: (_header) => 'Mozilla/5.0'
+          get: _header => 'Mozilla/5.0'
         };
 
         expect(() => testLogger.logRequest(mockReq)).not.toThrow();

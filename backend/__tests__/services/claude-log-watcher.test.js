@@ -135,7 +135,9 @@ describe('ClaudeLogWatcher', () => {
 
       await watcher.start();
 
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Starting Claude Log Watcher'));
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Starting Claude Log Watcher')
+      );
     });
 
     test('should configure ignored files correctly', async () => {
@@ -224,7 +226,9 @@ describe('ClaudeLogWatcher', () => {
 
       await watcher.handleLogFileAdded(testFile);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('New Claude session log'));
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('New Claude session log')
+      );
     });
 
     test('should handle file with no project info gracefully', async () => {
@@ -698,7 +702,9 @@ describe('ClaudeLogWatcher', () => {
 
       changeHandler(testFile);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Log file change detected'));
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Log file change detected')
+      );
     });
 
     test('should trigger error handler on watcher error', async () => {
@@ -774,11 +780,12 @@ describe('ClaudeLogWatcher', () => {
       jest.advanceTimersByTime(2100);
 
       // Should warn about no files
-      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('No .jsonl files discovered'));
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('No .jsonl files discovered')
+      );
 
       jest.useRealTimers();
     });
-
   });
 
   describe('Error Handling', () => {

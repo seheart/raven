@@ -108,7 +108,7 @@ describe('HealthWidget', () => {
     ]);
 
     // Default mock for api.get (syntax errors endpoint)
-    api.get.mockImplementation((url) => {
+    api.get.mockImplementation(url => {
       if (url.includes('/syntax-errors/count')) {
         return Promise.resolve({ count: 0 });
       }
@@ -158,7 +158,7 @@ describe('HealthWidget', () => {
         summary: { total: 9, passed: 9, failed: 0 },
         checks: []
       });
-      api.get.mockImplementation((url) => {
+      api.get.mockImplementation(url => {
         if (url.includes('/syntax-errors/count')) return Promise.resolve({ count: 0 });
         return Promise.resolve({});
       });
@@ -198,7 +198,7 @@ describe('HealthWidget', () => {
 
     it('should show critical status for serious issues', async () => {
       dataService.fetchFileEvents.mockResolvedValue([]);
-      api.get.mockImplementation((url) => {
+      api.get.mockImplementation(url => {
         if (url.includes('/syntax-errors/count')) return Promise.resolve({ count: 5 });
         return Promise.resolve({});
       });
@@ -274,7 +274,7 @@ describe('HealthWidget', () => {
         checks: []
       });
       dataService.fetchFileEvents.mockResolvedValue([]);
-      api.get.mockImplementation((url) => {
+      api.get.mockImplementation(url => {
         if (url.includes('/syntax-errors/count')) return Promise.resolve({ count: 0 });
         return Promise.resolve({});
       });
@@ -485,6 +485,5 @@ describe('HealthWidget', () => {
         { timeout: 5000 }
       );
     });
-
   });
 });

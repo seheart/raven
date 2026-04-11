@@ -52,7 +52,7 @@
   const baseClasses = 'overflow-hidden';
 
   // Container classes
-  const containerClasses = `${baseClasses} ${variants[variant]} ${className}`;
+  const containerClasses = $derived(`${baseClasses} ${variants[variant]} ${className}`);
 
   // Item classes
   const getItemClasses = index => {
@@ -82,7 +82,7 @@
   };
 
   // Determine list tag
-  const ListTag = ordered ? 'ol' : 'ul';
+  const ListTag = $derived(ordered ? 'ol' : 'ul');
 </script>
 
 <svelte:element this={ListTag} class={containerClasses} {...restProps}>
@@ -93,6 +93,7 @@
     <!-- Auto-generated list from items -->
     {#if items.length > 0}
       {#each items as item, index (index)}
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
         <li
           class={getItemClasses(index)}
           onclick={() => handleItemClick(item, index)}

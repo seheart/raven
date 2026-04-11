@@ -14,7 +14,9 @@ describe('Database Configuration', () => {
 
   afterEach(() => {
     if (db) {
-      try { db.close(); } catch {}
+      try {
+        db.close();
+      } catch {}
     }
     if (tmpDir) {
       rmSync(tmpDir, { recursive: true, force: true });

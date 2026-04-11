@@ -89,8 +89,9 @@ async function runMigrations() {
           migrate(db);
 
           // Record migration as applied
-          db.prepare('INSERT INTO migrations (name, applied_at) VALUES (?, datetime(\'now\'))')
-            .run(migrationName);
+          db.prepare("INSERT INTO migrations (name, applied_at) VALUES (?, datetime('now'))").run(
+            migrationName
+          );
 
           logger.info(`  ✅ ${migrationFile} completed`);
         } catch (e) {

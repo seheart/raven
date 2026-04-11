@@ -58,12 +58,12 @@
   const lines = $derived(code.split('\n'));
 
   // Container classes
-  const containerClasses = `bg-[var(--code-bg)] border border-[var(--code-border)] rounded-lg overflow-hidden font-mono ${className}`;
+  const containerClasses = $derived(`bg-[var(--code-bg)] border border-[var(--code-border)] rounded-lg overflow-hidden font-mono ${className}`);
 
   // Pre classes with optional max height
-  const preClasses = maxHeight
+  const preClasses = $derived(maxHeight
     ? `overflow-auto text-sm text-[var(--code-text)] p-4 ${maxHeight}`
-    : 'overflow-auto text-sm text-[var(--code-text)] p-4';
+    : 'overflow-auto text-sm text-[var(--code-text)] p-4');
 </script>
 
 <div class={containerClasses} {...restProps}>

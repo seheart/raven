@@ -695,11 +695,11 @@
         containerHeight={500}
         overscan={3}
         getKey={err => err.id}
-        let:item
       >
         <!-- NOTE: itemHeight=100 works for collapsed errors. Expanded errors are taller
              but VirtualScroll handles this gracefully with overscan. For better accuracy,
              consider dynamic height calculation or disable VirtualScroll when expanded. -->
+        {#snippet children(item)}
         <div class="error-item" class:expanded={selectedError?.id === item.id}>
           <button
             class="error-header"
@@ -794,6 +794,7 @@
             </div>
           {/if}
         </div>
+        {/snippet}
       </VirtualScroll>
 
       <!-- Pagination -->

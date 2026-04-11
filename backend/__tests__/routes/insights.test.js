@@ -62,30 +62,22 @@ describe('Insights Routes', () => {
   });
 
   test('POST /api/insights/generate/review returns 202 with no diffs', async () => {
-    const res = await request(app)
-      .post('/api/insights/generate/review')
-      .send({});
+    const res = await request(app).post('/api/insights/generate/review').send({});
     expect(res.status).toBe(202);
   });
 
   test('POST /api/insights/generate/digest returns 202 with no data', async () => {
-    const res = await request(app)
-      .post('/api/insights/generate/digest')
-      .send({});
+    const res = await request(app).post('/api/insights/generate/digest').send({});
     expect(res.status).toBe(202);
   });
 
   test('POST /api/insights/generate/agent-comparison returns 202 with no agents', async () => {
-    const res = await request(app)
-      .post('/api/insights/generate/agent-comparison')
-      .send({});
+    const res = await request(app).post('/api/insights/generate/agent-comparison').send({});
     expect(res.status).toBe(202);
   });
 
   test('POST /api/insights/generate/project-health requires projectName', async () => {
-    const res = await request(app)
-      .post('/api/insights/generate/project-health')
-      .send({});
+    const res = await request(app).post('/api/insights/generate/project-health').send({});
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('projectName is required');
   });
@@ -104,7 +96,15 @@ describe('Insights Routes', () => {
   });
 
   test('GET /api/insights/diff-risk-scores returns scores after insert', async () => {
-    db.insertDiffRiskScore(1, '/test.js', 6, 'Moderate risk', new Date().toISOString(), 'test-model', 'sess');
+    db.insertDiffRiskScore(
+      1,
+      '/test.js',
+      6,
+      'Moderate risk',
+      new Date().toISOString(),
+      'test-model',
+      'sess'
+    );
 
     const res = await request(app).get('/api/insights/diff-risk-scores?limit=5');
     expect(res.status).toBe(200);
@@ -114,8 +114,24 @@ describe('Insights Routes', () => {
   });
 
   test('GET /api/insights/diff-risk-scores respects limit', async () => {
-    db.insertDiffRiskScore(2, '/a.js', 3, 'Low risk', new Date().toISOString(), 'test-model', 'sess');
-    db.insertDiffRiskScore(3, '/b.js', 8, 'High risk', new Date().toISOString(), 'test-model', 'sess');
+    db.insertDiffRiskScore(
+      2,
+      '/a.js',
+      3,
+      'Low risk',
+      new Date().toISOString(),
+      'test-model',
+      'sess'
+    );
+    db.insertDiffRiskScore(
+      3,
+      '/b.js',
+      8,
+      'High risk',
+      new Date().toISOString(),
+      'test-model',
+      'sess'
+    );
 
     const res = await request(app).get('/api/insights/diff-risk-scores?limit=2');
     expect(res.status).toBe(200);
@@ -123,18 +139,31 @@ describe('Insights Routes', () => {
   });
 
   test('PUT /api/insights/model requires model field', async () => {
-    const res = await request(app)
-      .put('/api/insights/model')
-      .send({});
+    const res = await request(app).put('/api/insights/model').send({});
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('model is required');
   });
 
   test('GET /api/insights with type filter works', async () => {
     // Insert insights of different types
-    db.db.prepare(`INSERT INTO insights (id, timestamp, type, title, content, model, duration_ms, context_events) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run('sum_1', new Date().toISOString(), 'session_summary', 'Summary', 'content', 'test', 100, 5);
-    db.db.prepare(`INSERT INTO insights (id, timestamp, type, title, content, model, duration_ms, context_events) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    db.db
+      .prepare(
+        'INSERT INTO insights (id, timestamp, type, title, content, model, duration_ms, context_events) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      )
+      .run(
+        'sum_1',
+        new Date().toISOString(),
+        'session_summary',
+        'Summary',
+        'content',
+        'test',
+        100,
+        5
+      );
+    db.db
+      .prepare(
+        'INSERT INTO insights (id, timestamp, type, title, content, model, duration_ms, context_events) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      )
       .run('dig_1', new Date().toISOString(), 'daily_digest', 'Digest', 'content', 'test', 100, 5);
 
     const allRes = await request(app).get('/api/insights');

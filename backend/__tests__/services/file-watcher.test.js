@@ -86,13 +86,13 @@ describe('File Watcher Service', () => {
   });
 
   describe('File Change Detection', () => {
-    it('should detect file addition', (done) => {
+    it('should detect file addition', done => {
       watcher = chokidar.watch(testDir, {
         persistent: true,
         ignoreInitial: true
       });
 
-      watcher.on('add', (path) => {
+      watcher.on('add', path => {
         expect(path).toBe(testFile);
         done();
       });
@@ -103,7 +103,7 @@ describe('File Watcher Service', () => {
       });
     });
 
-    it('should detect file modification', (done) => {
+    it('should detect file modification', done => {
       // First create the file
       writeFile(testFile, 'console.log("original");').then(() => {
         watcher = chokidar.watch(testDir, {
@@ -111,7 +111,7 @@ describe('File Watcher Service', () => {
           ignoreInitial: true
         });
 
-        watcher.on('change', (path) => {
+        watcher.on('change', path => {
           expect(path).toBe(testFile);
           done();
         });
@@ -122,7 +122,7 @@ describe('File Watcher Service', () => {
       });
     });
 
-    it('should detect file deletion', (done) => {
+    it('should detect file deletion', done => {
       // First create the file
       writeFile(testFile, 'console.log("test");').then(() => {
         watcher = chokidar.watch(testDir, {
@@ -130,7 +130,7 @@ describe('File Watcher Service', () => {
           ignoreInitial: true
         });
 
-        watcher.on('unlink', (path) => {
+        watcher.on('unlink', path => {
           expect(path).toBe(testFile);
           done();
         });
@@ -143,7 +143,7 @@ describe('File Watcher Service', () => {
   });
 
   describe('Event Filtering', () => {
-    it('should ignore node_modules changes', (done) => {
+    it('should ignore node_modules changes', done => {
       const nodeModulesFile = join(testDir, 'node_modules', 'test.js');
 
       watcher = chokidar.watch(testDir, {
@@ -154,7 +154,7 @@ describe('File Watcher Service', () => {
 
       let eventFired = false;
 
-      watcher.on('add', (path) => {
+      watcher.on('add', path => {
         // Only flag if it's the node_modules file we're testing
         if (path === nodeModulesFile) {
           eventFired = true;
@@ -180,7 +180,7 @@ describe('File Watcher Service', () => {
         }, 1000);
       });
 
-      watcher.on('error', (error) => {
+      watcher.on('error', error => {
         if (watcher) {
           watcher.close();
         }
@@ -188,7 +188,7 @@ describe('File Watcher Service', () => {
       });
     });
 
-    it('should ignore .git directory changes', (done) => {
+    it('should ignore .git directory changes', done => {
       const gitFile = join(testDir, '.git', 'config');
 
       watcher = chokidar.watch(testDir, {
@@ -218,7 +218,7 @@ describe('File Watcher Service', () => {
       });
     });
 
-    it('should watch only specific file types', (done) => {
+    it('should watch only specific file types', done => {
       const jsFile = join(testDir, 'filter-test.js');
       const txtFile = join(testDir, 'filter-test.txt');
 
@@ -228,27 +228,28 @@ describe('File Watcher Service', () => {
       // Small delay to ensure previous watchers are fully closed
       setTimeout(() => {
         // Watch the entire directory, filter by extension in handler
-        watcher = chokidar.watch(testDir, {
-          persistent: true,
-          ignoreInitial: true,
-          awaitWriteFinish: {
-            stabilityThreshold: 100,
-            pollInterval: 50
-          }
-        })
-          .on('add', (path) => {
-          // Only track .js and .txt files
+        watcher = chokidar
+          .watch(testDir, {
+            persistent: true,
+            ignoreInitial: true,
+            awaitWriteFinish: {
+              stabilityThreshold: 100,
+              pollInterval: 50
+            }
+          })
+          .on('add', path => {
+            // Only track .js and .txt files
             if (path === jsFile) jsEventFired = true;
             if (path === txtFile) txtEventFired = true;
           })
           .on('ready', async () => {
-          // Write both files after watcher is ready
+            // Write both files after watcher is ready
             await writeFile(jsFile, 'console.log("test");');
             await writeFile(txtFile, 'test');
 
             // Wait for file system events and awaitWriteFinish
             setTimeout(() => {
-            // Both files should be detected, but we verify only JS was the one we wanted
+              // Both files should be detected, but we verify only JS was the one we wanted
               expect(jsEventFired).toBe(true);
               // In a real file-type-specific watcher, txt would not be detected
               // But we're testing that we CAN detect different file types
@@ -256,7 +257,7 @@ describe('File Watcher Service', () => {
               done();
             }, 1500);
           })
-          .on('error', (error) => {
+          .on('error', error => {
             done(error);
           });
       }, 100);
@@ -264,7 +265,7 @@ describe('File Watcher Service', () => {
   });
 
   describe('Debouncing', () => {
-    it('should debounce rapid file changes', (done) => {
+    it('should debounce rapid file changes', done => {
       let changeCount = 0;
 
       watcher = chokidar.watch(testDir, {
@@ -308,13 +309,13 @@ describe('File Watcher Service', () => {
       }).not.toThrow();
     });
 
-    it('should emit error on watcher errors', (done) => {
+    it('should emit error on watcher errors', done => {
       watcher = chokidar.watch(testDir, {
         persistent: true,
         ignoreInitial: true
       });
 
-      watcher.on('error', (error) => {
+      watcher.on('error', error => {
         expect(error).toBeDefined();
         done();
       });
@@ -338,7 +339,7 @@ describe('File Watcher Service', () => {
       await expect(watcher.close()).resolves.not.toThrow();
     });
 
-    it('should not emit events after close', (done) => {
+    it('should not emit events after close', done => {
       let eventFired = false;
 
       watcher = chokidar.watch(testDir, {
@@ -375,7 +376,7 @@ describe('File Watcher Service', () => {
   });
 
   describe('Performance', () => {
-    it('should handle watching large directory trees', (done) => {
+    it('should handle watching large directory trees', done => {
       watcher = chokidar.watch(testDir, {
         persistent: true,
         ignoreInitial: true,

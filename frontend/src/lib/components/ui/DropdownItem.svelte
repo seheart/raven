@@ -34,8 +34,8 @@
   // Item classes
   const itemBaseClasses =
     'w-full px-4 py-2 text-left text-sm transition-colors duration-150 flex items-center gap-2 font-sans';
-  const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
-  const itemClasses = `${itemBaseClasses} ${variants[variant]} ${disabledClasses} ${className}`;
+  const disabledClasses = $derived(disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer');
+  const itemClasses = $derived(`${itemBaseClasses} ${variants[variant]} ${disabledClasses} ${className}`);
 
   // Handle click
   function handleClick(e) {

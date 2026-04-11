@@ -397,6 +397,43 @@ export class RavenDB {
       )
     `);
 
+    // Self-analysis runs (code health checks)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS analysis_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'running',
+        overall_score TEXT,
+        duration_ms INTEGER,
+        total_checks INTEGER DEFAULT 0,
+        passed_checks INTEGER DEFAULT 0,
+        warned_checks INTEGER DEFAULT 0,
+        failed_checks INTEGER DEFAULT 0,
+        session_id TEXT
+      )
+    `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS analysis_checks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        status TEXT NOT NULL,
+        duration_ms INTEGER,
+        summary TEXT,
+        output TEXT,
+        FOREIGN KEY (run_id) REFERENCES analysis_runs(id) ON DELETE CASCADE
+      )
+    `);
+
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_analysis_runs_timestamp ON analysis_runs(timestamp DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_analysis_checks_run_id ON analysis_checks(run_id)`
+    );
+
     // ==================== Performance Indexes ====================
     // These indexes dramatically improve query performance as tables grow
 
@@ -822,13 +859,17 @@ export class RavenDB {
 
   correlateEventsWithMetrics(time_window_seconds: number = 5): PerformanceCorrelation[] {
     // Get the 20 most recent events with filepaths
-    const recentEvents = this.db.prepare(`
+    const recentEvents = this.db
+      .prepare(
+        `
       SELECT id, timestamp, filepath, change_type, LENGTH(diff) as diff_size
       FROM events
       WHERE filepath IS NOT NULL
       ORDER BY timestamp DESC
       LIMIT 20
-    `).all() as any[];
+    `
+      )
+      .all() as any[];
 
     if (recentEvents.length === 0) return [];
 

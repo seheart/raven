@@ -115,12 +115,12 @@
   };
 
   // Base classes
-  const baseClasses = card
+  const baseClasses = $derived(card
     ? `rounded-lg border border-[var(--border)] transition-all duration-200 ${sizes[size].padding}`
-    : sizes[size].padding;
+    : sizes[size].padding);
 
   // Container classes
-  const containerClasses = `${baseClasses} ${variants[variant].bg} ${className}`;
+  const containerClasses = $derived(`${baseClasses} ${variants[variant].bg} ${className}`);
 </script>
 
 <div class={containerClasses} {...restProps}>

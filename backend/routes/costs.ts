@@ -185,9 +185,9 @@ export function createCostsRouter(db: RavenDB): Router {
       const { start, end, project, bucket } = req.query;
       // Whitelist bucket formats to prevent SQL injection
       const bucketFormats: Record<string, string> = {
-        'hour': '%Y-%m-%dT%H',
-        'week': '%Y-%W',
-        'day': '%Y-%m-%d'
+        hour: '%Y-%m-%dT%H',
+        week: '%Y-%W',
+        day: '%Y-%m-%d'
       };
       const bucketSize = bucketFormats[String(bucket)] || bucketFormats['day'];
 

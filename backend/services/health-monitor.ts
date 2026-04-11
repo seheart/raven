@@ -61,7 +61,9 @@ export class HealthMonitor {
           logger.error('Health check failed:', error);
         }
       }, newInterval);
-      logger.info(`🏥 Health monitoring: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`);
+      logger.info(
+        `🏥 Health monitoring: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`
+      );
     }
   }
 

@@ -42,18 +42,22 @@ const winstonLogger = winston.createLogger({
 
 // Add file transport in production
 if (IS_PRODUCTION) {
-  winstonLogger.add(new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-    maxsize: 5242880, // 5MB
-    maxFiles: 5
-  }));
+  winstonLogger.add(
+    new winston.transports.File({
+      filename: 'logs/error.log',
+      level: 'error',
+      maxsize: 5242880, // 5MB
+      maxFiles: 5
+    })
+  );
 
-  winstonLogger.add(new winston.transports.File({
-    filename: 'logs/combined.log',
-    maxsize: 5242880, // 5MB
-    maxFiles: 10
-  }));
+  winstonLogger.add(
+    new winston.transports.File({
+      filename: 'logs/combined.log',
+      maxsize: 5242880, // 5MB
+      maxFiles: 10
+    })
+  );
 }
 
 // Export convenience methods that match previous API

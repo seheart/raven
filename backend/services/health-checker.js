@@ -194,7 +194,8 @@ export class HealthChecker {
         const mostRecent = data.conversations[0];
         const conversationTime = new Date(mostRecent.timestamp || mostRecent.last_activity);
         const now = new Date();
-        const hoursSinceLastConversation = (now.getTime() - conversationTime.getTime()) / (1000 * 60 * 60);
+        const hoursSinceLastConversation =
+          (now.getTime() - conversationTime.getTime()) / (1000 * 60 * 60);
         if (hoursSinceLastConversation > 24) {
           throw new Error(
             `Stale conversation data (last: ${hoursSinceLastConversation.toFixed(1)} hours ago). ` +

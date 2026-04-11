@@ -53,5 +53,4 @@ describe('Select Component', () => {
     const select = container.querySelector('select');
     expect(select).toBeDisabled();
   });
-
 });

@@ -11,11 +11,23 @@ function renderMarkdown(text) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/^### (.+)$/gm, '<h4 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h3>')
+    .replace(
+      /^### (.+)$/gm,
+      '<h4 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h4>'
+    )
+    .replace(
+      /^## (.+)$/gm,
+      '<h3 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h3>'
+    )
     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--text-heading)]">$1</strong>')
-    .replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-[var(--bg)] rounded text-[var(--accent)] text-[11px] font-mono">$1</code>')
-    .replace(/^- (.+)$/gm, '<div class="flex gap-2 ml-2"><span class="text-[var(--muted)]">-</span><span>$1</span></div>')
+    .replace(
+      /`([^`]+)`/g,
+      '<code class="px-1 py-0.5 bg-[var(--bg)] rounded text-[var(--accent)] text-[11px] font-mono">$1</code>'
+    )
+    .replace(
+      /^- (.+)$/gm,
+      '<div class="flex gap-2 ml-2"><span class="text-[var(--muted)]">-</span><span>$1</span></div>'
+    )
     .replace(/\n/g, '<br>');
 }
 
@@ -92,7 +104,7 @@ Use \`npm test\` to verify.`;
 **Code Quality** — 2 syntax errors detected and auto-resolved.`;
 
     const result = renderMarkdown(input);
-    expect(result).toContain("<strong");
+    expect(result).toContain('<strong');
     expect(result).toContain("Today's Highlights");
     expect(result).toContain('Productivity');
     expect(result).toContain('Code Quality');

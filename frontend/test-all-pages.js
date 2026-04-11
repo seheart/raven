@@ -349,8 +349,8 @@ function generateHTMLReport(results) {
 
     <div id="pages">
       ${results.pages
-    .map(
-      page => `
+        .map(
+          page => `
         <div class="page-card ${page.status}" data-status="${page.status}">
           <div class="page-header">
             <div>
@@ -366,107 +366,107 @@ function generateHTMLReport(results) {
           </div>
 
           ${
-  page.errors.length > 0
-    ? `
+            page.errors.length > 0
+              ? `
             <details open>
               <summary style="cursor: pointer; color: #ef4444; font-weight: 600; margin-bottom: 10px;">
                 ❌ ${page.errors.length} Error${page.errors.length > 1 ? 's' : ''}
               </summary>
               <div class="error-list">
                 ${page.errors
-    .map(
-      err => `
+                  .map(
+                    err => `
                   <div class="error-item">
                     <div class="error-type">${err.type}</div>
                     <div class="error-message">${err.message}</div>
                   </div>
                 `
-    )
-    .join('')}
+                  )
+                  .join('')}
               </div>
             </details>
           `
-    : ''
-}
+              : ''
+          }
 
           ${
-  page.uncaughtExceptions.length > 0
-    ? `
+            page.uncaughtExceptions.length > 0
+              ? `
             <details open>
               <summary style="cursor: pointer; color: #dc2626; font-weight: 600; margin-bottom: 10px;">
                 💥 ${page.uncaughtExceptions.length} Uncaught Exception${page.uncaughtExceptions.length > 1 ? 's' : ''}
               </summary>
               <div class="error-list">
                 ${page.uncaughtExceptions
-    .map(
-      err => `
+                  .map(
+                    err => `
                   <div class="error-item">
                     <div class="error-type">${err.type}</div>
                     <div class="error-message">${err.message}</div>
                     ${err.stack ? `<pre style="margin-top: 5px; font-size: 11px; color: #64748b;">${err.stack}</pre>` : ''}
                   </div>
                 `
-    )
-    .join('')}
+                  )
+                  .join('')}
               </div>
             </details>
           `
-    : ''
-}
+              : ''
+          }
 
           ${
-  page.networkErrors.length > 0
-    ? `
+            page.networkErrors.length > 0
+              ? `
             <details>
               <summary style="cursor: pointer; color: #f97316; font-weight: 600; margin-bottom: 10px;">
                 🌐 ${page.networkErrors.length} Network Error${page.networkErrors.length > 1 ? 's' : ''}
               </summary>
               <div class="error-list">
                 ${page.networkErrors
-    .map(
-      err => `
+                  .map(
+                    err => `
                   <div class="error-item network-item">
                     <div class="error-type">${err.method} ${err.url}</div>
                     <div class="error-message">${err.failure}</div>
                   </div>
                 `
-    )
-    .join('')}
+                  )
+                  .join('')}
               </div>
             </details>
           `
-    : ''
-}
+              : ''
+          }
 
           ${
-  page.warnings.length > 0
-    ? `
+            page.warnings.length > 0
+              ? `
             <details>
               <summary style="cursor: pointer; color: #f59e0b; font-weight: 600; margin-bottom: 10px;">
                 ⚠️ ${page.warnings.length} Warning${page.warnings.length > 1 ? 's' : ''}
               </summary>
               <div class="error-list">
                 ${page.warnings
-    .map(
-      warn => `
+                  .map(
+                    warn => `
                   <div class="error-item warning-item">
                     <div class="error-type">${warn.type}</div>
                     <div class="error-message">${warn.message}</div>
                   </div>
                 `
-    )
-    .join('')}
+                  )
+                  .join('')}
               </div>
             </details>
           `
-    : ''
-}
+              : ''
+          }
 
           ${page.status === 'pass' ? '<div style="color: #22c55e; font-weight: 600;">✅ No errors detected</div>' : ''}
         </div>
       `
-    )
-    .join('')}
+        )
+        .join('')}
     </div>
   </div>
 
@@ -550,10 +550,7 @@ async function runTests() {
   console.log('\n📝 Generating reports...');
 
   // JSON report
-  fs.writeFileSync(
-    'frontend/test-results.json',
-    JSON.stringify(results, null, 2)
-  );
+  fs.writeFileSync('frontend/test-results.json', JSON.stringify(results, null, 2));
   console.log('   ✓ JSON report: frontend/test-results.json');
 
   // HTML report

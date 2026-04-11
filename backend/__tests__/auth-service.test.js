@@ -46,23 +46,23 @@ describe('AuthService', () => {
     });
 
     it('should reject username shorter than 3 characters', async () => {
-      await expect(
-        authService.createUser('ab', 'password123')
-      ).rejects.toThrow('Username must be at least 3 characters');
+      await expect(authService.createUser('ab', 'password123')).rejects.toThrow(
+        'Username must be at least 3 characters'
+      );
     });
 
     it('should reject password shorter than 8 characters', async () => {
-      await expect(
-        authService.createUser('testuser', 'pass')
-      ).rejects.toThrow('Password must be at least 8 characters');
+      await expect(authService.createUser('testuser', 'pass')).rejects.toThrow(
+        'Password must be at least 8 characters'
+      );
     });
 
     it('should reject duplicate usernames', async () => {
       await authService.createUser('testuser', 'password123');
 
-      await expect(
-        authService.createUser('testuser', 'password456')
-      ).rejects.toThrow('Username already exists');
+      await expect(authService.createUser('testuser', 'password456')).rejects.toThrow(
+        'Username already exists'
+      );
     });
 
     it('should hash passwords correctly', async () => {
@@ -90,15 +90,15 @@ describe('AuthService', () => {
     });
 
     it('should reject invalid username', async () => {
-      await expect(
-        authService.authenticate('wronguser', 'password123')
-      ).rejects.toThrow('Invalid username or password');
+      await expect(authService.authenticate('wronguser', 'password123')).rejects.toThrow(
+        'Invalid username or password'
+      );
     });
 
     it('should reject invalid password', async () => {
-      await expect(
-        authService.authenticate('testuser', 'wrongpassword')
-      ).rejects.toThrow('Invalid username or password');
+      await expect(authService.authenticate('testuser', 'wrongpassword')).rejects.toThrow(
+        'Invalid username or password'
+      );
     });
 
     it('should update last login timestamp', async () => {
@@ -122,9 +122,9 @@ describe('AuthService', () => {
 
       authService.setUserActive(testUser.id, false);
 
-      await expect(
-        authService.authenticate('testuser', 'password123')
-      ).rejects.toThrow('Account is disabled');
+      await expect(authService.authenticate('testuser', 'password123')).rejects.toThrow(
+        'Account is disabled'
+      );
     });
   });
 
@@ -150,15 +150,15 @@ describe('AuthService', () => {
     });
 
     it('should reject weak new password', async () => {
-      await expect(
-        authService.changePassword(userId, 'password123', 'weak')
-      ).rejects.toThrow('New password must be at least 8 characters');
+      await expect(authService.changePassword(userId, 'password123', 'weak')).rejects.toThrow(
+        'New password must be at least 8 characters'
+      );
     });
 
     it('should reject password change for non-existent user', async () => {
-      await expect(
-        authService.changePassword(99999, 'oldpass', 'newpassword123')
-      ).rejects.toThrow('User not found');
+      await expect(authService.changePassword(99999, 'oldpass', 'newpassword123')).rejects.toThrow(
+        'User not found'
+      );
     });
   });
 
@@ -246,7 +246,8 @@ describe('AuthService', () => {
       const freshDb = new Database(freshDbPath);
 
       // Spy on createUser before creating AuthService
-      const createUserSpy = jest.spyOn(AuthService.prototype, 'createUser')
+      const createUserSpy = jest
+        .spyOn(AuthService.prototype, 'createUser')
         .mockRejectedValue(new Error('Simulated create user failure'));
 
       // Create AuthService - this will trigger createDefaultAdmin which will fail

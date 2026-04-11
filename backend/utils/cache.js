@@ -40,7 +40,7 @@ export function updateHealthCache(data) {
  */
 export function getHealthCache() {
   const now = Date.now();
-  if (healthCache.data && (now - healthCache.timestamp) < HEALTH_CACHE_TTL) {
+  if (healthCache.data && now - healthCache.timestamp < HEALTH_CACHE_TTL) {
     return healthCache.data;
   }
   return null;
@@ -163,9 +163,9 @@ class ResponseCache {
 // Create cache instances for different endpoint types
 export const dashboardCache = new ResponseCache(100, 30000); // 30s TTL for dashboard
 export const analyticsCache = new ResponseCache(200, 60000); // 60s TTL for analytics
-export const metricsCache = new ResponseCache(100, 15000);   // 15s TTL for metrics
-export const queryCache = new ResponseCache(500, 10000);     // 10s TTL for general queries
-export const safetyCache = new ResponseCache(300, 30000);    // 30s TTL for safety endpoints
+export const metricsCache = new ResponseCache(100, 15000); // 15s TTL for metrics
+export const queryCache = new ResponseCache(500, 10000); // 10s TTL for general queries
+export const safetyCache = new ResponseCache(300, 30000); // 30s TTL for safety endpoints
 
 /**
  * Generate cache key from request
@@ -191,9 +191,7 @@ export function generateCacheKey(endpoint, query = {}) {
 export function cacheMiddleware(cache, keyGenerator = null, ttl = null) {
   return (req, res, next) => {
     // Generate cache key
-    const cacheKey = keyGenerator
-      ? keyGenerator(req)
-      : generateCacheKey(req.path, req.query);
+    const cacheKey = keyGenerator ? keyGenerator(req) : generateCacheKey(req.path, req.query);
 
     // Check cache
     const cached = cache.get(cacheKey);
@@ -203,7 +201,7 @@ export function cacheMiddleware(cache, keyGenerator = null, ttl = null) {
 
     // Intercept res.json to cache the response
     const originalJson = res.json.bind(res);
-    res.json = (data) => {
+    res.json = data => {
       // Only cache successful responses
       if (res.statusCode === 200) {
         cache.set(cacheKey, data, ttl);

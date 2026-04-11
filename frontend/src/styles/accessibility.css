@@ -113,9 +113,9 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
-[role="button"]:focus-visible,
-[role="link"]:focus-visible,
-[tabindex]:not([tabindex="-1"]):focus-visible {
+[role='button']:focus-visible,
+[role='link']:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
@@ -134,7 +134,7 @@ textarea:focus-visible,
 /**
  * Indicate which elements are keyboard navigable
  */
-[tabindex]:not([tabindex="-1"]) {
+[tabindex]:not([tabindex='-1']) {
   cursor: pointer;
 }
 
@@ -145,7 +145,7 @@ body.using-keyboard *:focus {
 }
 
 /* Add subtle hover state for keyboard-focusable elements */
-[tabindex]:not([tabindex="-1"]):hover {
+[tabindex]:not([tabindex='-1']):hover {
   background: color-mix(in srgb, var(--accent) 5%, transparent);
 }
 
@@ -167,13 +167,13 @@ body.using-keyboard *:focus {
 /**
  * Accessible loading indicators
  */
-[aria-busy="true"] {
+[aria-busy='true'] {
   position: relative;
   opacity: 0.6;
   pointer-events: none;
 }
 
-[aria-busy="true"]::after {
+[aria-busy='true']::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -188,7 +188,9 @@ body.using-keyboard *:focus {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Alternative loading state without overlay */
@@ -227,7 +229,7 @@ body.using-keyboard *:focus {
   }
 
   /* Keep essential loading indicators */
-  [aria-busy="true"]::after,
+  [aria-busy='true']::after,
   .loading-inline::before {
     animation: none;
     opacity: 0.5;
@@ -274,8 +276,8 @@ body.using-keyboard *:focus {
 /**
  * Accessible modal dialogs
  */
-[role="dialog"],
-[role="alertdialog"] {
+[role='dialog'],
+[role='alertdialog'] {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -317,7 +319,7 @@ body.modal-open {
  */
 
 /* Required field indicator */
-[aria-required="true"]::after,
+[aria-required='true']::after,
 [required]::after {
   content: ' *';
   color: var(--error);
@@ -325,7 +327,7 @@ body.modal-open {
 }
 
 /* Invalid field styling */
-[aria-invalid="true"],
+[aria-invalid='true'],
 input:invalid,
 select:invalid,
 textarea:invalid {
@@ -334,7 +336,7 @@ textarea:invalid {
 }
 
 /* Error messages */
-[role="alert"],
+[role='alert'],
 .error-message {
   color: var(--error);
   font-size: 14px;
@@ -344,7 +346,7 @@ textarea:invalid {
   gap: 8px;
 }
 
-[role="alert"]::before,
+[role='alert']::before,
 .error-message::before {
   content: '⚠';
   font-size: 16px;
@@ -381,21 +383,21 @@ textarea:invalid {
 /**
  * Accessible data tables
  */
-[role="table"] {
+[role='table'] {
   display: table;
   width: 100%;
 }
 
-[role="rowgroup"] {
+[role='rowgroup'] {
   display: table-row-group;
 }
 
-[role="row"] {
+[role='row'] {
   display: table-row;
 }
 
-[role="columnheader"],
-[role="rowheader"] {
+[role='columnheader'],
+[role='rowheader'] {
   display: table-cell;
   font-weight: 600;
   text-align: left;
@@ -403,24 +405,24 @@ textarea:invalid {
   border-bottom: 2px solid var(--border);
 }
 
-[role="cell"] {
+[role='cell'] {
   display: table-cell;
   padding: 12px;
   border-bottom: 1px solid var(--border);
 }
 
 /* Sortable column headers */
-[role="columnheader"][aria-sort] {
+[role='columnheader'][aria-sort] {
   cursor: pointer;
   user-select: none;
 }
 
-[role="columnheader"][aria-sort="ascending"]::after {
+[role='columnheader'][aria-sort='ascending']::after {
   content: ' ↑';
   opacity: 0.7;
 }
 
-[role="columnheader"][aria-sort="descending"]::after {
+[role='columnheader'][aria-sort='descending']::after {
   content: ' ↓';
   opacity: 0.7;
 }
@@ -479,7 +481,7 @@ textarea:invalid {
 /**
  * Accessible tooltips
  */
-[role="tooltip"] {
+[role='tooltip'] {
   position: absolute;
   z-index: 1000;
   background: var(--surface);
@@ -493,7 +495,7 @@ textarea:invalid {
   overflow-wrap: break-word;
 }
 
-[role="tooltip"]::before {
+[role='tooltip']::before {
   content: '';
   position: absolute;
   bottom: -6px;
@@ -536,7 +538,7 @@ textarea:invalid {
 
 /* Disabled state styling */
 [disabled],
-[aria-disabled="true"] {
+[aria-disabled='true'] {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
@@ -558,9 +560,9 @@ textarea:invalid {
   /* Hide UI elements */
   .skip-links,
   .skip-link,
-  [role="navigation"],
-  [role="banner"],
-  [role="complementary"],
+  [role='navigation'],
+  [role='banner'],
+  [role='complementary'],
   button,
   .no-print {
     display: none !important;
@@ -574,7 +576,7 @@ textarea:invalid {
 
   /* Show link URLs */
   a::after {
-    content: " (" attr(href) ")";
+    content: ' (' attr(href) ')';
     font-size: 0.8em;
     color: #666;
   }

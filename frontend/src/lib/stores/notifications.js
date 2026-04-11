@@ -8,7 +8,7 @@ function createNotificationStore() {
 
   return {
     subscribe,
-    add: (notification) => {
+    add: notification => {
       const newNotification = {
         id: id++,
         type: notification.type || 'info', // 'success', 'error', 'warning', 'info'
@@ -27,7 +27,7 @@ function createNotificationStore() {
 
       return newNotification.id;
     },
-    remove: (id) => {
+    remove: id => {
       update(notifications => notifications.filter(n => n.id !== id));
     },
     clear: () => {

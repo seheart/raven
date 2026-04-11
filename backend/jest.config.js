@@ -17,7 +17,13 @@ export default {
   clearMocks: true,
   restoreMocks: true,
   testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
-  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/__tests__/test-watch-dir/', '/__tests__/setup\\.js$', '/__tests__/performance/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/__tests__/test-watch-dir/',
+    '/__tests__/setup\\.js$',
+    '/__tests__/performance/'
+  ],
   collectCoverageFrom: [
     'middleware/**/*.js',
     'services/**/*.js',

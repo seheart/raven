@@ -233,11 +233,14 @@ describe('PerformanceMonitor', () => {
 
       monitor.checkPerformance();
 
-      expect(mockIO.emit).toHaveBeenCalledWith('performance-alert', expect.objectContaining({
-        type: 'memory',
-        severity: 'critical',
-        title: 'Critical System Memory'
-      }));
+      expect(mockIO.emit).toHaveBeenCalledWith(
+        'performance-alert',
+        expect.objectContaining({
+          type: 'memory',
+          severity: 'critical',
+          title: 'Critical System Memory'
+        })
+      );
     });
 
     test('should emit heap warning when heap usage is high', () => {
@@ -249,11 +252,14 @@ describe('PerformanceMonitor', () => {
 
       monitor.checkPerformance();
 
-      expect(mockIO.emit).toHaveBeenCalledWith('performance-alert', expect.objectContaining({
-        type: 'heap',
-        severity: 'warning',
-        title: 'High Heap Memory'
-      }));
+      expect(mockIO.emit).toHaveBeenCalledWith(
+        'performance-alert',
+        expect.objectContaining({
+          type: 'heap',
+          severity: 'warning',
+          title: 'High Heap Memory'
+        })
+      );
     });
 
     test('should emit system memory warning when threshold exceeded', () => {
@@ -266,11 +272,14 @@ describe('PerformanceMonitor', () => {
 
       monitor.checkPerformance();
 
-      expect(mockIO.emit).toHaveBeenCalledWith('performance-alert', expect.objectContaining({
-        type: 'memory',
-        severity: 'warning',
-        title: 'High System Memory'
-      }));
+      expect(mockIO.emit).toHaveBeenCalledWith(
+        'performance-alert',
+        expect.objectContaining({
+          type: 'memory',
+          severity: 'warning',
+          title: 'High System Memory'
+        })
+      );
     });
 
     test('should handle errors in checkPerformance gracefully', () => {

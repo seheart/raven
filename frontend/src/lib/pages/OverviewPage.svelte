@@ -86,20 +86,6 @@
   ];
 
   // Derived
-  const cpuColor = $derived(
-    systemMetrics.cpu_percent > 80
-      ? 'var(--error)'
-      : systemMetrics.cpu_percent > 50
-        ? 'var(--warning)'
-        : 'var(--success)'
-  );
-  const memColor = $derived(
-    systemMetrics.memory_percent > 85
-      ? 'var(--error)'
-      : systemMetrics.memory_percent > 60
-        ? 'var(--warning)'
-        : 'var(--success)'
-  );
   const eventsPerMin = $derived.by(() => {
     if (recentFiles.length < 2) return '0';
     const newest = new Date(recentFiles[0]?.timestamp || 0);

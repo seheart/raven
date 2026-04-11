@@ -31,7 +31,7 @@
   } = $props();
 
   // Generate page numbers to display
-  const pageNumbers = $derived(() => {
+  const pageNumbers = $derived.by(() => {
     const pages = [];
     const totalNumbers = siblingCount * 2 + 3; // siblings + current + first + last
     const totalBlocks = totalNumbers + 2; // + 2 ellipsis
@@ -108,7 +108,7 @@
   }
 
   // Container classes
-  const containerClasses = `flex items-center gap-2 ${className}`;
+  const containerClasses = $derived(`flex items-center gap-2 ${className}`);
 </script>
 
 <nav class={containerClasses} aria-label="Pagination" {...restProps}>

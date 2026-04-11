@@ -39,7 +39,13 @@
           "type": "dependency_change",
           "name": "Dependencies Modified",
           "description": "Alert when package files are updated",
-          "patterns": ["package.json", "package-lock.json", "requirements.txt", "Cargo.toml", "go.mod"],
+          "patterns": [
+            "package.json",
+            "package-lock.json",
+            "requirements.txt",
+            "Cargo.toml",
+            "go.mod"
+          ],
           "severity": "info",
           "enabled": true,
           "notification": {

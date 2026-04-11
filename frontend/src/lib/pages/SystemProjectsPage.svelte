@@ -157,24 +157,28 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm text-[var(--muted)] mb-1">Project Name</label>
-            <input
-              type="text"
-              bind:value={formData.name}
-              placeholder="my-project"
-              class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-            />
+            <label class="block text-sm text-[var(--muted)] mb-1">
+              Project Name
+              <input
+                type="text"
+                bind:value={formData.name}
+                placeholder="my-project"
+                class="w-full px-3 py-1.5 mt-1 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+              />
+            </label>
           </div>
 
           <div>
-            <label class="block text-sm text-[var(--muted)] mb-1">Project Path</label>
-            <input
-              type="text"
-              bind:value={formData.path}
-              placeholder="/home/user/projects/my-project"
-              disabled={editingProject !== 'new'}
-              class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] disabled:opacity-50"
-            />
+            <label class="block text-sm text-[var(--muted)] mb-1">
+              Project Path
+              <input
+                type="text"
+                bind:value={formData.path}
+                placeholder="/home/user/projects/my-project"
+                disabled={editingProject !== 'new'}
+                class="w-full px-3 py-1.5 mt-1 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] disabled:opacity-50"
+              />
+            </label>
           </div>
 
           <div>
@@ -190,8 +194,7 @@
 
           <div>
             <label class="block text-sm text-[var(--muted)] mb-1"
-              >Ignore Patterns (one per line)</label
-            >
+              >Ignore Patterns (one per line)
             <textarea
               value={formData.ignorePatterns.join('\n')}
               oninput={e =>
@@ -199,6 +202,7 @@
               rows="4"
               class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
             ></textarea>
+            </label>
           </div>
 
           <div class="flex gap-2 pt-3 border-t border-[var(--border)]">

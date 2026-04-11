@@ -31,19 +31,14 @@ const devFormat = printf(({ level, message, timestamp, correlationId, ...metadat
  */
 const winstonLogger = createLogger({
   level: env.LOG_LEVEL,
-  format: combine(
-    errors({ stack: true }),
-    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' })
-  ),
+  format: combine(errors({ stack: true }), timestamp({ format: 'YYYY-MM-DD HH:mm:ss' })),
   defaultMeta: {
     service: 'raven-backend',
     environment: env.NODE_ENV
   },
   transports: [
     new transports.Console({
-      format: env.STRUCTURED_LOGGING
-        ? combine(json())
-        : combine(colorize(), devFormat)
+      format: env.STRUCTURED_LOGGING ? combine(json()) : combine(colorize(), devFormat)
     })
   ]
 });
@@ -84,7 +79,18 @@ function sanitizeQuery(query) {
   // Handle non-object primitives (shouldn't happen in query params, but defensive)
   if (typeof query !== 'object') return { _invalid: '[REDACTED]' };
 
-  const sensitive = ['password', 'token', 'secret', 'api_key', 'apikey', 'auth', 'authorization', 'jwt', 'session', 'cookie'];
+  const sensitive = [
+    'password',
+    'token',
+    'secret',
+    'api_key',
+    'apikey',
+    'auth',
+    'authorization',
+    'jwt',
+    'session',
+    'cookie'
+  ];
 
   // Handle arrays
   if (Array.isArray(query)) {
@@ -162,13 +168,15 @@ export class StructuredLogger {
    * Log error message
    */
   error(message, error = null, metadata = {}) {
-    const errorData = error ? {
-      error: {
-        message: error.message,
-        stack: error.stack,
-        code: error.code
-      }
-    } : {};
+    const errorData = error
+      ? {
+          error: {
+            message: error.message,
+            stack: error.stack,
+            code: error.code
+          }
+        }
+      : {};
 
     winstonLogger.error(message, {
       ...this.context,

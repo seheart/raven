@@ -13,31 +13,31 @@ export interface TokenUsage {
 }
 
 interface ModelPricing {
-  input: number;       // $ per MTok
-  output: number;      // $ per MTok
-  cacheWrite: number;  // $ per MTok
-  cacheRead: number;   // $ per MTok
+  input: number; // $ per MTok
+  output: number; // $ per MTok
+  cacheWrite: number; // $ per MTok
+  cacheRead: number; // $ per MTok
 }
 
 // Claude model pricing (per million tokens)
 const MODEL_PRICING: Record<string, ModelPricing> = {
   // Opus 4
-  'claude-opus-4-20250514': { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.50 },
-  'claude-opus-4-0': { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.50 },
+  'claude-opus-4-20250514': { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5 },
+  'claude-opus-4-0': { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5 },
   // Opus 4.6
-  'claude-opus-4-6': { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.50 },
-  'claude-opus-4-6-20260409': { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.50 },
+  'claude-opus-4-6': { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5 },
+  'claude-opus-4-6-20260409': { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5 },
   // Sonnet 4
-  'claude-sonnet-4-20250514': { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 },
-  'claude-sonnet-4-0': { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 },
+  'claude-sonnet-4-20250514': { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
+  'claude-sonnet-4-0': { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
   // Sonnet 4.5
-  'claude-sonnet-4-5-20250514': { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 },
+  'claude-sonnet-4-5-20250514': { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
   // Sonnet 4.6
-  'claude-sonnet-4-6': { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 },
+  'claude-sonnet-4-6': { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
   // Haiku 3.5
-  'claude-haiku-3-5-20241022': { input: 0.80, output: 4, cacheWrite: 1, cacheRead: 0.08 },
+  'claude-haiku-3-5-20241022': { input: 0.8, output: 4, cacheWrite: 1, cacheRead: 0.08 },
   // Haiku 4.5
-  'claude-haiku-4-5-20251001': { input: 0.80, output: 4, cacheWrite: 1, cacheRead: 0.08 },
+  'claude-haiku-4-5-20251001': { input: 0.8, output: 4, cacheWrite: 1, cacheRead: 0.08 }
 };
 
 /**
@@ -52,7 +52,8 @@ function resolvePricing(model: string): ModelPricing {
   const lower = model.toLowerCase();
   if (lower.includes('opus-4')) return MODEL_PRICING['claude-opus-4-6'];
   if (lower.includes('sonnet-4')) return MODEL_PRICING['claude-sonnet-4-6'];
-  if (lower.includes('haiku-4') || lower.includes('haiku-3')) return MODEL_PRICING['claude-haiku-4-5-20251001'];
+  if (lower.includes('haiku-4') || lower.includes('haiku-3'))
+    return MODEL_PRICING['claude-haiku-4-5-20251001'];
 
   // Unknown model — use Sonnet pricing as a conservative default
   // This is intentionally not logged at warn level since it fires per-request

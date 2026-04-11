@@ -17,24 +17,27 @@ export function exportCSV(data, filename, headers = null) {
   }
 
   // Auto-detect headers from first object if not provided (with safety check)
-  const csvHeaders = headers || (data[0] && typeof data[0] === 'object' ? Object.keys(data[0]) : []);
+  const csvHeaders =
+    headers || (data[0] && typeof data[0] === 'object' ? Object.keys(data[0]) : []);
 
   // Build CSV rows
   const rows = data.map(row => {
-    return csvHeaders.map(header => {
-      const value = row[header];
+    return csvHeaders
+      .map(header => {
+        const value = row[header];
 
-      // Handle different data types
-      if (value === null || value === undefined) return '';
-      if (typeof value === 'object') return JSON.stringify(value);
+        // Handle different data types
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'object') return JSON.stringify(value);
 
-      // Escape quotes and wrap in quotes if contains comma/newline
-      const stringValue = String(value);
-      if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    }).join(',');
+        // Escape quotes and wrap in quotes if contains comma/newline
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      })
+      .join(',');
   });
 
   // Combine headers and rows
@@ -66,21 +69,24 @@ export function exportExcel(data, filename, headers = null) {
     throw new Error('No data to export');
   }
 
-  const csvHeaders = headers || (data[0] && typeof data[0] === 'object' ? Object.keys(data[0]) : []);
+  const csvHeaders =
+    headers || (data[0] && typeof data[0] === 'object' ? Object.keys(data[0]) : []);
 
   const rows = data.map(row => {
-    return csvHeaders.map(header => {
-      const value = row[header];
-      if (value === null || value === undefined) return '';
-      if (typeof value === 'object') return JSON.stringify(value);
+    return csvHeaders
+      .map(header => {
+        const value = row[header];
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'object') return JSON.stringify(value);
 
-      const stringValue = String(value);
-      // Excel-specific escaping
-      if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    }).join(',');
+        const stringValue = String(value);
+        // Excel-specific escaping
+        if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      })
+      .join(',');
   });
 
   // Add BOM for Excel UTF-8 recognition
@@ -116,15 +122,15 @@ export function exportTable({ data, filename, columns, format = 'csv' }) {
 
   // Export based on format
   switch (format.toLowerCase()) {
-  case 'json':
-    exportJSON({ data: transformedData, exported_at: new Date().toISOString() }, filename);
-    break;
-  case 'excel':
-    exportExcel(transformedData, filename, headers);
-    break;
-  case 'csv':
-  default:
-    exportCSV(transformedData, filename, headers);
+    case 'json':
+      exportJSON({ data: transformedData, exported_at: new Date().toISOString() }, filename);
+      break;
+    case 'excel':
+      exportExcel(transformedData, filename, headers);
+      break;
+    case 'csv':
+    default:
+      exportCSV(transformedData, filename, headers);
   }
 }
 
@@ -165,37 +171,37 @@ export function exportMultiSheet(sheets, baseFilename) {
  */
 export const formatters = {
   // Format timestamp to readable date
-  date: (value) => {
+  date: value => {
     if (!value) return '';
     return formatDateTime(value);
   },
 
   // Format timestamp to date only
-  dateOnly: (value) => {
+  dateOnly: value => {
     if (!value) return '';
     return formatDateOnly(value);
   },
 
   // Format timestamp to time only
-  timeOnly: (value) => {
+  timeOnly: value => {
     if (!value) return '';
     return formatTimeOnly(value);
   },
 
   // Format number with thousand separators
-  number: (value) => {
+  number: value => {
     if (value === null || value === undefined) return '';
     return Number(value).toLocaleString();
   },
 
   // Format as percentage
-  percentage: (value) => {
+  percentage: value => {
     if (value === null || value === undefined) return '';
     return `${Number(value).toFixed(2)}%`;
   },
 
   // Format bytes to human-readable
-  bytes: (bytes) => {
+  bytes: bytes => {
     if (!bytes) return '0 B';
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
@@ -203,7 +209,7 @@ export const formatters = {
   },
 
   // Format boolean as Yes/No
-  boolean: (value) => {
+  boolean: value => {
     return value ? 'Yes' : 'No';
   },
 

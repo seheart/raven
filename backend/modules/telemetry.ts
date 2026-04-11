@@ -41,7 +41,9 @@ export class TelemetryCollector {
       this.intervalId = setInterval(() => {
         this.collect();
       }, newInterval);
-      logger.info(`📊 Telemetry: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`);
+      logger.info(
+        `📊 Telemetry: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`
+      );
     }
   }
 

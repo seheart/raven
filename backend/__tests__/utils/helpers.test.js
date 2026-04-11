@@ -113,7 +113,9 @@ describe('Helper Utilities', () => {
       projectPaths.set('project1', '/home/user/project1');
       projectPaths.set('project2', '/home/user/project2');
 
-      expect(detectProjectFromPath('/home/user/project1/src/file.js', projectPaths)).toBe('project1');
+      expect(detectProjectFromPath('/home/user/project1/src/file.js', projectPaths)).toBe(
+        'project1'
+      );
       expect(detectProjectFromPath('/home/user/project2/test.js', projectPaths)).toBe('project2');
     });
 
@@ -195,7 +197,8 @@ describe('Helper Utilities', () => {
     });
 
     test('should retry on failure', async () => {
-      const fn = jest.fn()
+      const fn = jest
+        .fn()
         .mockRejectedValueOnce(new Error('fail 1'))
         .mockRejectedValueOnce(new Error('fail 2'))
         .mockResolvedValue('success');
@@ -209,8 +212,7 @@ describe('Helper Utilities', () => {
     test('should throw after max attempts', async () => {
       const fn = jest.fn().mockRejectedValue(new Error('always fails'));
 
-      await expect(retry(fn, { maxAttempts: 2, delayMs: 10 }))
-        .rejects.toThrow('always fails');
+      await expect(retry(fn, { maxAttempts: 2, delayMs: 10 })).rejects.toThrow('always fails');
 
       expect(fn).toHaveBeenCalledTimes(2);
     });

@@ -20,6 +20,7 @@
   import { onMount } from 'svelte';
   import { dataService } from './lib/dataService.js';
   import { settings } from './lib/stores/settingsStore.js';
+  import { websocketService } from './lib/services/websocket.js';
 
   // State
   let sessionId = $state('Loading...');
@@ -74,6 +75,12 @@
     dataService.prefetchAll().then(() => {
       // Start background refresh to keep data warm
       dataService.startBackgroundRefresh(15000);
+    });
+
+    // Auto-refresh when server restarts (WebSocket reconnects with new session)
+    websocketService.onReconnect(() => {
+      loadSessionId();
+      dataService.prefetchAll();
     });
 
     // Apply saved theme on load
@@ -361,6 +368,14 @@
             <Component />
           {:catch}
             <PlaceholderPage title="System" description="Failed to load" />
+          {/await}
+        {:else if activeSubTab === 'code-health'}
+          {#await import('./lib/pages/CodeHealthPage.svelte')}
+            <PlaceholderPage title="Code Health" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Code Health" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'health-monitor'}
           {#await import('./lib/pages/SystemHealthMonitorPage.svelte')}

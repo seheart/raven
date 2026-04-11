@@ -51,6 +51,8 @@ import { createInsightsRouter } from './routes/insights.js';
 import { calculateCost } from './services/token-cost-calculator.js';
 import { createCostsRouter } from './routes/costs.js';
 import { createSubagentsRouter } from './routes/subagents.js';
+import { SelfAnalysisService } from './services/self-analysis.js';
+import { createSelfAnalysisRouter } from './routes/self-analysis.js';
 
 // ==================== Configuration ====================
 
@@ -156,6 +158,7 @@ const triggerEngine = new TriggerEngine(RAVEN_DIR, io);
 // Initialize health monitoring system
 const healthMonitor = new HealthMonitor(db);
 const insightsService = new InsightsService(db);
+const selfAnalysisService = new SelfAnalysisService(db, SESSION_ID);
 
 // Set up health alert handler to emit via WebSocket
 healthMonitor.onAlert(report => {
@@ -175,19 +178,24 @@ healthMonitor.onAlert(report => {
 
   // Fire-and-forget: generate LLM explanation for the anomaly
   if (report.summary.critical > 0 || report.summary.warnings > 0) {
-    insightsService.generateAnomalyExplanation({
-      overallStatus: report.overallStatus,
-      criticalIssues,
-      summary: report.summary
-    }).then(insight => {
-      if (insight) {
-        io.emit('anomaly-insight', {
-          alertTimestamp: new Date().toISOString(),
-          explanation: insight.content,
-          insightId: insight.id
-        });
-      }
-    }).catch(() => { /* Ollama offline — silently ignore */ });
+    insightsService
+      .generateAnomalyExplanation({
+        overallStatus: report.overallStatus,
+        criticalIssues,
+        summary: report.summary
+      })
+      .then(insight => {
+        if (insight) {
+          io.emit('anomaly-insight', {
+            alertTimestamp: new Date().toISOString(),
+            explanation: insight.content,
+            insightId: insight.id
+          });
+        }
+      })
+      .catch(() => {
+        /* Ollama offline — silently ignore */
+      });
   }
 });
 
@@ -200,11 +208,18 @@ setInterval(async () => {
     if (existing.length > 0 && existing[0].timestamp.startsWith(today)) {
       return; // Already generated today
     }
-    insightsService.generateDailyDigest().then(insight => {
-      if (insight) {
-        io.emit('daily-digest', { id: insight.id, title: insight.title, timestamp: insight.timestamp });
-      }
-    }).catch(() => {});
+    insightsService
+      .generateDailyDigest()
+      .then(insight => {
+        if (insight) {
+          io.emit('daily-digest', {
+            id: insight.id,
+            title: insight.title,
+            timestamp: insight.timestamp
+          });
+        }
+      })
+      .catch(() => {});
   }
 }, 3600000); // Every hour
 
@@ -315,23 +330,29 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
       // Update subagent_tree running totals if this is a sub-agent request
       if (event.agentId) {
         try {
-          db.db.prepare(`
+          db.db
+            .prepare(
+              `
             UPDATE subagent_tree SET
               total_input_tokens = total_input_tokens + ?,
               total_output_tokens = total_output_tokens + ?,
               estimated_cost_usd = estimated_cost_usd + ?,
               model = COALESCE(model, ?)
             WHERE agent_id = ? AND session_id = ?
-          `).run(
-            usage.input_tokens,
-            usage.output_tokens,
-            cost,
-            event.model || null,
-            event.agentId,
-            event.sessionId || SESSION_ID
-          );
+          `
+            )
+            .run(
+              usage.input_tokens,
+              usage.output_tokens,
+              cost,
+              event.model || null,
+              event.agentId,
+              event.sessionId || SESSION_ID
+            );
         } catch (err: any) {
-          logger.debug(`Failed to update subagent token counts for ${event.agentId}: ${err.message}`);
+          logger.debug(
+            `Failed to update subagent token counts for ${event.agentId}: ${err.message}`
+          );
         }
       }
 
@@ -589,10 +610,19 @@ EventBus.onFileEvent(async (event: FileEvent) => {
 
     // Diff risk scoring for significant changes (>50 lines)
     if (diff && diff.split('\n').length > 50) {
-      insightsService.scoreDiffRisk(eventId, storedPath, diff, event.type)
+      insightsService
+        .scoreDiffRisk(eventId, storedPath, diff, event.type)
         .then(result => {
           if (result) {
-            db.insertDiffRiskScore(eventId, storedPath, result.score, result.reason, new Date().toISOString(), 'auto', SESSION_ID);
+            db.insertDiffRiskScore(
+              eventId,
+              storedPath,
+              result.score,
+              result.reason,
+              new Date().toISOString(),
+              'auto',
+              SESSION_ID
+            );
             io.emit('diff-risk-score', {
               eventId,
               filepath: storedPath,
@@ -602,7 +632,9 @@ EventBus.onFileEvent(async (event: FileEvent) => {
             });
           }
         })
-        .catch(() => { /* silently ignore */ });
+        .catch(() => {
+          /* silently ignore */
+        });
     }
 
     // Check syntax if file type is supported (skip Raven's own files)
@@ -857,6 +889,9 @@ app.use('/api/costs', createCostsRouter(db));
 
 // Mount sub-agent routes (agent tree visualization)
 app.use('/api/subagents', createSubagentsRouter(db));
+
+// Mount self-analysis routes (code health)
+app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
 
 // Network info endpoint for mobile access QR code
 app.get('/api/network-info', (_req: Request, res: Response) => {
@@ -3746,6 +3781,9 @@ httpServer.listen(PORT, async () => {
       });
   }
 
+  // Start self-analysis schedule (runs every 24 hours)
+  selfAnalysisService.startSchedule();
+
   // Periodic process check for Claude Code — keeps agent status accurate
   // even when no new log events are flowing (e.g., user is reading output)
   const PROCESS_CHECK_INTERVAL = 30_000; // 30 seconds
@@ -3767,7 +3805,9 @@ httpServer.listen(PORT, async () => {
       const shouldBeIdle = !anyAgentActive;
       if (shouldBeIdle !== systemIsIdle) {
         systemIsIdle = shouldBeIdle;
-        logger.info(`🌙 System ${shouldBeIdle ? 'entering idle mode' : 'resuming active mode'} — adjusting all polling intervals`);
+        logger.info(
+          `🌙 System ${shouldBeIdle ? 'entering idle mode' : 'resuming active mode'} — adjusting all polling intervals`
+        );
         localModelWatcher.setIdle(shouldBeIdle);
         claudeLogWatcher.setIdle(shouldBeIdle);
         healthMonitor.setIdle(shouldBeIdle);

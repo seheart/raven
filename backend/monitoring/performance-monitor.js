@@ -78,5 +78,3 @@ export function startPerformanceMonitor({ io, logger, limits }) {
     stop: () => clearInterval(intervalId)
   };
 }
-
-

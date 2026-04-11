@@ -14,7 +14,7 @@ describe('Rate Limiting & DoS Protection', () => {
 
     beforeAll(() => {
       app = express();
-      
+
       const limiter = rateLimit({
         windowMs: 1000, // 1 second
         max: 5, // 5 requests
@@ -45,7 +45,7 @@ describe('Rate Limiting & DoS Protection', () => {
 
     it('should include rate limit headers', async () => {
       const res = await request(app).get('/api/test');
-      
+
       expect(res.headers['ratelimit-limit']).toBeDefined();
       expect(res.headers['ratelimit-remaining']).toBeDefined();
     });
@@ -62,22 +62,20 @@ describe('Rate Limiting & DoS Protection', () => {
 
     it('should accept requests within size limit', async () => {
       const smallPayload = { data: 'x'.repeat(100) };
-      const res = await request(app)
-        .post('/api/data')
-        .send(smallPayload);
-      
+      const res = await request(app).post('/api/data').send(smallPayload);
+
       expect(res.status).toBe(200);
     });
 
     it('should reject oversized requests', async () => {
       // Create a payload larger than 1MB
       const largePayload = { data: 'x'.repeat(2 * 1024 * 1024) };
-      
+
       const res = await request(app)
         .post('/api/data')
         .send(JSON.stringify(largePayload))
         .set('Content-Type', 'application/json');
-      
+
       expect(res.status).toBe(413);
     });
   });
@@ -114,14 +112,14 @@ describe('Rate Limiting & DoS Protection', () => {
       const maxParams = 100;
       const url = new URL('http://test.com?a=1&b=2&c=3');
       const paramCount = url.searchParams.size;
-      
+
       expect(paramCount).toBeLessThanOrEqual(maxParams);
     });
 
     it('should limit query string length', () => {
       const maxLength = 2048;
       const queryString = 'param=value&'.repeat(50);
-      
+
       expect(queryString.length).toBeLessThanOrEqual(maxLength);
     });
   });
@@ -130,7 +128,7 @@ describe('Rate Limiting & DoS Protection', () => {
     it('should have memory limits', () => {
       const maxMemoryMb = 500;
       const currentMemory = process.memoryUsage().heapUsed / 1024 / 1024;
-      
+
       // Just verify we can check memory usage
       expect(currentMemory).toBeGreaterThan(0);
       expect(maxMemoryMb).toBeGreaterThan(0);
@@ -147,14 +145,14 @@ describe('Rate Limiting & DoS Protection', () => {
     it('should have stricter limits for auth endpoints', () => {
       const authLimit = 5; // per 15 minutes
       const generalLimit = 100; // per 15 minutes
-      
+
       expect(authLimit).toBeLessThan(generalLimit);
     });
 
     it('should have higher limits for telemetry endpoints', () => {
       const telemetryLimit = 1000; // per minute
       const generalLimit = 100; // per 15 minutes
-      
+
       // Telemetry limit per minute should be high
       expect(telemetryLimit).toBeGreaterThan(generalLimit);
     });
@@ -162,7 +160,7 @@ describe('Rate Limiting & DoS Protection', () => {
     it('should have moderate limits for write operations', () => {
       const writeLimit = 50; // per 15 minutes
       const generalLimit = 100; // per 15 minutes
-      
+
       expect(writeLimit).toBeLessThanOrEqual(generalLimit);
     });
   });

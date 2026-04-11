@@ -59,22 +59,22 @@
   const baseClasses = 'bg-[var(--surface-2)] animate-pulse';
 
   // Get dimension classes
-  function getDimensionClasses() {
+  const dimensionClasses = $derived.by(() => {
     if (width || height) {
       return '';
     }
     if (variant === 'circle') return circleSizes[size];
     if (variant === 'card') return `w-full ${cardSizes[size]}`;
     return `${sizes[size].width} ${sizes[size].height}`;
-  }
+  });
 
-  const skeletonClasses = `${baseClasses} ${variants[variant]} ${getDimensionClasses()} ${className}`;
+  const skeletonClasses = $derived(`${baseClasses} ${variants[variant]} ${dimensionClasses} ${className}`);
 
   // Inline style for custom dimensions
-  const style =
+  const style = $derived(
     width || height
       ? `${width ? `width: ${width};` : ''} ${height ? `height: ${height};` : ''}`
-      : undefined;
+      : undefined);
 </script>
 
 {#if variant === 'text' && lines > 1}

@@ -103,6 +103,7 @@
         <button
           class="btn-close p-1.5 bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] rounded transition-all border-0 cursor-pointer flex items-center justify-center text-lg"
           onclick={onClose}
+          aria-label="Close notifications"
         >
         </button>
       </div>

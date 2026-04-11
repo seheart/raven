@@ -89,7 +89,7 @@ describe('SessionTracker', () => {
       const firstSession = tracker.getActiveSession('test-project');
 
       // Simulate session timeout by modifying lastActivity
-      firstSession.lastActivity = Date.now() - (31 * 60 * 1000); // 31 minutes ago
+      firstSession.lastActivity = Date.now() - 31 * 60 * 1000; // 31 minutes ago
 
       tracker.recordActivity('test-project', eventData);
       const secondSession = tracker.getActiveSession('test-project');
@@ -122,7 +122,9 @@ describe('SessionTracker', () => {
       expect(session.changesCount).toBe(10);
 
       // Verify session was updated in DB
-      const dbSession = testDb.prepare('SELECT changes_count FROM sessions WHERE id = ?').get(session.id);
+      const dbSession = testDb
+        .prepare('SELECT changes_count FROM sessions WHERE id = ?')
+        .get(session.id);
       expect(dbSession.changes_count).toBe(10);
     });
 
@@ -376,7 +378,7 @@ describe('SessionTracker', () => {
 
       const session = tracker.getActiveSession('test-project');
       // Simulate 5 hour session
-      session.startTime = Date.now() - (5 * 60 * 60 * 1000);
+      session.startTime = Date.now() - 5 * 60 * 60 * 1000;
 
       const result = tracker.calculateSessionQuality('test-project');
 
@@ -458,7 +460,7 @@ describe('SessionTracker', () => {
 
       const session = tracker.getActiveSession('test-project');
       session.rollbacksCount = 11; // 55% rollback rate (20 changes, 11 rollbacks) - higher than before
-      session.startTime = Date.now() - (9 * 60 * 60 * 1000); // 9 hours - longer than before
+      session.startTime = Date.now() - 9 * 60 * 60 * 1000; // 9 hours - longer than before
 
       const result = tracker.calculateSessionQuality('test-project');
 
@@ -502,7 +504,7 @@ describe('SessionTracker', () => {
 
       const session = tracker.getActiveSession('test-project');
       session.rollbacksCount = 6; // 30% rollback rate = 15 penalty
-      session.startTime = Date.now() - (7 * 60 * 60 * 1000); // 7 hours = 15 penalty
+      session.startTime = Date.now() - 7 * 60 * 60 * 1000; // 7 hours = 15 penalty
 
       const result = tracker.calculateSessionQuality('test-project');
 
@@ -562,19 +564,31 @@ describe('SessionTracker', () => {
       // Insert test sessions with recent dates (within 30-day window)
       const now = new Date();
       const recentDate1Start = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
-      const recentDate1End = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString();
+      const recentDate1End = new Date(
+        now.getTime() - 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
+      ).toISOString();
       const recentDate2Start = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString();
-      const recentDate2End = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString();
+      const recentDate2End = new Date(
+        now.getTime() - 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
+      ).toISOString();
 
-      testDb.prepare(`
+      testDb
+        .prepare(
+          `
         INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', recentDate1Start, recentDate1End, 50, 5, 85);
+      `
+        )
+        .run('test-project', recentDate1Start, recentDate1End, 50, 5, 85);
 
-      testDb.prepare(`
+      testDb
+        .prepare(
+          `
         INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', recentDate2Start, recentDate2End, 40, 2, 90);
+      `
+        )
+        .run('test-project', recentDate2Start, recentDate2End, 40, 2, 90);
 
       const result = tracker.getSessionStats('test-project');
 
@@ -594,15 +608,37 @@ describe('SessionTracker', () => {
       recentDate2Start.setUTCHours(14, 0, 0, 0);
       const recentDate2End = new Date(recentDate2Start.getTime() + 60 * 60 * 1000);
 
-      testDb.prepare(`
+      testDb
+        .prepare(
+          `
         INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', recentDate1Start.toISOString(), recentDate1End.toISOString(), 50, 0, 90);
+      `
+        )
+        .run(
+          'test-project',
+          recentDate1Start.toISOString(),
+          recentDate1End.toISOString(),
+          50,
+          0,
+          90
+        );
 
-      testDb.prepare(`
+      testDb
+        .prepare(
+          `
         INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', recentDate2Start.toISOString(), recentDate2End.toISOString(), 30, 0, 85);
+      `
+        )
+        .run(
+          'test-project',
+          recentDate2Start.toISOString(),
+          recentDate2End.toISOString(),
+          30,
+          0,
+          85
+        );
 
       const result = tracker.getSessionStats('test-project');
 
@@ -617,11 +653,17 @@ describe('SessionTracker', () => {
       const now = new Date();
       for (let i = 0; i < 15; i++) {
         const startDate = new Date(now.getTime() - (15 - i) * 24 * 60 * 60 * 1000).toISOString();
-        const endDate = new Date(now.getTime() - (15 - i) * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString();
-        testDb.prepare(`
+        const endDate = new Date(
+          now.getTime() - (15 - i) * 24 * 60 * 60 * 1000 + 60 * 60 * 1000
+        ).toISOString();
+        testDb
+          .prepare(
+            `
           INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
           VALUES (?, ?, ?, ?, ?, ?)
-        `).run('test-project', startDate, endDate, 10, 0, 90);
+        `
+          )
+          .run('test-project', startDate, endDate, 10, 0, 90);
       }
 
       const result = tracker.getSessionStats('test-project');
@@ -631,16 +673,31 @@ describe('SessionTracker', () => {
 
     test('should filter sessions by days parameter', () => {
       // Insert old session (beyond 30 days)
-      testDb.prepare(`
+      testDb
+        .prepare(
+          `
         INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', '2025-01-01T10:00:00Z', '2025-01-01T11:00:00Z', 10, 0, 90);
+      `
+        )
+        .run('test-project', '2025-01-01T10:00:00Z', '2025-01-01T11:00:00Z', 10, 0, 90);
 
       // Insert recent session
-      testDb.prepare(`
+      testDb
+        .prepare(
+          `
         INSERT INTO sessions (project_name, start_time, end_time, changes_count, rollbacks_count, quality_score)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run('test-project', new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), new Date().toISOString(), 10, 0, 90);
+      `
+        )
+        .run(
+          'test-project',
+          new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          new Date().toISOString(),
+          10,
+          0,
+          90
+        );
 
       const result = tracker.getSessionStats('test-project', 30);
 

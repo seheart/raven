@@ -192,7 +192,9 @@ export class MetricsCollector {
         });
       }, newInterval);
       this.processInterval.unref();
-      logger.info(`📊 Metrics: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`);
+      logger.info(
+        `📊 Metrics: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`
+      );
     }
   }
 
