@@ -1,6 +1,8 @@
 <script>
   import { createPageApi } from '../apiClient.js';
   import { onMount } from 'svelte';
+  import { formatShortDateTime } from '../timeFormat.js';
+  import { websocketService } from '../services/websocket.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let data = $state({ latest: null, history: [], is_running: false });
@@ -9,6 +11,33 @@
   let lastUpdated = $state(null);
   let expandedCheck = $state(null);
   let selectedRun = $state(null);
+
+  // Live progress tracking
+  let progress = $state(null); // { checkIndex, totalChecks, currentCheck }
+  let completedChecks = $state([]); // live terminal log of completed checks
+  let analysisStartTime = $state(null);
+  let elapsedTick = $state(0); // increments every second to force reactivity
+
+  // Estimate remaining time based on previous run's durations
+  const timeEstimate = $derived.by(() => {
+    if (!progress || !analysisStartTime) return null;
+    const elapsed = Date.now() - analysisStartTime;
+
+    // Use previous run's total duration as baseline estimate
+    const prevDuration = data.latest?.duration_ms;
+    if (!prevDuration) {
+      // No previous run — show elapsed only
+      return { elapsed, remaining: null, total: null };
+    }
+
+    // Calculate progress-weighted estimate: use actual elapsed for completed portion,
+    // scale remaining portion from previous run's per-check times
+    const pct = progress.checkIndex / progress.totalChecks;
+    const estimatedTotal = pct > 0.1 ? elapsed / pct : prevDuration;
+    const remaining = Math.max(0, estimatedTotal - elapsed);
+
+    return { elapsed, remaining: Math.round(remaining), total: Math.round(estimatedTotal) };
+  });
 
   const timeAgo = $derived.by(() => {
     if (!lastUpdated) return 'Just now';
@@ -53,6 +82,14 @@
       const result = await api.get('/analysis/code-health');
       data = result;
       lastUpdated = new Date();
+      // Sync triggering state with server — if server says not running, stop showing progress
+      if (!result.is_running && triggering) {
+        triggering = false;
+        progress = null;
+        completedChecks = [];
+        analysisStartTime = null;
+        clearInterval(elapsedInterval);
+      }
     } catch (_err) {
       // Silent — page shows empty state
     } finally {
@@ -69,9 +106,20 @@
     }
   }
 
+  let elapsedInterval = null;
+
+  function startElapsedTimer() {
+    clearInterval(elapsedInterval);
+    elapsedInterval = setInterval(() => { elapsedTick++; }, 1000);
+  }
+
   async function triggerAnalysis() {
     try {
       triggering = true;
+      progress = null;
+      completedChecks = [];
+      analysisStartTime = Date.now();
+      startElapsedTimer();
       await api.post('/analysis/code-health/run');
       // Poll for completion
       pollForCompletion();
@@ -88,6 +136,10 @@
         if (!result.is_running) {
           clearInterval(interval);
           triggering = false;
+          progress = null;
+          completedChecks = [];
+          analysisStartTime = null;
+          clearInterval(elapsedInterval);
           selectedRun = null;
           lastUpdated = new Date();
         }
@@ -107,12 +159,7 @@
 
   function formatTimestamp(ts) {
     if (!ts) return '-';
-    return new Date(ts).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatShortDateTime(ts);
   }
 
   function relativeTime(ts) {
@@ -156,31 +203,40 @@
   onMount(() => {
     loadData();
 
-    // If already running, start polling
+    // If already running, start polling and timer
     if (data.is_running) {
       triggering = true;
+      analysisStartTime = Date.now();
+      startElapsedTimer();
       pollForCompletion();
     }
 
-    return () => abortRequests();
+    // Listen for live progress updates
+    const handleProgress = (data) => {
+      progress = data;
+      if (data.completedCheck) {
+        completedChecks = [...completedChecks, data.completedCheck];
+      }
+    };
+    websocketService.on('analysis-progress', handleProgress);
+
+    return () => {
+      abortRequests();
+      websocketService.off('analysis-progress', handleProgress);
+      clearInterval(elapsedInterval);
+    };
   });
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+    <div class="flex justify-between items-start mb-4 flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Code Health</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Automated analysis runs every 24 hours
-          {#if displayRun}
-            &middot; Last run: {relativeTime(displayRun.timestamp)}
-          {/if}
-        </p>
+        <p class="text-sm text-[var(--muted)] font-sans">On-demand analysis — click Run Now to check</p>
       </div>
       <div class="flex items-center gap-3">
-        <span class="text-xs text-[var(--muted)] font-mono">{timeAgo}</span>
         <button
           onclick={loadData}
           disabled={loading}
@@ -197,6 +253,39 @@
         </button>
       </div>
     </div>
+
+    <!-- Last Run Info Bar -->
+    {#if displayRun}
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-2.5 mb-4 flex items-center gap-4 flex-wrap">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full" style="background: {overallColor}"></span>
+          <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Last Run</span>
+        </div>
+        <span class="text-xs font-mono text-[var(--text)]">{formatTimestamp(displayRun.timestamp)}</span>
+        <span class="text-xs text-[var(--muted)]">({relativeTime(displayRun.timestamp)})</span>
+        {#if displayRun.duration_ms}
+          <span class="text-[var(--border)]">|</span>
+          <span class="text-xs font-mono text-[var(--muted)]">Duration: <span class="text-[var(--text)]">{formatDuration(displayRun.duration_ms)}</span></span>
+        {/if}
+        <span class="text-[var(--border)]">|</span>
+        <span class="text-xs font-mono text-[var(--muted)]">
+          <span style="color: var(--success)">{displayRun.passed_checks} passed</span>
+          {#if displayRun.warned_checks > 0}
+            <span class="mx-1" style="color: var(--warning)">{displayRun.warned_checks} warned</span>
+          {/if}
+          {#if displayRun.failed_checks > 0}
+            <span class="mx-1" style="color: var(--error)">{displayRun.failed_checks} failed</span>
+          {/if}
+        </span>
+        {#if selectedRun}
+          <div class="flex-1"></div>
+          <button
+            onclick={() => { selectedRun = null; }}
+            class="text-xs text-[var(--accent)] font-sans hover:underline bg-transparent border-0 cursor-pointer p-0"
+          >Back to latest</button>
+        {/if}
+      </div>
+    {/if}
 
     {#if loading && !displayRun}
       <!-- Loading skeleton -->
@@ -255,11 +344,56 @@
         </div>
       </div>
 
-      <!-- Running indicator -->
-      {#if displayRun.status === 'running'}
-        <div class="bg-[var(--surface)] border border-[var(--accent)] rounded-lg p-4 mb-6 flex items-center gap-3">
-          <div class="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-          <span class="text-sm text-[var(--text)] font-sans">Analysis in progress... This may take a few minutes.</span>
+      <!-- Running indicator with progress bar and live terminal -->
+      {#if displayRun.status === 'running' || triggering}
+        <div class="bg-[var(--surface)] border border-[var(--accent)] rounded-lg mb-6 overflow-hidden">
+          <!-- Progress header -->
+          <div class="px-4 py-3 flex items-center gap-3 border-b border-[var(--border)]">
+            <div class="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+            <span class="text-sm text-[var(--text)] font-sans flex-1">
+              {#if progress}
+                Running: <span class="font-mono text-[var(--accent)]">{progress.currentCheck}</span>
+                <span class="text-[var(--muted)]">({progress.checkIndex}/{progress.totalChecks})</span>
+              {:else}
+                Starting analysis...
+              {/if}
+            </span>
+            {#if timeEstimate && elapsedTick >= 0}
+              <span class="text-xs font-mono text-[var(--muted)] flex-shrink-0">
+                {formatDuration(Date.now() - analysisStartTime)}
+                {#if timeEstimate.remaining !== null}
+                  <span class="text-[var(--border)] mx-1">/</span>
+                  <span class="text-[var(--text)]">~{formatDuration(timeEstimate.total)}</span>
+                  <span class="ml-1 text-[var(--muted)]">({formatDuration(timeEstimate.remaining)} left)</span>
+                {/if}
+              </span>
+            {/if}
+          </div>
+
+          <!-- Progress bar -->
+          {#if progress}
+            <div class="h-1.5 bg-[var(--bg)]">
+              <div
+                class="h-full bg-[var(--accent)] transition-all duration-500"
+                style="width: {(progress.checkIndex / progress.totalChecks) * 100}%"
+              ></div>
+            </div>
+          {/if}
+
+          <!-- Live terminal output -->
+          {#if completedChecks.length > 0}
+            <div class="px-4 py-3 max-h-64 overflow-y-auto font-mono text-xs" style="background: var(--bg)">
+              {#each completedChecks as check, i (i)}
+                <div class="flex items-start gap-2 py-1 {i < completedChecks.length - 1 ? 'border-b border-[var(--border)]' : ''}">
+                  <span class="flex-shrink-0 w-4 text-center font-bold" style="color: {statusColor(check.status)}">{statusIcon(check.status)}</span>
+                  <span class="text-[var(--text)]">{check.name}</span>
+                  <span class="text-[var(--muted)]">{formatDuration(check.duration_ms)}</span>
+                  <span class="flex-1"></span>
+                  <span class="text-[var(--muted)] truncate max-w-[50%]">{check.summary}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
       {/if}
 

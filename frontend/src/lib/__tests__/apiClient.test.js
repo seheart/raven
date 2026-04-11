@@ -8,7 +8,10 @@ import { api } from '../apiClient.js';
 // Mock dependencies
 vi.mock('../logger.js', () => ({
   logger: {
-    error: vi.fn()
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    info: vi.fn()
   }
 }));
 

@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
+  import { formatDateOnly } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
    * Agents Overview Page
@@ -56,7 +57,7 @@
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    return formatDateOnly(date);
   }
 
   function formatDuration(seconds) {

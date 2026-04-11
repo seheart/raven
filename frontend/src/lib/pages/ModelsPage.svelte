@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { dataService } from '../dataService.js';
   import { logger } from '../logger.js';
+  import { formatDateOnly } from '../timeFormat.js';
 
   let models = $state([]);
   let loading = $state(true);
@@ -229,7 +230,7 @@
                 <div
                   class="px-5 py-3 bg-[var(--bg)] text-xs text-[var(--muted)] font-mono flex justify-between"
                 >
-                  <span>First seen: {new Date(model.first_seen).toLocaleDateString()}</span>
+                  <span>First seen: {formatDateOnly(model.first_seen)}</span>
                   <span>Active for: {timeAgo(model.first_seen).replace(' ago', '')}</span>
                 </div>
               {/if}

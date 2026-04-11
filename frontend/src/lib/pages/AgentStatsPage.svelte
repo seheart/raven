@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
+  import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   /**
    * Agent Stats Page
    * Comprehensive agent statistics with search, filtering, and export
@@ -125,8 +126,7 @@
 
   function formatDateTime(timestamp) {
     if (!timestamp) return 'Never';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+    return formatDateTimeUtil(timestamp);
   }
 
   function formatDuration(seconds) {

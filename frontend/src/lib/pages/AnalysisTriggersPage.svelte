@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { onMount, onDestroy } from 'svelte';
+  import { formatShortDateTime } from '../timeFormat.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
@@ -208,14 +209,7 @@
   }
 
   function formatTimestamp(timestamp) {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return formatShortDateTime(new Date(timestamp * 1000));
   }
 
   function getActionIcon(action) {

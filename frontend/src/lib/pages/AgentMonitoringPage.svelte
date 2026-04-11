@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
+  import { formatDateOnly } from '../timeFormat.js';
   /**
    * Agent Monitoring Page
    * Real-time agent monitoring with live status and activity timeline
@@ -107,7 +108,7 @@
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    return formatDateOnly(date);
   }
 
   function getConfidenceColor(confidence) {

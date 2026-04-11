@@ -54,7 +54,11 @@ function parseSessionLog(filePath: string, limit: number): ActivityEntry[] {
           }
 
           // Skip task notifications and system messages
-          if (text && !text.startsWith('<task-notification') && !text.startsWith('<system-reminder')) {
+          if (
+            text &&
+            !text.startsWith('<task-notification') &&
+            !text.startsWith('<system-reminder')
+          ) {
             entries.push({
               timestamp: entry.timestamp || '',
               type: 'user',

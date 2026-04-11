@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { logger } from '../logger.js';
+  import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
@@ -103,7 +104,7 @@
 
   function formatDateTime(timestamp) {
     if (!timestamp) return 'Never';
-    return new Date(timestamp).toLocaleString();
+    return formatDateTimeUtil(timestamp);
   }
 
   function formatNumber(num) {

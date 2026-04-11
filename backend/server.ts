@@ -181,6 +181,11 @@ insightsService.onDiffRiskResult((eventId, filepath, score, reason) => {
 });
 const selfAnalysisService = new SelfAnalysisService(db, SESSION_ID);
 
+// Emit analysis progress via WebSocket for live terminal output on Code Health page
+selfAnalysisService.onProgress(progress => {
+  io.emit('analysis-progress', progress);
+});
+
 // Database retention: clean old data on startup and nightly at 3 AM
 const RETENTION_EVENT_DAYS = parseInt(process.env.RETENTION_EVENT_DAYS || '7', 10);
 const RETENTION_METRICS_DAYS = parseInt(process.env.RETENTION_METRICS_DAYS || '30', 10);
@@ -3817,8 +3822,7 @@ httpServer.listen(PORT, async () => {
       });
   }
 
-  // Start self-analysis schedule (runs every 24 hours)
-  selfAnalysisService.startSchedule();
+  // Self-analysis is on-demand only — triggered via Code Health page "Run Now" button
 
   // Periodic process check for Claude Code — keeps agent status accurate
   // even when no new log events are flowing (e.g., user is reading output)

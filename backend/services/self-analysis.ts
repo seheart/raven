@@ -79,11 +79,20 @@ function truncateOutput(output: string, maxLen: number = 50000): string {
   return output.slice(0, maxLen) + '\n\n--- Output truncated ---';
 }
 
+export interface AnalysisProgress {
+  runId: number;
+  checkIndex: number;
+  totalChecks: number;
+  currentCheck: string;
+  completedCheck?: AnalysisCheck;
+}
+
 export class SelfAnalysisService {
   private db: RavenDB;
   private intervalHandle: NodeJS.Timeout | null = null;
   private running: boolean = false;
   private sessionId: string;
+  private progressCallback: ((progress: AnalysisProgress) => void) | null = null;
 
   constructor(db: RavenDB, sessionId: string) {
     this.db = db;
@@ -130,6 +139,10 @@ export class SelfAnalysisService {
     }
   }
 
+  onProgress(cb: (progress: AnalysisProgress) => void): void {
+    this.progressCallback = cb;
+  }
+
   isRunning(): boolean {
     return this.running;
   }
@@ -161,24 +174,43 @@ export class SelfAnalysisService {
     try {
       // Run all checks
       // Build first so tests run against fresh dist/
-      const checkFns = [
-        () => this.checkBackendBuild(),
-        () => this.checkBackendTests(),
-        () => this.checkFrontendTests(),
-        () => this.checkBackendLint(),
-        () => this.checkFrontendLint(),
-        () => this.checkBackendTypes(),
-        () => this.checkFrontendTypes(),
-        () => this.checkBackendFormat(),
-        () => this.checkFrontendFormat(),
-        () => this.checkDependencyAudit()
+      const checkFns: Array<{ name: string; fn: () => Promise<AnalysisCheck> }> = [
+        { name: 'Backend Build', fn: () => this.checkBackendBuild() },
+        { name: 'Backend Tests', fn: () => this.checkBackendTests() },
+        { name: 'Frontend Tests', fn: () => this.checkFrontendTests() },
+        { name: 'Backend Lint', fn: () => this.checkBackendLint() },
+        { name: 'Frontend Lint', fn: () => this.checkFrontendLint() },
+        { name: 'Backend Types', fn: () => this.checkBackendTypes() },
+        { name: 'Frontend Types', fn: () => this.checkFrontendTypes() },
+        { name: 'Backend Format', fn: () => this.checkBackendFormat() },
+        { name: 'Frontend Format', fn: () => this.checkFrontendFormat() },
+        { name: 'Dependency Audit', fn: () => this.checkDependencyAudit() }
       ];
 
       // Run sequentially to avoid overwhelming the system
-      for (const fn of checkFns) {
+      for (let i = 0; i < checkFns.length; i++) {
+        const { name, fn } = checkFns[i];
+
+        // Emit "starting check" progress
+        this.progressCallback?.({
+          runId,
+          checkIndex: i,
+          totalChecks: checkFns.length,
+          currentCheck: name
+        });
+
         try {
           const check = await fn();
           checks.push(check);
+
+          // Emit "check completed" progress
+          this.progressCallback?.({
+            runId,
+            checkIndex: i + 1,
+            totalChecks: checkFns.length,
+            currentCheck: i + 1 < checkFns.length ? checkFns[i + 1].name : 'Done',
+            completedCheck: check
+          });
         } catch (err: any) {
           logger.error(`Self-analysis check failed: ${err.message}`);
         }

@@ -1,7 +1,30 @@
 import { getSetting } from './stores/settingsStore.js';
 
 /**
- * Format a timestamp according to user's time format preference
+ * Get a Date's components in the user's configured timezone.
+ * Uses Intl.DateTimeFormat to project into the target zone.
+ */
+function getPartsInZone(date) {
+  const tz = getSetting('ui.timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = {};
+  for (const { type, value } of fmt.formatToParts(date)) {
+    parts[type] = value;
+  }
+  return parts; // { year, month, day, hour, minute, second }
+}
+
+/**
+ * Format a timestamp according to user's time format and timezone preferences
  * @param {string|Date} timestamp - The timestamp to format
  * @param {object} options - Formatting options
  * @param {boolean} options.includeDate - Include date in output (default: true)
@@ -24,45 +47,30 @@ export function formatTime(timestamp, options = {}) {
   if (isNaN(date.getTime())) return 'Invalid date';
 
   const timeFormat = getSetting('ui.timeFormat') || '24h';
-  const parts = [];
+  const p = getPartsInZone(date);
+  const result = [];
 
-  // Date part
   if (includeDate) {
-    // Format: MM/DD/YY
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(-2); // Get last 2 digits
-    parts.push(`${month}/${day}/${year}`);
+    result.push(`${p.month}/${p.day}/${p.year.slice(-2)}`);
   }
 
-  // Time part
   if (includeTime) {
-    let hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-
+    let hours = parseInt(p.hour, 10);
     if (timeFormat === '12h') {
-      // 12-hour format with AM/PM
       const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12; // Convert 0 to 12
-      let timeStr = `${hours}:${minutes}`;
-      if (includeSeconds) {
-        timeStr += `:${seconds}`;
-      }
+      hours = hours % 12 || 12;
+      let timeStr = `${hours}:${p.minute}`;
+      if (includeSeconds) timeStr += `:${p.second}`;
       timeStr += ` ${ampm}`;
-      parts.push(timeStr);
+      result.push(timeStr);
     } else {
-      // 24-hour format
-      const hoursStr = String(hours).padStart(2, '0');
-      let timeStr = `${hoursStr}:${minutes}`;
-      if (includeSeconds) {
-        timeStr += `:${seconds}`;
-      }
-      parts.push(timeStr);
+      let timeStr = `${String(hours).padStart(2, '0')}:${p.minute}`;
+      if (includeSeconds) timeStr += `:${p.second}`;
+      result.push(timeStr);
     }
   }
 
-  return parts.join(separator);
+  return result.join(separator);
 }
 
 /**
@@ -117,23 +125,21 @@ export function formatShortDateTime(timestamp) {
   if (isNaN(date.getTime())) return 'Invalid date';
 
   const timeFormat = getSetting('ui.timeFormat') || '24h';
-  const month = date.toLocaleString('en-US', { month: 'short' });
-  const day = date.getDate();
+  const tz = getSetting('ui.timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const month = date.toLocaleString('en-US', { month: 'short', timeZone: tz });
+  const p = getPartsInZone(date);
 
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
+  let hours = parseInt(p.hour, 10);
   let timeStr;
   if (timeFormat === '12h') {
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12 || 12;
-    timeStr = `${hours}:${minutes} ${ampm}`;
+    timeStr = `${hours}:${p.minute} ${ampm}`;
   } else {
-    const hoursStr = String(hours).padStart(2, '0');
-    timeStr = `${hoursStr}:${minutes}`;
+    timeStr = `${String(hours).padStart(2, '0')}:${p.minute}`;
   }
 
-  return `${month} ${day}, ${timeStr}`;
+  return `${month} ${parseInt(p.day, 10)}, ${timeStr}`;
 }
 
 /**

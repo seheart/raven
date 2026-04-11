@@ -448,12 +448,7 @@ Keep it under 200 words. Be specific about file names and projects.`;
    * Queue a diff for batched risk scoring. Files are collected over a 15-second
    * window and then scored in a single ollama call to avoid VRAM pressure.
    */
-  queueDiffRisk(
-    eventId: number,
-    filepath: string,
-    diff: string,
-    changeType: string
-  ): void {
+  queueDiffRisk(eventId: number, filepath: string, diff: string, changeType: string): void {
     this.pendingDiffRisks.push({ eventId, filepath, diff, changeType });
 
     if (this.diffRiskTimer) clearTimeout(this.diffRiskTimer);
@@ -883,13 +878,17 @@ Keep it under 150 words.`;
         InsightsService.CIRCUIT_MAX_COOLDOWN_MS
       );
       this.circuitOpenUntil = Date.now() + cooldown;
-      logger.warn(`Circuit breaker OPEN — ${this.consecutiveFailures} consecutive failures, cooldown ${cooldown / 1000}s`);
+      logger.warn(
+        `Circuit breaker OPEN — ${this.consecutiveFailures} consecutive failures, cooldown ${cooldown / 1000}s`
+      );
     }
   }
 
   private recordSuccess(): void {
     if (this.consecutiveFailures > 0) {
-      logger.info(`Circuit breaker CLOSED — ollama recovered after ${this.consecutiveFailures} failures`);
+      logger.info(
+        `Circuit breaker CLOSED — ollama recovered after ${this.consecutiveFailures} failures`
+      );
     }
     this.consecutiveFailures = 0;
     this.circuitOpenUntil = 0;

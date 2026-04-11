@@ -3,6 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
+  import { formatDateOnly } from '../timeFormat.js';
   import { Chart, registerables } from 'chart.js';
   import FileHistory from '../FileHistory.svelte';
 
@@ -223,7 +224,7 @@
       return `${days}d ago`;
     }
 
-    return date.toLocaleDateString();
+    return formatDateOnly(date);
   }
 
   function isRecent(timestamp) {

@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
+  import { formatShortDateTime } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -115,9 +116,7 @@
 
   function formatTime(ts) {
     if (!ts) return '';
-    return new Date(ts).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+    return formatShortDateTime(ts);
   }
 
   onMount(() => {

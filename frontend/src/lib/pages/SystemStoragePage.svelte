@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { formatShortDateTime } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
 
@@ -36,12 +37,7 @@
 
   function formatDate(d) {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatShortDateTime(d);
   }
 
   function formatNumber(n) {

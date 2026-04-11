@@ -1,5 +1,6 @@
 <script>
   import { logger } from '../logger.js';
+  import { formatTimeOnly, formatDateOnly } from '../timeFormat.js';
   /**
    * Activity Timeline Page
    * Visual chronological timeline of events
@@ -152,8 +153,7 @@
 
   function formatTime(timestamp) {
     if (!timestamp) return 'N/A';
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString();
+    return formatTimeOnly(timestamp);
   }
 
   function getRelativeTime(timestamp) {
@@ -170,7 +170,7 @@
     if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
     if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
+    return formatDateOnly(date);
   }
 
   onMount(() => {

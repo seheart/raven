@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { onMount } from 'svelte';
+  import { formatShortDateTime } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
   import { navigate } from '../utils/router.svelte.js';
   import { websocketService } from '../services/websocket.js';
@@ -115,12 +116,7 @@
   }
 
   function formatCommitDate(date) {
-    return new Date(date).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatShortDateTime(date);
   }
 
   onMount(() => {

@@ -1,6 +1,7 @@
 <script>
   import { createPageApi } from '../apiClient.js';
   import { onMount } from 'svelte';
+  import { formatTimeOnly, formatDateOnly, formatShortDateTime } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let data = $state({ entries: [], sessions: [], currentSession: null });
@@ -49,30 +50,17 @@
 
   function formatTime(ts) {
     if (!ts) return '';
-    return new Date(ts).toLocaleString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
+    return formatTimeOnly(ts, true);
   }
 
   function formatDate(ts) {
     if (!ts) return '';
-    return new Date(ts).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatDateOnly(ts);
   }
 
   function formatSessionDate(ts) {
     if (!ts) return '';
-    return new Date(ts).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatShortDateTime(ts);
   }
 
   function typeIcon(type) {

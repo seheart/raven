@@ -1339,14 +1339,14 @@ export class RavenDB {
       { name: 'test_results', days: metricsDays },
       { name: 'subagent_tree', days: metricsDays },
       { name: 'analysis_runs', days: metricsDays },
-      { name: 'analysis_checks', days: metricsDays },
+      { name: 'analysis_checks', days: metricsDays }
     ];
 
     for (const { name, days } of tables) {
       try {
-        const result = this.db.prepare(
-          `DELETE FROM ${name} WHERE timestamp < datetime('now', '-${days} days')`
-        ).run();
+        const result = this.db
+          .prepare(`DELETE FROM ${name} WHERE timestamp < datetime('now', '-${days} days')`)
+          .run();
         if (result.changes > 0) {
           results[name] = result.changes;
         }

@@ -1,6 +1,7 @@
 <script>
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
+  import { formatDateOnly, formatDateTime } from '../timeFormat.js';
   /**
    * Agent Conversations Page
    * View and search agent conversations and interactions with full analytics
@@ -279,7 +280,7 @@
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    return formatDateOnly(date);
   }
 
   async function exportConversations() {
@@ -996,7 +997,7 @@
                     <div>
                       <span class="text-[var(--muted)]">Timestamp</span>
                       <span class="text-[var(--text)] font-mono ml-2"
-                        >{new Date(conv.timestamp).toLocaleString()}</span
+                        >{formatDateTime(conv.timestamp)}</span
                       >
                     </div>
                   </div>

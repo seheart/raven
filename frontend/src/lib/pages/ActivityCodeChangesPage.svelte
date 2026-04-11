@@ -1,5 +1,6 @@
 <script>
   import { logger } from '../logger.js';
+  import { formatDateTime, formatTimeOnly } from '../timeFormat.js';
   /**
    * Activity Code Changes Page - Detailed file change log with real-time updates
    */
@@ -127,7 +128,7 @@
 
   function formatTime(timestamp) {
     if (!timestamp) return 'N/A';
-    return new Date(timestamp).toLocaleString();
+    return formatDateTime(timestamp);
   }
 
   function formatBytes(bytes) {
@@ -211,7 +212,7 @@
         <p class="text-sm text-[var(--muted)] font-sans">Source code file change history</p>
       </div>
       <div class="flex items-center gap-3">
-        <span class="text-xs text-[var(--muted)] font-mono">{lastUpdated.toLocaleTimeString()}</span
+        <span class="text-xs text-[var(--muted)] font-mono">{formatTimeOnly(lastUpdated)}</span
         >
         <button
           onclick={loadEvents}

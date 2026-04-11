@@ -123,9 +123,10 @@ describe('InsightsService - Generate Methods (Ollama Offline)', () => {
     expect(result).toBeNull();
   });
 
-  test('scoreDiffRisk returns null when Ollama is offline', async () => {
-    const result = await service.scoreDiffRisk(1, '/test.js', '+ added\n- removed', 'change');
-    expect(result).toBeNull();
+  test('queueDiffRisk does not throw when Ollama is offline', () => {
+    expect(() =>
+      service.queueDiffRisk(1, '/test.js', '+ added\n- removed', 'change')
+    ).not.toThrow();
   });
 });
 

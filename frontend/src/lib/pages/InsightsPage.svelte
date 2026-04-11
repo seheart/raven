@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { formatTimeOnly, formatShortDateTime } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let insights = $state([]);
@@ -63,8 +64,7 @@
 
   function formatTime(ts) {
     if (!ts) return '';
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatTimeOnly(ts);
   }
 
   function formatDate(ts) {
@@ -75,7 +75,7 @@
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return formatShortDateTime(ts);
   }
 
   function typeLabel(type) {

@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
+  import { formatTimeOnly, formatDateTime } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
    * Analysis Overview Page - Tailwind Version
@@ -94,7 +95,7 @@
       .reverse()
       .map(m => {
         const date = new Date(m.timestamp);
-        return date.toLocaleTimeString();
+        return formatTimeOnly(date);
       });
 
     const cpuData = metricsHistory
@@ -355,9 +356,9 @@
                   {event.trigger_name || 'Trigger Fired'}
                 </span>
                 <span class="font-mono text-[var(--text)] text-xs">
-                  {event.message || event.event_type} · {new Date(
+                  {event.message || event.event_type} · {formatDateTime(
                     event.timestamp || Date.now()
-                  ).toLocaleString()}
+                  )}
                 </span>
               </div>
             {/each}

@@ -2,6 +2,7 @@
   import { onDestroy } from 'svelte';
   import DOMPurify from 'dompurify';
   import { logger } from '../logger.js';
+  import { formatDateTime } from '../timeFormat.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -161,7 +162,7 @@
 
   function formatTimestamp(timestamp) {
     if (!timestamp) return 'N/A';
-    return new Date(timestamp).toLocaleString();
+    return formatDateTime(timestamp);
   }
 </script>
 

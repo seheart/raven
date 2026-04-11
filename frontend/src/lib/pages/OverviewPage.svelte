@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { onMount } from 'svelte';
+  import { formatRelativeTime, formatDateOnly } from '../timeFormat.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
   import { navigate } from '../utils/router.svelte.js';
@@ -100,10 +101,8 @@
     const d = new Date(timestamp);
     const now = new Date();
     const diff = now - d;
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return d.toLocaleDateString();
+    if (diff < 86400000) return formatRelativeTime(timestamp);
+    return formatDateOnly(timestamp);
   }
 
   function formatNumber(n) {
