@@ -178,52 +178,16 @@ export async function apiFetch(endpoint, options = {}) {
         }
       }
 
-      // Log timeout error — but not when backend is down (expected during restarts)
-      if (!endpoint.includes('/errors') && websocketService.isConnected()) {
-        logError(
-          timeoutError,
-          'API Client',
-          {
-            endpoint,
-            method: options.method || 'GET',
-            error_type: 'Timeout',
-            timeout_ms: timeout
-          },
-          'warning'
-        ).catch(logError => {
-          logger.error(
-            '[API Client] Failed to log error to backend:',
-            logError.message || logError
-          );
-        });
-      }
-
+      // Timeouts are transient (backend busy, cold start) — log to console only, not error DB
+      logger.warn(`[API Client] Timeout after ${timeout}ms: ${endpoint}`);
       throw timeoutError;
     }
 
-    // Network errors or other fetch failures — skip noise during backend restarts
+    // Network errors are transient (backend down, restart) — log to console only, not error DB
     if (!error.message.includes('API error') && websocketService.isConnected()) {
       notifications.apiError(endpoint, error.message);
-
-      // Log network error — but not when backend is down (expected during restarts)
-      if (!endpoint.includes('/errors') && websocketService.isConnected()) {
-        logError(
-          error,
-          'API Client',
-          {
-            endpoint,
-            method: options.method || 'GET',
-            error_type: 'Network Error'
-          },
-          'error'
-        ).catch(logError => {
-          logger.error(
-            '[API Client] Failed to log error to backend:',
-            logError.message || logError
-          );
-        });
-      }
     }
+    logger.warn(`[API Client] Network error: ${endpoint} — ${error.message}`);
     throw error;
   }
 }
