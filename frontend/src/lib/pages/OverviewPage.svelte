@@ -635,9 +635,10 @@
         </button>
       {/if}
 
-      <span class="text-[var(--border)]">|</span>
+      <!-- Spacer -->
+      <div class="flex-1"></div>
 
-      <!-- Token usage inline -->
+      <!-- Token usage inline (right-aligned) -->
       <button onclick={() => navigate('/analysis/costs')} class="flex items-center gap-2 text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80">
         <span class="text-[var(--muted)]">Tokens</span>
         <span class="font-semibold text-[var(--accent)]">
@@ -652,27 +653,6 @@
         <span class="text-[var(--muted)]">Out</span>
         <span class="text-[var(--text)]">{formatTokens(sessionCosts.total_output_tokens)}</span>
       </button>
-
-      <!-- Spacer -->
-      <div class="flex-1"></div>
-
-      <!-- Agents inline -->
-      {#each agents as agent (agent.agent_name)}
-        {@const isWorking = workingAgents.has(agent.agent_name)}
-        {@const agentState = isWorking ? 'working' : agent.is_running ? 'running' : 'idle'}
-        <div class="flex items-center gap-1.5 {isWorking ? 'agent-breathing' : ''}">
-          <svg viewBox="0 0 44 30" class="w-6 h-3 flex-shrink-0 overflow-visible">
-            <path
-              d={heartbeatPath(agentState)}
-              fill="none"
-              stroke={agent.color || 'var(--muted)'}
-              stroke-width="1.5"
-              class={agentState === 'working' ? 'heartbeat-working' : agentState === 'running' ? 'heartbeat-running' : ''}
-            />
-          </svg>
-          <span class="text-[10px] font-semibold text-[var(--text)]">{agent.agent_name}</span>
-        </div>
-      {/each}
 
     </div>
 
