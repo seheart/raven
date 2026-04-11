@@ -691,11 +691,12 @@
           <span class="text-[10px] text-[var(--muted)]">→</span>
         </div>
         {#if recentSubagents.length > 0}
-          <div class="space-y-1">
-            {#each recentSubagents.slice(0, 4) as agent (agent.id)}
+          <div class="space-y-1 overflow-y-auto flex-1">
+            {#each recentSubagents.slice(0, 8) as agent (agent.id)}
               <div class="flex items-center gap-2 py-0.5">
-                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white" style="background: {getTypeColor(agent.agent_type)}">{agent.agent_type || 'agent'}</span>
+                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex-shrink-0" style="background: {getTypeColor(agent.agent_type)}">{agent.agent_type || 'agent'}</span>
                 <span class="text-[10px] text-[var(--text)] truncate flex-1">{agent.description || agent.agent_id?.slice(0, 12)}</span>
+                <span class="text-[9px] text-[var(--muted)] font-mono flex-shrink-0">{formatTime(agent.started_at)}</span>
               </div>
             {/each}
           </div>
