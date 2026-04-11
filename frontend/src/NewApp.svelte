@@ -354,6 +354,14 @@
           {:catch}
             <PlaceholderPage title="Agent Conversations" description="Failed to load" />
           {/await}
+        {:else if activeSubTab === 'activity'}
+          {#await import('./lib/pages/SessionActivityPage.svelte')}
+            <PlaceholderPage title="Session Activity" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Session Activity" description="Failed to load" />
+          {/await}
         {:else}
           <PlaceholderPage
             title="Analysis - {activeSubTab}"

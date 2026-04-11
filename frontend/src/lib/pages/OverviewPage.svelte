@@ -46,6 +46,7 @@
     billingMode = s?.billing?.mode || 'subscription';
   });
   let recentSubagents = $state([]);
+  let sessionActivity = $state([]);
 
   // Live activity feed — unified stream of all events
   let activityFeed = $state([]);
@@ -291,19 +292,22 @@
       const pf = get(projectFilter);
       const pq = pf && pf !== 'all' ? `&project=${encodeURIComponent(pf)}` : '';
       const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-      const [statsData, metricsData, fileEvents, agentData, costsData, subagentsData] = await Promise.all([
+      const [statsData, metricsData, fileEvents, agentData, costsData, subagentsData, activityData] = await Promise.all([
         api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
         api.get('/system-metrics?limit=1').catch(() => []),
         api.get(`/file-events?limit=100${pq}`).catch(() => []),
         api.get('/agents-status').catch(() => []),
         api.get(`/costs/summary?start=${encodeURIComponent(todayStart)}`).catch(() => sessionCosts),
-        api.get('/subagents/recent?limit=8').catch(() => [])
+        api.get('/subagents/recent?limit=8').catch(() => []),
+        api.get('/session-activity?limit=50').catch(() => ({ entries: [] }))
       ]);
 
       checkStatChanges(statsData);
       stats = statsData;
       sessionCosts = costsData || sessionCosts;
       recentSubagents = Array.isArray(subagentsData) ? subagentsData : [];
+      const activityEntries = activityData?.entries || [];
+      sessionActivity = [...activityEntries].reverse().filter(e => e.type !== 'tool');
       systemMetrics = Array.isArray(metricsData) && metricsData[0] ? metricsData[0] : systemMetrics;
       recentFiles = Array.isArray(fileEvents) ? fileEvents : [];
       agents = Array.isArray(agentData) ? agentData : [];
@@ -660,103 +664,126 @@
 
     </div>
 
-    <!-- Costs + Sub-Agents + Latest Diff (3-column row) -->
+    <!-- Session Activity + Sidebar (Costs, Sub-Agents, Activity Trend) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
-      <!-- Session Costs -->
+      <!-- Session Activity (2/3) -->
       <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 cursor-pointer hover:border-[var(--accent)] transition-colors"
-        onclick={() => navigate('/analysis/costs')}
-        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/costs')}
+        class="lg:col-span-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 cursor-pointer hover:border-[var(--accent)] transition-colors"
+        onclick={() => navigate('/analysis/activity')}
+        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/activity')}
         role="link"
         tabindex="0"
       >
         <div class="flex justify-between items-center mb-3">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Today's Tokens</h3>
-          <span class="text-[10px] text-[var(--muted)]">→ Details</span>
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Session Activity</h3>
+          <span class="text-[10px] text-[var(--muted)]">{sessionActivity.length > 0 ? `${sessionActivity.length} events` : ''} → Full Timeline</span>
         </div>
-        <div class="text-2xl font-bold text-[var(--accent)] font-mono mb-2">
-          {#if billingMode === 'api'}
-            {formatCost(sessionCosts.total_cost_usd)}
-          {:else}
-            {formatTokens((sessionCosts.total_input_tokens || 0) + (sessionCosts.total_output_tokens || 0))}
-          {/if}
-        </div>
-        <div class="grid grid-cols-3 gap-2 text-[10px] font-mono">
-          <div>
-            <div class="text-[var(--muted)]">Requests</div>
-            <div class="text-[var(--text)] font-semibold">{formatNumber(sessionCosts.total_requests)}</div>
-          </div>
-          <div>
-            <div class="text-[var(--muted)]">Input</div>
-            <div class="text-[var(--text)] font-semibold">{formatTokens(sessionCosts.total_input_tokens)}</div>
-          </div>
-          <div>
-            <div class="text-[var(--muted)]">Output</div>
-            <div class="text-[var(--text)] font-semibold">{formatTokens(sessionCosts.total_output_tokens)}</div>
-          </div>
-        </div>
-        {#if sessionCosts.total_cache_read_tokens > 0}
-          <div class="text-[9px] text-[var(--muted)] mt-1">{formatTokens(sessionCosts.total_cache_read_tokens)} cache reads</div>
-        {/if}
-      </div>
-
-      <!-- Sub-Agent Tree -->
-      <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 cursor-pointer hover:border-[var(--accent)] transition-colors"
-        onclick={() => navigate('/analysis/subagents')}
-        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/subagents')}
-        role="link"
-        tabindex="0"
-      >
-        <div class="flex justify-between items-center mb-3">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Sub-Agents</h3>
-          <span class="text-[10px] text-[var(--muted)]">→ Tree View</span>
-        </div>
-        {#if recentSubagents.length > 0}
-          <div class="space-y-1">
-            {#each recentSubagents.slice(0, 5) as agent (agent.id)}
-              <div class="flex items-center gap-2 py-0.5">
-                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white" style="background: {getTypeColor(agent.agent_type)}">{agent.agent_type || 'agent'}</span>
-                <span class="text-[10px] text-[var(--text)] truncate flex-1">{agent.description || agent.agent_id?.slice(0, 12)}</span>
-                <span class="text-[9px] text-[var(--muted)]">{formatTime(agent.started_at)}</span>
+        {#if sessionActivity.length > 0}
+          <div class="space-y-1.5">
+            {#each sessionActivity.slice(0, 10) as entry (entry.timestamp + entry.type + entry.content?.slice(0, 20))}
+              <div class="flex gap-2 items-start">
+                <div
+                  class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                  style="background: {entry.type === 'user' ? 'var(--accent)' : entry.type === 'assistant' ? 'var(--success)' : entry.type === 'subagent' ? 'var(--warning)' : 'var(--muted)'}"
+                ></div>
+                <div class="flex-1 min-w-0">
+                  <span class="text-[10px] font-semibold" style="color: {entry.type === 'user' ? 'var(--accent)' : entry.type === 'assistant' ? 'var(--success)' : entry.type === 'subagent' ? 'var(--warning)' : 'var(--muted)'}">
+                    {entry.type === 'user' ? 'You' : entry.type === 'assistant' ? 'Claude' : entry.type === 'subagent' ? 'Agent' : 'Action'}
+                  </span>
+                  <span class="text-[10px] text-[var(--text)] ml-1 truncate">{entry.content?.slice(0, 120)}</span>
+                </div>
+                <span class="text-[9px] text-[var(--muted)] font-mono flex-shrink-0">{formatTime(entry.timestamp)}</span>
               </div>
             {/each}
           </div>
         {:else}
-          <div class="flex items-center justify-center h-16 text-xs text-[var(--muted)]">No sub-agents yet</div>
+          <div class="flex items-center justify-center h-12 text-xs text-[var(--muted)]">No conversation activity yet</div>
         {/if}
       </div>
 
-      <!-- Latest Diff -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col" style="max-height: 200px;">
-        <div class="flex justify-between items-center px-3 py-1.5 bg-[var(--bg)] border-b border-[var(--border)] flex-shrink-0">
-          {#if latestDiff}
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse flex-shrink-0"></span>
-              <span class="text-[10px] font-mono text-[var(--text)] truncate">{latestDiff.filepath}<span class="cursor-blink">|</span></span>
+      <!-- Right sidebar: Costs + Sub-Agents + Activity Trend stacked -->
+      <div class="flex flex-col gap-3">
+        <!-- Session Costs -->
+        <div
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--accent)] transition-colors"
+          onclick={() => navigate('/analysis/costs')}
+          onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/costs')}
+          role="link"
+          tabindex="0"
+        >
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Today's Tokens</h3>
+            <span class="text-[10px] text-[var(--muted)]">→</span>
+          </div>
+          <div class="flex items-baseline gap-3">
+            <span class="text-xl font-bold text-[var(--accent)] font-mono">
+              {#if billingMode === 'api'}
+                {formatCost(sessionCosts.total_cost_usd)}
+              {:else}
+                {formatTokens((sessionCosts.total_input_tokens || 0) + (sessionCosts.total_output_tokens || 0))}
+              {/if}
+            </span>
+            <span class="text-[10px] text-[var(--muted)] font-mono">{formatNumber(sessionCosts.total_requests)} reqs</span>
+          </div>
+        </div>
+
+        <!-- Sub-Agents -->
+        <div
+          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--accent)] transition-colors flex-1"
+          onclick={() => navigate('/analysis/subagents')}
+          onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/subagents')}
+          role="link"
+          tabindex="0"
+        >
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Sub-Agents</h3>
+            <span class="text-[10px] text-[var(--muted)]">→</span>
+          </div>
+          {#if recentSubagents.length > 0}
+            <div class="space-y-1">
+              {#each recentSubagents.slice(0, 4) as agent (agent.id)}
+                <div class="flex items-center gap-2 py-0.5">
+                  <span class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white" style="background: {getTypeColor(agent.agent_type)}">{agent.agent_type || 'agent'}</span>
+                  <span class="text-[10px] text-[var(--text)] truncate flex-1">{agent.description || agent.agent_id?.slice(0, 12)}</span>
+                </div>
+              {/each}
             </div>
-            {#if latestDiff.agent_source}
-              <span class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0" style="background: {getAgentColorByName(latestDiff.agent_source)}">{latestDiff.agent_source}</span>
-            {/if}
           {:else}
-            <span class="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide">Latest Change</span>
+            <div class="text-xs text-[var(--muted)] py-2">No sub-agents yet</div>
           {/if}
         </div>
-        <div class="flex-1 overflow-auto">
-          {#if latestDiff}
-            <pre class="text-[10px] font-mono m-0 bg-[var(--surface)] leading-[1.6]">{#each latestDiff.diff.split('\n').slice(0, 30) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span class="text-[var(--success)] block px-2" style="background: var(--success-subtle)">{line.slice(1)}</span>{:else if c === '-'}<span class="text-[var(--error)] block px-2" style="background: var(--error-subtle)">{line.slice(1)}</span>{:else}<span class="text-[var(--muted)] block px-2">{c === ' ' ? line.slice(1) : line}</span>{/if}{/each}</pre>
-          {:else}
-            <div class="flex items-center justify-center h-full text-xs text-[var(--muted)]">Waiting for changes</div>
-          {/if}
+
+        <!-- Activity Trend -->
+        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex flex-col" style="height: 140px;">
+          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1 flex-shrink-0">Activity (5m)</h3>
+          <div class="flex-1 min-h-0">
+            <canvas id="chart-trend"></canvas>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Activity Trend (compact) -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-3" style="height: 160px;">
-      <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 flex-shrink-0">Activity (5m)</h3>
-      <div style="height: 110px;">
-        <canvas id="chart-trend"></canvas>
+    <!-- Latest Diff (full width, compact) -->
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col mb-3" style="max-height: 160px;">
+      <div class="flex justify-between items-center px-3 py-1.5 bg-[var(--bg)] border-b border-[var(--border)] flex-shrink-0">
+        {#if latestDiff}
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse flex-shrink-0"></span>
+            <span class="text-[10px] font-mono text-[var(--text)] truncate">{latestDiff.filepath}<span class="cursor-blink">|</span></span>
+          </div>
+          {#if latestDiff.agent_source}
+            <span class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0" style="background: {getAgentColorByName(latestDiff.agent_source)}">{latestDiff.agent_source}</span>
+          {/if}
+        {:else}
+          <span class="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide">Latest Change</span>
+        {/if}
+      </div>
+      <div class="flex-1 overflow-auto">
+        {#if latestDiff}
+          <pre class="text-[10px] font-mono m-0 bg-[var(--surface)] leading-[1.6]">{#each latestDiff.diff.split('\n').slice(0, 20) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span class="text-[var(--success)] block px-2" style="background: var(--success-subtle)">{line.slice(1)}</span>{:else if c === '-'}<span class="text-[var(--error)] block px-2" style="background: var(--error-subtle)">{line.slice(1)}</span>{:else}<span class="text-[var(--muted)] block px-2">{c === ' ' ? line.slice(1) : line}</span>{/if}{/each}</pre>
+        {:else}
+          <div class="flex items-center justify-center h-full text-xs text-[var(--muted)]">Waiting for changes</div>
+        {/if}
       </div>
     </div>
 

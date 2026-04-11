@@ -53,6 +53,7 @@ import { createCostsRouter } from './routes/costs.js';
 import { createSubagentsRouter } from './routes/subagents.js';
 import { SelfAnalysisService } from './services/self-analysis.js';
 import { createSelfAnalysisRouter } from './routes/self-analysis.js';
+import { createSessionActivityRouter } from './routes/session-activity.js';
 
 // ==================== Configuration ====================
 
@@ -892,6 +893,9 @@ app.use('/api/subagents', createSubagentsRouter(db));
 
 // Mount self-analysis routes (code health)
 app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
+
+// Mount session activity routes (conversation timeline)
+app.use('/api/session-activity', createSessionActivityRouter());
 
 // Network info endpoint for mobile access QR code
 app.get('/api/network-info', (_req: Request, res: Response) => {

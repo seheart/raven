@@ -62,6 +62,7 @@
       { id: 'stats', label: 'Agent Stats' },
       { id: 'monitoring', label: 'Agent Monitoring' },
       { id: 'conversations', label: 'Agent Conversations' },
+      { id: 'activity', label: 'Session Activity' },
       { id: 'triggers', label: 'Triggers' }
     ],
     system: [
