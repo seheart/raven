@@ -34,6 +34,7 @@
   });
   let agentStatus = $state(null);
   let recentFiles = $state([]);
+  let recentAgentEvents = $state([]);
   let liveEvents = $state([]);
   let agents = $state([]);
   let loading = $state(false);
@@ -223,17 +224,55 @@
   function createCharts() {
     const colors = getChartColors();
 
-    // Activity trend (5m) — 30 buckets of 10 seconds each
+    // Activity trend (5m) — 30 buckets of 10 seconds, split by agent
     if (trendChart) destroyChart(trendChart);
     const bucketCount = 30;
     const bucketMs = 10000; // 10 seconds per bucket
-    const bucketData = new Array(bucketCount).fill(0);
     const now = new Date();
+
+    // Build a map of which agent was active at each point in time
+    // by finding the closest agent event before each file event
+    const sortedAgentEvents = [...recentAgentEvents].sort((a, b) =>
+      new Date(a.timestamp) - new Date(b.timestamp)
+    );
+
+    function findAgentAt(timestamp) {
+      const ts = new Date(timestamp).getTime();
+      // Find the most recent agent event within 60s before this timestamp
+      let best = null;
+      for (let i = sortedAgentEvents.length - 1; i >= 0; i--) {
+        const aTs = new Date(sortedAgentEvents[i].timestamp).getTime();
+        if (aTs <= ts && ts - aTs < 60000) {
+          best = sortedAgentEvents[i].agent;
+          break;
+        }
+      }
+      return best;
+    }
+
+    // Bucket file events, attributed to agents when possible
+    const agentBuckets = {};
     recentFiles.forEach(e => {
       const diffMs = now - new Date(e.timestamp);
       const bucket = Math.floor(diffMs / bucketMs);
-      if (bucket >= 0 && bucket < bucketCount) bucketData[bucketCount - 1 - bucket]++;
+      if (bucket >= 0 && bucket < bucketCount) {
+        const agent = e.agent_source || findAgentAt(e.timestamp) || 'Other';
+        if (!agentBuckets[agent]) agentBuckets[agent] = new Array(bucketCount).fill(0);
+        agentBuckets[agent][bucketCount - 1 - bucket]++;
+      }
     });
+
+    // Also bucket agent events directly (tool calls, messages etc.)
+    recentAgentEvents.forEach(e => {
+      const diffMs = now - new Date(e.timestamp);
+      const bucket = Math.floor(diffMs / bucketMs);
+      if (bucket >= 0 && bucket < bucketCount) {
+        const agent = e.agent || 'Other';
+        if (!agentBuckets[agent]) agentBuckets[agent] = new Array(bucketCount).fill(0);
+        agentBuckets[agent][bucketCount - 1 - bucket]++;
+      }
+    });
+
     const labels = Array.from({ length: bucketCount }, (_, i) => {
       const secsAgo = (bucketCount - 1 - i) * 10;
       const t = new Date(now.getTime() - secsAgo * 1000);
@@ -243,27 +282,50 @@
       return `${h}:${m}:${s}`;
     });
 
+    const agentChartColors = {
+      'Claude Code': '#FF6B35',
+      'Ollama': '#F5A623',
+    };
+    const defaultAgentColors = ['#10A37F', '#4285F4', '#A855F7', '#EC4899'];
+    let colorIdx = 0;
+
+    const datasets = Object.entries(agentBuckets).map(([agent, data]) => {
+      const color = agentChartColors[agent] || defaultAgentColors[colorIdx++ % defaultAgentColors.length];
+      return {
+        label: agent,
+        data,
+        borderColor: color,
+        backgroundColor: `${color}15`,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 1,
+        pointHoverRadius: 4,
+        borderWidth: 2
+      };
+    });
+
+    const allData = Object.values(agentBuckets).flat();
+
     trendChart = createChart('chart-trend', {
       type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            data: bucketData,
-            borderColor: colors.primary,
-            backgroundColor: `${colors.primary}20`,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 1,
-            pointHoverRadius: 4,
-            borderWidth: 2
-          }
-        ]
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: {
+              color: colors.muted,
+              font: { size: 9, family: 'monospace' },
+              boxWidth: 12,
+              boxHeight: 2,
+              padding: 8
+            }
+          }
+        },
         scales: {
           x: {
             ticks: {
@@ -276,7 +338,7 @@
           },
           y: {
             beginAtZero: true,
-            suggestedMax: Math.max(5, ...bucketData),
+            suggestedMax: Math.max(5, ...allData),
             ticks: { color: colors.muted, font: { size: 10, family: 'monospace' }, precision: 0 },
             grid: { color: `${colors.border}` }
           }
@@ -290,13 +352,14 @@
       const pf = get(projectFilter);
       const pq = pf && pf !== 'all' ? `&project=${encodeURIComponent(pf)}` : '';
       const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-      const [statsData, metricsData, fileEvents, agentData, costsData, subagentsData, activityData] = await Promise.all([
+      const [statsData, metricsData, fileEvents, agentData, costsData, subagentsData, agentEventsData] = await Promise.all([
         api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
         api.get('/system-metrics?limit=1').catch(() => []),
         api.get(`/file-events?limit=100${pq}`).catch(() => []),
         api.get('/agents-status').catch(() => []),
         api.get(`/costs/summary?start=${encodeURIComponent(todayStart)}`).catch(() => sessionCosts),
-        api.get('/subagents/recent?limit=8').catch(() => [])
+        api.get('/subagents/recent?limit=8').catch(() => []),
+        api.get('/agent-events?limit=300').catch(() => [])
       ]);
 
       checkStatChanges(statsData);
@@ -305,6 +368,7 @@
       recentSubagents = Array.isArray(subagentsData) ? subagentsData : [];
       systemMetrics = Array.isArray(metricsData) && metricsData[0] ? metricsData[0] : systemMetrics;
       recentFiles = Array.isArray(fileEvents) ? fileEvents : [];
+      recentAgentEvents = Array.isArray(agentEventsData) ? agentEventsData : [];
       agents = Array.isArray(agentData) ? agentData : [];
       agentStatus = agents[0] || null;
 
