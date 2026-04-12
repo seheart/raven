@@ -458,6 +458,29 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
     }
   }
 
+  // Store and emit API latency measurements
+  if (category === 'api_latency') {
+    try {
+      db.insertApiLatency(
+        timestamp,
+        event.sessionId || SESSION_ID,
+        event.projectName || null,
+        event.model || null,
+        event.latency_ms
+      );
+
+      io.emit('api-latency', {
+        timestamp,
+        latency_ms: event.latency_ms,
+        model: event.model,
+        session_id: event.sessionId,
+        project_name: event.projectName
+      });
+    } catch (err: any) {
+      logger.debug(`Failed to store API latency: ${err.message}`);
+    }
+  }
+
   // Emit via Socket.IO for real-time UI updates
   io.emit('agent-event', {
     type: event.type,
@@ -1538,6 +1561,27 @@ app.get('/api/metrics-stats', (req: Request, res: Response) => {
     const end_time = (req.query.end_time as string) || new Date(now).toISOString();
     const stats = db.getMetricsStats(start_time, end_time);
     return res.json(stats);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/process-activity', cacheMiddleware(2000), (_req: Request, res: Response) => {
+  try {
+    const activity = db.getLatestProcessActivity();
+    return res.json(activity);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/api-latency', cacheMiddleware(2000), (req: Request, res: Response) => {
+  try {
+    const limit = safeInt(req.query.limit, 100);
+    const minutes = safeInt(req.query.minutes, 60);
+    const recent = db.getRecentApiLatency(limit);
+    const stats = db.getApiLatencyStats(minutes);
+    return res.json({ recent, stats });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }

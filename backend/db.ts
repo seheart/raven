@@ -76,8 +76,25 @@ export interface ProcessMetrics {
   virtual_memory_mb: number;
   disk_read_bytes?: number;
   disk_write_bytes?: number;
+  network_connections?: number;
+  api_connections?: number;
+  thread_count?: number;
+  fd_count?: number;
+  activity_state?: string;
   status?: string;
   session_id?: string;
+}
+
+/**
+ * API latency measurement
+ */
+export interface ApiLatency {
+  id: number;
+  timestamp: string;
+  session_id?: string;
+  project_name?: string;
+  model?: string;
+  latency_ms: number;
 }
 
 /**
@@ -264,10 +281,45 @@ export class RavenDB {
         virtual_memory_mb INTEGER NOT NULL,
         disk_read_bytes INTEGER,
         disk_write_bytes INTEGER,
+        network_connections INTEGER DEFAULT 0,
+        api_connections INTEGER DEFAULT 0,
+        thread_count INTEGER DEFAULT 0,
+        fd_count INTEGER DEFAULT 0,
+        activity_state TEXT DEFAULT 'unknown',
         status TEXT,
         session_id TEXT
       )
     `);
+
+    // Migrate existing databases: add network/activity columns to process_metrics
+    const pmCols = this.db.prepare('PRAGMA table_info(process_metrics)').all() as Array<{ name: string }>;
+    const pmColNames = new Set(pmCols.map(c => c.name));
+    const newPmCols: Array<[string, string]> = [
+      ['network_connections', 'INTEGER DEFAULT 0'],
+      ['api_connections', 'INTEGER DEFAULT 0'],
+      ['thread_count', 'INTEGER DEFAULT 0'],
+      ['fd_count', 'INTEGER DEFAULT 0'],
+      ['activity_state', "TEXT DEFAULT 'unknown'"],
+    ];
+    for (const [name, def] of newPmCols) {
+      if (!pmColNames.has(name)) {
+        this.db.exec(`ALTER TABLE process_metrics ADD COLUMN ${name} ${def}`);
+      }
+    }
+
+    // API latency table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS api_latency (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        session_id TEXT,
+        project_name TEXT,
+        model TEXT,
+        latency_ms INTEGER NOT NULL
+      )
+    `);
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_api_latency_timestamp ON api_latency(timestamp DESC)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_api_latency_session ON api_latency(session_id)');
 
     // Syntax errors table
     this.db.exec(`
@@ -820,11 +872,16 @@ export class RavenDB {
     disk_read_bytes: number | null | undefined,
     disk_write_bytes: number | null | undefined,
     status: string | null | undefined,
-    session_id: string | null | undefined
+    session_id: string | null | undefined,
+    network_connections: number = 0,
+    api_connections: number = 0,
+    thread_count: number = 0,
+    fd_count: number = 0,
+    activity_state: string = 'unknown'
   ): number {
     const stmt = this.db.prepare(`
-      INSERT INTO process_metrics (timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, status, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO process_metrics (timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, status, session_id, network_connections, api_connections, thread_count, fd_count, activity_state)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -837,7 +894,12 @@ export class RavenDB {
       disk_read_bytes || null,
       disk_write_bytes || null,
       status || null,
-      session_id || null
+      session_id || null,
+      network_connections,
+      api_connections,
+      thread_count,
+      fd_count,
+      activity_state
     );
 
     return Number(result.lastInsertRowid);
@@ -845,7 +907,7 @@ export class RavenDB {
 
   getProcessMetricsByAgent(agent_name: string, limit: number = 100): ProcessMetrics[] {
     const stmt = this.db.prepare(`
-      SELECT id, timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, status
+      SELECT id, timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, network_connections, api_connections, thread_count, fd_count, activity_state, status
       FROM process_metrics
       WHERE agent_name = ?
       ORDER BY timestamp DESC
@@ -853,6 +915,73 @@ export class RavenDB {
     `);
 
     return stmt.all(agent_name, limit) as ProcessMetrics[];
+  }
+
+  /**
+   * Get the latest process activity for each tracked agent
+   */
+  getLatestProcessActivity(): ProcessMetrics[] {
+    const stmt = this.db.prepare(`
+      SELECT pm.id, pm.timestamp, pm.agent_name, pm.pid, pm.cpu_usage, pm.memory_mb, pm.virtual_memory_mb,
+             pm.network_connections, pm.api_connections, pm.thread_count, pm.fd_count, pm.activity_state, pm.status
+      FROM process_metrics pm
+      INNER JOIN (
+        SELECT agent_name, MAX(timestamp) as max_ts
+        FROM process_metrics
+        GROUP BY agent_name
+      ) latest ON pm.agent_name = latest.agent_name AND pm.timestamp = latest.max_ts
+    `);
+    return stmt.all() as ProcessMetrics[];
+  }
+
+  // ==================== API Latency ====================
+
+  insertApiLatency(
+    timestamp: string,
+    session_id: string | null | undefined,
+    project_name: string | null | undefined,
+    model: string | null | undefined,
+    latency_ms: number
+  ): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO api_latency (timestamp, session_id, project_name, model, latency_ms)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(timestamp, session_id || null, project_name || null, model || null, latency_ms);
+    return Number(result.lastInsertRowid);
+  }
+
+  getRecentApiLatency(limit: number = 100): ApiLatency[] {
+    const stmt = this.db.prepare(`
+      SELECT id, timestamp, session_id, project_name, model, latency_ms
+      FROM api_latency
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit) as ApiLatency[];
+  }
+
+  getApiLatencyStats(minutes: number = 60): { avg_ms: number; p50_ms: number; p95_ms: number; count: number; requests_per_min: number } {
+    const cutoff = new Date(Date.now() - minutes * 60000).toISOString();
+    const rows = this.db.prepare(`
+      SELECT latency_ms FROM api_latency WHERE timestamp >= ? ORDER BY latency_ms ASC
+    `).all(cutoff) as Array<{ latency_ms: number }>;
+
+    if (rows.length === 0) {
+      return { avg_ms: 0, p50_ms: 0, p95_ms: 0, count: 0, requests_per_min: 0 };
+    }
+
+    const values = rows.map(r => r.latency_ms);
+    const avg_ms = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    const p50_ms = values[Math.floor(values.length * 0.5)];
+    const p95_ms = values[Math.floor(values.length * 0.95)];
+    return {
+      avg_ms,
+      p50_ms,
+      p95_ms,
+      count: values.length,
+      requests_per_min: Math.round((values.length / minutes) * 10) / 10
+    };
   }
 
   // ==================== Performance Correlations ====================

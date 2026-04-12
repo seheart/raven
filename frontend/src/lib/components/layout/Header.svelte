@@ -63,6 +63,7 @@
       { id: 'monitoring', label: 'Agent Monitoring' },
       { id: 'conversations', label: 'Agent Conversations' },
       { id: 'activity', label: 'Session Activity' },
+      { id: 'network', label: 'Network Activity' },
       { id: 'triggers', label: 'Triggers' }
     ],
     system: [

@@ -86,6 +86,8 @@
     'Writing code...',
     'Thinking...'
   ];
+  let processActivity = $state({}); // agentName -> { activity_state, api_connections, ... }
+  let latestApiLatency = $state(null);
 
   // Derived
   const eventsPerMin = $derived.by(() => {
@@ -142,11 +144,21 @@
 
   function markAgentWorking(agentName) {
     workingAgents = new Set([...workingAgents, agentName]);
-    // Cycle working text
+    // Use real activity state if available, otherwise cycle fake text
+    const pa = processActivity[agentName];
+    let text;
+    if (pa && pa.activity_state === 'thinking') {
+      text = `API call in flight${pa.api_connections > 1 ? ` (${pa.api_connections})` : ''}...`;
+    } else if (pa && pa.activity_state === 'executing') {
+      text = 'Executing tools...';
+    } else {
+      const cycle = (workingStates[agentName]?.cycle || 0) + 1;
+      text = workingTexts[cycle % workingTexts.length];
+    }
     const cycle = (workingStates[agentName]?.cycle || 0) + 1;
     workingStates = {
       ...workingStates,
-      [agentName]: { text: workingTexts[cycle % workingTexts.length], cycle }
+      [agentName]: { text, cycle }
     };
     // Update activity level
     activityLevel = Math.min(1, activityLevel + 0.15);
@@ -352,14 +364,16 @@
       const pf = get(projectFilter);
       const pq = pf && pf !== 'all' ? `&project=${encodeURIComponent(pf)}` : '';
       const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-      const [statsData, metricsData, fileEvents, agentData, costsData, subagentsData, agentEventsData] = await Promise.all([
+      const [statsData, metricsData, fileEvents, agentData, costsData, subagentsData, agentEventsData, processActivityData, latencyData] = await Promise.all([
         api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
         api.get('/system-metrics?limit=1').catch(() => []),
         api.get(`/file-events?limit=100${pq}`).catch(() => []),
         api.get('/agents-status').catch(() => []),
         api.get(`/costs/summary?start=${encodeURIComponent(todayStart)}`).catch(() => sessionCosts),
         api.get('/subagents/recent?limit=8').catch(() => []),
-        api.get('/agent-events?limit=300').catch(() => [])
+        api.get('/agent-events?limit=300').catch(() => []),
+        api.get('/process-activity').catch(() => []),
+        api.get('/api-latency?limit=1&minutes=1440').catch(() => null)
       ]);
 
       checkStatChanges(statsData);
@@ -371,6 +385,19 @@
       recentAgentEvents = Array.isArray(agentEventsData) ? agentEventsData : [];
       agents = Array.isArray(agentData) ? agentData : [];
       agentStatus = agents[0] || null;
+
+      // Load process activity states
+      if (Array.isArray(processActivityData)) {
+        const pa = {};
+        for (const p of processActivityData) {
+          pa[p.agent_name] = p;
+        }
+        processActivity = pa;
+      }
+      // Load latest API latency
+      if (latencyData?.recent?.length > 0) {
+        latestApiLatency = latencyData.recent[0];
+      }
 
       lastUpdated = new Date();
       loading = false;
@@ -550,6 +577,19 @@
     websocketService.on('token-usage', handleTokenUsage);
     websocketService.on('subagent-spawn', handleSubagentSpawn);
 
+    const handleProcessActivity = (data) => {
+      processActivity = { ...processActivity, [data.agent_name]: data };
+      // Auto-mark agent as working when it has activity
+      if (data.activity_state === 'thinking' || data.activity_state === 'executing') {
+        markAgentWorking(data.agent_name);
+      }
+    };
+    const handleApiLatencyEvent = (data) => {
+      latestApiLatency = data;
+    };
+    websocketService.on('process-activity', handleProcessActivity);
+    websocketService.on('api-latency', handleApiLatencyEvent);
+
     themeObserver = createThemeObserver(() => createCharts());
 
     // Auto-refresh every 30s
@@ -569,6 +609,8 @@
       websocketService.off('anomaly-insight', handleAnomalyInsight);
       websocketService.off('token-usage', handleTokenUsage);
       websocketService.off('subagent-spawn', handleSubagentSpawn);
+      websocketService.off('process-activity', handleProcessActivity);
+      websocketService.off('api-latency', handleApiLatencyEvent);
       if (themeObserver) themeObserver.disconnect();
       if (trendChart) destroyChart(trendChart);
       clearInterval(interval);
@@ -596,13 +638,27 @@
       </div>
       <div class="flex items-center gap-3">
         {#if agentStatus}
+          {@const pa = Object.values(processActivity)[0]}
           <span class="flex items-center gap-2 text-sm font-mono">
             <span
-              class="w-2 h-2 rounded-full {agentStatus.is_running
-                ? 'bg-[var(--success)] animate-pulse'
-                : 'bg-[var(--muted)]'}"
+              class="w-2 h-2 rounded-full"
+              class:bg-[var(--warning)]={pa?.activity_state === 'thinking'}
+              class:activity-pulse={pa?.activity_state === 'thinking'}
+              class:bg-[var(--success)]={pa?.activity_state === 'executing' || (!pa && agentStatus.is_running)}
+              class:animate-pulse={pa?.activity_state === 'executing' || (!pa && agentStatus.is_running)}
+              class:bg-[var(--muted)]={pa?.activity_state === 'idle' || (!pa && !agentStatus.is_running)}
             ></span>
             <span class="text-[var(--text)]">{agentStatus.agent_name}</span>
+            {#if pa?.activity_state === 'thinking'}
+              <span class="text-[10px] text-[var(--warning)]">API call{pa.api_connections > 1 ? ` (${pa.api_connections})` : ''}</span>
+            {:else if pa?.activity_state === 'executing'}
+              <span class="text-[10px] text-[var(--success)]">Executing</span>
+            {:else if pa}
+              <span class="text-[10px] text-[var(--muted)]">Idle</span>
+            {/if}
+            {#if pa?.network_connections}
+              <span class="text-[9px] text-[var(--muted)]">{pa.network_connections} conn</span>
+            {/if}
           </span>
         {/if}
         <span class="text-xs text-[var(--muted)] font-mono">{formatTime(lastUpdated)}</span>
@@ -696,6 +752,16 @@
         <span class="text-[var(--border)]">|</span>
         <button onclick={() => navigate('/system/errors')} class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0">
           <span class="text-[var(--error)] font-semibold">{stats.app_errors} errors</span>
+        </button>
+      {/if}
+
+      {#if latestApiLatency}
+        <span class="text-[var(--border)]">|</span>
+        <button onclick={() => navigate('/analysis/network')} class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80">
+          <span class="text-[var(--muted)]">API</span>
+          <span class="font-semibold" style="color: {latestApiLatency.latency_ms > 30000 ? 'var(--error)' : latestApiLatency.latency_ms > 10000 ? 'var(--warning)' : 'var(--text)'}">
+            {(latestApiLatency.latency_ms / 1000).toFixed(1)}s
+          </span>
         </button>
       {/if}
 
@@ -810,6 +876,15 @@
 </div>
 
 <style>
+  /* Activity state pulse for "thinking" */
+  @keyframes activity-pulse-kf {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+  .activity-pulse {
+    animation: activity-pulse-kf 1.5s ease-in-out infinite;
+  }
+
   /* Agent breathing animation */
   :global(.agent-breathing) {
     animation: breathe 3s ease-in-out infinite;

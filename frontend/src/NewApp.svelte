@@ -334,6 +334,14 @@
           {:catch}
             <PlaceholderPage title="Session Activity" description="Failed to load" />
           {/await}
+        {:else if activeSubTab === 'network'}
+          {#await import('./lib/pages/ProcessActivityPage.svelte')}
+            <PlaceholderPage title="Network Activity" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Network Activity" description="Failed to load" />
+          {/await}
         {:else}
           <PlaceholderPage
             title="Analysis - {activeSubTab}"

@@ -27,6 +27,7 @@ export class ClaudeLogWatcher {
     this.logWatcher = null;
     this.filePositions = new Map(); // Track read positions in log files
     this.activeProjects = new Map(); // projectPath -> sessionId
+    this.pendingRequests = new Map(); // sessionId -> { startTime, type } for API latency tracking
   }
 
   /**
@@ -319,6 +320,22 @@ export class ClaudeLogWatcher {
         parentUuid: entry.parentUuid || null,
         uuid: entry.uuid || null
       });
+
+      // Compute API latency from pending request
+      const pending = this.pendingRequests.get(projectInfo.sessionId);
+      if (pending) {
+        const latencyMs = new Date(timestamp).getTime() - new Date(pending.startTime).getTime();
+        if (latencyMs > 0 && latencyMs < 600000) { // Sanity: under 10 minutes
+          await this.eventCallback({
+            ...baseEvent,
+            type: 'api_latency',
+            eventCategory: 'api_latency',
+            latency_ms: latencyMs,
+            model: entry.message.model || 'unknown'
+          });
+        }
+        this.pendingRequests.delete(projectInfo.sessionId);
+      }
     }
 
     // Detect sub-agent spawning (tool_use with name "Agent")
@@ -406,6 +423,11 @@ export class ClaudeLogWatcher {
             .join('\n')
             .slice(0, 500),
           eventCategory: 'conversation'
+        });
+        // Track request start time for API latency measurement
+        this.pendingRequests.set(projectInfo.sessionId, {
+          startTime: timestamp,
+          type: 'user_message'
         });
       }
 
