@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { renderMarkdown } from '../utils/markdown.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let config = $state({ autoDiscover: true, basePath: '', projects: [] });
@@ -115,20 +116,6 @@
     } catch (err) {
       healthNarratives = { ...healthNarratives, [projectName]: { loading: false, content: null, error: err.message } };
     }
-  }
-
-  function renderMarkdown(text) {
-    if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/^### (.+)$/gm, '<h4 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h4>')
-      .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-[var(--text-heading)] mt-3 mb-1">$1</h3>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--text-heading)]">$1</strong>')
-      .replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-[var(--bg)] rounded text-[var(--accent)] text-[11px] font-mono">$1</code>')
-      .replace(/^- (.+)$/gm, '<div class="flex gap-2 ml-2"><span class="text-[var(--muted)]">-</span><span>$1</span></div>')
-      .replace(/\n/g, '<br>');
   }
 
   function _formatBytes(bytes) {
@@ -321,8 +308,8 @@
               </div>
               {#if healthNarratives[project.name]?.content}
                 <div class="px-5 pb-4 -mt-2">
-                  <!-- eslint-disable-next-line svelte/no-at-html-tags -- Content is HTML-escaped in renderMarkdown -->
                   <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-sm text-[var(--text)] font-sans leading-relaxed">
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
                     {@html renderMarkdown(healthNarratives[project.name].content)}
                   </div>
                 </div>

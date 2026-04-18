@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
-  import { formatShortDateTime } from '../timeFormat.js';
+  import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let healthReport = $state(null);
@@ -41,10 +41,6 @@
       groups[check.category].push(check);
     }
     return groups;
-  }
-
-  function formatTimestamp(ts) {
-    return formatShortDateTime(ts);
   }
 
   const groupedChecks = $derived(healthReport ? groupByCategory(healthReport.checks) : {});

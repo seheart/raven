@@ -415,9 +415,9 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Statistics</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Performance</h1>
         <p class="text-sm text-[var(--muted)] font-sans">
-          Comprehensive agent statistics and performance metrics
+          Per-agent activity, runtime, and cost breakdown
         </p>
       </div>
       <div class="flex items-center gap-3">

@@ -1,6 +1,6 @@
 <script>
   import { logger } from '../logger.js';
-  import { formatShortDateTime } from '../timeFormat.js';
+  import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
   /**
    * Analysis Performance Page
    * Performance profiling with 3 tabs: Metrics, Trend Charts, Correlations
@@ -225,10 +225,6 @@
     if (value >= threshold.critical) return 'critical';
     if (value >= threshold.warning) return 'warning';
     return 'normal';
-  }
-
-  function formatTimestamp(ts) {
-    return formatShortDateTime(ts);
   }
 
   function formatBytes(bytes) {

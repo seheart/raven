@@ -6,6 +6,14 @@
 import type { Request } from 'express';
 
 /**
+ * Parse any value into an int with fallback. Used for query params.
+ */
+export function safeInt(value: unknown, defaultValue: number): number {
+  const parsed = parseInt(value as string, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
+}
+
+/**
  * Parse pagination limit from query parameters
  * @param req - Express request object
  * @param defaultLimit - Default limit value (default: 100)

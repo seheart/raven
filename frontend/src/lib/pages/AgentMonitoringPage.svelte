@@ -425,7 +425,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Monitoring</h1>
+        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Live Agents</h1>
         <p class="text-sm text-[var(--muted)] font-sans">
           Real-time agent status and activity tracking
         </p>

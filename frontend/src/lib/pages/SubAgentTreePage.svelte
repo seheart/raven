@@ -1,7 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
-  import { formatShortDateTime } from '../timeFormat.js';
+  import { formatShortDateTime as formatTime } from '../timeFormat.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -112,11 +112,6 @@
       'code-reviewer': '#F39C12'
     };
     return colors[type] || '#6b7280';
-  }
-
-  function formatTime(ts) {
-    if (!ts) return '';
-    return formatShortDateTime(ts);
   }
 
   onMount(() => {

@@ -304,19 +304,19 @@
           {/await}
         {:else if activeSubTab === 'stats'}
           {#await import('./lib/pages/AgentStatsPage.svelte')}
-            <PlaceholderPage title="Agent Stats" description="Loading..." />
+            <PlaceholderPage title="Agent Performance" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Agent Stats" description="Failed to load" />
+            <PlaceholderPage title="Agent Performance" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'monitoring'}
           {#await import('./lib/pages/AgentMonitoringPage.svelte')}
-            <PlaceholderPage title="Agent Monitoring" description="Loading..." />
+            <PlaceholderPage title="Live Agents" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Agent Monitoring" description="Failed to load" />
+            <PlaceholderPage title="Live Agents" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'conversations'}
           {#await import('./lib/pages/AgentConversationsPage.svelte')}

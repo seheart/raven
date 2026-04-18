@@ -48,11 +48,6 @@
     }
   }
 
-  function formatTime(ts) {
-    if (!ts) return '';
-    return formatTimeOnly(ts, true);
-  }
-
   function formatDate(ts) {
     if (!ts) return '';
     return formatDateOnly(ts);
@@ -188,7 +183,7 @@
               <div class="flex gap-3 group">
                 <!-- Time -->
                 <div class="text-xs font-mono text-[var(--muted)] w-16 pt-2 flex-shrink-0 text-right">
-                  {formatTime(entry.timestamp)}
+                  {formatTimeOnly(entry.timestamp, true)}
                 </div>
 
                 <!-- Type indicator -->

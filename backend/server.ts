@@ -54,6 +54,10 @@ import { createSubagentsRouter } from './routes/subagents.js';
 import { SelfAnalysisService } from './services/self-analysis.js';
 import { createSelfAnalysisRouter } from './routes/self-analysis.js';
 import { createSessionActivityRouter } from './routes/session-activity.js';
+import { createGitRouter } from './routes/git.js';
+import { createMetricsRouter } from './routes/metrics.js';
+import { createTriggersRouter } from './routes/triggers.js';
+import { safeInt } from './utils/request-helpers.js';
 
 // ==================== Configuration ====================
 
@@ -103,10 +107,6 @@ function isValidTableName(tableName: string): boolean {
  * Safely parse an integer from a query param with a default value.
  * Unlike `parseInt(v) || default`, this correctly handles 0 as a valid value.
  */
-function safeInt(value: unknown, defaultValue: number): number {
-  const parsed = parseInt(value as string, 10);
-  return isNaN(parsed) ? defaultValue : parsed;
-}
 const DB_PATH = join(RAVEN_DIR, 'db', 'raven.db');
 
 // Extract project name - use parent of backend dir (the actual project root)
@@ -943,6 +943,11 @@ app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisServic
 // Mount session activity routes (conversation timeline)
 app.use('/api/session-activity', createSessionActivityRouter());
 
+// Extracted route modules
+app.use('/api/git', createGitRouter(gitMonitor));
+app.use('/api', createMetricsRouter(db));
+app.use('/api', createTriggersRouter(triggerEngine));
+
 // Network info endpoint for mobile access QR code
 app.get('/api/network-info', (_req: Request, res: Response) => {
   const nets = os.networkInterfaces();
@@ -1066,6 +1071,7 @@ app.get('/api/models', cacheMiddleware(5000), (req: Request, res: Response) => {
       FROM agent_events
       GROUP BY agent
       ORDER BY total_events DESC
+      LIMIT 100
     `
       )
       .all() as any[];
@@ -1081,6 +1087,7 @@ app.get('/api/models', cacheMiddleware(5000), (req: Request, res: Response) => {
       FROM events
       WHERE agent_source IS NOT NULL
       GROUP BY agent_source
+      LIMIT 100
     `
       )
       .all() as any[];
@@ -1508,181 +1515,8 @@ app.get(
 
 // ==================== System Metrics ====================
 
-app.get('/api/system-metrics', cacheMiddleware(2000), (req: Request, res: Response) => {
-  try {
-    const limit = safeInt(req.query.limit, 100);
-    const startTime = req.query.start_time as string;
-    const endTime = req.query.end_time as string;
-
-    // Build query with optional time filtering
-    let query = `
-      SELECT id, timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes
-      FROM raven_metrics
-    `;
-    const params: any[] = [];
-
-    if (startTime && endTime) {
-      query += ' WHERE timestamp BETWEEN ? AND ?';
-      params.push(startTime, endTime);
-    } else if (startTime) {
-      query += ' WHERE timestamp >= ?';
-      params.push(startTime);
-    } else if (endTime) {
-      query += ' WHERE timestamp <= ?';
-      params.push(endTime);
-    }
-
-    query += ' ORDER BY timestamp DESC LIMIT ?';
-    params.push(limit);
-
-    const metrics = db.db.prepare(query).all(...params);
-    return res.json(metrics);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/process-metrics/:agent', (req: Request, res: Response) => {
-  try {
-    const { agent } = req.params;
-    const limit = safeInt(req.query.limit, 100);
-    const metrics = db.getProcessMetricsByAgent(agent, limit);
-    return res.json(metrics);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/metrics-stats', (req: Request, res: Response) => {
-  try {
-    const now = Date.now();
-    const dayAgo = now - 24 * 60 * 60 * 1000;
-    const start_time = (req.query.start_time as string) || new Date(dayAgo).toISOString();
-    const end_time = (req.query.end_time as string) || new Date(now).toISOString();
-    const stats = db.getMetricsStats(start_time, end_time);
-    return res.json(stats);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/process-activity', cacheMiddleware(2000), (_req: Request, res: Response) => {
-  try {
-    const activity = db.getLatestProcessActivity();
-    return res.json(activity);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/api-latency', cacheMiddleware(2000), (req: Request, res: Response) => {
-  try {
-    const limit = safeInt(req.query.limit, 100);
-    const minutes = safeInt(req.query.minutes, 60);
-    const recent = db.getRecentApiLatency(limit);
-    const stats = db.getApiLatencyStats(minutes);
-    return res.json({ recent, stats });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/performance-correlations', cacheMiddleware(10000), (req: Request, res: Response) => {
-  try {
-    const time_window_seconds = safeInt(req.query.time_window_seconds, 5);
-    const correlations = db.correlateEventsWithMetrics(time_window_seconds);
-    return res.json(correlations);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// ==================== Git ====================
-
-app.get('/api/git/status', async (req: Request, res: Response) => {
-  try {
-    const status = await gitMonitor.checkStatus();
-    return res.json(status || gitMonitor.getLastStatus());
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/git/diff', async (req: Request, res: Response) => {
-  try {
-    const diff = await gitMonitor.getUncommittedDiff();
-    return res.json({ diff });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/git/branches', async (req: Request, res: Response) => {
-  try {
-    const branches = await gitMonitor.getBranches();
-    return res.json({ branches });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/git/history', async (req: Request, res: Response) => {
-  try {
-    const limit = safeInt(req.query.limit, 10);
-    const commits = await gitMonitor.getCommitHistory(limit);
-    return res.json({ commits });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// ==================== Triggers ====================
-
-app.get('/api/triggers-config', (req: Request, res: Response) => {
-  try {
-    const triggers = triggerEngine.getTriggersConfig();
-    return res.json({ rules: triggers });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/triggered-events', (req: Request, res: Response) => {
-  try {
-    const limit = safeInt(req.query.limit, 100);
-    const events = triggerEngine.getTriggeredEvents(limit);
-    return res.json(events);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/triggers-reload', (req: Request, res: Response) => {
-  try {
-    const message = triggerEngine.reloadConfig();
-    return res.json({ message });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/trigger-stats', (req: Request, res: Response) => {
-  try {
-    const stats = triggerEngine.getTriggerStats();
-    return res.json(stats);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/triggers-clear-cooldowns', (req: Request, res: Response) => {
-  try {
-    const message = triggerEngine.clearCooldowns();
-    return res.json({ message });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
+// Metrics, Git, and Triggers routes are now in their own modules
+// (see app.use calls further up)
 
 // ==================== Telemetry ====================
 
