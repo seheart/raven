@@ -251,7 +251,7 @@
       </div>
 
       <!-- Backend Details -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
           <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
             Server Details

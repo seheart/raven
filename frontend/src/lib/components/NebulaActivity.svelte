@@ -345,7 +345,7 @@
   ></canvas>
   <div class="absolute top-3 left-4 pointer-events-none">
     <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
-      >AI Activity</span
+      >AI Pulse</span
     >
     <span class="text-[9px] text-[var(--muted)] font-mono ml-2">{statusText}</span>
   </div>

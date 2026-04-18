@@ -620,7 +620,7 @@
           </button>
         </div>
         {#if showCharts}
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
               <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Event Type Distribution</h4>
               <div class="h-[250px] relative">

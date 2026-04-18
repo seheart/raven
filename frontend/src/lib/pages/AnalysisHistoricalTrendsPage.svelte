@@ -516,7 +516,7 @@
         </div>
 
         {#if showCharts}
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Trends Over Time Chart -->
             <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4">
               <div role="img" aria-label={trendsOverTimeAriaLabel} style="height: 250px;">

@@ -664,14 +664,14 @@
       </div>
     </div>
 
-    <!-- Live Feed + AI Activity -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
+    <!-- Event Feed + AI Pulse -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
       <div
         class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex flex-col min-h-0"
       >
         <div class="flex justify-between items-center mb-3">
           <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
-            Live Activity
+            Event Feed
           </h3>
           <span class="flex items-center gap-1.5 text-[10px] text-[var(--success)] font-mono">
             <span class="w-1.5 h-1.5 bg-[var(--success)] rounded-full animate-pulse"></span>
@@ -720,7 +720,7 @@
           {/if}
         </div>
       </div>
-      <div class="lg:col-span-2">
+      <div class="md:col-span-2">
         <NebulaActivity />
       </div>
     </div>
@@ -833,7 +833,7 @@
 
       <!-- Activity Trend -->
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex flex-col min-h-0">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1 flex-shrink-0">Activity (5m)</h3>
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1 flex-shrink-0">Event Rate (5m)</h3>
         <div class="flex-1 min-h-0">
           <canvas id="chart-trend"></canvas>
         </div>
