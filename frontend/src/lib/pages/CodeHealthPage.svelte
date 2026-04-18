@@ -8,9 +8,9 @@
   let data = $state({ latest: null, history: [], is_running: false });
   let loading = $state(true);
   let triggering = $state(false);
-  let lastUpdated = $state(null);
   let expandedCheck = $state(null);
   let selectedRun = $state(null);
+  let copyStatus = $state('');
 
   // Live progress tracking
   let progress = $state(null); // { checkIndex, totalChecks, currentCheck }
@@ -37,15 +37,6 @@
     const remaining = Math.max(0, estimatedTotal - elapsed);
 
     return { elapsed, remaining: Math.round(remaining), total: Math.round(estimatedTotal) };
-  });
-
-  const timeAgo = $derived.by(() => {
-    if (!lastUpdated) return 'Just now';
-    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-    if (seconds < 10) return 'Just now';
-    if (seconds < 60) return `${seconds}s ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    return `${Math.floor(seconds / 3600)}h ago`;
   });
 
   // The run to display — either selected from history or latest
@@ -81,7 +72,6 @@
       loading = true;
       const result = await api.get('/analysis/code-health');
       data = result;
-      lastUpdated = new Date();
       // Sync triggering state with server — if server says not running, stop showing progress
       if (!result.is_running && triggering) {
         triggering = false;
@@ -141,7 +131,6 @@
           analysisStartTime = null;
           clearInterval(elapsedInterval);
           selectedRun = null;
-          lastUpdated = new Date();
         }
       } catch {
         clearInterval(interval);
@@ -200,6 +189,45 @@
     expandedCheck = expandedCheck === checkId ? null : checkId;
   }
 
+  const issueCount = $derived(
+    (displayRun?.failed_checks || 0) + (displayRun?.warned_checks || 0)
+  );
+
+  function buildIssuesText() {
+    if (!displayRun?.checks) return '';
+    const issues = displayRun.checks.filter((c) => c.status !== 'pass');
+    if (!issues.length) return '';
+    const header = [
+      `Raven Code Health — ${formatTimestamp(displayRun.timestamp)}`,
+      `Overall: ${displayRun.overall_score} (${displayRun.passed_checks}/${displayRun.total_checks} passed, ${displayRun.warned_checks} warn, ${displayRun.failed_checks} fail)`,
+      ''
+    ].join('\n');
+    const body = issues
+      .map((c) => {
+        const tag = c.status === 'fail' ? 'FAIL' : 'WARN';
+        const out = (c.output || '').trim();
+        return `[${tag}] ${c.name}: ${c.summary || ''}\n${out}`;
+      })
+      .join('\n\n');
+    return header + body;
+  }
+
+  async function copyIssues() {
+    const text = buildIssuesText();
+    if (!text) {
+      copyStatus = 'No issues';
+      setTimeout(() => (copyStatus = ''), 1500);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      copyStatus = 'Copied!';
+    } catch {
+      copyStatus = 'Copy failed';
+    }
+    setTimeout(() => (copyStatus = ''), 1500);
+  }
+
   onMount(() => {
     loadData();
 
@@ -237,6 +265,15 @@
         <p class="text-sm text-[var(--muted)] font-sans">On-demand analysis — click Run Now to check</p>
       </div>
       <div class="flex items-center gap-3">
+        {#if displayRun && issueCount > 0}
+          <button
+            onclick={copyIssues}
+            title="Copy issues to clipboard"
+            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          >
+            {copyStatus || `Copy Issues (${issueCount})`}
+          </button>
+        {/if}
         <button
           onclick={loadData}
           disabled={loading}

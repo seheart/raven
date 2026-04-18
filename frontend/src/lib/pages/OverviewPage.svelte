@@ -193,14 +193,6 @@
     return agentColors[name] || 'var(--muted)';
   }
 
-  // Heartbeat SVG path for agents
-  function heartbeatPath(state) {
-    if (state === 'working')
-      return 'M0,15 L8,15 L10,5 L12,25 L14,10 L16,20 L18,15 L26,15 L28,5 L30,25 L32,10 L34,20 L36,15 L44,15';
-    if (state === 'running') return 'M0,15 L15,15 L17,8 L19,22 L21,15 L44,15';
-    return 'M0,15 L44,15'; // flatline
-  }
-
   // Flash stat on change — single timeout clears all, no race condition
   function checkStatChanges(newStats) {
     const flashes = {};

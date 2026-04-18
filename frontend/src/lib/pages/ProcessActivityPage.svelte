@@ -52,7 +52,7 @@
       latencyStats = latencyRes?.stats || latencyStats;
       lastUpdated = new Date();
       buildLatencyChart();
-    } catch (err) {
+    } catch {
       // ignore fetch errors
     } finally {
       loading = false;
@@ -177,7 +177,7 @@
 
   <!-- Agent Activity Cards -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-    {#each agents as agent}
+    {#each agents as agent (agent.agent_name)}
       <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
@@ -241,7 +241,7 @@
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-[11px] font-semibold text-[var(--text)]">API Latency</h2>
       <div class="flex gap-1">
-        {#each ['15m', '1h', '6h', '24h'] as range}
+        {#each ['15m', '1h', '6h', '24h'] as range (range)}
           <button
             onclick={() => { chartTimeRange = range; loadData(); }}
             class="px-1.5 py-0.5 text-[8px] rounded transition-colors"
@@ -300,7 +300,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each latencyData.slice(-20).reverse() as entry}
+          {#each latencyData.slice(-20).reverse() as entry (entry.timestamp)}
             <tr class="border-b border-[var(--border)] border-opacity-30 hover:bg-[var(--bg)]">
               <td class="py-1 pr-4 text-[var(--muted)]">{new Date(entry.timestamp).toLocaleTimeString()}</td>
               <td class="py-1 pr-4 text-[var(--text)]">{entry.model || 'unknown'}</td>

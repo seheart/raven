@@ -63,14 +63,6 @@
     return formatShortDateTime(ts);
   }
 
-  function typeIcon(type) {
-    if (type === 'user') return '\u{1F464}';
-    if (type === 'assistant') return '\u{1F916}';
-    if (type === 'tool') return '\u{1F527}';
-    if (type === 'subagent') return '\u{1F4E6}';
-    return '\u2022';
-  }
-
   function typeColor(type) {
     if (type === 'user') return 'var(--accent)';
     if (type === 'assistant') return 'var(--success)';

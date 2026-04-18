@@ -28,7 +28,7 @@ const KNOWN_AI_ENDPOINTS = [
   'api.anthropic.com',
   'api.openai.com',
   'generativelanguage.googleapis.com',
-  'api.mistral.ai',
+  'api.mistral.ai'
 ];
 
 export class MetricsCollector {
@@ -134,7 +134,9 @@ export class MetricsCollector {
     }
     this.aiEndpointIPs = ips;
     if (ips.size > 0) {
-      logger.info(`🌐 Resolved ${ips.size} AI endpoint IPs from ${KNOWN_AI_ENDPOINTS.length} hostnames`);
+      logger.info(
+        `🌐 Resolved ${ips.size} AI endpoint IPs from ${KNOWN_AI_ENDPOINTS.length} hostnames`
+      );
     }
   }
 
@@ -155,10 +157,7 @@ export class MetricsCollector {
       if (!pids.has(conn.pid)) continue;
       const info = result.get(conn.pid)!;
       info.totalConnections++;
-      if (
-        conn.state === 'ESTABLISHED' &&
-        this.aiEndpointIPs.has(conn.peerAddress)
-      ) {
+      if (conn.state === 'ESTABLISHED' && this.aiEndpointIPs.has(conn.peerAddress)) {
         info.apiConnections++;
       }
     }
@@ -169,7 +168,9 @@ export class MetricsCollector {
   /**
    * Read Linux /proc details for a process
    */
-  private async getLinuxProcessDetails(pid: number): Promise<{ threadCount: number; fdCount: number }> {
+  private async getLinuxProcessDetails(
+    pid: number
+  ): Promise<{ threadCount: number; fdCount: number }> {
     try {
       // Thread count from /proc/<pid>/stat field 20 (1-indexed)
       let threadCount = 0;
@@ -179,14 +180,18 @@ export class MetricsCollector {
         const afterComm = stat.slice(stat.lastIndexOf(')') + 2);
         const fields = afterComm.split(' ');
         threadCount = parseInt(fields[17], 10) || 0; // field 20 is index 17 after comm extraction
-      } catch { /* process may have exited */ }
+      } catch {
+        /* process may have exited */
+      }
 
       // FD count from /proc/<pid>/fd
       let fdCount = 0;
       try {
         const fds = await fs.readdir(`/proc/${pid}/fd`);
         fdCount = fds.length;
-      } catch { /* permission or process exit */ }
+      } catch {
+        /* permission or process exit */
+      }
 
       return { threadCount, fdCount };
     } catch {
@@ -208,10 +213,7 @@ export class MetricsCollector {
    */
   private async collectProcessMetrics(): Promise<void> {
     try {
-      const [processes, connections] = await Promise.all([
-        si.processes(),
-        si.networkConnections()
-      ]);
+      const [processes, connections] = await Promise.all([si.processes(), si.networkConnections()]);
 
       // Collect all matched agent PIDs first
       const matchedAgents: Array<{
@@ -307,9 +309,12 @@ export class MetricsCollector {
     });
 
     // Refresh DNS every 5 minutes
-    this.dnsRefreshInterval = setInterval(() => {
-      this.resolveEndpointIPs().catch(() => {});
-    }, 5 * 60 * 1000);
+    this.dnsRefreshInterval = setInterval(
+      () => {
+        this.resolveEndpointIPs().catch(() => {});
+      },
+      5 * 60 * 1000
+    );
     this.dnsRefreshInterval.unref();
 
     // Start system metrics collection via TelemetryCollector

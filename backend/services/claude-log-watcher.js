@@ -325,7 +325,8 @@ export class ClaudeLogWatcher {
       const pending = this.pendingRequests.get(projectInfo.sessionId);
       if (pending) {
         const latencyMs = new Date(timestamp).getTime() - new Date(pending.startTime).getTime();
-        if (latencyMs > 0 && latencyMs < 600000) { // Sanity: under 10 minutes
+        if (latencyMs > 0 && latencyMs < 600000) {
+          // Sanity: under 10 minutes
           await this.eventCallback({
             ...baseEvent,
             type: 'api_latency',

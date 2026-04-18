@@ -292,14 +292,16 @@ export class RavenDB {
     `);
 
     // Migrate existing databases: add network/activity columns to process_metrics
-    const pmCols = this.db.prepare('PRAGMA table_info(process_metrics)').all() as Array<{ name: string }>;
+    const pmCols = this.db.prepare('PRAGMA table_info(process_metrics)').all() as Array<{
+      name: string;
+    }>;
     const pmColNames = new Set(pmCols.map(c => c.name));
     const newPmCols: Array<[string, string]> = [
       ['network_connections', 'INTEGER DEFAULT 0'],
       ['api_connections', 'INTEGER DEFAULT 0'],
       ['thread_count', 'INTEGER DEFAULT 0'],
       ['fd_count', 'INTEGER DEFAULT 0'],
-      ['activity_state', "TEXT DEFAULT 'unknown'"],
+      ['activity_state', "TEXT DEFAULT 'unknown'"]
     ];
     for (const [name, def] of newPmCols) {
       if (!pmColNames.has(name)) {
@@ -318,7 +320,9 @@ export class RavenDB {
         latency_ms INTEGER NOT NULL
       )
     `);
-    this.db.exec('CREATE INDEX IF NOT EXISTS idx_api_latency_timestamp ON api_latency(timestamp DESC)');
+    this.db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_api_latency_timestamp ON api_latency(timestamp DESC)'
+    );
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_api_latency_session ON api_latency(session_id)');
 
     // Syntax errors table
@@ -947,7 +951,13 @@ export class RavenDB {
       INSERT INTO api_latency (timestamp, session_id, project_name, model, latency_ms)
       VALUES (?, ?, ?, ?, ?)
     `);
-    const result = stmt.run(timestamp, session_id || null, project_name || null, model || null, latency_ms);
+    const result = stmt.run(
+      timestamp,
+      session_id || null,
+      project_name || null,
+      model || null,
+      latency_ms
+    );
     return Number(result.lastInsertRowid);
   }
 
@@ -961,11 +971,21 @@ export class RavenDB {
     return stmt.all(limit) as ApiLatency[];
   }
 
-  getApiLatencyStats(minutes: number = 60): { avg_ms: number; p50_ms: number; p95_ms: number; count: number; requests_per_min: number } {
+  getApiLatencyStats(minutes: number = 60): {
+    avg_ms: number;
+    p50_ms: number;
+    p95_ms: number;
+    count: number;
+    requests_per_min: number;
+  } {
     const cutoff = new Date(Date.now() - minutes * 60000).toISOString();
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(
+        `
       SELECT latency_ms FROM api_latency WHERE timestamp >= ? ORDER BY latency_ms ASC
-    `).all(cutoff) as Array<{ latency_ms: number }>;
+    `
+      )
+      .all(cutoff) as Array<{ latency_ms: number }>;
 
     if (rows.length === 0) {
       return { avg_ms: 0, p50_ms: 0, p95_ms: 0, count: 0, requests_per_min: 0 };
