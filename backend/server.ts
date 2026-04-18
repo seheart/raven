@@ -200,15 +200,37 @@ function runRetentionCleanup() {
   }
 }
 
-// Run immediately on startup
-runRetentionCleanup();
+/**
+ * Schedule `fn` to run once per day at the given hour (0-23). Re-arms itself
+ * after each fire. Returned timer is unref'd so it won't block shutdown.
+ */
+function scheduleDaily(targetHour: number, fn: () => void): NodeJS.Timeout {
+  const msUntilNext = () => {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(targetHour, 0, 0, 0);
+    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    return next.getTime() - now.getTime();
+  };
+  let timer: NodeJS.Timeout;
+  const arm = () => {
+    timer = setTimeout(() => {
+      try {
+        fn();
+      } catch (err: any) {
+        logger.error(`scheduleDaily task failed: ${err?.message}`);
+      }
+      arm();
+    }, msUntilNext());
+    timer.unref();
+  };
+  arm();
+  return timer!;
+}
 
-// Schedule nightly at 3 AM
-const retentionInterval = setInterval(() => {
-  const hour = new Date().getHours();
-  if (hour === 3) runRetentionCleanup();
-}, 3600000); // check hourly
-retentionInterval.unref();
+// Run retention immediately on startup, then nightly at 3 AM
+runRetentionCleanup();
+scheduleDaily(3, runRetentionCleanup);
 
 // Set up health alert handler to emit via WebSocket
 healthMonitor.onAlert(report => {
@@ -249,29 +271,26 @@ healthMonitor.onAlert(report => {
   }
 });
 
-// Daily digest scheduler — checks hourly, generates at 6PM if no digest exists today
-setInterval(async () => {
-  const hour = new Date().getHours();
-  if (hour >= 18 && hour < 19) {
-    const today = new Date().toISOString().split('T')[0];
-    const existing = insightsService.getInsights('daily_digest', 1);
-    if (existing.length > 0 && existing[0].timestamp.startsWith(today)) {
-      return; // Already generated today
-    }
-    insightsService
-      .generateDailyDigest()
-      .then(insight => {
-        if (insight) {
-          io.emit('daily-digest', {
-            id: insight.id,
-            title: insight.title,
-            timestamp: insight.timestamp
-          });
-        }
-      })
-      .catch(() => {});
+// Daily digest — generate at 6 PM if today's hasn't been made yet
+scheduleDaily(18, () => {
+  const today = new Date().toISOString().split('T')[0];
+  const existing = insightsService.getInsights('daily_digest', 1);
+  if (existing.length > 0 && existing[0].timestamp.startsWith(today)) {
+    return; // Already generated today
   }
-}, 3600000); // Every hour
+  insightsService
+    .generateDailyDigest()
+    .then(insight => {
+      if (insight) {
+        io.emit('daily-digest', {
+          id: insight.id,
+          title: insight.title,
+          timestamp: insight.timestamp
+        });
+      }
+    })
+    .catch(() => {});
+});
 
 // Initialize Claude Code log watcher for automatic agent detection
 const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
@@ -3263,18 +3282,6 @@ app.get('/api/files/:filepath/history', (req: Request, res: Response) => {
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
-});
-
-app.post('/api/notifications/:id/read', (req: Request, res: Response) => {
-  return res.json({ success: true });
-});
-
-app.post('/api/notifications/mark-all-read', (req: Request, res: Response) => {
-  return res.json({ success: true });
-});
-
-app.delete('/api/notifications/:id', (req: Request, res: Response) => {
-  return res.json({ success: true });
 });
 
 // ==================== All Agent Events ====================

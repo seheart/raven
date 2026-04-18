@@ -517,6 +517,9 @@ export class RavenDB {
       `CREATE INDEX IF NOT EXISTS idx_agent_events_session_id ON agent_events(session_id)`
     );
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_agent_events_type ON agent_events(event_type)`);
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_agent_events_session_file ON agent_events(session_id, file)`
+    );
 
     // Metrics table indexes
     this.db.exec(
@@ -1057,36 +1060,19 @@ export class RavenDB {
   // ==================== Dashboard Statistics ====================
 
   getTopModifiedFiles(session_id: string, limit: number = 10): FileStats[] {
-    const events = this.getAgentEventsBySession(session_id);
-
-    // Count edits per file
-    const fileStats: Record<string, FileStats> = {};
-
-    for (const event of events) {
-      if (event.filepath) {
-        if (!fileStats[event.filepath]) {
-          fileStats[event.filepath] = {
-            filepath: event.filepath,
-            edit_count: 0,
-            total_lines_changed: event.lines_changed || 0,
-            last_modified: event.timestamp
-          };
-        }
-
-        fileStats[event.filepath].edit_count++;
-        fileStats[event.filepath].total_lines_changed += event.lines_changed || 0;
-
-        // Update last modified
-        if (event.timestamp > fileStats[event.filepath].last_modified) {
-          fileStats[event.filepath].last_modified = event.timestamp;
-        }
-      }
-    }
-
-    // Convert to array and sort
-    return Object.values(fileStats)
-      .sort((a, b) => b.edit_count - a.edit_count)
-      .slice(0, limit);
+    const stmt = this.db.prepare(`
+      SELECT
+        file as filepath,
+        COUNT(*) as edit_count,
+        COALESCE(SUM(lines_changed), 0) as total_lines_changed,
+        MAX(timestamp) as last_modified
+      FROM agent_events
+      WHERE session_id = ? AND file IS NOT NULL
+      GROUP BY file
+      ORDER BY edit_count DESC
+      LIMIT ?
+    `);
+    return stmt.all(session_id, limit) as FileStats[];
   }
 
   getLongestEdits(limit: number = 10): any[] {
