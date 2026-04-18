@@ -57,7 +57,9 @@ import { createSessionActivityRouter } from './routes/session-activity.js';
 import { createGitRouter } from './routes/git.js';
 import { createMetricsRouter } from './routes/metrics.js';
 import { createTriggersRouter } from './routes/triggers.js';
+import { createOllamaProxyRouter } from './routes/ollama-proxy.js';
 import { safeInt } from './utils/request-helpers.js';
+import { getAgentColor } from './utils/agent-colors.js';
 
 // ==================== Configuration ====================
 
@@ -535,34 +537,6 @@ interface AgentInfo {
 const agentRegistry = new Map<string, AgentInfo>();
 let processCheckTimer: ReturnType<typeof setInterval> | null = null;
 
-const AGENT_COLORS: Record<string, string> = {
-  claude: '#FF6B35',
-  gpt: '#10A37F',
-  gemini: '#4285F4',
-  ollama: '#F39C12',
-  llama: '#8B5CF6',
-  mistral: '#E11D48',
-  codellama: '#7C3AED',
-  deepseek: '#0EA5E9',
-  qwen: '#14B8A6',
-  phi: '#6366F1',
-  starcoder: '#D97706',
-  'lm-studio': '#22C55E',
-  'local-model': '#A855F7',
-  aider: '#8B5CF6',
-  cursor: '#10B981',
-  copilot: '#0EA5E9',
-  default: '#6b7280'
-};
-
-function getAgentColor(agentName: string): string {
-  const lowerName = agentName.toLowerCase();
-  for (const [key, color] of Object.entries(AGENT_COLORS)) {
-    if (lowerName.includes(key)) return color;
-  }
-  return AGENT_COLORS.default;
-}
-
 // ==================== EventBus Listeners ====================
 
 /**
@@ -947,6 +921,10 @@ app.use('/api/session-activity', createSessionActivityRouter());
 app.use('/api/git', createGitRouter(gitMonitor));
 app.use('/api', createMetricsRouter(db));
 app.use('/api', createTriggersRouter(triggerEngine));
+app.use(
+  '/ollama',
+  createOllamaProxyRouter({ db, io, logger, sessionId: SESSION_ID, agentRegistry })
+);
 
 // Network info endpoint for mobile access QR code
 app.get('/api/network-info', (_req: Request, res: Response) => {
@@ -1149,230 +1127,6 @@ app.get('/api/models', cacheMiddleware(5000), (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Error getting model stats:', error);
     return res.status(500).json({ error: 'Failed to get model stats' });
-  }
-});
-
-// ==================== Ollama Proxy ====================
-// Forward requests to Ollama while logging telemetry to Raven.
-// Tools point to http://localhost:9100/ollama instead of http://localhost:11434
-
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-
-// Rate limiter for ollama inference endpoints — prevent flooding the GPU
-const ollamaInferenceLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // 10 inference requests per minute
-  message: { error: 'Ollama rate limit exceeded — max 10 inference requests per minute' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req: Request) => {
-    // Only limit inference endpoints, not health checks like /api/tags
-    const path = req.path.replace('/ollama', '');
-    return path !== '/api/generate' && path !== '/api/chat';
-  }
-});
-
-app.all('/ollama/*', ollamaInferenceLimiter, async (req: Request, res: Response): Promise<any> => {
-  const ollamaPath = req.path.replace('/ollama', '');
-  const targetUrl = `${OLLAMA_URL}${ollamaPath}`;
-  const startTime = Date.now();
-
-  try {
-    // Forward the request to Ollama
-    const fetchOptions: RequestInit = {
-      method: req.method,
-      headers: { 'Content-Type': 'application/json' }
-    };
-
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      fetchOptions.body = JSON.stringify(req.body);
-    }
-
-    const ollamaResponse = await fetch(targetUrl, fetchOptions);
-    const isStreaming =
-      req.body?.stream !== false && (ollamaPath === '/api/generate' || ollamaPath === '/api/chat');
-
-    if (isStreaming && ollamaResponse.body) {
-      // Stream response back to client while capturing telemetry
-      res.setHeader('Content-Type', 'application/x-ndjson');
-      res.setHeader('Transfer-Encoding', 'chunked');
-
-      const reader = ollamaResponse.body.getReader();
-      const decoder = new TextDecoder();
-      let modelName = req.body?.model || 'unknown';
-      let totalTokens = 0;
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-
-          // Write to client — if client disconnected, stop reading
-          try {
-            res.write(chunk);
-          } catch {
-            break;
-          }
-
-          // Parse NDJSON lines to extract token counts (only the final line has totals)
-          for (const line of chunk.split('\n').filter(Boolean)) {
-            try {
-              const parsed = JSON.parse(line);
-              if (parsed.done && parsed.total_duration) {
-                totalTokens = (parsed.prompt_eval_count || 0) + (parsed.eval_count || 0);
-              }
-            } catch {
-              // Partial JSON, skip
-            }
-          }
-        }
-      } catch (readError: any) {
-        logger.warn(`Ollama stream interrupted: ${readError.message}`);
-      } finally {
-        try {
-          reader.cancel();
-        } catch {
-          /* already closed */
-        }
-        try {
-          res.end();
-        } catch {
-          /* already ended */
-        }
-      }
-
-      // Log telemetry after stream completes
-      const durationMs = Date.now() - startTime;
-      db.insertAgentEvent(
-        new Date().toISOString(),
-        modelName,
-        'inference',
-        null,
-        null,
-        durationMs,
-        `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${totalTokens} tokens)`,
-        {
-          model: modelName,
-          tokens: totalTokens,
-          endpoint: ollamaPath,
-          prompt_preview:
-            typeof req.body?.prompt === 'string' ? req.body.prompt.substring(0, 100) : undefined
-        },
-        SESSION_ID,
-        null
-      );
-
-      // Update agent registry
-      if (!agentRegistry.has(modelName)) {
-        agentRegistry.set(modelName, {
-          agent_name: modelName,
-          agent_type: 'ollama',
-          is_running: true,
-          last_seen: new Date().toISOString(),
-          models_available: [modelName],
-          requests_handled: 1,
-          errors: 0,
-          color: getAgentColor(modelName)
-        });
-      } else {
-        const agent = agentRegistry.get(modelName)!;
-        agent.requests_handled++;
-        agent.last_seen = new Date().toISOString();
-        agent.is_running = true;
-      }
-
-      // Emit to WebSocket
-      io.emit('agent-event', {
-        type: 'inference',
-        agent_name: modelName,
-        duration_ms: durationMs,
-        tokens: totalTokens,
-        timestamp: new Date().toISOString()
-      });
-
-      logger.info(`🤖 Ollama ${modelName}: ${ollamaPath} (${totalTokens} tokens, ${durationMs}ms)`);
-    } else {
-      // Non-streaming: forward response directly
-      const data = await ollamaResponse.text();
-      res.status(ollamaResponse.status).send(data);
-
-      const durationMs = Date.now() - startTime;
-      const modelName = req.body?.model || 'Ollama';
-
-      // Log inference for generate/chat endpoints
-      if (ollamaPath === '/api/generate' || ollamaPath === '/api/chat') {
-        let tokens = 0;
-        try {
-          const parsed = JSON.parse(data);
-          tokens = (parsed.prompt_eval_count || 0) + (parsed.eval_count || 0);
-        } catch {
-          /* not JSON */
-        }
-
-        db.insertAgentEvent(
-          new Date().toISOString(),
-          modelName,
-          'inference',
-          null,
-          null,
-          durationMs,
-          `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${tokens} tokens)`,
-          { model: modelName, tokens, endpoint: ollamaPath },
-          SESSION_ID,
-          null
-        );
-
-        // Update agent registry
-        if (!agentRegistry.has(modelName)) {
-          agentRegistry.set(modelName, {
-            agent_name: modelName,
-            agent_type: 'ollama',
-            is_running: true,
-            last_seen: new Date().toISOString(),
-            models_available: [modelName],
-            requests_handled: 1,
-            errors: 0,
-            color: getAgentColor(modelName)
-          });
-        } else {
-          const agent = agentRegistry.get(modelName)!;
-          agent.requests_handled++;
-          agent.last_seen = new Date().toISOString();
-        }
-
-        io.emit('agent-event', {
-          type: 'inference',
-          agent_name: modelName,
-          duration_ms: durationMs,
-          tokens,
-          timestamp: new Date().toISOString()
-        });
-
-        logger.info(`🤖 Ollama ${modelName}: ${ollamaPath} (${tokens} tokens, ${durationMs}ms)`);
-      } else if (ollamaPath !== '/api/tags' && ollamaPath !== '/') {
-        // Log other API calls
-        db.insertAgentEvent(
-          new Date().toISOString(),
-          modelName,
-          'api_call',
-          null,
-          null,
-          durationMs,
-          `Ollama API: ${req.method} ${ollamaPath}`,
-          { endpoint: ollamaPath, method: req.method },
-          SESSION_ID,
-          null
-        );
-      }
-    }
-  } catch (error: any) {
-    logger.error(`Ollama proxy error: ${error.message}`);
-    return res.status(502).json({
-      error: 'Ollama not reachable',
-      message: `Could not connect to ${OLLAMA_URL}. Is Ollama running?`
-    });
   }
 });
 
