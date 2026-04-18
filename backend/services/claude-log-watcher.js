@@ -253,25 +253,30 @@ export class ClaudeLogWatcher {
         fs.closeSync(fd);
       }
 
-      // Parse new lines — only advance position past successfully parsed content
-      const newContent = buffer.toString('utf8');
-      const lines = newContent.split('\n');
-      let bytesConsumed = 0;
+      // Parse new lines. Only consider complete lines (terminated by '\n'); any
+      // trailing unterminated bytes are an in-flight write and will be re-read
+      // on the next change event.
+      const lastNewline = buffer.lastIndexOf(0x0a); // '\n'
+      if (lastNewline === -1) {
+        // No complete line yet — wait for more data
+        return;
+      }
+      const completeSlice = buffer.slice(0, lastNewline + 1);
+      const completeBytes = completeSlice.length;
+      const lines = completeSlice.toString('utf8').split('\n');
+      // Last element is '' after the final '\n' — ignore it.
+      lines.pop();
 
       for (const line of lines) {
-        const lineBytes = Buffer.byteLength(line, 'utf8') + 1; // +1 for newline
-        if (!line.trim()) {
-          bytesConsumed += lineBytes;
-          continue;
-        }
+        if (!line.trim()) continue;
         let entry;
         try {
           entry = JSON.parse(line);
         } catch (_err) {
-          // Incomplete JSON — stop here, retry on next change
-          break;
+          // Corrupt/partial line in the middle of completed lines — skip it
+          // rather than stalling. Position still advances past all complete bytes.
+          continue;
         }
-        bytesConsumed += lineBytes;
         try {
           await this.processLogEntry(entry, filepath);
         } catch (err) {
@@ -279,8 +284,7 @@ export class ClaudeLogWatcher {
         }
       }
 
-      // Only advance position past successfully parsed lines
-      this.filePositions.set(filepath, lastPosition + bytesConsumed);
+      this.filePositions.set(filepath, lastPosition + completeBytes);
     } catch (err) {
       this.logger.error(`Error processing log file ${filepath}: ${err.message}`);
     }
