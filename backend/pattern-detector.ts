@@ -18,14 +18,14 @@ export interface Pattern {
   category: 'security' | 'quality' | 'performance' | 'maintenance';
 }
 
-export interface PatternMatch {
+interface PatternMatch {
   pattern: Pattern;
   line: number;
   match: string;
   context: string;
 }
 
-export interface DetectionResult {
+interface DetectionResult {
   filepath: string;
   matches: PatternMatch[];
   hasIssues: boolean;
@@ -68,7 +68,7 @@ const PATTERNS: Pattern[] = [
   }
 ];
 
-export class PatternDetector {
+class PatternDetector {
   private patterns: Pattern[];
 
   constructor(customPatterns: Pattern[] = []) {

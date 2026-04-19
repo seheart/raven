@@ -1,6 +1,5 @@
 import { logger } from './logger.js';
 import { notifications } from './notificationService.js';
-import { authService } from './authStore.js';
 import { logError } from './errorLogger.js';
 import { API_CONFIG } from '../config.js';
 import { websocketService } from './services/websocket.js';
@@ -12,39 +11,28 @@ let lastTimeoutNotification = 0;
 let lastApiErrorNotification = 0;
 const NOTIFICATION_COOLDOWN = 5000; // 5s between error toasts
 
+// When the self-analysis run is active, the backend is intentionally under heavy
+// CPU load (build, tests, lint) and routine polls will time out or hit 503s.
+// Those failures are expected and transient — we suppress their toasts so the
+// screen doesn't fill with error popups during the ~80-second analysis window.
+let analysisRunning = false;
+websocketService.on('analysis-progress', progress => {
+  analysisRunning = progress?.currentCheck !== 'Done';
+});
+
 /**
- * Enhanced fetch wrapper with automatic error notifications, JWT authentication, and timeouts
+ * Enhanced fetch wrapper with automatic error notifications and timeouts
  *
  * @param {string} endpoint - API endpoint (relative path or full URL)
  * @param {Object} [options={}] - Fetch options
  * @param {string} [options.method='GET'] - HTTP method (GET, POST, PUT, DELETE)
- * @param {Object} [options.headers] - Additional headers (Authorization header added automatically)
+ * @param {Object} [options.headers] - Additional headers
  * @param {string|FormData} [options.body] - Request body
  * @param {AbortSignal} [options.signal] - AbortController signal for cancellation
  * @param {RequestCache} [options.cache] - Cache mode
  * @param {number} [options.timeout=15000] - Request timeout in milliseconds (default: 15s)
  * @returns {Promise<any>} Parsed JSON response or text if not JSON
  * @throws {Error} Throws on HTTP errors (4xx, 5xx), network failures, or timeouts
- *
- * @example
- * // GET request
- * const data = await apiFetch('/api/users');
- *
- * @example
- * // POST request with body
- * const result = await apiFetch('/api/users', {
- *   method: 'POST',
- *   body: JSON.stringify({ name: 'John' })
- * });
- *
- * @example
- * // With custom timeout
- * const data = await apiFetch('/api/slow-endpoint', { timeout: 30000 });
- *
- * @example
- * // Using convenience methods
- * const users = await api.get('/api/users');
- * const created = await api.post('/api/users', { name: 'John' });
  */
 export async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
@@ -52,16 +40,10 @@ export async function apiFetch(endpoint, options = {}) {
   // Default timeout: 15 seconds (prevents indefinite hangs)
   const timeout = options.timeout ?? 15000;
 
-  // Add JWT token to headers if available
-  const token = authService.getToken();
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers
   };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   // Setup timeout using AbortController
   const controller = new AbortController();
@@ -122,21 +104,12 @@ export async function apiFetch(endpoint, options = {}) {
         });
       }
 
-      // Handle 401 Unauthorized - trigger logout
-      if (response.status === 401) {
-        // Only logout if we actually had a token (ignore if auth is disabled)
-        if (token) {
-          notifications.error('Session expired. Please login again.');
-          authService.logout();
-          // Trigger page reload to show login
-          window.location.reload();
-        }
-
-        throw new Error('Unauthorized');
-      }
+      // Suppress toasts for 503s during analysis — they're transient load-shedding,
+      // not real failures. Still surface real 4xx/5xx so genuine bugs aren't hidden.
+      const isTransientDuringAnalysis = analysisRunning && response.status === 503;
 
       // Don't show notifications for suppressed 404s/501s, and throttle others
-      if (!shouldSuppress) {
+      if (!shouldSuppress && !isTransientDuringAnalysis) {
         const now = Date.now();
         if (now - lastApiErrorNotification > NOTIFICATION_COOLDOWN) {
           lastApiErrorNotification = now;
@@ -166,8 +139,9 @@ export async function apiFetch(endpoint, options = {}) {
         throw error;
       }
       const timeoutError = new Error(`Request timeout after ${timeout}ms: ${endpoint}`);
-      // Only show timeout toasts when backend is connected (skip during restarts)
-      if (websocketService.isConnected()) {
+      // Only show timeout toasts when backend is connected and not mid-analysis.
+      // During analysis the backend is expected to be slow — suppress the noise.
+      if (websocketService.isConnected() && !analysisRunning) {
         const now = Date.now();
         if (now - lastTimeoutNotification > NOTIFICATION_COOLDOWN) {
           lastTimeoutNotification = now;
@@ -184,7 +158,11 @@ export async function apiFetch(endpoint, options = {}) {
     }
 
     // Network errors are transient (backend down, restart) — log to console only, not error DB
-    if (!error.message.includes('API error') && websocketService.isConnected()) {
+    if (
+      !error.message.includes('API error') &&
+      websocketService.isConnected() &&
+      !analysisRunning
+    ) {
       notifications.apiError(endpoint, error.message);
     }
     logger.warn(`[API Client] Network error: ${endpoint} — ${error.message}`);
@@ -233,58 +211,4 @@ export function createPageApi() {
     },
     abort: () => controller.abort()
   };
-}
-
-/**
- * Check server health status and show notifications for issues
- * @returns {Promise<Object>} Health status object with status and issues array
- * @throws {Error} Throws if health check request fails
- */
-export async function checkServerHealth() {
-  try {
-    const health = await api.get('/health');
-
-    // Handle different health statuses
-    if (health.status === 'critical' || health.status === 'error') {
-      // Critical issues - show error notification
-      const issuesList = health.issues?.join(', ') || health.status;
-      notifications.serverUnhealthy(issuesList);
-      return false;
-    } else if (health.status === 'warning') {
-      // Warning status - show warning (not error) with specific issues
-      const issuesList = health.issues?.join(', ') || 'System resources under pressure';
-      notifications.warning(issuesList, {
-        title: 'Server Health Warning',
-        duration: 5000
-      });
-      // Still return true - server is operational, just under stress
-    }
-
-    // Check memory usage
-    const memUsagePercent =
-      (health.memory.process.heapUsed / health.memory.process.heapTotal) * 100;
-    if (memUsagePercent > 90) {
-      notifications.warning(`Server memory usage high: ${memUsagePercent.toFixed(1)}%`, {
-        title: 'High Memory Usage',
-        duration: 5000
-      });
-    }
-
-    // Check disk usage (parse as float since it comes as string)
-    const diskPercent = parseFloat(health.storage?.diskUsePercent || 0);
-    if (diskPercent > 95) {
-      notifications.storageCritical(diskPercent.toFixed(1));
-    } else if (diskPercent > 85) {
-      notifications.storageWarning(diskPercent.toFixed(1));
-    }
-
-    return true;
-  } catch (error) {
-    logger.error('Health check failed:', error);
-    notifications.error('Failed to connect to server', {
-      title: 'Connection Error',
-      duration: 0
-    });
-    return false;
-  }
 }

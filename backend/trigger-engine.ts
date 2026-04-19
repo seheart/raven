@@ -26,7 +26,7 @@ const execFileAsync = promisify(execFile);
 /**
  * Trigger rule definition from config.toml
  */
-export interface TriggerRule {
+interface TriggerRule {
   name: string;
   file?: string;
   agent?: string;
@@ -45,7 +45,7 @@ export interface TriggerRule {
 /**
  * Event data passed to trigger evaluation
  */
-export interface TriggerEvent {
+interface TriggerEvent {
   file?: string;
   agent?: string;
   event_type?: string;
@@ -59,7 +59,7 @@ export interface TriggerEvent {
 /**
  * Triggered event record
  */
-export interface TriggeredEventRecord {
+interface TriggeredEventRecord {
   trigger_name: string;
   timestamp: number;
   message: string;
@@ -69,7 +69,7 @@ export interface TriggeredEventRecord {
 /**
  * Trigger statistics
  */
-export interface TriggerStats {
+interface TriggerStats {
   total_triggers: number;
   active_triggers: number;
   trigger_counts: Record<string, number>;

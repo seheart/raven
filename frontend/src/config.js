@@ -58,27 +58,5 @@ export const API_CONFIG = {
 };
 
 // WebSocket Configuration
-export const WEBSOCKET_URL = getApiUrl();
-
 // UI Configuration
-export const UI_CONFIG = {
-  DEFAULT_THEME: 'dark',
-  THEMES: {
-    LIGHT: 'light',
-    DARK: 'dark'
-  },
-  REFRESH_INTERVALS: {
-    DEFAULT: 30, // seconds
-    MIN: 5,
-    MAX: 300
-  }
-};
-
 // Storage Keys
-export const STORAGE_KEYS = {
-  SETTINGS: 'raven-settings',
-  THEME: 'raven-theme',
-  ACTIVE_TAB: 'raven-active-tab',
-  WELCOME_SEEN: 'raven-welcome-seen',
-  VISITED: 'raven-visited'
-};

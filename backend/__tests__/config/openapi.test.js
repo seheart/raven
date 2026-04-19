@@ -56,12 +56,6 @@ describe('OpenAPI Specification', () => {
       expect(openApiSpec.tags.length).toBeGreaterThan(0);
     });
 
-    test('should have Authentication tag', () => {
-      const authTag = openApiSpec.tags.find(t => t.name === 'Authentication');
-      expect(authTag).toBeDefined();
-      expect(authTag.description).toBeDefined();
-    });
-
     test('should have Telemetry tag', () => {
       const telemetryTag = openApiSpec.tags.find(t => t.name === 'Telemetry');
       expect(telemetryTag).toBeDefined();
@@ -84,31 +78,9 @@ describe('OpenAPI Specification', () => {
   });
 
   describe('Components', () => {
-    test('should have security schemes', () => {
-      expect(openApiSpec.components.securitySchemes).toBeDefined();
-      expect(openApiSpec.components.securitySchemes.bearerAuth).toBeDefined();
-    });
-
-    test('should have JWT bearer authentication', () => {
-      const bearerAuth = openApiSpec.components.securitySchemes.bearerAuth;
-      expect(bearerAuth.type).toBe('http');
-      expect(bearerAuth.scheme).toBe('bearer');
-      expect(bearerAuth.bearerFormat).toBe('JWT');
-    });
-
     test('should have schema definitions', () => {
       expect(openApiSpec.components.schemas).toBeDefined();
       expect(Object.keys(openApiSpec.components.schemas).length).toBeGreaterThan(0);
-    });
-
-    test('should have LoginRequest schema', () => {
-      const loginRequest = openApiSpec.components.schemas.LoginRequest;
-      expect(loginRequest).toBeDefined();
-      expect(loginRequest.type).toBe('object');
-      expect(loginRequest.required).toContain('username');
-      expect(loginRequest.required).toContain('password');
-      expect(loginRequest.properties.username).toBeDefined();
-      expect(loginRequest.properties.password).toBeDefined();
     });
 
     test('should have TelemetryEvent schema', () => {
@@ -132,26 +104,6 @@ describe('OpenAPI Specification', () => {
     test('should have path definitions', () => {
       expect(openApiSpec.paths).toBeDefined();
       expect(Object.keys(openApiSpec.paths).length).toBeGreaterThan(0);
-    });
-
-    test('should have /auth/login endpoint', () => {
-      expect(openApiSpec.paths['/auth/login']).toBeDefined();
-      expect(openApiSpec.paths['/auth/login'].post).toBeDefined();
-    });
-
-    test('/auth/login should require credentials', () => {
-      const loginPost = openApiSpec.paths['/auth/login'].post;
-      expect(loginPost.requestBody).toBeDefined();
-      expect(loginPost.requestBody.required).toBe(true);
-      expect(loginPost.requestBody.content['application/json'].schema.$ref).toBe(
-        '#/components/schemas/LoginRequest'
-      );
-    });
-
-    test('/auth/login should have success and error responses', () => {
-      const loginPost = openApiSpec.paths['/auth/login'].post;
-      expect(loginPost.responses['200']).toBeDefined();
-      expect(loginPost.responses['401']).toBeDefined();
     });
 
     test('should have /telemetry endpoint', () => {
@@ -178,16 +130,6 @@ describe('OpenAPI Specification', () => {
       expect(healthGet.responses['200'].content['application/json'].schema).toBeDefined();
     });
 
-    test('should have /metrics endpoint', () => {
-      expect(openApiSpec.paths['/metrics']).toBeDefined();
-      expect(openApiSpec.paths['/metrics'].get).toBeDefined();
-    });
-
-    test('/metrics should return Prometheus format', () => {
-      const metricsGet = openApiSpec.paths['/metrics'].get;
-      expect(metricsGet.responses['200'].content['text/plain']).toBeDefined();
-    });
-
     test('should have /api/dashboard-stats endpoint', () => {
       expect(openApiSpec.paths['/api/dashboard-stats']).toBeDefined();
       expect(openApiSpec.paths['/api/dashboard-stats'].get).toBeDefined();
@@ -200,17 +142,6 @@ describe('OpenAPI Specification', () => {
   });
 
   describe('Authentication', () => {
-    test('should require bearer auth on protected endpoints', () => {
-      const protectedEndpoint = openApiSpec.paths['/api/dashboard-stats'].get;
-      expect(protectedEndpoint.security).toBeDefined();
-      expect(protectedEndpoint.security[0].bearerAuth).toBeDefined();
-    });
-
-    test('/auth/login should not require authentication', () => {
-      const loginPost = openApiSpec.paths['/auth/login'].post;
-      expect(loginPost.security).toBeUndefined();
-    });
-
     test('/telemetry should not require authentication', () => {
       const telemetryPost = openApiSpec.paths['/telemetry'].post;
       expect(telemetryPost.security).toBeUndefined();
@@ -271,12 +202,11 @@ describe('OpenAPI Specification', () => {
       const description = openApiSpec.info.description.toLowerCase();
       expect(description).toContain('real-time');
       expect(description).toContain('telemetry');
-      expect(description).toContain('authentication');
     });
 
     test('should have sufficient endpoint coverage', () => {
       const pathCount = Object.keys(openApiSpec.paths).length;
-      expect(pathCount).toBeGreaterThan(5);
+      expect(pathCount).toBeGreaterThan(3);
     });
 
     test('should have multiple HTTP methods documented', () => {

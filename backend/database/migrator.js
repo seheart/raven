@@ -269,30 +269,10 @@ export async function down(db) {
 }
 
 // Checksum for migration integrity
-export const checksum = '${Math.random().toString(36).substring(7)}';
 `;
 
     fs.writeFileSync(filepath, template, 'utf8');
     logger.info(`Created migration: ${filename}`);
     return filepath;
   }
-}
-
-/**
- * Run migrations on all project databases
- */
-export async function migrateAllProjects(projectDatabases) {
-  const results = {};
-
-  for (const [projectName, projectDb] of projectDatabases.entries()) {
-    try {
-      const migrator = new DatabaseMigrator(projectDb.db, projectName);
-      results[projectName] = await migrator.migrate();
-    } catch (_err) {
-      logger.error(`Failed to migrate ${projectName}:`, _err);
-      results[projectName] = { error: _err.message };
-    }
-  }
-
-  return results;
 }

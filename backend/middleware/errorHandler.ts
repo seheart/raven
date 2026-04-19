@@ -49,16 +49,3 @@ export function asyncHandler(
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
-
-/**
- * 404 Not Found handler
- * Should be added before the error handler middleware
- */
-export function notFoundHandler(req: Request, _res: Response, next: NextFunction): void {
-  const error = new RavenError(
-    'ERR_API_5002' as any,
-    `Route ${req.method} ${req.path} not found`,
-    404
-  );
-  next(error);
-}

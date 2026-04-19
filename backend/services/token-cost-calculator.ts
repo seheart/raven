@@ -5,7 +5,7 @@
  * Prices are per million tokens (MTok) as of April 2026.
  */
 
-export interface TokenUsage {
+interface TokenUsage {
   input_tokens: number;
   output_tokens: number;
   cache_creation_input_tokens: number;

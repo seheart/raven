@@ -7,7 +7,6 @@ export const fileCache = new Map();
 export const MAX_CACHE_SIZE = 1000; // Limit cache to prevent unbounded memory growth
 
 // Health endpoint cache (reduces expensive queries)
-export let healthCache = { data: null, timestamp: 0 };
 export const HEALTH_CACHE_TTL = 30000; // 30 seconds (health data doesn't change often)
 
 /**
@@ -165,22 +164,6 @@ export const dashboardCache = new ResponseCache(100, 30000); // 30s TTL for dash
 export const analyticsCache = new ResponseCache(200, 60000); // 60s TTL for analytics
 export const metricsCache = new ResponseCache(100, 15000); // 15s TTL for metrics
 export const queryCache = new ResponseCache(500, 10000); // 10s TTL for general queries
-export const safetyCache = new ResponseCache(300, 30000); // 30s TTL for safety endpoints
-
-/**
- * Generate cache key from request
- * @param {string} endpoint - API endpoint path
- * @param {object} query - Query parameters
- * @returns {string} Cache key
- */
-export function generateCacheKey(endpoint, query = {}) {
-  const sortedQuery = Object.keys(query)
-    .sort()
-    .map(k => `${k}=${query[k]}`)
-    .join('&');
-  return `${endpoint}${sortedQuery ? '?' + sortedQuery : ''}`;
-}
-
 /**
  * Middleware factory for caching responses
  * @param {ResponseCache} cache - Cache instance to use

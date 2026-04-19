@@ -13,31 +13,6 @@ import { logger } from '../logger.js';
 export const ALL_PROJECTS = 'all';
 
 /**
- * Filter an array of items by project
- *
- * @param {Array} items - Array of items to filter
- * @param {string} projectFilter - The filter value ('all' or specific project name)
- * @returns {Array} Filtered array of items
- *
- * @example
- * const events = [{project: 'raven', ...}, {project: 'ant312', ...}];
- * const filtered = filterByProject(events, 'raven'); // Returns only raven events
- */
-export function filterByProject(items, projectFilter) {
-  if (!Array.isArray(items)) return [];
-
-  return items.filter(item => {
-    // If item has no project field, only show in "all" view
-    if (!item.project) {
-      return projectFilter === ALL_PROJECTS;
-    }
-
-    // Show all projects or match specific project
-    return projectFilter === ALL_PROJECTS || item.project === projectFilter;
-  });
-}
-
-/**
  * Validate a filter value against available projects
  *
  * @param {string} filterValue - The filter value to validate
@@ -112,21 +87,6 @@ export function getProjectColor(projectName) {
 }
 
 /**
- * Get recently active projects from localStorage
- *
- * @param {number} limit - Maximum number of recent projects to return
- * @returns {Array<string>} Array of recent project names
- */
-export function getRecentProjects(limit = 5) {
-  try {
-    const recent = JSON.parse(localStorage.getItem('raven-recent-projects') || '[]');
-    return recent.slice(0, limit);
-  } catch (_error) {
-    return [];
-  }
-}
-
-/**
  * Add a project to the recent projects list
  *
  * @param {string} projectName - The project name to add
@@ -150,33 +110,4 @@ export function addRecentProject(projectName) {
   } catch (error) {
     logger.error('Failed to save recent project:', error);
   }
-}
-
-/**
- * Get standardized empty state message
- *
- * @param {string} itemType - Type of items (e.g., "events", "changes", "triggers")
- * @param {string} projectFilter - Current project filter value
- * @param {number} totalCount - Total count before filtering (optional)
- * @returns {object} Message object with primary and hint text
- *
- * @example
- * getEmptyStateMessage('events', 'raven', 50);
- * // Returns: { primary: 'No events for project "raven"', hint: '50 events in other projects' }
- */
-export function getEmptyStateMessage(itemType, projectFilter, totalCount = 0) {
-  if (projectFilter === ALL_PROJECTS) {
-    return {
-      primary: `No ${itemType} yet`,
-      hint: `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} will appear here when available`
-    };
-  }
-
-  const primary = `No ${itemType} for project "${projectFilter}"`;
-  const hint =
-    totalCount > 0
-      ? `${totalCount} ${itemType} in other projects`
-      : `Try selecting "All Projects" to see all ${itemType}`;
-
-  return { primary, hint };
 }

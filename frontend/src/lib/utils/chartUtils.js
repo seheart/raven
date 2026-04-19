@@ -5,13 +5,6 @@ import { logger } from '../logger.js';
 Chart.register(...registerables);
 
 /**
- * Extract CSS variable color value
- */
-export function getCSSColor(varName) {
-  return getComputedStyle(document.body).getPropertyValue(varName).trim();
-}
-
-/**
  * Get theme-aware chart colors
  */
 export function getChartColors() {
@@ -109,43 +102,3 @@ export function createThemeObserver(onThemeChange) {
 
   return observer;
 }
-
-/**
- * Common chart configuration defaults
- */
-export const chartDefaults = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: {
-    intersect: false,
-    mode: 'index'
-  },
-  plugins: {
-    legend: {
-      display: true,
-      position: 'top'
-    },
-    tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      titleColor: '#fff',
-      bodyColor: '#fff',
-      borderColor: '#3b82f6',
-      borderWidth: 1
-    }
-  },
-  scales: {
-    x: {
-      grid: {
-        display: true,
-        drawBorder: false
-      }
-    },
-    y: {
-      beginAtZero: true,
-      grid: {
-        display: true,
-        drawBorder: false
-      }
-    }
-  }
-};

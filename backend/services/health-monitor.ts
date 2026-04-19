@@ -19,7 +19,7 @@ export interface HealthCheckResult {
   details?: any;
 }
 
-export interface HealthReport {
+interface HealthReport {
   overallStatus: 'healthy' | 'warning' | 'critical';
   timestamp: string;
   checks: HealthCheckResult[];

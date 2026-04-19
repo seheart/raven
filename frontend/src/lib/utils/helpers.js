@@ -29,23 +29,6 @@ export function debounce(fn, delay) {
 }
 
 /**
- * Calculate flow state based on activity level
- */
-export function calculateFlowState(totalChanges, timeWindowMinutes = 60) {
-  if (!totalChanges) return { level: 'low', color: 'var(--muted)', label: 'Low Flow' };
-
-  const changesPerMinute = totalChanges / timeWindowMinutes;
-
-  if (changesPerMinute > 5) {
-    return { level: 'high', color: 'var(--success)', label: 'High Flow' };
-  } else if (changesPerMinute > 2) {
-    return { level: 'medium', color: 'var(--warning)', label: 'Medium Flow' };
-  } else {
-    return { level: 'low', color: 'var(--muted)', label: 'Low Flow' };
-  }
-}
-
-/**
  * Format bytes to human-readable size
  */
 export function formatBytes(bytes, decimals = 2) {
@@ -58,24 +41,6 @@ export function formatBytes(bytes, decimals = 2) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
-
-/**
- * Format time difference in human-readable format
- */
-export function formatTimeDiff(timestamp) {
-  const now = Date.now();
-  const diff = now - new Date(timestamp).getTime();
-
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return `${seconds}s ago`;
 }
 
 /**

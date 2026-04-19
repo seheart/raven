@@ -5,7 +5,7 @@ import { logger } from './utils/logger.js';
  * Manages pausing/resuming file monitoring
  * Acts as an emergency brake for AI coding sessions
  */
-export class PauseManager extends EventEmitter {
+class PauseManager extends EventEmitter {
   private paused: boolean = false;
   private pauseReason: string = '';
   private pauseTime: Date | null = null;

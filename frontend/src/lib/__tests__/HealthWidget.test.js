@@ -57,19 +57,6 @@ vi.mock('../errorLogger.js', () => ({
   logError: vi.fn()
 }));
 
-// Mock authStore
-vi.mock('../authStore.js', () => ({
-  authService: {
-    getToken: vi.fn(() => null),
-    getUser: vi.fn(() => null),
-    isAuthenticated: vi.fn(() => false)
-  },
-  isAuthenticated: { subscribe: vi.fn(() => vi.fn()) },
-  authToken: { subscribe: vi.fn(() => vi.fn()) },
-  currentUser: { subscribe: vi.fn(() => vi.fn()) },
-  authLoading: { subscribe: vi.fn(() => vi.fn()) }
-}));
-
 // Mock dataService
 vi.mock('../dataService.js', () => ({
   dataService: {

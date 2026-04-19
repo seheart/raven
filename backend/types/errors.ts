@@ -3,7 +3,7 @@
  * Provides type-safe error handling with error codes
  */
 
-export enum ErrorCode {
+enum ErrorCode {
   // Authentication Errors (1xxx)
   AUTH_INVALID_CREDENTIALS = 'ERR_AUTH_1001',
   AUTH_TOKEN_EXPIRED = 'ERR_AUTH_1002',
@@ -76,100 +76,6 @@ export class RavenError extends Error {
 }
 
 /**
- * Authentication Error
- */
-export class AuthError extends RavenError {
-  constructor(code: ErrorCode, message: string) {
-    super(code, message, 401);
-  }
-}
-
-/**
- * Authorization Error (Forbidden)
- */
-export class ForbiddenError extends RavenError {
-  constructor(message: string = 'Access forbidden') {
-    super(ErrorCode.AUTH_FORBIDDEN, message, 403);
-  }
-}
-
-/**
- * Database Error
- */
-export class DatabaseError extends RavenError {
-  constructor(code: ErrorCode, message: string, originalError?: Error) {
-    super(code, message, 500);
-    if (originalError) {
-      this.stack = originalError.stack;
-    }
-  }
-}
-
-/**
- * Validation Error
- */
-export class ValidationError extends RavenError {
-  public readonly fields?: Record<string, string>;
-
-  constructor(message: string, fields?: Record<string, string>) {
-    super(ErrorCode.VALIDATION_INVALID_FORMAT, message, 400);
-    this.fields = fields;
-  }
-
-  override toJSON(): Record<string, any> {
-    return {
-      error: {
-        code: this.code,
-        message: this.message,
-        fields: this.fields,
-        timestamp: this.timestamp
-      }
-    };
-  }
-}
-
-/**
- * Not Found Error
- */
-export class NotFoundError extends RavenError {
-  constructor(resource: string) {
-    super(ErrorCode.DB_NOT_FOUND, `${resource} not found`, 404);
-  }
-}
-
-/**
- * File System Error
- */
-export class FileSystemError extends RavenError {
-  constructor(code: ErrorCode, message: string) {
-    super(code, message, 500);
-  }
-}
-
-/**
- * Rate Limit Error
- */
-export class RateLimitError extends RavenError {
-  public readonly retryAfter?: number;
-
-  constructor(retryAfter?: number) {
-    super(ErrorCode.API_RATE_LIMIT_EXCEEDED, 'Too many requests, please try again later', 429);
-    this.retryAfter = retryAfter;
-  }
-
-  override toJSON(): Record<string, any> {
-    return {
-      error: {
-        code: this.code,
-        message: this.message,
-        retryAfter: this.retryAfter,
-        timestamp: this.timestamp
-      }
-    };
-  }
-}
-
-/**
  * Type guard to check if error is operational
  */
 export function isOperationalError(error: Error): boolean {
@@ -202,24 +108,3 @@ export function formatErrorResponse(error: Error) {
  * Type for unknown caught errors
  * Use this instead of 'any' in catch blocks
  */
-export type UnknownError = unknown;
-
-/**
- * Type guard to check if caught error is an Error instance
- */
-export function isError(error: UnknownError): error is Error {
-  return error instanceof Error;
-}
-
-/**
- * Get error message from unknown error
- */
-export function getErrorMessage(error: UnknownError): string {
-  if (isError(error)) {
-    return error.message;
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  return 'An unknown error occurred';
-}

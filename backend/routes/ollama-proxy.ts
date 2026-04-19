@@ -18,7 +18,7 @@ interface MinimalLogger {
   error: (msg: string) => void;
 }
 
-export interface OllamaProxyDeps {
+interface OllamaProxyDeps {
   db: RavenDB;
   io: IOServer;
   logger: MinimalLogger;

@@ -1,5 +1,3 @@
-import { writable } from 'svelte/store';
-
 /**
  * Debounce utility for Raven
  * Delays function execution until after a specified wait time has passed
@@ -53,36 +51,6 @@ export function debounce(func, wait = 300, immediate = false) {
   };
 
   return debounced;
-}
-
-/**
- * Creates a debounced store for Svelte reactive values
- * Useful for search inputs and real-time filters
- * @param {any} initialValue - Initial value for the store
- * @param {number} delay - Debounce delay in milliseconds
- * @returns {Object} Object with set, update, and subscribe methods
- */
-export function createDebouncedStore(initialValue, delay = 300) {
-  const { subscribe, set: originalSet, update: originalUpdate } = writable(initialValue);
-
-  const debouncedSet = debounce(originalSet, delay);
-  const debouncedUpdate = debounce(originalUpdate, delay);
-
-  return {
-    subscribe,
-    set: value => {
-      debouncedSet(value);
-    },
-    update: fn => {
-      debouncedUpdate(fn);
-    },
-    setImmediate: originalSet,
-    updateImmediate: originalUpdate,
-    cancel: () => {
-      debouncedSet.cancel();
-      debouncedUpdate.cancel();
-    }
-  };
 }
 
 /**

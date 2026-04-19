@@ -66,7 +66,7 @@ export interface SystemMetrics {
 /**
  * Process-level metrics
  */
-export interface ProcessMetrics {
+interface ProcessMetrics {
   id: number;
   timestamp: string;
   agent_name: string;
@@ -88,7 +88,7 @@ export interface ProcessMetrics {
 /**
  * API latency measurement
  */
-export interface ApiLatency {
+interface ApiLatency {
   id: number;
   timestamp: string;
   session_id?: string;
@@ -100,7 +100,7 @@ export interface ApiLatency {
 /**
  * Agent statistics aggregation
  */
-export interface AgentStats {
+interface AgentStats {
   agent: string;
   event_count: number;
   avg_duration_ms: number | null;
@@ -110,7 +110,7 @@ export interface AgentStats {
 /**
  * File modification statistics
  */
-export interface FileStats {
+interface FileStats {
   filepath: string;
   edit_count: number;
   total_lines_changed: number;
@@ -120,7 +120,7 @@ export interface FileStats {
 /**
  * Metrics statistics over time range
  */
-export interface MetricsStats {
+interface MetricsStats {
   avg_cpu_percent: number;
   max_cpu_percent: number;
   avg_memory_percent: number;
@@ -146,7 +146,7 @@ export interface DashboardStats {
 /**
  * Diff risk score from LLM analysis
  */
-export interface DiffRiskScore {
+interface DiffRiskScore {
   id: number;
   event_id: number;
   filepath: string;
@@ -160,7 +160,7 @@ export interface DiffRiskScore {
 /**
  * Performance correlation data
  */
-export interface PerformanceCorrelation {
+interface PerformanceCorrelation {
   event_id: number;
   event_timestamp: string;
   filepath: string;
@@ -173,7 +173,7 @@ export interface PerformanceCorrelation {
 /**
  * Syntax error detected in code
  */
-export interface SyntaxErrorRecord {
+interface SyntaxErrorRecord {
   id: number;
   timestamp: string;
   filepath: string;

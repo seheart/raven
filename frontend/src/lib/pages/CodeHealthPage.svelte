@@ -180,7 +180,9 @@
       types: 'Type Checking',
       format: 'Formatting',
       security: 'Security',
-      build: 'Build'
+      build: 'Build',
+      contract: 'API Contract',
+      'dead-code': 'Dead Code'
     };
     return labels[cat] || cat;
   }

@@ -138,11 +138,7 @@ class Logger {
 export const logger = new Logger('Raven');
 
 // Export named loggers for specific contexts
-export const apiLogger = new Logger('API');
 export const wsLogger = new Logger('WebSocket');
-export const dbLogger = new Logger('Database');
-export const uiLogger = new Logger('UI');
-
 // Export Logger class for custom instances
 export { Logger, LOG_LEVELS };
 

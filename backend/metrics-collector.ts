@@ -18,7 +18,7 @@ import { logger } from './utils/logger.js';
 
 const dnsResolve4 = promisify(dns.resolve4);
 
-export interface ProcessPattern {
+interface ProcessPattern {
   pattern: RegExp;
   name: string;
 }

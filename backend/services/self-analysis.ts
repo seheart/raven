@@ -7,7 +7,7 @@
 
 import { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -19,16 +19,16 @@ const BACKEND_DIR = resolve(__dirname, '..', '..');
 const PROJECT_ROOT = resolve(BACKEND_DIR, '..');
 const FRONTEND_DIR = resolve(PROJECT_ROOT, 'frontend');
 
-export interface AnalysisCheck {
+interface AnalysisCheck {
   name: string;
-  category: 'tests' | 'lint' | 'types' | 'format' | 'security' | 'build';
+  category: 'tests' | 'lint' | 'types' | 'format' | 'security' | 'build' | 'contract' | 'dead-code';
   status: 'pass' | 'warn' | 'fail';
   duration_ms: number;
   summary: string;
   output: string;
 }
 
-export interface AnalysisRun {
+interface AnalysisRun {
   id: number;
   timestamp: string;
   status: 'running' | 'completed' | 'failed';
@@ -79,7 +79,77 @@ function truncateOutput(output: string, maxLen: number = 50000): string {
   return output.slice(0, maxLen) + '\n\n--- Output truncated ---';
 }
 
-export interface AnalysisProgress {
+/**
+ * Like runCommand() but uses execFile (no shell), so regex/glob args that
+ * contain shell metacharacters (`$`, `*`, backticks) pass through intact.
+ */
+function runCommandArgs(
+  cmd: string,
+  args: string[],
+  cwd: string,
+  timeoutMs: number = 60000
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  return new Promise(resolve => {
+    execFile(
+      cmd,
+      args,
+      {
+        cwd,
+        timeout: timeoutMs,
+        maxBuffer: 10 * 1024 * 1024,
+        env: { ...process.env, FORCE_COLOR: '0' }
+      },
+      (error, stdout, stderr) => {
+        resolve({
+          stdout: stdout || '',
+          stderr: stderr || '',
+          exitCode: error ? ((error as any).code ?? 1) : 0
+        });
+      }
+    );
+  });
+}
+
+/**
+ * Walk an Express app's router stack and return every fully-qualified route path.
+ * Handles nested routers by parsing the mount regex Express stores per layer.
+ */
+function enumerateRoutes(app: unknown): string[] {
+  // Duck-typed: we only need ._router.stack, not full Express typings.
+  const router = (app as { _router?: { stack?: unknown[] } } | null)?._router;
+  if (!router?.stack) return [];
+
+  const routes: string[] = [];
+
+  const mountPathFromLayer = (layer: any): string => {
+    const src: string | undefined = layer?.regexp?.source;
+    if (!src) return '';
+    // Typical source for app.use('/api/session', router): ^\/api\/session\/?(?=\/|$)
+    // Strip boundaries, unescape slashes.
+    const stripped = src
+      .replace(/^\^/, '')
+      .replace(/\\\/\?\(\?=\\\/\|\$\)$/, '')
+      .replace(/\\\/\?\$$/, '')
+      .replace(/\\\//g, '/');
+    return stripped.startsWith('/') ? stripped : stripped ? '/' + stripped : '';
+  };
+
+  const walk = (stack: any[], prefix: string): void => {
+    for (const layer of stack) {
+      if (layer.route?.path) {
+        const paths = Array.isArray(layer.route.path) ? layer.route.path : [layer.route.path];
+        for (const p of paths) routes.push(prefix + p);
+      } else if (layer.name === 'router' && layer.handle?.stack) {
+        walk(layer.handle.stack, prefix + mountPathFromLayer(layer));
+      }
+    }
+  };
+
+  walk(router.stack as any[], '');
+  return routes;
+}
+
+interface AnalysisProgress {
   runId: number;
   checkIndex: number;
   totalChecks: number;
@@ -93,6 +163,7 @@ export class SelfAnalysisService {
   private running: boolean = false;
   private sessionId: string;
   private progressCallback: ((progress: AnalysisProgress) => void) | null = null;
+  private expressApp: unknown = null;
 
   constructor(db: RavenDB, sessionId: string) {
     this.db = db;
@@ -100,6 +171,14 @@ export class SelfAnalysisService {
 
     // Clean up stale "running" runs from crashed/restarted server
     this.db.db.prepare(`UPDATE analysis_runs SET status = 'failed' WHERE status = 'running'`).run();
+  }
+
+  /**
+   * Attach the live Express app so the API Contract Drift check can introspect
+   * actual mounted routes. Call after all app.use(...) route mounts.
+   */
+  setExpressApp(app: unknown): void {
+    this.expressApp = app;
   }
 
   /**
@@ -184,7 +263,9 @@ export class SelfAnalysisService {
         { name: 'Frontend Types', fn: () => this.checkFrontendTypes() },
         { name: 'Backend Format', fn: () => this.checkBackendFormat() },
         { name: 'Frontend Format', fn: () => this.checkFrontendFormat() },
-        { name: 'Dependency Audit', fn: () => this.checkDependencyAudit() }
+        { name: 'Dependency Audit', fn: () => this.checkDependencyAudit() },
+        { name: 'API Contract Drift', fn: () => this.checkApiContractDrift() },
+        { name: 'Dead Exports', fn: () => this.checkDeadExports() }
       ];
 
       // Run sequentially to avoid overwhelming the system
@@ -599,6 +680,187 @@ export class SelfAnalysisService {
     }
 
     return { name: 'Backend Build', category: 'build', status, duration_ms, summary, output };
+  }
+
+  private async checkApiContractDrift(): Promise<AnalysisCheck> {
+    const start = Date.now();
+
+    let documented: string[] = [];
+    try {
+      const mod = (await import('../config/openapi.js')) as {
+        openApiSpec?: { paths?: Record<string, unknown> };
+      };
+      documented = Object.keys(mod.openApiSpec?.paths ?? {});
+    } catch (err: any) {
+      return {
+        name: 'API Contract Drift',
+        category: 'contract',
+        status: 'fail',
+        duration_ms: Date.now() - start,
+        summary: 'Could not load OpenAPI spec',
+        output: err?.message ?? String(err)
+      };
+    }
+
+    const implemented = new Set(enumerateRoutes(this.expressApp));
+    const app = this.expressApp;
+    const duration_ms = Date.now() - start;
+
+    if (!app || implemented.size === 0) {
+      return {
+        name: 'API Contract Drift',
+        category: 'contract',
+        status: 'warn',
+        duration_ms,
+        summary: 'Skipped — Express app not attached',
+        output:
+          'The check requires the live Express app; call selfAnalysisService.setExpressApp(app) after routes are mounted.'
+      };
+    }
+
+    // Route shape match: strip parameter *names*, keep just ":" placeholders.
+    // `/api/projects/{name}` and `/api/projects/:id` both become `/api/projects/:`,
+    // so a documented route with a differently-named param still counts as implemented.
+    const normalize = (p: string): string => p.replace(/\{(\w+)\}/g, ':').replace(/:\w+/g, ':');
+    const implementedNorm = new Set(Array.from(implemented).map(normalize));
+    const missing = documented.filter(p => !implementedNorm.has(normalize(p)));
+
+    let status: 'pass' | 'warn' | 'fail';
+    let summary: string;
+    let output: string;
+
+    if (missing.length === 0) {
+      status = 'pass';
+      summary = `${documented.length} documented paths all have handlers`;
+      output = `Verified ${documented.length} OpenAPI paths against ${implemented.size} mounted Express routes.`;
+    } else {
+      status = 'fail';
+      summary = `${missing.length}/${documented.length} documented paths have no handler`;
+      output = `Missing handlers:\n${missing.map(p => `  - ${p}`).join('\n')}\n\nDocumented: ${documented.length}\nImplemented: ${implemented.size}`;
+    }
+
+    return {
+      name: 'API Contract Drift',
+      category: 'contract',
+      status,
+      duration_ms,
+      summary,
+      output
+    };
+  }
+
+  private async checkDeadExports(): Promise<AnalysisCheck> {
+    const start = Date.now();
+
+    // Find every named export across source files (excluding tests, dist, node_modules).
+    // Uses runCommandArgs (execFile, no shell) so the regex's $ and * survive.
+    const exportsOutput = await runCommandArgs(
+      'rg',
+      [
+        '--no-heading',
+        '-n',
+        '-t',
+        'ts',
+        '-t',
+        'js',
+        '-t',
+        'svelte',
+        '-g',
+        '!**/node_modules/**',
+        '-g',
+        '!**/dist/**',
+        '-g',
+        '!**/__tests__/**',
+        '-g',
+        '!**/*.test.*',
+        '-g',
+        '!**/*.spec.*',
+        '-g',
+        '!**/*.d.ts',
+        // Storybook stories are glob-loaded at runtime; static scans can't see
+        // their consumers, so every story export would look dead.
+        '-g',
+        '!**/*.stories.*',
+        'export\\s+(?:async\\s+)?(?:function|const|class|interface|type|enum|let|var)\\s+([A-Za-z_$][\\w$]*)',
+        'backend',
+        'frontend/src'
+      ],
+      PROJECT_ROOT,
+      60000
+    );
+
+    type Decl = { file: string; line: number };
+    const declarations = new Map<string, Decl[]>();
+    for (const raw of exportsOutput.stdout.split('\n')) {
+      const m = raw.match(
+        /^([^:]+):(\d+):.*export\s+(?:async\s+)?(?:function|const|class|interface|type|enum|let|var)\s+([A-Za-z_$][\w$]*)/
+      );
+      if (!m) continue;
+      const [, file, line, name] = m;
+      if (!declarations.has(name)) declarations.set(name, []);
+      declarations.get(name)!.push({ file, line: Number(line) });
+    }
+
+    const dead: string[] = [];
+    for (const [name, locs] of declarations) {
+      const declaringFiles = new Set(locs.map(l => l.file));
+      const ignoreGlobs: string[] = [];
+      for (const file of declaringFiles) {
+        ignoreGlobs.push('-g', `!${file}`);
+      }
+
+      const refs = await runCommandArgs(
+        'rg',
+        [
+          '-l',
+          '-t',
+          'ts',
+          '-t',
+          'js',
+          '-t',
+          'svelte',
+          '-g',
+          '!**/node_modules/**',
+          '-g',
+          '!**/dist/**',
+          ...ignoreGlobs,
+          `\\b${name}\\b`,
+          'backend',
+          'frontend/src'
+        ],
+        PROJECT_ROOT,
+        10000
+      );
+
+      const referencingFiles = refs.stdout.split('\n').filter(l => l.trim());
+      if (referencingFiles.length === 0) {
+        const first = locs[0];
+        dead.push(`${first.file}:${first.line} — ${name}`);
+      }
+    }
+
+    const duration_ms = Date.now() - start;
+    const total = declarations.size;
+
+    let status: 'pass' | 'warn' | 'fail';
+    let summary: string;
+    let output: string;
+
+    if (dead.length === 0) {
+      status = 'pass';
+      summary = `All ${total} exports are referenced`;
+      output = `Scanned ${total} named exports; every one is referenced outside its declaring file.`;
+    } else if (dead.length <= 5) {
+      status = 'warn';
+      summary = `${dead.length} unreferenced exports`;
+      output = `Unreferenced exports (declaration file has no cross-file usage):\n${dead.join('\n')}`;
+    } else {
+      status = 'fail';
+      summary = `${dead.length} unreferenced exports`;
+      output = `Unreferenced exports (declaration file has no cross-file usage):\n${dead.join('\n')}\n\nNote: dynamic imports and re-exports can cause false positives.`;
+    }
+
+    return { name: 'Dead Exports', category: 'dead-code', status, duration_ms, summary, output };
   }
 
   // ==================== Query Methods ====================

@@ -107,13 +107,6 @@ export function formatDateOnly(timestamp) {
 }
 
 /**
- * Get the current time format setting
- */
-export function getTimeFormat() {
-  return getSetting('ui.timeFormat') || '24h';
-}
-
-/**
  * Format timestamp in a shorter format (e.g., "Jan 29, 2:30 PM")
  * @param {string|Date} timestamp - The timestamp to format
  * @returns {string} Short formatted time string

@@ -24,15 +24,8 @@ Real-time monitoring and telemetry system for Claude Code development sessions.
 - File system watching with intelligent caching
 - Session replay and analytics
 
-## Authentication
-Most endpoints require JWT authentication. Include the token in the Authorization header:
-\`\`\`
-Authorization: Bearer <your-jwt-token>
-\`\`\`
-
-You can obtain a token by calling \`POST /auth/login\`.
-
-Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (development only).
+## Usage
+This is a local-first tool. The API is unauthenticated and intended to be bound to localhost only.
     `,
     contact: {
       name: 'Raven API Support'
@@ -53,10 +46,6 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
   ],
   tags: [
     {
-      name: 'Authentication',
-      description: 'User authentication and authorization'
-    },
-    {
       name: 'Telemetry',
       description: 'Real-time telemetry event collection'
     },
@@ -67,10 +56,6 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
     {
       name: 'Projects',
       description: 'Project management and configuration'
-    },
-    {
-      name: 'Triggers',
-      description: 'Custom automation triggers'
     },
     {
       name: 'File System',
@@ -85,52 +70,12 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
       description: 'Session management and replay'
     },
     {
-      name: 'Control',
-      description: 'System control and self-healing'
-    },
-    {
-      name: 'Metrics',
-      description: 'Observability metrics (Prometheus-compatible)'
-    },
-    {
       name: 'Health',
       description: 'Health checks and system status'
     }
   ],
   components: {
-    securitySchemes: {
-      bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'JWT token obtained from /auth/login'
-      }
-    },
     schemas: {
-      // Authentication
-      LoginRequest: {
-        type: 'object',
-        required: ['username', 'password'],
-        properties: {
-          username: { type: 'string', example: 'admin' },
-          password: { type: 'string', format: 'password', example: 'admin123' }
-        }
-      },
-      LoginResponse: {
-        type: 'object',
-        properties: {
-          token: { type: 'string', description: 'JWT token' },
-          user: {
-            type: 'object',
-            properties: {
-              id: { type: 'integer' },
-              username: { type: 'string' },
-              role: { type: 'string', enum: ['admin', 'user'] }
-            }
-          }
-        }
-      },
-
       // Telemetry
       TelemetryEvent: {
         type: 'object',
@@ -179,19 +124,6 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
         }
       },
 
-      // Trigger
-      Trigger: {
-        type: 'object',
-        required: ['name', 'condition', 'action'],
-        properties: {
-          id: { type: 'integer' },
-          name: { type: 'string', example: 'High error rate alert' },
-          condition: { type: 'string', example: 'event.type === "error"' },
-          action: { type: 'string', example: 'slack_notify' },
-          enabled: { type: 'boolean', default: true }
-        }
-      },
-
       // Error
       Error: {
         type: 'object',
@@ -204,66 +136,6 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
     }
   },
   paths: {
-    '/auth/login': {
-      post: {
-        tags: ['Authentication'],
-        summary: 'Login and obtain JWT token',
-        description: 'Authenticate with username and password to receive a JWT token',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/LoginRequest' }
-            }
-          }
-        },
-        responses: {
-          200: {
-            description: 'Successful authentication',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/LoginResponse' }
-              }
-            }
-          },
-          401: {
-            description: 'Invalid credentials',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Error' }
-              }
-            }
-          }
-        }
-      }
-    },
-    '/auth/me': {
-      get: {
-        tags: ['Authentication'],
-        summary: 'Get current user information',
-        security: [{ bearerAuth: [] }],
-        responses: {
-          200: {
-            description: 'User information',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    id: { type: 'integer' },
-                    username: { type: 'string' },
-                    role: { type: 'string' }
-                  }
-                }
-              }
-            }
-          },
-          401: {
-            description: 'Unauthorized'
-          }
-        }
-      }
-    },
     '/telemetry': {
       post: {
         tags: ['Telemetry'],
@@ -302,7 +174,6 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
         tags: ['Dashboard'],
         summary: 'Get aggregated dashboard statistics',
         description: 'Retrieve comprehensive statistics across all projects',
-        security: [{ bearerAuth: [] }],
         responses: {
           200: {
             description: 'Dashboard statistics',
@@ -319,7 +190,6 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
       get: {
         tags: ['Projects'],
         summary: 'List all projects',
-        security: [{ bearerAuth: [] }],
         responses: {
           200: {
             description: 'List of projects',
@@ -339,7 +209,6 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
       get: {
         tags: ['Projects'],
         summary: 'Get project details',
-        security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'name',
@@ -360,120 +229,6 @@ Set \`DISABLE_AUTH=true\` in environment variables to disable authentication (de
           },
           404: {
             description: 'Project not found'
-          }
-        }
-      }
-    },
-    '/api/triggers': {
-      get: {
-        tags: ['Triggers'],
-        summary: 'List all triggers',
-        security: [{ bearerAuth: [] }],
-        responses: {
-          200: {
-            description: 'List of triggers',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'array',
-                  items: { $ref: '#/components/schemas/Trigger' }
-                }
-              }
-            }
-          }
-        }
-      },
-      post: {
-        tags: ['Triggers'],
-        summary: 'Create new trigger',
-        security: [{ bearerAuth: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/Trigger' }
-            }
-          }
-        },
-        responses: {
-          201: {
-            description: 'Trigger created',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Trigger' }
-              }
-            }
-          }
-        }
-      }
-    },
-    '/api/control/restart-bridge': {
-      post: {
-        tags: ['Control'],
-        summary: 'Restart telemetry bridge',
-        description: 'Self-healing: Restart the Claude telemetry bridge process',
-        security: [{ bearerAuth: [] }],
-        responses: {
-          200: {
-            description: 'Bridge restarted successfully',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean' },
-                    message: { type: 'string' },
-                    pid: { type: 'integer' }
-                  }
-                }
-              }
-            }
-          },
-          500: {
-            description: 'Restart failed'
-          }
-        }
-      }
-    },
-    '/metrics': {
-      get: {
-        tags: ['Metrics'],
-        summary: 'Get Prometheus metrics',
-        description: 'Prometheus-compatible metrics endpoint',
-        responses: {
-          200: {
-            description: 'Metrics in Prometheus format',
-            content: {
-              'text/plain': {
-                schema: { type: 'string' }
-              }
-            }
-          }
-        }
-      }
-    },
-    '/metrics/json': {
-      get: {
-        tags: ['Metrics'],
-        summary: 'Get metrics as JSON',
-        description: 'JSON formatted metrics for dashboards',
-        responses: {
-          200: {
-            description: 'Metrics in JSON format',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    system: { type: 'object' },
-                    http: { type: 'object' },
-                    telemetry: { type: 'object' },
-                    database: { type: 'object' },
-                    cache: { type: 'object' }
-                  }
-                }
-              }
-            }
           }
         }
       }

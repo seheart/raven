@@ -17,20 +17,15 @@ vi.mock('../notificationService.js', () => ({
   }
 }));
 
-vi.mock('../authStore.js', () => ({
-  authService: {
-    getToken: vi.fn(() => null),
-    logout: vi.fn()
-  }
-}));
-
 vi.mock('../errorLogger.js', () => ({
   logError: vi.fn(() => Promise.resolve())
 }));
 
 vi.mock('../services/websocket.js', () => ({
   websocketService: {
-    isConnected: vi.fn(() => false)
+    isConnected: vi.fn(() => false),
+    on: vi.fn(),
+    off: vi.fn()
   }
 }));
 

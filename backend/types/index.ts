@@ -25,23 +25,9 @@ export type ProjectName = string;
 /**
  * Session identifier (UUID)
  */
-export type SessionID = string;
+type SessionID = string;
 
 // ==================== Database Types ====================
-
-/**
- * Database statement preparation function
- */
-export type PrepareStatementFn = (sql: string) => Statement;
-
-/**
- * Database connection instance
- */
-export interface DatabaseConnection {
-  db: Database;
-  closed: boolean;
-  prepareStatement: PrepareStatementFn;
-}
 
 // ==================== Event Types ====================
 
@@ -66,64 +52,12 @@ export interface FileEvent {
   event_size: number;
 }
 
-/**
- * Event insertion parameters
- */
-export interface InsertEventParams {
-  timestamp: ISOTimestamp;
-  filepath: string;
-  change_type: ChangeType;
-  diff: string | null;
-  cpu: number;
-  mem: number;
-  session_id: SessionID;
-  file_hash: SHA256Hash | null;
-  event_size: number;
-}
-
-/**
- * Event statistics
- */
-export interface EventStats {
-  total_events: number;
-  unique_files: number;
-  unique_sessions: number;
-  creates: number;
-  edits: number;
-  deletes: number;
-  avg_event_size: number;
-  total_event_size: number;
-}
-
-/**
- * Top modified file entry
- */
-export interface TopModifiedFile {
-  filepath: string;
-  change_count: number;
-}
-
-/**
- * Longest edit entry
- */
-export interface LongestEdit {
-  id: number;
-  timestamp: ISOTimestamp;
-  filepath: string;
-  change_type: ChangeType;
-  diff_length: number;
-  diff_preview: string;
-  cpu: number;
-  mem: number;
-  session_id: SessionID | null;
-}
-
 // ==================== Agent Types ====================
 
 /**
  * Agent event types
  */
-export type AgentEventType = string;
+type AgentEventType = string;
 
 /**
  * Agent event record from database
@@ -143,22 +77,6 @@ export interface AgentEvent {
 }
 
 /**
- * Agent event insertion parameters
- */
-export interface InsertAgentEventParams {
-  timestamp: ISOTimestamp;
-  agent: string;
-  event_type: AgentEventType;
-  file: string | null;
-  lines_changed: number | null;
-  duration_ms: number | null;
-  message: string;
-  metadata: Record<string, unknown> | null;
-  session_id: SessionID | null;
-  project_name: ProjectName | null;
-}
-
-/**
  * Agent statistics
  */
 export interface AgentStats {
@@ -167,20 +85,6 @@ export interface AgentStats {
   total_lines: number | null;
   avg_duration: number | null;
   last_seen: ISOTimestamp;
-}
-
-/**
- * Agent performance metrics
- */
-export interface AgentPerformanceMetrics {
-  total_events: number;
-  total_lines_changed: number | null;
-  avg_lines_per_event: number | null;
-  avg_duration_ms: number | null;
-  min_duration_ms: number | null;
-  max_duration_ms: number | null;
-  first_event: ISOTimestamp;
-  last_event: ISOTimestamp;
 }
 
 // ==================== Metrics Types ====================
@@ -215,39 +119,6 @@ export interface ProcessMetrics {
 }
 
 /**
- * Average system metrics
- */
-export interface AverageSystemMetrics {
-  avg_cpu: number;
-  avg_mem: number;
-  avg_disk: number;
-  avg_network_in: number;
-  avg_network_out: number;
-  avg_watchers: number;
-  avg_cached_files: number;
-  max_cpu: number;
-  max_mem: number;
-}
-
-/**
- * Peak resource usage
- */
-export interface PeakResourceUsage {
-  peakCpu: Array<{
-    timestamp: ISOTimestamp;
-    cpu: number;
-    mem: number;
-    active_watchers: number;
-  }>;
-  peakMemory: Array<{
-    timestamp: ISOTimestamp;
-    cpu: number;
-    mem: number;
-    cached_files: number;
-  }>;
-}
-
-/**
  * Metrics statistics
  */
 export interface MetricsStats {
@@ -264,53 +135,7 @@ export interface MetricsStats {
   };
 }
 
-/**
- * Resource usage trend
- */
-export interface ResourceTrend {
-  hour: string;
-  avg_cpu: number;
-  avg_mem: number;
-  max_cpu: number;
-  max_mem: number;
-  sample_count: number;
-}
-
 // ==================== File Processing Types ====================
-
-/**
- * File validation result
- */
-export interface FileValidationResult {
-  valid: boolean;
-  size: number;
-  stats: any | null; // fs.Stats
-  oversized?: boolean;
-}
-
-/**
- * Binary file read result
- */
-export interface BinaryFileReadResult {
-  success: boolean;
-  buffer: Buffer | null;
-  hash: SHA256Hash | null;
-  size: number;
-  oversized: boolean;
-  error: Error | null;
-}
-
-/**
- * Text file read result
- */
-export interface TextFileReadResult {
-  success: boolean;
-  content: string | null;
-  hash: SHA256Hash | null;
-  size: number;
-  oversized: boolean;
-  error: Error | null;
-}
 
 /**
  * Diff statistics
@@ -318,14 +143,6 @@ export interface TextFileReadResult {
 export interface DiffStats {
   linesAdded: number;
   linesRemoved: number;
-}
-
-/**
- * File read error handling result
- */
-export interface FileReadErrorResult {
-  shouldRetry: boolean;
-  shouldConvertToDelete: boolean;
 }
 
 // ==================== Error Types ====================
@@ -345,50 +162,7 @@ export class DatabaseNotFoundError extends Error {
   }
 }
 
-/**
- * Database operation error
- */
-export class DatabaseOperationError extends Error {
-  operation: string;
-  originalError: Error;
-  context: Record<string, unknown>;
-  statusCode: number;
-
-  constructor(operation: string, originalError: Error, context: Record<string, unknown> = {}) {
-    super(`Database ${operation} failed: ${originalError.message}`);
-    this.name = 'DatabaseOperationError';
-    this.operation = operation;
-    this.originalError = originalError;
-    this.context = context;
-    this.statusCode = 500;
-  }
-}
-
 // ==================== Repository Options ====================
-
-/**
- * Time range query options
- */
-export interface TimeRangeOptions {
-  startTime: ISOTimestamp;
-  endTime: ISOTimestamp;
-}
-
-/**
- * Pagination options
- */
-export interface PaginationOptions {
-  limit?: number;
-  offset?: number;
-}
-
-/**
- * Search options
- */
-export interface SearchOptions extends PaginationOptions {
-  pattern?: string;
-  searchTerm?: string;
-}
 
 // ==================== Service Types ====================
 
@@ -403,7 +177,7 @@ export interface SocketIOServer {
 /**
  * File processing lock interface
  */
-export interface FileProcessingLock {
+interface FileProcessingLock {
   acquire(filepath: string): Promise<() => void>;
 }
 
@@ -428,7 +202,7 @@ export interface SessionTracker {
 /**
  * Developer database code pattern
  */
-export interface DeveloperCodePattern {
+interface DeveloperCodePattern {
   project: string;
   language: string;
   file_type: string;
@@ -441,7 +215,7 @@ export interface DeveloperCodePattern {
 /**
  * Developer database interface
  */
-export interface DeveloperDatabase {
+interface DeveloperDatabase {
   logCodePattern(pattern: DeveloperCodePattern): void;
 }
 
@@ -489,38 +263,6 @@ export interface FileChangeHandlerOptions {
 export interface SystemMetricsResult {
   cpuPercent: number;
   memPercent: number;
-}
-
-/**
- * File watcher service options
- */
-export interface FileWatcherServiceOptions {
-  io?: SocketIOServer;
-  handleFileChange?: (eventType: string, filepath: string) => void | Promise<void>;
-  projectPaths?: Map<ProjectName, string>;
-  debounceMs?: number;
-  skipProjects?: string[];
-}
-
-/**
- * File watcher statistics
- */
-export interface FileWatcherStats {
-  totalEvents: number;
-  addEvents: number;
-  changeEvents: number;
-  unlinkEvents: number;
-  activeWatchers: number;
-  projects: string[];
-}
-
-/**
- * Watcher initialization result
- */
-export interface WatcherInitResult {
-  success: number;
-  failed: number;
-  total: number;
 }
 
 /**
@@ -574,26 +316,6 @@ export interface ProjectInfo {
 }
 
 // ==================== Utility Types ====================
-
-/**
- * Ensures a type is not null or undefined
- */
-export type NonNullable<T> = T extends null | undefined ? never : T;
-
-/**
- * Makes specific properties required
- */
-export type RequireFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
-
-/**
- * Makes specific properties optional
- */
-export type OptionalFields<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
-/**
- * Extract the return type of a promise
- */
-export type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 
 // ==================== Export All ====================
 

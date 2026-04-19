@@ -87,11 +87,7 @@ settingsStore.subscribe(value => {
 });
 
 // Derived stores for specific setting sections
-export const notificationSettings = derived(settingsStore, $settings => $settings.notifications);
-
 export const uiSettings = derived(settingsStore, $settings => $settings.ui);
-
-export const performanceSettings = derived(settingsStore, $settings => $settings.performance);
 
 // Settings actions
 export const settings = {
@@ -225,21 +221,6 @@ export const getSetting = path => {
 };
 
 // Check if a notification type is enabled
-export const isNotificationTypeEnabled = type => {
-  const current = get(settingsStore);
-  return current.notifications.enabled && current.notifications.types[type];
-};
-
 // Get theme
-export const getTheme = () => {
-  const current = get(settingsStore);
-  return current.ui.theme;
-};
-
 // Get refresh interval
-export const getRefreshInterval = () => {
-  const current = get(settingsStore);
-  return current.ui.autoRefresh ? current.ui.refreshInterval * 1000 : null;
-};
-
 export default settings;

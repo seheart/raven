@@ -8,45 +8,6 @@ import { logger } from './logger.js';
 import { LIMITS } from '../config/constants.js';
 
 /**
- * Binary file extensions list
- */
-export const BINARY_EXTENSIONS = [
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.gif',
-  '.bmp',
-  '.ico',
-  '.webp',
-  '.svg',
-  '.pdf',
-  '.zip',
-  '.tar',
-  '.gz',
-  '.rar',
-  '.7z',
-  '.exe',
-  '.dll',
-  '.so',
-  '.dylib',
-  '.bin',
-  '.mp3',
-  '.mp4',
-  '.avi',
-  '.mov',
-  '.wav',
-  '.woff',
-  '.woff2',
-  '.ttf',
-  '.eot',
-  '.otf',
-  '.lock',
-  '.min.js',
-  '.min.css',
-  '.map'
-];
-
-/**
  * Check if file is binary based on extension
  * @param {string} filepath - File path to check
  * @returns {boolean} - True if binary

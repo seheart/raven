@@ -67,7 +67,13 @@ BACKEND_PORT_PID=$(check_port 9100 || true)
 FRONTEND_PORT_PID=$(check_port 9000 || true)
 [[ "$BACKEND_PORT_PID" =~ ^[0-9]+$ ]] && kill -9 $BACKEND_PORT_PID 2>/dev/null || true
 [[ "$FRONTEND_PORT_PID" =~ ^[0-9]+$ ]] && kill -9 $FRONTEND_PORT_PID 2>/dev/null || true
-sleep 1
+# Poll until ports release (usually <100ms; cap at 1.5s)
+for i in {1..15}; do
+  if [ -z "$(check_port 9100)" ] && [ -z "$(check_port 9000)" ]; then
+    break
+  fi
+  sleep 0.1
+done
 stop_spin "${GREEN}✓${NC}" "Cleaned up"
 
 # ── Build check ─────────────────────────────────────
@@ -95,10 +101,12 @@ cd ..
 stop_spin "${GREEN}✓${NC}" "Servers launched"
 
 # ── Wait for backend ────────────────────────────────
+# Capture the full health JSON once; reuse for status + session_id below.
 start_spin "Backend booting..."
+BACKEND_HEALTH=""
 for i in {1..60}; do
-  HEALTH_STATUS=$(curl -s http://localhost:9100/api/health 2>/dev/null | grep -o '"status":"healthy"' || echo "")
-  if [ ! -z "$HEALTH_STATUS" ]; then
+  BACKEND_HEALTH=$(curl -s http://localhost:9100/api/health 2>/dev/null || true)
+  if echo "$BACKEND_HEALTH" | grep -q '"status":"healthy"'; then
     stop_spin "${GREEN}✓${NC}" "Backend ready"
     break
   fi
@@ -124,6 +132,8 @@ for i in {1..20}; do
 done
 
 # ── Warm caches ─────────────────────────────────────
+# Skip in fast mode — startup drops from ~30s to ~5s; first page load pays the cost.
+if [ -z "$SKIP_HEALTH_CHECKS" ]; then
 start_spin "Warming caches..."
 BASE="http://localhost:9100/api"
 CURL_PIDS=()
@@ -158,19 +168,11 @@ curl -s "$BASE/health/status" > /dev/null 2>&1 & CURL_PIDS+=($!)
 curl -s "$BASE/rate-limit-status" > /dev/null 2>&1 & CURL_PIDS+=($!)
 for pid in "${CURL_PIDS[@]}"; do wait "$pid" 2>/dev/null || true; done
 stop_spin "${GREEN}✓${NC}" "Caches warm"
-
-# ── Health check ────────────────────────────────────
-start_spin "Running health check..."
-HEALTH_STATUS=$(curl -s http://localhost:9100/api/health 2>/dev/null)
-IS_HEALTHY=$(echo "$HEALTH_STATUS" | grep -o '"status":"healthy"' || echo "")
-if [ ! -z "$IS_HEALTHY" ]; then
-  stop_spin "${GREEN}✓${NC}" "Healthy"
-else
-  stop_spin "${YELLOW}⚠${NC}" "Degraded — run: curl http://localhost:9100/api/health | jq"
 fi
 
 # ── Done ────────────────────────────────────────────
-SESSION_INFO=$(curl -s http://localhost:9100/health | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)
+# Session ID comes from the boot-wait response — no extra curl needed.
+SESSION_INFO=$(echo "$BACKEND_HEALTH" | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)
 
 echo ""
 echo -e "  ${GREEN}${BOLD}Raven is running${NC}"

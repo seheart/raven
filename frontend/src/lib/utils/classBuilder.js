@@ -4,10 +4,7 @@
 
 import { STANDARD_SIZES } from './standardSizes.js';
 
-/**
- * Form input styling constants
- */
-export const FORM_INPUT_STYLES = {
+const FORM_INPUT_STYLES = {
   base: 'w-full rounded-lg border font-sans transition-all duration-200 outline-none',
   stateError:
     'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[var(--error)] focus:ring-opacity-20',
@@ -18,22 +15,22 @@ export const FORM_INPUT_STYLES = {
   disabled: 'opacity-50 cursor-not-allowed'
 };
 
-/**
- * Label styling for form fields
- */
-export const FORM_LABEL_STYLES = {
+const FORM_LABEL_STYLES = {
   base: 'block text-sm font-medium text-[var(--text-heading)] mb-1.5 font-sans',
   required: 'text-[var(--error)]'
 };
 
-/**
- * Helper text styling for form fields
- */
-export const FORM_HELPER_STYLES = {
+const FORM_HELPER_STYLES = {
   base: 'text-xs mt-1.5 font-sans',
   normal: 'text-[var(--muted)]',
   error: 'text-[var(--error)]'
 };
+
+function buildClickableClasses(clickable = false) {
+  return clickable
+    ? 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-50'
+    : '';
+}
 
 /**
  * Builds form input classes with consistent styling
@@ -135,17 +132,6 @@ export function buildButtonClasses({
 export function buildHoverClasses(hoverable = false) {
   return hoverable
     ? 'hover:bg-[var(--accent)] hover:bg-opacity-5 transition-colors duration-150'
-    : '';
-}
-
-/**
- * Builds clickable element classes (for keyboard navigation)
- * @param {boolean} clickable - Whether the element is clickable
- * @returns {string} Clickable class string
- */
-export function buildClickableClasses(clickable = false) {
-  return clickable
-    ? 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-50'
     : '';
 }
 

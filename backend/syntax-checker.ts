@@ -13,7 +13,7 @@ import { logger } from './utils/logger.js';
 
 const execFileAsync = promisify(execFile);
 
-export interface SyntaxError {
+interface SyntaxError {
   file: string;
   line: number;
   column?: number;
@@ -22,7 +22,7 @@ export interface SyntaxError {
   language: string;
 }
 
-export interface SyntaxCheckResult {
+interface SyntaxCheckResult {
   valid: boolean;
   errors: SyntaxError[];
   checkedAt: Date;

@@ -945,6 +945,9 @@ app.use(
   createOllamaProxyRouter({ db, io, logger, sessionId: SESSION_ID, agentRegistry })
 );
 
+// Let the self-analysis service introspect mounted routes for the contract-drift check.
+selfAnalysisService.setExpressApp(app);
+
 // Network info endpoint for mobile access QR code
 app.get('/api/network-info', (_req: Request, res: Response) => {
   const nets = os.networkInterfaces();
