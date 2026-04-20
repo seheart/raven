@@ -12,7 +12,6 @@
   let animId;
   let particles = [];
   let labels = []; // burst-origin labels, decoupled from particles
-  let icons = []; // burst-origin tool icons
   let width = 0;
   let height = 0;
   let time = 0;
@@ -33,32 +32,7 @@
   const LABEL_LIFE_DECAY = 0.0005; // ~3.3s @ 60fps
 
   // Coalesce identical events fired within GROUP_WINDOW_MS into one bigger burst.
-  const pendingGroup = new Map(); // key -> { type, label, icon, count, timer }
-
-  // Plain ASCII / basic unicode only — emoji require a color-emoji font that
-  // isn't installed everywhere (Linux/Hyprland often lacks one), and missing
-  // glyphs render as tofu boxes.
-  const TOOL_ICONS = {
-    Read: 'R',
-    Write: 'W',
-    Edit: 'E',
-    Bash: '$',
-    Grep: 'G',
-    Glob: '*',
-    WebFetch: '@',
-    WebSearch: '/',
-    Task: 'T'
-  };
-  const TYPE_ICONS = {
-    file_create: '+',
-    file_add: '+',
-    file_delete: '-',
-    file_edit: '~',
-    user_message: '>',
-    assistant_message: '<',
-    error: '!',
-    warning: '?'
-  };
+  const pendingGroup = new Map(); // key -> { type, label, count, timer }
 
   let tickerSeq = 0; // monotonic counter — Date.now() collides at sub-ms event rates
 
@@ -134,22 +108,22 @@
 
   // Group identical bursts (same type+label) within a 200ms window into one
   // bigger burst with a count badge. Reduces visual noise during edit storms.
-  function queueBurst(type, label, icon) {
-    const key = `${type}|${label || ''}|${icon || ''}`;
+  function queueBurst(type, label) {
+    const key = `${type}|${label || ''}`;
     const pending = pendingGroup.get(key);
     if (pending) {
       pending.count++;
       return;
     }
-    const entry = { type, label, icon, count: 1, timer: null };
+    const entry = { type, label, count: 1, timer: null };
     entry.timer = setTimeout(() => {
       pendingGroup.delete(key);
-      spawnBurst(entry.type, entry.label, entry.icon, entry.count);
+      spawnBurst(entry.type, entry.label, entry.count);
     }, GROUP_WINDOW_MS);
     pendingGroup.set(key, entry);
   }
 
-  function spawnBurst(type, label, icon, count = 1) {
+  function spawnBurst(type, label, count = 1) {
     recordEvent();
     const color = colors[TYPE_COLORS[type] || 'muted'];
     const cx = width / 2;
@@ -185,17 +159,6 @@
         y: cy + (Math.random() - 0.5) * 10,
         vx: (Math.random() - 0.5) * 0.3,
         vy: -0.25 - Math.random() * 0.2, // float upward
-        color,
-        life: 1
-      });
-    }
-    if (icon) {
-      icons.push({
-        char: icon,
-        x: cx,
-        y: cy,
-        vx: (Math.random() - 0.5) * 0.2,
-        vy: -0.15,
         color,
         life: 1
       });
@@ -362,21 +325,6 @@
       return true;
     });
 
-    // Tool icons at burst origin
-    icons = icons.filter(ic => {
-      ic.life -= LABEL_LIFE_DECAY * 1.4; // slightly faster than labels
-      if (ic.life <= 0) return false;
-      ic.x += ic.vx;
-      ic.y += ic.vy;
-      ctx.font = `bold ${14 + ic.life * 6}px "JetBrains Mono", monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = rgba(ic.color, Math.min(1, ic.life * 1.5));
-      ctx.fillText(ic.char, ic.x, ic.y - 8);
-      ctx.globalAlpha = 1;
-      ctx.textAlign = 'start';
-      return true;
-    });
-
     animId = requestAnimationFrame(draw);
   }
 
@@ -424,8 +372,7 @@
       const label =
         tool && fileName ? `${tool} · ${fileName}` :
         tool || fileName || data?.agent_name || type;
-      const icon = TOOL_ICONS[tool] || TYPE_ICONS[type] || null;
-      queueBurst(type, label, icon);
+      queueBurst(type, label);
       pushTicker(label, colors[TYPE_COLORS[type] || 'muted']);
     };
 
@@ -435,8 +382,7 @@
       const type =
         changeType === 'unlink' ? 'file_delete' :
         changeType === 'add' ? 'file_create' : 'file_edit';
-      const icon = TYPE_ICONS[type];
-      queueBurst(type, label, icon);
+      queueBurst(type, label);
       pushTicker(label, colors[TYPE_COLORS[type] || 'muted']);
     };
 
