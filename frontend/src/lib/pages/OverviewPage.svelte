@@ -771,28 +771,41 @@
     <!-- Compact Stats + Agents + System bar -->
     <div class="flex flex-wrap items-center gap-2 mb-3 bg-[var(--surface)] border border-[var(--border)] rounded px-3 py-2">
       <!-- Stats inline -->
-      {#each [{ key: 'total_events', label: 'Events', value: stats.total_events }, { key: 'edits', label: 'Edits', value: stats.edits }, { key: 'creates', label: 'Creates', value: stats.creates, color: 'var(--success)' }, { key: 'deletes', label: 'Deletes', value: stats.deletes, color: 'var(--error)' }] as stat (stat.key)}
-        <span class="text-[11px] font-mono {statsFlash[stat.key] ? 'stat-flash' : ''}">
+      {#each [
+        { key: 'total_events', label: 'Events', value: stats.total_events, tip: 'Total file-change events recorded today across watched projects.' },
+        { key: 'edits', label: 'Edits', value: stats.edits, tip: 'File modifications today (existing files changed).' },
+        { key: 'creates', label: 'Creates', value: stats.creates, color: 'var(--success)', tip: 'New files added today.' },
+        { key: 'deletes', label: 'Deletes', value: stats.deletes, color: 'var(--error)', tip: 'Files removed today.' }
+      ] as stat (stat.key)}
+        <span class="text-[11px] font-mono {statsFlash[stat.key] ? 'stat-flash' : ''}" title={stat.tip}>
           <span class="text-[var(--muted)]">{stat.label}</span>
           <span class="font-semibold" style="color: {stat.color || 'var(--text)'}">{formatNumber(stat.value)}</span>
         </span>
         <span class="text-[var(--border)]">|</span>
       {/each}
-      <span class="text-[11px] font-mono">
+      <span class="text-[11px] font-mono" title="File events per minute, averaged across the 100 most recent file changes. Throughput, not an instant rate.">
         <span class="text-[var(--muted)]">Rate</span>
         <span class="font-semibold text-[var(--text)]">{eventsPerMin}/m</span>
       </span>
 
       {#if stats.app_errors > 0}
         <span class="text-[var(--border)]">|</span>
-        <button onclick={() => navigate('/system/errors')} class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0">
+        <button
+          onclick={() => navigate('/system/errors')}
+          class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0"
+          title="Unresolved app errors caught by the global error handler. Click to view & clear."
+        >
           <span class="text-[var(--error)] font-semibold">{stats.app_errors} errors</span>
         </button>
       {/if}
 
       {#if latestApiLatency}
         <span class="text-[var(--border)]">|</span>
-        <button onclick={() => navigate('/analysis/network')} class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80">
+        <button
+          onclick={() => navigate('/analysis/network')}
+          class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
+          title="Latency of Claude's most recent API request. Yellow >10s, red >30s. Click for the full network view."
+        >
           <span class="text-[var(--muted)]">API</span>
           <span class="font-semibold" style="color: {latestApiLatency.latency_ms > 30000 ? 'var(--error)' : latestApiLatency.latency_ms > 10000 ? 'var(--warning)' : 'var(--text)'}">
             {(latestApiLatency.latency_ms / 1000).toFixed(1)}s
@@ -813,22 +826,35 @@
         {@const cCreate = sessionCosts.total_cache_creation_tokens || 0}
         {@const cRead = sessionCosts.total_cache_read_tokens || 0}
         {@const totalIn = cIn + cCreate + cRead}
-        <span class="text-[var(--muted)]">Tokens</span>
-        <span class="font-semibold text-[var(--accent)]">
-          {#if billingMode === 'api'}
-            {formatCost(sessionCosts.total_cost_usd)}
-          {:else}
-            {formatTokens(totalIn + cOut)}
-          {/if}
+        <span
+          class="flex items-center gap-1"
+          title={billingMode === 'api'
+            ? 'Estimated total API cost today (USD), all input + cache + output.'
+            : 'Total tokens today across input, cache_creation, cache_read, and output. Click for the full cost breakdown.'}
+        >
+          <span class="text-[var(--muted)]">Tokens</span>
+          <span class="font-semibold text-[var(--accent)]">
+            {#if billingMode === 'api'}
+              {formatCost(sessionCosts.total_cost_usd)}
+            {:else}
+              {formatTokens(totalIn + cOut)}
+            {/if}
+          </span>
         </span>
-        <span class="text-[var(--muted)]">In</span>
-        <span class="text-[var(--text)]">{formatTokens(totalIn)}</span>
+        <span class="flex items-center gap-1" title="All input tokens today: new (uncached) + cache_creation + cache_read. Includes the prompt context Claude reads each turn.">
+          <span class="text-[var(--muted)]">In</span>
+          <span class="text-[var(--text)]">{formatTokens(totalIn)}</span>
+        </span>
         {#if cRead > 0}
-          <span class="text-[var(--muted)]">Cached</span>
-          <span class="text-[var(--text)]">{formatTokens(cRead)}</span>
+          <span class="flex items-center gap-1" title="Tokens served from prompt cache (~10% of normal input cost). High = good — Claude reused context instead of paying full price.">
+            <span class="text-[var(--muted)]">Cached</span>
+            <span class="text-[var(--text)]">{formatTokens(cRead)}</span>
+          </span>
         {/if}
-        <span class="text-[var(--muted)]">Out</span>
-        <span class="text-[var(--text)]">{formatTokens(cOut)}</span>
+        <span class="flex items-center gap-1" title="Output tokens generated by Claude today. The work product, billed at the highest rate.">
+          <span class="text-[var(--muted)]">Out</span>
+          <span class="text-[var(--text)]">{formatTokens(cOut)}</span>
+        </span>
       {/snippet}
       <button onclick={() => navigate('/analysis/costs')} class="flex items-center gap-2 text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80">
         {@render tokenStats()}
