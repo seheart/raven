@@ -4,6 +4,11 @@ import { logger } from '../logger.js';
 // Register Chart.js components
 Chart.register(...registerables);
 
+function getCSSColor(varName) {
+  if (typeof window === 'undefined') return '';
+  return getComputedStyle(document.body).getPropertyValue(varName).trim();
+}
+
 /**
  * Get theme-aware chart colors
  */

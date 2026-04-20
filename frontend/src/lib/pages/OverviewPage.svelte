@@ -225,74 +225,51 @@
     return 'var(--accent)';
   }
 
-  function createCharts() {
-    const colors = getChartColors();
+  // Chart color palette (shared across create + update paths)
+  const agentChartColors = { 'Claude Code': '#FF6B35', 'Ollama': '#F5A623' };
+  const defaultAgentColors = ['#10A37F', '#4285F4', '#A855F7', '#EC4899'];
 
-    // Activity trend (5m) — 30 buckets of 10 seconds, split by agent
-    if (trendChart) destroyChart(trendChart);
+  // Bucket recentFiles + recentAgentEvents into 30×10s buckets, grouped by agent.
+  function buildTrendDatasets() {
     const bucketCount = 30;
-    const bucketMs = 10000; // 10 seconds per bucket
+    const bucketMs = 10000;
     const now = new Date();
 
-    // Build a map of which agent was active at each point in time
-    // by finding the closest agent event before each file event
-    const sortedAgentEvents = [...recentAgentEvents].sort((a, b) =>
-      new Date(a.timestamp) - new Date(b.timestamp)
+    const sortedAgentEvents = [...recentAgentEvents].sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
     );
-
-    function findAgentAt(timestamp) {
+    const findAgentAt = timestamp => {
       const ts = new Date(timestamp).getTime();
-      // Find the most recent agent event within 60s before this timestamp
-      let best = null;
       for (let i = sortedAgentEvents.length - 1; i >= 0; i--) {
         const aTs = new Date(sortedAgentEvents[i].timestamp).getTime();
-        if (aTs <= ts && ts - aTs < 60000) {
-          best = sortedAgentEvents[i].agent;
-          break;
-        }
+        if (aTs <= ts && ts - aTs < 60000) return sortedAgentEvents[i].agent;
       }
-      return best;
-    }
+      return null;
+    };
 
-    // Bucket file events, attributed to agents when possible
     const agentBuckets = {};
+    const bump = (agent, bucket) => {
+      if (!agentBuckets[agent]) agentBuckets[agent] = new Array(bucketCount).fill(0);
+      agentBuckets[agent][bucketCount - 1 - bucket]++;
+    };
     recentFiles.forEach(e => {
-      const diffMs = now - new Date(e.timestamp);
-      const bucket = Math.floor(diffMs / bucketMs);
+      const bucket = Math.floor((now - new Date(e.timestamp)) / bucketMs);
       if (bucket >= 0 && bucket < bucketCount) {
-        const agent = e.agent_source || findAgentAt(e.timestamp) || 'Other';
-        if (!agentBuckets[agent]) agentBuckets[agent] = new Array(bucketCount).fill(0);
-        agentBuckets[agent][bucketCount - 1 - bucket]++;
+        bump(e.agent_source || findAgentAt(e.timestamp) || 'Other', bucket);
       }
     });
-
-    // Also bucket agent events directly (tool calls, messages etc.)
     recentAgentEvents.forEach(e => {
-      const diffMs = now - new Date(e.timestamp);
-      const bucket = Math.floor(diffMs / bucketMs);
-      if (bucket >= 0 && bucket < bucketCount) {
-        const agent = e.agent || 'Other';
-        if (!agentBuckets[agent]) agentBuckets[agent] = new Array(bucketCount).fill(0);
-        agentBuckets[agent][bucketCount - 1 - bucket]++;
-      }
+      const bucket = Math.floor((now - new Date(e.timestamp)) / bucketMs);
+      if (bucket >= 0 && bucket < bucketCount) bump(e.agent || 'Other', bucket);
     });
 
     const labels = Array.from({ length: bucketCount }, (_, i) => {
-      const secsAgo = (bucketCount - 1 - i) * 10;
-      const t = new Date(now.getTime() - secsAgo * 1000);
-      const h = String(t.getHours()).padStart(2, '0');
-      const m = String(t.getMinutes()).padStart(2, '0');
-      const s = String(t.getSeconds()).padStart(2, '0');
-      return `${h}:${m}:${s}`;
+      const t = new Date(now.getTime() - (bucketCount - 1 - i) * 10 * 1000);
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
     });
 
-    const agentChartColors = {
-      'Claude Code': '#FF6B35',
-      'Ollama': '#F5A623',
-    };
-    const defaultAgentColors = ['#10A37F', '#4285F4', '#A855F7', '#EC4899'];
     let colorIdx = 0;
-
     const datasets = Object.entries(agentBuckets).map(([agent, data]) => {
       const color = agentChartColors[agent] || defaultAgentColors[colorIdx++ % defaultAgentColors.length];
       return {
@@ -308,7 +285,21 @@
       };
     });
 
-    const allData = Object.values(agentBuckets).flat();
+    return { labels, datasets, maxY: Math.max(5, ...Object.values(agentBuckets).flat()) };
+  }
+
+  // Full rebuild on each refresh — destroy/recreate was the original pattern and
+  // is known-good. In-place update via chart.update('none') briefly worked but had
+  // a rendering glitch where the canvas stayed blank; keep it simple.
+  function refreshTrendChart() {
+    createCharts();
+  }
+
+  function createCharts() {
+    const colors = getChartColors();
+    if (trendChart) destroyChart(trendChart);
+
+    const { labels, datasets, maxY } = buildTrendDatasets();
 
     trendChart = createChart('chart-trend', {
       type: 'line',
@@ -316,6 +307,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: false,
         plugins: {
           legend: {
             display: true,
@@ -342,7 +334,7 @@
           },
           y: {
             beginAtZero: true,
-            suggestedMax: Math.max(5, ...allData),
+            suggestedMax: maxY,
             ticks: { color: colors.muted, font: { size: 10, family: 'monospace' }, precision: 0 },
             grid: { color: `${colors.border}` }
           }
@@ -401,6 +393,24 @@
     }
   }
 
+  // Throttle stats refresh to at most once per 3s (WS events can fire 6+/10s)
+  let lastStatsRefresh = 0;
+  let pendingStatsRefresh = null;
+  function throttledStatsRefresh() {
+    const now = Date.now();
+    const since = now - lastStatsRefresh;
+    if (since >= 3000) {
+      lastStatsRefresh = now;
+      loadData();
+    } else if (!pendingStatsRefresh) {
+      pendingStatsRefresh = setTimeout(() => {
+        pendingStatsRefresh = null;
+        lastStatsRefresh = Date.now();
+        loadData();
+      }, 3000 - since);
+    }
+  }
+
   // WebSocket: live updates
   const handleMetrics = data => {
     systemMetrics = data;
@@ -410,6 +420,13 @@
   };
 
   const handleFileChanged = event => {
+    // Push into the reactive array — the 1s trendTicker renders it.
+    // Respect project filter so the chart matches what loadData() would fetch.
+    const pf = get(projectFilter);
+    if (pf === 'all' || event.project_name === pf) {
+      recentFiles = [event, ...recentFiles].slice(0, 200);
+    }
+
     // Push to activity feed with animation
     pushActivity({
       type: 'file',
@@ -447,8 +464,9 @@
       }, 1000);
     }
 
-    // Reload stats (debounced by cache)
-    loadData();
+    // Throttled stats refresh. Chart is now WS-driven, so this is for
+    // dashboard-stats counters only — no need to hammer on every event.
+    throttledStatsRefresh();
   };
 
   const handleAgentEvent = event => {
@@ -459,6 +477,13 @@
     if (agentName) {
       markAgentWorking(agentName);
     }
+
+    // Push to the reactive array — the 1s trendTicker renders it.
+    // WS shape uses `agent_name`; chart reads `agent` — normalize here.
+    recentAgentEvents = [
+      { ...event, agent: agentName, timestamp: event.timestamp || new Date().toISOString() },
+      ...recentAgentEvents
+    ].slice(0, 500);
 
     // Push to activity feed
     pushActivity({
@@ -587,6 +612,9 @@
     // Auto-refresh every 30s
     const interval = setInterval(loadData, 30000);
 
+    // Slide trend buckets every second so the window feels live even when quiet
+    const trendTicker = setInterval(refreshTrendChart, 1000);
+
     return () => {
       websocketService.off('system-metrics', handleMetrics);
       websocketService.off('file-changed', handleFileChanged);
@@ -606,6 +634,8 @@
       if (themeObserver) themeObserver.disconnect();
       if (trendChart) destroyChart(trendChart);
       clearInterval(interval);
+      clearInterval(trendTicker);
+      if (pendingStatsRefresh) clearTimeout(pendingStatsRefresh);
       abortRequests();
       unsubFilter();
       Object.values(workingAgentTimers).forEach(t => clearTimeout(t));
