@@ -295,20 +295,22 @@
 
   // Smooth oscilloscope-style refresh: in-place update, linear animation matching
   // the tick interval so the line appears to slide continuously left.
+  // When the dataset SHAPE changes (new/removed agent), Chart.js can't safely
+  // hot-swap the controller list — fall back to full recreate in that case.
   function refreshTrendChart() {
     if (!trendChart || typeof trendChart.update !== 'function') return createCharts();
     const { labels, datasets } = buildTrendDatasets();
+
+    const existing = trendChart.data.datasets;
+    const sameShape =
+      existing.length === datasets.length &&
+      existing.every((d, i) => d.label === datasets[i].label);
+    if (!sameShape) return createCharts();
+
     trendChart.data.labels = labels;
-    // Update existing datasets in place; add/remove as agents come and go.
-    const existing = new Map(trendChart.data.datasets.map(d => [d.label, d]));
-    trendChart.data.datasets = datasets.map(d => {
-      const prev = existing.get(d.label);
-      if (prev) {
-        prev.data = d.data;
-        return prev;
-      }
-      return d;
-    });
+    for (let i = 0; i < datasets.length; i++) {
+      existing[i].data = datasets[i].data;
+    }
     trendChart.update();
   }
 
@@ -801,20 +803,35 @@
       <!-- Spacer -->
       <div class="flex-1"></div>
 
-      <!-- Token usage inline (right-aligned) -->
-      <button onclick={() => navigate('/analysis/costs')} class="flex items-center gap-2 text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80">
+      <!-- Token usage inline (right-aligned).
+           Claude prompt caching: most "input" actually flows through
+           cache_read (~10% cost) or cache_creation (~125% cost). Counting
+           only total_input_tokens missed ~99% of usage. -->
+      {#snippet tokenStats()}
+        {@const cIn = sessionCosts.total_input_tokens || 0}
+        {@const cOut = sessionCosts.total_output_tokens || 0}
+        {@const cCreate = sessionCosts.total_cache_creation_tokens || 0}
+        {@const cRead = sessionCosts.total_cache_read_tokens || 0}
+        {@const totalIn = cIn + cCreate + cRead}
         <span class="text-[var(--muted)]">Tokens</span>
         <span class="font-semibold text-[var(--accent)]">
           {#if billingMode === 'api'}
             {formatCost(sessionCosts.total_cost_usd)}
           {:else}
-            {formatTokens((sessionCosts.total_input_tokens || 0) + (sessionCosts.total_output_tokens || 0))}
+            {formatTokens(totalIn + cOut)}
           {/if}
         </span>
         <span class="text-[var(--muted)]">In</span>
-        <span class="text-[var(--text)]">{formatTokens(sessionCosts.total_input_tokens)}</span>
+        <span class="text-[var(--text)]">{formatTokens(totalIn)}</span>
+        {#if cRead > 0}
+          <span class="text-[var(--muted)]">Cached</span>
+          <span class="text-[var(--text)]">{formatTokens(cRead)}</span>
+        {/if}
         <span class="text-[var(--muted)]">Out</span>
-        <span class="text-[var(--text)]">{formatTokens(sessionCosts.total_output_tokens)}</span>
+        <span class="text-[var(--text)]">{formatTokens(cOut)}</span>
+      {/snippet}
+      <button onclick={() => navigate('/analysis/costs')} class="flex items-center gap-2 text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80">
+        {@render tokenStats()}
       </button>
 
     </div>
