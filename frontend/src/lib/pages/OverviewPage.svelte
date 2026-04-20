@@ -229,10 +229,15 @@
   const agentChartColors = { 'Claude Code': '#FF6B35', 'Ollama': '#F5A623' };
   const defaultAgentColors = ['#10A37F', '#4285F4', '#A855F7', '#EC4899'];
 
-  // Bucket recentFiles + recentAgentEvents into 30×10s buckets, grouped by agent.
+  // Bucket recentFiles + recentAgentEvents into buckets grouped by agent.
+  // Fine buckets + frequent ticks + linear animation = oscilloscope-style slide.
+  const TREND_BUCKET_COUNT = 60;
+  const TREND_BUCKET_MS = 5000;
+  const TREND_TICK_MS = 500;
+  const TREND_Y_MAX = 12; // pinned so the axis never rescales — keeps the line from jumping
   function buildTrendDatasets() {
-    const bucketCount = 30;
-    const bucketMs = 10000;
+    const bucketCount = TREND_BUCKET_COUNT;
+    const bucketMs = TREND_BUCKET_MS;
     const now = new Date();
 
     const sortedAgentEvents = [...recentAgentEvents].sort(
@@ -264,7 +269,7 @@
     });
 
     const labels = Array.from({ length: bucketCount }, (_, i) => {
-      const t = new Date(now.getTime() - (bucketCount - 1 - i) * 10 * 1000);
+      const t = new Date(now.getTime() - (bucketCount - 1 - i) * bucketMs);
       const pad = n => String(n).padStart(2, '0');
       return `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
     });
@@ -276,30 +281,42 @@
         label: agent,
         data,
         borderColor: color,
-        backgroundColor: `${color}15`,
+        backgroundColor: `${color}20`,
         fill: true,
-        tension: 0.4,
-        pointRadius: 1,
-        pointHoverRadius: 4,
-        borderWidth: 2
+        cubicInterpolationMode: 'monotone',
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        borderWidth: 1.5
       };
     });
 
-    return { labels, datasets, maxY: Math.max(5, ...Object.values(agentBuckets).flat()) };
+    return { labels, datasets };
   }
 
-  // Full rebuild on each refresh — destroy/recreate was the original pattern and
-  // is known-good. In-place update via chart.update('none') briefly worked but had
-  // a rendering glitch where the canvas stayed blank; keep it simple.
+  // Smooth oscilloscope-style refresh: in-place update, linear animation matching
+  // the tick interval so the line appears to slide continuously left.
   function refreshTrendChart() {
-    createCharts();
+    if (!trendChart || typeof trendChart.update !== 'function') return createCharts();
+    const { labels, datasets } = buildTrendDatasets();
+    trendChart.data.labels = labels;
+    // Update existing datasets in place; add/remove as agents come and go.
+    const existing = new Map(trendChart.data.datasets.map(d => [d.label, d]));
+    trendChart.data.datasets = datasets.map(d => {
+      const prev = existing.get(d.label);
+      if (prev) {
+        prev.data = d.data;
+        return prev;
+      }
+      return d;
+    });
+    trendChart.update();
   }
 
   function createCharts() {
     const colors = getChartColors();
     if (trendChart) destroyChart(trendChart);
 
-    const { labels, datasets, maxY } = buildTrendDatasets();
+    const { labels, datasets } = buildTrendDatasets();
 
     trendChart = createChart('chart-trend', {
       type: 'line',
@@ -307,7 +324,8 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: false,
+        animation: { duration: TREND_TICK_MS, easing: 'linear' },
+        animations: { y: { duration: 0 } }, // don't animate Y; only the horizontal slide
         plugins: {
           legend: {
             display: true,
@@ -320,7 +338,8 @@
               boxHeight: 2,
               padding: 8
             }
-          }
+          },
+          tooltip: { enabled: false }
         },
         scales: {
           x: {
@@ -328,13 +347,15 @@
               color: colors.muted,
               font: { size: 9, family: 'monospace' },
               maxRotation: 0,
-              autoSkipPadding: 20
+              autoSkip: true,
+              maxTicksLimit: 6
             },
             grid: { display: false }
           },
           y: {
             beginAtZero: true,
-            suggestedMax: maxY,
+            min: 0,
+            max: TREND_Y_MAX,
             ticks: { color: colors.muted, font: { size: 10, family: 'monospace' }, precision: 0 },
             grid: { color: `${colors.border}` }
           }
@@ -612,8 +633,9 @@
     // Auto-refresh every 30s
     const interval = setInterval(loadData, 30000);
 
-    // Slide trend buckets every second so the window feels live even when quiet
-    const trendTicker = setInterval(refreshTrendChart, 1000);
+    // Slide trend buckets continuously — tick interval must match the chart's
+    // animation duration (TREND_TICK_MS) so the line flows without hitches.
+    const trendTicker = setInterval(refreshTrendChart, TREND_TICK_MS);
 
     return () => {
       websocketService.off('system-metrics', handleMetrics);
