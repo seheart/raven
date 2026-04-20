@@ -516,11 +516,16 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
     }
   }
 
-  // Emit via Socket.IO for real-time UI updates
+  // Emit via Socket.IO for real-time UI updates.
+  // tool/message let the AI Pulse render readable labels (e.g. "Read · file.ts")
+  // instead of falling back to the agent name.
   io.emit('agent-event', {
     type: event.type,
     agent_name: agentName,
     file: event.file || event.path,
+    tool: event.tool || null,
+    message: event.tool ? `${event.tool} call` : event.type,
+    content: event.content ? String(event.content).slice(0, 200) : null,
     timestamp: timestamp,
     event_type: event.type
   });

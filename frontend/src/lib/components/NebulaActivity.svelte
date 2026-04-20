@@ -11,6 +11,8 @@
   let ctx;
   let animId;
   let particles = [];
+  let labels = []; // burst-origin labels, decoupled from particles
+  let icons = []; // burst-origin tool icons
   let width = 0;
   let height = 0;
   let time = 0;
@@ -22,8 +24,38 @@
   let gridColor = 'rgba(100,100,140,0.04)'; // cached, updated on theme change
   let statusText = $state('Idle');
   let eventsPerMin = $state(0);
+  let ticker = $state([]); // last N events shown as scrolling text under canvas
 
   const MAX_PARTICLES = 350;
+  const TRAIL_LEN = 5;
+  const TICKER_MAX = 5;
+  const GROUP_WINDOW_MS = 200;
+  const LABEL_LIFE_DECAY = 0.0005; // ~3.3s @ 60fps
+
+  // Coalesce identical events fired within GROUP_WINDOW_MS into one bigger burst.
+  const pendingGroup = new Map(); // key -> { type, label, icon, count, timer }
+
+  const TOOL_ICONS = {
+    Read: '📖',
+    Write: '📝',
+    Edit: '✏️',
+    Bash: '⚡',
+    Grep: '🔍',
+    Glob: '✱',
+    WebFetch: '🌐',
+    WebSearch: '🔎',
+    Task: '🤖'
+  };
+  const TYPE_ICONS = {
+    file_create: '+',
+    file_add: '+',
+    file_delete: '−',
+    file_edit: '~',
+    user_message: '›',
+    assistant_message: '‹',
+    error: '!',
+    warning: '?'
+  };
 
   let colors = {
     accent: '#6b8eff',
@@ -95,15 +127,34 @@
     else statusText = 'Idle';
   }
 
-  function spawnBurst(type, label) {
+  // Group identical bursts (same type+label) within a 200ms window into one
+  // bigger burst with a count badge. Reduces visual noise during edit storms.
+  function queueBurst(type, label, icon) {
+    const key = `${type}|${label || ''}|${icon || ''}`;
+    const pending = pendingGroup.get(key);
+    if (pending) {
+      pending.count++;
+      return;
+    }
+    const entry = { type, label, icon, count: 1, timer: null };
+    entry.timer = setTimeout(() => {
+      pendingGroup.delete(key);
+      spawnBurst(entry.type, entry.label, entry.icon, entry.count);
+    }, GROUP_WINDOW_MS);
+    pendingGroup.set(key, entry);
+  }
+
+  function spawnBurst(type, label, icon, count = 1) {
     recordEvent();
     const color = colors[TYPE_COLORS[type] || 'muted'];
     const cx = width / 2;
     const cy = height / 2;
-    const count = 4 + Math.floor(Math.random() * 5);
+    // Bigger bursts when grouped — particles, ripple, and core all scale.
+    const sizeBoost = Math.min(2, 1 + Math.log2(count));
+    const particleCount = Math.floor((4 + Math.floor(Math.random() * 5)) * sizeBoost);
     const burstAngle = Math.random() * Math.PI * 2;
 
-    for (let i = 0; i < count && particles.length < MAX_PARTICLES; i++) {
+    for (let i = 0; i < particleCount && particles.length < MAX_PARTICLES; i++) {
       const angle = burstAngle + (Math.random() - 0.5) * 1.5;
       const speed = 0.6 + Math.random() * 1.8 + eventRate * 0.3;
       const dist = 5 + Math.random() * 15;
@@ -117,15 +168,41 @@
         life: 1,
         decay: 0.0006 + Math.random() * 0.001,
         orbit: (0.001 + Math.random() * 0.004) * (Math.random() > 0.5 ? 1 : -1),
-        label: i === 0 ? (label || '').slice(0, 20) : '',
-        labelLife: 1.5
+        trail: [] // ring buffer of recent positions for comet effect
       });
     }
 
-    activity = Math.min(1, activity + 0.12);
+    if (label) {
+      const text = count > 1 ? `${label} ×${count}` : label;
+      labels.push({
+        text: text.slice(0, 32),
+        x: cx + (Math.random() - 0.5) * 20,
+        y: cy + (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: -0.25 - Math.random() * 0.2, // float upward
+        color,
+        life: 1
+      });
+    }
+    if (icon) {
+      icons.push({
+        char: icon,
+        x: cx,
+        y: cy,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: -0.15,
+        color,
+        life: 1
+      });
+    }
 
-    // Ripple
-    ripples.push({ born: time, color, maxRadius: 50 + eventRate * 25 });
+    activity = Math.min(1, activity + 0.12 * sizeBoost);
+    ripples.push({ born: time, color, maxRadius: (50 + eventRate * 25) * sizeBoost });
+  }
+
+  function pushTicker(label, color) {
+    if (!label) return;
+    ticker = [{ text: label, color, ts: Date.now() }, ...ticker].slice(0, TICKER_MAX);
   }
 
   // Keep a faint ambient cloud so it's never empty
@@ -145,8 +222,7 @@
         life: 0.2 + Math.random() * 0.3,
         decay: 0.0008 + Math.random() * 0.001,
         orbit: (0.0005 + Math.random() * 0.002) * (Math.random() > 0.5 ? 1 : -1),
-        label: '',
-        labelLife: 0
+        trail: null // ambient particles skip trails for perf
       });
     }
   }
@@ -214,6 +290,13 @@
       p.life -= p.decay;
       if (p.life <= 0) return false;
 
+      // Track position history for comet trail (only burst-size particles to
+      // keep ambient cheap)
+      if (p.trail && p.radius > 1) {
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > TRAIL_LEN) p.trail.shift();
+      }
+
       // Orbital rotation around center
       const dx = p.x - cx;
       const dy = p.y - cy;
@@ -227,6 +310,19 @@
       // Decelerate
       p.vx *= 0.994;
       p.vy *= 0.994;
+
+      // Comet trail — segments fade from old (transparent) to new (opaque)
+      if (p.trail && p.trail.length > 1) {
+        for (let i = 0; i < p.trail.length - 1; i++) {
+          const segAlpha = (i / p.trail.length) * p.life * 0.35;
+          ctx.strokeStyle = rgba(p.color, segAlpha);
+          ctx.lineWidth = p.radius * (i / p.trail.length) * 0.9;
+          ctx.beginPath();
+          ctx.moveTo(p.trail[i].x, p.trail[i].y);
+          ctx.lineTo(p.trail[i + 1].x, p.trail[i + 1].y);
+          ctx.stroke();
+        }
+      }
 
       // Draw glow
       const glowSize = p.radius * 4;
@@ -244,14 +340,35 @@
       ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Label
-      if (p.label && p.labelLife > 0.05) {
-        p.labelLife -= 0.002;
-        ctx.font = '9px "JetBrains Mono", monospace';
-        ctx.fillStyle = rgba(p.color, p.labelLife * 0.5);
-        ctx.fillText(p.label, p.x + p.radius + 4, p.y + 3);
-      }
+      return true;
+    });
 
+    // Burst-origin labels (decoupled from particles) — float up and fade
+    labels = labels.filter(l => {
+      l.life -= LABEL_LIFE_DECAY;
+      if (l.life <= 0) return false;
+      l.x += l.vx;
+      l.y += l.vy;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = rgba(l.color, Math.min(1, l.life * 1.2) * 0.75);
+      ctx.fillText(l.text, l.x, l.y);
+      ctx.textAlign = 'start';
+      return true;
+    });
+
+    // Tool icons at burst origin
+    icons = icons.filter(ic => {
+      ic.life -= LABEL_LIFE_DECAY * 1.4; // slightly faster than labels
+      if (ic.life <= 0) return false;
+      ic.x += ic.vx;
+      ic.y += ic.vy;
+      ctx.font = `${14 + ic.life * 6}px "Apple Color Emoji", "Noto Color Emoji", monospace`;
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = Math.min(1, ic.life * 1.5);
+      ctx.fillText(ic.char, ic.x, ic.y - 8);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'start';
       return true;
     });
 
@@ -284,8 +401,7 @@
         life: 0.3 + Math.random() * 0.2,
         decay: 0.006,
         orbit: (Math.random() - 0.5) * 0.004,
-        label: '',
-        labelLife: 0
+        trail: null
       });
     }
   }
@@ -298,17 +414,25 @@
 
     const handleAgentEvent = data => {
       const type = data?.event_type || data?.type || 'tool_call';
+      const tool = data?.tool || data?.message?.match(/^(\w+)/)?.[1];
+      const fileName = data?.file?.split('/').pop();
       const label =
-        data?.file?.split('/').pop() || data?.message?.split(' ')[0] || data?.agent_name || type;
-      spawnBurst(type, label);
+        tool && fileName ? `${tool} · ${fileName}` :
+        tool || fileName || data?.agent_name || type;
+      const icon = TOOL_ICONS[tool] || TYPE_ICONS[type] || null;
+      queueBurst(type, label, icon);
+      pushTicker(label, colors[TYPE_COLORS[type] || 'muted']);
     };
 
     const handleFileChange = data => {
       const label = data?.file?.split('/').pop() || data?.filepath?.split('/').pop() || '';
       const changeType = data?.change_type || 'change';
-      if (changeType === 'unlink') spawnBurst('file_delete', label);
-      else if (changeType === 'add') spawnBurst('file_create', label);
-      else spawnBurst('file_edit', label);
+      const type =
+        changeType === 'unlink' ? 'file_delete' :
+        changeType === 'add' ? 'file_create' : 'file_edit';
+      const icon = TYPE_ICONS[type];
+      queueBurst(type, label, icon);
+      pushTicker(label, colors[TYPE_COLORS[type] || 'muted']);
     };
 
     websocketService.on('agent-event', handleAgentEvent);
@@ -327,6 +451,8 @@
     return () => {
       cancelAnimationFrame(animId);
       clearTimeout(themeDebounce);
+      pendingGroup.forEach(p => clearTimeout(p.timer));
+      pendingGroup.clear();
       websocketService.off('agent-event', handleAgentEvent);
       websocketService.off('file-changed', handleFileChange);
       themeObs.disconnect();
@@ -372,4 +498,19 @@
       Deletes
     </span>
   </div>
+
+  {#if ticker.length > 0}
+    <div
+      class="absolute bottom-10 left-0 right-0 px-4 pointer-events-none overflow-hidden whitespace-nowrap text-[9px] font-mono"
+    >
+      {#each ticker as item, i (item.ts)}
+        <span
+          class="inline-block mr-3 transition-opacity"
+          style="color: {item.color}; opacity: {1 - i * 0.18}"
+        >
+          {item.text}
+        </span>
+      {/each}
+    </div>
+  {/if}
 </div>
