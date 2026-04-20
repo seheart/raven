@@ -59,14 +59,26 @@ export class InsightsService {
     | ((eventId: number, filepath: string, score: number, reason: string) => void)
     | null = null;
 
+  // Preference order for auto-selection when no model is pinned. First match
+  // against Ollama's /api/tags wins; otherwise we fall through to whatever's
+  // installed. Ordered by "fast + good at code" for diff-risk scoring.
+  private static readonly MODEL_PREFERENCE = [
+    'qwen2.5-coder:7b',
+    'qwen2.5-coder:14b',
+    'qwen2.5-coder:32b',
+    'qwen3:14b',
+    'llama3.1:8b'
+  ];
+
   constructor(
     db: RavenDB,
     ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434',
-    model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b'
+    model?: string
   ) {
     this.db = db;
     this.ollamaUrl = ollamaUrl;
-    this.model = model;
+    // Explicit arg or env var pins the model. Empty → resolved lazily on first call.
+    this.model = model ?? process.env.OLLAMA_MODEL ?? '';
 
     // Create insights table if not exists
     this.db.db.exec(`
@@ -808,6 +820,20 @@ Keep it under 150 words.`;
     return this.callOllamaWithOptions(prompt, 800, 180000);
   }
 
+  // Resolve this.model by probing /api/tags when the user hasn't pinned one.
+  // Picks the first preferred model that's actually installed, then falls back
+  // to whatever is installed. Caches the result so subsequent calls are free.
+  private async ensureModel(): Promise<boolean> {
+    if (this.model) return true;
+    const installed = await this.getModels();
+    if (installed.length === 0) return false;
+    const picked =
+      InsightsService.MODEL_PREFERENCE.find(m => installed.includes(m)) || installed[0];
+    this.model = picked;
+    logger.info(`Auto-selected Ollama model: ${picked} (installed: ${installed.join(', ')})`);
+    return true;
+  }
+
   private async callOllamaWithOptions(
     prompt: string,
     numPredict: number,
@@ -817,6 +843,12 @@ Keep it under 150 words.`;
     if (this.isCircuitOpen()) {
       const remainingSec = Math.ceil((this.circuitOpenUntil - Date.now()) / 1000);
       logger.warn(`Circuit breaker OPEN — skipping ollama call (${remainingSec}s remaining)`);
+      return null;
+    }
+
+    if (!(await this.ensureModel())) {
+      logger.warn('No Ollama models installed — skipping call');
+      this.recordFailure();
       return null;
     }
 
