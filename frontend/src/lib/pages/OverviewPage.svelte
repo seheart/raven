@@ -367,47 +367,36 @@
   async function loadData() {
     try {
       const pf = get(projectFilter);
-      const pq = pf && pf !== 'all' ? `&project=${encodeURIComponent(pf)}` : '';
-      const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-      const [statsData, metricsData, fileEvents, agentData, costsData, subagentsData, agentEventsData, processActivityData, latencyData] = await Promise.all([
-        api.get(`/dashboard-stats?_=1${pq}`).catch(() => stats),
-        api.get('/system-metrics?limit=1').catch(() => []),
-        api.get(`/file-events?limit=100${pq}`).catch(() => []),
-        api.get('/agents-status').catch(() => []),
-        api.get(`/costs/summary?start=${encodeURIComponent(todayStart)}`).catch(() => sessionCosts),
-        api.get('/subagents/recent?limit=8').catch(() => []),
-        api.get('/agent-events?limit=300').catch(() => []),
-        api.get('/process-activity').catch(() => []),
-        api.get('/api-latency?limit=1&minutes=1440').catch(() => null)
-      ]);
+      const pq = pf && pf !== 'all' ? `?project=${encodeURIComponent(pf)}` : '';
+      const data = await api.get(`/dashboard${pq}`);
 
-      checkStatChanges(statsData);
-      stats = statsData;
-      sessionCosts = costsData || sessionCosts;
-      recentSubagents = Array.isArray(subagentsData) ? subagentsData : [];
-      systemMetrics = Array.isArray(metricsData) && metricsData[0] ? metricsData[0] : systemMetrics;
-      recentFiles = Array.isArray(fileEvents) ? fileEvents : [];
-      recentAgentEvents = Array.isArray(agentEventsData) ? agentEventsData : [];
-      agents = Array.isArray(agentData) ? agentData : [];
+      checkStatChanges(data.stats);
+      stats = data.stats;
+      sessionCosts = data.costs || sessionCosts;
+      recentSubagents = Array.isArray(data.subagents) ? data.subagents : [];
+      systemMetrics =
+        Array.isArray(data.systemMetrics) && data.systemMetrics[0]
+          ? data.systemMetrics[0]
+          : systemMetrics;
+      recentFiles = Array.isArray(data.fileEvents) ? data.fileEvents : [];
+      recentAgentEvents = Array.isArray(data.agentEvents) ? data.agentEvents : [];
+      agents = Array.isArray(data.agentsStatus) ? data.agentsStatus : [];
       agentStatus = agents[0] || null;
 
-      // Load process activity states
-      if (Array.isArray(processActivityData)) {
+      if (Array.isArray(data.processActivity)) {
         const pa = {};
-        for (const p of processActivityData) {
+        for (const p of data.processActivity) {
           pa[p.agent_name] = p;
         }
         processActivity = pa;
       }
-      // Load latest API latency
-      if (latencyData?.recent?.length > 0) {
-        latestApiLatency = latencyData.recent[0];
+      if (data.apiLatency?.recent?.length > 0) {
+        latestApiLatency = data.apiLatency.recent[0];
       }
 
       lastUpdated = new Date();
       loading = false;
       setTimeout(createCharts, 100);
-
     } catch (err) {
       logger.error('Dashboard load failed:', err);
       loading = false;

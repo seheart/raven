@@ -103,6 +103,7 @@ export class InsightsService {
   async isAvailable(): Promise<boolean> {
     try {
       const res = await fetch(`${this.ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) this.resetCircuitOnProbe();
       return res.ok;
     } catch {
       return false;
@@ -113,10 +114,24 @@ export class InsightsService {
     try {
       const res = await fetch(`${this.ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(3000) });
       if (!res.ok) return [];
+      this.resetCircuitOnProbe();
       const data: any = await res.json();
       return (data.models || []).map((m: any) => m.name);
     } catch {
       return [];
+    }
+  }
+
+  // A successful /api/tags ping proves Ollama is reachable. Inference may still
+  // fail (bad model, OOM), but the breaker shouldn't keep us locked out for
+  // minutes when the underlying service is healthy. Reset the cooldown so the
+  // next call gets through immediately; consecutiveFailures stays so repeated
+  // inference failures still trip again.
+  private resetCircuitOnProbe(): void {
+    if (this.circuitOpenUntil > Date.now()) {
+      logger.info('Circuit breaker RESET — Ollama probe succeeded');
+      this.circuitOpenUntil = 0;
+      this.consecutiveFailures = 0;
     }
   }
 
@@ -456,12 +471,22 @@ Keep it under 200 words. Be specific about file names and projects.`;
     this.diffRiskCallback = cb;
   }
 
+  // Cap the queue so an HMR storm or bulk find-replace doesn't grow it
+  // unboundedly during the 15s debounce window.
+  private static readonly DIFF_RISK_MAX_PENDING = 50;
+
   /**
    * Queue a diff for batched risk scoring. Files are collected over a 15-second
    * window and then scored in a single ollama call to avoid VRAM pressure.
+   * On overflow, the oldest pending item is dropped.
    */
   queueDiffRisk(eventId: number, filepath: string, diff: string, changeType: string): void {
     this.pendingDiffRisks.push({ eventId, filepath, diff, changeType });
+    if (this.pendingDiffRisks.length > InsightsService.DIFF_RISK_MAX_PENDING) {
+      const dropped = this.pendingDiffRisks.length - InsightsService.DIFF_RISK_MAX_PENDING;
+      this.pendingDiffRisks.splice(0, dropped);
+      logger.debug(`Diff risk queue full — dropped ${dropped} oldest item(s)`);
+    }
 
     if (this.diffRiskTimer) clearTimeout(this.diffRiskTimer);
     this.diffRiskTimer = setTimeout(() => {

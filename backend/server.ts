@@ -88,6 +88,20 @@ const io = new SocketIOServer(httpServer, {
   transports: ['websocket', 'polling']
 });
 
+// Debounced broadcaster for agent-stats. Telemetry events arrive faster than
+// dashboards need refreshes; coalescing to ~2s cuts duplicate aggregate queries
+// without making the UI feel stale.
+let agentStatsBroadcastTimer: NodeJS.Timeout | null = null;
+const AGENT_STATS_BROADCAST_MS = 2000;
+function scheduleAgentStatsBroadcast(): void {
+  if (agentStatsBroadcastTimer) return;
+  agentStatsBroadcastTimer = setTimeout(() => {
+    agentStatsBroadcastTimer = null;
+    io.emit('agent-stats', db.getAgentStats());
+  }, AGENT_STATS_BROADCAST_MS);
+  agentStatsBroadcastTimer.unref();
+}
+
 // Paths
 const RAVEN_DIR = process.env.RAVEN_DIR || join(process.cwd(), '..', '.raven');
 const WATCH_PATH = process.env.WATCH_PATH || join(process.cwd(), '..', '..');
@@ -595,37 +609,27 @@ EventBus.onFileEvent(async (event: FileEvent) => {
     // Prefix filepath with project name so it's identifiable across projects
     const storedPath = eventProjectName ? `${eventProjectName}/${event.path}` : event.path;
 
-    // Agent attribution: check if a recent agent event references this file
+    // Agent attribution: prefer agent events that name this file, fall back to
+    // recent tool/inference activity. One query, file-match wins via ORDER BY.
     let agentSource: string | null = null;
     try {
-      const recentAgent = db.db
+      const filePattern = `%${event.path}%`;
+      const match = db.db
         .prepare(
           `
         SELECT agent FROM agent_events
-        WHERE file LIKE ? AND datetime(timestamp) > datetime('now', '-10 seconds')
-        ORDER BY timestamp DESC LIMIT 1
+        WHERE datetime(timestamp) > datetime('now', '-10 seconds')
+          AND (
+            file LIKE ?
+            OR (event_type IN ('tool_call', 'inference')
+                AND datetime(timestamp) > datetime('now', '-5 seconds'))
+          )
+        ORDER BY CASE WHEN file LIKE ? THEN 0 ELSE 1 END, timestamp DESC
+        LIMIT 1
       `
         )
-        .get(`%${event.path}%`) as { agent: string } | undefined;
-
-      if (recentAgent) {
-        agentSource = recentAgent.agent;
-      } else {
-        // Fallback: check if any agent had activity in the last 5 seconds
-        const activeAgent = db.db
-          .prepare(
-            `
-          SELECT agent FROM agent_events
-          WHERE datetime(timestamp) > datetime('now', '-5 seconds')
-          AND event_type IN ('tool_call', 'inference')
-          ORDER BY timestamp DESC LIMIT 1
-        `
-          )
-          .get() as { agent: string } | undefined;
-        if (activeAgent) {
-          agentSource = activeAgent.agent;
-        }
-      }
+        .get(filePattern, filePattern) as { agent: string } | undefined;
+      if (match) agentSource = match.agent;
     } catch {
       // Attribution is best-effort
     }
@@ -979,6 +983,116 @@ if (existsSync(frontendDistPath)) {
   });
   logger.info(`📦 Serving frontend from ${frontendDistPath}`);
 }
+
+// ==================== Dashboard Aggregator ====================
+
+// One round-trip for the Overview page. Replaces nine parallel calls the
+// frontend used to make on every loadData(). The legacy endpoints stay
+// (other pages use them); this just collapses the dashboard's fan-out.
+app.get('/api/dashboard', cacheMiddleware(2000), (req: Request, res: Response) => {
+  try {
+    const project = req.query.project as string | undefined;
+    const projectFilter = project && project !== 'all' ? project : undefined;
+    const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+
+    // 1. dashboard-stats
+    const stats = db.getDashboardStats(SESSION_ID, projectFilter);
+    stats.total_agents = agentRegistry.size;
+    stats.app_errors =
+      (db.db.prepare('SELECT COUNT(*) as count FROM app_errors WHERE resolved = 0').get() as any)
+        ?.count || 0;
+
+    // 2. system-metrics (latest 1)
+    const systemMetrics = db.db
+      .prepare(
+        `SELECT id, timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb,
+                network_rx_bytes, network_tx_bytes
+         FROM raven_metrics ORDER BY timestamp DESC LIMIT 1`
+      )
+      .all();
+
+    // 3. file-events (limit 100, optional project filter)
+    const fileEventsQuery = projectFilter
+      ? `SELECT id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem,
+                project_name, agent_source
+         FROM events WHERE project_name = ? ORDER BY timestamp DESC LIMIT 100`
+      : `SELECT id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem,
+                project_name, agent_source
+         FROM events ORDER BY timestamp DESC LIMIT 100`;
+    const fileEvents = projectFilter
+      ? db.db.prepare(fileEventsQuery).all(projectFilter)
+      : db.db.prepare(fileEventsQuery).all();
+
+    // 4. agents-status (registry → array, with derived is_running/confidence)
+    const now = Date.now();
+    const agentsStatus = Array.from(agentRegistry.values()).map(a => {
+      const sinceLastSeen = (now - new Date(a.last_seen).getTime()) / 1000;
+      return {
+        ...a,
+        is_running: sinceLastSeen < 300,
+        confidence: a.requests_handled > 100 ? 0.95 : a.requests_handled > 10 ? 0.7 : 0.3
+      };
+    });
+
+    // 5. costs/summary (today)
+    const costsRow = db.db
+      .prepare(
+        `SELECT COUNT(*) as total_requests,
+                COALESCE(SUM(input_tokens), 0) as total_input_tokens,
+                COALESCE(SUM(output_tokens), 0) as total_output_tokens,
+                COALESCE(SUM(cache_creation_tokens), 0) as total_cache_creation_tokens,
+                COALESCE(SUM(cache_read_tokens), 0) as total_cache_read_tokens,
+                COALESCE(SUM(estimated_cost_usd), 0) as total_cost_usd
+         FROM token_usage WHERE timestamp >= ?`
+      )
+      .get(todayStart) as any;
+    const costs = {
+      total_requests: costsRow?.total_requests ?? 0,
+      total_input_tokens: costsRow?.total_input_tokens ?? 0,
+      total_output_tokens: costsRow?.total_output_tokens ?? 0,
+      total_cache_creation_tokens: costsRow?.total_cache_creation_tokens ?? 0,
+      total_cache_read_tokens: costsRow?.total_cache_read_tokens ?? 0,
+      total_cost_usd: costsRow?.total_cost_usd ?? 0
+    };
+
+    // 6. subagents/recent (limit 8)
+    const subagents = db.db
+      .prepare(`SELECT * FROM subagent_tree ORDER BY started_at DESC LIMIT 8`)
+      .all();
+
+    // 7. agent-events (limit 300)
+    const agentEvents = db.db
+      .prepare(
+        `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+         FROM agent_events ORDER BY timestamp DESC LIMIT 300`
+      )
+      .all();
+
+    // 8. process-activity
+    const processActivity = db.getLatestProcessActivity();
+
+    // 9. api-latency (recent 1, stats over 24h)
+    const apiLatency = {
+      recent: db.getRecentApiLatency(1),
+      stats: db.getApiLatencyStats(1440)
+    };
+
+    return res.json({
+      stats,
+      systemMetrics,
+      fileEvents,
+      agentsStatus,
+      costs,
+      subagents,
+      agentEvents,
+      processActivity,
+      apiLatency
+    });
+  } catch (error: any) {
+    logger.error('Dashboard aggregator error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 // ==================== Legacy Individual Route Handlers ====================
 
@@ -1376,7 +1490,7 @@ app.post('/telemetry', (req: Request, res: Response) => {
       metadata
     });
 
-    io.emit('agent-stats', db.getAgentStats());
+    scheduleAgentStatsBroadcast();
 
     return res.json({ success: true, event_id: eventId, session_id: SESSION_ID });
   } catch (error: any) {
