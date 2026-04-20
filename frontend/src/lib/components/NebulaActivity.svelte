@@ -23,18 +23,15 @@
   let gridColor = 'rgba(100,100,140,0.04)'; // cached, updated on theme change
   let statusText = $state('Idle');
   let eventsPerMin = $state(0);
-  let ticker = $state([]); // last N events shown as scrolling text under canvas
 
   const MAX_PARTICLES = 350;
   const TRAIL_LEN = 5;
-  const TICKER_MAX = 5;
   const GROUP_WINDOW_MS = 200;
   const LABEL_LIFE_DECAY = 0.0005; // ~3.3s @ 60fps
 
   // Coalesce identical events fired within GROUP_WINDOW_MS into one bigger burst.
   const pendingGroup = new Map(); // key -> { type, label, count, timer }
 
-  let tickerSeq = 0; // monotonic counter — Date.now() collides at sub-ms event rates
 
   let colors = {
     accent: '#6b8eff',
@@ -168,10 +165,6 @@
     ripples.push({ born: time, color, maxRadius: (50 + eventRate * 25) * sizeBoost });
   }
 
-  function pushTicker(label, color) {
-    if (!label) return;
-    ticker = [{ text: label, color, key: ++tickerSeq }, ...ticker].slice(0, TICKER_MAX);
-  }
 
   // Keep a faint ambient cloud so it's never empty
   function ensureAmbient() {
@@ -373,7 +366,6 @@
         tool && fileName ? `${tool} · ${fileName}` :
         tool || fileName || data?.agent_name || type;
       queueBurst(type, label);
-      pushTicker(label, colors[TYPE_COLORS[type] || 'muted']);
     };
 
     const handleFileChange = data => {
@@ -383,7 +375,6 @@
         changeType === 'unlink' ? 'file_delete' :
         changeType === 'add' ? 'file_create' : 'file_edit';
       queueBurst(type, label);
-      pushTicker(label, colors[TYPE_COLORS[type] || 'muted']);
     };
 
     websocketService.on('agent-event', handleAgentEvent);
@@ -450,18 +441,4 @@
     </span>
   </div>
 
-  {#if ticker.length > 0}
-    <div
-      class="absolute bottom-10 left-0 right-0 px-4 pointer-events-none overflow-hidden whitespace-nowrap text-[9px] font-mono"
-    >
-      {#each ticker as item, i (item.key)}
-        <span
-          class="inline-block mr-3 transition-opacity"
-          style="color: {item.color}; opacity: {1 - i * 0.18}"
-        >
-          {item.text}
-        </span>
-      {/each}
-    </div>
-  {/if}
 </div>
