@@ -35,27 +35,32 @@
   // Coalesce identical events fired within GROUP_WINDOW_MS into one bigger burst.
   const pendingGroup = new Map(); // key -> { type, label, icon, count, timer }
 
+  // Plain ASCII / basic unicode only — emoji require a color-emoji font that
+  // isn't installed everywhere (Linux/Hyprland often lacks one), and missing
+  // glyphs render as tofu boxes.
   const TOOL_ICONS = {
-    Read: '📖',
-    Write: '📝',
-    Edit: '✏️',
-    Bash: '⚡',
-    Grep: '🔍',
-    Glob: '✱',
-    WebFetch: '🌐',
-    WebSearch: '🔎',
-    Task: '🤖'
+    Read: 'R',
+    Write: 'W',
+    Edit: 'E',
+    Bash: '$',
+    Grep: 'G',
+    Glob: '*',
+    WebFetch: '@',
+    WebSearch: '/',
+    Task: 'T'
   };
   const TYPE_ICONS = {
     file_create: '+',
     file_add: '+',
-    file_delete: '−',
+    file_delete: '-',
     file_edit: '~',
-    user_message: '›',
-    assistant_message: '‹',
+    user_message: '>',
+    assistant_message: '<',
     error: '!',
     warning: '?'
   };
+
+  let tickerSeq = 0; // monotonic counter — Date.now() collides at sub-ms event rates
 
   let colors = {
     accent: '#6b8eff',
@@ -202,7 +207,7 @@
 
   function pushTicker(label, color) {
     if (!label) return;
-    ticker = [{ text: label, color, ts: Date.now() }, ...ticker].slice(0, TICKER_MAX);
+    ticker = [{ text: label, color, key: ++tickerSeq }, ...ticker].slice(0, TICKER_MAX);
   }
 
   // Keep a faint ambient cloud so it's never empty
@@ -363,9 +368,9 @@
       if (ic.life <= 0) return false;
       ic.x += ic.vx;
       ic.y += ic.vy;
-      ctx.font = `${14 + ic.life * 6}px "Apple Color Emoji", "Noto Color Emoji", monospace`;
+      ctx.font = `bold ${14 + ic.life * 6}px "JetBrains Mono", monospace`;
       ctx.textAlign = 'center';
-      ctx.globalAlpha = Math.min(1, ic.life * 1.5);
+      ctx.fillStyle = rgba(ic.color, Math.min(1, ic.life * 1.5));
       ctx.fillText(ic.char, ic.x, ic.y - 8);
       ctx.globalAlpha = 1;
       ctx.textAlign = 'start';
@@ -503,7 +508,7 @@
     <div
       class="absolute bottom-10 left-0 right-0 px-4 pointer-events-none overflow-hidden whitespace-nowrap text-[9px] font-mono"
     >
-      {#each ticker as item, i (item.ts)}
+      {#each ticker as item, i (item.key)}
         <span
           class="inline-block mr-3 transition-opacity"
           style="color: {item.color}; opacity: {1 - i * 0.18}"
