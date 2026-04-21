@@ -2,9 +2,9 @@ name: CI (Frontend & Backend)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   build-test:
@@ -71,9 +71,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, develop ]
 
 env:
   NODE_VERSION: '24'
