@@ -31,7 +31,7 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@chromatic-com/storybook": "^4.1.2",
+    "@chromatic-com/storybook": "^5.1.2",
     "@playwright/test": "^1.56.1",
     "@storybook/addon-a11y": "^10.0.7",
     "@storybook/addon-docs": "^10.0.7",
