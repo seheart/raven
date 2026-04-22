@@ -298,7 +298,9 @@
   // When the dataset SHAPE changes (new/removed agent), Chart.js can't safely
   // hot-swap the controller list — fall back to full recreate in that case.
   function refreshTrendChart() {
-    if (!trendChart || typeof trendChart.update !== 'function') return createCharts();
+    // Chart.destroy() nulls canvas; use that as the liveness check.
+    // `trendChart.update` is a prototype method and stays truthy after destroy.
+    if (!trendChart || !trendChart.canvas) return createCharts();
     const { labels, datasets } = buildTrendDatasets();
 
     const existing = trendChart.data.datasets;
@@ -311,7 +313,13 @@
     for (let i = 0; i < datasets.length; i++) {
       existing[i].data = datasets[i].data;
     }
-    trendChart.update();
+    try {
+      trendChart.update();
+    } catch {
+      // Chart's internal plugin cache can end up invalidated after a race with
+      // destroy/theme-swap; rebuild rather than crashing the ticker every 500ms.
+      createCharts();
+    }
   }
 
   function createCharts() {
