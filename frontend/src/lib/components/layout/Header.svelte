@@ -148,23 +148,23 @@
 </script>
 
 <header class="sticky top-0 z-40 bg-[var(--surface)] border-b border-[var(--border)] font-sans">
-  <div class="flex items-center gap-4 px-3 py-2 h-12">
+  <div class="flex items-center gap-2 lg:gap-4 px-2 lg:px-3 py-2 h-12">
     <!-- Logo -->
     <button
       onclick={e => handleNavClick(e, '/overview')}
-      class="flex items-center gap-2 font-semibold text-[var(--text-heading)] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0"
+      class="flex items-center gap-2 font-semibold text-[var(--text-heading)] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0 shrink-0"
       aria-label="Go to Dashboard"
     >
       <RavenLogo size={18} />
-      <span>Raven</span>
+      <span class="hidden lg:inline">Raven</span>
     </button>
 
     <!-- Main Navigation -->
-    <nav class="flex gap-1 flex-1 font-sans overflow-x-auto" aria-label="Main navigation">
+    <nav class="flex gap-0.5 lg:gap-1 flex-1 font-sans overflow-x-auto" aria-label="Main navigation">
       {#each tabs as tab (tab.id)}
         <button
           onclick={e => handleNavClick(e, tab.path)}
-          class={`px-3 py-1.5 rounded text-sm transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
+          class={`px-2 lg:px-3 py-1.5 rounded text-sm transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
             activeTab === tab.id
               ? 'bg-[var(--accent)] text-[#ffffff] font-semibold'
               : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] font-medium'
@@ -178,7 +178,7 @@
 
     <!-- Activity Stats (real data) — hidden on mobile -->
     <div
-      class="hidden md:flex gap-3 text-xs font-mono text-[var(--muted)] pl-4 border-l border-[var(--border)]"
+      class="hidden md:flex gap-2 lg:gap-3 text-xs font-mono text-[var(--muted)] pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
     >
       <span>{stats.files} files</span>
       <span>{stats.edits} edits</span>
@@ -187,7 +187,7 @@
     </div>
 
     <!-- CPU / Memory — hidden on mobile -->
-    <div class="hidden lg:flex items-center gap-3 pl-3 border-l border-[var(--border)] text-xs font-mono">
+    <div class="hidden lg:flex items-center gap-3 pl-3 border-l border-[var(--border)] text-xs font-mono shrink-0">
       <div class="flex items-center gap-1.5" title="CPU: {cpu.toFixed(1)}%">
         <span class="text-[var(--muted)]">CPU</span>
         <div class="w-12 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
@@ -220,7 +220,7 @@
 
     <!-- Project Filter — hidden on small screens -->
     {#if projects.length > 0}
-      <div class="hidden sm:block pl-3 border-l border-[var(--border)]">
+      <div class="hidden sm:block pl-2 lg:pl-3 border-l border-[var(--border)] shrink-0">
         <select
           value={currentFilter}
           onchange={e => setProjectFilter(e.target.value)}
@@ -238,7 +238,7 @@
     <!-- Settings -->
     <button
       onclick={onSettingsClick}
-      class="px-2 py-1 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 cursor-pointer"
+      class="px-2 py-1 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 cursor-pointer shrink-0"
       aria-label="Settings"
     >
       Settings
