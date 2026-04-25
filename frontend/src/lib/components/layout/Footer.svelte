@@ -8,7 +8,9 @@
     version = '2.2.0',
     sessionId = 'Loading...',
     onSessionClick = () => {},
-    onAboutClick = () => {}
+    onAboutClick = () => {},
+    onTechStackClick = () => {},
+    onDesignSystemClick = () => {}
   } = $props();
 
   let connected = $state(false);
@@ -69,6 +71,20 @@
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
       >
         About
+      </button>
+      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <button
+        onclick={onTechStackClick}
+        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
+      >
+        Tech Stack
+      </button>
+      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <button
+        onclick={onDesignSystemClick}
+        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
+      >
+        Design System
       </button>
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <a

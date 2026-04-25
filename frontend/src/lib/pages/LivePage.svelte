@@ -178,7 +178,7 @@
   }
 
   .panel-title {
-    font-size: 0.7rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -186,13 +186,13 @@
   }
 
   .panel-count {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     font-family: var(--mono);
     color: var(--accent);
     background: var(--accent-subtle);
     padding: 0.1rem 0.4rem;
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
   }
 
   .file-list {
@@ -225,7 +225,7 @@
   }
 
   .change-indicator {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     font-weight: 700;
     font-family: var(--mono);
     min-width: 1rem;
@@ -239,7 +239,7 @@
   }
 
   .file-name {
-    font-size: 0.8rem;
+    font-size: var(--text-base);
     font-weight: 500;
     color: var(--text);
     white-space: nowrap;
@@ -248,7 +248,7 @@
   }
 
   .file-dir {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
@@ -256,7 +256,7 @@
   }
 
   .file-time {
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     color: var(--muted);
     font-family: var(--mono);
     white-space: nowrap;
@@ -272,7 +272,7 @@
     padding: 2rem 1rem;
     text-align: center;
     color: var(--muted);
-    font-size: 0.8rem;
+    font-size: var(--text-base);
   }
 
   @media (max-width: 900px) {

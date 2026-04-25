@@ -112,6 +112,14 @@
     navigate('/about');
   }
 
+  function handleTechStackClick() {
+    navigate('/tech-stack');
+  }
+
+  function handleDesignSystemClick() {
+    navigate('/design-system');
+  }
+
   function handleSettingsClick() {
     navigate('/settings');
   }
@@ -424,6 +432,22 @@
         {:catch}
           <PlaceholderPage title="About" description="Failed to load" />
         {/await}
+      {:else if activeTab === 'tech-stack'}
+        {#await import('./lib/pages/TechStackPage.svelte')}
+          <PlaceholderPage title="Tech Stack" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Tech Stack" description="Failed to load" />
+        {/await}
+      {:else if activeTab === 'design-system'}
+        {#await import('./lib/pages/DesignSystemPage.svelte')}
+          <PlaceholderPage title="Design System" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Design System" description="Failed to load" />
+        {/await}
       {:else}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
           <div class="text-center max-w-md">
@@ -450,6 +474,8 @@
     version={appVersion}
     onSessionClick={handleSessionClick}
     onAboutClick={handleAboutClick}
+    onTechStackClick={handleTechStackClick}
+    onDesignSystemClick={handleDesignSystemClick}
   />
 
   <!-- Toast Notifications -->

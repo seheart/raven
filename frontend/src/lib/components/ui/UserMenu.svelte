@@ -57,7 +57,7 @@
     aria-haspopup="menu"
   >
     <span
-      class="w-6 h-6 rounded-full bg-[var(--accent)] text-[#ffffff] flex items-center justify-center font-semibold text-xs"
+      class="w-6 h-6 rounded-full bg-[var(--accent)] text-white flex items-center justify-center font-semibold text-xs"
     >
       {userInitial}
     </span>
@@ -74,7 +74,7 @@
       <!-- User Info Section -->
       <div class="flex items-center gap-3 p-4">
         <div
-          class="w-10 h-10 rounded-full bg-[var(--accent)] text-[#ffffff] flex items-center justify-center font-semibold text-sm"
+          class="w-10 h-10 rounded-full bg-[var(--accent)] text-white flex items-center justify-center font-semibold text-sm"
         >
           {userInitial}
         </div>

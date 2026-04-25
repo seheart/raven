@@ -6,14 +6,14 @@
   function getToastStyles(type) {
     switch (type) {
     case 'success':
-      return 'bg-green-500 text-white border-green-600';
+      return 'bg-[var(--success)] text-white border-[var(--success)]';
     case 'error':
-      return 'bg-red-500 text-white border-red-600';
+      return 'bg-[var(--error)] text-white border-[var(--error)]';
     case 'warning':
-      return 'bg-yellow-500 text-white border-yellow-600';
+      return 'bg-[var(--warning)] text-white border-[var(--warning)]';
     case 'info':
     default:
-      return 'bg-blue-500 text-white border-blue-600';
+      return 'bg-[var(--accent)] text-white border-[var(--accent)]';
     }
   }
 

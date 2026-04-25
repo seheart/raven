@@ -94,7 +94,7 @@
       <div class="header-actions flex gap-2">
         {#if $notificationHistory.length > 0}
           <button
-            class="btn-clear-all px-2 py-1 bg-[var(--accent)] text-[#ffffff] text-xs font-semibold rounded hover:opacity-90 transition-all border-0 cursor-pointer font-sans"
+            class="btn-clear-all px-2 py-1 bg-[var(--accent)] text-white text-xs font-semibold rounded hover:opacity-90 transition-all border-0 cursor-pointer font-sans"
             onclick={() => notificationHistory.clearAll()}
           >
             Clear All
