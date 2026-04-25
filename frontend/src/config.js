@@ -9,8 +9,13 @@ const getApiUrl = () => {
   if (import.meta.env.DEV) {
     return '';
   }
-  // In production, use environment variable or fallback to localhost
-  return import.meta.env.VITE_API_URL || 'http://localhost:9100';
+  // In production: explicit env var wins; otherwise default to same-origin so
+  // LAN/reverse-proxy/mobile access works without rebuilding the frontend.
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return '';
 };
 
 // API Configuration

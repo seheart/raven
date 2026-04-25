@@ -535,56 +535,55 @@ export class HealthMonitor {
   }
 
   /**
-   * Check API endpoint health
+   * Check API endpoint health by exercising the underlying data sources
+   * directly. We used to fetch our own HTTP routes from this loop, which
+   * round-tripped through the request middleware and could show false
+   * "endpoint slow" warnings when the same DB or process was already busy
+   * serving real traffic.
    */
   private async checkAPIEndpoints(): Promise<HealthCheckResult[]> {
     const checks: HealthCheckResult[] = [];
     const timestamp = new Date().toISOString();
 
-    const endpoints = [
-      { name: 'Dashboard Stats', path: '/api/dashboard-stats' },
-      { name: 'Agent Status', path: '/api/agents-status' },
-      { name: 'Events', path: '/api/events' },
-      { name: 'System Metrics', path: '/api/system-metrics' }
+    const probes: Array<{ name: string; run: () => unknown }> = [
+      { name: 'Database (events)', run: () => this.db.db.prepare('SELECT 1').get() },
+      {
+        name: 'Events table',
+        run: () => this.db.db.prepare('SELECT COUNT(*) FROM events').get()
+      },
+      {
+        name: 'Agent events table',
+        run: () => this.db.db.prepare('SELECT COUNT(*) FROM agent_events').get()
+      },
+      {
+        name: 'Process metrics table',
+        run: () => this.db.db.prepare('SELECT COUNT(*) FROM process_metrics').get()
+      }
     ];
 
-    for (const endpoint of endpoints) {
+    for (const probe of probes) {
       try {
         const startTime = Date.now();
-        const response = await fetch(
-          `http://localhost:${process.env.PORT || 9100}${endpoint.path}`
-        );
+        probe.run();
         const responseTime = Date.now() - startTime;
-
-        if (response.ok) {
-          const status = responseTime > 1000 ? 'warning' : 'healthy';
-          checks.push({
-            category: 'API Endpoints',
-            name: endpoint.name,
-            status,
-            message:
-              status === 'healthy'
-                ? `Responding in ${responseTime}ms`
-                : `Slow response: ${responseTime}ms`,
-            timestamp,
-            details: { responseTime, statusCode: response.status }
-          });
-        } else {
-          checks.push({
-            category: 'API Endpoints',
-            name: endpoint.name,
-            status: 'critical',
-            message: `HTTP ${response.status}: ${response.statusText}`,
-            timestamp,
-            details: { statusCode: response.status }
-          });
-        }
+        const status = responseTime > 250 ? 'warning' : 'healthy';
+        checks.push({
+          category: 'API Endpoints',
+          name: probe.name,
+          status,
+          message:
+            status === 'healthy'
+              ? `Query returned in ${responseTime}ms`
+              : `Slow query: ${responseTime}ms`,
+          timestamp,
+          details: { responseTime }
+        });
       } catch (error: any) {
         checks.push({
           category: 'API Endpoints',
-          name: endpoint.name,
+          name: probe.name,
           status: 'critical',
-          message: `Endpoint unreachable: ${error.message}`,
+          message: `Probe failed: ${error.message}`,
           timestamp
         });
       }

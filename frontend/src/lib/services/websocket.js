@@ -1,8 +1,12 @@
 import { io } from 'socket.io-client';
 import { wsLogger } from '../logger.js';
 
-// Get WebSocket URL from environment or use default
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:9100';
+// Get WebSocket URL from environment or use default. Same-origin by default
+// so LAN/reverse-proxy/mobile access works without a frontend rebuild.
+const WS_URL =
+  import.meta.env.VITE_WS_URL ||
+  (typeof window !== 'undefined' && window.location?.origin) ||
+  'http://localhost:9100';
 
 // WebSocket configuration constants
 const WEBSOCKET_CONFIG = {

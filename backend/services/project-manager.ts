@@ -226,6 +226,7 @@ export class ProjectManager {
       watchPath: project.path,
       projectName: project.name,
       projectPath: project.path,
+      maxFileSize: project.maxFileSize,
       ignored: [
         '**/node_modules/**',
         '**/.git/**',

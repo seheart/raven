@@ -17,7 +17,14 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { randomUUID } from 'crypto';
-import { join, basename, resolve, dirname } from 'path';
+import {
+  join,
+  basename,
+  resolve,
+  dirname,
+  relative as pathRelative,
+  isAbsolute as pathIsAbsolute
+} from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
@@ -35,7 +42,7 @@ import { EventBus, FileWatcher, GitMonitor, getDiff, createPatch } from './modul
 import type { FileEvent, GitStatusEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { rateLimitStatus, apiLimiter } from './middleware/security.js';
+import { rateLimitStatus, apiLimiter, setupHelmet } from './middleware/security.js';
 import { cacheMiddleware, stopCacheCleanup } from './services/cache-service.js';
 import { performanceMonitoring } from './middleware/performance.js';
 import { createLiveSessionRouter } from './routes/live-session.js';
@@ -136,13 +143,34 @@ const SESSION_ID = randomUUID();
 // ==================== Middleware ====================
 
 app.use(compression());
-app.use(cors());
+app.use(setupHelmet());
+app.use(
+  cors({
+    origin: CORS_ORIGIN,
+    credentials: true
+  })
+);
 app.use(express.json({ limit: '50mb' }));
 app.use(performanceMonitoring);
 
-// Server-side request timeout — kill requests that take too long (30s default)
+// Server-side request timeout — kill requests that take too long.
+// Some operations (VACUUM, full-DB export, comprehensive health probes) can
+// legitimately take more than 30s, so they get a longer ceiling. Routes
+// matching one of these prefixes skip the short timeout entirely; the long
+// timeout still applies as a backstop. The previous version sent 503 after
+// 30s while VACUUM kept running — clients retried, doubling load.
+const LONG_RUNNING_PREFIXES = [
+  '/api/storage/vacuum/',
+  '/api/storage/export/',
+  '/api/storage/clean/',
+  '/api/health/comprehensive'
+];
+const SHORT_TIMEOUT_MS = 30000;
+const LONG_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
 app.use((req: Request, res: Response, next: Function) => {
-  const timeout = 30000;
+  const isLong = LONG_RUNNING_PREFIXES.some(p => req.path.startsWith(p));
+  const timeout = isLong ? LONG_TIMEOUT_MS : SHORT_TIMEOUT_MS;
   const timer = setTimeout(() => {
     if (!res.headersSent) {
       res.status(503).json({ error: 'Request timed out on server' });
@@ -1169,15 +1197,8 @@ app.get('/api/top-modified-files', cacheMiddleware(5000), (req: Request, res: Re
   }
 });
 
-app.get('/api/longest-edits', cacheMiddleware(10000), (req: Request, res: Response) => {
-  try {
-    const limit = safeInt(req.query.limit, 10);
-    const edits = db.getLongestEdits(limit);
-    return res.json(edits);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
+// /api/longest-edits is served by createEventsRouter (mounted at /api above).
+// The previous inline handler was unreachable dead code and has been removed.
 
 // ==================== Agents ====================
 // All agent routes (agents-status, agent-events, events-by-agent, agent-stats, agent-profiles)
@@ -1804,12 +1825,17 @@ interface ProjectsConfig {
   projects: ProjectConfig[];
 }
 
-// Security: Validate path is within allowed base directory
+// Security: Validate path is within allowed base directory.
+// startsWith() alone is not safe — `/home/user/project-evil` starts with
+// `/home/user/project`. Use path.relative() and reject any rel path that
+// escapes the base (begins with `..` or is absolute on Windows).
 function isPathAllowed(userPath: string, basePath: string): boolean {
   try {
     const resolved = resolve(userPath);
     const base = resolve(basePath);
-    return resolved.startsWith(base);
+    if (resolved === base) return true;
+    const rel = pathRelative(base, resolved);
+    return !!rel && !rel.startsWith('..') && !pathIsAbsolute(rel);
   } catch (e: any) {
     logger.error('[isPathAllowed] Error:', e);
     return false;
@@ -2248,8 +2274,26 @@ app.put('/api/projects/config', async (req: Request, res: Response) => {
       config.autoDiscover = autoDiscover;
     }
 
-    if (basePath) {
-      config.basePath = basePath;
+    if (basePath !== undefined && basePath !== null) {
+      if (typeof basePath !== 'string' || basePath.length === 0 || basePath.length > 4096) {
+        return res.status(400).json({ error: 'basePath must be a non-empty string' });
+      }
+      // Constrain basePath to a directory under the user's home so a request
+      // can't expand the watch scope to / or arbitrary system paths.
+      const resolvedBase = resolve(basePath);
+      const home = os.homedir();
+      if (!isPathAllowed(resolvedBase, home)) {
+        return res.status(400).json({ error: 'basePath must be under the user home directory' });
+      }
+      try {
+        const stat = await fs.stat(resolvedBase);
+        if (!stat.isDirectory()) {
+          return res.status(400).json({ error: 'basePath must point to an existing directory' });
+        }
+      } catch {
+        return res.status(400).json({ error: 'basePath must point to an existing directory' });
+      }
+      config.basePath = resolvedBase;
     }
 
     await saveProjectsConfig(config);
@@ -3109,6 +3153,12 @@ app.post('/api/storage/vacuum/:dbname', expensiveOpLimiter, async (req: Request,
     const statsBefore = await fs.stat(dbPath);
     const sizeBefore = statsBefore.size;
 
+    // If the client already gave up (e.g. tab closed) before we got here,
+    // don't burn cycles on a VACUUM the caller is no longer waiting on.
+    if (req.aborted || res.writableEnded) {
+      return;
+    }
+
     // Run VACUUM
     const Database = (await import('better-sqlite3')).default;
     const dbConn = new Database(dbPath);
@@ -3120,6 +3170,11 @@ app.post('/api/storage/vacuum/:dbname', expensiveOpLimiter, async (req: Request,
     const statsAfter = await fs.stat(dbPath);
     const sizeAfter = statsAfter.size;
     const spaceSaved = sizeBefore - sizeAfter;
+
+    if (res.writableEnded) {
+      logger.info(`VACUUM completed for ${dbname}, but client already disconnected`);
+      return;
+    }
 
     return res.json({
       success: true,
@@ -3527,7 +3582,12 @@ app.use(errorHandler);
 
 // ==================== Server Startup ====================
 
-httpServer.listen(PORT, async () => {
+// Bind localhost-only by default. Set RAVEN_BIND=0.0.0.0 (or any LAN IP)
+// to expose the server to other machines on the network. The LAN address is
+// reported either way so users can verify which interface is in use.
+const BIND_HOST = process.env.RAVEN_BIND || '127.0.0.1';
+
+httpServer.listen(PORT, BIND_HOST, async () => {
   // Detect LAN IP for mobile access
   const nets = os.networkInterfaces();
   const lanIps: string[] = [];
@@ -3538,13 +3598,15 @@ httpServer.listen(PORT, async () => {
       }
     }
   }
-  const lanAddr = lanIps.length > 0 ? `http://${lanIps[0]}:${PORT}` : 'N/A';
+  const isExposed = BIND_HOST !== '127.0.0.1' && BIND_HOST !== 'localhost';
+  const lanAddr = isExposed && lanIps.length > 0 ? `http://${lanIps[0]}:${PORT}` : 'localhost-only';
 
   logger.info(`
 ╔════════════════════════════════════════════════╗
 ║     Raven Backend (TypeScript)                 ║
 ╠════════════════════════════════════════════════╣
 ║  Port:       ${PORT}                              ║
+║  Bind:       ${BIND_HOST.padEnd(34)} ║
 ║  LAN:        ${lanAddr.padEnd(34)} ║
 ║  Session:    ${SESSION_ID}     ║
 ║  Watch Path: ${WATCH_PATH.slice(-30).padEnd(30)} ║
@@ -3695,6 +3757,21 @@ httpServer.listen(PORT, async () => {
       if (hasRunningProcess) {
         agent.last_seen = new Date().toISOString();
         agent.is_running = true;
+      } else {
+        // No process found — clear the flag so idle detection can engage.
+        // Without this, is_running latches true forever after the first
+        // sighting and the system never enters idle mode.
+        agent.is_running = false;
+      }
+
+      // Treat agents we haven't heard from in 5 minutes as not running, even
+      // if some other code path set the flag and never cleared it.
+      const STALE_MS = 5 * 60 * 1000;
+      const now = Date.now();
+      for (const a of agentRegistry.values()) {
+        if (a.last_seen && now - new Date(a.last_seen).getTime() > STALE_MS) {
+          a.is_running = false;
+        }
       }
 
       // Central idle detection — switch ALL services when no agents are active

@@ -24,7 +24,15 @@ export interface WatcherConfig {
   };
   projectName?: string;
   projectPath?: string;
+  /**
+   * Skip reading files larger than this many bytes. Defaults to ~5MB.
+   * Set 0 (or negative) to disable the limit. Oversized files still
+   * generate change events, just without content/diff.
+   */
+  maxFileSize?: number;
 }
+
+const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export class FileWatcher {
   private watcher: FSWatcher | null = null;
@@ -183,8 +191,24 @@ export class FileWatcher {
       if (eventType === 'add' || eventType === 'change') {
         const operation = (async () => {
           try {
+            // Stat first so we can skip oversized files without ever reading
+            // their bytes into memory. A single huge file (logs, generated
+            // bundles, exports) used to OOM the watcher.
+            const maxSize = this.config.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
+            const stats = await fs.stat(filepath);
+            size = stats.size;
+            if (maxSize > 0 && stats.size > maxSize) {
+              logger.warn('Skipping oversized file (no content captured)', {
+                relPath,
+                size: stats.size,
+                maxFileSize: maxSize
+              });
+              // Drop any cached content so we don't diff against stale data.
+              this.fileCache.delete(filepath);
+              return; // event still fires below with size only
+            }
+
             content = await fs.readFile(filepath, 'utf8');
-            size = content.length;
             hash = this.calculateFileHash(content);
 
             // Cap fileCache at 5000 entries
