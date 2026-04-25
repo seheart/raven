@@ -43,6 +43,7 @@ import { createEventsRouter } from './routes/events.js';
 import { createAgentsRouter } from './routes/agents.js';
 import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
 import { CodexLogWatcher } from './services/codex-log-watcher.js';
+import { OllamaLogWatcher } from './services/ollama-log-watcher.js';
 import { HealthMonitor } from './services/health-monitor.js';
 import { createHealthMonitoringRouter } from './routes/health-monitoring.js';
 import { ProjectManager } from './services/project-manager.js';
@@ -546,6 +547,10 @@ const claudeLogWatcher = new ClaudeLogWatcher(
 );
 const codexLogWatcher = new CodexLogWatcher(
   createAgentEventHandler({ agentName: 'Codex', agentType: 'codex', colorKey: 'codex' }),
+  logger
+);
+const ollamaLogWatcher = new OllamaLogWatcher(
+  createAgentEventHandler({ agentName: 'Ollama', agentType: 'ollama', colorKey: 'ollama' }),
   logger
 );
 
@@ -3499,6 +3504,10 @@ httpServer.listen(PORT, async () => {
   logger.info('🤖 Starting Codex log watcher...');
   await codexLogWatcher.start();
 
+  // Start Ollama log watcher (tails systemd journal for the ollama unit)
+  logger.info('🤖 Starting Ollama log watcher...');
+  await ollamaLogWatcher.start();
+
   // Start multi-project file watchers
   logger.info('📁 Starting multi-project file watchers...');
   try {
@@ -3670,6 +3679,10 @@ async function gracefulShutdown(signal: string) {
     // Stop Codex log watcher
     logger.info('🛑 Stopping Codex log watcher...');
     await codexLogWatcher.stop();
+
+    // Stop Ollama log watcher
+    logger.info('🛑 Stopping Ollama log watcher...');
+    await ollamaLogWatcher.stop();
 
     // Stop all project watchers
     logger.info('🛑 Stopping project watchers...');
