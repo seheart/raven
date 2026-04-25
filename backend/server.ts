@@ -2394,7 +2394,7 @@ app.get('/api/search/global', (req: Request, res: Response) => {
         .prepare(
           `
         SELECT id, timestamp, message as title, severity as description,
-               ${errorTable === 'error_logs' ? 'project_name' : "NULL as project_name"}
+               ${errorTable === 'error_logs' ? 'project_name' : 'NULL as project_name'}
         FROM ${errorTable}
         WHERE message LIKE ?
         ORDER BY timestamp DESC

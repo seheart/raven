@@ -261,7 +261,10 @@ export class ClaudeLogWatcher {
         fs.closeSync(fd);
       }
 
-      const lines = buffer.toString('utf8').split('\n').filter(line => line.trim());
+      const lines = buffer
+        .toString('utf8')
+        .split('\n')
+        .filter(line => line.trim());
       let processed = 0;
       for (const line of lines) {
         try {

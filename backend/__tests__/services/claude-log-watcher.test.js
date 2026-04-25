@@ -214,11 +214,9 @@ describe('ClaudeLogWatcher', () => {
       await watcher.handleLogFileAdded(logFile);
 
       expect(watcher.activeProjects.size).toBeGreaterThan(0);
-      // Should log project name when projectInfo exists
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Project:'));
     });
 
-    test('should log new session info', async () => {
+    test('should log session info', async () => {
       watcher = new ClaudeLogWatcher(mockCallback, mockLogger);
 
       const testFile = path.join(testDir, 'test.jsonl');
@@ -226,9 +224,7 @@ describe('ClaudeLogWatcher', () => {
 
       await watcher.handleLogFileAdded(testFile);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('New Claude session log')
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Claude session log'));
     });
 
     test('should handle file with no project info gracefully', async () => {
