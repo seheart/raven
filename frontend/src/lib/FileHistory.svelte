@@ -67,9 +67,8 @@
 
     try {
       const filename = filepath?.split('/')?.pop() || '';
-      // Note: This endpoint returns text, not JSON
-      const response = await api.get(`/snapshot/${event.id}/${encodeURIComponent(filename)}`);
-      snapshotContent = await response.text();
+      // Endpoint returns text; api.get already decodes it.
+      snapshotContent = await api.get(`/snapshot/${event.id}/${encodeURIComponent(filename)}`);
     } catch (error) {
       logger.error('Failed to load snapshot:', error);
       snapshotContent = `Error loading snapshot: ${error.message}`;
@@ -176,13 +175,10 @@
       // Fetch both snapshots
       const filename = filepath?.split('/')?.pop() || '';
 
-      const [snapshot1Response, snapshot2Response] = await Promise.all([
+      const [snapshot1Content, snapshot2Content] = await Promise.all([
         api.get(`/snapshot/${event1.id}/${encodeURIComponent(filename)}`),
         api.get(`/snapshot/${event2.id}/${encodeURIComponent(filename)}`)
       ]);
-
-      const snapshot1Content = await snapshot1Response.text();
-      const snapshot2Content = await snapshot2Response.text();
 
       // Generate unified diff
       diffContent = generateUnifiedDiff(snapshot1Content, snapshot2Content, event1, event2);

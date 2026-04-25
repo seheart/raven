@@ -24,13 +24,48 @@ import { homedir } from 'os';
 const APPLY_PATCH_TARGET = /^\*\*\* (Update|Add|Delete) File:\s*(.+)$/m;
 
 export class CodexLogWatcher {
-  constructor(eventCallback, logger) {
+  constructor(eventCallback, logger, options = {}) {
     this.eventCallback = eventCallback;
     this.logger = logger;
     this.codexSessionsDir = path.join(homedir(), '.codex', 'sessions');
     this.logWatcher = null;
     this.filePositions = new Map(); // filepath -> bytes read so far
     this.sessionMeta = new Map(); // filepath -> { sessionId, cwd, projectName, model }
+    this.positionsFile = options.positionsFile || null;
+    this.positionsSaveTimer = null;
+  }
+
+  async loadPositions() {
+    if (!this.positionsFile) return;
+    try {
+      const raw = await fs.promises.readFile(this.positionsFile, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        for (const [filepath, position] of Object.entries(parsed)) {
+          if (typeof position === 'number' && position >= 0) {
+            this.filePositions.set(filepath, position);
+          }
+        }
+        this.logger.info(
+          `   Restored ${this.filePositions.size} log positions from ${path.basename(this.positionsFile)}`
+        );
+      }
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        this.logger.warn(`Could not load Codex log positions: ${err.message}`);
+      }
+    }
+  }
+
+  async savePositions() {
+    if (!this.positionsFile) return;
+    try {
+      const payload = Object.fromEntries(this.filePositions);
+      await fs.promises.mkdir(path.dirname(this.positionsFile), { recursive: true });
+      await fs.promises.writeFile(this.positionsFile, JSON.stringify(payload), 'utf8');
+    } catch (err) {
+      this.logger.warn(`Could not save Codex log positions: ${err.message}`);
+    }
   }
 
   async start() {
@@ -43,6 +78,12 @@ export class CodexLogWatcher {
       );
       // Still start the watcher; chokidar will pick up the dir when it's created.
     }
+
+    await this.loadPositions();
+    this.positionsSaveTimer = setInterval(() => {
+      this.savePositions().catch(() => {});
+    }, 30000);
+    this.positionsSaveTimer.unref?.();
 
     this.logWatcher = chokidar.watch(this.codexSessionsDir, {
       persistent: true,
@@ -121,6 +162,11 @@ export class CodexLogWatcher {
   }
 
   async stop() {
+    if (this.positionsSaveTimer) {
+      clearInterval(this.positionsSaveTimer);
+      this.positionsSaveTimer = null;
+    }
+    await this.savePositions();
     if (this.logWatcher) {
       await this.logWatcher.close();
       this.logWatcher = null;
@@ -129,10 +175,52 @@ export class CodexLogWatcher {
   }
 
   async handleLogFileAdded(filepath) {
-    this.logger.info(`📄 New Codex session: ${path.basename(filepath)}`);
+    this.logger.info(`📄 Codex session: ${path.basename(filepath)}`);
     try {
-      const content = await fs.promises.readFile(filepath, 'utf8');
-      const lines = content.split('\n').filter(line => line.trim());
+      const stats = await fs.promises.stat(filepath);
+      const startPosition = this.filePositions.get(filepath) || 0;
+      const effectiveStart = stats.size < startPosition ? 0 : startPosition;
+
+      // We always need session_meta to be parsed so subsequent events have a
+      // base. If we're resuming from a non-zero position, scan a small chunk
+      // from the top to recover the session header before jumping ahead.
+      if (effectiveStart > 0 && !this.sessionMeta.has(filepath)) {
+        const headerSize = Math.min(stats.size, 65536);
+        const headBuffer = Buffer.alloc(headerSize);
+        const fdHead = fs.openSync(filepath, 'r');
+        try {
+          fs.readSync(fdHead, headBuffer, 0, headerSize, 0);
+        } finally {
+          fs.closeSync(fdHead);
+        }
+        const headLines = headBuffer.toString('utf8').split('\n');
+        for (const line of headLines) {
+          if (!line.trim()) continue;
+          try {
+            const entry = JSON.parse(line);
+            if (entry?.type === 'session_meta' || entry?.type === 'turn_context') {
+              await this.processLogEntry(entry, filepath);
+            }
+            if (this.sessionMeta.has(filepath)) break;
+          } catch (_err) {
+            // skip malformed lines
+          }
+        }
+      }
+
+      if (effectiveStart >= stats.size) {
+        this.filePositions.set(filepath, stats.size);
+        return;
+      }
+
+      const buffer = Buffer.alloc(stats.size - effectiveStart);
+      const fd = fs.openSync(filepath, 'r');
+      try {
+        fs.readSync(fd, buffer, 0, buffer.length, effectiveStart);
+      } finally {
+        fs.closeSync(fd);
+      }
+      const lines = buffer.toString('utf8').split('\n').filter(line => line.trim());
       let processed = 0;
       for (const line of lines) {
         try {
@@ -143,10 +231,12 @@ export class CodexLogWatcher {
           // skip malformed lines
         }
       }
-      const stats = await fs.promises.stat(filepath);
       this.filePositions.set(filepath, stats.size);
       if (processed > 0) {
-        this.logger.info(`   Processed ${processed} historical entries`);
+        this.logger.info(
+          `   Ingested ${processed} new entries` +
+            (effectiveStart > 0 ? ` (resumed from byte ${effectiveStart})` : '')
+        );
       }
     } catch (error) {
       this.logger.error(`Error processing Codex file ${filepath}: ${error.message}`);

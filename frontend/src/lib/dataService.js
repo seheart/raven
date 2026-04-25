@@ -251,7 +251,8 @@ class DataService {
       params: { limit },
       forceRefresh
     });
-    const files = data.files || [];
+    // Endpoint returns a bare array; tolerate {files: [...]} for forward compat.
+    const files = Array.isArray(data) ? data : data?.files || [];
     this.stores.topFiles.set(files);
     return files;
   }

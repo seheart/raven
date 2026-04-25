@@ -537,17 +537,21 @@ function createAgentEventHandler(opts: { agentName: string; agentType: string; c
 }
 
 // Initialize log watchers — one per agent CLI we monitor.
+// Persisted-position files let watchers resume mid-file across restarts so
+// we don't have to wipe the agent_events table for idempotency.
 const claudeLogWatcher = new ClaudeLogWatcher(
   createAgentEventHandler({
     agentName: 'Claude Code',
     agentType: 'claude-code',
     colorKey: 'claude'
   }),
-  logger
+  logger,
+  { positionsFile: join(RAVEN_DIR, 'log-positions-claude.json') }
 );
 const codexLogWatcher = new CodexLogWatcher(
   createAgentEventHandler({ agentName: 'Codex', agentType: 'codex', colorKey: 'codex' }),
-  logger
+  logger,
+  { positionsFile: join(RAVEN_DIR, 'log-positions-codex.json') }
 );
 const ollamaLogWatcher = new OllamaLogWatcher(
   createAgentEventHandler({ agentName: 'Ollama', agentType: 'ollama', colorKey: 'ollama' }),
@@ -1344,31 +1348,39 @@ app.get('/api/file-events', cacheMiddleware(5000), (req: Request, res: Response)
   }
 });
 
-// Get a computed unified diff between two consecutive snapshots of a file
+// Get a computed unified diff between two consecutive snapshots of a file.
+// Reads real file bodies from .raven/snapshots/ — the events table only stores
+// per-change unified diffs, so diffing those would produce a patch-of-patches.
 app.get('/api/file-diff/:filepath(*)', async (req: Request, res: Response) => {
   try {
     const filepath = req.params.filepath;
+    const prefix = `${filepath.replace(/\//g, '_')}_`;
 
-    // Get the two most recent snapshots with different content
-    const snapshots = db.db
-      .prepare(
-        `
-      SELECT id, diff as content, file_hash, timestamp
-      FROM events
-      WHERE filepath = ? AND diff IS NOT NULL AND diff != ''
-      ORDER BY id DESC LIMIT 10
-    `
-      )
-      .all(filepath) as Array<{
-      id: number;
-      content: string;
-      file_hash: string;
-      timestamp: string;
-    }>;
+    let snapshotNames: string[] = [];
+    try {
+      const all = await fs.readdir(SNAPSHOTS_DIR);
+      snapshotNames = all
+        .filter(name => name.startsWith(prefix))
+        .sort((a, b) => {
+          const ta = parseInt(a.split('_').pop() || '0', 10);
+          const tb = parseInt(b.split('_').pop() || '0', 10);
+          return tb - ta; // newest first
+        });
+    } catch {
+      // Snapshots directory missing — treat as no snapshots
+    }
 
-    if (snapshots.length < 2) {
-      // Only one snapshot — show as all additions
-      const content = snapshots[0]?.content || '';
+    if (snapshotNames.length === 0) {
+      return res.json({ filepath, diff: '', type: 'no-snapshots' });
+    }
+
+    const readSnapshot = async (name: string) => {
+      const fullPath = join(SNAPSHOTS_DIR, name);
+      return fs.readFile(fullPath, 'utf8');
+    };
+
+    if (snapshotNames.length < 2) {
+      const content = await readSnapshot(snapshotNames[0]);
       const lines = content.split('\n');
       const unifiedDiff = [
         `--- /dev/null`,
@@ -1379,29 +1391,32 @@ app.get('/api/file-diff/:filepath(*)', async (req: Request, res: Response) => {
       return res.json({ filepath, diff: unifiedDiff, type: 'new' });
     }
 
-    // Find the first pair with different hashes
-    let current = snapshots[0];
-    let previous = null;
-    for (let i = 1; i < snapshots.length; i++) {
-      if (snapshots[i].file_hash !== current.file_hash) {
-        previous = snapshots[i];
+    // Walk back from newest until we find a snapshot whose content differs
+    // from the latest. This handles cases where consecutive snapshots are
+    // byte-identical (the watcher sometimes records duplicate content).
+    const currentContent = await readSnapshot(snapshotNames[0]);
+    let previousContent: string | null = null;
+    let previousName: string | null = null;
+    for (let i = 1; i < snapshotNames.length; i++) {
+      const candidate = await readSnapshot(snapshotNames[i]);
+      if (candidate !== currentContent) {
+        previousContent = candidate;
+        previousName = snapshotNames[i];
         break;
       }
     }
 
-    if (!previous) {
-      // All snapshots are identical — no changes
+    if (previousContent === null) {
       return res.json({ filepath, diff: '', type: 'unchanged' });
     }
 
-    // Compute unified diff
-    const diff = await createPatch(previous.content, current.content, filepath);
+    const diff = await createPatch(previousContent, currentContent, filepath);
     return res.json({
       filepath,
       diff,
       type: 'modified',
-      from: previous.timestamp,
-      to: current.timestamp
+      from: previousName,
+      to: snapshotNames[0]
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -2247,6 +2262,18 @@ app.put('/api/projects/config', async (req: Request, res: Response) => {
 
 // ==================== Global Search API ====================
 
+// Cache table-existence checks so each search call doesn't re-PRAGMA.
+const tableExistsCache = new Map<string, boolean>();
+function tableExists(name: string): boolean {
+  if (tableExistsCache.has(name)) return tableExistsCache.get(name)!;
+  const row = db.db
+    .prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name = ? LIMIT 1`)
+    .get(name);
+  const exists = !!row;
+  tableExistsCache.set(name, exists);
+  return exists;
+}
+
 app.get('/api/search/global', (req: Request, res: Response) => {
   try {
     const query = (req.query.q as string) || '';
@@ -2284,67 +2311,81 @@ app.get('/api/search/global', (req: Request, res: Response) => {
       });
     });
 
-    // Search conversations
-    const conversations = db.db
-      .prepare(
-        `
-      SELECT id, timestamp, context as title, query as description
-      FROM conversations
-      WHERE context LIKE ? OR query LIKE ?
-      ORDER BY timestamp DESC
-      LIMIT ?
-    `
-      )
-      .all(searchPattern, searchPattern, limit) as any[];
+    // Conversations are not part of the in-repo schema; tolerate their absence
+    // (the table can be added by an out-of-band migration without breaking search).
+    if (tableExists('conversations')) {
+      const conversations = db.db
+        .prepare(
+          `
+        SELECT id, timestamp, context as title, query as description
+        FROM conversations
+        WHERE context LIKE ? OR query LIKE ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+      `
+        )
+        .all(searchPattern, searchPattern, limit) as any[];
 
-    conversations.forEach((c: any) => {
-      results.push({
-        type: 'conversation',
-        id: c.id,
-        title: c.title || 'Conversation',
-        description: c.description,
-        timestamp: c.timestamp,
-        icon: '💬'
+      conversations.forEach((c: any) => {
+        results.push({
+          type: 'conversation',
+          id: c.id,
+          title: c.title || 'Conversation',
+          description: c.description,
+          timestamp: c.timestamp,
+          icon: '💬'
+        });
       });
-    });
+    }
 
-    // Search errors
-    const errors = db.db
-      .prepare(
-        `
-      SELECT id, timestamp, message as title, severity as description, project_name
-      FROM error_logs
-      WHERE message LIKE ?
-      ORDER BY timestamp DESC
-      LIMIT ?
-    `
-      )
-      .all(searchPattern, limit) as any[];
+    // Errors live in app_errors in the current schema. Try error_logs first
+    // for back-compat with older databases that may have had it.
+    const errorTable = tableExists('error_logs')
+      ? 'error_logs'
+      : tableExists('app_errors')
+        ? 'app_errors'
+        : null;
+    if (errorTable) {
+      const errors = db.db
+        .prepare(
+          `
+        SELECT id, timestamp, message as title, severity as description,
+               ${errorTable === 'error_logs' ? 'project_name' : "NULL as project_name"}
+        FROM ${errorTable}
+        WHERE message LIKE ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+      `
+        )
+        .all(searchPattern, limit) as any[];
 
-    errors.forEach((e: any) => {
-      results.push({
-        type: 'error',
-        id: e.id,
-        title: e.title,
-        description: e.description,
-        timestamp: e.timestamp,
-        project_name: e.project_name,
-        icon: '❌'
+      errors.forEach((e: any) => {
+        results.push({
+          type: 'error',
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          timestamp: e.timestamp,
+          project_name: e.project_name,
+          icon: '❌'
+        });
       });
-    });
+    }
 
-    // Search notifications
-    const notifications = db.db
-      .prepare(
-        `
-      SELECT id, timestamp, message as title, severity as description, project_name
-      FROM notifications
-      WHERE message LIKE ?
-      ORDER BY timestamp DESC
-      LIMIT ?
-    `
-      )
-      .all(searchPattern, limit) as any[];
+    // Notifications table is optional in this schema.
+    const notifications: any[] = tableExists('notifications')
+      ? (db.db
+          .prepare(
+            `
+        SELECT id, timestamp, message as title, severity as description, project_name
+        FROM notifications
+        WHERE message LIKE ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+      `
+          )
+          .all(searchPattern, limit) as any[])
+      : [];
 
     notifications.forEach((n: any) => {
       results.push({
@@ -2865,30 +2906,47 @@ app.get('/api/storage', cacheMiddleware(30000), async (req: Request, res: Respon
     }
     logger.debug(`Storage: DB files took ${Date.now() - t1}ms`);
 
-    // Get snapshot directory stats (ultra-lightweight - no size calculations)
+    // Get snapshot directory stats. saveSnapshot() writes flat files named
+    // <path-with-slashes-replaced>_<ms-timestamp>; older deployments may also
+    // have per-project subdirectories. Handle both layouts.
     const t2 = Date.now();
     const snapshots: any[] = [];
-    const totalSnapshotSize = 0; // Skip size calculation for performance
+    const totalSnapshotSize = 0;
     try {
       await fs.access(snapshotsDir);
-      const snapshotProjects = await fs.readdir(snapshotsDir);
+      const entries = await fs.readdir(snapshotsDir);
+      let flatCount = 0;
+      let oldest: Date | null = null;
+      let newest: Date | null = null;
 
-      // Get basic info only
-      for (const project of snapshotProjects) {
-        const projectSnapshotPath = join(snapshotsDir, project);
-        const stat = await fs.stat(projectSnapshotPath);
+      for (const entry of entries) {
+        const entryPath = join(snapshotsDir, entry);
+        const stat = await fs.stat(entryPath);
 
         if (stat.isDirectory()) {
-          const files = await fs.readdir(projectSnapshotPath);
-
+          const files = await fs.readdir(entryPath);
           snapshots.push({
-            project,
+            project: entry,
             files: files.length,
-            size: 0, // Not calculated for performance
+            size: 0,
             oldest: stat.mtime,
             newest: stat.mtime
           });
+        } else if (stat.isFile()) {
+          flatCount++;
+          if (!oldest || stat.mtime < oldest) oldest = stat.mtime;
+          if (!newest || stat.mtime > newest) newest = stat.mtime;
         }
+      }
+
+      if (flatCount > 0) {
+        snapshots.push({
+          project: '(unscoped)',
+          files: flatCount,
+          size: 0,
+          oldest: oldest ?? new Date(),
+          newest: newest ?? new Date()
+        });
       }
     } catch (err) {
       // Snapshots directory doesn't exist, ignore
@@ -3394,6 +3452,9 @@ app.delete('/api/errors/clear', (req: Request, res: Response) => {
 
 app.get('/api/notifications', (req: Request, res: Response) => {
   const limit = Math.min(safeInt(req.query.limit, 50), 500);
+  if (!tableExists('health_issues')) {
+    return res.json({ notifications: [], total: 0 });
+  }
   const notifications = db.db
     .prepare('SELECT * FROM health_issues ORDER BY created_at DESC LIMIT ?')
     .all(limit);
@@ -3401,6 +3462,9 @@ app.get('/api/notifications', (req: Request, res: Response) => {
 });
 
 app.get('/api/notifications/stats', (req: Request, res: Response) => {
+  if (!tableExists('health_issues')) {
+    return res.json({ total: 0, unread: 0 });
+  }
   const result = db.db.prepare('SELECT COUNT(*) as total FROM health_issues').get() as any;
   return res.json({ total: result?.total || 0, unread: 0 });
 });
@@ -3492,9 +3556,10 @@ httpServer.listen(PORT, async () => {
   db.resolvePatternWarningsForRaven();
   db.resolveSyntaxErrorsForRaven();
 
-  // Clear agent_events from previous sessions (will be repopulated from log history)
-  db.db.prepare('DELETE FROM agent_events').run();
-  logger.info('Cleared agent_events for fresh log import');
+  // Note: we used to DELETE FROM agent_events on every start to keep things
+  // idempotent, which silently destroyed cross-session history. Watchers now
+  // persist their byte-position offsets and resume mid-file, so re-imports
+  // are naturally idempotent and the wipe is gone.
 
   // Start Claude Code log watcher
   logger.info('🤖 Starting Claude Code log watcher...');

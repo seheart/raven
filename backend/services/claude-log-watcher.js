@@ -20,7 +20,7 @@ import chokidar from 'chokidar';
 import { homedir } from 'os';
 
 export class ClaudeLogWatcher {
-  constructor(eventCallback, logger) {
+  constructor(eventCallback, logger, options = {}) {
     this.eventCallback = eventCallback; // Called with file change events
     this.logger = logger;
     this.claudeProjectsDir = path.join(homedir(), '.claude', 'projects');
@@ -28,6 +28,45 @@ export class ClaudeLogWatcher {
     this.filePositions = new Map(); // Track read positions in log files
     this.activeProjects = new Map(); // projectPath -> sessionId
     this.pendingRequests = new Map(); // sessionId -> { startTime, type } for API latency tracking
+    this.positionsFile = options.positionsFile || null; // Optional persisted-positions JSON path
+    this.positionsSaveTimer = null;
+  }
+
+  /**
+   * Restore filePositions from disk so we resume mid-file across restarts.
+   * Safe to call before start(); silently does nothing if the file is missing.
+   */
+  async loadPositions() {
+    if (!this.positionsFile) return;
+    try {
+      const raw = await fs.promises.readFile(this.positionsFile, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        for (const [filepath, position] of Object.entries(parsed)) {
+          if (typeof position === 'number' && position >= 0) {
+            this.filePositions.set(filepath, position);
+          }
+        }
+        this.logger.info(
+          `   Restored ${this.filePositions.size} log positions from ${path.basename(this.positionsFile)}`
+        );
+      }
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        this.logger.warn(`Could not load Claude log positions: ${err.message}`);
+      }
+    }
+  }
+
+  async savePositions() {
+    if (!this.positionsFile) return;
+    try {
+      const payload = Object.fromEntries(this.filePositions);
+      await fs.promises.mkdir(path.dirname(this.positionsFile), { recursive: true });
+      await fs.promises.writeFile(this.positionsFile, JSON.stringify(payload), 'utf8');
+    } catch (err) {
+      this.logger.warn(`Could not save Claude log positions: ${err.message}`);
+    }
   }
 
   /**
@@ -42,6 +81,14 @@ export class ClaudeLogWatcher {
       this.logger.warn('⚠️  Claude projects directory not found. Creating it...');
       fs.mkdirSync(this.claudeProjectsDir, { recursive: true });
     }
+
+    // Load any previously persisted file positions so we resume mid-file
+    // across restarts instead of re-importing every line.
+    await this.loadPositions();
+    this.positionsSaveTimer = setInterval(() => {
+      this.savePositions().catch(() => {});
+    }, 30000);
+    this.positionsSaveTimer.unref?.();
 
     // Watch the projects directory and subdirectories
     // Note: We watch directories, not a glob pattern, because polling mode doesn't handle ** well
@@ -169,6 +216,11 @@ export class ClaudeLogWatcher {
    * Stop watching
    */
   async stop() {
+    if (this.positionsSaveTimer) {
+      clearInterval(this.positionsSaveTimer);
+      this.positionsSaveTimer = null;
+    }
+    await this.savePositions();
     if (this.logWatcher) {
       await this.logWatcher.close();
       this.logWatcher = null;
@@ -177,15 +229,39 @@ export class ClaudeLogWatcher {
   }
 
   /**
-   * Handle new log file discovered
+   * Handle new log file discovered. If we already have a saved position
+   * for this file (from a prior run), only ingest content past that point.
    */
   async handleLogFileAdded(filepath) {
-    this.logger.info(`📄 New Claude session log: ${path.basename(filepath)}`);
+    this.logger.info(`📄 Claude session log: ${path.basename(filepath)}`);
 
-    // Process existing content to populate history, then track from end
     try {
-      const content = await fs.promises.readFile(filepath, 'utf8');
-      const lines = content.split('\n').filter(line => line.trim());
+      const stats = await fs.promises.stat(filepath);
+      const startPosition = this.filePositions.get(filepath) || 0;
+
+      // File shrunk (or was rotated) since we last saw it — restart from 0.
+      const effectiveStart = stats.size < startPosition ? 0 : startPosition;
+
+      if (effectiveStart >= stats.size) {
+        // Nothing new to ingest, but make sure we record the position.
+        this.filePositions.set(filepath, stats.size);
+        // Still extract project info so getActiveProjects() reflects this file.
+        const projectInfo = this.extractProjectFromPath(filepath);
+        if (projectInfo) {
+          this.activeProjects.set(projectInfo.projectPath, projectInfo.sessionId);
+        }
+        return;
+      }
+
+      const buffer = Buffer.alloc(stats.size - effectiveStart);
+      const fd = fs.openSync(filepath, 'r');
+      try {
+        fs.readSync(fd, buffer, 0, buffer.length, effectiveStart);
+      } finally {
+        fs.closeSync(fd);
+      }
+
+      const lines = buffer.toString('utf8').split('\n').filter(line => line.trim());
       let processed = 0;
       for (const line of lines) {
         try {
@@ -196,11 +272,11 @@ export class ClaudeLogWatcher {
           // Skip malformed lines
         }
       }
-      const stats = await fs.promises.stat(filepath);
       this.filePositions.set(filepath, stats.size);
       if (processed > 0) {
         this.logger.info(
-          `   Processed ${processed} historical entries from ${path.basename(filepath)}`
+          `   Ingested ${processed} new entries from ${path.basename(filepath)}` +
+            (effectiveStart > 0 ? ` (resumed from byte ${effectiveStart})` : '')
         );
       }
     } catch (error) {
