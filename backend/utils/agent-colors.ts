@@ -1,5 +1,6 @@
 export const AGENT_COLORS: Record<string, string> = {
   claude: '#FF6B35',
+  codex: '#10A37F',
   gpt: '#10A37F',
   gemini: '#4285F4',
   ollama: '#F39C12',

@@ -42,6 +42,7 @@ import { createLiveSessionRouter } from './routes/live-session.js';
 import { createEventsRouter } from './routes/events.js';
 import { createAgentsRouter } from './routes/agents.js';
 import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
+import { CodexLogWatcher } from './services/codex-log-watcher.js';
 import { HealthMonitor } from './services/health-monitor.js';
 import { createHealthMonitoringRouter } from './routes/health-monitoring.js';
 import { ProjectManager } from './services/project-manager.js';
@@ -306,31 +307,37 @@ scheduleDaily(18, () => {
     .catch(() => {});
 });
 
-// Initialize Claude Code log watcher for automatic agent detection
-const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
-  const agentName = 'Claude Code';
-  const timestamp = event.timestamp || new Date().toISOString();
-  const category = event.eventCategory || 'file_change';
+// Build the dispatcher used by ClaudeLogWatcher and CodexLogWatcher.
+// Both emit the same event shape; only the agent identity varies.
+function createAgentEventHandler(opts: {
+  agentName: string;
+  agentType: string;
+  colorKey: string;
+}) {
+  return (event: any) => {
+    const { agentName, agentType, colorKey } = opts;
+    const timestamp = event.timestamp || new Date().toISOString();
+    const category = event.eventCategory || 'file_change';
 
-  // Register/update Claude Code in agent registry
-  if (!agentRegistry.has(agentName)) {
-    // Cap agentRegistry at 100 entries
-    if (agentRegistry.size >= 100) {
-      const oldestKey = agentRegistry.keys().next().value;
-      if (oldestKey) agentRegistry.delete(oldestKey);
+    // Register/update agent in registry
+    if (!agentRegistry.has(agentName)) {
+      // Cap agentRegistry at 100 entries
+      if (agentRegistry.size >= 100) {
+        const oldestKey = agentRegistry.keys().next().value;
+        if (oldestKey) agentRegistry.delete(oldestKey);
+      }
+      agentRegistry.set(agentName, {
+        agent_name: agentName,
+        agent_type: agentType,
+        is_running: true,
+        last_seen: timestamp,
+        models_available: [],
+        requests_handled: 0,
+        errors: 0,
+        color: getAgentColor(colorKey)
+      });
+      logger.info(`✅ ${agentName} registered in agent registry`);
     }
-    agentRegistry.set(agentName, {
-      agent_name: agentName,
-      agent_type: 'claude-code',
-      is_running: true,
-      last_seen: timestamp,
-      models_available: [],
-      requests_handled: 0,
-      errors: 0,
-      color: getAgentColor('claude')
-    });
-    logger.info('✅ Claude Code registered in agent registry');
-  }
 
   const agentStatus = agentRegistry.get(agentName);
   if (!agentStatus) return;
@@ -519,17 +526,28 @@ const claudeLogWatcher = new ClaudeLogWatcher((event: any) => {
   // Emit via Socket.IO for real-time UI updates.
   // tool/message let the AI Pulse render readable labels (e.g. "Read · file.ts")
   // instead of falling back to the agent name.
-  io.emit('agent-event', {
-    type: event.type,
-    agent_name: agentName,
-    file: event.file || event.path,
-    tool: event.tool || null,
-    message: event.tool ? `${event.tool} call` : event.type,
-    content: event.content ? String(event.content).slice(0, 200) : null,
-    timestamp: timestamp,
-    event_type: event.type
-  });
-}, logger);
+    io.emit('agent-event', {
+      type: event.type,
+      agent_name: agentName,
+      file: event.file || event.path,
+      tool: event.tool || null,
+      message: event.tool ? `${event.tool} call` : event.type,
+      content: event.content ? String(event.content).slice(0, 200) : null,
+      timestamp: timestamp,
+      event_type: event.type
+    });
+  };
+}
+
+// Initialize log watchers — one per agent CLI we monitor.
+const claudeLogWatcher = new ClaudeLogWatcher(
+  createAgentEventHandler({ agentName: 'Claude Code', agentType: 'claude-code', colorKey: 'claude' }),
+  logger
+);
+const codexLogWatcher = new CodexLogWatcher(
+  createAgentEventHandler({ agentName: 'Codex', agentType: 'codex', colorKey: 'codex' }),
+  logger
+);
 
 // Single-project fallback watcher (used if ProjectManager hasn't started yet)
 const fileWatcher = new FileWatcher({
@@ -3477,6 +3495,10 @@ httpServer.listen(PORT, async () => {
   logger.info('🤖 Starting Claude Code log watcher...');
   await claudeLogWatcher.start();
 
+  // Start Codex log watcher
+  logger.info('🤖 Starting Codex log watcher...');
+  await codexLogWatcher.start();
+
   // Start multi-project file watchers
   logger.info('📁 Starting multi-project file watchers...');
   try {
@@ -3611,6 +3633,7 @@ httpServer.listen(PORT, async () => {
         );
         localModelWatcher.setIdle(shouldBeIdle);
         claudeLogWatcher.setIdle(shouldBeIdle);
+        codexLogWatcher.setIdle(shouldBeIdle);
         healthMonitor.setIdle(shouldBeIdle);
         metricsCollector.setIdle(shouldBeIdle);
       }
@@ -3643,6 +3666,10 @@ async function gracefulShutdown(signal: string) {
     // Stop Claude Code log watcher
     logger.info('🛑 Stopping Claude Code log watcher...');
     await claudeLogWatcher.stop();
+
+    // Stop Codex log watcher
+    logger.info('🛑 Stopping Codex log watcher...');
+    await codexLogWatcher.stop();
 
     // Stop all project watchers
     logger.info('🛑 Stopping project watchers...');

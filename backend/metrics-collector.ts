@@ -47,6 +47,7 @@ export class MetricsCollector {
 
   private agentPatterns: ProcessPattern[] = [
     { pattern: /claude/i, name: 'claude-sonnet-3.5' },
+    { pattern: /codex/i, name: 'codex' },
     { pattern: /cursor/i, name: 'cursor' },
     { pattern: /copilot/i, name: 'github-copilot' },
     { pattern: /node.*raven/i, name: 'raven-backend' }
