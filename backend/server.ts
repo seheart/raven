@@ -310,11 +310,7 @@ scheduleDaily(18, () => {
 
 // Build the dispatcher used by ClaudeLogWatcher and CodexLogWatcher.
 // Both emit the same event shape; only the agent identity varies.
-function createAgentEventHandler(opts: {
-  agentName: string;
-  agentType: string;
-  colorKey: string;
-}) {
+function createAgentEventHandler(opts: { agentName: string; agentType: string; colorKey: string }) {
   return (event: any) => {
     const { agentName, agentType, colorKey } = opts;
     const timestamp = event.timestamp || new Date().toISOString();
@@ -340,90 +336,90 @@ function createAgentEventHandler(opts: {
       logger.info(`✅ ${agentName} registered in agent registry`);
     }
 
-  const agentStatus = agentRegistry.get(agentName);
-  if (!agentStatus) return;
-  if (!agentStatus.last_seen || new Date(timestamp) > new Date(agentStatus.last_seen)) {
-    agentStatus.last_seen = timestamp;
-  }
-  (agentStatus as any).requests_handled++;
-  agentStatus.is_running = true;
+    const agentStatus = agentRegistry.get(agentName);
+    if (!agentStatus) return;
+    if (!agentStatus.last_seen || new Date(timestamp) > new Date(agentStatus.last_seen)) {
+      agentStatus.last_seen = timestamp;
+    }
+    (agentStatus as any).requests_handled++;
+    agentStatus.is_running = true;
 
-  // Store agent events (tool calls, tool results)
-  if (category === 'agent_event') {
-    try {
-      const stmt = db.db.prepare(`
+    // Store agent events (tool calls, tool results)
+    if (category === 'agent_event') {
+      try {
+        const stmt = db.db.prepare(`
         INSERT INTO agent_events (timestamp, agent, event_type, file, message, session_id, project_name)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
-      stmt.run(
-        timestamp,
-        agentName,
-        event.type,
-        event.file || event.path || null,
-        event.tool ? `${event.tool} call` : event.type,
-        event.sessionId || SESSION_ID,
-        event.projectName || null
-      );
-    } catch (err: any) {
-      logger.debug(`Failed to store agent event: ${err.message}`);
+        stmt.run(
+          timestamp,
+          agentName,
+          event.type,
+          event.file || event.path || null,
+          event.tool ? `${event.tool} call` : event.type,
+          event.sessionId || SESSION_ID,
+          event.projectName || null
+        );
+      } catch (err: any) {
+        logger.debug(`Failed to store agent event: ${err.message}`);
+      }
     }
-  }
 
-  // Store conversation entries (user messages, assistant text)
-  if (category === 'conversation') {
-    try {
-      const stmt = db.db.prepare(`
+    // Store conversation entries (user messages, assistant text)
+    if (category === 'conversation') {
+      try {
+        const stmt = db.db.prepare(`
         INSERT INTO agent_events (timestamp, agent, event_type, message, session_id, project_name)
         VALUES (?, ?, ?, ?, ?, ?)
       `);
-      stmt.run(
-        timestamp,
-        agentName,
-        event.type,
-        (event.content || '').slice(0, 500),
-        event.sessionId || SESSION_ID,
-        event.projectName || null
-      );
-    } catch (err: any) {
-      logger.debug(`Failed to store conversation: ${err.message}`);
+        stmt.run(
+          timestamp,
+          agentName,
+          event.type,
+          (event.content || '').slice(0, 500),
+          event.sessionId || SESSION_ID,
+          event.projectName || null
+        );
+      } catch (err: any) {
+        logger.debug(`Failed to store conversation: ${err.message}`);
+      }
     }
-  }
 
-  // Store token usage data
-  if (category === 'token_usage') {
-    try {
-      const usage = {
-        input_tokens: event.inputTokens || 0,
-        output_tokens: event.outputTokens || 0,
-        cache_creation_input_tokens: event.cacheCreationTokens || 0,
-        cache_read_input_tokens: event.cacheReadTokens || 0
-      };
-      const cost = calculateCost(event.model || 'unknown', usage);
+    // Store token usage data
+    if (category === 'token_usage') {
+      try {
+        const usage = {
+          input_tokens: event.inputTokens || 0,
+          output_tokens: event.outputTokens || 0,
+          cache_creation_input_tokens: event.cacheCreationTokens || 0,
+          cache_read_input_tokens: event.cacheReadTokens || 0
+        };
+        const cost = calculateCost(event.model || 'unknown', usage);
 
-      const stmt = db.db.prepare(`
+        const stmt = db.db.prepare(`
         INSERT INTO token_usage (timestamp, session_id, project_name, model, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, estimated_cost_usd, request_id, agent_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      stmt.run(
-        timestamp,
-        event.sessionId || SESSION_ID,
-        event.projectName || null,
-        event.model || 'unknown',
-        usage.input_tokens,
-        usage.output_tokens,
-        usage.cache_creation_input_tokens,
-        usage.cache_read_input_tokens,
-        cost,
-        event.requestId || null,
-        event.agentId || null
-      );
+        stmt.run(
+          timestamp,
+          event.sessionId || SESSION_ID,
+          event.projectName || null,
+          event.model || 'unknown',
+          usage.input_tokens,
+          usage.output_tokens,
+          usage.cache_creation_input_tokens,
+          usage.cache_read_input_tokens,
+          cost,
+          event.requestId || null,
+          event.agentId || null
+        );
 
-      // Update subagent_tree running totals if this is a sub-agent request
-      if (event.agentId) {
-        try {
-          db.db
-            .prepare(
-              `
+        // Update subagent_tree running totals if this is a sub-agent request
+        if (event.agentId) {
+          try {
+            db.db
+              .prepare(
+                `
             UPDATE subagent_tree SET
               total_input_tokens = total_input_tokens + ?,
               total_output_tokens = total_output_tokens + ?,
@@ -431,42 +427,42 @@ function createAgentEventHandler(opts: {
               model = COALESCE(model, ?)
             WHERE agent_id = ? AND session_id = ?
           `
-            )
-            .run(
-              usage.input_tokens,
-              usage.output_tokens,
-              cost,
-              event.model || null,
-              event.agentId,
-              event.sessionId || SESSION_ID
+              )
+              .run(
+                usage.input_tokens,
+                usage.output_tokens,
+                cost,
+                event.model || null,
+                event.agentId,
+                event.sessionId || SESSION_ID
+              );
+          } catch (err: any) {
+            logger.debug(
+              `Failed to update subagent token counts for ${event.agentId}: ${err.message}`
             );
-        } catch (err: any) {
-          logger.debug(
-            `Failed to update subagent token counts for ${event.agentId}: ${err.message}`
-          );
+          }
         }
+
+        io.emit('token-usage', {
+          timestamp,
+          model: event.model,
+          input_tokens: usage.input_tokens,
+          output_tokens: usage.output_tokens,
+          cache_creation_tokens: usage.cache_creation_input_tokens,
+          cache_read_tokens: usage.cache_read_input_tokens,
+          estimated_cost_usd: cost,
+          project_name: event.projectName,
+          session_id: event.sessionId
+        });
+      } catch (err: any) {
+        logger.debug(`Failed to store token usage: ${err.message}`);
       }
-
-      io.emit('token-usage', {
-        timestamp,
-        model: event.model,
-        input_tokens: usage.input_tokens,
-        output_tokens: usage.output_tokens,
-        cache_creation_tokens: usage.cache_creation_input_tokens,
-        cache_read_tokens: usage.cache_read_input_tokens,
-        estimated_cost_usd: cost,
-        project_name: event.projectName,
-        session_id: event.sessionId
-      });
-    } catch (err: any) {
-      logger.debug(`Failed to store token usage: ${err.message}`);
     }
-  }
 
-  // Store sub-agent spawn events
-  if (category === 'subagent') {
-    try {
-      const stmt = db.db.prepare(`
+    // Store sub-agent spawn events
+    if (category === 'subagent') {
+      try {
+        const stmt = db.db.prepare(`
         INSERT INTO subagent_tree (session_id, agent_id, parent_agent_id, agent_type, description, model, started_at, project_name)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(session_id, agent_id) DO UPDATE SET
@@ -475,58 +471,58 @@ function createAgentEventHandler(opts: {
           description = COALESCE(excluded.description, description),
           model = COALESCE(excluded.model, model)
       `);
-      stmt.run(
-        event.sessionId || SESSION_ID,
-        event.uuid || `agent_${Date.now()}`,
-        event.parentUuid || null,
-        event.subagentType || 'general-purpose',
-        event.description || null,
-        event.model || null,
-        timestamp,
-        event.projectName || null
-      );
+        stmt.run(
+          event.sessionId || SESSION_ID,
+          event.uuid || `agent_${Date.now()}`,
+          event.parentUuid || null,
+          event.subagentType || 'general-purpose',
+          event.description || null,
+          event.model || null,
+          timestamp,
+          event.projectName || null
+        );
 
-      io.emit('subagent-spawn', {
-        timestamp,
-        agent_id: event.uuid,
-        parent_agent_id: event.parentUuid,
-        agent_type: event.subagentType,
-        description: event.description,
-        model: event.model,
-        session_id: event.sessionId,
-        project_name: event.projectName
-      });
-    } catch (err: any) {
-      logger.debug(`Failed to store subagent spawn: ${err.message}`);
+        io.emit('subagent-spawn', {
+          timestamp,
+          agent_id: event.uuid,
+          parent_agent_id: event.parentUuid,
+          agent_type: event.subagentType,
+          description: event.description,
+          model: event.model,
+          session_id: event.sessionId,
+          project_name: event.projectName
+        });
+      } catch (err: any) {
+        logger.debug(`Failed to store subagent spawn: ${err.message}`);
+      }
     }
-  }
 
-  // Store and emit API latency measurements
-  if (category === 'api_latency') {
-    try {
-      db.insertApiLatency(
-        timestamp,
-        event.sessionId || SESSION_ID,
-        event.projectName || null,
-        event.model || null,
-        event.latency_ms
-      );
+    // Store and emit API latency measurements
+    if (category === 'api_latency') {
+      try {
+        db.insertApiLatency(
+          timestamp,
+          event.sessionId || SESSION_ID,
+          event.projectName || null,
+          event.model || null,
+          event.latency_ms
+        );
 
-      io.emit('api-latency', {
-        timestamp,
-        latency_ms: event.latency_ms,
-        model: event.model,
-        session_id: event.sessionId,
-        project_name: event.projectName
-      });
-    } catch (err: any) {
-      logger.debug(`Failed to store API latency: ${err.message}`);
+        io.emit('api-latency', {
+          timestamp,
+          latency_ms: event.latency_ms,
+          model: event.model,
+          session_id: event.sessionId,
+          project_name: event.projectName
+        });
+      } catch (err: any) {
+        logger.debug(`Failed to store API latency: ${err.message}`);
+      }
     }
-  }
 
-  // Emit via Socket.IO for real-time UI updates.
-  // tool/message let the AI Pulse render readable labels (e.g. "Read · file.ts")
-  // instead of falling back to the agent name.
+    // Emit via Socket.IO for real-time UI updates.
+    // tool/message let the AI Pulse render readable labels (e.g. "Read · file.ts")
+    // instead of falling back to the agent name.
     io.emit('agent-event', {
       type: event.type,
       agent_name: agentName,
@@ -542,7 +538,11 @@ function createAgentEventHandler(opts: {
 
 // Initialize log watchers — one per agent CLI we monitor.
 const claudeLogWatcher = new ClaudeLogWatcher(
-  createAgentEventHandler({ agentName: 'Claude Code', agentType: 'claude-code', colorKey: 'claude' }),
+  createAgentEventHandler({
+    agentName: 'Claude Code',
+    agentType: 'claude-code',
+    colorKey: 'claude'
+  }),
   logger
 );
 const codexLogWatcher = new CodexLogWatcher(

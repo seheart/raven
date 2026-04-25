@@ -19,7 +19,8 @@
 import { spawn } from 'child_process';
 import readline from 'readline';
 
-const GIN_LINE = /\[GIN\]\s+\S+\s+-\s+\S+\s+\|\s+(\d+)\s+\|\s+([^|]+)\s+\|\s+(\S+)\s+\|\s+(\S+)\s+"([^"]+)"/;
+const GIN_LINE =
+  /\[GIN\]\s+\S+\s+-\s+\S+\s+\|\s+(\d+)\s+\|\s+([^|]+)\s+\|\s+(\S+)\s+\|\s+(\S+)\s+"([^"]+)"/;
 
 // Endpoints that represent actual inference work — what we want on the
 // activity chart. Status/health endpoints are filtered out so polling
@@ -35,13 +36,7 @@ const INFERENCE_ENDPOINTS = [
 ];
 
 // Anything matching these is a status/health probe — never emit.
-const IGNORED_ENDPOINTS = new Set([
-  '/api/tags',
-  '/api/ps',
-  '/api/version',
-  '/api/show',
-  '/'
-]);
+const IGNORED_ENDPOINTS = new Set(['/api/tags', '/api/ps', '/api/version', '/api/show', '/']);
 
 function isInferenceEndpoint(path) {
   if (IGNORED_ENDPOINTS.has(path)) return false;
@@ -60,13 +55,19 @@ function parseDurationMs(token) {
   const n = parseFloat(m[1]);
   if (Number.isNaN(n)) return null;
   switch (m[2]) {
-    case 'h': return n * 3_600_000;
-    case 'm': return n * 60_000;
-    case 's': return n * 1000;
-    case 'ms': return n;
+    case 'h':
+      return n * 3_600_000;
+    case 'm':
+      return n * 60_000;
+    case 's':
+      return n * 1000;
+    case 'ms':
+      return n;
     case 'µs':
-    case 'us': return n / 1000;
-    default: return null;
+    case 'us':
+      return n / 1000;
+    default:
+      return null;
   }
 }
 
@@ -91,15 +92,7 @@ export class OllamaLogWatcher {
     try {
       this.proc = spawn(
         'journalctl',
-        [
-          '-u',
-          this.unit,
-          '-f',
-          '--no-pager',
-          '--output=short-iso',
-          '--since',
-          this.since
-        ],
+        ['-u', this.unit, '-f', '--no-pager', '--output=short-iso', '--since', this.since],
         { stdio: ['ignore', 'pipe', 'pipe'] }
       );
     } catch (err) {

@@ -334,7 +334,10 @@ export class CodexLogWatcher {
     const name = payload.name || 'unknown';
     let args = {};
     try {
-      args = typeof payload.arguments === 'string' ? JSON.parse(payload.arguments) : payload.arguments || {};
+      args =
+        typeof payload.arguments === 'string'
+          ? JSON.parse(payload.arguments)
+          : payload.arguments || {};
     } catch (_err) {
       args = {};
     }
@@ -347,8 +350,7 @@ export class CodexLogWatcher {
       if (patchTarget) {
         const action = patchTarget[1]; // Update | Add | Delete
         const filePath = patchTarget[2].trim();
-        const fileEventType =
-          action === 'Add' ? 'add' : action === 'Delete' ? 'delete' : 'change';
+        const fileEventType = action === 'Add' ? 'add' : action === 'Delete' ? 'delete' : 'change';
         await this.eventCallback({
           ...baseEvent,
           type: fileEventType,
