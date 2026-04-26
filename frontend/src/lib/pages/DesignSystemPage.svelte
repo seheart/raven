@@ -3,6 +3,7 @@
    * Design System Page — tokens and primitives used across Raven.
    * New screens should pull from here; deviations should be intentional.
    */
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
 
   const surfaceTokens = [
     { name: '--bg', role: 'Page background' },
@@ -77,30 +78,23 @@
   ];
 
   const principles = [
-    'Use semantic vars (<code>--success</code> / <code>--error</code> / <code>--warning</code>) instead of hex. They flip with theme.',
-    'Content pages (System, Analysis, Settings, About) wrap in <code>min-h-screen bg-[var(--bg)] p-6 pb-20</code> with <code>max-w-none</code> inside.',
-    'Live / dashboard pages (Overview, Live Monitor, Process Activity) lock to the viewport with their own grid or flex layout. They still use the same color and type tokens.',
-    'Section cards use <code>bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5</code> with an uppercase mono label heading.',
+    'Use semantic utilities (<code>bg-surface</code>, <code>text-heading</code>, <code>text-accent</code>, <code>text-success</code>) instead of hex or arbitrary <code>text-[var(--…)]</code> tokens. They flip with theme.',
+    'Every page wraps in <code>&lt;PageLayout&gt;</code> from <code>lib/components/layout</code>. Content pages use the default variant; dashboards (Overview, Live, Activity) use <code>variant="dashboard"</code>.',
+    'The page <code>h1</code> + description belongs in <code>&lt;PageHeader title=… description=…&gt;</code>. The small uppercase section label belongs in <code>&lt;PageSection title=… meta=…&gt;</code>. Don\'t hand-roll these.',
+    'Section cards inside a PageSection use <code>bg-surface border border-border rounded-lg p-5</code> with an uppercase mono label heading.',
     'Status dots are 8px circles (<code>w-2 h-2</code>) with semantic backgrounds. Don\'t reinvent shapes.',
     'Mono font is reserved for technical content: session IDs, paths, durations, code, model names.',
     'The System page is the gold standard for content-style screens — match its header, status grid, and detail-card patterns when adding new ones.'
   ];
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Design System</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Tokens and primitives used across Raven. New screens should pull from here; deviations
-          should be intentional.
-        </p>
-      </div>
-    </div>
+<PageLayout>
+  <PageHeader
+    title="Design System"
+    description="Tokens and primitives used across Raven. New screens should pull from here; deviations should be intentional."
+  />
 
-    <div class="space-y-6">
+  <div class="space-y-6">
       <!-- Colors — Surfaces -->
       <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
         <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
@@ -589,9 +583,8 @@
           {/each}
         </ol>
       </section>
-    </div>
   </div>
-</div>
+</PageLayout>
 
 <style>
   /* Inline code chips inside the principles list — keep them visible */
