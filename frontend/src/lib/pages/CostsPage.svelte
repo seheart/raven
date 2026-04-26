@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount, tick } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -148,7 +149,7 @@
     // Model breakdown donut
     if (modelChartCanvas && byModel.length > 0) {
       if (modelChart) modelChart.destroy();
-      const palette = ['#FF6B35', '#10A37F', '#4285F4', '#F39C12', '#8B5CF6', '#E11D48'];
+      const palette = ['#FF6B35', '#10A37F', '#4285F4', '#F39C12', '#8B5CF6', '#E11D48']; // design-system-allow: hex (vendor brand colors)
       modelChart = new Chart(modelChartCanvas, {
         type: 'doughnut',
         data: {
@@ -217,89 +218,86 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Token Usage</h1>
-        <div class="flex items-center gap-2">
-          <span class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi ? 'bg-[var(--warning)] text-black' : 'bg-[var(--accent)] text-white'}">{isApi ? 'API Billing' : planName}</span>
-          <p class="text-sm text-[var(--muted)] font-sans">
-            {isApi ? 'Estimated API costs and token consumption' : 'Token consumption across sessions'}
-          </p>
-        </div>
-      </div>
+<PageLayout>
+  <PageHeader title="Token Usage">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
-        <div class="flex bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden">
+        <div class="flex bg-surface border border-border rounded overflow-hidden">
           {#each [['today', 'Today'], ['7d', '7 Days'], ['30d', '30 Days'], ['all', 'All']] as [value, label] (value)}
             <button
               onclick={() => setTimeRange(value)}
-              class="px-3 py-1.5 text-xs font-sans transition-colors border-0 cursor-pointer {timeRange === value ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted)] hover:text-[var(--text)]'}"
+              class="px-3 py-1.5 text-xs font-sans transition-colors border-0 cursor-pointer {timeRange === value ? 'bg-accent text-white' : 'text-muted hover:text-body'}"
             >{label}</button>
           {/each}
         </div>
-        <span class="text-xs text-[var(--muted)] font-mono">{timeAgo}</span>
+        <span class="text-xs text-muted font-mono">{timeAgo}</span>
         <button
           onclick={loadData}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
+  <div class="flex items-center gap-2 -mt-4">
+    <span class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi ? 'bg-warning text-black' : 'bg-accent text-white'}">{isApi ? 'API Billing' : planName}</span>
+    <p class="text-sm text-muted font-sans">
+      {isApi ? 'Estimated API costs and token consumption' : 'Token consumption across sessions'}
+    </p>
+  </div>
 
     {#if loading && !summary.total_requests}
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {#each Array(4) as _, i (i)}
-          <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
         {/each}
       </div>
     {:else}
       <!-- Summary Cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {#if isApi}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-            <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Est. Spend</div>
-            <div class="text-2xl font-bold text-[var(--accent)] font-mono">{formatCost(summary.total_cost_usd)}</div>
+          <div class="bg-surface border border-border rounded p-4">
+            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Est. Spend</div>
+            <div class="text-2xl font-bold text-accent font-mono">{formatCost(summary.total_cost_usd)}</div>
           </div>
         {:else}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-            <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Total Tokens</div>
-            <div class="text-2xl font-bold text-[var(--accent)] font-mono">{formatTokens((summary.total_input_tokens || 0) + (summary.total_output_tokens || 0))}</div>
+          <div class="bg-surface border border-border rounded p-4">
+            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Tokens</div>
+            <div class="text-2xl font-bold text-accent font-mono">{formatTokens((summary.total_input_tokens || 0) + (summary.total_output_tokens || 0))}</div>
           </div>
         {/if}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Requests</div>
-          <div class="text-2xl font-bold text-[var(--text)] font-mono">{summary.total_requests?.toLocaleString()}</div>
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Requests</div>
+          <div class="text-2xl font-bold text-body font-mono">{summary.total_requests?.toLocaleString()}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Input Tokens</div>
-          <div class="text-2xl font-bold text-[var(--text)] font-mono">{formatTokens(summary.total_input_tokens)}</div>
-          <div class="text-xs text-[var(--muted)] mt-1">+ {formatTokens(summary.total_cache_read_tokens)} cached</div>
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Input Tokens</div>
+          <div class="text-2xl font-bold text-body font-mono">{formatTokens(summary.total_input_tokens)}</div>
+          <div class="text-xs text-muted mt-1">+ {formatTokens(summary.total_cache_read_tokens)} cached</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Output Tokens</div>
-          <div class="text-2xl font-bold text-[var(--text)] font-mono">{formatTokens(summary.total_output_tokens)}</div>
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Output Tokens</div>
+          <div class="text-2xl font-bold text-body font-mono">{formatTokens(summary.total_output_tokens)}</div>
         </div>
       </div>
 
       <!-- Charts Row -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="md:col-span-2 bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">{isApi ? 'Cost Over Time' : 'Tokens Over Time'}</h3>
+        <div class="md:col-span-2 bg-surface border border-border rounded p-4">
+          <h3 class="text-sm font-semibold text-heading mb-3">{isApi ? 'Cost Over Time' : 'Tokens Over Time'}</h3>
           <div class="h-48">
             <canvas bind:this={costChartCanvas}></canvas>
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">By Model</h3>
+        <div class="bg-surface border border-border rounded p-4">
+          <h3 class="text-sm font-semibold text-heading mb-3">By Model</h3>
           <div class="h-48">
             {#if byModel.length > 0}
               <canvas bind:this={modelChartCanvas}></canvas>
             {:else}
-              <div class="flex items-center justify-center h-full text-sm text-[var(--muted)]">No model data</div>
+              <div class="flex items-center justify-center h-full text-sm text-muted">No model data</div>
             {/if}
           </div>
         </div>
@@ -307,12 +305,12 @@
 
       <!-- Model Breakdown -->
       {#if byModel.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 mb-6">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Usage by Model</h3>
+        <div class="bg-surface border border-border rounded p-4 mb-6">
+          <h3 class="text-sm font-semibold text-heading mb-3">Usage by Model</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-sm font-mono">
               <thead>
-                <tr class="text-left text-xs text-[var(--muted)] uppercase tracking-wide border-b border-[var(--border)]">
+                <tr class="text-left text-xs text-muted uppercase tracking-wide border-b border-border">
                   <th class="pb-2 pr-4">Model</th>
                   <th class="pb-2 pr-4 text-right">Requests</th>
                   <th class="pb-2 pr-4 text-right">Input</th>
@@ -322,12 +320,12 @@
               </thead>
               <tbody>
                 {#each byModel as model (model.model)}
-                  <tr class="border-b border-[var(--border)] border-opacity-50 hover:bg-[var(--bg)] transition-colors">
-                    <td class="py-2 pr-4 text-[var(--text)]">{model.model_family || model.model}</td>
-                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{model.requests}</td>
-                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{formatTokens(model.input_tokens)}</td>
-                    <td class="py-2 pr-4 text-right text-[var(--accent)] font-semibold">{formatTokens(model.output_tokens)}</td>
-                    {#if isApi}<td class="py-2 text-right text-[var(--accent)] font-semibold">{formatCost(model.cost_usd)}</td>{/if}
+                  <tr class="border-b border-border border-opacity-50 hover:bg-canvas transition-colors">
+                    <td class="py-2 pr-4 text-body">{model.model_family || model.model}</td>
+                    <td class="py-2 pr-4 text-right text-muted">{model.requests}</td>
+                    <td class="py-2 pr-4 text-right text-muted">{formatTokens(model.input_tokens)}</td>
+                    <td class="py-2 pr-4 text-right text-accent font-semibold">{formatTokens(model.output_tokens)}</td>
+                    {#if isApi}<td class="py-2 text-right text-accent font-semibold">{formatCost(model.cost_usd)}</td>{/if}
                   </tr>
                 {/each}
               </tbody>
@@ -338,12 +336,12 @@
 
       <!-- Project Breakdown -->
       {#if byProject.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 mb-6">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Usage by Project</h3>
+        <div class="bg-surface border border-border rounded p-4 mb-6">
+          <h3 class="text-sm font-semibold text-heading mb-3">Usage by Project</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-sm font-mono">
               <thead>
-                <tr class="text-left text-xs text-[var(--muted)] uppercase tracking-wide border-b border-[var(--border)]">
+                <tr class="text-left text-xs text-muted uppercase tracking-wide border-b border-border">
                   <th class="pb-2 pr-4">Project</th>
                   <th class="pb-2 pr-4 text-right">Requests</th>
                   <th class="pb-2 pr-4 text-right">Input</th>
@@ -353,12 +351,12 @@
               </thead>
               <tbody>
                 {#each byProject as project (project.project_name)}
-                  <tr class="border-b border-[var(--border)] border-opacity-50 hover:bg-[var(--bg)] transition-colors">
-                    <td class="py-2 pr-4 text-[var(--text)]">{project.project_name || '(unknown)'}</td>
-                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{project.requests}</td>
-                    <td class="py-2 pr-4 text-right text-[var(--muted)]">{formatTokens(project.input_tokens)}</td>
-                    <td class="py-2 pr-4 text-right text-[var(--accent)] font-semibold">{formatTokens(project.output_tokens)}</td>
-                    {#if isApi}<td class="py-2 text-right text-[var(--accent)] font-semibold">{formatCost(project.cost_usd)}</td>{/if}
+                  <tr class="border-b border-border border-opacity-50 hover:bg-canvas transition-colors">
+                    <td class="py-2 pr-4 text-body">{project.project_name || '(unknown)'}</td>
+                    <td class="py-2 pr-4 text-right text-muted">{project.requests}</td>
+                    <td class="py-2 pr-4 text-right text-muted">{formatTokens(project.input_tokens)}</td>
+                    <td class="py-2 pr-4 text-right text-accent font-semibold">{formatTokens(project.output_tokens)}</td>
+                    {#if isApi}<td class="py-2 text-right text-accent font-semibold">{formatCost(project.cost_usd)}</td>{/if}
                   </tr>
                 {/each}
               </tbody>
@@ -369,19 +367,19 @@
 
       <!-- Recent Sessions -->
       {#if bySessions.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Recent Sessions</h3>
+        <div class="bg-surface border border-border rounded p-4">
+          <h3 class="text-sm font-semibold text-heading mb-3">Recent Sessions</h3>
           <div class="space-y-2">
             {#each bySessions as session (session.session_id)}
-              <div class="flex items-center justify-between py-2 px-3 rounded bg-[var(--bg)] text-sm">
+              <div class="flex items-center justify-between py-2 px-3 rounded bg-canvas text-sm">
                 <div>
-                  <span class="text-[var(--text)] font-medium">{session.project_name || session.session_id?.slice(0, 8)}</span>
-                  <span class="text-[var(--muted)] text-xs ml-2">{session.requests} requests</span>
+                  <span class="text-body font-medium">{session.project_name || session.session_id?.slice(0, 8)}</span>
+                  <span class="text-muted text-xs ml-2">{session.requests} requests</span>
                 </div>
                 <div class="flex items-center gap-4">
-                  <span class="text-xs text-[var(--muted)]">{formatTokens(session.input_tokens + session.output_tokens)} tokens</span>
+                  <span class="text-xs text-muted">{formatTokens(session.input_tokens + session.output_tokens)} tokens</span>
                   {#if isApi}
-                    <span class="text-[var(--accent)] font-mono font-semibold">{formatCost(session.cost_usd)}</span>
+                    <span class="text-accent font-mono font-semibold">{formatCost(session.cost_usd)}</span>
                   {/if}
                 </div>
               </div>
@@ -391,15 +389,14 @@
       {/if}
 
       {#if !loading && summary.total_requests === 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-12 text-center">
+        <div class="bg-surface border border-border rounded p-12 text-center">
           <div class="text-4xl mb-4">💰</div>
-          <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2">No token usage recorded yet</h3>
-          <p class="text-sm text-[var(--muted)]">
+          <h3 class="text-lg font-semibold text-heading mb-2">No token usage recorded yet</h3>
+          <p class="text-sm text-muted">
             Token usage will appear here as Claude Code sessions run.
             Historical data from existing logs is imported on startup.
           </p>
         </div>
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>

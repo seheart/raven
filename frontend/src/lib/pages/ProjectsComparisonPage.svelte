@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { logger } from '../logger.js';
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
@@ -226,46 +227,40 @@
   onDestroy(() => abortRequests());
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Projects Comparison</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Compare all monitored projects side-by-side
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader title="Projects Comparison" description="Compare all monitored projects side-by-side">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
         <button
           onclick={exportCSV}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
         >
           Export
         </button>
         <button
           onclick={() => loadProjects()}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     <!-- Controls -->
     <div
-      class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex flex-wrap gap-3 items-center"
+      class="bg-surface border border-border rounded-lg p-4 mb-6 flex flex-wrap gap-3 items-center"
     >
       <input
         type="text"
         placeholder="Search projects..."
         bind:value={searchQuery}
-        class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+        class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent"
       />
       <select
         bind:value={filterStatus}
-        class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] cursor-pointer"
+        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body cursor-pointer"
       >
         <option value="all">All Status</option>
         <option value="active">Active</option>
@@ -273,77 +268,77 @@
         <option value="idle">Idle</option>
         <option value="never">Never</option>
       </select>
-      <div class="text-xs text-[var(--muted)] font-mono">
+      <div class="text-xs text-muted font-mono">
         {filteredProjects.length} of {projects.length} projects
       </div>
     </div>
 
     {#if loading}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
         <div
-          class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
+          class="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4"
         ></div>
-        <p class="text-sm text-[var(--muted)] font-sans">Loading projects...</p>
+        <p class="text-sm text-muted font-sans">Loading projects...</p>
       </div>
     {:else if projects.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-sm text-[var(--muted)] mb-2">No projects found</p>
-        <p class="text-xs text-[var(--muted)] opacity-80">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <p class="text-sm text-muted mb-2">No projects found</p>
+        <p class="text-xs text-muted opacity-80">
           Projects are automatically discovered when you start monitoring code with Raven.
         </p>
       </div>
     {:else if filteredProjects.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-sm text-[var(--muted)] mb-2">No projects match your filters</p>
-        <p class="text-xs text-[var(--muted)] opacity-80">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <p class="text-sm text-muted mb-2">No projects match your filters</p>
+        <p class="text-xs text-muted opacity-80">
           Try adjusting your search or status filter.
         </p>
       </div>
     {:else}
       <!-- Table -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+      <div class="bg-surface border border-border rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full">
-            <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
+            <thead class="bg-canvas border-b border-border">
               <tr class="text-left">
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
                   onclick={() => handleSort('name')}
                 >
                   Project {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
                   onclick={() => handleSort('path')}
                 >
                   Path {sortBy === 'path' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
                   onclick={() => handleSort('events')}
                 >
                   Events {sortBy === 'events' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
                   onclick={() => handleSort('files')}
                 >
                   Files {sortBy === 'files' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors text-right font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
                   onclick={() => handleSort('agent')}
                 >
                   Agent Events {sortBy === 'agent' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--accent)] transition-colors font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
                   onclick={() => handleSort('activity')}
                 >
                   Last Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}
                 </th>
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide font-sans"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide font-sans"
                 >
                   Status
                 </th>
@@ -352,13 +347,13 @@
             <tbody>
               {#each sortedProjects as project (project.name)}
                 {@const status = getActivityStatus(project.last_activity)}
-                <tr class="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
-                  <td class="px-4 py-3 text-sm font-semibold text-[var(--accent)] font-mono">
+                <tr class="border-b border-border hover:bg-canvas transition-colors">
+                  <td class="px-4 py-3 text-sm font-semibold text-accent font-mono">
                     {project.name}
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm text-[var(--muted)] font-mono truncate max-w-md">
+                      <span class="text-sm text-muted font-mono truncate max-w-md">
                         {project.path || 'N/A'}
                       </span>
                       {#if project.path}
@@ -372,17 +367,17 @@
                     </div>
                   </td>
                   <td
-                    class="px-4 py-3 text-sm font-semibold text-[var(--text)] font-mono text-right"
+                    class="px-4 py-3 text-sm font-semibold text-body font-mono text-right"
                   >
                     {formatNumber(project.total_events)}
                   </td>
-                  <td class="px-4 py-3 text-sm font-mono text-[var(--text)] text-right">
+                  <td class="px-4 py-3 text-sm font-mono text-body text-right">
                     {formatNumber(project.file_count)}
                   </td>
-                  <td class="px-4 py-3 text-sm font-mono text-[var(--text)] text-right">
+                  <td class="px-4 py-3 text-sm font-mono text-body text-right">
                     {formatNumber(project.agent_events)}
                   </td>
-                  <td class="px-4 py-3 text-sm text-[var(--text)] font-mono">
+                  <td class="px-4 py-3 text-sm text-body font-mono">
                     {#if project.last_activity}
                       {formatDateTime(project.last_activity)}
                     {:else}
@@ -393,14 +388,14 @@
                     <span class="flex items-center gap-2 text-sm font-mono">
                       <span
                         class="w-2 h-2 rounded-full {status.class === 'active'
-                          ? 'bg-[var(--success)]'
+                          ? 'bg-success'
                           : status.class === 'recent'
-                            ? 'bg-[var(--info)]'
+                            ? 'bg-info'
                             : status.class === 'idle'
-                              ? 'bg-[var(--muted)]'
-                              : 'bg-[var(--border)]'}"
+                              ? 'bg-muted'
+                              : 'bg-border'}"
                       ></span>
-                      <span class="text-[var(--text)]">{status.label}</span>
+                      <span class="text-body">{status.label}</span>
                     </span>
                   </td>
                 </tr>
@@ -411,34 +406,33 @@
       </div>
 
       <!-- Summary -->
-      <div class="flex gap-6 mt-6 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+      <div class="flex gap-6 mt-6 p-4 bg-surface border border-border rounded-lg">
         <div class="text-xs font-mono">
-          <strong class="text-[var(--accent)] text-sm">{filteredProjects.length}</strong>
-          <span class="text-[var(--muted)] ml-1">displayed</span>
+          <strong class="text-accent text-sm">{filteredProjects.length}</strong>
+          <span class="text-muted ml-1">displayed</span>
         </div>
         <div class="text-xs font-mono">
-          <strong class="text-[var(--accent)] text-sm">
+          <strong class="text-accent text-sm">
             {formatNumber(filteredProjects.reduce((sum, p) => sum + (p.total_events || 0), 0))}
           </strong>
-          <span class="text-[var(--muted)] ml-1">total events</span>
+          <span class="text-muted ml-1">total events</span>
         </div>
         <div class="text-xs font-mono">
-          <strong class="text-[var(--accent)] text-sm">
+          <strong class="text-accent text-sm">
             {formatNumber(filteredProjects.reduce((sum, p) => sum + (p.agent_events || 0), 0))}
           </strong>
-          <span class="text-[var(--muted)] ml-1">agent events</span>
+          <span class="text-muted ml-1">agent events</span>
         </div>
         <div class="text-xs font-mono">
-          <strong class="text-[var(--accent)] text-sm">
+          <strong class="text-accent text-sm">
             {filteredProjects.filter(
               p =>
                 getActivityStatus(p.last_activity).class === 'active' ||
                 getActivityStatus(p.last_activity).class === 'recent'
             ).length}
           </strong>
-          <span class="text-[var(--muted)] ml-1">active</span>
+          <span class="text-muted ml-1">active</span>
         </div>
       </div>
     {/if}
-  </div>
-</div>
+</PageLayout>

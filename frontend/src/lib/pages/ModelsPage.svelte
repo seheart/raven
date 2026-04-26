@@ -3,6 +3,7 @@
   import { dataService } from '../dataService.js';
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
 
   let models = $state([]);
   let loading = $state(true);
@@ -45,35 +46,31 @@
   onMount(() => loadData());
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Models</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">AI models and tools tracked by Raven</p>
-      </div>
+<PageLayout>
+  <PageHeader title="Models" description="AI models and tools tracked by Raven">
+    {#snippet actions()}
       <button
         onclick={() => loadData(true)}
         disabled={loading}
-        class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+        class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
       >
         {loading ? '...' : '&#8635;'} Refresh
       </button>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if loading && models.length === 0}
       <div class="space-y-4">
         {#each Array(3) as _, i (i)}
           <div
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 animate-pulse"
+            class="bg-surface border border-border rounded-lg p-5 animate-pulse"
           >
-            <div class="h-5 bg-[var(--bg)] rounded w-48 mb-3"></div>
+            <div class="h-5 bg-canvas rounded w-48 mb-3"></div>
             <div class="grid grid-cols-4 gap-4">
-              <div class="h-10 bg-[var(--bg)] rounded"></div>
-              <div class="h-10 bg-[var(--bg)] rounded"></div>
-              <div class="h-10 bg-[var(--bg)] rounded"></div>
-              <div class="h-10 bg-[var(--bg)] rounded"></div>
+              <div class="h-10 bg-canvas rounded"></div>
+              <div class="h-10 bg-canvas rounded"></div>
+              <div class="h-10 bg-canvas rounded"></div>
+              <div class="h-10 bg-canvas rounded"></div>
             </div>
           </div>
         {/each}
@@ -81,37 +78,37 @@
     {:else}
       <!-- Summary Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Models
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{models.length}</div>
+          <div class="text-sm font-mono text-body">{models.length}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Running
           </div>
-          <div class="text-sm font-mono text-[var(--success)]">{runningCount}</div>
+          <div class="text-sm font-mono text-success">{runningCount}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Events
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{formatNumber(totalEvents)}</div>
+          <div class="text-sm font-mono text-body">{formatNumber(totalEvents)}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Inferences
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{formatNumber(totalInferences)}</div>
+          <div class="text-sm font-mono text-body">{formatNumber(totalInferences)}</div>
         </div>
       </div>
 
       <!-- Model Cards -->
       {#if models.length === 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <p class="text-sm text-[var(--muted)]">No models detected yet</p>
-          <p class="text-xs text-[var(--muted)] mt-2">
+        <div class="bg-surface border border-border rounded-lg p-12 text-center">
+          <p class="text-sm text-muted">No models detected yet</p>
+          <p class="text-xs text-muted mt-2">
             Models appear when they're detected running locally or when events are logged via the
             telemetry API
           </p>
@@ -120,10 +117,10 @@
         <div class="space-y-4">
           {#each models as model (model.name)}
             <div
-              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden"
+              class="bg-surface border border-border rounded-lg overflow-hidden"
             >
               <!-- Model Header -->
-              <div class="flex items-center gap-4 px-5 py-4 border-b border-[var(--border)]">
+              <div class="flex items-center gap-4 px-5 py-4 border-b border-border">
                 <span
                   class="w-4 h-4 rounded-full flex-shrink-0 {model.is_running
                     ? 'animate-pulse'
@@ -132,16 +129,16 @@
                 ></span>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-3">
-                    <h3 class="text-lg font-bold text-[var(--text)] font-sans">{model.name}</h3>
+                    <h3 class="text-lg font-bold text-body font-sans">{model.name}</h3>
                     <span
                       class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded {model.is_running
-                        ? 'bg-[var(--success)] text-white'
-                        : 'bg-[var(--surface-2)] text-[var(--muted)]'}"
+                        ? 'bg-success text-white'
+                        : 'bg-surface-2 text-muted'}"
                     >
                       {model.is_running ? 'Running' : 'Stopped'}
                     </span>
                     <span
-                      class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-[var(--bg)] text-[var(--muted)] border border-[var(--border)]"
+                      class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-canvas text-muted border border-border"
                     >
                       {model.type}
                     </span>
@@ -150,7 +147,7 @@
                     <div class="flex gap-2 mt-1 flex-wrap">
                       {#each model.models_available as m (m)}
                         <span
-                          class="px-2 py-0.5 text-xs font-mono bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)]"
+                          class="px-2 py-0.5 text-xs font-mono bg-canvas border border-border rounded text-body"
                           >{m}</span
                         >
                       {/each}
@@ -158,68 +155,68 @@
                   {/if}
                 </div>
                 <div class="text-right flex-shrink-0">
-                  <div class="text-xs text-[var(--muted)]">Last active</div>
-                  <div class="text-sm font-mono text-[var(--text)]">
+                  <div class="text-xs text-muted">Last active</div>
+                  <div class="text-sm font-mono text-body">
                     {timeAgo(model.last_active)}
                   </div>
                 </div>
               </div>
 
               <!-- Stats Grid -->
-              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-px bg-[var(--border)]">
-                <div class="bg-[var(--surface)] p-4 text-center">
-                  <div class="text-lg font-bold font-mono text-[var(--accent)]">
+              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-px bg-border">
+                <div class="bg-surface p-4 text-center">
+                  <div class="text-lg font-bold font-mono text-accent">
                     {formatNumber(model.total_events)}
                   </div>
-                  <div class="text-[10px] text-[var(--muted)] uppercase tracking-wide mt-1">
+                  <div class="text-[10px] text-muted uppercase tracking-wide mt-1">
                     Events
                   </div>
                 </div>
-                <div class="bg-[var(--surface)] p-4 text-center">
-                  <div class="text-lg font-bold font-mono text-[var(--text)]">
+                <div class="bg-surface p-4 text-center">
+                  <div class="text-lg font-bold font-mono text-body">
                     {formatNumber(model.inferences)}
                   </div>
-                  <div class="text-[10px] text-[var(--muted)] uppercase tracking-wide mt-1">
+                  <div class="text-[10px] text-muted uppercase tracking-wide mt-1">
                     Inferences
                   </div>
                 </div>
-                <div class="bg-[var(--surface)] p-4 text-center">
-                  <div class="text-lg font-bold font-mono text-[var(--text)]">
+                <div class="bg-surface p-4 text-center">
+                  <div class="text-lg font-bold font-mono text-body">
                     {formatNumber(model.tool_calls)}
                   </div>
-                  <div class="text-[10px] text-[var(--muted)] uppercase tracking-wide mt-1">
+                  <div class="text-[10px] text-muted uppercase tracking-wide mt-1">
                     Tool Calls
                   </div>
                 </div>
-                <div class="bg-[var(--surface)] p-4 text-center">
-                  <div class="text-lg font-bold font-mono text-[var(--text)]">
+                <div class="bg-surface p-4 text-center">
+                  <div class="text-lg font-bold font-mono text-body">
                     {formatNumber(model.responses)}
                   </div>
-                  <div class="text-[10px] text-[var(--muted)] uppercase tracking-wide mt-1">
+                  <div class="text-[10px] text-muted uppercase tracking-wide mt-1">
                     Responses
                   </div>
                 </div>
-                <div class="bg-[var(--surface)] p-4 text-center">
-                  <div class="text-lg font-bold font-mono text-[var(--text)]">
+                <div class="bg-surface p-4 text-center">
+                  <div class="text-lg font-bold font-mono text-body">
                     {formatDuration(model.avg_duration_ms)}
                   </div>
-                  <div class="text-[10px] text-[var(--muted)] uppercase tracking-wide mt-1">
+                  <div class="text-[10px] text-muted uppercase tracking-wide mt-1">
                     Avg Duration
                   </div>
                 </div>
-                <div class="bg-[var(--surface)] p-4 text-center">
-                  <div class="text-lg font-bold font-mono text-[var(--text)]">
+                <div class="bg-surface p-4 text-center">
+                  <div class="text-lg font-bold font-mono text-body">
                     {formatNumber(model.files_touched)}
                   </div>
-                  <div class="text-[10px] text-[var(--muted)] uppercase tracking-wide mt-1">
+                  <div class="text-[10px] text-muted uppercase tracking-wide mt-1">
                     Files Touched
                   </div>
                 </div>
-                <div class="bg-[var(--surface)] p-4 text-center">
-                  <div class="text-lg font-bold font-mono text-[var(--text)]">
+                <div class="bg-surface p-4 text-center">
+                  <div class="text-lg font-bold font-mono text-body">
                     {formatNumber(model.file_changes)}
                   </div>
-                  <div class="text-[10px] text-[var(--muted)] uppercase tracking-wide mt-1">
+                  <div class="text-[10px] text-muted uppercase tracking-wide mt-1">
                     File Changes
                   </div>
                 </div>
@@ -228,7 +225,7 @@
               <!-- Timeline -->
               {#if model.first_seen}
                 <div
-                  class="px-5 py-3 bg-[var(--bg)] text-xs text-[var(--muted)] font-mono flex justify-between"
+                  class="px-5 py-3 bg-canvas text-xs text-muted font-mono flex justify-between"
                 >
                   <span>First seen: {formatDateOnly(model.first_seen)}</span>
                   <span>Active for: {timeAgo(model.first_seen).replace(' ago', '')}</span>
@@ -239,5 +236,4 @@
         </div>
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>

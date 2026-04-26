@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let warnings = $state([]);
@@ -68,20 +69,14 @@
   onDestroy(() => abortRequests());
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Safety</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Pattern detection: credentials, debug statements, code quality
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader title="Safety" description="Pattern detection: credentials, debug statements, code quality">
+    {#snippet actions()}
       <div class="flex gap-2">
         {#if warnings.length > 0}
           <button
             onclick={resolveAll}
-            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--success)] rounded text-sm font-sans text-[var(--success)] hover:bg-[var(--success-subtle)] transition-colors"
+            class="px-3 py-1.5 bg-surface border border-success rounded text-sm font-sans text-success hover:bg-success-subtle transition-colors"
           >
             Resolve All
           </button>
@@ -89,31 +84,32 @@
         <button
           onclick={loadWarnings}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if loading}
       <div class="space-y-3">
         {#each Array(3) as _, i (i)}
           <div
-            class="h-16 bg-[var(--surface)] border border-[var(--border)] rounded animate-pulse"
+            class="h-16 bg-surface border border-border rounded animate-pulse"
           ></div>
         {/each}
       </div>
     {:else}
       <!-- Status -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 mb-6">
+      <div class="bg-surface border border-border rounded p-4 mb-6">
         <div class="flex items-center gap-2">
           <span
             class="w-2 h-2 rounded-full {status === 'healthy'
-              ? 'bg-[var(--success)]'
-              : 'bg-[var(--warning)]'}"
+              ? 'bg-success'
+              : 'bg-warning'}"
           ></span>
-          <span class="text-sm font-mono font-semibold text-[var(--text)]">
+          <span class="text-sm font-mono font-semibold text-body">
             {status === 'healthy'
               ? 'All Clear — no pattern warnings detected'
               : `${warnings.length} pattern warning${warnings.length === 1 ? '' : 's'} detected`}
@@ -128,15 +124,15 @@
             type="text"
             placeholder="Search warnings..."
             bind:value={searchQuery}
-            class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+            class="flex-1 min-w-[200px] px-3 py-1.5 bg-surface border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
           />
           {#each ['all', 'error', 'warning', 'info'] as sev (sev)}
             <button
               onclick={() => (severityFilter = sev)}
               class="px-3 py-1.5 border rounded text-sm font-sans transition-colors {severityFilter ===
               sev
-                ? 'bg-[var(--accent-subtle)] border-[var(--accent)] text-[var(--accent)]'
-                : 'bg-[var(--surface)] border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'}"
+                ? 'bg-accent-subtle border-accent text-accent'
+                : 'bg-surface border-border text-muted hover:border-accent'}"
             >
               {sev === 'all' ? 'All' : sev.charAt(0).toUpperCase() + sev.slice(1)}
             </button>
@@ -145,44 +141,44 @@
 
         <!-- Warnings List -->
         {#if filteredWarnings.length === 0}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <p class="text-sm text-[var(--muted)]">No matching warnings</p>
+          <div class="bg-surface border border-border rounded-lg p-8 text-center">
+            <p class="text-sm text-muted">No matching warnings</p>
           </div>
         {:else}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+          <div class="bg-surface border border-border rounded-lg">
             <div class="divide-y divide-[var(--border)]">
               {#each filteredWarnings as warning (warning.id)}
                 <div class="px-5 py-3 flex items-start gap-3">
                   <span
                     class="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 {warning.severity ===
                       'error' || warning.severity === 'critical'
-                      ? 'bg-[var(--error)]'
+                      ? 'bg-error'
                       : warning.severity === 'warning'
-                        ? 'bg-[var(--warning)]'
-                        : 'bg-[var(--accent)]'}"
+                        ? 'bg-warning'
+                        : 'bg-accent'}"
                   ></span>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-0.5">
-                      <span class="text-sm font-mono font-semibold text-[var(--text)]"
+                      <span class="text-sm font-mono font-semibold text-body"
                         >{warning.pattern_name || 'Pattern'}</span
                       >
-                      <span class="text-xs text-[var(--muted)] font-mono">{warning.severity}</span>
+                      <span class="text-xs text-muted font-mono">{warning.severity}</span>
                     </div>
-                    <div class="text-xs text-[var(--muted)] mb-1">{warning.message}</div>
-                    <div class="text-xs text-[var(--muted)] font-mono">
+                    <div class="text-xs text-muted mb-1">{warning.message}</div>
+                    <div class="text-xs text-muted font-mono">
                       {shortenPath(warning.filepath)}
                       {warning.line_number ? `· Line ${warning.line_number}` : ''}
                     </div>
                     {#if warning.context || warning.match_text}
                       <code
-                        class="block mt-2 px-2 py-1 bg-[var(--bg)] rounded text-xs font-mono text-[var(--text)] overflow-x-auto"
+                        class="block mt-2 px-2 py-1 bg-canvas rounded text-xs font-mono text-body overflow-x-auto"
                         >{warning.context || warning.match_text}</code
                       >
                     {/if}
                   </div>
                   <button
                     onclick={() => resolveWarning(warning.id)}
-                    class="px-2 py-1 bg-[var(--surface)] border border-[var(--success)] rounded text-xs font-sans text-[var(--success)] hover:bg-[var(--success-subtle)] transition-colors flex-shrink-0"
+                    class="px-2 py-1 bg-surface border border-success rounded text-xs font-sans text-success hover:bg-success-subtle transition-colors flex-shrink-0"
                   >
                     Resolve
                   </button>
@@ -190,11 +186,10 @@
               {/each}
             </div>
           </div>
-          <div class="text-xs text-[var(--muted)] text-center mt-3">
+          <div class="text-xs text-muted text-center mt-3">
             Showing {filteredWarnings.length} of {warnings.length} warnings
           </div>
         {/if}
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>

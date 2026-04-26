@@ -32,6 +32,7 @@ for f in "$@"; do
     -e 's|bg-\[var\(--success-subtle\)\]|bg-success-subtle|g' \
     -e 's|bg-\[var\(--error-subtle\)\]|bg-error-subtle|g' \
     -e 's|bg-\[var\(--muted\)\]|bg-muted|g' \
+    -e 's|bg-\[var\(--border\)\]|bg-border|g' \
     -e 's|border-\[var\(--border\)\]|border-border|g' \
     -e 's|border-\[var\(--accent\)\]|border-accent|g' \
     -e 's|border-\[var\(--success\)\]|border-success|g' \
