@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
@@ -174,6 +175,7 @@
       return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
+    // Per-extension fallbacks for the file-type pie chart. design-system-allow: hex
     const colors = {
       '.py': getColor('--accent', '#3b82f6'),
       '.js': getColor('--warning', '#f59e0b'),
@@ -258,6 +260,7 @@
       return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
+    // Tokyo Night fallbacks for Chart.js. design-system-allow: hex
     const textColor = getColor('--text', '#c0caf5');
     const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
@@ -496,73 +499,69 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">File Browser</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">Browse and track file modifications</p>
-      </div>
+<PageLayout>
+  <PageHeader title="File Browser" description="Browse and track file modifications">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-[var(--muted)] font-mono">{stats.totalFiles} files tracked</span>
+        <span class="text-xs text-muted font-mono">{stats.totalFiles} files tracked</span>
         <button
           onclick={refresh}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4">
-        <p class="text-sm text-[var(--error)] font-sans">{error}</p>
+      <div class="bg-error-subtle border border-error rounded-lg p-4">
+        <p class="text-sm text-error font-sans">{error}</p>
         <button
           onclick={loadFiles}
-          class="mt-2 px-3 py-1 bg-[var(--error)] text-white rounded text-sm font-sans hover:opacity-90"
+          class="mt-2 px-3 py-1 bg-error text-white rounded text-sm font-sans hover:opacity-90"
         >
           Retry
         </button>
       </div>
     {:else if loading}
       <div class="text-center py-12">
-        <p class="text-sm text-[var(--muted)] font-sans">Loading tracked files...</p>
+        <p class="text-sm text-muted font-sans">Loading tracked files...</p>
       </div>
     {:else if files.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-sm font-semibold text-[var(--text-heading)] mb-2">No files tracked yet</p>
-        <p class="text-sm text-[var(--muted)] font-sans">Edit files to start tracking</p>
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <p class="text-sm font-semibold text-heading mb-2">No files tracked yet</p>
+        <p class="text-sm text-muted font-sans">Edit files to start tracking</p>
       </div>
     {:else}
       <!-- Statistics Header -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Files
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{stats.totalFiles}</div>
+          <div class="text-sm font-mono text-body">{stats.totalFiles}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             File Types
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{availableFileTypes.length}</div>
+          <div class="text-sm font-mono text-body">{availableFileTypes.length}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Last Updated
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {formatTimestamp(stats.lastUpdated)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Most Changed
           </div>
-          <div class="text-sm font-mono text-[var(--text)] truncate" title={stats.mostChangedFile}>
+          <div class="text-sm font-mono text-body truncate" title={stats.mostChangedFile}>
             {getFileName(stats.mostChangedFile)}
           </div>
         </div>
@@ -570,16 +569,16 @@
 
       <!-- File Type Breakdown -->
       {#if stats.fileTypeBreakdown.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
+        <div class="bg-surface border border-border rounded-lg p-4 mb-6">
           <div class="flex items-center gap-4 flex-wrap">
-            <span class="text-sm font-semibold text-[var(--muted)] font-sans">Top File Types:</span>
+            <span class="text-sm font-semibold text-muted font-sans">Top File Types:</span>
             <div class="flex gap-3 flex-wrap">
               {#each stats.fileTypeBreakdown as { ext, count } (ext)}
                 <span
-                  class="inline-flex items-center gap-2 px-3 py-1 bg-[var(--bg)] border rounded text-xs font-mono"
+                  class="inline-flex items-center gap-2 px-3 py-1 bg-canvas border rounded text-xs font-mono"
                   style="border-color: {getFileTypeColor(ext)}"
                 >
-                  {ext} <span class="text-[var(--muted)]">({count})</span>
+                  {ext} <span class="text-muted">({count})</span>
                 </span>
               {/each}
             </div>
@@ -591,18 +590,18 @@
       {#if showCharts}
         <div class="mb-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+            <div class="bg-surface border border-border rounded-lg p-4">
               <div class="h-[200px]">
                 <canvas id="chart-file-types"></canvas>
               </div>
             </div>
-            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+            <div class="bg-surface border border-border rounded-lg p-4">
               <div class="h-[200px]">
                 <canvas id="chart-most-changed"></canvas>
               </div>
             </div>
           </div>
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+          <div class="bg-surface border border-border rounded-lg p-4">
             <div class="h-[180px]">
               <canvas id="chart-changes-by-type"></canvas>
             </div>
@@ -611,18 +610,18 @@
       {/if}
 
       <!-- Search and Filter Controls -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 space-y-3">
+      <div class="bg-surface border border-border rounded-lg p-4 mb-6 space-y-3">
         <div class="relative">
           <input
             type="text"
             bind:value={searchQuery}
             placeholder="Search files by name or path..."
-            class="w-full px-3 py-1.5 pr-10 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+            class="w-full px-3 py-1.5 pr-10 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
           />
           {#if searchQuery}
             <button
               onclick={() => (searchQuery = '')}
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] text-sm"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-body text-sm"
             >
               ×
             </button>
@@ -631,10 +630,10 @@
 
         <div class="flex flex-wrap gap-4 items-center">
           <div class="flex items-center gap-3">
-            <span class="text-sm text-[var(--muted)]">Sort</span>
+            <span class="text-sm text-muted">Sort</span>
             <select
               bind:value={sortBy}
-              class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+              class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
             >
               <option value="filename">Filename</option>
               <option value="lastModified">Last Modified</option>
@@ -642,7 +641,7 @@
             </select>
             <button
               onclick={toggleSortOrder}
-              class="px-2 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
+              class="px-2 py-1.5 bg-canvas border border-border rounded hover:border-accent transition-colors"
             >
               {sortOrder === 'asc' ? '↓' : '↑'}
             </button>
@@ -650,17 +649,17 @@
 
           {#if availableFileTypes.length > 0}
             <div class="flex items-center gap-3 flex-wrap">
-              <span class="text-sm text-[var(--muted)]">Types</span>
+              <span class="text-sm text-muted">Types</span>
               <div class="flex gap-2 flex-wrap">
                 {#each availableFileTypes as ext (ext)}
                   <button
                     onclick={() => toggleFileType(ext)}
                     class="px-3 py-1 border rounded text-xs font-mono transition-colors"
-                    class:bg-[var(--accent)]={selectedFileTypes.includes(ext)}
+                    class:bg-accent={selectedFileTypes.includes(ext)}
                     class:text-white={selectedFileTypes.includes(ext)}
-                    class:border-[var(--accent)]={selectedFileTypes.includes(ext)}
-                    class:bg-[var(--surface)]={!selectedFileTypes.includes(ext)}
-                    class:border-[var(--border)]={!selectedFileTypes.includes(ext)}
+                    class:border-accent={selectedFileTypes.includes(ext)}
+                    class:bg-surface={!selectedFileTypes.includes(ext)}
+                    class:border-border={!selectedFileTypes.includes(ext)}
                     style={selectedFileTypes.includes(ext)
                       ? `background-color: ${getFileTypeColor(ext)}; border-color: ${getFileTypeColor(ext)}`
                       : ''}
@@ -677,62 +676,62 @@
       <!-- File List -->
       <div class="space-y-2 mb-6">
         {#if filteredFiles.length === 0}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-            <p class="text-sm text-[var(--muted)] font-sans">
+          <div class="bg-surface border border-border rounded-lg p-8 text-center">
+            <p class="text-sm text-muted font-sans">
               No files match your filters. Try adjusting your search or filters.
             </p>
           </div>
         {:else}
           {#each filteredFiles as filepath (filepath)}
             <div
-              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden"
+              class="bg-surface border border-border rounded-lg overflow-hidden"
             >
               <button
                 onclick={() => toggleFileHistory(filepath)}
-                class="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg)] transition-colors text-left"
-                class:bg-[var(--bg)]={expandedFile === filepath}
+                class="w-full px-4 py-3 flex items-center gap-3 hover:bg-canvas transition-colors text-left"
+                class:bg-canvas={expandedFile === filepath}
               >
                 <span
-                  class="text-xs text-[var(--muted)] transition-transform"
+                  class="text-xs text-muted transition-transform"
                   class:rotate-90={expandedFile === filepath}
                 >
                 </span>
                 <span class="text-sm flex-shrink-0">{getFileIcon(filepath)}</span>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-[var(--text)] font-mono truncate">
+                    <span class="text-sm font-medium text-body font-mono truncate">
                       {getFileName(filepath)}
                     </span>
                     {#if isRecent(fileMetadata.get(filepath)?.lastModified)}
                       <span
-                        class="px-2 py-0.5 bg-[var(--success)] text-white text-xs font-semibold rounded uppercase"
+                        class="px-2 py-0.5 bg-success text-white text-xs font-semibold rounded uppercase"
                       >
                         Recent
                       </span>
                     {/if}
                   </div>
-                  <div class="text-xs text-[var(--muted)] font-mono truncate">
+                  <div class="text-xs text-muted font-mono truncate">
                     {getFilePath(filepath)}
                   </div>
                 </div>
                 <div class="flex items-center gap-4 flex-shrink-0">
                   {#if fileMetadata.has(filepath)}
-                    <div class="flex items-center gap-1 text-xs text-[var(--muted)] font-mono">
+                    <div class="flex items-center gap-1 text-xs text-muted font-mono">
                       <span></span>
                       {formatTimestamp(fileMetadata.get(filepath).lastModified)}
                     </div>
-                    <div class="text-xs text-[var(--muted)] font-mono">
+                    <div class="text-xs text-muted font-mono">
                       {fileMetadata.get(filepath).changeCount} changes
                     </div>
                   {/if}
                 </div>
-                <span class="text-sm text-[var(--muted)] font-sans">
+                <span class="text-sm text-muted font-sans">
                   {expandedFile === filepath ? 'Hide' : 'Show'} History
                 </span>
               </button>
 
               {#if expandedFile === filepath}
-                <div class="px-4 py-4 bg-[var(--bg)] border-t border-[var(--border)]">
+                <div class="px-4 py-4 bg-canvas border-t border-border">
                   <FileHistory {filepath} inline={true} />
                 </div>
               {/if}
@@ -742,16 +741,10 @@
       </div>
 
       {#if filteredFiles.length > 0}
-        <div class="text-center text-sm text-[var(--muted)] font-sans">
+        <div class="text-center text-sm text-muted font-sans">
           Showing {filteredFiles.length} of {stats.totalFiles} files
         </div>
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>
 
-<style>
-  .rotate-90 {
-    transform: rotate(90deg);
-  }
-</style>

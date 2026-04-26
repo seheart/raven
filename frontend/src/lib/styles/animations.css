@@ -41,3 +41,11 @@
 .animate-stat-flash {
   animation: stat-flash 600ms var(--ease-smooth);
 }
+
+@keyframes activity-pulse-kf {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+.activity-pulse {
+  animation: activity-pulse-kf 1.5s ease-in-out infinite;
+}

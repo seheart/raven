@@ -634,6 +634,15 @@ a:focus:not(:focus-visible),
   fill: var(--text-heading);
 }
 
+/* === Search-result highlights === */
+mark {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
 /* === Animations (minimal) === */
 @keyframes fadeIn {
   from {

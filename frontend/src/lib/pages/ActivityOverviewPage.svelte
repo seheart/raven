@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { onMount } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
@@ -492,6 +493,7 @@
       return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
+    // Tokyo Night fallbacks for Chart.js when var lookup fails. design-system-allow: hex
     const textColor = getColor('--text', '#c0caf5');
     const mutedColor = getColor('--muted', '#565f89');
     const gridColor = 'rgba(128, 128, 128, 0.15)';
@@ -796,36 +798,30 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Activity Log</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Complete audit trail of file and agent activity
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader title="Activity Log" description="Complete audit trail of file and agent activity">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-[var(--muted)] font-mono">{timeAgo}</span>
+        <span class="text-xs text-muted font-mono">{timeAgo}</span>
         <button
           onclick={exportLog}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
         >
           Export
         </button>
         <button
           onclick={() => loadActivities(true)}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     <!-- Search and Filters -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+    <div class="bg-surface border border-border rounded-lg p-5 mb-6">
       <div class="flex gap-4 mb-4">
         <div class="flex-1 flex gap-3">
           <input
@@ -833,11 +829,11 @@
             placeholder="Search activities..."
             bind:value={searchQuery}
             onkeydown={e => e.key === 'Enter' && search()}
-            class="flex-1 px-4 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+            class="flex-1 px-4 py-2 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
           />
           <button
             onclick={search}
-            class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90"
+            class="px-4 py-2 bg-accent text-white rounded text-sm font-semibold hover:opacity-90"
           >
             Search
           </button>
@@ -850,8 +846,8 @@
               groupActivitiesBySession();
             }}
             class="px-4 py-2 text-sm font-semibold rounded transition-all border {groupBySession
-              ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-              : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+              ? 'bg-accent text-white border-accent'
+              : 'bg-canvas text-body border-border hover:border-accent'}"
           >
             Session View
           </button>
@@ -859,7 +855,7 @@
           <select
             bind:value={sortBy}
             onchange={() => groupActivitiesBySession()}
-            class="px-4 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] min-w-[160px]"
+            class="px-4 py-2 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent min-w-[160px]"
           >
             <option value="time_desc">↓ Newest First</option>
             <option value="time_asc">↑ Oldest First</option>
@@ -874,8 +870,8 @@
           onclick={() => setFilter('all')}
           class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
           'all'
-            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-            : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+            ? 'bg-accent text-white border-accent'
+            : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           All ({total})
         </button>
@@ -883,8 +879,8 @@
           onclick={() => setFilter('file')}
           class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
           'file'
-            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-            : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+            ? 'bg-accent text-white border-accent'
+            : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           Files ({stats.file})
         </button>
@@ -892,8 +888,8 @@
           onclick={() => setFilter('agent')}
           class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
           'agent'
-            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-            : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+            ? 'bg-accent text-white border-accent'
+            : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           Agents ({stats.agent})
         </button>
@@ -901,8 +897,8 @@
           onclick={() => setFilter('system')}
           class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
           'system'
-            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-            : 'bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'}"
+            ? 'bg-accent text-white border-accent'
+            : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           System ({stats.system})
         </button>
@@ -912,35 +908,35 @@
     <!-- Statistics Dashboard -->
     {#if !loading && activities.length > 0}
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Activities
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {enhancedStats.totalActivities}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Unique Sessions
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {enhancedStats.uniqueSessions}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Avg Session Duration
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {formatDuration(enhancedStats.averageSessionDuration)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Activities Per Hour
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {enhancedStats.activitiesPerHour}
           </div>
         </div>
@@ -948,39 +944,39 @@
 
       <!-- Charts Section -->
       {#if showCharts}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
+        <div class="bg-surface border border-border rounded-lg p-6 mb-6">
           <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
               Analytics Visualizations
             </h3>
             <button
               onclick={() => (showCharts = false)}
-              class="px-3 py-2 text-sm bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)]"
+              class="px-3 py-2 text-sm bg-canvas border border-border rounded hover:border-accent"
             >
               Hide Charts
             </button>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div
-              class="bg-[var(--bg)] border border-[var(--border)] rounded p-4"
+              class="bg-canvas border border-border rounded p-4"
               style="height: 250px;"
             >
               <canvas id="chart-activity-types"></canvas>
             </div>
             <div
-              class="bg-[var(--bg)] border border-[var(--border)] rounded p-4"
+              class="bg-canvas border border-border rounded p-4"
               style="height: 250px;"
             >
               <canvas id="chart-activities-per-session"></canvas>
             </div>
             <div
-              class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 md:col-span-2"
+              class="bg-canvas border border-border rounded p-4 md:col-span-2"
               style="height: 320px;"
             >
               <canvas id="chart-activities-by-hour"></canvas>
             </div>
             <div
-              class="bg-[var(--bg)] border border-[var(--border)] rounded p-4 md:col-span-2"
+              class="bg-canvas border border-border rounded p-4 md:col-span-2"
               style="height: 280px;"
             >
               <canvas id="chart-cumulative-activities"></canvas>
@@ -989,14 +985,14 @@
         </div>
       {:else}
         <div
-          class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 text-center"
+          class="bg-surface border border-border rounded-lg p-4 mb-6 text-center"
         >
           <button
             onclick={() => {
               showCharts = true;
               setTimeout(createCharts, 100);
             }}
-            class="px-4 py-2 text-sm bg-[var(--bg)] border border-[var(--border)] rounded hover:border-[var(--accent)]"
+            class="px-4 py-2 text-sm bg-canvas border border-border rounded hover:border-accent"
           >
             Show Charts
           </button>
@@ -1007,22 +1003,22 @@
     <!-- Activity Timeline -->
     <div class="space-y-4">
       {#if loading && activities.length === 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
-          <div class="text-[var(--muted)]">Loading activities...</div>
+        <div class="bg-surface border border-border rounded-lg p-6 text-center">
+          <div class="text-muted">Loading activities...</div>
         </div>
       {:else if activities.length === 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-          <h2 class="text-sm font-semibold text-[var(--text-heading)] mb-2">No Activities Found</h2>
+        <div class="bg-surface border border-border rounded-lg p-12 text-center">
+          <h3 class="text-sm font-semibold text-heading mb-2">No Activities Found</h3>
           {#if selectedType !== 'all'}
-            <p class="text-[var(--muted)] mb-4">
+            <p class="text-muted mb-4">
               No <strong>{selectedType}</strong> activities found. Try changing filters or search query.
             </p>
           {:else if searchQuery}
-            <p class="text-[var(--muted)] mb-4">
+            <p class="text-muted mb-4">
               No activities match "<strong>{searchQuery}</strong>". Try a different search term.
             </p>
           {:else}
-            <p class="text-[var(--muted)] mb-4">
+            <p class="text-muted mb-4">
               No activity has been logged yet. Start coding and Raven will track all changes!
             </p>
           {/if}
@@ -1032,7 +1028,7 @@
               searchQuery = '';
               loadActivities();
             }}
-            class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-semibold hover:opacity-90"
+            class="px-4 py-2 bg-accent text-white rounded text-sm font-semibold hover:opacity-90"
           >
             Clear Filters
           </button>
@@ -1040,50 +1036,50 @@
       {:else if groupBySession && sessions.length > 0}
         <!-- Session Grouped View -->
         {#each sessions as session (session.id)}
-          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg overflow-hidden">
+          <div class="bg-canvas border border-border rounded-lg overflow-hidden">
             <button
               onclick={() => toggleSession(session.id)}
-              class="w-full flex justify-between items-center p-5 bg-[var(--surface)] hover:bg-[var(--surface-2)] transition-colors {collapsedSessions.has(
+              class="w-full flex justify-between items-center p-5 bg-surface hover:bg-surface-2 transition-colors {collapsedSessions.has(
                 session.id
               )
                 ? ''
-                : 'border-b border-[var(--border)]'}"
+                : 'border-b border-border'}"
             >
               <div class="flex items-center gap-4 flex-1">
-                <span class="text-[var(--muted)]"
+                <span class="text-muted"
                   >{collapsedSessions.has(session.id) ? '' : ''}</span
                 >
                 <div class="flex-1 text-left">
                   <div class="flex items-center gap-3 mb-2">
-                    <span class="text-sm font-semibold text-[var(--text)] font-mono"
+                    <span class="text-sm font-semibold text-body font-mono"
                       >Session: {session.id.substring(0, 12)}</span
                     >
                   </div>
-                  <div class="flex items-center gap-3 text-xs text-[var(--muted)] font-mono">
+                  <div class="flex items-center gap-3 text-xs text-muted font-mono">
                     <span> {formatDuration(session.duration)}</span>
-                    <span class="text-[var(--border)]">•</span>
+                    <span class="text-border">•</span>
                     <span> {session.totalEvents} events</span>
-                    <span class="text-[var(--border)]">•</span>
+                    <span class="text-border">•</span>
                     <span> {session.filesCount} files</span>
-                    <span class="text-[var(--border)]">•</span>
+                    <span class="text-border">•</span>
                     <span> {session.agentCount} agent</span>
-                    <span class="text-[var(--border)]">•</span>
+                    <span class="text-border">•</span>
                     <span> {session.systemCount} system</span>
                   </div>
                 </div>
               </div>
-              <time class="text-sm text-[var(--muted)] font-mono"
+              <time class="text-sm text-muted font-mono"
                 >{formatTimestamp(session.startTime)}</time
               >
             </button>
 
             {#if !collapsedSessions.has(session.id)}
-              <div class="p-6 bg-[var(--bg)] space-y-3">
+              <div class="p-6 bg-canvas space-y-3">
                 {#each session.activities as activity (activity.id + activity.category)}
                   {@const isExpanded = expandedActivity?.id === activity.id}
                   <div
-                    class="bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden hover:border-[var(--accent)] transition-colors {isExpanded
-                      ? 'border-[var(--accent)]'
+                    class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
+                      ? 'border-accent'
                       : ''}"
                   >
                     <button
@@ -1091,16 +1087,16 @@
                       class="w-full flex justify-between items-center p-4"
                     >
                       <div class="flex items-center gap-4 flex-1 min-w-0">
-                        <span class="text-xs text-[var(--muted)]">{isExpanded ? '' : ''}</span>
+                        <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
                         <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
                           {getCategoryIcon(activity.category)}
                         </span>
                         <div class="flex-1 min-w-0 text-left">
-                          <div class="text-sm font-medium text-[var(--text)] truncate">
+                          <div class="text-sm font-medium text-body truncate">
                             {activity.description}
                           </div>
                           <div
-                            class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mt-1"
+                            class="flex items-center gap-2 text-xs text-muted font-mono mt-1"
                           >
                             <span>{activity.type}</span>
                             <span>•</span>
@@ -1109,11 +1105,11 @@
                         </div>
                       </div>
                       <div class="flex items-center gap-3">
-                        <span class="text-sm text-[var(--muted)] font-mono"
+                        <span class="text-sm text-muted font-mono"
                           >{formatTimestamp(activity.timestamp)}</span
                         >
                         <span
-                          class="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-bold uppercase text-[var(--muted)]"
+                          class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
                         >
                           {activity.category}
                         </span>
@@ -1121,43 +1117,43 @@
                     </button>
 
                     {#if isExpanded}
-                      <div class="p-4 border-t border-[var(--border)]">
+                      <div class="p-4 border-t border-border">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div class="flex gap-3">
-                            <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                            <span class="text-xs text-muted font-semibold uppercase"
                               >ID:</span
                             >
-                            <span class="text-sm text-[var(--text)] font-mono">{activity.id}</span>
+                            <span class="text-sm text-body font-mono">{activity.id}</span>
                           </div>
                           <div class="flex gap-3">
-                            <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                            <span class="text-xs text-muted font-semibold uppercase"
                               >Type:</span
                             >
-                            <span class="text-sm text-[var(--text)] font-mono">{activity.type}</span
+                            <span class="text-sm text-body font-mono">{activity.type}</span
                             >
                           </div>
                           <div class="flex gap-3">
-                            <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                            <span class="text-xs text-muted font-semibold uppercase"
                               >Category:</span
                             >
-                            <span class="text-sm text-[var(--text)] font-mono"
+                            <span class="text-sm text-body font-mono"
                               >{activity.category}</span
                             >
                           </div>
                           <div class="flex gap-3">
-                            <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                            <span class="text-xs text-muted font-semibold uppercase"
                               >Timestamp:</span
                             >
-                            <span class="text-sm text-[var(--text)] font-mono"
+                            <span class="text-sm text-body font-mono"
                               >{activity.timestamp}</span
                             >
                           </div>
                           {#if activity.target}
                             <div class="flex gap-3 md:col-span-2">
-                              <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                              <span class="text-xs text-muted font-semibold uppercase"
                                 >Target:</span
                               >
-                              <span class="text-sm text-[var(--text)] font-mono"
+                              <span class="text-sm text-body font-mono"
                                 >{activity.target}</span
                               >
                             </div>
@@ -1166,11 +1162,11 @@
 
                         {#if activity.metadata && Object.keys(activity.metadata).length > 0}
                           <div class="mt-4">
-                            <h4 class="text-xs text-[var(--muted)] uppercase font-semibold mb-2">
+                            <h4 class="text-xs text-muted uppercase font-semibold mb-2">
                               Metadata
                             </h4>
                             <pre
-                              class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                              class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
                                 activity.metadata,
                                 null,
                                 2
@@ -1190,8 +1186,8 @@
         {#each activities as activity (activity.id + activity.category)}
           {@const isExpanded = expandedActivity?.id === activity.id}
           <div
-            class="bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden hover:border-[var(--accent)] transition-colors {isExpanded
-              ? 'border-[var(--accent)]'
+            class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
+              ? 'border-accent'
               : ''}"
           >
             <button
@@ -1199,21 +1195,21 @@
               class="w-full flex justify-between items-center p-4"
             >
               <div class="flex items-center gap-4 flex-1 min-w-0">
-                <span class="text-xs text-[var(--muted)]">{isExpanded ? '' : ''}</span>
+                <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
                 <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
                   {getCategoryIcon(activity.category)}
                 </span>
                 <div class="flex-1 min-w-0 text-left">
-                  <div class="text-sm font-medium text-[var(--text)] truncate">
+                  <div class="text-sm font-medium text-body truncate">
                     {activity.description}
                   </div>
-                  <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mt-1">
+                  <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
                     <span>{activity.type}</span>
                     <span>•</span>
                     <span>{formatTimestamp(activity.timestamp)}</span>
                     {#if activity.session_id}
                       <span>•</span>
-                      <span class="text-[var(--accent)] font-semibold"
+                      <span class="text-accent font-semibold"
                         >{activity.session_id.substring(0, 8)}</span
                       >
                     {/if}
@@ -1221,11 +1217,11 @@
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <span class="text-sm text-[var(--muted)] font-mono"
+                <span class="text-sm text-muted font-mono"
                   >{formatTimestamp(activity.timestamp)}</span
                 >
                 <span
-                  class="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded text-xs font-bold uppercase text-[var(--muted)]"
+                  class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
                 >
                   {activity.category}
                 </span>
@@ -1233,45 +1229,45 @@
             </button>
 
             {#if isExpanded}
-              <div class="p-4 border-t border-[var(--border)]">
+              <div class="p-4 border-t border-border">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div class="flex gap-3">
-                    <span class="text-xs text-[var(--muted)] font-semibold uppercase">ID:</span>
-                    <span class="text-sm text-[var(--text)] font-mono">{activity.id}</span>
+                    <span class="text-xs text-muted font-semibold uppercase">ID:</span>
+                    <span class="text-sm text-body font-mono">{activity.id}</span>
                   </div>
                   <div class="flex gap-3">
-                    <span class="text-xs text-[var(--muted)] font-semibold uppercase">Type:</span>
-                    <span class="text-sm text-[var(--text)] font-mono">{activity.type}</span>
+                    <span class="text-xs text-muted font-semibold uppercase">Type:</span>
+                    <span class="text-sm text-body font-mono">{activity.type}</span>
                   </div>
                   <div class="flex gap-3">
-                    <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                    <span class="text-xs text-muted font-semibold uppercase"
                       >Category:</span
                     >
-                    <span class="text-sm text-[var(--text)] font-mono">{activity.category}</span>
+                    <span class="text-sm text-body font-mono">{activity.category}</span>
                   </div>
                   <div class="flex gap-3">
-                    <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                    <span class="text-xs text-muted font-semibold uppercase"
                       >Timestamp:</span
                     >
-                    <span class="text-sm text-[var(--text)] font-mono">{activity.timestamp}</span>
+                    <span class="text-sm text-body font-mono">{activity.timestamp}</span>
                   </div>
                   {#if activity.target}
                     <div class="flex gap-3 md:col-span-2">
-                      <span class="text-xs text-[var(--muted)] font-semibold uppercase"
+                      <span class="text-xs text-muted font-semibold uppercase"
                         >Target:</span
                       >
-                      <span class="text-sm text-[var(--text)] font-mono">{activity.target}</span>
+                      <span class="text-sm text-body font-mono">{activity.target}</span>
                     </div>
                   {/if}
                 </div>
 
                 {#if activity.metadata && Object.keys(activity.metadata).length > 0}
                   <div class="mt-4">
-                    <h4 class="text-xs text-[var(--muted)] uppercase font-semibold mb-2">
+                    <h4 class="text-xs text-muted uppercase font-semibold mb-2">
                       Metadata
                     </h4>
                     <pre
-                      class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-xs font-mono text-[var(--text)] overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                      class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
                         activity.metadata,
                         null,
                         2
@@ -1288,7 +1284,7 @@
             <button
               onclick={loadMore}
               disabled={loading}
-              class="px-6 py-3 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-semibold text-[var(--text)] hover:border-[var(--accent)] disabled:opacity-50"
+              class="px-6 py-3 bg-surface border border-border rounded text-sm font-semibold text-body hover:border-accent disabled:opacity-50"
             >
               {loading ? 'Loading...' : `Load More (${total - activities.length} remaining)`}
             </button>
@@ -1296,16 +1292,5 @@
         {/if}
       {/if}
     </div>
-  </div>
-</div>
+</PageLayout>
 
-<style>
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-</style>

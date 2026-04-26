@@ -3,6 +3,7 @@
   import DOMPurify from 'dompurify';
   import { logger } from '../logger.js';
   import { formatDateTime } from '../timeFormat.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -166,32 +167,23 @@
   }
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Global Search</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Search across all files, events, and activity
-        </p>
-      </div>
-    </div>
+<PageLayout>
+  <PageHeader title="Global Search" description="Search across all files, events, and activity" />
 
     <!-- Search Bar -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
+    <div class="bg-surface border border-border rounded-lg p-4 mb-6">
       <div class="flex gap-3 mb-3">
         <input
           type="text"
           bind:value={searchQuery}
           onkeypress={handleKeyPress}
           placeholder="Search files, messages, agents..."
-          class="flex-1 px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+          class="flex-1 px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
         />
         <button
           onclick={performSearch}
           disabled={loading || !searchQuery.trim()}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Search
         </button>
@@ -201,44 +193,44 @@
         <button
           onclick={() => (searchType = 'all')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-[var(--accent)]={searchType === 'all'}
+          class:bg-accent={searchType === 'all'}
           class:text-white={searchType === 'all'}
-          class:bg-[var(--bg)]={searchType !== 'all'}
+          class:bg-canvas={searchType !== 'all'}
           class:border={searchType !== 'all'}
-          class:border-[var(--border)]={searchType !== 'all'}
+          class:border-border={searchType !== 'all'}
         >
           All Results
         </button>
         <button
           onclick={() => (searchType = 'files')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-[var(--accent)]={searchType === 'files'}
+          class:bg-accent={searchType === 'files'}
           class:text-white={searchType === 'files'}
-          class:bg-[var(--bg)]={searchType !== 'files'}
+          class:bg-canvas={searchType !== 'files'}
           class:border={searchType !== 'files'}
-          class:border-[var(--border)]={searchType !== 'files'}
+          class:border-border={searchType !== 'files'}
         >
           Files Only
         </button>
         <button
           onclick={() => (searchType = 'messages')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-[var(--accent)]={searchType === 'messages'}
+          class:bg-accent={searchType === 'messages'}
           class:text-white={searchType === 'messages'}
-          class:bg-[var(--bg)]={searchType !== 'messages'}
+          class:bg-canvas={searchType !== 'messages'}
           class:border={searchType !== 'messages'}
-          class:border-[var(--border)]={searchType !== 'messages'}
+          class:border-border={searchType !== 'messages'}
         >
           Messages Only
         </button>
         <button
           onclick={() => (searchType = 'agents')}
           class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-[var(--accent)]={searchType === 'agents'}
+          class:bg-accent={searchType === 'agents'}
           class:text-white={searchType === 'agents'}
-          class:bg-[var(--bg)]={searchType !== 'agents'}
+          class:bg-canvas={searchType !== 'agents'}
           class:border={searchType !== 'agents'}
-          class:border-[var(--border)]={searchType !== 'agents'}
+          class:border-border={searchType !== 'agents'}
         >
           Agents Only
         </button>
@@ -248,50 +240,50 @@
     <!-- Search Results -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-sm text-[var(--muted)] font-sans">Searching...</div>
+        <div class="text-sm text-muted font-sans">Searching...</div>
       </div>
     {:else if !hasSearched}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-sm font-semibold text-[var(--text-heading)] mb-2">Start Searching</div>
-        <div class="text-sm text-[var(--muted)] font-sans">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <div class="text-sm font-semibold text-heading mb-2">Start Searching</div>
+        <div class="text-sm text-muted font-sans">
           Enter a search term to find files, events, and activity
         </div>
       </div>
     {:else if filteredResults.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-sm font-semibold text-[var(--text-heading)] mb-2">No Results Found</div>
-        <div class="text-sm text-[var(--muted)] font-sans">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <div class="text-sm font-semibold text-heading mb-2">No Results Found</div>
+        <div class="text-sm text-muted font-sans">
           No matches for "{searchQuery}". Try a different search term.
         </div>
       </div>
     {:else}
       <!-- Results Header -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Results
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {filteredResults.length} in {searchTime}ms
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Unique Files
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{stats.filesFound}</div>
+          <div class="text-sm font-mono text-body">{stats.filesFound}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             File Changes
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{stats.fileChanges}</div>
+          <div class="text-sm font-mono text-body">{stats.fileChanges}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Agent Events
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{stats.agentEvents}</div>
+          <div class="text-sm font-mono text-body">{stats.agentEvents}</div>
         </div>
       </div>
 
@@ -299,7 +291,7 @@
       <div class="space-y-3">
         {#each filteredResults as result (result.id || result.timestamp)}
           <div
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
+            class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
             style="border-left: 3px solid {getEventColor(result.change_type)}"
           >
             <div class="flex justify-between items-start mb-2">
@@ -313,26 +305,26 @@
                   {result.change_type?.toUpperCase() || 'EVENT'}
                 </span>
                 {#if result.agent}
-                  <span class="text-xs text-[var(--muted)] font-mono">
+                  <span class="text-xs text-muted font-mono">
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                     {@html highlightMatch(result.agent, searchQuery)}
                   </span>
                 {/if}
               </div>
-              <span class="text-xs text-[var(--muted)] font-mono flex-shrink-0">
+              <span class="text-xs text-muted font-mono flex-shrink-0">
                 {formatTimestamp(result.timestamp)}
               </span>
             </div>
 
             {#if result.filepath}
-              <div class="text-sm font-mono text-[var(--text)] truncate mb-1">
+              <div class="text-sm font-mono text-body truncate mb-1">
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html highlightMatch(result.filepath, searchQuery)}
               </div>
             {/if}
 
             {#if result.message}
-              <div class="text-xs text-[var(--muted)] font-mono truncate">
+              <div class="text-xs text-muted font-mono truncate">
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html highlightMatch(result.message, searchQuery)}
               </div>
@@ -341,15 +333,5 @@
         {/each}
       </div>
     {/if}
-  </div>
-</div>
+</PageLayout>
 
-<style>
-  :global(mark) {
-    background: rgba(99, 102, 241, 0.3);
-    color: var(--accent);
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: 600;
-  }
-</style>

@@ -5,6 +5,7 @@
    */
   import { onMount } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatRelativeTime } from '../timeFormat.js';
@@ -155,30 +156,32 @@
   });
 </script>
 
-<main class="p-4 max-w-[1400px] mx-auto font-mono">
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h1 class="text-[13px] font-semibold text-[var(--text)]">Network Activity</h1>
-      <p class="text-[9px] text-[var(--muted)] mt-0.5">Real-time agent network connections and API latency</p>
-    </div>
-    <div class="flex items-center gap-3">
-      <span class="text-[9px] text-[var(--muted)]">
-        Updated {formatRelativeTime(lastUpdated)}
-      </span>
-      <button
-        onclick={() => loadData()}
-        class="px-2 py-1 text-[9px] bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--muted)] hover:text-[var(--text)] transition-colors"
-      >
-        Refresh
-      </button>
-    </div>
-  </div>
+<PageLayout variant="dashboard">
+<div class="p-4 max-w-[1400px] mx-auto font-mono">
+  <PageHeader
+    size="compact"
+    title="Network Activity"
+    description="Real-time agent network connections and API latency"
+  >
+    {#snippet actions()}
+      <div class="flex items-center gap-3">
+        <span class="text-[9px] text-muted">
+          Updated {formatRelativeTime(lastUpdated)}
+        </span>
+        <button
+          onclick={() => loadData()}
+          class="px-2 py-1 text-[9px] bg-surface border border-border rounded text-muted hover:text-body transition-colors"
+        >
+          Refresh
+        </button>
+      </div>
+    {/snippet}
+  </PageHeader>
 
   <!-- Agent Activity Cards -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
     {#each agents as agent (agent.agent_name)}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3">
+      <div class="bg-surface border border-border rounded-lg p-3">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <span
@@ -186,7 +189,7 @@
               class:activity-pulse={agent.activity_state === 'thinking'}
               style="background: {activityColor(agent.activity_state)}"
             ></span>
-            <span class="text-[11px] font-semibold text-[var(--text)]">{agent.agent_name}</span>
+            <span class="text-[11px] font-semibold text-body">{agent.agent_name}</span>
           </div>
           <span
             class="text-[9px] px-1.5 py-0.5 rounded"
@@ -198,57 +201,57 @@
 
         <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px]">
           <div class="flex justify-between">
-            <span class="text-[var(--muted)]">CPU</span>
-            <span class="text-[var(--text)]">{(agent.cpu_usage || 0).toFixed(1)}%</span>
+            <span class="text-muted">CPU</span>
+            <span class="text-body">{(agent.cpu_usage || 0).toFixed(1)}%</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-[var(--muted)]">RAM</span>
-            <span class="text-[var(--text)]">{agent.memory_mb || 0} MB</span>
+            <span class="text-muted">RAM</span>
+            <span class="text-body">{agent.memory_mb || 0} MB</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-[var(--muted)]">Connections</span>
-            <span class="text-[var(--text)]">{agent.network_connections || 0}</span>
+            <span class="text-muted">Connections</span>
+            <span class="text-body">{agent.network_connections || 0}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-[var(--muted)]">API Calls</span>
+            <span class="text-muted">API Calls</span>
             <span style="color: {(agent.api_connections || 0) > 0 ? 'var(--warning)' : 'var(--text)'}">{agent.api_connections || 0}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-[var(--muted)]">Threads</span>
-            <span class="text-[var(--text)]">{agent.thread_count || 0}</span>
+            <span class="text-muted">Threads</span>
+            <span class="text-body">{agent.thread_count || 0}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-[var(--muted)]">File Desc</span>
-            <span class="text-[var(--text)]">{agent.fd_count || 0}</span>
+            <span class="text-muted">File Desc</span>
+            <span class="text-body">{agent.fd_count || 0}</span>
           </div>
         </div>
 
-        <div class="mt-2 pt-2 border-t border-[var(--border)]">
-          <span class="text-[8px] text-[var(--muted)]">PID {agent.pid}</span>
+        <div class="mt-2 pt-2 border-t border-border">
+          <span class="text-[8px] text-muted">PID {agent.pid}</span>
         </div>
       </div>
     {:else}
       {#if loading}
-        <div class="col-span-full text-center text-[10px] text-[var(--muted)] py-8">Loading agents...</div>
+        <div class="col-span-full text-center text-[10px] text-muted py-8">Loading agents...</div>
       {:else}
-        <div class="col-span-full text-center text-[10px] text-[var(--muted)] py-8">No agent processes detected</div>
+        <div class="col-span-full text-center text-[10px] text-muted py-8">No agent processes detected</div>
       {/if}
     {/each}
   </div>
 
   <!-- API Latency Section -->
-  <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 mb-4">
+  <div class="bg-surface border border-border rounded-lg p-3 mb-4">
     <div class="flex items-center justify-between mb-3">
-      <h2 class="text-[11px] font-semibold text-[var(--text)]">API Latency</h2>
+      <h3 class="text-[11px] font-semibold text-body">API Latency</h3>
       <div class="flex gap-1">
         {#each ['15m', '1h', '6h', '24h'] as range (range)}
           <button
             onclick={() => { chartTimeRange = range; loadData(); }}
             class="px-1.5 py-0.5 text-[8px] rounded transition-colors"
-            class:bg-[var(--accent)]={chartTimeRange === range}
+            class:bg-accent={chartTimeRange === range}
             class:text-white={chartTimeRange === range}
-            class:bg-[var(--bg)]={chartTimeRange !== range}
-            class:text-[var(--muted)]={chartTimeRange !== range}
+            class:bg-canvas={chartTimeRange !== range}
+            class:text-muted={chartTimeRange !== range}
           >
             {range}
           </button>
@@ -259,24 +262,24 @@
     <!-- Stats Row -->
     <div class="flex gap-4 mb-3 text-[9px]">
       <div>
-        <span class="text-[var(--muted)]">Avg</span>
-        <span class="text-[var(--text)] ml-1 font-semibold">{(latencyStats.avg_ms / 1000).toFixed(2)}s</span>
+        <span class="text-muted">Avg</span>
+        <span class="text-body ml-1 font-semibold">{(latencyStats.avg_ms / 1000).toFixed(2)}s</span>
       </div>
       <div>
-        <span class="text-[var(--muted)]">p50</span>
-        <span class="text-[var(--text)] ml-1 font-semibold">{(latencyStats.p50_ms / 1000).toFixed(2)}s</span>
+        <span class="text-muted">p50</span>
+        <span class="text-body ml-1 font-semibold">{(latencyStats.p50_ms / 1000).toFixed(2)}s</span>
       </div>
       <div>
-        <span class="text-[var(--muted)]">p95</span>
-        <span class="text-[var(--text)] ml-1 font-semibold">{(latencyStats.p95_ms / 1000).toFixed(2)}s</span>
+        <span class="text-muted">p95</span>
+        <span class="text-body ml-1 font-semibold">{(latencyStats.p95_ms / 1000).toFixed(2)}s</span>
       </div>
       <div>
-        <span class="text-[var(--muted)]">Requests</span>
-        <span class="text-[var(--text)] ml-1 font-semibold">{latencyStats.count}</span>
+        <span class="text-muted">Requests</span>
+        <span class="text-body ml-1 font-semibold">{latencyStats.count}</span>
       </div>
       <div>
-        <span class="text-[var(--muted)]">Rate</span>
-        <span class="text-[var(--text)] ml-1 font-semibold">{latencyStats.requests_per_min}/min</span>
+        <span class="text-muted">Rate</span>
+        <span class="text-body ml-1 font-semibold">{latencyStats.requests_per_min}/min</span>
       </div>
     </div>
 
@@ -287,12 +290,12 @@
   </div>
 
   <!-- Recent Latency Table -->
-  <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3">
-    <h2 class="text-[11px] font-semibold text-[var(--text)] mb-2">Recent API Calls</h2>
+  <div class="bg-surface border border-border rounded-lg p-3">
+    <h3 class="text-[11px] font-semibold text-body mb-2">Recent API Calls</h3>
     <div class="overflow-x-auto">
       <table class="w-full text-[9px]">
         <thead>
-          <tr class="text-[var(--muted)] border-b border-[var(--border)]">
+          <tr class="text-muted border-b border-border">
             <th class="text-left py-1 pr-4">Time</th>
             <th class="text-left py-1 pr-4">Model</th>
             <th class="text-left py-1 pr-4">Project</th>
@@ -301,31 +304,23 @@
         </thead>
         <tbody>
           {#each latencyData.slice(-20).reverse() as entry (entry.timestamp)}
-            <tr class="border-b border-[var(--border)] border-opacity-30 hover:bg-[var(--bg)]">
-              <td class="py-1 pr-4 text-[var(--muted)]">{new Date(entry.timestamp).toLocaleTimeString()}</td>
-              <td class="py-1 pr-4 text-[var(--text)]">{entry.model || 'unknown'}</td>
-              <td class="py-1 pr-4 text-[var(--muted)]">{entry.project_name || '-'}</td>
+            <tr class="border-b border-border border-opacity-30 hover:bg-canvas">
+              <td class="py-1 pr-4 text-muted">{new Date(entry.timestamp).toLocaleTimeString()}</td>
+              <td class="py-1 pr-4 text-body">{entry.model || 'unknown'}</td>
+              <td class="py-1 pr-4 text-muted">{entry.project_name || '-'}</td>
               <td class="py-1 text-right font-semibold" style="color: {entry.latency_ms > 30000 ? 'var(--error)' : entry.latency_ms > 10000 ? 'var(--warning)' : 'var(--text)'}">
                 {(entry.latency_ms / 1000).toFixed(2)}s
               </td>
             </tr>
           {:else}
             <tr>
-              <td colspan="4" class="py-4 text-center text-[var(--muted)]">No API latency data yet — data appears as Claude processes requests</td>
+              <td colspan="4" class="py-4 text-center text-muted">No API latency data yet — data appears as Claude processes requests</td>
             </tr>
           {/each}
         </tbody>
       </table>
     </div>
   </div>
-</main>
+</div>
+</PageLayout>
 
-<style>
-  @keyframes activity-pulse-kf {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.4); }
-  }
-  .activity-pulse {
-    animation: activity-pulse-kf 1.5s ease-in-out infinite;
-  }
-</style>
