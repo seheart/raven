@@ -2,11 +2,34 @@
 
 # Raven Frontend Pattern Validator
 # Catches common Svelte + Tailwind issues before they cause problems
+#
+# Design-system rules (sections 5–8) are *ratchet-style*: they only run
+# against pages that have migrated onto the layout primitives (i.e. import
+# PageLayout). Legacy pages are skipped until Phase 4/5 migrates them.
+# Once a page is migrated, it can never drift back — adding `<style>`,
+# raw hex, etc. to a migrated page fails CI.
 
 echo "🔍 Validating Svelte + Tailwind patterns..."
 echo ""
 
 ERRORS=0
+
+# DesignSystemPage intentionally shows token names and example markup
+# inside string literals; it can't satisfy the rules and shouldn't.
+DESIGN_SYSTEM_ALLOWLIST=("src/lib/pages/DesignSystemPage.svelte")
+
+is_allowlisted() {
+  local f="$1"
+  for entry in "${DESIGN_SYSTEM_ALLOWLIST[@]}"; do
+    [[ "$f" == "$entry" ]] && return 0
+  done
+  return 1
+}
+
+# Pages that have migrated to PageLayout — gated against design-system rules.
+migrated_pages() {
+  grep -lE "from ['\"]\.\./components/layout(/index\.js)?['\"]" src/lib/pages/*.svelte 2>/dev/null
+}
 
 # 1. Check for class: directive with opacity syntax (/)
 echo "Checking for class: directive with opacity syntax..."
@@ -38,20 +61,115 @@ else
 fi
 echo ""
 
-# 3. Check for Tailwind arbitrary values in <style> blocks
-echo "Checking for Tailwind arbitrary values in <style> blocks..."
-if grep -rn "<style>" src/lib/pages/ 2>/dev/null | while read -r line; do
-  file=$(echo "$line" | cut -d: -f1)
-  if grep -q "\.\[.*\]" "$file" 2>/dev/null; then
-    echo "$line"
-    exit 1
+# 3. Check for Tailwind arbitrary values inside <style> blocks
+# (Tailwind class arbitrary values like .text-[var(...)] don't compile inside
+#  <style> blocks — they only work as HTML class attributes.)
+echo "Checking for Tailwind arbitrary values inside <style> blocks..."
+STYLE_ARB_VIOLATIONS=0
+for f in $(grep -lE "<style\b" src/lib/pages/*.svelte 2>/dev/null); do
+  # Extract content between <style ...> and </style>, then look for .name-[...] patterns
+  if awk '/<style[^>]*>/{flag=1;next}/<\/style>/{flag=0}flag' "$f" \
+     | grep -nE "\.[a-z-]+-\[[^]]+\]" > /tmp/style-arb.$$ 2>/dev/null; then
+    if [ -s /tmp/style-arb.$$ ]; then
+      echo "❌ $f: Tailwind arbitrary value inside <style> block (use :global() or remove)"
+      cat /tmp/style-arb.$$ | sed 's/^/   /'
+      STYLE_ARB_VIOLATIONS=$((STYLE_ARB_VIOLATIONS + 1))
+    fi
   fi
-done; then
-  echo "❌ Found Tailwind arbitrary values in <style> blocks"
-  echo "   (use :global() wrapper or remove <style> block)"
-  ERRORS=$((ERRORS + 1))
+  rm -f /tmp/style-arb.$$
+done
+if [ $STYLE_ARB_VIOLATIONS -eq 0 ]; then
+  echo "✅ No Tailwind arbitrary values inside <style> blocks"
 else
-  echo "✅ No <style> block issues found"
+  ERRORS=$((ERRORS + STYLE_ARB_VIOLATIONS))
+fi
+echo ""
+
+# ── Design-system rules (5-8): ratcheted on migrated pages ────────────────
+MIGRATED=$(migrated_pages)
+MIGRATED_COUNT=$(echo "$MIGRATED" | grep -c . || true)
+
+# 5. Migrated pages must not contain raw hex literals — use semantic tokens
+echo "Checking migrated pages for raw hex literals..."
+HEX_VIOLATIONS=0
+for f in $MIGRATED; do
+  is_allowlisted "$f" && continue
+  if grep -nE "#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b" "$f" 2>/dev/null | grep -v "design-system-allow" > /tmp/hex-hits.$$; then
+    if [ -s /tmp/hex-hits.$$ ]; then
+      echo "❌ $f: raw hex literal (use semantic tokens or mark with /* design-system-allow: hex */)"
+      cat /tmp/hex-hits.$$ | sed 's/^/   /'
+      HEX_VIOLATIONS=$((HEX_VIOLATIONS + 1))
+    fi
+  fi
+  rm -f /tmp/hex-hits.$$
+done
+if [ $HEX_VIOLATIONS -eq 0 ]; then
+  echo "✅ No raw hex on migrated pages ($MIGRATED_COUNT checked)"
+else
+  ERRORS=$((ERRORS + HEX_VIOLATIONS))
+fi
+echo ""
+
+# 6. Migrated pages must not use arbitrary token syntax — use semantic utilities
+echo "Checking migrated pages for arbitrary-token syntax..."
+ARB_VIOLATIONS=0
+for f in $MIGRATED; do
+  is_allowlisted "$f" && continue
+  if grep -nE "(text|bg|border|fill|stroke|ring)-\[var\(--" "$f" > /tmp/arb-hits.$$ 2>/dev/null; then
+    if [ -s /tmp/arb-hits.$$ ]; then
+      echo "❌ $f: arbitrary token syntax (use text-heading, bg-surface, text-accent, etc.)"
+      cat /tmp/arb-hits.$$ | sed 's/^/   /'
+      ARB_VIOLATIONS=$((ARB_VIOLATIONS + 1))
+    fi
+  fi
+  rm -f /tmp/arb-hits.$$
+done
+if [ $ARB_VIOLATIONS -eq 0 ]; then
+  echo "✅ No arbitrary-token syntax on migrated pages"
+else
+  ERRORS=$((ERRORS + ARB_VIOLATIONS))
+fi
+echo ""
+
+# 7. Migrated pages must not use raw <h1>/<h2> — use PageHeader / PageSection
+echo "Checking migrated pages for raw <h1>/<h2>..."
+HX_VIOLATIONS=0
+for f in $MIGRATED; do
+  is_allowlisted "$f" && continue
+  if grep -nE "<h[12](\s|>)" "$f" > /tmp/hx-hits.$$ 2>/dev/null; then
+    if [ -s /tmp/hx-hits.$$ ]; then
+      echo "❌ $f: raw <h1>/<h2> (use <PageHeader> for h1, <PageSection> for h2)"
+      cat /tmp/hx-hits.$$ | sed 's/^/   /'
+      HX_VIOLATIONS=$((HX_VIOLATIONS + 1))
+    fi
+  fi
+  rm -f /tmp/hx-hits.$$
+done
+if [ $HX_VIOLATIONS -eq 0 ]; then
+  echo "✅ No raw <h1>/<h2> on migrated pages"
+else
+  ERRORS=$((ERRORS + HX_VIOLATIONS))
+fi
+echo ""
+
+# 8. Migrated pages must not contain <style> blocks — lift to lib/styles/
+echo "Checking migrated pages for <style> blocks..."
+STYLE_VIOLATIONS=0
+for f in $MIGRATED; do
+  is_allowlisted "$f" && continue
+  if grep -nE "<style\b" "$f" > /tmp/style-hits.$$ 2>/dev/null; then
+    if [ -s /tmp/style-hits.$$ ]; then
+      echo "❌ $f: <style> block (lift styles to lib/styles/animations.css or use utilities)"
+      cat /tmp/style-hits.$$ | sed 's/^/   /'
+      STYLE_VIOLATIONS=$((STYLE_VIOLATIONS + 1))
+    fi
+  fi
+  rm -f /tmp/style-hits.$$
+done
+if [ $STYLE_VIOLATIONS -eq 0 ]; then
+  echo "✅ No <style> blocks on migrated pages"
+else
+  ERRORS=$((ERRORS + STYLE_VIOLATIONS))
 fi
 echo ""
 
