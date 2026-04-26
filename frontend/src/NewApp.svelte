@@ -113,11 +113,15 @@
   }
 
   function handleTechStackClick() {
-    navigate('/tech-stack');
+    navigate('/system');
   }
 
   function handleDesignSystemClick() {
     navigate('/design-system');
+  }
+
+  function handleRoadmapClick() {
+    navigate('/roadmap');
   }
 
   function handleSettingsClick() {
@@ -432,14 +436,6 @@
         {:catch}
           <PlaceholderPage title="About" description="Failed to load" />
         {/await}
-      {:else if activeTab === 'tech-stack'}
-        {#await import('./lib/pages/TechStackPage.svelte')}
-          <PlaceholderPage title="Tech Stack" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Tech Stack" description="Failed to load" />
-        {/await}
       {:else if activeTab === 'design-system'}
         {#await import('./lib/pages/DesignSystemPage.svelte')}
           <PlaceholderPage title="Design System" description="Loading..." />
@@ -447,6 +443,14 @@
           <Component />
         {:catch}
           <PlaceholderPage title="Design System" description="Failed to load" />
+        {/await}
+      {:else if activeTab === 'roadmap'}
+        {#await import('./lib/pages/RoadmapPage.svelte')}
+          <PlaceholderPage title="Roadmap" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Roadmap" description="Failed to load" />
         {/await}
       {:else}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
@@ -476,6 +480,7 @@
     onAboutClick={handleAboutClick}
     onTechStackClick={handleTechStackClick}
     onDesignSystemClick={handleDesignSystemClick}
+    onRoadmapClick={handleRoadmapClick}
   />
 
   <!-- Toast Notifications -->

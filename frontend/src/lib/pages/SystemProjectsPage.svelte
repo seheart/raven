@@ -128,7 +128,7 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-6xl mx-auto">
+  <div class="max-w-none">
     {#if editingProject}
       <!-- Edit/Add Form -->
       <div class="flex items-center gap-3 mb-6">

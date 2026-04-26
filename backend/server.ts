@@ -67,6 +67,7 @@ import { createGitRouter } from './routes/git.js';
 import { createMetricsRouter } from './routes/metrics.js';
 import { createTriggersRouter } from './routes/triggers.js';
 import { createOllamaProxyRouter } from './routes/ollama-proxy.js';
+import { createSystemRouter } from './routes/system.js';
 import { safeInt } from './utils/request-helpers.js';
 import { getAgentColor } from './utils/agent-colors.js';
 
@@ -1008,6 +1009,7 @@ app.use(
   '/ollama',
   createOllamaProxyRouter({ db, io, logger, sessionId: SESSION_ID, agentRegistry })
 );
+app.use('/api/system', createSystemRouter({ db, agentRegistry }));
 
 // Let the self-analysis service introspect mounted routes for the contract-drift check.
 selfAnalysisService.setExpressApp(app);

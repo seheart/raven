@@ -32,15 +32,15 @@
   ];
 
   const typeScale = [
-    { name: '--text-xs', size: '10px', sample: 'Caption / label' },
-    { name: '--text-sm', size: '11px', sample: 'Hint or secondary' },
-    { name: '--text-base', size: '13px', sample: 'Default body' },
-    { name: '--text-lg', size: '14px', sample: 'Slightly larger body' },
-    { name: '--text-xl', size: '15px', sample: 'Section heading' },
-    { name: '--text-2xl', size: '16px', sample: 'Card label' },
-    { name: '--text-3xl', size: '18px', sample: 'Subhead' },
-    { name: '--text-4xl', size: '20px', sample: 'Page title' },
-    { name: '--text-5xl', size: '24px', sample: 'Big emphasis' }
+    { name: '--text-xs', size: '11px', sample: 'Caption / label' },
+    { name: '--text-sm', size: '12px', sample: 'Hint or secondary' },
+    { name: '--text-base', size: '14px', sample: 'Default body' },
+    { name: '--text-lg', size: '15px', sample: 'Slightly larger body' },
+    { name: '--text-xl', size: '16px', sample: 'Section heading' },
+    { name: '--text-2xl', size: '17px', sample: 'Card label' },
+    { name: '--text-3xl', size: '20px', sample: 'Subhead' },
+    { name: '--text-4xl', size: '22px', sample: 'Page title' },
+    { name: '--text-5xl', size: '26px', sample: 'Big emphasis' }
   ];
 
   const spacingScale = [
@@ -61,9 +61,24 @@
     { name: '--radius-xl', value: '8px', use: 'Modals, large surfaces' }
   ];
 
+  const motionTokens = [
+    { name: '--duration-fast', value: '150ms', use: 'Hover state changes, focus rings' },
+    { name: '--duration-base', value: '200ms', use: 'Default transitions, fades, slides' },
+    { name: '--duration-slow', value: '300ms', use: 'Drawers, modals, expand/collapse' },
+    { name: '--ease-smooth', value: 'cubic-bezier(0.4, 0, 0.2, 1)', use: 'Default easing — symmetric in/out' },
+    { name: '--ease-out-expo', value: 'cubic-bezier(0.16, 1, 0.3, 1)', use: 'Decisive arrivals — drawers, toasts' }
+  ];
+
+  const callouts = [
+    { tone: 'warning', label: '! Security Model', body: 'Bind only to 127.0.0.1 unless every host on the bound network is trusted.' },
+    { tone: 'success', label: '✓ Healthy', body: 'All probes returning within budget. No degraded subsystems.' },
+    { tone: 'info', label: 'i Tip', body: 'You can press Cmd-K from any page to jump to the command palette.' },
+    { tone: 'error', label: '✗ Failure', body: 'Migration 0042 cannot be applied — column already exists.' }
+  ];
+
   const principles = [
     'Use semantic vars (<code>--success</code> / <code>--error</code> / <code>--warning</code>) instead of hex. They flip with theme.',
-    'Content pages (System, Analysis, Settings, About) wrap in <code>min-h-screen bg-[var(--bg)] p-6 pb-20</code> with <code>max-w-6xl mx-auto</code> inside.',
+    'Content pages (System, Analysis, Settings, About) wrap in <code>min-h-screen bg-[var(--bg)] p-6 pb-20</code> with <code>max-w-none</code> inside.',
     'Live / dashboard pages (Overview, Live Monitor, Process Activity) lock to the viewport with their own grid or flex layout. They still use the same color and type tokens.',
     'Section cards use <code>bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5</code> with an uppercase mono label heading.',
     'Status dots are 8px circles (<code>w-2 h-2</code>) with semantic backgrounds. Don\'t reinvent shapes.',
@@ -73,7 +88,7 @@
 </script>
 
 <div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-6xl mx-auto">
+  <div class="max-w-none">
     <!-- Header -->
     <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
       <div>
@@ -103,7 +118,7 @@
               ></div>
               <div class="flex flex-col gap-0.5 min-w-0">
                 <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
-                <span class="text-xs text-[var(--muted)] font-sans">{t.role}</span>
+                <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
               </div>
             </div>
           {/each}
@@ -124,7 +139,7 @@
                 The quick brown fox jumps over the lazy dog
               </span>
               <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
-              <span class="text-xs text-[var(--muted)] font-sans">{t.role}</span>
+              <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
             </div>
           {/each}
         </div>
@@ -150,7 +165,7 @@
               <div class="w-10 h-10 rounded flex-shrink-0" style="background: var({t.name});"></div>
               <div class="flex flex-col gap-0.5 min-w-0">
                 <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
-                <span class="text-xs text-[var(--muted)] font-sans">{t.role}</span>
+                <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
               </div>
             </div>
           {/each}
@@ -167,7 +182,7 @@
               ></div>
               <div class="flex flex-col gap-0.5 min-w-0">
                 <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
-                <span class="text-xs text-[var(--muted)] font-sans">{t.role}</span>
+                <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
               </div>
             </div>
           {/each}
@@ -239,8 +254,34 @@
                 style="border-radius: var({r.name});"
               ></div>
               <code class="font-mono text-xs text-[var(--text)]">{r.name}</code>
-              <span class="text-xs text-[var(--muted)] font-sans">
+              <span class="text-sm text-[var(--muted)] font-sans">
                 <span class="font-mono text-[var(--text)]">{r.value}</span> · {r.use}
+              </span>
+            </div>
+          {/each}
+        </div>
+      </section>
+
+      <!-- Motion -->
+      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
+          Motion
+        </h3>
+        <p class="text-sm text-[var(--muted)] font-sans mb-4">
+          Hover the swatch to feel each duration. Easing is symmetric by default; reach for
+          <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--ease-out-expo</code>
+          when something should land decisively (toasts, drawers).
+        </p>
+        <div class="space-y-3">
+          {#each motionTokens as t (t.name)}
+            <div class="grid grid-cols-1 sm:grid-cols-[60px_180px_1fr] gap-3 items-center border-b border-[var(--border)] pb-3 last:border-b-0 last:pb-0">
+              <div
+                class="motion-demo w-9 h-9 bg-[var(--accent)] rounded"
+                style="transition: transform var({t.name}) var(--ease-smooth);"
+              ></div>
+              <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
+              <span class="text-sm text-[var(--muted)] font-sans">
+                <span class="font-mono text-[var(--text)]">{t.value}</span> · {t.use}
               </span>
             </div>
           {/each}
@@ -285,7 +326,7 @@
           <span class="badge badge-warning">Warning</span>
           <span class="badge badge-info">Info</span>
         </div>
-        <p class="text-xs text-[var(--muted)] font-sans mb-3">
+        <p class="text-sm text-[var(--muted)] font-sans mb-3">
           Pills are used for diff status (added / deleted / modified):
         </p>
         <div class="flex flex-wrap gap-2 items-center">
@@ -320,6 +361,151 @@
             <span class="w-2 h-2 rounded-full bg-[var(--error)]"></span>
             <span class="font-mono text-[var(--text)]">Offline</span>
           </div>
+        </div>
+      </section>
+
+      <!-- Forms -->
+      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
+          Forms
+        </h3>
+        <p class="text-sm text-[var(--muted)] font-sans mb-4">
+          Inputs use <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--surface-2</code>
+          backgrounds with a 1px <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--border</code>.
+          Focus ring is the accent color.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-text">Text input</label>
+            <input
+              id="ds-text"
+              type="text"
+              placeholder="e.g. /home/seth/Projects/raven"
+              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-search">Search</label>
+            <input
+              id="ds-search"
+              type="search"
+              placeholder="Search events..."
+              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-select">Select</label>
+            <select
+              id="ds-select"
+              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+            >
+              <option>Last 24 hours</option>
+              <option>Last 7 days</option>
+              <option>Last 30 days</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-disabled">Disabled</label>
+            <input
+              id="ds-disabled"
+              type="text"
+              value="read-only"
+              disabled
+              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--muted)] opacity-60 cursor-not-allowed"
+            />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-textarea">Textarea</label>
+            <textarea
+              id="ds-textarea"
+              rows="3"
+              placeholder="Notes or commit message..."
+              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+            ></textarea>
+          </div>
+          <div class="md:col-span-2 flex flex-wrap items-center gap-6 pt-2">
+            <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
+              <input type="checkbox" checked class="accent-[var(--accent)]" />
+              <span>Pause monitoring</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
+              <input type="checkbox" class="accent-[var(--accent)]" />
+              <span>Auto-refresh</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
+              <input type="radio" name="ds-radio" checked class="accent-[var(--accent)]" />
+              <span>Subscription billing</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
+              <input type="radio" name="ds-radio" class="accent-[var(--accent)]" />
+              <span>API metering</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tables -->
+      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
+          Tables
+        </h3>
+        <p class="text-sm text-[var(--muted)] font-sans mb-4">
+          Borders top-and-between only — no outer rule. Header is uppercase mono on a recessed
+          surface; body text stays in the page font.
+        </p>
+        <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-[var(--surface-2,var(--surface))]">
+              <tr class="text-xs text-[var(--muted)] uppercase tracking-wide">
+                <th class="text-left font-semibold px-4 py-2">Agent</th>
+                <th class="text-left font-semibold px-4 py-2">Project</th>
+                <th class="text-left font-semibold px-4 py-2">Events</th>
+                <th class="text-right font-semibold px-4 py-2">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each [
+                { agent: 'claude-code', project: 'raven', events: 1248, cost: '$0.42' },
+                { agent: 'codex', project: 'ant', events: 304, cost: '$0.11' },
+                { agent: 'ollama', project: 'sonar', events: 96, cost: '—' }
+              ] as row (row.agent)}
+                <tr class="border-t border-[var(--border)]">
+                  <td class="px-4 py-2 font-mono text-[var(--text)]">{row.agent}</td>
+                  <td class="px-4 py-2 text-[var(--text)]">{row.project}</td>
+                  <td class="px-4 py-2 font-mono text-[var(--muted)]">{row.events.toLocaleString()}</td>
+                  <td class="px-4 py-2 font-mono text-[var(--text)] text-right">{row.cost}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Callouts -->
+      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
+          Callouts
+        </h3>
+        <p class="text-sm text-[var(--muted)] font-sans mb-4">
+          Inline notices. Left bar carries the semantic; never use color alone — pair with a label
+          glyph (<code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">!</code>,
+          <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">✓</code>,
+          <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">i</code>,
+          <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">✗</code>).
+        </p>
+        <div class="space-y-3">
+          {#each callouts as c (c.tone)}
+            <div
+              class="rounded-r p-4 border-l-4"
+              style="background: var(--{c.tone})/10; border-color: var(--{c.tone}); background-color: color-mix(in oklab, var(--{c.tone}) 10%, transparent);"
+            >
+              <div
+                class="text-xs font-mono uppercase tracking-wide mb-1"
+                style="color: var(--{c.tone});"
+              >{c.label}</div>
+              <div class="text-sm text-[var(--text)] font-sans">{c.body}</div>
+            </div>
+          {/each}
         </div>
       </section>
 
@@ -416,5 +602,10 @@
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     color: var(--text);
+  }
+
+  /* Hover the motion swatch to feel each duration token */
+  .motion-demo:hover {
+    transform: translateX(40px);
   }
 </style>
