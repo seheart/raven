@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { formatShortDateTime } from '../timeFormat.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
 
@@ -128,89 +129,86 @@
   onDestroy(() => abortRequests());
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Storage</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Database sizes, project usage, and retention
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader
+    title="Storage"
+    description="Database sizes, project usage, and retention"
+  >
+    {#snippet actions()}
       <button
         onclick={loadData}
         disabled={loading}
-        class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+        class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
       >
         {loading ? '...' : '&#8635;'} Refresh
       </button>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     <!-- Action result banner -->
     {#if actionResult}
       <div
         class="mb-4 px-4 py-2 rounded text-sm font-sans border {actionResult.type === 'success'
-          ? 'bg-[var(--success-subtle)] border-[var(--success)] text-[var(--success)]'
-          : 'bg-[var(--error-subtle)] border-[var(--error)] text-[var(--error)]'}"
+          ? 'bg-success-subtle border-success text-success'
+          : 'bg-error-subtle border-error text-error'}"
       >
         {actionResult.message}
       </div>
     {/if}
 
     {#if loading && !storage}
-      <div class="text-sm text-[var(--muted)] text-center py-12">Loading storage data...</div>
+      <div class="text-sm text-muted text-center py-12">Loading storage data...</div>
     {:else if storage}
       <!-- Top Stats -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Size
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{formatBytes(storage.totalSize)}</div>
+          <div class="text-sm font-mono text-body">{formatBytes(storage.totalSize)}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Projects
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{projectStats.length}</div>
+          <div class="text-sm font-mono text-body">{projectStats.length}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Events
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{formatNumber(totalEvents)}</div>
+          <div class="text-sm font-mono text-body">{formatNumber(totalEvents)}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Databases
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{storage.databases.length}</div>
+          <div class="text-sm font-mono text-body">{storage.databases.length}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Snapshots
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{storage.snapshots.length}</div>
+          <div class="text-sm font-mono text-body">{storage.snapshots.length}</div>
         </div>
       </div>
 
       <!-- Storage by Project -->
       {#if projectStats.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+        <div class="bg-surface border border-border rounded-lg p-5 mb-6">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             Storage by Project
           </h3>
           <div class="space-y-2">
             {#each projectStats as project (project.project_name)}
-              <div class="py-3 px-4 bg-[var(--bg)] rounded border border-[var(--border)]">
+              <div class="py-3 px-4 bg-canvas rounded border border-border">
                 <div class="flex items-center gap-4">
                   <!-- Project name -->
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm font-mono text-[var(--text)] truncate">
+                    <div class="text-sm font-mono text-body truncate">
                       {project.project_name}
                     </div>
-                    <div class="text-xs text-[var(--muted)] font-sans mt-0.5">
+                    <div class="text-xs text-muted font-sans mt-0.5">
                       {formatNumber(project.file_count)} files &middot; Last active {timeAgo(
                         project.last_event
                       )}
@@ -220,10 +218,10 @@
                   <!-- Event bar -->
                   <div class="w-40 hidden md:block">
                     <div
-                      class="h-2 bg-[var(--bg)] rounded overflow-hidden border border-[var(--border)]"
+                      class="h-2 bg-canvas rounded overflow-hidden border border-border"
                     >
                       <div
-                        class="h-full bg-[var(--accent)] transition-all"
+                        class="h-full bg-accent transition-all"
                         style="width: {((project.event_count / maxProjectEvents) * 100).toFixed(
                           1
                         )}%"
@@ -234,17 +232,17 @@
                   <!-- Stats -->
                   <div class="flex gap-4 text-right">
                     <div>
-                      <div class="text-sm font-mono text-[var(--text)]">
+                      <div class="text-sm font-mono text-body">
                         {formatNumber(project.event_count)}
                       </div>
-                      <div class="text-[10px] text-[var(--muted)] uppercase">events</div>
+                      <div class="text-[10px] text-muted uppercase">events</div>
                     </div>
                     {#if project.agent_event_count > 0}
                       <div>
-                        <div class="text-sm font-mono text-[var(--text)]">
+                        <div class="text-sm font-mono text-body">
                           {formatNumber(project.agent_event_count)}
                         </div>
-                        <div class="text-[10px] text-[var(--muted)] uppercase">agent</div>
+                        <div class="text-[10px] text-muted uppercase">agent</div>
                       </div>
                     {/if}
                   </div>
@@ -256,17 +254,17 @@
       {/if}
 
       <!-- Databases -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+      <div class="bg-surface border border-border rounded-lg p-5 mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
             Databases
           </h3>
-          <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-sans">
+          <div class="flex items-center gap-2 text-xs text-muted font-sans">
             <label for="cleanup-days">Purge older than</label>
             <select
               id="cleanup-days"
               bind:value={cleanupDays}
-              class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-xs font-mono text-[var(--text)]"
+              class="bg-canvas border border-border rounded px-2 py-1 text-xs font-mono text-body"
             >
               <option value={7}>7 days</option>
               <option value={14}>14 days</option>
@@ -282,35 +280,35 @@
         <div class="space-y-2">
           {#each storage.databases as db (db.name)}
             <div
-              class="flex items-center gap-4 py-3 px-4 bg-[var(--bg)] rounded border border-[var(--border)]"
+              class="flex items-center gap-4 py-3 px-4 bg-canvas rounded border border-border"
             >
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-mono text-[var(--text)] truncate">{db.name}</span>
+                  <span class="text-sm font-mono text-body truncate">{db.name}</span>
                   {#if db.isActive}
                     <span
-                      class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-[var(--success)] text-white rounded"
+                      class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-success text-white rounded"
                       >active</span
                     >
                   {/if}
                 </div>
-                <div class="text-xs text-[var(--muted)] font-sans mt-0.5">
+                <div class="text-xs text-muted font-sans mt-0.5">
                   Modified {formatDate(db.modified)}
                 </div>
               </div>
 
               <div class="w-32 hidden md:block">
                 <div
-                  class="h-2 bg-[var(--bg)] rounded overflow-hidden border border-[var(--border)]"
+                  class="h-2 bg-canvas rounded overflow-hidden border border-border"
                 >
                   <div
-                    class="h-full bg-[var(--accent)] transition-all"
+                    class="h-full bg-accent transition-all"
                     style="width: {sizePercent(db.size)}%"
                   ></div>
                 </div>
               </div>
 
-              <div class="text-sm font-mono text-[var(--text)] w-20 text-right">
+              <div class="text-sm font-mono text-body w-20 text-right">
                 {formatBytes(db.size)}
               </div>
 
@@ -318,7 +316,7 @@
                 <button
                   onclick={() => vacuumDb(db.name)}
                   disabled={actionLoading === `vacuum-${db.name}`}
-                  class="px-2 py-1 text-xs font-sans bg-[var(--surface)] border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+                  class="px-2 py-1 text-xs font-sans bg-surface border border-border rounded hover:border-accent transition-colors disabled:opacity-50"
                   title="Compact database"
                 >
                   {actionLoading === `vacuum-${db.name}` ? '...' : 'Compact'}
@@ -326,7 +324,7 @@
                 <button
                   onclick={() => cleanDb(db.name)}
                   disabled={actionLoading === `clean-${db.name}`}
-                  class="px-2 py-1 text-xs font-sans bg-[var(--surface)] border border-[var(--error)] border-opacity-30 rounded hover:border-[var(--error)] text-[var(--error)] transition-colors disabled:opacity-50"
+                  class="px-2 py-1 text-xs font-sans bg-surface border border-error border-opacity-30 rounded hover:border-error text-error transition-colors disabled:opacity-50"
                   title="Delete records older than {cleanupDays} days"
                 >
                   {actionLoading === `clean-${db.name}` ? '...' : 'Purge'}
@@ -339,17 +337,17 @@
 
       <!-- Snapshots -->
       {#if storage.snapshots.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+        <div class="bg-surface border border-border rounded-lg p-5 mb-6">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             Snapshots
           </h3>
           <div class="space-y-2">
             {#each storage.snapshots as snap (snap.project)}
               <div
-                class="flex items-center justify-between py-2 px-4 bg-[var(--bg)] rounded border border-[var(--border)]"
+                class="flex items-center justify-between py-2 px-4 bg-canvas rounded border border-border"
               >
-                <span class="text-sm font-mono text-[var(--text)]">{snap.project}</span>
-                <span class="text-xs text-[var(--muted)] font-mono">{snap.files} file(s)</span>
+                <span class="text-sm font-mono text-body">{snap.project}</span>
+                <span class="text-xs text-muted font-mono">{snap.files} file(s)</span>
               </div>
             {/each}
           </div>
@@ -357,8 +355,8 @@
       {/if}
 
       <!-- Retention Policy -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+      <div class="bg-surface border border-border rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
           Retention Policy
         </h3>
         <div class="space-y-4">
@@ -366,21 +364,21 @@
             <input
               type="checkbox"
               bind:checked={retention.enabled}
-              class="accent-[var(--accent)]"
+              class="accent-accent"
             />
-            <span class="text-sm text-[var(--text)] font-sans">Enable automatic cleanup</span>
+            <span class="text-sm text-body font-sans">Enable automatic cleanup</span>
           </label>
 
           {#if retention.enabled}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pl-7">
               <div>
-                <label for="ret-days" class="text-xs text-[var(--muted)] font-sans block mb-1"
+                <label for="ret-days" class="text-xs text-muted font-sans block mb-1"
                   >Keep data for</label
                 >
                 <select
                   id="ret-days"
                   bind:value={retention.retentionDays}
-                  class="w-full bg-[var(--bg)] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--text)]"
+                  class="w-full bg-canvas border border-border rounded px-3 py-2 text-sm font-mono text-body"
                 >
                   <option value={7}>7 days</option>
                   <option value={14}>14 days</option>
@@ -392,13 +390,13 @@
                 </select>
               </div>
               <div>
-                <label for="ret-interval" class="text-xs text-[var(--muted)] font-sans block mb-1"
+                <label for="ret-interval" class="text-xs text-muted font-sans block mb-1"
                   >Cleanup frequency</label
                 >
                 <select
                   id="ret-interval"
                   bind:value={retention.cleanupInterval}
-                  class="w-full bg-[var(--bg)] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--text)]"
+                  class="w-full bg-canvas border border-border rounded px-3 py-2 text-sm font-mono text-body"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -412,7 +410,7 @@
             <button
               onclick={saveRetention}
               disabled={actionLoading === 'retention'}
-              class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
+              class="px-4 py-2 bg-accent text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {actionLoading === 'retention' ? 'Saving...' : 'Save Policy'}
             </button>
@@ -420,5 +418,4 @@
         </div>
       </div>
     {/if}
-  </div>
-</div>
+</PageLayout>

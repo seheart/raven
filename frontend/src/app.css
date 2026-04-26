@@ -30,6 +30,9 @@
   --color-error: var(--error);
   --color-warning: var(--warning);
   --color-info: var(--info);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-success-subtle: var(--success-subtle);
+  --color-error-subtle: var(--error-subtle);
 
   /* Spacing scale (named) */
   --spacing-xs: 2px;

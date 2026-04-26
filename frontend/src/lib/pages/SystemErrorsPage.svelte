@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
 
@@ -82,19 +83,14 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Errors</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">{total} total errors logged</p>
-      </div>
+<PageLayout>
+  <PageHeader title="Errors" description="{total} total errors logged">
+    {#snippet actions()}
       <div class="flex items-center gap-2">
         {#if total > 0}
           <button
             onclick={clearAll}
-            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--error)] rounded text-sm font-sans text-[var(--error)] hover:bg-[var(--error-subtle)] transition-colors"
+            class="px-3 py-1.5 bg-surface border border-error rounded text-sm font-sans text-error hover:bg-error-subtle transition-colors"
           >
             Clear All
           </button>
@@ -105,12 +101,13 @@
             loadErrors();
           }}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     <!-- Search + Filters -->
     <div class="flex gap-3 mb-4 flex-wrap items-center">
@@ -119,7 +116,7 @@
         placeholder="Search errors..."
         value={searchQuery}
         oninput={handleSearch}
-        class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+        class="flex-1 min-w-[200px] px-3 py-1.5 bg-surface border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
       />
       {#each ['all', 'error', 'warning', 'info'] as sev (sev)}
         <button
@@ -130,8 +127,8 @@
           }}
           class="px-3 py-1.5 border rounded text-sm font-sans transition-colors {severityFilter ===
           sev
-            ? 'bg-[var(--accent-subtle)] border-[var(--accent)] text-[var(--accent)]'
-            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'}"
+            ? 'bg-accent-subtle border-accent text-accent'
+            : 'bg-surface border-border text-muted hover:border-accent'}"
         >
           {sev === 'all' ? 'All' : sev.charAt(0).toUpperCase() + sev.slice(1)}
         </button>
@@ -143,78 +140,78 @@
       <div class="space-y-2">
         {#each Array(5) as _, i (i)}
           <div
-            class="h-16 bg-[var(--surface)] border border-[var(--border)] rounded animate-pulse"
+            class="h-16 bg-surface border border-border rounded animate-pulse"
           ></div>
         {/each}
       </div>
     {:else if errors.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-sm text-[var(--muted)]">No errors found</p>
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <p class="text-sm text-muted">No errors found</p>
       </div>
     {:else}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+      <div class="bg-surface border border-border rounded-lg">
         <div class="divide-y divide-[var(--border)]">
           {#each errors as err (err.id)}
             <div>
               <button
                 onclick={() => toggleError(err)}
-                class="w-full text-left px-5 py-3 flex items-start gap-3 hover:bg-[var(--bg)] transition-colors"
+                class="w-full text-left px-5 py-3 flex items-start gap-3 hover:bg-canvas transition-colors"
               >
                 <span
                   class="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 {err.severity === 'error'
-                    ? 'bg-[var(--error)]'
+                    ? 'bg-error'
                     : err.severity === 'warning'
-                      ? 'bg-[var(--warning)]'
-                      : 'bg-[var(--accent)]'}"
+                      ? 'bg-warning'
+                      : 'bg-accent'}"
                 ></span>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm font-mono text-[var(--text)] truncate">{err.message}</div>
-                  <div class="text-xs text-[var(--muted)] mt-0.5 flex gap-2">
+                  <div class="text-sm font-mono text-body truncate">{err.message}</div>
+                  <div class="text-xs text-muted mt-0.5 flex gap-2">
                     <span>{err.file || err.component || 'unknown'}</span>
                     <span>·</span>
                     <span>{err.severity || 'error'}</span>
                   </div>
                 </div>
-                <span class="text-xs text-[var(--muted)] font-mono flex-shrink-0"
+                <span class="text-xs text-muted font-mono flex-shrink-0"
                   >{timeAgo(err.timestamp)}</span
                 >
               </button>
 
               {#if selectedError?.id === err.id}
-                <div class="px-5 pb-4 border-t border-[var(--border)] bg-[var(--bg)]">
+                <div class="px-5 pb-4 border-t border-border bg-canvas">
                   <div class="grid grid-cols-2 gap-3 py-3 text-sm">
-                    <div class="flex justify-between border-b border-[var(--border)] pb-2">
-                      <span class="text-[var(--muted)]">ID</span>
-                      <span class="font-mono text-[var(--text)]">{err.id}</span>
+                    <div class="flex justify-between border-b border-border pb-2">
+                      <span class="text-muted">ID</span>
+                      <span class="font-mono text-body">{err.id}</span>
                     </div>
-                    <div class="flex justify-between border-b border-[var(--border)] pb-2">
-                      <span class="text-[var(--muted)]">Severity</span>
-                      <span class="font-mono text-[var(--text)]">{err.severity}</span>
+                    <div class="flex justify-between border-b border-border pb-2">
+                      <span class="text-muted">Severity</span>
+                      <span class="font-mono text-body">{err.severity}</span>
                     </div>
-                    <div class="flex justify-between border-b border-[var(--border)] pb-2">
-                      <span class="text-[var(--muted)]">File</span>
-                      <span class="font-mono text-[var(--text)] text-xs">{err.file || 'N/A'}</span>
+                    <div class="flex justify-between border-b border-border pb-2">
+                      <span class="text-muted">File</span>
+                      <span class="font-mono text-body text-xs">{err.file || 'N/A'}</span>
                     </div>
-                    <div class="flex justify-between border-b border-[var(--border)] pb-2">
-                      <span class="text-[var(--muted)]">Line</span>
-                      <span class="font-mono text-[var(--text)]">{err.line || 'N/A'}</span>
+                    <div class="flex justify-between border-b border-border pb-2">
+                      <span class="text-muted">Line</span>
+                      <span class="font-mono text-body">{err.line || 'N/A'}</span>
                     </div>
                     <div
-                      class="col-span-2 flex justify-between border-b border-[var(--border)] pb-2"
+                      class="col-span-2 flex justify-between border-b border-border pb-2"
                     >
-                      <span class="text-[var(--muted)]">Timestamp</span>
-                      <span class="font-mono text-[var(--text)] text-xs">{err.timestamp}</span>
+                      <span class="text-muted">Timestamp</span>
+                      <span class="font-mono text-body text-xs">{err.timestamp}</span>
                     </div>
                   </div>
                   {#if err.stack}
                     <div class="mt-2">
                       <div
-                        class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1"
+                        class="text-xs font-semibold text-muted uppercase tracking-wide mb-1"
                       >
                         Stack Trace
                       </div>
                       <pre
-                        class="text-xs font-mono bg-[var(--surface)] border border-[var(--border)] rounded p-3 overflow-x-auto max-h-48 overflow-y-auto text-[var(--text)]">{err.stack}</pre>
+                        class="text-xs font-mono bg-surface border border-border rounded p-3 overflow-x-auto max-h-48 overflow-y-auto text-body">{err.stack}</pre>
                     </div>
                   {/if}
                 </div>
@@ -233,11 +230,11 @@
               loadErrors();
             }}
             disabled={currentPage === 0}
-            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm hover:border-[var(--accent)] transition-colors disabled:opacity-30"
+            class="px-3 py-1.5 bg-surface border border-border rounded text-sm hover:border-accent transition-colors disabled:opacity-30"
           >
             Previous
           </button>
-          <span class="text-xs text-[var(--muted)] font-mono">
+          <span class="text-xs text-muted font-mono">
             Page {currentPage + 1} of {Math.ceil(total / pageSize)}
           </span>
           <button
@@ -246,12 +243,11 @@
               loadErrors();
             }}
             disabled={(currentPage + 1) * pageSize >= total}
-            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm hover:border-[var(--accent)] transition-colors disabled:opacity-30"
+            class="px-3 py-1.5 bg-surface border border-border rounded text-sm hover:border-accent transition-colors disabled:opacity-30"
           >
             Next
           </button>
         </div>
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>

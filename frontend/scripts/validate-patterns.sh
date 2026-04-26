@@ -115,7 +115,7 @@ echo "Checking migrated pages for arbitrary-token syntax..."
 ARB_VIOLATIONS=0
 for f in $MIGRATED; do
   is_allowlisted "$f" && continue
-  if grep -nE "(text|bg|border|fill|stroke|ring)-\[var\(--" "$f" > /tmp/arb-hits.$$ 2>/dev/null; then
+  if grep -nE "(text|bg|border|fill|stroke|ring|accent)[a-z-]*-\[var\(--" "$f" > /tmp/arb-hits.$$ 2>/dev/null; then
     if [ -s /tmp/arb-hits.$$ ]; then
       echo "❌ $f: arbitrary token syntax (use text-heading, bg-surface, text-accent, etc.)"
       cat /tmp/arb-hits.$$ | sed 's/^/   /'

@@ -28,6 +28,10 @@ for f in "$@"; do
     -e 's|bg-\[var\(--error\)\]|bg-error|g' \
     -e 's|bg-\[var\(--warning\)\]|bg-warning|g' \
     -e 's|bg-\[var\(--info\)\]|bg-info|g' \
+    -e 's|bg-\[var\(--accent-subtle\)\]|bg-accent-subtle|g' \
+    -e 's|bg-\[var\(--success-subtle\)\]|bg-success-subtle|g' \
+    -e 's|bg-\[var\(--error-subtle\)\]|bg-error-subtle|g' \
+    -e 's|bg-\[var\(--muted\)\]|bg-muted|g' \
     -e 's|border-\[var\(--border\)\]|border-border|g' \
     -e 's|border-\[var\(--accent\)\]|border-accent|g' \
     -e 's|border-\[var\(--success\)\]|border-success|g' \
@@ -37,6 +41,11 @@ for f in "$@"; do
     -e 's|fill-\[var\(--accent\)\]|fill-accent|g' \
     -e 's|fill-\[var\(--muted\)\]|fill-muted|g' \
     -e 's|stroke-\[var\(--accent\)\]|stroke-accent|g' \
+    -e 's|accent-\[var\(--accent\)\]|accent-accent|g' \
+    -e 's|accent-\[var\(--success\)\]|accent-success|g' \
+    -e 's|accent-\[var\(--error\)\]|accent-error|g' \
+    -e 's|accent-\[var\(--warning\)\]|accent-warning|g' \
+    -e 's|accent-\[var\(--info\)\]|accent-info|g' \
     -e 's|border-([trblxy])-\[var\(--accent\)\]|border-\1-accent|g' \
     -e 's|border-([trblxy])-\[var\(--success\)\]|border-\1-success|g' \
     -e 's|border-([trblxy])-\[var\(--error\)\]|border-\1-error|g' \

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { renderMarkdown } from '../utils/markdown.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let config = $state({ autoDiscover: true, basePath: '', projects: [] });
@@ -127,43 +128,42 @@
   }
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
+<PageLayout>
     {#if editingProject}
       <!-- Edit/Add Form -->
       <div class="flex items-center gap-3 mb-6">
-        <button onclick={cancelEdit} class="text-sm text-[var(--accent)] hover:underline">
+        <button onclick={cancelEdit} class="text-sm text-accent hover:underline">
           ← Back to Projects
         </button>
       </div>
 
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 max-w-xl">
-        <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-5">
+      <div class="bg-surface border border-border rounded-lg p-5 max-w-xl">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-5">
           {editingProject === 'new' ? 'Add Project' : `Edit: ${formData.name}`}
-        </h2>
+        </h3>
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm text-[var(--muted)] mb-1">
+            <label class="block text-sm text-muted mb-1">
               Project Name
               <input
                 type="text"
                 bind:value={formData.name}
                 placeholder="my-project"
-                class="w-full px-3 py-1.5 mt-1 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+                class="w-full px-3 py-1.5 mt-1 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
               />
             </label>
           </div>
 
           <div>
-            <label class="block text-sm text-[var(--muted)] mb-1">
+            <label class="block text-sm text-muted mb-1">
               Project Path
               <input
                 type="text"
                 bind:value={formData.path}
                 placeholder="/home/user/projects/my-project"
                 disabled={editingProject !== 'new'}
-                class="w-full px-3 py-1.5 mt-1 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)] disabled:opacity-50"
+                class="w-full px-3 py-1.5 mt-1 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent disabled:opacity-50"
               />
             </label>
           </div>
@@ -173,35 +173,35 @@
               <input
                 type="checkbox"
                 bind:checked={formData.enabled}
-                class="accent-[var(--success)]"
+                class="accent-success"
               />
-              <span class="text-sm text-[var(--text)]">Enable monitoring</span>
+              <span class="text-sm text-body">Enable monitoring</span>
             </label>
           </div>
 
           <div>
-            <label class="block text-sm text-[var(--muted)] mb-1"
+            <label class="block text-sm text-muted mb-1"
               >Ignore Patterns (one per line)
             <textarea
               value={formData.ignorePatterns.join('\n')}
               oninput={e =>
                 (formData.ignorePatterns = e.target.value.split('\n').filter(p => p.trim()))}
               rows="4"
-              class="w-full px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+              class="w-full px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
             ></textarea>
             </label>
           </div>
 
-          <div class="flex gap-2 pt-3 border-t border-[var(--border)]">
+          <div class="flex gap-2 pt-3 border-t border-border">
             <button
               onclick={saveProject}
-              class="px-3 py-1.5 bg-[var(--accent)] border border-[var(--accent)] rounded text-sm font-sans text-white hover:opacity-90 transition-opacity"
+              class="px-3 py-1.5 bg-accent border border-accent rounded text-sm font-sans text-white hover:opacity-90 transition-opacity"
             >
               {editingProject === 'new' ? 'Add Project' : 'Save Changes'}
             </button>
             <button
               onclick={cancelEdit}
-              class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans text-[var(--muted)] hover:border-[var(--accent)] transition-colors"
+              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-muted hover:border-accent transition-colors"
             >
               Cancel
             </button>
@@ -209,98 +209,95 @@
         </div>
       </div>
     {:else}
-      <!-- Project List -->
-      <div class="flex justify-between items-start mb-6">
-        <div>
-          <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Projects</h1>
-          <p class="text-sm text-[var(--muted)] font-sans">Manage which projects Raven monitors</p>
-        </div>
-        <div class="flex gap-2">
-          <button
-            onclick={discoverProjects}
-            disabled={discovering}
-            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
-          >
-            {discovering ? 'Discovering...' : 'Discover'}
-          </button>
-          <button
-            onclick={startAdd}
-            class="px-3 py-1.5 bg-[var(--accent)] border border-[var(--accent)] rounded text-sm font-sans text-white hover:opacity-90 transition-opacity"
-          >
-            + Add
-          </button>
-        </div>
-      </div>
+      <PageHeader title="Projects" description="Manage which projects Raven monitors">
+        {#snippet actions()}
+          <div class="flex gap-2">
+            <button
+              onclick={discoverProjects}
+              disabled={discovering}
+              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
+            >
+              {discovering ? 'Discovering...' : 'Discover'}
+            </button>
+            <button
+              onclick={startAdd}
+              class="px-3 py-1.5 bg-accent border border-accent rounded text-sm font-sans text-white hover:opacity-90 transition-opacity"
+            >
+              + Add
+            </button>
+          </div>
+        {/snippet}
+      </PageHeader>
 
       {#if loading}
         <div class="space-y-3">
           {#each Array(3) as _, i (i)}
             <div
-              class="h-20 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+              class="h-20 bg-surface border border-border rounded-lg animate-pulse"
             ></div>
           {/each}
         </div>
       {:else if error}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-          <p class="text-sm text-[var(--error)] mb-3">{error}</p>
+        <div class="bg-surface border border-border rounded-lg p-8 text-center">
+          <p class="text-sm text-error mb-3">{error}</p>
           <button
             onclick={loadConfig}
-            class="px-3 py-1.5 bg-[var(--accent)] text-white rounded text-sm">Retry</button
+            class="px-3 py-1.5 bg-accent text-white rounded text-sm">Retry</button
           >
         </div>
       {:else if config.projects.length === 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-          <p class="text-sm text-[var(--muted)] mb-3">No projects configured</p>
+        <div class="bg-surface border border-border rounded-lg p-8 text-center">
+          <p class="text-sm text-muted mb-3">No projects configured</p>
           <button
             onclick={discoverProjects}
-            class="px-3 py-1.5 bg-[var(--accent)] text-white rounded text-sm"
+            class="px-3 py-1.5 bg-accent text-white rounded text-sm"
             >Discover Projects</button
           >
         </div>
       {:else}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+        <div class="bg-surface border border-border rounded-lg">
           <div class="divide-y divide-[var(--border)]">
             {#each config.projects as project (project.name)}
               <div class="px-5 py-4 flex items-center gap-4" class:opacity-50={!project.enabled}>
                 <span
                   class="w-2 h-2 rounded-full flex-shrink-0 {project.enabled
-                    ? 'bg-[var(--success)]'
-                    : 'bg-[var(--muted)]'}"
+                    ? 'bg-success'
+                    : 'bg-muted'}"
                 ></span>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm font-mono font-semibold text-[var(--text)]">
+                  <div class="text-sm font-mono font-semibold text-body">
                     {project.name}
                   </div>
-                  <div class="text-xs text-[var(--muted)] truncate">{project.path}</div>
+                  <div class="text-xs text-muted truncate">{project.path}</div>
                 </div>
-                <div class="text-xs text-[var(--muted)] font-mono flex-shrink-0">
+                <div class="text-xs text-muted font-mono flex-shrink-0">
                   {project.eventCount || project.event_count || 0} events
                 </div>
                 <div class="flex gap-2 flex-shrink-0">
                   <button
                     onclick={() => getProjectHealth(project.name)}
                     disabled={healthNarratives[project.name]?.loading}
-                    class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
+                    class="px-2 py-1 bg-accent text-white rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
                   >
                     {healthNarratives[project.name]?.loading ? 'Analyzing...' : 'AI Summary'}
                   </button>
                   <button
                     onclick={() => toggleProject(project)}
                     class="px-2 py-1 rounded text-xs font-sans transition-colors {project.enabled
-                      ? 'bg-[var(--success-subtle)] text-[var(--success)] border border-[var(--success)]'
-                      : 'bg-[var(--surface-2)] text-[var(--muted)] border border-[var(--border)]'}"
+                      ? 'bg-success-subtle text-success border border-success'
+                      : 'bg-surface-2 text-muted border border-border'}"
                   >
                     {project.enabled ? 'On' : 'Off'}
                   </button>
                   <button
                     onclick={() => startEdit(project)}
-                    class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-xs font-sans hover:border-[var(--accent)] transition-colors"
+                    class="px-2 py-1 bg-surface border border-border rounded text-xs font-sans hover:border-accent transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onclick={() => deleteProject(project.name)}
-                    class="px-2 py-1 bg-[var(--surface)] border border-[var(--error)] rounded text-xs font-sans text-[var(--error)] hover:bg-[var(--error-subtle)] transition-colors"
+                    class="px-2 py-1 bg-surface border border-error rounded text-xs font-sans text-error hover:bg-error-subtle transition-colors"
                   >
                     Remove
                   </button>
@@ -308,14 +305,14 @@
               </div>
               {#if healthNarratives[project.name]?.content}
                 <div class="px-5 pb-4 -mt-2">
-                  <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3 text-sm text-[var(--text)] font-sans leading-relaxed">
+                  <div class="bg-canvas border border-border rounded p-3 text-sm text-body font-sans leading-relaxed">
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
                     {@html renderMarkdown(healthNarratives[project.name].content)}
                   </div>
                 </div>
               {:else if healthNarratives[project.name]?.error}
                 <div class="px-5 pb-4 -mt-2">
-                  <div class="text-xs text-[var(--error)]">Failed: {healthNarratives[project.name].error}</div>
+                  <div class="text-xs text-error">Failed: {healthNarratives[project.name].error}</div>
                 </div>
               {/if}
             {/each}
@@ -323,5 +320,4 @@
         </div>
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>
