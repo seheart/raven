@@ -3,6 +3,7 @@
    * Roadmap — what's in flight, what's queued, what's parked.
    * Hand-curated. Edit this file as the project evolves.
    */
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
 
   const now = [
     {
@@ -126,24 +127,24 @@
     switch (size) {
       case 'XS':
       case 'S':
-        return 'bg-[var(--success)]/15 text-[var(--success)]';
+        return 'bg-success/15 text-success';
       case 'M':
-        return 'bg-[var(--info)]/15 text-[var(--info)]';
+        return 'bg-info/15 text-info';
       case 'L':
       case 'XL':
-        return 'bg-[var(--warning)]/15 text-[var(--warning)]';
+        return 'bg-warning/15 text-warning';
       default:
-        return 'bg-[var(--surface-2,var(--surface))] text-[var(--muted)]';
+        return 'bg-surface-2 text-muted';
     }
   }
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none space-y-10">
+<PageLayout>
+  <div class="space-y-10">
     <!-- Status bar -->
-    <div class="flex items-center justify-between text-xs font-mono text-[var(--muted)] border-b border-[var(--border)] pb-2">
+    <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
       <div class="flex items-center gap-2">
-        <span class="text-[var(--accent)] font-semibold">RAVEN.ROADMAP</span>
+        <span class="text-accent font-semibold">RAVEN.ROADMAP</span>
         <span>::</span>
         <span class="uppercase tracking-wide">Hand-curated · Edit RoadmapPage.svelte</span>
       </div>
@@ -152,30 +153,26 @@
       </div>
     </div>
 
-    <!-- Hero -->
-    <header>
-      <h1 class="text-3xl font-bold text-[var(--text-heading)] mb-2">Roadmap</h1>
-      <p class="text-base text-[var(--muted)] font-sans max-w-3xl leading-relaxed">
-        What's in flight, what's queued, and what's parked. Sized in t-shirts (XS / S / M / L / XL).
-        Open questions are bigger calls that need a design pass before they become work.
-      </p>
-    </header>
+    <PageHeader
+      title="Roadmap"
+      description="What's in flight, what's queued, and what's parked. Sized in t-shirts (XS / S / M / L / XL). Open questions are bigger calls that need a design pass before they become work."
+    />
 
     <!-- 01 // Now -->
     <section>
-      <div class="text-xs font-mono text-[var(--muted)] uppercase tracking-widest mb-3 flex items-center gap-3">
+      <div class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3">
         <span>01 // Now</span>
-        <span class="flex-1 border-t border-dashed border-[var(--border)]"></span>
-        <span class="text-[var(--accent)] normal-case">In flight</span>
+        <span class="flex-1 border-t border-dashed border-border"></span>
+        <span class="text-accent normal-case">In flight</span>
       </div>
       <div class="space-y-3">
         {#each now as item (item.title)}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+          <div class="bg-surface border border-border rounded-lg p-4">
             <div class="flex items-baseline justify-between gap-3 mb-2">
-              <h3 class="text-base font-semibold text-[var(--text-heading)]">{item.title}</h3>
+              <h3 class="text-base font-semibold text-heading">{item.title}</h3>
               <span class="inline-block text-xs font-mono font-bold px-2 py-0.5 rounded {sizeBadgeClass(item.size)}">{item.size}</span>
             </div>
-            <p class="text-sm text-[var(--text)] font-sans leading-relaxed">{item.detail}</p>
+            <p class="text-sm text-body font-sans leading-relaxed">{item.detail}</p>
           </div>
         {/each}
       </div>
@@ -183,26 +180,26 @@
 
     <!-- 02 // Next -->
     <section>
-      <div class="text-xs font-mono text-[var(--muted)] uppercase tracking-widest mb-3 flex items-center gap-3">
+      <div class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3">
         <span>02 // Next</span>
-        <span class="flex-1 border-t border-dashed border-[var(--border)]"></span>
-        <span class="text-[var(--info)] normal-case">Queued</span>
+        <span class="flex-1 border-t border-dashed border-border"></span>
+        <span class="text-info normal-case">Queued</span>
       </div>
       <div class="space-y-3">
         {#each next as item, i (item.title)}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+          <div class="bg-surface border border-border rounded-lg p-4">
             <div class="flex items-baseline justify-between gap-3 mb-2">
-              <h3 class="text-base font-semibold text-[var(--text-heading)]">
-                <span class="text-[var(--muted)] font-mono mr-2">{String(i + 1).padStart(2, '0')}</span>
+              <h3 class="text-base font-semibold text-heading">
+                <span class="text-muted font-mono mr-2">{String(i + 1).padStart(2, '0')}</span>
                 {item.title}
               </h3>
               <span class="inline-block text-xs font-mono font-bold px-2 py-0.5 rounded {sizeBadgeClass(item.size)}">{item.size}</span>
             </div>
-            <p class="text-sm text-[var(--text)] font-sans leading-relaxed mb-2">{item.detail}</p>
+            <p class="text-sm text-body font-sans leading-relaxed mb-2">{item.detail}</p>
             {#if item.blocking}
-              <div class="text-xs font-mono text-[var(--warning)] mt-2 flex items-baseline gap-2">
+              <div class="text-xs font-mono text-warning mt-2 flex items-baseline gap-2">
                 <span class="font-bold uppercase tracking-wide">Blocked by</span>
-                <span class="font-sans text-[var(--muted)]">{item.blocking}</span>
+                <span class="font-sans text-muted">{item.blocking}</span>
               </div>
             {/if}
           </div>
@@ -212,16 +209,16 @@
 
     <!-- 03 // Open Questions -->
     <section>
-      <div class="text-xs font-mono text-[var(--muted)] uppercase tracking-widest mb-3 flex items-center gap-3">
+      <div class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3">
         <span>03 // Open Questions</span>
-        <span class="flex-1 border-t border-dashed border-[var(--border)]"></span>
-        <span class="text-[var(--warning)] normal-case">Parked</span>
+        <span class="flex-1 border-t border-dashed border-border"></span>
+        <span class="text-warning normal-case">Parked</span>
       </div>
       <div class="space-y-3">
         {#each open as q (q.title)}
-          <div class="bg-[var(--surface)] border border-dashed border-[var(--border)] rounded-lg p-4">
-            <h3 class="text-base font-semibold text-[var(--text-heading)] mb-2">{q.title}</h3>
-            <p class="text-sm text-[var(--text)] font-sans leading-relaxed">{q.note}</p>
+          <div class="bg-surface border border-dashed border-border rounded-lg p-4">
+            <h3 class="text-base font-semibold text-heading mb-2">{q.title}</h3>
+            <p class="text-sm text-body font-sans leading-relaxed">{q.note}</p>
           </div>
         {/each}
       </div>
@@ -229,19 +226,19 @@
 
     <!-- 04 // Recently Shipped -->
     <section>
-      <div class="text-xs font-mono text-[var(--muted)] uppercase tracking-widest mb-3 flex items-center gap-3">
+      <div class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3">
         <span>04 // Recently Shipped</span>
-        <span class="flex-1 border-t border-dashed border-[var(--border)]"></span>
-        <span class="text-[var(--success)] normal-case">Done</span>
+        <span class="flex-1 border-t border-dashed border-border"></span>
+        <span class="text-success normal-case">Done</span>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+      <div class="bg-surface border border-border rounded-lg p-4">
         <ul class="space-y-2.5">
           {#each recentlyShipped as item (item.label)}
             <li class="flex gap-3 items-baseline">
-              <span class="text-[var(--success)] flex-shrink-0">✓</span>
+              <span class="text-success flex-shrink-0">✓</span>
               <div class="flex-1">
-                <span class="text-sm font-semibold text-[var(--text-heading)]">{item.label}</span>
-                <span class="text-sm text-[var(--text)] font-sans"> — {item.detail}</span>
+                <span class="text-sm font-semibold text-heading">{item.label}</span>
+                <span class="text-sm text-body font-sans"> — {item.detail}</span>
               </div>
             </li>
           {/each}
@@ -249,4 +246,4 @@
       </div>
     </section>
   </div>
-</div>
+</PageLayout>

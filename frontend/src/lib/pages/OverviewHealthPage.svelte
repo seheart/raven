@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { logger } from '../logger.js';
   import { projectFilter } from '../projectFilterStore.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   /**
    * Project Health Details Page
    * Comprehensive health analysis for a single project
@@ -85,21 +86,17 @@
   onDestroy(() => abortRequests());
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Project Health</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Health analysis for {selectedProject === 'all' ? 'all projects' : selectedProject}
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader
+    title="Project Health"
+    description="Health analysis for {selectedProject === 'all' ? 'all projects' : selectedProject}"
+  >
+    {#snippet actions()}
       <div class="flex items-center gap-3">
         <select
           bind:value={selectedDays}
           onchange={loadHealthSummary}
-          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] cursor-pointer"
+          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body cursor-pointer"
         >
           <option value={1}>Last 24 hours</option>
           <option value={7}>Last 7 days</option>
@@ -108,25 +105,26 @@
         <button
           onclick={loadHealthSummary}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if loading && !healthData}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
         <div
-          class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
+          class="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4"
         ></div>
-        <p class="text-sm text-[var(--muted)] font-sans">Calculating health score...</p>
+        <p class="text-sm text-muted font-sans">Calculating health score...</p>
       </div>
     {:else if error}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-sm text-[var(--error)] mb-2">{error}</p>
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <p class="text-sm text-error mb-2">{error}</p>
         <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors mt-4"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors mt-4"
           onclick={loadHealthSummary}
         >
           Try Again
@@ -134,13 +132,13 @@
       </div>
     {:else if healthData}
       <!-- Overall Health Score -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+      <div class="bg-surface border border-border rounded-lg p-5 mb-6">
         <div class="flex items-center justify-between mb-3">
           <div>
-            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
               Overall Health Score
             </h3>
-            <p class="text-sm text-[var(--muted)]">
+            <p class="text-sm text-muted">
               <span class="capitalize">{overallStatus}</span> — {projectsData.length} project{projectsData.length !==
               1
                 ? 's'
@@ -151,10 +149,10 @@
             <div class="text-2xl font-bold font-mono" style="color: {scoreColor}">
               {overallScore}
             </div>
-            <div class="text-xs text-[var(--muted)]">/ 100</div>
+            <div class="text-xs text-muted">/ 100</div>
           </div>
         </div>
-        <div class="h-2 bg-[var(--bg)] rounded overflow-hidden">
+        <div class="h-2 bg-canvas rounded overflow-hidden">
           <div
             class="h-full transition-all duration-500"
             style="width: {overallScore}%; background: {scoreColor}"
@@ -164,60 +162,60 @@
 
       <!-- Summary Stats Grid -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Events
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{totalEvents.toLocaleString()}</div>
+          <div class="text-sm font-mono text-body">{totalEvents.toLocaleString()}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Recent Events
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{recentEvents.toLocaleString()}</div>
+          <div class="text-sm font-mono text-body">{recentEvents.toLocaleString()}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Errors
           </div>
           <div class="flex items-center gap-2">
             <span
               class="w-2 h-2 rounded-full {totalErrors > 0
-                ? 'bg-[var(--error)]'
-                : 'bg-[var(--success)]'}"
+                ? 'bg-error'
+                : 'bg-success'}"
             ></span>
-            <span class="text-sm font-mono text-[var(--text)]">{totalErrors.toLocaleString()}</span>
+            <span class="text-sm font-mono text-body">{totalErrors.toLocaleString()}</span>
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Projects
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{projectsData.length}</div>
+          <div class="text-sm font-mono text-body">{projectsData.length}</div>
         </div>
       </div>
 
       <!-- Per-Project Health -->
       {#if projectsData.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+        <div class="bg-surface border border-border rounded-lg p-6">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             Per-Project Health
           </h3>
 
           <div class="space-y-3">
             {#each projectsData as project (project.project_name)}
               <div
-                class="flex items-center gap-4 p-3 bg-[var(--bg)] border border-[var(--border)] rounded"
+                class="flex items-center gap-4 p-3 bg-canvas border border-border rounded"
               >
                 <div
-                  class="text-sm font-mono text-[var(--text)] w-32 truncate"
+                  class="text-sm font-mono text-body w-32 truncate"
                   title={project.project_name}
                 >
                   {project.project_name}
                 </div>
 
                 <div class="flex-1 flex items-center gap-3">
-                  <div class="flex-1 h-2 bg-[var(--surface)] rounded overflow-hidden">
+                  <div class="flex-1 h-2 bg-surface rounded overflow-hidden">
                     <div
                       class="h-full transition-all"
                       style="width: {project.health_score || 0}%; background: {getScoreColor(
@@ -233,7 +231,7 @@
                   </span>
                 </div>
 
-                <div class="text-xs font-mono text-[var(--muted)] w-20 text-right">
+                <div class="text-xs font-mono text-muted w-20 text-right">
                   {project.error_count || 0} errors
                 </div>
 
@@ -248,7 +246,7 @@
                           : 'medium'
                     )}"
                   ></span>
-                  <span class="text-[var(--text)]">{project.status}</span>
+                  <span class="text-body">{project.status}</span>
                 </span>
               </div>
             {/each}
@@ -256,5 +254,4 @@
         </div>
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>
