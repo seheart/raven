@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { formatTimeOnly, formatDateTime } from '../timeFormat.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
    * Analysis Overview Page - Tailwind Version
@@ -113,6 +114,8 @@
       return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
     };
 
+    // Tokyo Night fallbacks for Chart.js when the css var lookup fails.
+    // design-system-allow: hex
     const textColor = getColor('--text', '#c0caf5');
     const mutedColor = getColor('--muted', '#565f89');
     const accentColor = getColor('--accent', '#7aa2f7');
@@ -210,38 +213,32 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Analysis Overview</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Performance metrics, trends, and insights
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader title="Analysis Overview" description="Performance metrics, trends, and insights">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-[var(--muted)] font-mono">Updated {timeSinceUpdate}s ago</span>
+        <span class="text-xs text-muted font-mono">Updated {timeSinceUpdate}s ago</span>
         <button
           onclick={() => loadAnalysisData()}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '&#8635;'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if error}
       <div
-        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
+        class="bg-error-subtle border border-error rounded-lg p-4 mb-6 flex justify-between items-center"
       >
-        <span class="text-sm text-[var(--error)] font-sans"
+        <span class="text-sm text-error font-sans"
           >Failed to load analysis data: {error}</span
         >
         <button
           onclick={() => loadAnalysisData()}
-          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+          class="px-3 py-1.5 bg-error text-white rounded text-sm font-sans"
         >
           Retry
         </button>
@@ -250,7 +247,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {#each Array(4) as _, i (i)}
           <div
-            class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            class="h-24 bg-surface border border-border rounded-lg animate-pulse"
           ></div>
         {/each}
       </div>
@@ -258,21 +255,21 @@
       <!-- Performance Metrics Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <!-- CPU Usage -->
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded-lg p-5">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             CPU Usage
           </div>
           <div class="flex items-center gap-2 mb-3">
             <span
               class="w-2 h-2 rounded-full {cpuHealth === 'critical'
-                ? 'bg-[var(--error)]'
+                ? 'bg-error'
                 : cpuHealth === 'warning'
-                  ? 'bg-[var(--warning)]'
-                  : 'bg-[var(--success)]'}"
+                  ? 'bg-warning'
+                  : 'bg-success'}"
             ></span>
-            <span class="text-sm font-mono text-[var(--text)]">{performanceMetrics.cpu}%</span>
+            <span class="text-sm font-mono text-body">{performanceMetrics.cpu}%</span>
           </div>
-          <div class="h-2 bg-[var(--bg)] rounded overflow-hidden mb-2">
+          <div class="h-2 bg-canvas rounded overflow-hidden mb-2">
             <div
               class="h-full transition-all duration-500"
               style="width: {performanceMetrics.cpu}%; background: {cpuHealth === 'critical'
@@ -282,27 +279,27 @@
                   : 'var(--success)'}"
             ></div>
           </div>
-          <div class="text-xs text-[var(--muted)]">
+          <div class="text-xs text-muted">
             {cpuHealth === 'good' ? 'Normal' : cpuHealth === 'warning' ? 'Elevated' : 'High'}
           </div>
         </div>
 
         <!-- Memory Usage -->
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded-lg p-5">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Memory Usage
           </div>
           <div class="flex items-center gap-2 mb-3">
             <span
               class="w-2 h-2 rounded-full {memHealth === 'critical'
-                ? 'bg-[var(--error)]'
+                ? 'bg-error'
                 : memHealth === 'warning'
-                  ? 'bg-[var(--warning)]'
-                  : 'bg-[var(--success)]'}"
+                  ? 'bg-warning'
+                  : 'bg-success'}"
             ></span>
-            <span class="text-sm font-mono text-[var(--text)]">{performanceMetrics.memory}%</span>
+            <span class="text-sm font-mono text-body">{performanceMetrics.memory}%</span>
           </div>
-          <div class="h-2 bg-[var(--bg)] rounded overflow-hidden mb-2">
+          <div class="h-2 bg-canvas rounded overflow-hidden mb-2">
             <div
               class="h-full transition-all duration-500"
               style="width: {performanceMetrics.memory}%; background: {memHealth === 'critical'
@@ -312,7 +309,7 @@
                   : 'var(--success)'}"
             ></div>
           </div>
-          <div class="text-xs text-[var(--muted)]">
+          <div class="text-xs text-muted">
             {memHealth === 'good' ? 'Normal' : memHealth === 'warning' ? 'Elevated' : 'High'}
           </div>
         </div>
@@ -320,8 +317,8 @@
 
       <!-- CPU/Memory Chart -->
       {#if metricsHistory.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+        <div class="bg-surface border border-border rounded-lg p-5 mb-6">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             Performance Trends
           </h3>
           <div style="height: 300px;">
@@ -334,28 +331,28 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <button
           onclick={() => navigate('/analysis/triggers')}
-          class="bg-[var(--surface)] border border-[var(--border)] rounded p-4 text-left hover:border-[var(--accent)] transition-colors"
+          class="bg-surface border border-border rounded p-4 text-left hover:border-accent transition-colors"
         >
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Active Triggers
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">{activeTriggers}</div>
+          <div class="text-sm font-mono text-body">{activeTriggers}</div>
         </button>
       </div>
 
       <!-- Recent Triggered Events -->
       {#if triggeredEvents.length > 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+        <div class="bg-surface border border-border rounded-lg p-5 mb-6">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             Recent Triggered Events
           </h3>
           <div class="space-y-3 text-sm">
             {#each triggeredEvents.slice(0, 5) as event, i (event.id || `${event.timestamp}-${i}`)}
-              <div class="flex justify-between border-b border-[var(--border)] pb-2">
-                <span class="text-[var(--muted)]">
+              <div class="flex justify-between border-b border-border pb-2">
+                <span class="text-muted">
                   {event.trigger_name || 'Trigger Fired'}
                 </span>
-                <span class="font-mono text-[var(--text)] text-xs">
+                <span class="font-mono text-body text-xs">
                   {event.message || event.event_type} · {formatDateTime(
                     event.timestamp || Date.now()
                   )}
@@ -366,5 +363,4 @@
         </div>
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
    * Historical Trends Page
@@ -363,49 +364,45 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Historical Trends</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">Activity patterns over time</p>
-      </div>
+<PageLayout>
+  <PageHeader title="Historical Trends" description="Activity patterns over time">
+    {#snippet actions()}
       <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-xs text-[var(--muted)] font-mono">{timeSinceUpdate}</span>
+        <span class="text-xs text-muted font-mono">{timeSinceUpdate}</span>
         <button
           onclick={exportToCSV}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
         >
           Export CSV
         </button>
         <button
           onclick={exportToJSON}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
         >
           Export JSON
         </button>
         <button
           onclick={loadTrends}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     <!-- Filters -->
     <div
-      class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex gap-6 flex-wrap"
+      class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-6 flex-wrap"
     >
       <div class="flex items-center gap-3">
-        <label for="period-select" class="text-sm text-[var(--muted)]">Period</label>
+        <label for="period-select" class="text-sm text-muted">Period</label>
         <select
           id="period-select"
           value={period}
           onchange={handlePeriodChange}
-          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] hover:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
         >
           <option value="hourly">Hourly</option>
           <option value="daily">Daily</option>
@@ -413,12 +410,12 @@
         </select>
       </div>
       <div class="flex items-center gap-3">
-        <label for="days-select" class="text-sm text-[var(--muted)]">Last</label>
+        <label for="days-select" class="text-sm text-muted">Last</label>
         <select
           id="days-select"
           value={days}
           onchange={handleDaysChange}
-          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] hover:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
         >
           <option value="1">24 hours</option>
           <option value="7">7 days</option>
@@ -433,83 +430,83 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {#each Array(4) as _, i (i)}
           <div
-            class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            class="h-24 bg-surface border border-border rounded-lg animate-pulse"
           ></div>
         {/each}
       </div>
     {:else if error}
       <div
-        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 flex justify-between items-center"
+        class="bg-error-subtle border border-error rounded-lg p-4 flex justify-between items-center"
       >
-        <span class="text-sm text-[var(--error)] font-sans">Error loading trends: {error}</span>
+        <span class="text-sm text-error font-sans">Error loading trends: {error}</span>
         <button
           onclick={loadTrends}
-          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+          class="px-3 py-1.5 bg-error text-white rounded text-sm font-sans"
         >
           Try Again
         </button>
       </div>
     {:else if initialized && trends.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-8 text-center">
-        <p class="text-sm text-[var(--muted)] font-sans mb-2">
+      <div class="bg-surface border border-border rounded-lg p-8 text-center">
+        <p class="text-sm text-muted font-sans mb-2">
           No activity data for the selected period
         </p>
-        <p class="text-sm text-[var(--muted)] font-sans">Try selecting a longer time range</p>
+        <p class="text-sm text-muted font-sans">Try selecting a longer time range</p>
       </div>
     {:else}
       <!-- Summary Stats -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Events
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {totalEvents.toLocaleString()}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Modifications
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {totalModifications.toLocaleString()}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Creations
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {totalCreations.toLocaleString()}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Deletions
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {totalDeletions.toLocaleString()}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Unique Files
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {totalUniqueFiles.toLocaleString()}
           </div>
         </div>
       </div>
 
       <!-- Visualizations Section -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+      <div class="bg-surface border border-border rounded-lg p-5 mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
             Analytics Visualizations
-          </h2>
+          </h3>
           <button
             onclick={() => (showCharts = !showCharts)}
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-sans hover:border-accent transition-colors"
           >
             {showCharts ? 'Hide Charts' : 'Show Charts'}
           </button>
@@ -518,14 +515,14 @@
         {#if showCharts}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Trends Over Time Chart -->
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4">
+            <div class="bg-canvas border border-border rounded-lg p-4">
               <div role="img" aria-label={trendsOverTimeAriaLabel} style="height: 250px;">
                 <canvas id="chart-trends-over-time"></canvas>
               </div>
             </div>
 
             <!-- Period Comparison Chart -->
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4">
+            <div class="bg-canvas border border-border rounded-lg p-4">
               <div role="img" aria-label={periodComparisonAriaLabel} style="height: 250px;">
                 <canvas id="chart-period-comparison"></canvas>
               </div>
@@ -535,59 +532,59 @@
       </div>
 
       <!-- Data Table -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
+      <div class="bg-surface border border-border rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
           Period Breakdown
         </h3>
         <div class="overflow-x-auto">
           <table class="w-full">
-            <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
+            <thead class="bg-canvas border-b border-border">
               <tr class="text-left">
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide"
                   >Period</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
                   >Events</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
                   >Modified</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
                   >Created</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
                   >Deleted</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
                   >Files</th
                 >
               </tr>
             </thead>
             <tbody>
               {#each trends as t (t.period)}
-                <tr class="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)]"
+                <tr class="border-b border-border hover:bg-canvas transition-colors">
+                  <td class="px-3 py-2 text-sm font-mono text-body"
                     >{formatPeriod(t.period)}</td
                   >
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
                     >{(t.event_count || 0).toLocaleString()}</td
                   >
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
                     >{(t.modifications || 0).toLocaleString()}</td
                   >
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
                     >{(t.creations || 0).toLocaleString()}</td
                   >
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
                     >{(t.deletions || 0).toLocaleString()}</td
                   >
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] text-right"
+                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
                     >{(t.unique_files || 0).toLocaleString()}</td
                   >
                 </tr>
@@ -597,5 +594,4 @@
         </div>
       </div>
     {/if}
-  </div>
-</div>
+</PageLayout>
