@@ -1,5 +1,6 @@
 <script>
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateOnly, formatDateTime } from '../timeFormat.js';
   /**
@@ -540,66 +541,58 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Conversations</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          View and search agent conversations and interactions
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader title="Agent Conversations" description="View and search agent conversations and interactions">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
         {#if lastUpdate}
-          <span class="text-xs text-[var(--muted)] font-mono"
-            >{formatTime(lastUpdate.toISOString())}</span
-          >
+          <span class="text-xs text-muted font-mono">{formatTime(lastUpdate.toISOString())}</span>
         {/if}
         <button
           onclick={loadConversations}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Conversations
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">
+        <div class="text-sm font-mono text-body">
           {stats.total.toLocaleString()}
         </div>
       </div>
 
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           User Messages
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">
+        <div class="text-sm font-mono text-body">
           {(stats.by_type?.user_message || 0).toLocaleString()}
         </div>
       </div>
 
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Assistant Responses
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">
+        <div class="text-sm font-mono text-body">
           {(stats.by_type?.assistant_text || 0).toLocaleString()}
         </div>
       </div>
 
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Tool Calls
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">
+        <div class="text-sm font-mono text-body">
           {(stats.by_type?.tool_call || 0).toLocaleString()}
         </div>
       </div>
@@ -607,13 +600,13 @@
 
     <!-- Charts Section -->
     {#if !loading && stats.total > 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+      <div class="bg-surface border border-border rounded-lg p-5 mb-6">
         <div class="flex justify-between items-center mb-5">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
             Analytics
           </h3>
           <button
-            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans cursor-pointer hover:border-[var(--accent)] transition-colors"
+            class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans cursor-pointer hover:border-accent transition-colors"
             onclick={() => (showCharts = !showCharts)}
           >
             {showCharts ? 'Hide Charts' : 'Show Charts'}
@@ -621,14 +614,14 @@
         </div>
         {#if showCharts}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
-              <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Event Type Distribution</h4>
+            <div class="bg-canvas border border-border rounded-lg p-5">
+              <h4 class="text-xs font-semibold text-body mb-3">Event Type Distribution</h4>
               <div class="h-[250px] relative">
                 <canvas id="chart-type-breakdown"></canvas>
               </div>
             </div>
-            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-5">
-              <h4 class="text-xs font-semibold text-[var(--text)] mb-3">Top 10 Projects</h4>
+            <div class="bg-canvas border border-border rounded-lg p-5">
+              <h4 class="text-xs font-semibold text-body mb-3">Top 10 Projects</h4>
               <div class="h-[300px] relative">
                 <canvas id="chart-project-distribution"></canvas>
               </div>
@@ -639,17 +632,17 @@
     {/if}
 
     <!-- Controls -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+    <div class="bg-surface border border-border rounded-lg p-5 mb-6">
       <div class="flex gap-3 flex-wrap items-center">
         <input
           type="text"
-          class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm"
+          class="flex-1 min-w-[200px] px-3 py-2 bg-canvas border border-border rounded text-body font-mono text-sm"
           placeholder="Search conversations..."
           bind:value={searchQuery}
         />
 
         <select
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer"
+          class="px-3 py-2 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer"
           bind:value={filterType}
           onchange={loadConversations}
         >
@@ -661,7 +654,7 @@
         </select>
 
         <select
-          class="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer"
+          class="px-3 py-2 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer"
           bind:value={filterProject}
           onchange={loadConversations}
         >
@@ -672,14 +665,14 @@
         </select>
 
         <label
-          class="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded cursor-pointer text-sm"
+          class="flex items-center gap-2 px-3 py-2 bg-canvas border border-border rounded cursor-pointer text-sm"
         >
           <input type="checkbox" class="cursor-pointer" bind:checked={autoRefresh} />
           Auto-refresh
         </label>
 
         <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
           onclick={toggleExpandAll}
           disabled={filteredConversations.length === 0}
         >
@@ -687,49 +680,49 @@
         </button>
 
         <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
           onclick={exportConversations}
           >Export
         </button>
       </div>
 
       <!-- Secondary Controls Row -->
-      <div class="flex gap-3 flex-wrap items-center mt-5 pt-5 border-t border-[var(--border)]">
+      <div class="flex gap-3 flex-wrap items-center mt-5 pt-5 border-t border-border">
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs text-[var(--muted)] font-semibold uppercase tracking-wide"
+          <span class="text-xs text-muted font-semibold uppercase tracking-wide"
             >Date Range:</span
           >
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {dateRange ===
             'all'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (dateRange = 'all')}
           >
             All Time
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {dateRange ===
             'today'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (dateRange = 'today')}
           >
             Today
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {dateRange ===
             '7d'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (dateRange = '7d')}
           >
             7 Days
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {dateRange ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {dateRange ===
             '30d'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (dateRange = '30d')}
           >
@@ -738,31 +731,31 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs text-[var(--muted)] font-semibold uppercase tracking-wide"
+          <span class="text-xs text-muted font-semibold uppercase tracking-wide"
             >Sort By:</span
           >
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {sortBy ===
             'timestamp'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => toggleSort('timestamp')}
           >
             Time {sortBy === 'timestamp' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {sortBy ===
             'type'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => toggleSort('type')}
           >
             Type {sortBy === 'type' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {sortBy ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {sortBy ===
             'project'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => toggleSort('project')}
           >
@@ -771,22 +764,22 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs text-[var(--muted)] font-semibold uppercase tracking-wide"
+          <span class="text-xs text-muted font-semibold uppercase tracking-wide"
             >View:</span
           >
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {viewMode ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {viewMode ===
             'compact'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (viewMode = 'compact')}
           >
             Compact
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {viewMode ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {viewMode ===
             'detailed'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (viewMode = 'detailed')}
           >
@@ -795,40 +788,40 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs text-[var(--muted)] font-semibold uppercase tracking-wide"
+          <span class="text-xs text-muted font-semibold uppercase tracking-wide"
             >Group:</span
           >
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {groupBy ===
             'none'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (groupBy = 'none')}
           >
             None
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {groupBy ===
             'session'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (groupBy = 'session')}
           >
             Session
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {groupBy ===
             'project'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (groupBy = 'project')}
           >
             Project
           </button>
           <button
-            class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-sm cursor-pointer hover:border-[var(--accent)] transition-colors {groupBy ===
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {groupBy ===
             'date'
-              ? '!bg-[var(--accent)] !text-white !border-[var(--accent)] font-semibold'
+              ? '!bg-accent !text-white !border-accent font-semibold'
               : ''}"
             onclick={() => (groupBy = 'date')}
           >
@@ -843,9 +836,9 @@
       <div
         class="flex flex-col items-center justify-center gap-4 p-8 bg-[color-mix(in_srgb,var(--error)_5%,transparent)] border border-[color-mix(in_srgb,var(--error)_20%,transparent)] rounded-lg text-center mb-6"
       >
-        <p class="m-0 text-[var(--error)] text-sm font-medium">Error: {error}</p>
+        <p class="m-0 text-error text-sm font-medium">Error: {error}</p>
         <button
-          class="px-4 py-2 bg-[var(--error)] text-white border-none rounded text-sm font-semibold cursor-pointer hover:translate-y-[-1px] hover:shadow-md transition-all focus:outline-2 focus:outline-[var(--error)] focus:outline-offset-2"
+          class="px-4 py-2 bg-error text-white border-none rounded text-sm font-semibold cursor-pointer hover:translate-y-[-1px] hover:shadow-md transition-all focus:outline-2 focus:outline-[var(--error)] focus:outline-offset-2"
           onclick={loadConversations}
           >Retry
         </button>
@@ -853,27 +846,27 @@
     {:else if loading}
       <div class="text-center p-8">
         <div
-          class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
+          class="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4"
         ></div>
-        <p class="text-sm text-[var(--muted)]">Loading conversations...</p>
+        <p class="text-sm text-muted">Loading conversations...</p>
       </div>
     {:else if filteredConversations.length === 0}
-      <div class="text-center p-12 text-[var(--muted)]">
+      <div class="text-center p-12 text-muted">
         <p class="text-sm">No conversations found</p>
       </div>
     {:else}
       <div class="flex flex-col gap-3">
-        <div class="text-xs text-[var(--muted)] py-2">
+        <div class="text-xs text-muted py-2">
           Showing {filteredConversations.length} of {stats.total} conversations
         </div>
 
         {#each Object.entries(groupedConversations) as [groupName, groupConvs] (groupName)}
           {#if groupBy !== 'none'}
             <div
-              class="flex items-center gap-3 px-5 py-3 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg mb-3 mt-5"
+              class="flex items-center gap-3 px-5 py-3 bg-surface-2 border border-border rounded-lg mb-3 mt-5"
             >
-              <h3 class="m-0 text-sm font-semibold text-[var(--accent)]">{groupName}</h3>
-              <span class="text-xs text-[var(--muted)] font-mono"
+              <h3 class="m-0 text-sm font-semibold text-accent">{groupName}</h3>
+              <span class="text-xs text-muted font-mono"
                 >({groupConvs.length} conversations)</span
               >
             </div>
@@ -881,90 +874,90 @@
 
           {#each groupConvs as conv (conv.id)}
             <article
-              class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden {getEventClass(
+              class="bg-surface border border-border rounded-lg overflow-hidden {getEventClass(
                 conv.event_type
               ) === 'user'
-                ? 'border-l-4 border-l-[var(--accent)]'
+                ? 'border-l-4 border-l-accent'
                 : getEventClass(conv.event_type) === 'assistant'
-                  ? 'border-l-4 border-l-[var(--info)]'
+                  ? 'border-l-4 border-l-info'
                   : getEventClass(conv.event_type) === 'tool-call'
-                    ? 'border-l-4 border-l-[var(--warning)]'
+                    ? 'border-l-4 border-l-warning'
                     : getEventClass(conv.event_type) === 'tool-result'
-                      ? 'border-l-4 border-l-[var(--success)]'
+                      ? 'border-l-4 border-l-success'
                       : ''}"
             >
               <button
-                class="flex items-center gap-3 p-5 cursor-pointer w-full bg-transparent border-none text-left font-inherit text-inherit hover:bg-[var(--bg)] focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-[-2px] transition-colors"
+                class="flex items-center gap-3 p-5 cursor-pointer w-full bg-transparent border-none text-left font-inherit text-inherit hover:bg-canvas focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-[-2px] transition-colors"
                 onclick={() => toggleExpanded(conv.id)}
               >
                 <div class="text-xs shrink-0">{getEventIcon(conv.event_type)}</div>
                 <div class="flex-1 min-w-0">
                   <div class="flex gap-2 mb-2 flex-wrap">
-                    <span class="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]"
+                    <span class="text-xs font-semibold uppercase tracking-wide text-accent"
                       >{conv.event_type}</span
                     >
                     {#if conv.file}
                       <span
-                        class="text-xs px-2 py-0.5 rounded bg-[var(--bg)] text-[var(--muted)] font-mono truncate max-w-[200px]"
+                        class="text-xs px-2 py-0.5 rounded bg-canvas text-muted font-mono truncate max-w-[200px]"
                         >{conv.file.split('/').slice(-2).join('/')}</span
                       >
                     {/if}
                     {#if conv.project_name}
-                      <span class="text-xs px-2 py-0.5 rounded bg-[var(--bg)] text-[var(--muted)]"
+                      <span class="text-xs px-2 py-0.5 rounded bg-canvas text-muted"
                         >{conv.project_name}</span
                       >
                     {/if}
                   </div>
                   {#if viewMode === 'detailed' && conv.message}
                     <div
-                      class="text-xs text-[var(--text)] leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis"
+                      class="text-xs text-body leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       {truncateContent(conv.message, 120)}
                     </div>
                   {/if}
                 </div>
                 <div class="text-right shrink-0">
-                  <time class="text-xs text-[var(--muted)] block mb-1" datetime={conv.timestamp}
+                  <time class="text-xs text-muted block mb-1" datetime={conv.timestamp}
                     >{formatTime(conv.timestamp)}</time
                   >
-                  <div class="text-xs text-[var(--muted)] font-mono">#{conv.id}</div>
+                  <div class="text-xs text-muted font-mono">#{conv.id}</div>
                 </div>
-                <span class="text-xs text-[var(--muted)] shrink-0 p-1">
+                <span class="text-xs text-muted shrink-0 p-1">
                   {expandedConversations.includes(conv.id) ? '' : ''}
                 </span>
               </button>
 
               {#if expandedConversations.includes(conv.id)}
-                <div class="border-t border-[var(--border)] p-5 bg-[var(--bg)]">
+                <div class="border-t border-border p-5 bg-canvas">
                   {#if conv.message}
                     <div class="mb-4">
                       <div class="flex justify-between items-center mb-2">
                         <div
-                          class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
+                          class="text-xs font-semibold uppercase tracking-wide text-muted"
                         >
                           Message
                         </div>
                         <button
-                          class="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] font-mono text-xs cursor-pointer hover:border-[var(--accent)] transition-colors"
+                          class="px-2 py-1 bg-surface border border-border rounded text-body font-mono text-xs cursor-pointer hover:border-accent transition-colors"
                           onclick={() => copyToClipboard(conv.message, 'Message')}
                         >
                           Copy
                         </button>
                       </div>
                       <pre
-                        class="bg-[var(--surface)] border border-[var(--border)] rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">{conv.message}</pre>
+                        class="bg-surface border border-border rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">{conv.message}</pre>
                     </div>
                   {/if}
 
                   {#if conv.file}
                     <div class="mb-4">
                       <div
-                        class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] mb-2"
+                        class="text-xs font-semibold uppercase tracking-wide text-muted mb-2"
                       >
                         File
                       </div>
                       <div
-                        class="text-sm font-mono text-[var(--text)] bg-[var(--surface)] border border-[var(--border)] rounded p-3 break-all"
+                        class="text-sm font-mono text-body bg-surface border border-border rounded p-3 break-all"
                       >
                         {conv.file}
                       </div>
@@ -972,31 +965,31 @@
                   {/if}
 
                   <div
-                    class="flex flex-wrap gap-x-6 gap-y-2 p-3 bg-[var(--surface)] border border-[var(--border)] rounded text-xs"
+                    class="flex flex-wrap gap-x-6 gap-y-2 p-3 bg-surface border border-border rounded text-xs"
                   >
                     <div>
-                      <span class="text-[var(--muted)]">Agent</span>
-                      <span class="text-[var(--text)] font-mono ml-2"
+                      <span class="text-muted">Agent</span>
+                      <span class="text-body font-mono ml-2"
                         >{conv.agent || 'Unknown'}</span
                       >
                     </div>
                     {#if conv.session_id}
                       <div>
-                        <span class="text-[var(--muted)]">Session</span>
-                        <span class="text-[var(--text)] font-mono ml-2"
+                        <span class="text-muted">Session</span>
+                        <span class="text-body font-mono ml-2"
                           >{conv.session_id.slice(0, 12)}...</span
                         >
                       </div>
                     {/if}
                     {#if conv.project_name}
                       <div>
-                        <span class="text-[var(--muted)]">Project</span>
-                        <span class="text-[var(--text)] font-mono ml-2">{conv.project_name}</span>
+                        <span class="text-muted">Project</span>
+                        <span class="text-body font-mono ml-2">{conv.project_name}</span>
                       </div>
                     {/if}
                     <div>
-                      <span class="text-[var(--muted)]">Timestamp</span>
-                      <span class="text-[var(--text)] font-mono ml-2"
+                      <span class="text-muted">Timestamp</span>
+                      <span class="text-body font-mono ml-2"
                         >{formatDateTime(conv.timestamp)}</span
                       >
                     </div>
@@ -1010,7 +1003,7 @@
         {#if hasMore}
           <div class="flex justify-center p-4">
             <button
-              class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
               onclick={loadMore}
               disabled={loadingMore}
             >
@@ -1024,5 +1017,4 @@
         {/if}
       </div>
     {/if}
-  </div>
-</div>
+</PageLayout>

@@ -1,0 +1,43 @@
+/* Shared keyframes and animation utilities.
+   Page-level <style> blocks are forbidden by validate-patterns.sh once a
+   page has migrated to PageLayout — animations live here instead.
+
+   Imported from src/app.css (global). */
+
+@keyframes feed-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes stat-flash {
+  0% { background-color: var(--accent-subtle); }
+  100% { background-color: transparent; }
+}
+
+@keyframes progress-stripe {
+  from { background-position: 0 0; }
+  to { background-position: 24px 0; }
+}
+
+.animate-feed-slide-in {
+  animation: feed-slide-in 200ms var(--ease-out-expo);
+}
+
+.animate-cursor-blink {
+  animation: cursor-blink 1s steps(2) infinite;
+}
+
+.animate-stat-flash {
+  animation: stat-flash 600ms var(--ease-smooth);
+}

@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { formatDateTime, formatTimeOnly } from '../timeFormat.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   /**
    * Activity Code Changes Page - Detailed file change log with real-time updates
    */
@@ -203,80 +204,75 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Code Changes</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">Source code file change history</p>
-      </div>
+<PageLayout>
+  <PageHeader title="Code Changes" description="Source code file change history">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-[var(--muted)] font-mono">{formatTimeOnly(lastUpdated)}</span
-        >
+        <span class="text-xs text-muted font-mono">{formatTimeOnly(lastUpdated)}</span>
         <button
           onclick={loadEvents}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6">
-        <span class="text-sm text-[var(--error)] font-sans"> {error}</span>
+      <div class="bg-error-subtle border border-error rounded-lg p-4 mb-6">
+        <span class="text-sm text-error font-sans"> {error}</span>
       </div>
     {/if}
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Changes
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{stats.total}</div>
+        <div class="text-sm font-mono text-body">{stats.total}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Created
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{stats.created}</div>
+        <div class="text-sm font-mono text-body">{stats.created}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Modified
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{stats.modified}</div>
+        <div class="text-sm font-mono text-body">{stats.modified}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Deleted
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{stats.deleted}</div>
+        <div class="text-sm font-mono text-body">{stats.deleted}</div>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6">
+    <div class="bg-surface border border-border rounded-lg p-4 mb-6">
       <div class="flex flex-wrap gap-4 items-center">
         <input
           type="text"
           bind:value={searchQuery}
           placeholder="Search files or projects..."
-          class="flex-1 min-w-[200px] px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+          class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
         />
         <select
           bind:value={selectedType}
-          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
         >
           <option value="all">All Types</option>
           <option value="created">Created</option>
           <option value="modified">Modified</option>
           <option value="deleted">Deleted</option>
         </select>
-        <div class="text-xs text-[var(--muted)] font-mono">
+        <div class="text-xs text-muted font-mono">
           {filteredEvents.length} of {events.length} changes
         </div>
       </div>
@@ -285,41 +281,41 @@
     <!-- Events List -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-sm text-[var(--muted)] font-sans">Loading changes...</div>
+        <div class="text-sm text-muted font-sans">Loading changes...</div>
       </div>
     {:else if filteredEvents.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-sm font-semibold text-[var(--text-heading)] mb-2">No changes found</div>
-        <div class="text-sm text-[var(--muted)] font-sans">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <div class="text-sm font-semibold text-heading mb-2">No changes found</div>
+        <div class="text-sm text-muted font-sans">
           {searchQuery || selectedType !== 'all'
             ? 'Try adjusting your filters'
             : 'Waiting for code changes to be detected'}
         </div>
       </div>
     {:else}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+      <div class="bg-surface border border-border rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full">
-            <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
+            <thead class="bg-canvas border-b border-border">
               <tr class="text-left">
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide"
                   >Type</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide"
                   >File</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide"
                   >Project</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
                   >Size</th
                 >
                 <th
-                  class="px-3 py-2 text-xs font-semibold text-[var(--muted)] uppercase tracking-wide text-right"
+                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
                   >Time</th
                 >
               </tr>
@@ -327,7 +323,7 @@
             <tbody>
               {#each filteredEvents as event (event.id)}
                 <tr
-                  class="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors cursor-pointer"
+                  class="border-b border-border hover:bg-canvas transition-colors cursor-pointer"
                   onclick={() => viewDiff(event)}
                 >
                   <td class="px-3 py-2">
@@ -340,18 +336,18 @@
                       {event.change_type?.toUpperCase() || 'UNKNOWN'}
                     </span>
                   </td>
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--text)] max-w-md">
+                  <td class="px-3 py-2 text-sm font-mono text-body max-w-md">
                     <div class="truncate" title={event.filepath}>
                       {event.filepath || 'Unknown'}
                     </div>
                   </td>
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--muted)]">
+                  <td class="px-3 py-2 text-sm font-mono text-muted">
                     {event.project || '-'}
                   </td>
-                  <td class="px-3 py-2 text-sm font-mono text-[var(--muted)] text-right">
+                  <td class="px-3 py-2 text-sm font-mono text-muted text-right">
                     {formatBytes(event.event_size)}
                   </td>
-                  <td class="px-3 py-2 text-xs font-mono text-[var(--muted)] text-right">
+                  <td class="px-3 py-2 text-xs font-mono text-muted text-right">
                     {formatTime(event.timestamp)}
                   </td>
                 </tr>
@@ -365,18 +361,17 @@
         <div class="mt-4 text-center">
           <button
             onclick={loadMore}
-            class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+            class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
           >
             Load More ({filteredEvents.length} of {events.length})
           </button>
         </div>
       {:else if events.length > 0}
-        <div class="mt-4 text-center text-sm text-[var(--muted)] font-sans">
+        <div class="mt-4 text-center text-sm text-muted font-sans">
           Showing all {filteredEvents.length} changes
         </div>
       {/if}
     {/if}
-  </div>
 
   <!-- DiffViewer Modal -->
   {#if showDiff}
@@ -387,4 +382,4 @@
       onClose={() => (showDiff = false)}
     />
   {/if}
-</div>
+</PageLayout>

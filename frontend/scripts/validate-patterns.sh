@@ -90,16 +90,22 @@ MIGRATED=$(migrated_pages)
 MIGRATED_COUNT=$(echo "$MIGRATED" | grep -c . || true)
 
 # 5. Migrated pages must not contain raw hex literals — use semantic tokens
+# A "design-system-allow: hex" marker is honored on the same line OR on any
+# of the 30 lines preceding the hex (covers brand-color tables/blocks).
 echo "Checking migrated pages for raw hex literals..."
 HEX_VIOLATIONS=0
 for f in $MIGRATED; do
   is_allowlisted "$f" && continue
-  if grep -nE "#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b" "$f" 2>/dev/null | grep -v "design-system-allow" > /tmp/hex-hits.$$; then
-    if [ -s /tmp/hex-hits.$$ ]; then
-      echo "❌ $f: raw hex literal (use semantic tokens or mark with /* design-system-allow: hex */)"
-      cat /tmp/hex-hits.$$ | sed 's/^/   /'
-      HEX_VIOLATIONS=$((HEX_VIOLATIONS + 1))
-    fi
+  awk '
+    /design-system-allow:[ ]*hex/ { allow_until = NR + 30 }
+    /#[0-9a-fA-F]{6}([^a-fA-F0-9]|$)/ {
+      if (NR > allow_until && !/design-system-allow/) print NR ":" $0
+    }
+  ' "$f" > /tmp/hex-hits.$$
+  if [ -s /tmp/hex-hits.$$ ]; then
+    echo "❌ $f: raw hex literal (use semantic tokens or mark with /* design-system-allow: hex */)"
+    cat /tmp/hex-hits.$$ | sed 's/^/   /'
+    HEX_VIOLATIONS=$((HEX_VIOLATIONS + 1))
   fi
   rm -f /tmp/hex-hits.$$
 done

@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { formatShortDateTime as formatTime } from '../timeFormat.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -105,6 +106,7 @@
   }
 
   function getTypeColor(type) {
+    // Per-subagent-type brand colors. design-system-allow: hex
     const colors = {
       'general-purpose': '#FF6B35',
       'Explore': '#10A37F',
@@ -128,81 +130,75 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Sub-Agent Tree</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Visualize parent-child agent relationships and resource usage
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader title="Sub-Agent Tree" description="Visualize parent-child agent relationships and resource usage">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-[var(--muted)] font-mono">{timeAgo}</span>
+        <span class="text-xs text-muted font-mono">{timeAgo}</span>
         <button
           onclick={loadData}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if loading && sessions.length === 0}
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {#each Array(3) as _, i (i)}
-          <div class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"></div>
+          <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
         {/each}
       </div>
     {:else}
       <!-- Stats Cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Total Sub-Agents</div>
-          <div class="text-2xl font-bold text-[var(--accent)] font-mono">{stats.total}</div>
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Sub-Agents</div>
+          <div class="text-2xl font-bold text-accent font-mono">{stats.total}</div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Sessions</div>
-          <div class="text-2xl font-bold text-[var(--text)] font-mono">{sessions.length}</div>
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Sessions</div>
+          <div class="text-2xl font-bold text-body font-mono">{sessions.length}</div>
         </div>
         {#each stats.by_type?.slice(0, 2) || [] as typeInfo (typeInfo.agent_type)}
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-            <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">{typeInfo.agent_type}</div>
-            <div class="text-2xl font-bold text-[var(--text)] font-mono">{typeInfo.count}</div>
+          <div class="bg-surface border border-border rounded p-4">
+            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">{typeInfo.agent_type}</div>
+            <div class="text-2xl font-bold text-body font-mono">{typeInfo.count}</div>
           </div>
         {/each}
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <!-- Session List -->
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Sessions</h3>
+        <div class="bg-surface border border-border rounded p-4">
+          <h3 class="text-sm font-semibold text-heading mb-3">Sessions</h3>
           <div class="space-y-1 max-h-96 overflow-y-auto">
             {#each sessions as session (session.session_id)}
               <button
                 onclick={() => selectSession(session.session_id)}
-                class="w-full text-left px-3 py-2 rounded text-sm transition-colors border-0 cursor-pointer {selectedSession === session.session_id ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg)] text-[var(--text)] hover:bg-[var(--border)]'}"
+                class="w-full text-left px-3 py-2 rounded text-sm transition-colors border-0 cursor-pointer {selectedSession === session.session_id ? 'bg-accent text-white' : 'bg-canvas text-body hover:bg-border'}"
               >
                 <div class="font-medium truncate">{session.project_name || session.session_id?.slice(0, 12)}</div>
-                <div class="text-xs {selectedSession === session.session_id ? 'text-white/70' : 'text-[var(--muted)]'}">{session.agent_count} agents · {formatTime(session.last_spawn)}</div>
+                <div class="text-xs {selectedSession === session.session_id ? 'text-white/70' : 'text-muted'}">{session.agent_count} agents · {formatTime(session.last_spawn)}</div>
               </button>
             {/each}
             {#if sessions.length === 0}
-              <p class="text-xs text-[var(--muted)] text-center py-4">No sessions with sub-agents</p>
+              <p class="text-xs text-muted text-center py-4">No sessions with sub-agents</p>
             {/if}
           </div>
         </div>
 
         <!-- Agent Tree -->
-        <div class="md:col-span-3 bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <h3 class="text-sm font-semibold text-[var(--text-heading)] mb-3">Agent Tree</h3>
+        <div class="md:col-span-3 bg-surface border border-border rounded p-4">
+          <h3 class="text-sm font-semibold text-heading mb-3">Agent Tree</h3>
 
           {#if treeLoading}
-            <div class="py-8 text-center text-sm text-[var(--muted)]">Loading tree...</div>
+            <div class="py-8 text-center text-sm text-muted">Loading tree...</div>
           {:else if treeData.length === 0}
-            <div class="py-8 text-center text-sm text-[var(--muted)]">
+            <div class="py-8 text-center text-sm text-muted">
               {selectedSession ? 'No sub-agents in this session' : 'Select a session to view the agent tree'}
             </div>
           {:else}
@@ -216,24 +212,23 @@
       </div>
 
       {#if stats.total === 0}
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-12 text-center mt-6">
+        <div class="bg-surface border border-border rounded p-12 text-center mt-6">
           <div class="text-4xl mb-4">🌳</div>
-          <h3 class="text-lg font-semibold text-[var(--text-heading)] mb-2">No sub-agent activity recorded</h3>
-          <p class="text-sm text-[var(--muted)]">
+          <h3 class="text-lg font-semibold text-heading mb-2">No sub-agent activity recorded</h3>
+          <p class="text-sm text-muted">
             Sub-agent trees will appear here when Claude Code spawns agents via the Agent tool.
           </p>
         </div>
       {/if}
     {/if}
-  </div>
-</div>
+</PageLayout>
 
 {#snippet treeNode(node)}
   <div style="margin-left: {node.depth * 24}px">
-    <div class="flex items-center gap-3 py-2 px-3 rounded bg-[var(--bg)] hover:bg-[var(--border)] transition-colors">
+    <div class="flex items-center gap-3 py-2 px-3 rounded bg-canvas hover:bg-border transition-colors">
       <!-- Connector line -->
       {#if node.depth > 0}
-        <span class="text-[var(--muted)] text-xs">└─</span>
+        <span class="text-muted text-xs">└─</span>
       {/if}
 
       <!-- Type badge -->
@@ -245,23 +240,23 @@
       </span>
 
       <!-- Description -->
-      <span class="text-sm text-[var(--text)] flex-1 truncate" title={node.description}>
+      <span class="text-sm text-body flex-1 truncate" title={node.description}>
         {node.description || node.agent_id?.slice(0, 12) || 'Unknown agent'}
       </span>
 
       <!-- Model -->
       {#if node.model}
-        <span class="text-xs text-[var(--muted)] hidden md:inline">{node.model}</span>
+        <span class="text-xs text-muted hidden md:inline">{node.model}</span>
       {/if}
 
       <!-- Tokens / Cost -->
       {#if (node.tokens?.cost_usd ?? 0) > 0}
-        <span class="text-xs text-[var(--muted)]">{formatTokens((node.tokens?.input_tokens ?? 0) + (node.tokens?.output_tokens ?? 0))} tok</span>
-        <span class="text-xs font-mono text-[var(--accent)] font-semibold">{formatCost(node.tokens?.cost_usd ?? 0)}</span>
+        <span class="text-xs text-muted">{formatTokens((node.tokens?.input_tokens ?? 0) + (node.tokens?.output_tokens ?? 0))} tok</span>
+        <span class="text-xs font-mono text-accent font-semibold">{formatCost(node.tokens?.cost_usd ?? 0)}</span>
       {/if}
 
       <!-- Timestamp -->
-      <span class="text-xs text-[var(--muted)] hidden lg:inline">{formatTime(node.started_at)}</span>
+      <span class="text-xs text-muted hidden lg:inline">{formatTime(node.started_at)}</span>
     </div>
 
     {#if node.children?.length > 0}

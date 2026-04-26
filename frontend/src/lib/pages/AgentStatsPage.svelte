@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   /**
@@ -16,27 +17,28 @@
     getChartColors
   } from '../utils/chartUtils.js';
 
-  // Agent configuration with colors and icons
+  // Agent configuration with colors and icons (per-agent brand identity)
+  // design-system-allow: hex
   const AGENT_CONFIG = {
-    'claude-code': { icon: '', color: '#FF6B35', name: 'Claude Code' },
-    claude: { icon: '', color: '#FF6B35', name: 'Claude' },
-    cursor: { icon: '', color: '#10b981', name: 'Cursor' },
-    copilot: { icon: '', color: '#0ea5e9', name: 'Copilot' },
-    aider: { icon: '', color: '#8b5cf6', name: 'Aider' },
-    chatgpt: { icon: '', color: '#10a37f', name: 'ChatGPT' },
-    gpt: { icon: '', color: '#10a37f', name: 'GPT' },
-    ollama: { icon: '', color: '#F39C12', name: 'Ollama' },
-    llama: { icon: '', color: '#8B5CF6', name: 'Llama' },
-    mistral: { icon: '', color: '#E11D48', name: 'Mistral' },
-    codellama: { icon: '', color: '#7C3AED', name: 'Code Llama' },
-    deepseek: { icon: '', color: '#0EA5E9', name: 'DeepSeek' },
-    qwen: { icon: '', color: '#14B8A6', name: 'Qwen' },
-    phi: { icon: '', color: '#6366F1', name: 'Phi' },
-    starcoder: { icon: '', color: '#D97706', name: 'StarCoder' },
-    'lm-studio': { icon: '', color: '#22C55E', name: 'LM Studio' },
-    'local-model': { icon: '', color: '#A855F7', name: 'Local Model' },
-    manual: { icon: '', color: '#6b7280', name: 'Manual' },
-    default: { icon: '', color: '#9ca3af', name: 'Unknown' }
+    'claude-code': { icon: '', color: '#FF6B35', name: 'Claude Code' }, // design-system-allow: hex
+    claude: { icon: '', color: '#FF6B35', name: 'Claude' }, // design-system-allow: hex
+    cursor: { icon: '', color: '#10b981', name: 'Cursor' }, // design-system-allow: hex
+    copilot: { icon: '', color: '#0ea5e9', name: 'Copilot' }, // design-system-allow: hex
+    aider: { icon: '', color: '#8b5cf6', name: 'Aider' }, // design-system-allow: hex
+    chatgpt: { icon: '', color: '#10a37f', name: 'ChatGPT' }, // design-system-allow: hex
+    gpt: { icon: '', color: '#10a37f', name: 'GPT' }, // design-system-allow: hex
+    ollama: { icon: '', color: '#F39C12', name: 'Ollama' }, // design-system-allow: hex
+    llama: { icon: '', color: '#8B5CF6', name: 'Llama' }, // design-system-allow: hex
+    mistral: { icon: '', color: '#E11D48', name: 'Mistral' }, // design-system-allow: hex
+    codellama: { icon: '', color: '#7C3AED', name: 'Code Llama' }, // design-system-allow: hex
+    deepseek: { icon: '', color: '#0EA5E9', name: 'DeepSeek' }, // design-system-allow: hex
+    qwen: { icon: '', color: '#14B8A6', name: 'Qwen' }, // design-system-allow: hex
+    phi: { icon: '', color: '#6366F1', name: 'Phi' }, // design-system-allow: hex
+    starcoder: { icon: '', color: '#D97706', name: 'StarCoder' }, // design-system-allow: hex
+    'lm-studio': { icon: '', color: '#22C55E', name: 'LM Studio' }, // design-system-allow: hex
+    'local-model': { icon: '', color: '#A855F7', name: 'Local Model' }, // design-system-allow: hex
+    manual: { icon: '', color: '#6b7280', name: 'Manual' }, // design-system-allow: hex
+    default: { icon: '', color: '#9ca3af', name: 'Unknown' } // design-system-allow: hex
   };
 
   let agentStats = $state([]);
@@ -410,38 +412,32 @@
   });
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Agent Performance</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">
-          Per-agent activity, runtime, and cost breakdown
-        </p>
-      </div>
+<PageLayout>
+  <PageHeader title="Agent Performance" description="Per-agent activity, runtime, and cost breakdown">
+    {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-[var(--muted)] font-mono">{timeAgo}</span>
+        <span class="text-xs text-muted font-mono">{timeAgo}</span>
         <button
           onclick={loadStats}
           disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
         >
           {loading ? '...' : '↻'} Refresh
         </button>
       </div>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if error}
       <div
-        class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6 flex justify-between items-center"
+        class="bg-error-subtle border border-error rounded-lg p-4 mb-6 flex justify-between items-center"
       >
-        <span class="text-sm text-[var(--error)] font-sans"
+        <span class="text-sm text-error font-sans"
           >Failed to load agent stats: {error}</span
         >
         <button
           onclick={loadStats}
-          class="px-3 py-1.5 bg-[var(--error)] text-white rounded text-sm font-sans"
+          class="px-3 py-1.5 bg-error text-white rounded text-sm font-sans"
         >
           Retry
         </button>
@@ -453,49 +449,49 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {#each Array(5) as _, i (i)}
           <div
-            class="h-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg animate-pulse"
+            class="h-24 bg-surface border border-border rounded-lg animate-pulse"
           ></div>
         {/each}
       </div>
     {:else}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Agents
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {formatNumber(summaryStats.total_agents)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Events
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {formatNumber(summaryStats.total_events)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             File Changes
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {formatNumber(summaryStats.total_lines)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Files Modified
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {formatNumber(summaryStats.total_files)}
           </div>
         </div>
-        <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-          <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Total Duration
           </div>
-          <div class="text-sm font-mono text-[var(--text)]">
+          <div class="text-sm font-mono text-body">
             {formatDuration(summaryStats.total_duration)}
           </div>
         </div>
@@ -503,17 +499,17 @@
     {/if}
 
     <!-- Controls -->
-    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 mb-6">
+    <div class="bg-surface border border-border rounded-lg p-5 mb-6">
       <div class="flex flex-wrap gap-3 mb-3">
         <input
           type="text"
           placeholder="Search agents..."
           bind:value={searchQuery}
-          class="flex-1 min-w-[200px] px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] font-mono"
+          class="flex-1 min-w-[200px] px-3 py-2 bg-canvas border border-border rounded text-sm text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent font-mono"
         />
 
         <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
           onclick={loadStats}
           disabled={loading}
         >
@@ -521,14 +517,14 @@
         </button>
 
         <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
           onclick={exportCSV}
         >
           CSV
         </button>
 
         <button
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
           onclick={exportJSON}
         >
           JSON
@@ -536,15 +532,15 @@
       </div>
 
       <div class="flex items-center gap-4 text-sm font-mono">
-        <span class="text-[var(--muted)]">
-          Sorted by: <strong class="text-[var(--accent)]">{sortBy}</strong> ({sortDesc
+        <span class="text-muted">
+          Sorted by: <strong class="text-accent">{sortBy}</strong> ({sortDesc
             ? 'desc'
             : 'asc'})
         </span>
-        <span class="text-[var(--muted)]">•</span>
+        <span class="text-muted">•</span>
         <span
-          class="text-[var(--muted)]"
-          class:text-[var(--warning)]={showNewEventAnimation}
+          class="text-muted"
+          class:text-warning={showNewEventAnimation}
           class:font-bold={showNewEventAnimation}
         >
           {#if showNewEventAnimation}
@@ -557,30 +553,30 @@
     </div>
 
     {#if loading}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
         <div
-          class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4"
+          class="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4"
         ></div>
-        <p class="text-sm text-[var(--muted)] font-sans">Loading agent statistics...</p>
+        <p class="text-sm text-muted font-sans">Loading agent statistics...</p>
       </div>
     {:else if agentStats.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-sm text-[var(--muted)] mb-2 font-sans">No agent statistics available</p>
-        <p class="text-sm text-[var(--muted)] opacity-80 font-sans">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <p class="text-sm text-muted mb-2 font-sans">No agent statistics available</p>
+        <p class="text-sm text-muted opacity-80 font-sans">
           Agent activity will appear here once detected by Raven.
         </p>
       </div>
     {:else if filteredStats.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <p class="text-sm text-[var(--muted)] mb-2 font-sans">No agents match your search</p>
-        <p class="text-sm text-[var(--muted)] opacity-80 font-sans">
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <p class="text-sm text-muted mb-2 font-sans">No agents match your search</p>
+        <p class="text-sm text-muted opacity-80 font-sans">
           Try adjusting your search query.
         </p>
       </div>
     {:else}
-      <div class="text-sm text-[var(--muted)] mb-3 font-mono">
-        Showing <strong class="text-[var(--accent)]">{filteredStats.length}</strong> of
-        <strong class="text-[var(--accent)]">{agentStats.length}</strong> agents
+      <div class="text-sm text-muted mb-3 font-mono">
+        Showing <strong class="text-accent">{filteredStats.length}</strong> of
+        <strong class="text-accent">{agentStats.length}</strong> agents
       </div>
 
       <!-- Agent Cards with Enhanced Details -->
@@ -596,7 +592,7 @@
           {@const deleteRate = totalChanges > 0 ? (agent.delete_count || 0) / totalChanges : 0}
 
           <div
-            class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--accent)] transition-all"
+            class="bg-surface border border-border rounded-lg p-5 hover:border-accent transition-all"
             style="border-left: 4px solid {config.color}"
           >
             <!-- Agent Header -->
@@ -604,7 +600,7 @@
               <div class="flex items-center gap-3">
                 <div>
                   <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-bold text-[var(--text-heading)] font-mono">
+                    <h3 class="text-sm font-bold text-heading font-mono">
                       {agent.agent_name || 'Unknown'}
                     </h3>
                     <span
@@ -614,7 +610,7 @@
                       {config.name}
                     </span>
                   </div>
-                  <div class="flex items-center gap-3 mt-1 text-sm text-[var(--muted)] font-sans">
+                  <div class="flex items-center gap-3 mt-1 text-sm text-muted font-sans">
                     <span title="Mood">{getMoodEmoji(mood)} {mood}</span>
                     <span>•</span>
                     <span title="Style">{getStyleEmoji(style)} {style}</span>
@@ -622,8 +618,8 @@
                 </div>
               </div>
               <div class="text-right">
-                <div class="text-sm text-[var(--muted)] font-sans">Last Active</div>
-                <div class="text-sm font-semibold text-[var(--text)] font-mono">
+                <div class="text-sm text-muted font-sans">Last Active</div>
+                <div class="text-sm font-semibold text-body font-mono">
                   {formatDateTime(agent.last_active)}
                 </div>
               </div>
@@ -631,51 +627,51 @@
 
             <!-- Metrics Grid -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
-                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+              <div class="bg-canvas border border-border rounded p-3">
+                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                   Events
                 </div>
-                <div class="text-sm font-mono text-[var(--text)]">
+                <div class="text-sm font-mono text-body">
                   {formatNumber(agent.total_events)}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
-                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+              <div class="bg-canvas border border-border rounded p-3">
+                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                   File Changes
                 </div>
-                <div class="text-sm font-mono text-[var(--text)]">
+                <div class="text-sm font-mono text-body">
                   {formatNumber(agent.lines_changed)}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
-                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+              <div class="bg-canvas border border-border rounded p-3">
+                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                   Files Modified
                 </div>
-                <div class="text-sm font-mono text-[var(--text)]">
+                <div class="text-sm font-mono text-body">
                   {formatNumber(agent.files_modified)}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
-                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+              <div class="bg-canvas border border-border rounded p-3">
+                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                   Changes/Day
                 </div>
-                <div class="text-sm font-mono text-[var(--text)]">
+                <div class="text-sm font-mono text-body">
                   {agent.changes_per_day || 0}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
-                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+              <div class="bg-canvas border border-border rounded p-3">
+                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                   Avg Files/Op
                 </div>
-                <div class="text-sm font-mono text-[var(--text)]">
+                <div class="text-sm font-mono text-body">
                   {agent.avg_change_size || 0}
                 </div>
               </div>
-              <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-3">
-                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+              <div class="bg-canvas border border-border rounded p-3">
+                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                   Duration
                 </div>
-                <div class="text-sm font-mono text-[var(--text)]">
+                <div class="text-sm font-mono text-body">
                   {formatDuration(agent.total_duration_seconds)}
                 </div>
               </div>
@@ -685,30 +681,30 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <!-- Activity Breakdown Chart -->
               <div class="space-y-2">
-                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+                <div class="text-xs font-semibold text-muted uppercase tracking-wide">
                   Activity Breakdown
                 </div>
-                <div class="h-40 flex items-center justify-center bg-[var(--bg)] rounded p-2">
+                <div class="h-40 flex items-center justify-center bg-canvas rounded p-2">
                   <canvas id="pie-{(agent.agent_name || 'unknown').replace(/[^a-zA-Z0-9]/g, '-')}"
                   ></canvas>
                 </div>
                 <div class="flex justify-around text-xs font-sans">
-                  <span class="text-[var(--success)]">Create: {agent.create_count || 0}</span>
-                  <span class="text-[var(--warning)]">Edit: {agent.edit_count || 0}</span>
-                  <span class="text-[var(--error)]">Delete: {agent.delete_count || 0}</span>
+                  <span class="text-success">Create: {agent.create_count || 0}</span>
+                  <span class="text-warning">Edit: {agent.edit_count || 0}</span>
+                  <span class="text-error">Delete: {agent.delete_count || 0}</span>
                 </div>
               </div>
 
               <!-- Change Distribution Bar -->
               <div class="space-y-2">
-                <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+                <div class="text-xs font-semibold text-muted uppercase tracking-wide">
                   Change Distribution
                 </div>
                 <div class="h-40 flex flex-col justify-center">
-                  <div class="flex h-8 rounded overflow-hidden bg-[var(--bg)] mb-2">
+                  <div class="flex h-8 rounded overflow-hidden bg-canvas mb-2">
                     {#if createRate > 0}
                       <div
-                        class="bg-[var(--success)] flex items-center justify-center text-white text-xs font-semibold"
+                        class="bg-success flex items-center justify-center text-white text-xs font-semibold"
                         style="width: {createRate * 100}%"
                         title="Created: {(createRate * 100).toFixed(0)}%"
                       >
@@ -719,7 +715,7 @@
                     {/if}
                     {#if modifyRate > 0}
                       <div
-                        class="bg-[var(--warning)] flex items-center justify-center text-white text-xs font-semibold"
+                        class="bg-warning flex items-center justify-center text-white text-xs font-semibold"
                         style="width: {modifyRate * 100}%"
                         title="Modified: {(modifyRate * 100).toFixed(0)}%"
                       >
@@ -730,7 +726,7 @@
                     {/if}
                     {#if deleteRate > 0}
                       <div
-                        class="bg-[var(--error)] flex items-center justify-center text-white text-xs font-semibold"
+                        class="bg-error flex items-center justify-center text-white text-xs font-semibold"
                         style="width: {deleteRate * 100}%"
                         title="Deleted: {(deleteRate * 100).toFixed(0)}%"
                       >
@@ -740,7 +736,7 @@
                       </div>
                     {/if}
                   </div>
-                  <div class="text-xs text-[var(--muted)] font-sans space-y-1">
+                  <div class="text-xs text-muted font-sans space-y-1">
                     <div>Total Changes: {totalChanges}</div>
                     <div>Create Rate: {(createRate * 100).toFixed(1)}%</div>
                     <div>Modify Rate: {(modifyRate * 100).toFixed(1)}%</div>
@@ -753,5 +749,4 @@
         {/each}
       </div>
     {/if}
-  </div>
-</div>
+</PageLayout>

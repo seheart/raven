@@ -1,6 +1,7 @@
 <script>
   import { logger } from '../logger.js';
   import { formatTimeOnly, formatDateOnly } from '../timeFormat.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   /**
    * Activity Timeline Page
    * Visual chronological timeline of events
@@ -180,66 +181,62 @@
   onDestroy(() => abortRequests());
 </script>
 
-<div class="min-h-screen bg-[var(--bg)] p-6 pb-20">
-  <div class="max-w-none">
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Activity Timeline</h1>
-        <p class="text-sm text-[var(--muted)] font-sans">Chronological view of file changes</p>
-      </div>
+<PageLayout>
+  <PageHeader title="Activity Timeline" description="Chronological view of file changes">
+    {#snippet actions()}
       <button
         onclick={loadEvents}
         disabled={loading}
-        class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
+        class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
       >
         {loading ? '...' : '↻'} Refresh
       </button>
-    </div>
+    {/snippet}
+  </PageHeader>
 
     {#if error}
-      <div class="bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg p-4 mb-6">
-        <span class="text-sm text-[var(--error)] font-sans"> {error}</span>
+      <div class="bg-error-subtle border border-error rounded-lg p-4 mb-6">
+        <span class="text-sm text-error font-sans"> {error}</span>
       </div>
     {/if}
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Events
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{stats.total}</div>
+        <div class="text-sm font-mono text-body">{stats.total}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Created
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{stats.creates}</div>
+        <div class="text-sm font-mono text-body">{stats.creates}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Modified
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{stats.edits}</div>
+        <div class="text-sm font-mono text-body">{stats.edits}</div>
       </div>
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-        <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Deleted
         </div>
-        <div class="text-sm font-mono text-[var(--text)]">{stats.deletes}</div>
+        <div class="text-sm font-mono text-body">{stats.deletes}</div>
       </div>
     </div>
 
     <!-- Filters -->
     <div
-      class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-6 flex gap-4 flex-wrap items-center"
+      class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-4 flex-wrap items-center"
     >
       <div class="flex items-center gap-2">
-        <span class="text-sm text-[var(--muted)]">Type</span>
+        <span class="text-sm text-muted">Type</span>
         <select
           bind:value={filter}
-          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
         >
           <option value="all">All Types</option>
           <option value="add">Created</option>
@@ -248,10 +245,10 @@
         </select>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-sm text-[var(--muted)]">Range</span>
+        <span class="text-sm text-muted">Range</span>
         <select
           bind:value={timeRange}
-          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
         >
           <option value="all">All Time</option>
           <option value="today">Today</option>
@@ -260,10 +257,10 @@
         </select>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-sm text-[var(--muted)]">Group</span>
+        <span class="text-sm text-muted">Group</span>
         <select
           bind:value={groupBy}
-          class="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm font-mono text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
         >
           <option value="day">Day</option>
           <option value="hour">Hour</option>
@@ -274,26 +271,26 @@
     <!-- Timeline -->
     {#if loading}
       <div class="text-center py-12">
-        <div class="text-sm text-[var(--muted)] font-sans">Loading timeline...</div>
+        <div class="text-sm text-muted font-sans">Loading timeline...</div>
       </div>
     {:else if groupedEvents.length === 0}
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-        <div class="text-sm font-semibold text-[var(--text-heading)] mb-2">No events found</div>
-        <div class="text-sm text-[var(--muted)] font-sans">Try adjusting your filters</div>
+      <div class="bg-surface border border-border rounded-lg p-12 text-center">
+        <div class="text-sm font-semibold text-heading mb-2">No events found</div>
+        <div class="text-sm text-muted font-sans">Try adjusting your filters</div>
       </div>
     {:else}
       <div class="space-y-6">
         {#each groupedEvents as group, index (index)}
           <div class="relative">
             <!-- Date Header -->
-            <div class="sticky top-12 bg-[var(--bg)] z-10 pb-3">
+            <div class="sticky top-12 bg-canvas z-10 pb-3">
               <div class="flex items-center gap-3">
                 <div
-                  class="bg-[var(--surface)] border border-[var(--border)] px-3 py-1.5 rounded text-sm font-mono text-[var(--text)]"
+                  class="bg-surface border border-border px-3 py-1.5 rounded text-sm font-mono text-body"
                 >
                   {group.date}
                 </div>
-                <div class="text-xs text-[var(--muted)] font-mono">
+                <div class="text-xs text-muted font-mono">
                   {group.events.length} event{group.events.length !== 1 ? 's' : ''}
                 </div>
               </div>
@@ -303,7 +300,7 @@
             <div class="space-y-3">
               {#each group.events as event, eventIndex (eventIndex)}
                 <div
-                  class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--accent)] transition-colors"
+                  class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
                   style="border-left: 3px solid {getEventColor(event.change_type)}"
                 >
                   <div class="flex justify-between items-start mb-2">
@@ -317,22 +314,22 @@
                         {event.change_type?.toUpperCase() || 'UNKNOWN'}
                       </span>
                       {#if event.project_name}
-                        <span class="text-xs text-[var(--muted)] font-mono"
+                        <span class="text-xs text-muted font-mono"
                           >{event.project_name}</span
                         >
                       {/if}
                     </div>
                     <div
-                      class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono flex-shrink-0"
+                      class="flex items-center gap-2 text-xs text-muted font-mono flex-shrink-0"
                     >
                       <span>{formatTime(event.timestamp)}</span>
-                      <span class="text-[var(--border)]">·</span>
+                      <span class="text-border">·</span>
                       <span>{getRelativeTime(event.timestamp)}</span>
                     </div>
                   </div>
 
                   {#if event.filepath}
-                    <div class="text-sm font-mono text-[var(--text)] truncate">
+                    <div class="text-sm font-mono text-body truncate">
                       {event.filepath}
                     </div>
                   {/if}
@@ -343,5 +340,4 @@
         {/each}
       </div>
     {/if}
-  </div>
-</div>
+</PageLayout>
