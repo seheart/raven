@@ -565,20 +565,20 @@
     max-width: 900px;
     max-height: 90vh;
     overflow-y: auto;
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
   }
 
   .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
     padding-bottom: 1rem;
     border-bottom: 2px solid var(--info);
   }
 
   .modal-header {
-    padding: 0 var(--space-lg);
+    padding: 0 var(--spacing-lg);
   }
 
   h2 {
@@ -590,8 +590,8 @@
   .file-path {
     font-family: var(--mono);
     color: var(--info);
-    margin-bottom: var(--space-lg);
-    padding: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg);
     background: var(--surface-2);
     border-radius: var(--radius);
   }
@@ -599,7 +599,7 @@
   .loading,
   .empty {
     text-align: center;
-    padding: var(--space-2xl);
+    padding: var(--spacing-2xl);
     color: var(--muted);
   }
 
@@ -620,7 +620,7 @@
 
   .timeline-event {
     position: relative;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .event-marker {
@@ -648,7 +648,7 @@
 
   .event-content {
     background: var(--surface-2);
-    padding: var(--space-lg);
+    padding: var(--spacing-lg);
     border-radius: var(--radius-sm);
     border-left: 3px solid var(--info);
   }
@@ -673,7 +673,7 @@
   }
 
   .badge {
-    padding: var(--space-sm) 0.5rem;
+    padding: var(--spacing-sm) 0.5rem;
     font-size: 11px;
     border-radius: var(--radius-sm);
     text-transform: uppercase;
@@ -702,7 +702,7 @@
 
   .event-meta {
     display: flex;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
     margin-bottom: 0.75rem;
     font-size: 11px;
     color: var(--muted);
@@ -714,7 +714,7 @@
 
   .event-actions {
     display: flex;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
   }
 
   .snapshot-viewer {
@@ -725,7 +725,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
     max-width: 800px;
     max-height: 80vh;
     overflow-y: auto;
@@ -736,7 +736,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border);
   }
@@ -752,7 +752,7 @@
     font-size: 12px;
     color: var(--text);
     background: var(--bg);
-    padding: var(--space-lg);
+    padding: var(--spacing-lg);
     border-radius: var(--radius);
     overflow-x: auto;
     white-space: pre-wrap;
@@ -768,7 +768,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-xl);
+    margin-bottom: var(--spacing-xl);
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
@@ -788,12 +788,12 @@
   }
 
   .inline-content .filter-bar {
-    margin-bottom: var(--space-xl);
+    margin-bottom: var(--spacing-xl);
   }
 
   .inline-content .comparison-help {
-    margin-bottom: var(--space-xl);
-    padding: var(--space-lg);
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
     background: var(--surface-2);
     border-radius: var(--radius);
     font-size: 12px;

@@ -818,7 +818,7 @@
 
 <style>
   .error-log {
-    padding: var(--space-lg);
+    padding: var(--spacing-lg);
     position: relative;
     max-width: 1600px;
     margin: 0 auto;
@@ -828,13 +828,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-2xl);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-2xl);
     border-bottom: 2px solid var(--border);
   }
 
   .header-title h1 {
-    margin: 0 0 var(--space-sm) 0;
+    margin: 0 0 var(--spacing-sm) 0;
     font-size: 11px;
     color: var(--text);
   }
@@ -847,7 +847,7 @@
 
   .header-actions {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
     align-items: center;
   }
 
@@ -877,8 +877,8 @@
 
   .stats-bar {
     display: flex;
-    gap: var(--space-md);
-    margin-bottom: var(--space-lg);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
   }
 
   .stat-item {
@@ -886,10 +886,10 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: var(--space-md);
+    padding: var(--spacing-md);
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--spacing-sm);
   }
 
   .stat-item.error {
@@ -921,22 +921,22 @@
   .controls {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    margin-bottom: var(--space-lg);
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
     background: var(--surface);
-    padding: var(--space-lg);
+    padding: var(--spacing-lg);
     border-radius: var(--radius);
     border: 1px solid var(--border);
   }
 
   .search-bar {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
   }
 
   .search-bar input {
     flex: 1;
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -952,12 +952,12 @@
 
   .filter-tabs {
     display: flex;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
     flex-wrap: wrap;
   }
 
   .filter-tab {
-    padding: var(--space-lg) var(--space-2xl);
+    padding: var(--spacing-lg) var(--spacing-2xl);
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
@@ -986,19 +986,19 @@
 
   .action-buttons {
     display: flex;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
   }
 
   .timeline {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
   }
 
   .error-state,
   .empty-state {
     text-align: center;
-    padding: var(--space-lg) var(--space-xl);
+    padding: var(--spacing-lg) var(--spacing-xl);
     color: var(--muted);
   }
 
@@ -1007,13 +1007,13 @@
   .empty-icon,
   .error-icon {
     font-size: 11px;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .empty-state h2,
   .error-state h2 {
     font-size: 11px;
-    margin: 0 0 var(--space-lg) 0;
+    margin: 0 0 var(--spacing-lg) 0;
     color: var(--text);
   }
 
@@ -1038,7 +1038,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-md) var(--space-3xl);
+    padding: var(--spacing-md) var(--spacing-3xl);
     cursor: pointer;
     width: 100%;
     background: none;
@@ -1057,7 +1057,7 @@
   .error-left {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
     flex: 1;
     min-width: 0;
   }
@@ -1083,7 +1083,7 @@
     font-size: 11px;
     color: var(--text);
     font-weight: 500;
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--spacing-sm);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1092,7 +1092,7 @@
   .error-meta {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
     font-size: 11px;
     color: var(--muted);
   }
@@ -1108,7 +1108,7 @@
   .error-right {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
     flex-shrink: 0;
   }
 
@@ -1119,7 +1119,7 @@
   }
 
   .error-severity {
-    padding: var(--space-sm) var(--space-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
     background: var(--bg);
     border: 1px solid;
     border-radius: var(--radius);
@@ -1129,20 +1129,20 @@
   }
 
   .error-details {
-    padding: 0 var(--space-3xl) var(--space-3xl) var(--space-3xl);
+    padding: 0 var(--spacing-3xl) var(--spacing-3xl) var(--spacing-3xl);
     border-top: 1px solid var(--border);
   }
 
   .details-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--space-md);
-    padding: var(--space-md) 0;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) 0;
   }
 
   .detail-item {
     display: flex;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
   }
 
   .detail-label {
@@ -1165,12 +1165,12 @@
 
   .stack-section,
   .metadata-section {
-    margin-top: var(--space-2xl);
+    margin-top: var(--spacing-2xl);
   }
 
   .stack-section h4,
   .metadata-section h4 {
-    margin: 0 0 var(--space-lg) 0;
+    margin: 0 0 var(--spacing-lg) 0;
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
@@ -1181,7 +1181,7 @@
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: var(--space-md);
+    padding: var(--spacing-md);
     font-size: 11px;
     font-family: var(--mono);
     color: var(--text);
@@ -1195,8 +1195,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: var(--space-lg);
-    padding: var(--space-lg);
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
     background: var(--surface);
     border-radius: var(--radius);
     border: 1px solid var(--border);
@@ -1210,13 +1210,13 @@
 
   /* Charts Section */
   .charts-section {
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-2xl);
+    gap: var(--spacing-2xl);
   }
 
   .chart-container {

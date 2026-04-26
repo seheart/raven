@@ -446,26 +446,26 @@
     /* Using standardized .card-compact class */
     border-left-width: 3px; /* Custom: thicker left border for status indicator */
     border-left-color: var(--status-color);
-    padding: var(--space-md) var(--space-lg); /* Custom: asymmetric padding */
+    padding: var(--spacing-md) var(--spacing-lg); /* Custom: asymmetric padding */
   }
 
   .health-compact {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xl);
+    gap: var(--spacing-xl);
   }
 
   .health-row {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
     flex-wrap: nowrap;
   }
 
   .status-section {
     display: flex;
     align-items: center;
-    gap: var(--space-xl);
+    gap: var(--spacing-xl);
   }
 
   .health-icon {
@@ -499,7 +499,7 @@
   .health-loading,
   .health-error {
     text-align: center;
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
   }
 
   .spinner {
@@ -508,13 +508,13 @@
     border: 2px solid var(--border);
     border-top-color: var(--accent);
     border-radius: 50%;
-    margin: 0 auto var(--space-lg);
+    margin: 0 auto var(--spacing-lg);
     animation: spin 1s linear infinite;
   }
 
   .health-checks {
     display: flex;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
     align-items: center;
     flex: 1;
   }
@@ -522,7 +522,7 @@
   .check-item {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
     font-size: 12px;
     color: var(--text);
     font-family: var(--mono);
@@ -555,12 +555,12 @@
     width: 1px;
     height: var(--icon-sm);
     background: var(--border);
-    margin: 0 var(--space-sm);
+    margin: 0 var(--spacing-sm);
   }
 
   .startup-check {
     font-weight: 600;
-    padding: var(--space-sm) var(--space-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
     border-radius: var(--radius);
     transition: background var(--duration-base) var(--ease-smooth);
   }
@@ -575,15 +575,15 @@
 
   .expand-arrow {
     font-size: 11px;
-    margin-left: var(--space-sm);
+    margin-left: var(--spacing-sm);
     opacity: 0.6;
   }
 
   .startup-details {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    padding: var(--space-xl);
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
     background: var(--bg); /* Custom: different background */
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
@@ -592,11 +592,11 @@
   .startup-check-item {
     display: grid;
     grid-template-columns: 20px 1fr 2fr auto;
-    gap: var(--space-xl);
+    gap: var(--spacing-xl);
     align-items: center;
     font-size: 11px;
     font-family: var(--mono);
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
     background: var(--surface);
     border-radius: var(--radius);
     border-left: 3px solid var(--success); /* Custom: left border for status */
@@ -627,7 +627,7 @@
   }
 
   .health-error button {
-    margin-top: var(--space-lg);
+    margin-top: var(--spacing-lg);
   }
 
   /* Responsive adjustments */
@@ -635,7 +635,7 @@
     .health-row {
       flex-direction: column;
       align-items: flex-start;
-      gap: var(--space-xl);
+      gap: var(--spacing-xl);
     }
 
     .health-checks {

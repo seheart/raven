@@ -352,7 +352,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-lg) var(--space-xl);
+    padding: var(--spacing-lg) var(--spacing-xl);
     background: var(--bg);
     border-bottom: 2px solid var(--border);
   }
@@ -368,8 +368,8 @@
   .active-indicator {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
-    padding: var(--space-md) var(--space-xl);
+    gap: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-xl);
     background: color-mix(in srgb, var(--success) 15%, transparent);
     border: 1px solid var(--success);
     border-radius: var(--radius-sm);
@@ -399,7 +399,7 @@
   }
 
   .error-state {
-    padding: var(--space-lg) var(--space-xl);
+    padding: var(--spacing-lg) var(--spacing-xl);
     text-align: center;
     color: var(--muted);
   }
@@ -408,14 +408,14 @@
     font-size: 12px;
     font-family: var(--mono);
     color: var(--error);
-    margin-top: var(--space-lg);
+    margin-top: var(--spacing-lg);
   }
 
   .dashboard-content {
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
     display: flex;
     flex-direction: column;
-    gap: var(--space-xl);
+    gap: var(--spacing-xl);
     animation: fadeInUp 0.3s ease-out;
   }
 
@@ -423,7 +423,7 @@
     background: var(--bg); /* Custom: different background */
     border: 2px solid var(--border);
     border-radius: var(--radius);
-    padding: var(--space-lg); /* Custom: 8px padding */
+    padding: var(--spacing-lg); /* Custom: 8px padding */
     transition: all var(--duration-base) var(--ease-smooth);
   }
 
@@ -436,7 +436,7 @@
     font-weight: 700;
     font-family: var(--sans);
     color: var(--text);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -449,10 +449,10 @@
 
   .session-timer {
     text-align: center;
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
     background: var(--surface);
     border-radius: var(--radius);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: transform var(--duration-base) var(--ease-smooth);
   }
@@ -468,7 +468,7 @@
     font-family: var(--mono);
     color: var(--accent);
     line-height: 1.1;
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--spacing-sm);
     animation: fadeIn 0.3s ease;
   }
 
@@ -483,13 +483,13 @@
   .session-metrics {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-lg);
-    margin-bottom: var(--space-lg);
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .metric-item {
     text-align: center;
-    padding: var(--space-md);
+    padding: var(--spacing-md);
     background: var(--surface);
     border-radius: var(--radius-sm);
   }
@@ -500,7 +500,7 @@
     font-family: var(--mono);
     color: var(--text);
     line-height: 1;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--spacing-md);
   }
 
   .metric-label {
@@ -511,8 +511,8 @@
   }
 
   .quality-section {
-    margin-top: var(--space-lg);
-    padding: var(--space-md);
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
     background: var(--surface);
     border-radius: var(--radius);
   }
@@ -520,12 +520,12 @@
   .quality-header {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-    margin-bottom: var(--space-xl);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
   }
 
   .quality-badge {
-    padding: var(--space-md) var(--space-xl);
+    padding: var(--spacing-md) var(--spacing-xl);
     border: 2px solid;
     border-radius: var(--radius-sm);
     font-size: 11px;
@@ -539,7 +539,7 @@
   }
 
   .quality-factors {
-    margin-top: var(--space-xl);
+    margin-top: var(--spacing-xl);
   }
 
   .factors-title {
@@ -547,18 +547,18 @@
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
     font-weight: 600;
   }
 
   .factor-item {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
-    padding: var(--space-lg);
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
     background: var(--bg);
     border-radius: var(--radius);
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--spacing-md);
     font-size: 12px;
   }
 
@@ -571,8 +571,8 @@
   }
 
   .break-recommendation {
-    margin-top: var(--space-lg);
-    padding: var(--space-md);
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
     background: var(--surface-2);
     border-left: 4px solid var(--accent);
     border-radius: var(--radius);
@@ -591,8 +591,8 @@
   .break-header {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
-    margin-bottom: var(--space-lg);
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .break-icon {
@@ -608,29 +608,29 @@
   .break-message {
     font-size: 11px;
     color: var(--text);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
     font-weight: 600;
   }
 
   .break-duration {
     font-size: 12px;
     color: var(--muted);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .break-reasons {
-    margin-top: var(--space-xl);
+    margin-top: var(--spacing-xl);
     font-size: 11px;
     color: var(--muted);
   }
 
   .reason-item {
-    padding: var(--space-sm) 0;
+    padding: var(--spacing-sm) 0;
   }
 
   .no-break-needed {
-    margin-top: var(--space-lg);
-    padding: var(--space-md);
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
     background: color-mix(in srgb, var(--success) 10%, transparent);
     border-left: 4px solid var(--success);
     border-radius: var(--radius);
@@ -643,19 +643,19 @@
   /* No Session Panel */
   .no-session-panel {
     text-align: center;
-    padding: var(--space-lg) var(--space-xl);
+    padding: var(--spacing-lg) var(--spacing-xl);
   }
 
   .no-session-icon {
     font-size: 11px;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--spacing-md);
   }
 
   .no-session-title {
     font-size: 11px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .no-session-hint {
@@ -667,14 +667,14 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: var(--space-lg);
-    margin-bottom: var(--space-lg);
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .stat-card {
     /* Card-like styling but with custom requirements */
     text-align: center;
-    padding: var(--space-lg); /* Custom: 8px padding */
+    padding: var(--spacing-lg); /* Custom: 8px padding */
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -694,7 +694,7 @@
 
   .stat-icon {
     font-size: var(--icon-lg);
-    margin-bottom: var(--space-xl);
+    margin-bottom: var(--spacing-xl);
   }
 
   .stat-value {
@@ -703,7 +703,7 @@
     font-family: var(--mono);
     color: var(--text);
     line-height: 1;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .stat-label {
@@ -714,8 +714,8 @@
   }
 
   .peak-hours-section {
-    margin-top: var(--space-lg);
-    padding: var(--space-lg);
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
     background: var(--surface);
     border-radius: var(--radius);
   }
@@ -724,20 +724,20 @@
     font-size: 11px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--spacing-md);
   }
 
   .peak-hours-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
   }
 
   .peak-hour-item {
     display: grid;
     grid-template-columns: 60px 1fr 120px;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
   }
 
   .peak-hour-time {
@@ -767,8 +767,8 @@
   }
 
   .recent-sessions-section {
-    margin-top: var(--space-lg);
-    padding: var(--space-lg);
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
     background: var(--surface);
     border-radius: var(--radius);
   }
@@ -777,20 +777,20 @@
     font-size: 11px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--spacing-md);
   }
 
   .recent-sessions-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
   }
 
   .recent-session-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
     background: var(--bg);
     border-radius: var(--radius-sm);
     font-size: 12px;
@@ -799,7 +799,7 @@
   .session-info {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
     color: var(--muted);
   }
 
@@ -814,23 +814,23 @@
 
   /* Skeleton Loading */
   .loading-skeleton {
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
   }
 
   .skeleton-panel {
-    padding: var(--space-lg);
+    padding: var(--spacing-lg);
     border-radius: var(--radius);
   }
 
   .skeleton-hero {
     height: 120px;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .skeleton-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-md);
+    gap: var(--spacing-md);
   }
 
   .skeleton-card {

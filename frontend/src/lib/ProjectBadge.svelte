@@ -25,7 +25,7 @@
 
 <style>
   .project-badge {
-    padding: var(--space-xs) var(--space-lg);
+    padding: var(--spacing-xs) var(--spacing-lg);
     border-radius: var(--radius);
     font-size: 11px;
     font-weight: 600;
@@ -38,19 +38,19 @@
   }
 
   .project-badge.small {
-    padding: var(--space-xs) var(--space-md);
+    padding: var(--spacing-xs) var(--spacing-md);
     font-size: 11px;
     border-radius: var(--radius);
   }
 
   .project-badge.medium {
-    padding: var(--space-sm) var(--space-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
     font-size: 11px;
     border-radius: var(--radius-sm);
   }
 
   .project-badge.large {
-    padding: var(--space-md) var(--space-xl);
+    padding: var(--spacing-md) var(--spacing-xl);
     font-size: 13px;
     border-radius: var(--radius);
     font-weight: 700;

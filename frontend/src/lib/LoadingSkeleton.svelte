@@ -68,15 +68,15 @@
 
   .skeleton-text {
     height: var(--icon-xs);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .skeleton-card {
-    padding: var(--space-2xl);
+    padding: var(--spacing-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--spacing-md);
   }
 
   .skeleton-header {
@@ -91,13 +91,13 @@
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
     border-radius: var(--radius);
-    margin-bottom: var(--space-xl);
+    margin-bottom: var(--spacing-xl);
   }
 
   .skeleton-body {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
   }
 
   .skeleton-line {
@@ -120,14 +120,14 @@
   .skeleton-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xl);
+    gap: var(--spacing-xl);
   }
 
   .skeleton-list-item {
     display: flex;
     align-items: center;
-    gap: var(--space-xl);
-    padding: var(--space-xl);
+    gap: var(--spacing-xl);
+    padding: var(--spacing-xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -152,11 +152,11 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--spacing-md);
   }
 
   .skeleton-chart {
-    padding: var(--space-2xl);
+    padding: var(--spacing-2xl);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -167,7 +167,7 @@
   .skeleton-bars {
     display: flex;
     align-items: flex-end;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
     width: 100%;
     height: 100%;
   }

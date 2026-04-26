@@ -129,7 +129,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
     border-bottom: 2px solid var(--info);
     position: sticky;
     top: 0;
@@ -144,11 +144,11 @@
   }
 
   .shortcuts-content {
-    padding: var(--space-xl);
+    padding: var(--spacing-xl);
   }
 
   .shortcuts-section {
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .shortcuts-section:last-child {
@@ -167,14 +167,14 @@
   .shortcuts-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
   }
 
   .shortcut-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-lg);
+    padding: var(--spacing-lg);
     background: var(--surface-2);
     border-radius: var(--radius-sm);
     transition: background var(--duration-base) var(--ease-smooth);
@@ -186,13 +186,13 @@
 
   .shortcut-keys {
     display: flex;
-    gap: var(--space-lg);
+    gap: var(--spacing-lg);
     align-items: center;
   }
 
   .key {
     display: inline-block;
-    padding: var(--space-sm) 0.6rem;
+    padding: var(--spacing-sm) 0.6rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -211,7 +211,7 @@
   }
 
   .shortcuts-footer {
-    padding: var(--space-lg) 1.5rem;
+    padding: var(--spacing-lg) 1.5rem;
     border-top: 1px solid var(--border);
     text-align: center;
     color: var(--muted);
