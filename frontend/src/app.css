@@ -3,6 +3,7 @@
 @import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import './lib/styles/animations.css';
+@import './lib/styles/livepage.css';
 
 /* === Design tokens (Tailwind v4 @theme — single source of truth) ===
    Semantic colors reference :root vars so dark mode (body.dark) flips them.

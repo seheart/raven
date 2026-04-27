@@ -5,6 +5,7 @@
    */
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import LiveStatusBar from '../components/live/LiveStatusBar.svelte';
@@ -50,9 +51,9 @@
 
   function getChangeClass(file) {
     const type = (file.status || file.change_type || file.type || '').toLowerCase();
-    if (type.includes('add') || type.includes('create')) return 'text-[var(--success)]';
-    if (type.includes('del') || type.includes('remove')) return 'text-[var(--error)]';
-    return 'text-[var(--accent)]';
+    if (type.includes('add') || type.includes('create')) return 'text-success';
+    if (type.includes('del') || type.includes('remove')) return 'text-error';
+    return 'text-accent';
   }
 
   function getFileName(file) {
@@ -93,6 +94,7 @@
   });
 </script>
 
+<PageLayout variant="dashboard">
 <div class="live-page">
   <div class="top-section">
     <LiveStatusBar />
@@ -137,152 +139,5 @@
     </div>
   </div>
 </div>
+</PageLayout>
 
-<style>
-  .live-page {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg);
-  }
-
-  .top-section {
-    padding: 0.75rem 1.5rem;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .main-layout {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  .changes-panel {
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: var(--surface);
-  }
-
-  .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 1rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-  }
-
-  .panel-title {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-  }
-
-  .panel-count {
-    font-size: var(--text-xs);
-    font-weight: 600;
-    font-family: var(--mono);
-    color: var(--accent);
-    background: var(--accent-subtle);
-    padding: 0.1rem 0.4rem;
-    border-radius: var(--radius-xl);
-  }
-
-  .file-list {
-    flex: 1;
-    overflow-y: auto;
-  }
-
-  .file-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    width: 100%;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    background: transparent;
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.1s;
-    font-family: var(--sans);
-  }
-
-  .file-item:hover {
-    background: var(--bg);
-  }
-
-  .file-item.active {
-    background: var(--accent-subtle);
-    border-left: 2px solid var(--accent);
-  }
-
-  .change-indicator {
-    font-size: var(--text-xs);
-    font-weight: 700;
-    font-family: var(--mono);
-    min-width: 1rem;
-    text-align: center;
-  }
-
-  .file-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .file-name {
-    font-size: var(--text-base);
-    font-weight: 500;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .file-dir {
-    font-size: var(--text-xs);
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .file-time {
-    font-size: var(--text-xs);
-    color: var(--muted);
-    font-family: var(--mono);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .diff-panel {
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .empty-state {
-    padding: 2rem 1rem;
-    text-align: center;
-    color: var(--muted);
-    font-size: var(--text-base);
-  }
-
-  @media (max-width: 900px) {
-    .main-layout {
-      grid-template-columns: 1fr;
-      grid-template-rows: 200px 1fr;
-    }
-    .changes-panel {
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-    }
-  }
-</style>

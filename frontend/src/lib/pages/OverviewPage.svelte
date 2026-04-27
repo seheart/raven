@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { formatRelativeTime, formatDateOnly } from '../timeFormat.js';
   import { createPageApi } from '../apiClient.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { navigate } from '../utils/router.svelte.js';
   import { websocketService } from '../services/websocket.js';
@@ -127,6 +128,7 @@
   }
 
   function getTypeColor(type) {
+    // Per-subagent-type brand colors. design-system-allow: hex
     const colors = { 'general-purpose': '#FF6B35', 'Explore': '#10A37F', 'Plan': '#4285F4', 'code-reviewer': '#F39C12' };
     return colors[type] || '#6b7280';
   }
@@ -225,7 +227,7 @@
     return 'var(--accent)';
   }
 
-  // Chart color palette (shared across create + update paths)
+  // Chart color palette — per-agent brand identity. design-system-allow: hex
   const agentChartColors = { 'Claude Code': '#FF6B35', 'Ollama': '#F5A623' };
   const defaultAgentColors = ['#10A37F', '#4285F4', '#A855F7', '#EC4899'];
 
@@ -667,71 +669,71 @@
   });
 </script>
 
+<PageLayout variant="dashboard">
 <div
   class="h-[calc(100vh-6rem)] p-4 pb-2 flex flex-col transition-all duration-[3000ms]"
   style="background: color-mix(in srgb, var(--bg) {100 -
     activityLevel * 8}%, var(--accent) {activityLevel * 8}%)"
 >
   <div class="mx-auto px-2 flex flex-col flex-1 min-h-0 w-full">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-3 flex-wrap gap-3">
-      <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-[var(--text-heading)]">Dashboard</h1>
-        <span class="text-xs text-[var(--muted)] font-sans">Real-time monitoring</span>
-      </div>
-      <div class="flex items-center gap-3">
-        {#if agentStatus}
-          {@const pa = Object.values(processActivity)[0]}
-          <span class="flex items-center gap-2 text-sm font-mono">
-            <span
-              class="w-2 h-2 rounded-full"
-              class:bg-[var(--warning)]={pa?.activity_state === 'thinking'}
-              class:activity-pulse={pa?.activity_state === 'thinking'}
-              class:bg-[var(--success)]={pa?.activity_state === 'executing' || (!pa && agentStatus.is_running)}
-              class:animate-pulse={pa?.activity_state === 'executing' || (!pa && agentStatus.is_running)}
-              class:bg-[var(--muted)]={pa?.activity_state === 'idle' || (!pa && !agentStatus.is_running)}
-            ></span>
-            <span class="text-[var(--text)]">{agentStatus.agent_name}</span>
-            {#if pa?.activity_state === 'thinking'}
-              <span class="text-[10px] text-[var(--warning)]">API call{pa.api_connections > 1 ? ` (${pa.api_connections})` : ''}</span>
-            {:else if pa?.activity_state === 'executing'}
-              <span class="text-[10px] text-[var(--success)]">Executing</span>
-            {:else if pa}
-              <span class="text-[10px] text-[var(--muted)]">Idle</span>
+    <div class="mb-3">
+      <PageHeader size="medium" title="Dashboard" description="Real-time monitoring">
+        {#snippet actions()}
+          <div class="flex items-center gap-3">
+            {#if agentStatus}
+              {@const pa = Object.values(processActivity)[0]}
+              <span class="flex items-center gap-2 text-sm font-mono">
+                <span
+                  class="w-2 h-2 rounded-full"
+                  class:bg-warning={pa?.activity_state === 'thinking'}
+                  class:activity-pulse={pa?.activity_state === 'thinking'}
+                  class:bg-success={pa?.activity_state === 'executing' || (!pa && agentStatus.is_running)}
+                  class:animate-pulse={pa?.activity_state === 'executing' || (!pa && agentStatus.is_running)}
+                  class:bg-muted={pa?.activity_state === 'idle' || (!pa && !agentStatus.is_running)}
+                ></span>
+                <span class="text-body">{agentStatus.agent_name}</span>
+                {#if pa?.activity_state === 'thinking'}
+                  <span class="text-[10px] text-warning">API call{pa.api_connections > 1 ? ` (${pa.api_connections})` : ''}</span>
+                {:else if pa?.activity_state === 'executing'}
+                  <span class="text-[10px] text-success">Executing</span>
+                {:else if pa}
+                  <span class="text-[10px] text-muted">Idle</span>
+                {/if}
+                {#if pa?.network_connections}
+                  <span class="text-[9px] text-muted">{pa.network_connections} conn</span>
+                {/if}
+              </span>
             {/if}
-            {#if pa?.network_connections}
-              <span class="text-[9px] text-[var(--muted)]">{pa.network_connections} conn</span>
-            {/if}
-          </span>
-        {/if}
-        <span class="text-xs text-[var(--muted)] font-mono">{formatTime(lastUpdated)}</span>
-        <button
-          onclick={loadData}
-          disabled={loading}
-          class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
-      </div>
+            <span class="text-xs text-muted font-mono">{formatTime(lastUpdated)}</span>
+            <button
+              onclick={loadData}
+              disabled={loading}
+              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
+            >
+              {loading ? '...' : '↻'} Refresh
+            </button>
+          </div>
+        {/snippet}
+      </PageHeader>
     </div>
 
     <!-- Event Feed + AI Pulse -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
       <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex flex-col min-h-0"
+        class="bg-surface border border-border rounded-lg p-4 flex flex-col min-h-0"
       >
         <div class="flex justify-between items-center mb-3">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
             Event Feed
           </h3>
-          <span class="flex items-center gap-1.5 text-[10px] text-[var(--success)] font-mono">
-            <span class="w-1.5 h-1.5 bg-[var(--success)] rounded-full animate-pulse"></span>
+          <span class="flex items-center gap-1.5 text-[10px] text-success font-mono">
+            <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
             Live
           </span>
         </div>
         <div class="space-y-0.5 overflow-y-auto flex-1">
           {#if activityFeed.length === 0 && recentFiles.length === 0}
-            <div class="text-center py-6 text-xs text-[var(--muted)]">
+            <div class="text-center py-6 text-xs text-muted">
               <span class="inline-block idle-breathing">Waiting for activity</span>
             </div>
           {:else}
@@ -741,7 +743,7 @@
               <div
                 class="flex items-center gap-1.5 px-1.5 py-1 rounded transition-all duration-500 {item._new
                   ? 'feed-slide-in'
-                  : 'hover:bg-[var(--bg)]'}"
+                  : 'hover:bg-canvas'}"
                 style="border-left: 2px solid {item.color}; background: {item.icon === '+' ? 'var(--success-subtle)' : item.icon === '-' ? 'var(--error-subtle)' : 'transparent'}; {item._new
                   ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
                   : ''}"
@@ -763,7 +765,7 @@
                     {rs.score}
                   </span>
                 {/if}
-                <span class="text-[9px] text-[var(--muted)] font-mono flex-shrink-0"
+                <span class="text-[9px] text-muted font-mono flex-shrink-0"
                   >{formatTime(item.timestamp)}</span
                 >
               </div>
@@ -777,7 +779,7 @@
     </div>
 
     <!-- Compact Stats + Agents + System bar -->
-    <div class="flex flex-wrap items-center gap-2 mb-3 bg-[var(--surface)] border border-[var(--border)] rounded px-3 py-2">
+    <div class="flex flex-wrap items-center gap-2 mb-3 bg-surface border border-border rounded px-3 py-2">
       <!-- Stats inline -->
       {#each [
         { key: 'total_events', label: 'Events', value: stats.total_events, tip: 'Total file-change events recorded today across watched projects.' },
@@ -786,35 +788,35 @@
         { key: 'deletes', label: 'Deletes', value: stats.deletes, color: 'var(--error)', tip: 'Files removed today.' }
       ] as stat (stat.key)}
         <span class="text-[11px] font-mono {statsFlash[stat.key] ? 'stat-flash' : ''}" title={stat.tip}>
-          <span class="text-[var(--muted)]">{stat.label}</span>
+          <span class="text-muted">{stat.label}</span>
           <span class="font-semibold" style="color: {stat.color || 'var(--text)'}">{formatNumber(stat.value)}</span>
         </span>
-        <span class="text-[var(--border)]">|</span>
+        <span class="text-border">|</span>
       {/each}
       <span class="text-[11px] font-mono" title="File events per minute, averaged across the 100 most recent file changes. Throughput, not an instant rate.">
-        <span class="text-[var(--muted)]">Rate</span>
-        <span class="font-semibold text-[var(--text)]">{eventsPerMin}/m</span>
+        <span class="text-muted">Rate</span>
+        <span class="font-semibold text-body">{eventsPerMin}/m</span>
       </span>
 
       {#if stats.app_errors > 0}
-        <span class="text-[var(--border)]">|</span>
+        <span class="text-border">|</span>
         <button
           onclick={() => navigate('/system/errors')}
           class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0"
           title="Unresolved app errors caught by the global error handler. Click to view & clear."
         >
-          <span class="text-[var(--error)] font-semibold">{stats.app_errors} errors</span>
+          <span class="text-error font-semibold">{stats.app_errors} errors</span>
         </button>
       {/if}
 
       {#if latestApiLatency}
-        <span class="text-[var(--border)]">|</span>
+        <span class="text-border">|</span>
         <button
           onclick={() => navigate('/analysis/network')}
           class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
           title="Latency of Claude's most recent API request. Yellow >10s, red >30s. Click for the full network view."
         >
-          <span class="text-[var(--muted)]">API</span>
+          <span class="text-muted">API</span>
           <span class="font-semibold" style="color: {latestApiLatency.latency_ms > 30000 ? 'var(--error)' : latestApiLatency.latency_ms > 10000 ? 'var(--warning)' : 'var(--text)'}">
             {(latestApiLatency.latency_ms / 1000).toFixed(1)}s
           </span>
@@ -840,8 +842,8 @@
             ? 'Estimated total API cost today (USD), all input + cache + output.'
             : 'Total tokens today across input, cache_creation, cache_read, and output. Click for the full cost breakdown.'}
         >
-          <span class="text-[var(--muted)]">Tokens</span>
-          <span class="font-semibold text-[var(--accent)]">
+          <span class="text-muted">Tokens</span>
+          <span class="font-semibold text-accent">
             {#if billingMode === 'api'}
               {formatCost(sessionCosts.total_cost_usd)}
             {:else}
@@ -850,18 +852,18 @@
           </span>
         </span>
         <span class="flex items-center gap-1" title="All input tokens today: new (uncached) + cache_creation + cache_read. Includes the prompt context Claude reads each turn.">
-          <span class="text-[var(--muted)]">In</span>
-          <span class="text-[var(--text)]">{formatTokens(totalIn)}</span>
+          <span class="text-muted">In</span>
+          <span class="text-body">{formatTokens(totalIn)}</span>
         </span>
         {#if cRead > 0}
           <span class="flex items-center gap-1" title="Tokens served from prompt cache (~10% of normal input cost). High = good — Claude reused context instead of paying full price.">
-            <span class="text-[var(--muted)]">Cached</span>
-            <span class="text-[var(--text)]">{formatTokens(cRead)}</span>
+            <span class="text-muted">Cached</span>
+            <span class="text-body">{formatTokens(cRead)}</span>
           </span>
         {/if}
         <span class="flex items-center gap-1" title="Output tokens generated by Claude today. The work product, billed at the highest rate.">
-          <span class="text-[var(--muted)]">Out</span>
-          <span class="text-[var(--text)]">{formatTokens(cOut)}</span>
+          <span class="text-muted">Out</span>
+          <span class="text-body">{formatTokens(cOut)}</span>
         </span>
       {/snippet}
       <button onclick={() => navigate('/analysis/costs')} class="flex items-center gap-2 text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80">
@@ -874,58 +876,58 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
       <!-- Sub-Agents -->
       <div
-        class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--accent)] transition-colors flex flex-col"
+        class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col"
         onclick={() => navigate('/analysis/subagents')}
         onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/subagents')}
         role="link"
         tabindex="0"
       >
         <div class="flex justify-between items-center mb-2">
-          <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Sub-Agents</h3>
-          <span class="text-[10px] text-[var(--muted)]">→</span>
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Sub-Agents</h3>
+          <span class="text-[10px] text-muted">→</span>
         </div>
         {#if recentSubagents.length > 0}
           <div class="space-y-1 overflow-y-auto flex-1">
             {#each recentSubagents.slice(0, 8) as agent (agent.id)}
               <div class="flex items-center gap-2 py-0.5">
                 <span class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex-shrink-0" style="background: {getTypeColor(agent.agent_type)}">{agent.agent_type || 'agent'}</span>
-                <span class="text-[10px] text-[var(--text)] truncate flex-1">{agent.description || agent.agent_id?.slice(0, 12)}</span>
-                <span class="text-[9px] text-[var(--muted)] font-mono flex-shrink-0">{formatTime(agent.started_at)}</span>
+                <span class="text-[10px] text-body truncate flex-1">{agent.description || agent.agent_id?.slice(0, 12)}</span>
+                <span class="text-[9px] text-muted font-mono flex-shrink-0">{formatTime(agent.started_at)}</span>
               </div>
             {/each}
           </div>
         {:else}
-          <div class="text-xs text-[var(--muted)] py-2">No sub-agents yet</div>
+          <div class="text-xs text-muted py-2">No sub-agents yet</div>
         {/if}
       </div>
 
       <!-- Latest Diff -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col min-h-0">
-        <div class="flex justify-between items-center px-3 py-1.5 bg-[var(--bg)] border-b border-[var(--border)] flex-shrink-0">
+      <div class="bg-surface border border-border rounded-lg overflow-hidden flex flex-col min-h-0">
+        <div class="flex justify-between items-center px-3 py-1.5 bg-canvas border-b border-border flex-shrink-0">
           {#if latestDiff}
             <div class="flex items-center gap-2 min-w-0">
-              <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse flex-shrink-0"></span>
-              <span class="text-[10px] font-mono text-[var(--text)] truncate">{latestDiff.filepath}<span class="cursor-blink">|</span></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0"></span>
+              <span class="text-[10px] font-mono text-body truncate">{latestDiff.filepath}<span class="cursor-blink">|</span></span>
             </div>
             {#if latestDiff.agent_source}
               <span class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0" style="background: {getAgentColorByName(latestDiff.agent_source)}">{latestDiff.agent_source}</span>
             {/if}
           {:else}
-            <span class="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide">Latest Change</span>
+            <span class="text-[10px] font-semibold text-muted uppercase tracking-wide">Latest Change</span>
           {/if}
         </div>
         <div class="flex-1 overflow-auto">
           {#if latestDiff}
-            <pre class="text-[10px] font-mono m-0 bg-[var(--surface)] leading-[1.6]">{#each latestDiff.diff.split('\n').slice(0, 20) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span class="text-[var(--success)] block px-2" style="background: var(--success-subtle)">{line.slice(1)}</span>{:else if c === '-'}<span class="text-[var(--error)] block px-2" style="background: var(--error-subtle)">{line.slice(1)}</span>{:else}<span class="text-[var(--muted)] block px-2">{c === ' ' ? line.slice(1) : line}</span>{/if}{/each}</pre>
+            <pre class="text-[10px] font-mono m-0 bg-surface leading-[1.6]">{#each latestDiff.diff.split('\n').slice(0, 20) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span class="text-success block px-2" style="background: var(--success-subtle)">{line.slice(1)}</span>{:else if c === '-'}<span class="text-error block px-2" style="background: var(--error-subtle)">{line.slice(1)}</span>{:else}<span class="text-muted block px-2">{c === ' ' ? line.slice(1) : line}</span>{/if}{/each}</pre>
           {:else}
-            <div class="flex items-center justify-center h-full text-xs text-[var(--muted)]">Waiting for changes</div>
+            <div class="flex items-center justify-center h-full text-xs text-muted">Waiting for changes</div>
           {/if}
         </div>
       </div>
 
       <!-- Activity Trend -->
-      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 flex flex-col min-h-0">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1 flex-shrink-0">Event Rate (5m)</h3>
+      <div class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-0">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">Event Rate (5m)</h3>
         <div class="flex-1 min-h-0">
           <canvas id="chart-trend"></canvas>
         </div>
@@ -938,10 +940,10 @@
       <div class="mb-6 space-y-2">
         {#each syntaxAlerts.slice(0, 3) as alert (alert._ts)}
           <div
-            class="flex items-center gap-3 px-4 py-2 bg-[var(--error-subtle)] border border-[var(--error)] rounded-lg animate-pulse"
+            class="flex items-center gap-3 px-4 py-2 bg-error-subtle border border-error rounded-lg animate-pulse"
           >
-            <span class="text-sm font-bold text-[var(--error)]">!!</span>
-            <span class="text-sm text-[var(--error)] font-mono flex-1"
+            <span class="text-sm font-bold text-error">!!</span>
+            <span class="text-sm text-error font-mono flex-1"
               >Syntax error in {alert.filepath} ({alert.count} issue{alert.count > 1
                 ? 's'
                 : ''})</span
@@ -950,7 +952,7 @@
               onclick={() => {
                 syntaxAlerts = syntaxAlerts.filter(a => a._ts !== alert._ts);
               }}
-              class="text-[var(--error)] hover:opacity-70 text-xs">dismiss</button
+              class="text-error hover:opacity-70 text-xs">dismiss</button
             >
           </div>
         {/each}
@@ -958,107 +960,5 @@
     {/if}
   </div>
 </div>
+</PageLayout>
 
-<style>
-  /* Activity state pulse for "thinking" */
-  @keyframes activity-pulse-kf {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.4); }
-  }
-  .activity-pulse {
-    animation: activity-pulse-kf 1.5s ease-in-out infinite;
-  }
-
-  /* Agent breathing animation */
-  :global(.agent-breathing) {
-    animation: breathe 3s ease-in-out infinite;
-  }
-
-  @keyframes breathe {
-    0%,
-    100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.008);
-    }
-  }
-
-  /* Heartbeat waveform animations */
-  :global(.heartbeat-working) {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    animation: heartbeat-draw 1.2s linear infinite;
-  }
-  :global(.heartbeat-running) {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    animation: heartbeat-draw 3s linear infinite;
-  }
-
-  @keyframes heartbeat-draw {
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
-
-  /* Stat card flash on change */
-  :global(.stat-flash) {
-    animation: stat-glow 1s ease-out;
-  }
-
-  @keyframes stat-glow {
-    0% {
-      box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
-      border-color: var(--accent);
-    }
-    100% {
-      box-shadow: none;
-    }
-  }
-
-  /* Activity feed slide-in */
-  :global(.feed-slide-in) {
-    animation: slide-in 0.4s ease-out;
-    background: color-mix(in srgb, var(--accent) 6%, transparent);
-  }
-
-  @keyframes slide-in {
-    from {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Idle breathing dot */
-  :global(.idle-breathing) {
-    animation: idle-pulse 4s ease-in-out infinite;
-  }
-
-  @keyframes idle-pulse {
-    0%,
-    100% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
-
-  /* Cursor blink for diff filepath */
-  :global(.cursor-blink) {
-    animation: blink 1s step-end infinite;
-    color: var(--accent);
-    font-weight: bold;
-  }
-
-  @keyframes blink {
-    50% {
-      opacity: 0;
-    }
-  }
-</style>

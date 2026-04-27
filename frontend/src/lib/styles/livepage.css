@@ -1,0 +1,150 @@
+/* Page-specific layout for the Live monitor (lib/pages/LivePage.svelte).
+   Layout-heavy CSS for the resizable sidebar+diff grid that's awkward to
+   express as Tailwind utilities. Imported globally from app.css. */
+
+.live-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.live-page .top-section {
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.live-page .main-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.live-page .changes-panel {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.live-page .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.live-page .panel-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.live-page .panel-count {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--accent);
+  background: var(--accent-subtle);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-xl);
+}
+
+.live-page .file-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.live-page .file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  font-family: var(--sans);
+}
+
+.live-page .file-item:hover {
+  background: var(--bg);
+}
+
+.live-page .file-item.active {
+  background: var(--accent-subtle);
+  border-left: 2px solid var(--accent);
+}
+
+.live-page .change-indicator {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--mono);
+  min-width: 1rem;
+  text-align: center;
+}
+
+.live-page .file-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.live-page .file-name {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-page .file-dir {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-page .file-time {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-family: var(--mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.live-page .diff-panel {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.live-page .empty-state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--text-base);
+}
+
+@media (max-width: 900px) {
+  .live-page .main-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 200px 1fr;
+  }
+  .live-page .changes-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
