@@ -3,6 +3,7 @@
   import { logger } from '../logger.js';
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
@@ -237,13 +238,7 @@
         >
           Export
         </button>
-        <button
-          onclick={() => loadProjects()}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={() => loadProjects()} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>

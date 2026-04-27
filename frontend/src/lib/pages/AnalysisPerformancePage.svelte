@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   /**
    * Analysis Performance Page
    * Performance profiling with 3 tabs: Metrics, Trend Charts, Correlations
@@ -273,13 +274,7 @@
         >
           Export CSV
         </button>
-        <button
-          onclick={() => fetchAllData(true)}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={() => fetchAllData(true)} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>

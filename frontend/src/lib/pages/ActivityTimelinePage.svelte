@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { formatTimeOnly, formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   /**
    * Activity Timeline Page
    * Visual chronological timeline of events
@@ -184,13 +185,7 @@
 <PageLayout>
   <PageHeader title="Activity Timeline" description="Chronological view of file changes">
     {#snippet actions()}
-      <button
-        onclick={loadEvents}
-        disabled={loading}
-        class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-      >
-        {loading ? '...' : '↻'} Refresh
-      </button>
+      <RefreshButton onClick={loadEvents} loading={loading} />
     {/snippet}
   </PageHeader>
 

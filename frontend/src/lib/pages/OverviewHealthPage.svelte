@@ -3,6 +3,7 @@
   import { logger } from '../logger.js';
   import { projectFilter } from '../projectFilterStore.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   /**
    * Project Health Details Page
    * Comprehensive health analysis for a single project
@@ -102,13 +103,7 @@
           <option value={7}>Last 7 days</option>
           <option value={30}>Last 30 days</option>
         </select>
-        <button
-          onclick={loadHealthSummary}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={loadHealthSummary} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>

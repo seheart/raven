@@ -3,6 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let healthReport = $state(null);
@@ -63,13 +64,7 @@
   <PageHeader title="Health Monitor" description="Real-time system health and data integrity">
     {#snippet actions()}
       <div class="flex items-center gap-2">
-        <button
-          onclick={fetchHealthReport}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={fetchHealthReport} loading={loading} />
         <button
           onclick={toggleAutoRefresh}
           class="px-3 py-1.5 border rounded text-sm font-sans transition-colors {autoRefresh

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
 
@@ -95,16 +96,7 @@
             Clear All
           </button>
         {/if}
-        <button
-          onclick={() => {
-            currentPage = 0;
-            loadErrors();
-          }}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={() => { currentPage = 0; loadErrors(); }} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>

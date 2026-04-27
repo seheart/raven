@@ -3,6 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatTimeOnly, formatDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   import { getChartColors } from '../utils/chartUtils.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
@@ -209,13 +210,7 @@
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted font-mono">Updated {timeSinceUpdate}s ago</span>
-        <button
-          onclick={() => loadAnalysisData()}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '&#8635;'} Refresh
-        </button>
+        <RefreshButton onClick={() => loadAnalysisData()} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>

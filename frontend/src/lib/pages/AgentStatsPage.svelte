@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   /**
@@ -392,13 +393,7 @@
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted font-mono">{timeAgo}</span>
-        <button
-          onclick={loadStats}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={loadStats} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>
@@ -483,13 +478,7 @@
           class="flex-1 min-w-[200px] px-3 py-2 bg-canvas border border-border rounded text-sm text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent font-mono"
         />
 
-        <button
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-          onclick={loadStats}
-          disabled={loading}
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={loadStats} loading={loading} />
 
         <button
           class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"

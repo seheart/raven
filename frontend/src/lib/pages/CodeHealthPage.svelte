@@ -4,6 +4,7 @@
   import { formatShortDateTime } from '../timeFormat.js';
   import { websocketService } from '../services/websocket.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let data = $state({ latest: null, history: [], is_running: false });
@@ -272,13 +273,7 @@
             {copyStatus || `Copy Issues (${issueCount})`}
           </button>
         {/if}
-        <button
-          onclick={loadData}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '\u21BB'} Refresh
-        </button>
+        <RefreshButton onClick={loadData} loading={loading} />
         <button
           onclick={triggerAnalysis}
           disabled={triggering || data.is_running}

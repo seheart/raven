@@ -3,6 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   /**
    * Agent Monitoring Page
    * Real-time agent monitoring with live status and activity timeline
@@ -443,13 +444,7 @@
             Updated {timeAgo}
           {/if}
         </span>
-        <button
-          onclick={loadMonitoringData}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={loadMonitoringData} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>

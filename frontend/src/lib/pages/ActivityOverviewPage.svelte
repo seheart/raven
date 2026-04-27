@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
@@ -799,13 +800,7 @@
         >
           Export
         </button>
-        <button
-          onclick={() => loadActivities(true)}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={() => loadActivities(true)} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>

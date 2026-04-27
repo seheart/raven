@@ -4,6 +4,7 @@
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
 
   let models = $state([]);
   let loading = $state(true);
@@ -49,13 +50,7 @@
 <PageLayout>
   <PageHeader title="Models" description="AI models and tools tracked by Raven">
     {#snippet actions()}
-      <button
-        onclick={() => loadData(true)}
-        disabled={loading}
-        class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-      >
-        {loading ? '...' : '&#8635;'} Refresh
-      </button>
+      <RefreshButton onClick={() => loadData(true)} loading={loading} />
     {/snippet}
   </PageHeader>
 

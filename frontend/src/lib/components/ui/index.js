@@ -20,8 +20,7 @@ export { default as Toggle } from './Toggle.svelte';
 export { default as Radio } from './Radio.svelte';
 
 // Phase 4: Overlays & Feedback
-export { default as Modal } from './Modal.svelte';
-export { default as Toast } from './Toast.svelte';
+export { default as ToastContainer } from './ToastContainer.svelte';
 export { default as Tooltip } from './Tooltip.svelte';
 export { default as Dropdown } from './Dropdown.svelte';
 export { default as DropdownItem } from './DropdownItem.svelte';
@@ -43,6 +42,9 @@ export { default as DatePicker } from './DatePicker.svelte';
 export { default as FileUpload } from './FileUpload.svelte';
 export { default as Autocomplete } from './Autocomplete.svelte';
 export { default as MultiSelect } from './MultiSelect.svelte';
+
+// Page-action primitives
+export { default as RefreshButton } from './RefreshButton.svelte';
 
 // Utility Components
 export { default as FormField } from './FormField.svelte';

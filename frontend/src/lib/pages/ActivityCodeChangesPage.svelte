@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { formatDateTime, formatTimeOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton } from '../components/ui/index.js';
   /**
    * Activity Code Changes Page - Detailed file change log with real-time updates
    */
@@ -209,13 +210,7 @@
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted font-mono">{formatTimeOnly(lastUpdated)}</span>
-        <button
-          onclick={loadEvents}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Refresh
-        </button>
+        <RefreshButton onClick={loadEvents} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>
