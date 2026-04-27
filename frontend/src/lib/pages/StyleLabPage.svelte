@@ -34,10 +34,7 @@
   const VARIANTS = [
     { id: 'terminal', n: '01', name: 'Terminal //', tag: 'numbered slash · current Raven' },
     { id: 'bracketed', n: '02', name: '[ Bracketed ]', tag: 'BBS amber · Bloomberg phosphor' },
-    { id: 'outline', n: '03', name: '§ Outline', tag: 'engineering blueprint · ICS cyan' },
-    { id: 'document', n: '04', name: 'Section 1.', tag: 'whitepaper · serif · spacious' },
-    { id: 'tag', n: '05', name: 'Numeral 01', tag: 'modern editorial · big tag' },
-    { id: 'hash', n: '06', name: '# Markdown', tag: 'GitHub-style · clean sans' }
+    { id: 'outline', n: '03', name: '§ Outline', tag: 'engineering blueprint · ICS cyan' }
   ];
 </script>
 
@@ -52,7 +49,7 @@
         <span class="uppercase tracking-wide">Style Lab</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-muted">Six vibes · same content · ANT-sized</span>
+        <span class="text-muted">Three vibes · same content · ANT-sized</span>
       </div>
     </div>
 
@@ -61,7 +58,7 @@
       <PageHeader title="Style Lab" />
 
       <p class="mt-4 text-[16px] text-body font-sans leading-relaxed">
-        Six different aesthetic treatments applied to the same dashboard. Pick what you like, kill what you don't, mix the survivors. Everything below is built bigger than the rest of Raven on purpose — read first, optimize density later.
+        Three aesthetic treatments applied to the same dashboard. Variant 01 is current Raven; 02 and 03 are alternative directions. Everything below is built bigger than the rest of Raven on purpose — read first, optimize density later.
       </p>
 
       <div class="mt-6 flex flex-wrap gap-1.5">
@@ -262,182 +259,11 @@
 
     </PageSection>
 
-    <!-- =========================================================== -->
-    <!-- VARIANT 04 — Section 1. (whitepaper / serif) -->
-    <!-- =========================================================== -->
-    <div id="variant-document"></div>
-    <PageSection title="04 // Variant — Section 1. (whitepaper)" meta="serif · spacious · academic paper feel">
-
-      <div class="bg-surface rounded-lg p-10 max-w-[48rem] mx-auto" style="font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, ui-serif, serif;">
-        <!-- Hero -->
-        <div class="text-[14px] uppercase tracking-[0.2em] text-muted mb-4">{DEMO.label}</div>
-        <div class="text-[36px] text-heading leading-tight mb-3" role="heading" aria-level="3">{DEMO.title}</div>
-        <p class="text-[18px] text-body leading-[1.7] mb-8 italic">
-          {DEMO.lede}
-        </p>
-
-        <p class="text-[16px] text-body leading-[1.8] mb-8">
-          {#each DEMO.meta as m, i (m.k)}{i > 0 ? '; ' : ''}<strong>{m.k.toLowerCase()}</strong> at <span style="font-family: var(--font-mono);">{m.v}</span>{/each}.
-        </p>
-
-        <!-- Section: Recent Activity -->
-        <div class="text-[24px] text-heading mb-4 leading-tight" role="heading" aria-level="3">
-          <em>Section 1.</em>&nbsp;&nbsp;Recent Activity
-        </div>
-        <div class="space-y-3 text-[16px] text-body leading-[1.8] mb-8 pl-6 border-l border-border">
-          {#each DEMO.events as e (e.what)}
-            <p>
-              <strong>{e.agent}</strong> on <em>{e.project}</em>, <span class="text-muted">{e.when}</span>:
-              <span style="font-family: var(--font-mono); font-size: 14px;">{e.what}</span>.
-            </p>
-          {/each}
-        </div>
-
-        <!-- Section: Health -->
-        <div class="text-[24px] text-heading mb-4 leading-tight" role="heading" aria-level="3">
-          <em>Section 2.</em>&nbsp;&nbsp;Health
-        </div>
-        <p class="text-[16px] text-body leading-[1.8]">
-          {#each DEMO.health as h, i (h.label)}{i > 0 ? '; ' : ''}<strong>{h.label.toLowerCase()}</strong> at <span style="font-family: var(--font-mono);">{h.value}</span>{/each}.
-        </p>
-      </div>
-
-    </PageSection>
-
-    <!-- =========================================================== -->
-    <!-- VARIANT 05 — Numeral 01 (modern editorial) -->
-    <!-- =========================================================== -->
-    <div id="variant-tag"></div>
-    <PageSection title="05 // Variant — Numeral 01" meta="modern editorial · huge tag · spacious">
-
-      <div class="bg-surface rounded-2xl p-8" style="box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);">
-        <!-- Hero -->
-        <div class="flex items-baseline gap-6 mb-6">
-          <span class="text-[80px] font-bold text-accent leading-none tracking-tight">00</span>
-          <div class="flex-1">
-            <div class="text-[12px] font-semibold text-muted uppercase tracking-[0.2em] mb-1">{DEMO.label}</div>
-            <div class="text-[32px] font-bold text-heading leading-tight" role="heading" aria-level="3">{DEMO.title}</div>
-          </div>
-        </div>
-        <p class="text-[18px] text-body font-sans leading-relaxed mb-8 max-w-[42rem]">{DEMO.lede}</p>
-
-        <div class="flex flex-wrap gap-x-8 gap-y-2 mb-10 text-[14px]">
-          {#each DEMO.meta as m (m.k)}
-            <div class="flex items-baseline gap-2">
-              <span class="text-muted">{m.k}</span>
-              <span class="font-bold text-heading">{m.v}</span>
-            </div>
-          {/each}
-        </div>
-
-        <!-- Section: Recent Activity -->
-        <div class="flex items-baseline gap-6 mb-5">
-          <span class="text-[60px] font-bold text-accent leading-none tracking-tight">01</span>
-          <div class="text-[26px] font-bold text-heading leading-tight" role="heading" aria-level="3">Recent Activity</div>
-        </div>
-        <div class="space-y-3 mb-10 ml-[88px]">
-          {#each DEMO.events as e (e.what)}
-            <div class="bg-canvas border border-border rounded-xl p-4 hover:border-accent/40 transition-colors">
-              <div class="flex items-baseline justify-between gap-3 mb-1">
-                <div>
-                  <span class="text-[15px] font-semibold text-heading">{e.agent}</span>
-                  <span class="text-muted mx-1.5">in</span>
-                  <span class="text-[15px] font-semibold text-heading">{e.project}</span>
-                </div>
-                <span class="text-[13px] text-muted">{e.when}</span>
-              </div>
-              <div class="text-[14px] text-body font-sans" style="font-family: var(--font-mono); font-size: 13px;">{e.what}</div>
-            </div>
-          {/each}
-        </div>
-
-        <!-- Section: Health -->
-        <div class="flex items-baseline gap-6 mb-5">
-          <span class="text-[60px] font-bold text-accent leading-none tracking-tight">02</span>
-          <div class="text-[26px] font-bold text-heading leading-tight" role="heading" aria-level="3">Health</div>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 ml-[88px]">
-          {#each DEMO.health as h (h.label)}
-            <div class="bg-canvas border border-border rounded-xl p-5">
-              <div class="text-[13px] text-muted mb-2">{h.label}</div>
-              <div class="text-[28px] font-bold text-heading">{h.value}</div>
-            </div>
-          {/each}
-        </div>
-      </div>
-
-    </PageSection>
-
-    <!-- =========================================================== -->
-    <!-- VARIANT 06 — # Markdown (GitHub style) -->
-    <!-- =========================================================== -->
-    <div id="variant-hash"></div>
-    <PageSection title="06 // Variant — # Markdown" meta="GitHub-style · clean sans · familiar">
-
-      <div class="bg-surface border border-border rounded p-8 max-w-[48rem]">
-        <!-- Hero -->
-        <div class="text-[13px] text-muted mb-2">{DEMO.label}</div>
-        <div class="text-[32px] font-bold text-heading leading-tight pb-3 border-b border-border mb-4" role="heading" aria-level="3">
-          <span class="text-muted font-normal">#</span> {DEMO.title}
-        </div>
-        <p class="text-[16px] text-body font-sans leading-relaxed mb-6">{DEMO.lede}</p>
-
-        <div class="bg-canvas border border-border rounded p-4 mb-8">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[14px]">
-            {#each DEMO.meta as m (m.k)}
-              <div>
-                <div class="text-muted mb-0.5">{m.k}</div>
-                <div class="font-semibold text-heading">{m.v}</div>
-              </div>
-            {/each}
-          </div>
-        </div>
-
-        <!-- Section: Recent Activity -->
-        <div class="text-[22px] font-bold text-heading leading-tight pb-2 border-b border-border mb-4" role="heading" aria-level="3">
-          <span class="text-muted font-normal">## 01 /</span> Recent Activity
-        </div>
-        <ul class="space-y-2 mb-8 text-[15px]">
-          {#each DEMO.events as e (e.what)}
-            <li class="text-body leading-relaxed">
-              <span class="text-muted">—</span>
-              <code class="bg-canvas border border-border px-1.5 py-0.5 rounded text-[13px]">{e.agent}</code>
-              on
-              <code class="bg-canvas border border-border px-1.5 py-0.5 rounded text-[13px]">{e.project}</code>
-              <span class="text-muted">({e.when})</span>:
-              {e.what}
-            </li>
-          {/each}
-        </ul>
-
-        <!-- Section: Health -->
-        <div class="text-[22px] font-bold text-heading leading-tight pb-2 border-b border-border mb-4" role="heading" aria-level="3">
-          <span class="text-muted font-normal">## 02 /</span> Health
-        </div>
-        <table class="w-full text-[14px]">
-          <thead>
-            <tr class="text-left border-b border-border text-muted">
-              <th class="py-2 font-semibold">Metric</th>
-              <th class="py-2 font-semibold text-right">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each DEMO.health as h (h.label)}
-              <tr class="border-b border-border">
-                <td class="py-2 text-body">{h.label}</td>
-                <td class="py-2 text-right font-mono text-heading">{h.value}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-
-    </PageSection>
 
     <!-- Footer note -->
-    <PageSection title="07 // Pick one">
+    <PageSection title="04 // Pick one">
       <p class="text-[15px] text-body font-sans leading-relaxed">
-        Once you've stared at all six, tell me which two or three you want to see expanded across a real page (Overview, System, Activity). The winner becomes the new Raven baseline; the runner-up becomes a theme variant in <code class="font-mono text-[13px] bg-surface-2 px-1.5 py-0.5 rounded">Settings</code>. The losers are educational.
+        Variant 01 is current Raven. Variants 02 and 03 are the two alternative directions still on the table — tell me which one you want me to expand across a real page (Overview, System, Activity) so we can see it at full scale. The winner becomes the new Raven baseline; the runner-up could land as an opt-in theme variant in <code class="font-mono text-[13px] bg-surface-2 px-1.5 py-0.5 rounded">Settings</code>.
       </p>
     </PageSection>
 
