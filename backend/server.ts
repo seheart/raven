@@ -3506,6 +3506,7 @@ app.get('/api/errors/stats', cacheMiddleware(5000), (req: Request, res: Response
 
 app.delete('/api/errors/clear', (req: Request, res: Response) => {
   db.db.prepare('DELETE FROM app_errors').run();
+  io.emit('errors-cleared');
   return res.json({ success: true, message: 'All errors cleared' });
 });
 

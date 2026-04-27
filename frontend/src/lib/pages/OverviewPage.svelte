@@ -546,6 +546,10 @@
     stats.app_errors++;
   };
 
+  const handleErrorsCleared = () => {
+    stats.app_errors = 0;
+  };
+
   const handleHealthAlert = data => {
     // Only show critical alerts in the feed — warnings are noisy and usually benign
     if (data.status === 'critical') {
@@ -592,6 +596,7 @@
     websocketService.on('model-status-changed', handleModelStatus);
     websocketService.on('health-alert', handleHealthAlert);
     websocketService.on('app-error', handleAppError);
+    websocketService.on('errors-cleared', handleErrorsCleared);
     websocketService.on('diff-risk-score', handleDiffRiskScore);
     websocketService.on('anomaly-insight', handleAnomalyInsight);
     const handleTokenUsage = () => {
@@ -636,6 +641,7 @@
       websocketService.off('model-status-changed', handleModelStatus);
       websocketService.off('health-alert', handleHealthAlert);
       websocketService.off('app-error', handleAppError);
+      websocketService.off('errors-cleared', handleErrorsCleared);
       websocketService.off('diff-risk-score', handleDiffRiskScore);
       websocketService.off('anomaly-insight', handleAnomalyInsight);
       websocketService.off('token-usage', handleTokenUsage);
