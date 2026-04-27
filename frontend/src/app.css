@@ -73,13 +73,14 @@
   --text-5xl: 28px;
 }
 
-/* === Design Tokens — Raven Phosphor palette ===
-   Black base, phosphor-green accent. The black canvas / grey surfaces /
-   near-white headings are the truth of a raven; the phosphor green is
-   the live-system tell — borrowed from Bloomberg / VT100 / CRT. Used
-   only on links, primary CTAs, and the brand prompt. Functional state
-   colors stay distinct (success/error/warning/info) because they carry
-   meaning, even though success and accent both sit in the green family. */
+/* === Design Tokens — Raven palette ===
+   Light mode: cream paper with INK BLACK accent — newspaper/letterpress
+   restraint, no chromatic accent for the brand. The functional state
+   colors (success/error/warning/info) still carry meaning, but the
+   primary tell is just typographic weight + true black.
+   Dark mode: black canvas with PHOSPHOR GREEN accent — the CRT /
+   Bloomberg / VT100 "system is on" feel. The two modes are independent
+   palettes that share structural tokens (spacing, radius, type scale). */
 :root {
   /* Surfaces — warm cream paper */
   --bg: #f6f4ef;
@@ -90,9 +91,10 @@
   --muted: #6b6b6b;
   --border: #d4d2cc;
 
-  /* Accent — phosphor green for primary actions, links, focus */
-  --accent: #006633;
-  --accent-2: #008040;
+  /* Accent — pure ink black for primary actions, links, focus.
+     Daytime brand reads "serious technical reference," not "wellness." */
+  --accent: #000000;
+  --accent-2: #1a1a1a;
   --success: #2d7a4a;
   --error: #b62a4a;
   --warning: #b8740c;
@@ -103,44 +105,44 @@
   --pill-error: #b62a4a;
   --pill-mod: #b8740c;
 
-  /* Buttons — primary is phosphor-green on white */
-  --btn-primary-bg: #006633;
+  /* Buttons — primary is ink black on cream */
+  --btn-primary-bg: #000000;
   --btn-primary-text: #ffffff;
-  --btn-primary-hover: #008040;
+  --btn-primary-hover: #1a1a1a;
   --btn-secondary-bg: #ebe8e1;
   --btn-secondary-text: #1a1a1a;
   --btn-secondary-hover: #d4d2cc;
   --btn-ghost-bg: transparent;
-  --btn-ghost-text: #006633;
+  --btn-ghost-text: #000000;
   --btn-ghost-hover: #ebe8e1;
   --btn-disabled-bg: #ebe8e1;
   --btn-disabled-text: #9a9a9a;
 
   /* Links */
-  --link: #006633;
-  --link-hover: #008040;
-  --link-visited: #00502a;
+  --link: #000000;
+  --link-hover: #1a1a1a;
+  --link-visited: #404040;
 
   /* Inputs */
   --input-bg: #ffffff;
   --input-border: #d4d2cc;
-  --input-focus-border: #006633;
+  --input-focus-border: #000000;
   --input-text: #1a1a1a;
   --input-placeholder: #9a9a9a;
 
   /* Chips */
   --chip-bg: #ebe8e1;
   --chip-text: #1a1a1a;
-  --chip-accent: #006633;
+  --chip-accent: #000000;
 
   /* Code */
   --code-bg: #f0eeea;
   --code-text: #1a1a1a;
   --code-border: #d4d2cc;
 
-  /* Highlights */
-  --highlight: rgba(0, 102, 51, 0.1);
-  --selection: rgba(0, 102, 51, 0.2);
+  /* Highlights — neutral grey wash, no chromatic tint */
+  --highlight: rgba(0, 0, 0, 0.06);
+  --selection: rgba(0, 0, 0, 0.12);
 
   /* Semantic aliases */
   --text-primary: var(--text-heading);
@@ -152,8 +154,9 @@
   --border-color: var(--border);
   --primary: var(--accent);
 
-  /* Subtle variants — pale tints of each semantic color */
-  --accent-subtle: #e0f0e6;
+  /* Subtle variants — pale tints. accent-subtle is the warm grey of
+     surface-2 since the accent is now neutral black. */
+  --accent-subtle: #ebe8e1;
   --success-subtle: #e6f3ec;
   --error-subtle: #f7e8ec;
   --warning-subtle: #f5ead4;

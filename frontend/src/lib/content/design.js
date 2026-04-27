@@ -13,7 +13,7 @@ export const HERO = {
   meta: [
     { k: 'Sections', v: '10 · use TOC chips below' },
     { k: 'Aesthetic', v: 'Quiet · dense · technical · live' },
-    { k: 'Brand', v: 'Phosphor green on raven black · one bright tell' },
+    { k: 'Brand', v: 'Ink black on cream by day · phosphor green on raven black by night' },
     { k: 'Theme', v: 'Light · Dark · toggle in footer' }
   ],
   badges: [
@@ -314,12 +314,12 @@ export const STATES = [
 // Why the brand is what it is. Goes above the token tables so the
 // reader sees the rationale before the swatches.
 export const PHOSPHOR_RATIONALE = {
-  headline: 'Why phosphor green on raven black',
-  body: 'A raven is mostly black. Different shades of black, with one bright tell on the wing when light hits it. The base palette is the bird (raven black, warm grey surfaces, near-white headings); the accent is the tell — phosphor green, a single bright color reserved for things that demand attention: links, primary CTAs, the brand prompt, the live indicator. Borrowed from Bloomberg / VT100 / CRT terminals where green meant the system was on and you should look. Functional state colors (success / error / warning / info) keep their hues so meaning never collapses into brand.',
+  headline: 'Two palettes, one identity — ink black by day, phosphor green by night',
+  body: "A raven is mostly black, with one bright tell on the wing when light hits it. The two modes inherit that idea differently. Daytime is letterpress on cream paper — pure ink black is the brand, and the live tell is just typographic weight; phosphor green during the day reads 'wellness brand' instead of 'serious raven.' Nighttime is the CRT / Bloomberg / VT100 cockpit — black canvas, phosphor green for primary CTAs, links, brand prompt, live indicator. The structural palette is shared (same surfaces, same type, same spacing); only the accent shifts. Functional state colors (success / error / warning / info) stay constant across both modes so meaning never collapses into brand.",
   rules: [
-    'Phosphor accent is reserved for actions and the brand prompt — never for body text or decoration.',
-    'Success stays a slightly cooler green than accent so a "healthy" pill never looks like a "click me" pill.',
-    'In dark mode the accent inverts brightness (#4ade80) so primary CTAs become near-white-on-black; in light mode they stay green-on-cream.'
+    'Light mode: ink black accent. The brand reads as letterpress restraint; nothing chromatic competes with the data on the page.',
+    'Dark mode: phosphor green accent (#4ade80). The CRT tell, reserved for actions and the brand prompt — never body text or decoration.',
+    'Success stays a slightly cooler green than the dark-mode accent so a "healthy" pill never looks like a "click me" pill.'
   ]
 };
 
