@@ -714,9 +714,12 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       agentSource
     );
 
-    // Save snapshot
+    // Save snapshot under the same project-prefixed path the DB uses,
+    // so /api/file-diff/<storedPath> can find it. Previously this used
+    // the un-prefixed relative path, which made every diff lookup miss
+    // for multi-project files (the dashboard receives storedPath).
     if (event.content && event.type !== 'unlink') {
-      await saveSnapshot(event.path, event.content);
+      await saveSnapshot(storedPath, event.content);
     }
 
     logger.info(`📁 File ${event.type}: ${storedPath} (ID: ${eventId})`);
