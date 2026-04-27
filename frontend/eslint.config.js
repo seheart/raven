@@ -1,5 +1,3 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from 'eslint-plugin-storybook';
 import svelte from 'eslint-plugin-svelte';
 import prettierConfig from 'eslint-config-prettier';
 
@@ -10,8 +8,6 @@ export default [
       'dist/**',
       'build/**',
       'html/**',
-      'storybook-static/**',
-      '.storybook/**',
       '*.min.js',
       '*.bundle.js',
       'vite.config.js',
@@ -50,6 +46,5 @@ export default [
       'svelte/no-at-html-tags': 'warn'
     }
   },
-  ...storybook.configs['flat/recommended'],
   prettierConfig
 ];
