@@ -3,7 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatTimeOnly, formatDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
   import { getChartColors } from '../utils/chartUtils.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
@@ -222,12 +222,7 @@
         <span class="text-sm text-error font-sans"
           >Failed to load analysis data: {error}</span
         >
-        <button
-          onclick={() => loadAnalysisData()}
-          class="px-3 py-1.5 bg-error text-white rounded text-sm font-sans"
-        >
-          Retry
-        </button>
+        <ToolbarButton variant="danger" onClick={() => loadAnalysisData()}>Retry</ToolbarButton>
       </div>
     {:else if loading}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

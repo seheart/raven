@@ -405,12 +405,7 @@
         <span class="text-sm text-error font-sans"
           >Failed to load agent stats: {error}</span
         >
-        <button
-          onclick={loadStats}
-          class="px-3 py-1.5 bg-error text-white rounded text-sm font-sans"
-        >
-          Retry
-        </button>
+        <ToolbarButton variant="danger" onClick={loadStats}>Retry</ToolbarButton>
       </div>
     {/if}
 

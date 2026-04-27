@@ -3,7 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, FilterToggle, ToolbarButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let healthReport = $state(null);
@@ -65,14 +65,9 @@
     {#snippet actions()}
       <div class="flex items-center gap-2">
         <RefreshButton onClick={fetchHealthReport} loading={loading} />
-        <button
-          onclick={toggleAutoRefresh}
-          class="px-3 py-1.5 border rounded text-sm font-sans transition-colors {autoRefresh
-            ? 'bg-accent-subtle border-accent text-accent'
-            : 'bg-surface border-border text-muted'}"
-        >
+        <FilterToggle active={autoRefresh} onClick={toggleAutoRefresh}>
           {autoRefresh ? 'Auto-refresh on' : 'Auto-refresh off'}
-        </button>
+        </FilterToggle>
       </div>
     {/snippet}
   </PageHeader>
@@ -87,10 +82,7 @@
     {:else if error}
       <div class="bg-error-subtle border border-error rounded-lg p-4 text-center">
         <p class="text-sm text-error mb-2">Health check failed: {error}</p>
-        <button
-          onclick={fetchHealthReport}
-          class="px-3 py-1.5 bg-error text-white rounded text-sm">Retry</button
-        >
+        <ToolbarButton variant="danger" onClick={fetchHealthReport}>Retry</ToolbarButton>
       </div>
     {:else if healthReport}
       <!-- Overall Status -->

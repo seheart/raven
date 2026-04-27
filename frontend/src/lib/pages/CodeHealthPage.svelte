@@ -265,22 +265,14 @@
     {#snippet actions()}
       <div class="flex items-center gap-3">
         {#if displayRun && issueCount > 0}
-          <button
-            onclick={copyIssues}
-            title="Copy issues to clipboard"
-            class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          >
+          <ToolbarButton onClick={copyIssues} title="Copy issues to clipboard">
             {copyStatus || `Copy Issues (${issueCount})`}
-          </button>
+          </ToolbarButton>
         {/if}
         <RefreshButton onClick={loadData} loading={loading} />
-        <button
-          onclick={triggerAnalysis}
-          disabled={triggering || data.is_running}
-          class="px-3 py-1.5 bg-accent text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
+        <ToolbarButton variant="primary" onClick={triggerAnalysis} disabled={triggering || data.is_running}>
           {triggering || data.is_running ? 'Analyzing...' : 'Run Now'}
-        </button>
+        </ToolbarButton>
       </div>
     {/snippet}
   </PageHeader>

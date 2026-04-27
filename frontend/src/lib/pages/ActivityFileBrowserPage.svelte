@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState, ToolbarButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
@@ -497,12 +497,9 @@
     {#if error}
       <div class="bg-error-subtle border border-error rounded-lg p-4">
         <p class="text-sm text-error font-sans">{error}</p>
-        <button
-          onclick={loadFiles}
-          class="mt-2 px-3 py-1 bg-error text-white rounded text-sm font-sans hover:opacity-90"
-        >
-          Retry
-        </button>
+        <div class="mt-2">
+          <ToolbarButton variant="danger" onClick={loadFiles}>Retry</ToolbarButton>
+        </div>
       </div>
     {:else if loading}
       <div class="text-center py-12">

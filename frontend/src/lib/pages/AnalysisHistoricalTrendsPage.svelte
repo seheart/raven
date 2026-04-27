@@ -424,12 +424,7 @@
         class="bg-error-subtle border border-error rounded-lg p-4 flex justify-between items-center"
       >
         <span class="text-sm text-error font-sans">Error loading trends: {error}</span>
-        <button
-          onclick={loadTrends}
-          class="px-3 py-1.5 bg-error text-white rounded text-sm font-sans"
-        >
-          Try Again
-        </button>
+        <ToolbarButton variant="danger" onClick={loadTrends}>Try Again</ToolbarButton>
       </div>
     {:else if initialized && trends.length === 0}
       <EmptyState

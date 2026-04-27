@@ -194,18 +194,10 @@
           </div>
 
           <div class="flex gap-2 pt-3 border-t border-border">
-            <button
-              onclick={saveProject}
-              class="px-3 py-1.5 bg-accent border border-accent rounded text-sm font-sans text-white hover:opacity-90 transition-opacity"
-            >
+            <ToolbarButton variant="primary" onClick={saveProject}>
               {editingProject === 'new' ? 'Add Project' : 'Save Changes'}
-            </button>
-            <button
-              onclick={cancelEdit}
-              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-muted hover:border-accent transition-colors"
-            >
-              Cancel
-            </button>
+            </ToolbarButton>
+            <ToolbarButton onClick={cancelEdit}>Cancel</ToolbarButton>
           </div>
         </div>
       </div>
@@ -213,19 +205,8 @@
       <PageHeader title="Projects" description="Manage which projects Raven monitors">
         {#snippet actions()}
           <div class="flex gap-2">
-            <button
-              onclick={discoverProjects}
-              disabled={discovering}
-              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-            >
-              {discovering ? 'Discovering...' : 'Discover'}
-            </button>
-            <button
-              onclick={startAdd}
-              class="px-3 py-1.5 bg-accent border border-accent rounded text-sm font-sans text-white hover:opacity-90 transition-opacity"
-            >
-              + Add
-            </button>
+            <ToolbarButton onClick={discoverProjects} disabled={discovering}>{discovering ? 'Discovering...' : 'Discover'}</ToolbarButton>
+            <ToolbarButton variant="primary" onClick={startAdd}>+ Add</ToolbarButton>
           </div>
         {/snippet}
       </PageHeader>
@@ -291,12 +272,7 @@
                   >
                     Edit
                   </button>
-                  <button
-                    onclick={() => deleteProject(project.name)}
-                    class="px-2 py-1 bg-surface border border-error rounded text-xs font-sans text-error hover:bg-error-subtle transition-colors"
-                  >
-                    Remove
-                  </button>
+                  <ToolbarButton variant="danger" onClick={() => deleteProject(project.name)}>Remove</ToolbarButton>
                 </div>
               </div>
               {#if healthNarratives[project.name]?.content}

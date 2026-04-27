@@ -4,7 +4,7 @@
   import { logger } from '../logger.js';
   import { formatDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { EmptyState } from '../components/ui/index.js';
+  import { EmptyState, ToolbarButton, FilterToggle } from '../components/ui/index.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -181,60 +181,15 @@
           placeholder="Search files, messages, agents..."
           class="flex-1 px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
         />
-        <button
-          onclick={performSearch}
-          disabled={loading || !searchQuery.trim()}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '...' : '↻'} Search
-        </button>
+        <ToolbarButton onClick={performSearch} disabled={loading || !searchQuery.trim()}>{loading ? '...' : '↻'} Search</ToolbarButton>
       </div>
 
       <div class="flex flex-wrap gap-2">
-        <button
-          onclick={() => (searchType = 'all')}
-          class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-accent={searchType === 'all'}
-          class:text-white={searchType === 'all'}
-          class:bg-canvas={searchType !== 'all'}
-          class:border={searchType !== 'all'}
-          class:border-border={searchType !== 'all'}
-        >
-          All Results
-        </button>
-        <button
-          onclick={() => (searchType = 'files')}
-          class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-accent={searchType === 'files'}
-          class:text-white={searchType === 'files'}
-          class:bg-canvas={searchType !== 'files'}
-          class:border={searchType !== 'files'}
-          class:border-border={searchType !== 'files'}
-        >
-          Files Only
-        </button>
-        <button
-          onclick={() => (searchType = 'messages')}
-          class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-accent={searchType === 'messages'}
-          class:text-white={searchType === 'messages'}
-          class:bg-canvas={searchType !== 'messages'}
-          class:border={searchType !== 'messages'}
-          class:border-border={searchType !== 'messages'}
-        >
-          Messages Only
-        </button>
-        <button
-          onclick={() => (searchType = 'agents')}
-          class="px-3 py-1.5 rounded text-sm font-sans transition-colors"
-          class:bg-accent={searchType === 'agents'}
-          class:text-white={searchType === 'agents'}
-          class:bg-canvas={searchType !== 'agents'}
-          class:border={searchType !== 'agents'}
-          class:border-border={searchType !== 'agents'}
-        >
-          Agents Only
-        </button>
+        {#each [['all', 'All Results'], ['files', 'Files Only'], ['messages', 'Messages Only'], ['agents', 'Agents Only']] as [value, label] (value)}
+          <FilterToggle active={searchType === value} onClick={() => (searchType = value)}>
+            {label}
+          </FilterToggle>
+        {/each}
       </div>
     </div>
 

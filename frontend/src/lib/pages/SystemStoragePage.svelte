@@ -3,7 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatShortDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
 
@@ -402,13 +402,9 @@
           {/if}
 
           <div class="pt-2">
-            <button
-              onclick={saveRetention}
-              disabled={actionLoading === 'retention'}
-              class="px-4 py-2 bg-accent text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            <ToolbarButton variant="primary" onClick={saveRetention} disabled={actionLoading === 'retention'}>
               {actionLoading === 'retention' ? 'Saving...' : 'Save Policy'}
-            </button>
+            </ToolbarButton>
           </div>
         </div>
       </div>

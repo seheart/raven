@@ -3,7 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
   /**
    * Agent Monitoring Page
    * Real-time agent monitoring with live status and activity timeline
@@ -456,12 +456,7 @@
         <span class="text-sm text-error font-sans"
           >Failed to load monitoring data: {error}</span
         >
-        <button
-          onclick={loadMonitoringData}
-          class="px-3 py-1.5 bg-error text-white rounded text-sm font-sans"
-        >
-          Retry
-        </button>
+        <ToolbarButton variant="danger" onClick={loadMonitoringData}>Retry</ToolbarButton>
       </div>
     {/if}
 
@@ -763,12 +758,9 @@
                   Range: {dateRange}
                 </button>
               {/if}
-              <button
-                class="ml-auto px-3 py-1 bg-error text-white rounded text-xs font-sans font-semibold hover:opacity-90"
-                onclick={clearFilters}
-              >
-                Clear All
-              </button>
+              <div class="ml-auto">
+                <ToolbarButton variant="danger" onClick={clearFilters}>Clear All</ToolbarButton>
+              </div>
             </div>
           {/if}
         </div>
@@ -782,12 +774,9 @@
             {hasActiveFilters ? 'No events match your filters' : 'No recent activity'}
           </p>
           {#if hasActiveFilters}
-            <button
-              class="mt-3 px-3 py-1.5 bg-accent text-white rounded text-sm font-sans"
-              onclick={clearFilters}
-            >
-              Clear Filters
-            </button>
+            <div class="mt-3">
+              <ToolbarButton variant="primary" onClick={clearFilters}>Clear Filters</ToolbarButton>
+            </div>
           {/if}
         </div>
       {:else}
@@ -821,11 +810,7 @@
         <!-- Load More Button -->
         {#if filteredEvents.length > 0 && filteredEvents.length >= eventsLimit && filteredEvents.length < recentEvents.length}
           <div class="mt-4 text-center">
-            <button
-              class="px-4 py-2 bg-accent text-white rounded text-sm font-sans hover:opacity-90 disabled:opacity-50"
-              onclick={loadMoreEvents}
-              disabled={loadingMore}
-            >
+            <ToolbarButton variant="primary" onClick={loadMoreEvents} disabled={loadingMore}>
               {#if loadingMore}
                 <span class="inline-flex items-center gap-2">
                   <span
@@ -836,7 +821,7 @@
               {:else}
                 Load More (30 more events)
               {/if}
-            </button>
+            </ToolbarButton>
             <p class="mt-2 text-sm text-muted font-sans">
               Showing {filteredEvents.length} of {recentEvents.length} events
             </p>

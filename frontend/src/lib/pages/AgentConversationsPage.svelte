@@ -1,7 +1,7 @@
 <script>
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateOnly, formatDateTime } from '../timeFormat.js';
   /**
@@ -666,19 +666,11 @@
           Auto-refresh
         </label>
 
-        <button
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-          onclick={toggleExpandAll}
-          disabled={filteredConversations.length === 0}
-        >
+        <ToolbarButton onClick={toggleExpandAll} disabled={filteredConversations.length === 0}>
           {allExpanded ? 'Collapse All' : 'Expand All'}
-        </button>
+        </ToolbarButton>
 
-        <button
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          onclick={exportConversations}
-          >Export
-        </button>
+        <ToolbarButton onClick={exportConversations}>Export</ToolbarButton>
       </div>
 
       <!-- Secondary Controls Row -->
@@ -832,11 +824,7 @@
         class="flex flex-col items-center justify-center gap-4 p-8 bg-[color-mix(in_srgb,var(--error)_5%,transparent)] border border-[color-mix(in_srgb,var(--error)_20%,transparent)] rounded-lg text-center mb-6"
       >
         <p class="m-0 text-error text-sm font-medium">Error: {error}</p>
-        <button
-          class="px-4 py-2 bg-error text-white border-none rounded text-sm font-semibold cursor-pointer hover:translate-y-[-1px] hover:shadow-md transition-all focus:outline-2 focus:outline-[var(--error)] focus:outline-offset-2"
-          onclick={loadConversations}
-          >Retry
-        </button>
+        <ToolbarButton variant="danger" onClick={loadConversations}>Retry</ToolbarButton>
       </div>
     {:else if loading}
       <div class="text-center p-8">
@@ -997,17 +985,9 @@
 
         {#if hasMore}
           <div class="flex justify-center p-4">
-            <button
-              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-              onclick={loadMore}
-              disabled={loadingMore}
-            >
-              {#if loadingMore}
-                <span></span>Loading...
-              {:else}
-                Load More
-              {/if}
-            </button>
+            <ToolbarButton onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? 'Loading...' : 'Load More'}
+            </ToolbarButton>
           </div>
         {/if}
       </div>

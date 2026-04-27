@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { formatTimeOnly, formatDateOnly, formatShortDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState, TabButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let data = $state({ entries: [], sessions: [], currentSession: null });
@@ -146,13 +146,10 @@
         <!-- Type filters -->
         <div class="flex bg-surface border border-border rounded overflow-hidden">
           {#each [['all', 'All'], ['user', 'You'], ['assistant', 'Claude'], ['tool', 'Actions'], ['subagent', 'Agents']] as [value, label] (value)}
-            <button
-              onclick={() => filterType = value}
-              class="px-3 py-1.5 text-xs font-sans transition-colors border-0 cursor-pointer {filterType === value ? 'bg-accent text-white' : 'text-muted hover:text-body'}"
-            >
+            <TabButton active={filterType === value} onClick={() => filterType = value}>
               {label}
               <span class="ml-1 opacity-60">{typeCounts[value]}</span>
-            </button>
+            </TabButton>
           {/each}
         </div>
       </div>

@@ -794,12 +794,7 @@
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted font-mono">{timeAgo}</span>
-        <button
-          onclick={exportLog}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
-          Export
-        </button>
+        <ToolbarButton onClick={exportLog}>Export</ToolbarButton>
         <RefreshButton onClick={() => loadActivities(true)} loading={loading} />
       </div>
     {/snippet}
@@ -816,12 +811,7 @@
             onkeydown={e => e.key === 'Enter' && search()}
             class="flex-1 px-4 py-2 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
           />
-          <button
-            onclick={search}
-            class="px-4 py-2 bg-accent text-white rounded text-sm font-semibold hover:opacity-90"
-          >
-            Search
-          </button>
+          <ToolbarButton variant="primary" onClick={search}>Search</ToolbarButton>
         </div>
 
         <div class="flex gap-3 items-center">

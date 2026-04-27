@@ -93,12 +93,7 @@
           Import
           <input type="file" accept=".json" onchange={importSettings} class="hidden" />
         </label>
-        <button
-          onclick={resetToDefaults}
-          class="px-3 py-1.5 bg-surface border border-error rounded text-sm font-sans text-error hover:bg-error hover:text-white transition-colors"
-        >
-          Reset
-        </button>
+        <ToolbarButton variant="danger" onClick={resetToDefaults}>Reset</ToolbarButton>
       </div>
     {/snippet}
   </PageHeader>
@@ -412,12 +407,7 @@
               <div class="text-sm text-body">Reset All Settings</div>
               <div class="text-xs text-muted">Restore defaults. Cannot be undone.</div>
             </div>
-            <button
-              onclick={resetToDefaults}
-              class="px-3 py-1.5 bg-error text-white rounded text-sm font-sans hover:opacity-90 transition-opacity"
-            >
-              Reset
-            </button>
+            <ToolbarButton variant="danger" onClick={resetToDefaults}>Reset</ToolbarButton>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { formatDateTime, formatTimeOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState, ToolbarButton } from '../components/ui/index.js';
   /**
    * Activity Code Changes Page - Detailed file change log with real-time updates
    */
@@ -350,12 +350,7 @@
 
       {#if filteredEvents.length < events.length}
         <div class="mt-4 text-center">
-          <button
-            onclick={loadMore}
-            class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          >
-            Load More ({filteredEvents.length} of {events.length})
-          </button>
+          <ToolbarButton onClick={loadMore}>Load More ({filteredEvents.length} of {events.length})</ToolbarButton>
         </div>
       {:else if events.length > 0}
         <div class="mt-4 text-center text-sm text-muted font-sans">

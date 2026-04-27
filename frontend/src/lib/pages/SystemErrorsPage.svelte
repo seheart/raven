@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState, ToolbarButton, FilterToggle } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
 
@@ -89,12 +89,7 @@
     {#snippet actions()}
       <div class="flex items-center gap-2">
         {#if total > 0}
-          <button
-            onclick={clearAll}
-            class="px-3 py-1.5 bg-surface border border-error rounded text-sm font-sans text-error hover:bg-error-subtle transition-colors"
-          >
-            Clear All
-          </button>
+          <ToolbarButton variant="danger" onClick={clearAll}>Clear All</ToolbarButton>
         {/if}
         <RefreshButton onClick={() => { currentPage = 0; loadErrors(); }} loading={loading} />
       </div>
@@ -111,19 +106,12 @@
         class="flex-1 min-w-[200px] px-3 py-1.5 bg-surface border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
       />
       {#each ['all', 'error', 'warning', 'info'] as sev (sev)}
-        <button
-          onclick={() => {
-            severityFilter = sev;
-            currentPage = 0;
-            loadErrors();
-          }}
-          class="px-3 py-1.5 border rounded text-sm font-sans transition-colors {severityFilter ===
-          sev
-            ? 'bg-accent-subtle border-accent text-accent'
-            : 'bg-surface border-border text-muted hover:border-accent'}"
+        <FilterToggle
+          active={severityFilter === sev}
+          onClick={() => { severityFilter = sev; currentPage = 0; loadErrors(); }}
         >
           {sev === 'all' ? 'All' : sev.charAt(0).toUpperCase() + sev.slice(1)}
-        </button>
+        </FilterToggle>
       {/each}
     </div>
 

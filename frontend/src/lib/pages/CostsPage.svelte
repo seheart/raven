@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, TabButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount, tick } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -225,10 +225,7 @@
       <div class="flex items-center gap-3">
         <div class="flex bg-surface border border-border rounded overflow-hidden">
           {#each [['today', 'Today'], ['7d', '7 Days'], ['30d', '30 Days'], ['all', 'All']] as [value, label] (value)}
-            <button
-              onclick={() => setTimeRange(value)}
-              class="px-3 py-1.5 text-xs font-sans transition-colors border-0 cursor-pointer {timeRange === value ? 'bg-accent text-white' : 'text-muted hover:text-body'}"
-            >{label}</button>
+            <TabButton active={timeRange === value} onClick={() => setTimeRange(value)}>{label}</TabButton>
           {/each}
         </div>
         <span class="text-xs text-muted font-mono">{timeAgo}</span>

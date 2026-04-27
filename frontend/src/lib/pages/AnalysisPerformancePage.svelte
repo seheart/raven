@@ -341,12 +341,7 @@
           <p class="text-error font-semibold mb-1">Error loading performance data</p>
           <p class="text-sm text-muted">{error}</p>
         </div>
-        <button
-          onclick={() => fetchAllData()}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
-          Try Again
-        </button>
+        <ToolbarButton onClick={() => fetchAllData()}>Try Again</ToolbarButton>
       </div>
 
       <!-- Tab Content -->
