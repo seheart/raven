@@ -6,6 +6,7 @@
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
+  import { getChartColors } from '../utils/chartUtils.js';
   import { Chart, registerables } from 'chart.js';
 
   Chart.register(...registerables);
@@ -487,23 +488,12 @@
 
     if (!showCharts || activities.length === 0) return;
 
-    const getColor = (varName, fallback) => {
-      const computedStyle = getComputedStyle(document.body);
-      const value = computedStyle.getPropertyValue(varName).trim();
-      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
-    };
-
-    // Tokyo Night fallbacks for Chart.js when var lookup fails. design-system-allow: hex
-    const textColor = getColor('--text', '#c0caf5');
-    const mutedColor = getColor('--muted', '#565f89');
+    // Theme-aware chart colors (shared helper; flips with dark mode).
+    const c = getChartColors();
+    const textColor = c.text;
+    const mutedColor = c.muted;
     const gridColor = 'rgba(128, 128, 128, 0.15)';
-
-    const themeColors = {
-      accent: getColor('--accent', '#7aa2f7'),
-      success: getColor('--success', '#9ece6a'),
-      error: getColor('--error', '#f7768e'),
-      warning: getColor('--warning', '#e0af68')
-    };
+    const themeColors = { accent: c.primary, success: c.success, error: c.error, warning: c.warning };
 
     // 1. Activity type breakdown pie chart
     const pieCanvas = document.getElementById('chart-activity-types');

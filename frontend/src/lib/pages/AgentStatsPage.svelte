@@ -16,30 +16,7 @@
     createThemeObserver,
     getChartColors
   } from '../utils/chartUtils.js';
-
-  // Agent configuration with colors and icons (per-agent brand identity)
-  // design-system-allow: hex
-  const AGENT_CONFIG = {
-    'claude-code': { icon: '', color: '#FF6B35', name: 'Claude Code' }, // design-system-allow: hex
-    claude: { icon: '', color: '#FF6B35', name: 'Claude' }, // design-system-allow: hex
-    cursor: { icon: '', color: '#10b981', name: 'Cursor' }, // design-system-allow: hex
-    copilot: { icon: '', color: '#0ea5e9', name: 'Copilot' }, // design-system-allow: hex
-    aider: { icon: '', color: '#8b5cf6', name: 'Aider' }, // design-system-allow: hex
-    chatgpt: { icon: '', color: '#10a37f', name: 'ChatGPT' }, // design-system-allow: hex
-    gpt: { icon: '', color: '#10a37f', name: 'GPT' }, // design-system-allow: hex
-    ollama: { icon: '', color: '#F39C12', name: 'Ollama' }, // design-system-allow: hex
-    llama: { icon: '', color: '#8B5CF6', name: 'Llama' }, // design-system-allow: hex
-    mistral: { icon: '', color: '#E11D48', name: 'Mistral' }, // design-system-allow: hex
-    codellama: { icon: '', color: '#7C3AED', name: 'Code Llama' }, // design-system-allow: hex
-    deepseek: { icon: '', color: '#0EA5E9', name: 'DeepSeek' }, // design-system-allow: hex
-    qwen: { icon: '', color: '#14B8A6', name: 'Qwen' }, // design-system-allow: hex
-    phi: { icon: '', color: '#6366F1', name: 'Phi' }, // design-system-allow: hex
-    starcoder: { icon: '', color: '#D97706', name: 'StarCoder' }, // design-system-allow: hex
-    'lm-studio': { icon: '', color: '#22C55E', name: 'LM Studio' }, // design-system-allow: hex
-    'local-model': { icon: '', color: '#A855F7', name: 'Local Model' }, // design-system-allow: hex
-    manual: { icon: '', color: '#6b7280', name: 'Manual' }, // design-system-allow: hex
-    default: { icon: '', color: '#9ca3af', name: 'Unknown' } // design-system-allow: hex
-  };
+  import { getAgentBrand } from '../utils/agentBrand.js';
 
   let agentStats = $state([]);
   let loading = $state(true);
@@ -139,13 +116,11 @@
     return `${minutes}m`;
   }
 
-  // Get agent config
+  // Get agent config (delegates to shared brand utility — keeps name+color in
+  // one place across pages). Returns the same shape pages expect: an object
+  // with at least { color, name }; icon was unused so it's gone.
   function getAgentConfig(agentName) {
-    const lowerName = (agentName || '').toLowerCase();
-    for (const [key, config] of Object.entries(AGENT_CONFIG)) {
-      if (lowerName.includes(key)) return config;
-    }
-    return AGENT_CONFIG.default;
+    return getAgentBrand(agentName);
   }
 
   // Calculate mood from agent behavior

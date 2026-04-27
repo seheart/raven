@@ -5,6 +5,7 @@
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
+  import { getChartColors } from '../utils/chartUtils.js';
   import { Chart, registerables } from 'chart.js';
   import FileHistory from '../FileHistory.svelte';
 
@@ -169,31 +170,25 @@
   }
 
   function getFileTypeColor(ext) {
-    const getColor = (varName, fallback) => {
-      const computedStyle = getComputedStyle(document.body);
-      const value = computedStyle.getPropertyValue(varName).trim();
-      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
-    };
-
-    // Per-extension fallbacks for the file-type pie chart. design-system-allow: hex
+    const c = getChartColors();
     const colors = {
-      '.py': getColor('--accent', '#3b82f6'),
-      '.js': getColor('--warning', '#f59e0b'),
-      '.jsx': getColor('--warning', '#f59e0b'),
-      '.ts': getColor('--accent', '#3b82f6'),
-      '.tsx': getColor('--accent', '#3b82f6'),
-      '.svelte': getColor('--error', '#ef4444'),
-      '.json': getColor('--success', '#10b981'),
-      '.css': getColor('--accent', '#3b82f6'),
-      '.scss': getColor('--accent', '#3b82f6'),
-      '.html': getColor('--error', '#ef4444'),
-      '.md': getColor('--muted', '#6b7280'),
-      '.rs': getColor('--warning', '#f59e0b'),
-      '.toml': getColor('--muted', '#6b7280'),
-      '.yml': getColor('--muted', '#6b7280'),
-      '.yaml': getColor('--muted', '#6b7280')
+      '.py': c.primary,
+      '.js': c.warning,
+      '.jsx': c.warning,
+      '.ts': c.primary,
+      '.tsx': c.primary,
+      '.svelte': c.error,
+      '.json': c.success,
+      '.css': c.primary,
+      '.scss': c.primary,
+      '.html': c.error,
+      '.md': c.muted,
+      '.rs': c.warning,
+      '.toml': c.muted,
+      '.yml': c.muted,
+      '.yaml': c.muted
     };
-    return colors[ext] || getColor('--muted', '#6b7280');
+    return colors[ext] || c.muted;
   }
 
   function getFileName(filepath) {
@@ -254,23 +249,12 @@
 
     if (!showCharts || files.length === 0) return;
 
-    const getColor = (varName, fallback) => {
-      const computedStyle = getComputedStyle(document.body);
-      const value = computedStyle.getPropertyValue(varName).trim();
-      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
-    };
-
-    // Tokyo Night fallbacks for Chart.js. design-system-allow: hex
-    const textColor = getColor('--text', '#c0caf5');
-    const mutedColor = getColor('--muted', '#565f89');
+    // Theme-aware chart colors (shared helper; flips with dark mode).
+    const c = getChartColors();
+    const textColor = c.text;
+    const mutedColor = c.muted;
     const gridColor = 'rgba(128, 128, 128, 0.15)';
-
-    const themeColors = {
-      accent: getColor('--accent', '#3b82f6'),
-      success: getColor('--success', '#10b981'),
-      error: getColor('--error', '#ef4444'),
-      warning: getColor('--warning', '#f59e0b')
-    };
+    const themeColors = { accent: c.primary, success: c.success, error: c.error, warning: c.warning };
 
     // 1. Pie Chart: File types distribution
     const pieCanvas = document.getElementById('chart-file-types');

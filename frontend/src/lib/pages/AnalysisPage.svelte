@@ -3,6 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatTimeOnly, formatDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { getChartColors } from '../utils/chartUtils.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
    * Analysis Overview Page - Tailwind Version
@@ -108,18 +109,8 @@
       .reverse()
       .map(m => m.memory_percent || 0);
 
-    // Get theme-aware colors
-    const getColor = (varName, fallback) => {
-      const value = getComputedStyle(document.body).getPropertyValue(varName).trim();
-      return value && (value.startsWith('#') || value.startsWith('rgb')) ? value : fallback;
-    };
-
-    // Tokyo Night fallbacks for Chart.js when the css var lookup fails.
-    // design-system-allow: hex
-    const textColor = getColor('--text', '#c0caf5');
-    const mutedColor = getColor('--muted', '#565f89');
-    const accentColor = getColor('--accent', '#7aa2f7');
-    const successColor = getColor('--success', '#9ece6a');
+    // Theme-aware chart colors (canonical helper; flips with dark mode).
+    const { text: textColor, muted: mutedColor, primary: accentColor, success: successColor } = getChartColors();
 
     if (cpuChart) {
       cpuChart.data.labels = labels;
