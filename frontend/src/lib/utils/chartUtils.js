@@ -6,7 +6,7 @@ Chart.register(...registerables);
 
 function getCSSColor(varName) {
   if (typeof window === 'undefined') return '';
-  return getComputedStyle(document.body).getPropertyValue(varName).trim();
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 }
 
 /**
@@ -100,7 +100,7 @@ export function createThemeObserver(onThemeChange) {
     });
   });
 
-  observer.observe(document.body, {
+  observer.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['class']
   });

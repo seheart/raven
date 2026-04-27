@@ -59,7 +59,7 @@ export function setupChartThemeObserver(createChartsFunc, { enabled = true, dela
     });
   });
 
-  observer.observe(document.body, {
+  observer.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['class']
   });
@@ -73,16 +73,16 @@ export function setupChartThemeObserver(createChartsFunc, { enabled = true, dela
  * @returns {Object} Color values for charts
  */
 export function getChartThemeColors() {
-  const bodyStyles = getComputedStyle(document.body);
+  const rootStyles = getComputedStyle(document.documentElement);
 
   return {
-    text: bodyStyles.getPropertyValue('--text').trim(),
-    muted: bodyStyles.getPropertyValue('--muted').trim(),
-    success: bodyStyles.getPropertyValue('--success').trim(),
-    error: bodyStyles.getPropertyValue('--error').trim(),
-    warning: bodyStyles.getPropertyValue('--warning').trim(),
-    info: bodyStyles.getPropertyValue('--info').trim(),
-    accent: bodyStyles.getPropertyValue('--accent').trim(),
+    text: rootStyles.getPropertyValue('--text').trim(),
+    muted: rootStyles.getPropertyValue('--muted').trim(),
+    success: rootStyles.getPropertyValue('--success').trim(),
+    error: rootStyles.getPropertyValue('--error').trim(),
+    warning: rootStyles.getPropertyValue('--warning').trim(),
+    info: rootStyles.getPropertyValue('--info').trim(),
+    accent: rootStyles.getPropertyValue('--accent').trim(),
     grid: 'rgba(128, 128, 128, 0.15)'
   };
 }

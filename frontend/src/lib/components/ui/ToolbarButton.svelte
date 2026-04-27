@@ -57,12 +57,12 @@
 <style>
   /* Subtle violet glow on the primary CTA in dark mode — Raven's eye
      catching light. Light mode stays flat. */
-  :global(body.dark) .primary-glow {
+  :global(html.dark) .primary-glow {
     box-shadow:
       inset 0 0 0 1px rgba(189, 158, 255, 0.4),
       0 0 12px rgba(164, 126, 255, 0.18);
   }
-  :global(body.dark) .primary-glow:hover:not(:disabled) {
+  :global(html.dark) .primary-glow:hover:not(:disabled) {
     box-shadow:
       inset 0 0 0 1px rgba(189, 158, 255, 0.6),
       0 0 18px rgba(164, 126, 255, 0.3);

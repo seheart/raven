@@ -135,14 +135,16 @@ export const settings = {
       ui: { ...current.ui, ...updates }
     }));
 
-    // Apply theme change immediately if theme was updated
+    // Apply theme change immediately if theme was updated.
+    // Class lives on <html> (not <body>) so Tailwind v4 @theme aliases like
+    // --color-canvas: var(--bg) resolve against the dark --bg at :root.
     if (updates.theme) {
       try {
         if (typeof document !== 'undefined') {
           if (updates.theme === 'dark') {
-            document.body.classList.add('dark');
+            document.documentElement.classList.add('dark');
           } else {
-            document.body.classList.remove('dark');
+            document.documentElement.classList.remove('dark');
           }
         }
         if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {

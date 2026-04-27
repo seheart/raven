@@ -188,7 +188,7 @@
       });
     });
 
-    themeObserver.observe(document.body, {
+    themeObserver.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class']
     });

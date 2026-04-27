@@ -143,7 +143,7 @@
 
   .indicator-button.status-warning {
     border-color: var(--warning);
-    background: rgba(245, 158, 11, 0.1);
+    background: var(--warning-subtle);
   }
 
   .indicator-button.status-critical {
@@ -225,13 +225,13 @@
   }
 
   .limit-item.status-warning {
-    background: rgba(245, 158, 11, 0.05);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: var(--warning-subtle);
+    border: 1px solid var(--warning);
   }
 
   .limit-item.status-critical {
-    background: rgba(239, 68, 68, 0.05);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: var(--error-subtle);
+    border: 1px solid var(--error);
   }
 
   .limit-header {

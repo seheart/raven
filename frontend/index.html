@@ -13,8 +13,18 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Apply saved theme synchronously, before the bundle paints. Prevents
+         a flash of light theme on every page load for dark-mode users. -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('raven-settings') || '{}');
+        var t = (s.ui && s.ui.theme) || 'dark';
+        if (t === 'dark') document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
-  <body class="theme--night">
+  <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

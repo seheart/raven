@@ -219,7 +219,7 @@
   }
 
   .editor-tab:hover {
-    background: rgba(88, 166, 255, 0.1);
+    background: var(--surface-2);
   }
 
   .tab-label {

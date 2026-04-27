@@ -80,12 +80,12 @@
       dataService.prefetchAll();
     });
 
-    // Apply saved theme on load
+    // Apply saved theme on load. Class lives on <html> — see settingsStore.
     const savedTheme = settings.getValue().ui.theme;
     if (savedTheme === 'dark') {
-      document.body.classList.add('dark');
+      document.documentElement.classList.add('dark');
     } else {
-      document.body.classList.remove('dark');
+      document.documentElement.classList.remove('dark');
     }
 
     // Add keyboard listener for ? key

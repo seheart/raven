@@ -6,7 +6,12 @@
 @import './lib/styles/livepage.css';
 
 /* === Design tokens (Tailwind v4 @theme — single source of truth) ===
-   Semantic colors reference :root vars so dark mode (body.dark) flips them.
+   Semantic colors reference :root vars so dark mode (html.dark) flips them.
+   The class lives on <html> rather than <body> because Tailwind v4's @theme
+   block compiles aliases like `--color-canvas: var(--bg)` into :root. CSS
+   resolves that var() at the declaring element, so the override has to be
+   on :root (i.e. <html>) too — overriding --bg on <body> leaves the
+   --color-canvas alias frozen at the light value.
    Use semantic utilities (bg-surface, text-heading, text-accent) in pages,
    not arbitrary tokens (text-[var(--text-heading)]). */
 @theme {
@@ -179,7 +184,7 @@
 }
 
 /* === Dark Theme — the actual Raven. Black with violet wing-iridescence. === */
-body.dark {
+html.dark {
   --bg: #08050d;
   --surface: #110a1c;
   --surface-2: #190f29;
@@ -245,7 +250,7 @@ body.dark {
 
 /* Wing iridescence — very subtle violet→ink gradient overlay on the body
    in dark mode. Adds depth without screaming. */
-body.dark {
+html.dark body {
   background-image:
     radial-gradient(80% 60% at 0% 0%, rgba(164, 126, 255, 0.04), transparent 50%),
     radial-gradient(60% 50% at 100% 100%, rgba(107, 155, 255, 0.025), transparent 50%);
