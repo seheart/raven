@@ -302,7 +302,6 @@ describe('ServerConfig', () => {
 
       expect(module.serverConfig.security.disableAuth).toBe(true);
     });
-
   });
 
   describe('Logging configuration', () => {

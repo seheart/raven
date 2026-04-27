@@ -16,18 +16,32 @@
 }
 
 @keyframes cursor-blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes stat-flash {
-  0% { background-color: var(--accent-subtle); }
-  100% { background-color: transparent; }
+  0% {
+    background-color: var(--accent-subtle);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 @keyframes progress-stripe {
-  from { background-position: 0 0; }
-  to { background-position: 24px 0; }
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 24px 0;
+  }
 }
 
 .animate-feed-slide-in {
@@ -43,8 +57,15 @@
 }
 
 @keyframes activity-pulse-kf {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.4); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.4);
+  }
 }
 .activity-pulse {
   animation: activity-pulse-kf 1.5s ease-in-out infinite;
@@ -52,8 +73,13 @@
 
 /* Dashboard agent-breathing: very subtle scale on the running-agent card. */
 @keyframes breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.008); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.008);
+  }
 }
 .agent-breathing {
   animation: breathe 3s ease-in-out infinite;
@@ -61,7 +87,9 @@
 
 /* Heartbeat waveform — used in the Overview pulse-line SVGs. */
 @keyframes heartbeat-draw {
-  to { stroke-dashoffset: 0; }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 .heartbeat-working {
   stroke-dasharray: 100;
@@ -80,7 +108,9 @@
     box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
     border-color: var(--accent);
   }
-  100% { box-shadow: none; }
+  100% {
+    box-shadow: none;
+  }
 }
 .stat-flash {
   animation: stat-glow 1s ease-out;
@@ -104,8 +134,13 @@
 
 /* Idle dot — slow breathe. */
 @keyframes idle-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 .idle-breathing {
   animation: idle-pulse 4s ease-in-out infinite;
@@ -113,7 +148,9 @@
 
 /* Diff filepath cursor blink. */
 @keyframes blink {
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 .cursor-blink {
   animation: blink 1s step-end infinite;

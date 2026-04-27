@@ -31,8 +31,8 @@
   --accent: #ebebeb;
   --accent-2: #ffffff;
   --color-accent: #ebebeb;
-  --accent-subtle: rgba(235, 235, 235, 0.10);
-  --color-accent-subtle: rgba(235, 235, 235, 0.10);
+  --accent-subtle: rgba(235, 235, 235, 0.1);
+  --color-accent-subtle: rgba(235, 235, 235, 0.1);
   --btn-primary-bg: #ebebeb;
   --btn-primary-hover: #ffffff;
   --btn-primary-text: #0a0a0a;

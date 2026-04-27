@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable } from 'svelte/store';
 
 /**
  * Notification History Store
@@ -70,9 +70,3 @@ function createNotificationHistory() {
 }
 
 export const notificationHistory = createNotificationHistory();
-
-// Derived store for unread count
-export const unreadCount = derived(
-  notificationHistory,
-  $notifications => $notifications.filter(n => !n.read).length
-);

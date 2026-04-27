@@ -139,8 +139,8 @@
   --code-border: #d4d2cc;
 
   /* Highlights */
-  --highlight: rgba(0, 102, 51, 0.10);
-  --selection: rgba(0, 102, 51, 0.20);
+  --highlight: rgba(0, 102, 51, 0.1);
+  --selection: rgba(0, 102, 51, 0.2);
 
   /* Semantic aliases */
   --text-primary: var(--text-heading);
@@ -221,7 +221,7 @@ html.dark {
   --btn-secondary-hover: #2a2a2a;
   --btn-ghost-bg: transparent;
   --btn-ghost-text: #4ade80;
-  --btn-ghost-hover: rgba(74, 222, 128, 0.10);
+  --btn-ghost-hover: rgba(74, 222, 128, 0.1);
   --btn-disabled-bg: #1f1f1f;
   --btn-disabled-text: #555555;
 

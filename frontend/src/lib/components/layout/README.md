@@ -56,15 +56,15 @@ counts).
 
 The validator runs these rules on every page that imports `PageLayout`
 (i.e. has migrated). Pre-migration pages are skipped — but they cannot
-*new* features without migrating, because once a file imports the layout
+_new_ features without migrating, because once a file imports the layout
 primitive, every rule below is enforced.
 
-| Rule | What it forbids |
-|------|-----------------|
-| 5 | Raw hex literals (`#aabbcc`) — use semantic tokens (`text-accent`, `bg-success`, etc.) |
-| 6 | Arbitrary-token syntax (`text-[var(--…)]`) — use semantic utilities (`text-heading`, `bg-surface`) |
-| 7 | Raw `<h1>` / `<h2>` — use `<PageHeader>` and `<PageSection>` |
-| 8 | `<style>` blocks — lift styles to `lib/styles/animations.css` or use utility classes |
+| Rule | What it forbids                                                                                    |
+| ---- | -------------------------------------------------------------------------------------------------- |
+| 5    | Raw hex literals (`#aabbcc`) — use semantic tokens (`text-accent`, `bg-success`, etc.)             |
+| 6    | Arbitrary-token syntax (`text-[var(--…)]`) — use semantic utilities (`text-heading`, `bg-surface`) |
+| 7    | Raw `<h1>` / `<h2>` — use `<PageHeader>` and `<PageSection>`                                       |
+| 8    | `<style>` blocks — lift styles to `lib/styles/animations.css` or use utility classes               |
 
 Brand/identity colors (per-agent identity hex) can be marked with
 `/* design-system-allow: hex */` on the same line.
@@ -125,20 +125,20 @@ toast containers, etc.) opt out with a leading
 
 Use these instead of `text-[var(--text-heading)]` etc:
 
-| Utility | Token (CSS var) |
-|---------|-----------------|
-| `bg-canvas` | `--bg` (page background) |
-| `bg-surface` | `--surface` (card/panel) |
-| `bg-surface-2` | `--surface-2` (recessed) |
-| `text-heading` | `--text-heading` |
-| `text-body` | `--text` |
-| `text-muted` | `--muted` |
-| `text-accent` / `bg-accent` | `--accent` |
-| `text-success` / `bg-success` | `--success` |
-| `text-error` / `bg-error` | `--error` |
-| `text-warning` / `bg-warning` | `--warning` |
-| `text-info` / `bg-info` | `--info` |
-| `border-border` | `--border` |
+| Utility                       | Token (CSS var)          |
+| ----------------------------- | ------------------------ |
+| `bg-canvas`                   | `--bg` (page background) |
+| `bg-surface`                  | `--surface` (card/panel) |
+| `bg-surface-2`                | `--surface-2` (recessed) |
+| `text-heading`                | `--text-heading`         |
+| `text-body`                   | `--text`                 |
+| `text-muted`                  | `--muted`                |
+| `text-accent` / `bg-accent`   | `--accent`               |
+| `text-success` / `bg-success` | `--success`              |
+| `text-error` / `bg-error`     | `--error`                |
+| `text-warning` / `bg-warning` | `--warning`              |
+| `text-info` / `bg-info`       | `--info`                 |
+| `border-border`               | `--border`               |
 
 All of these flip with `body.dark` automatically — the `@theme` block in
 `src/app.css` declares them as `var(--…)` references that resolve at

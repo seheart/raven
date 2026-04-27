@@ -65,9 +65,7 @@ function collectRoutes(app: any): RouteEntry[] {
         out.push({ methods, path, summary: summaryFor(path) });
       }
     } else if (layer.name === 'router' && layer.handle?.stack) {
-      const mountPath = layer.regexp?.fast_slash
-        ? ''
-        : extractMountPath(layer);
+      const mountPath = layer.regexp?.fast_slash ? '' : extractMountPath(layer);
       for (const sub of layer.handle.stack) walk(sub, prefix + mountPath);
     }
   };
@@ -141,12 +139,13 @@ export function createSystemRouter(deps: SystemDeps): Router {
         .all() as Array<{ name: string }>;
 
       const result = tables.map(({ name }) => {
-        const cols = deps.db.db
-          .prepare(`PRAGMA table_info("${name}")`)
-          .all() as Array<{ name: string; type: string }>;
-        const countRow = deps.db.db
-          .prepare(`SELECT COUNT(*) AS c FROM "${name}"`)
-          .get() as { c: number };
+        const cols = deps.db.db.prepare(`PRAGMA table_info("${name}")`).all() as Array<{
+          name: string;
+          type: string;
+        }>;
+        const countRow = deps.db.db.prepare(`SELECT COUNT(*) AS c FROM "${name}"`).get() as {
+          c: number;
+        };
         return {
           name,
           row_count: countRow.c,
@@ -230,8 +229,7 @@ export function createSystemRouter(deps: SystemDeps): Router {
 
       // Probe VRAM once to compute fit.
       const { vram_free_mib, vram_total_mib } = await probeNvidia();
-      const usable_vram_gib =
-        vram_free_mib != null ? (vram_free_mib / 1024) * 0.85 : null;
+      const usable_vram_gib = vram_free_mib != null ? (vram_free_mib / 1024) * 0.85 : null;
       const vram_total_gib = vram_total_mib != null ? vram_total_mib / 1024 : null;
 
       const models = (data.models || []).map(m => {

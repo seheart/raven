@@ -10,12 +10,12 @@ import type { Database, Statement } from 'better-sqlite3';
 /**
  * ISO 8601 timestamp string
  */
-export type ISOTimestamp = string;
+type ISOTimestamp = string;
 
 /**
  * SHA256 hash string
  */
-export type SHA256Hash = string;
+type SHA256Hash = string;
 
 /**
  * Project name identifier
@@ -34,7 +34,7 @@ type SessionID = string;
 /**
  * File change event types
  */
-export type ChangeType = 'create' | 'edit' | 'delete';
+type ChangeType = 'create' | 'edit' | 'delete';
 
 /**
  * File event record from database
@@ -147,21 +147,6 @@ export interface DiffStats {
 
 // ==================== Error Types ====================
 
-/**
- * Database not found error
- */
-export class DatabaseNotFoundError extends Error {
-  projectName: string;
-  statusCode: number;
-
-  constructor(projectName: string) {
-    super(`Database not found for project: ${projectName}`);
-    this.name = 'DatabaseNotFoundError';
-    this.projectName = projectName;
-    this.statusCode = 404;
-  }
-}
-
 // ==================== Repository Options ====================
 
 // ==================== Service Types ====================
@@ -177,7 +162,7 @@ export interface SocketIOServer {
 /**
  * Session activity data
  */
-export interface SessionActivity {
+interface SessionActivity {
   change_type: string;
   diff: string | null;
   filepath: string;
@@ -190,34 +175,6 @@ export interface SessionActivity {
  */
 export interface SessionTracker {
   recordActivity(projectName: ProjectName, activity: SessionActivity): void;
-}
-
-/**
- * Database instance with all methods
- */
-export interface RavenDatabase {
-  insertEvent(
-    timestamp: ISOTimestamp,
-    filepath: string,
-    change_type: ChangeType,
-    diff: string | null,
-    cpu: number,
-    mem: number,
-    session_id: SessionID,
-    file_hash: SHA256Hash | null,
-    event_size: number,
-    project_name: ProjectName | null
-  ): number;
-  clearSyntaxErrors(filepath: string): void;
-  clearPatternWarnings(filepath: string): void;
-}
-
-/**
- * System metrics collection result
- */
-export interface SystemMetricsResult {
-  cpuPercent: number;
-  memPercent: number;
 }
 
 /**

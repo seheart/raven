@@ -479,13 +479,43 @@ Keep it under 200 words. Be specific about file names and projects.`;
   // Their "diffs" are noise and the model can't meaningfully score them.
   private static readonly DIFF_RISK_SKIP_EXTENSIONS = new Set([
     // images
-    'png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'bmp', 'tiff', 'svg',
+    'png',
+    'jpg',
+    'jpeg',
+    'gif',
+    'webp',
+    'ico',
+    'bmp',
+    'tiff',
+    'svg',
     // video / audio
-    'mp4', 'webm', 'mov', 'avi', 'mp3', 'wav', 'ogg', 'flac',
+    'mp4',
+    'webm',
+    'mov',
+    'avi',
+    'mp3',
+    'wav',
+    'ogg',
+    'flac',
     // archives & binaries
-    'zip', 'tar', 'gz', 'bz2', '7z', 'rar', 'pdf', 'wasm', 'exe', 'dll', 'so',
+    'zip',
+    'tar',
+    'gz',
+    'bz2',
+    '7z',
+    'rar',
+    'pdf',
+    'wasm',
+    'exe',
+    'dll',
+    'so',
     // build/compiled
-    'class', 'jar', 'pyc', 'pyo', 'o', 'a',
+    'class',
+    'jar',
+    'pyc',
+    'pyo',
+    'o',
+    'a',
     // lockfiles (large, generated, low-signal)
     'lock'
   ]);

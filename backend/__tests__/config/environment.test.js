@@ -259,7 +259,6 @@ describe('Environment Configuration', () => {
       const { env } = await import('../../config/environment.js');
       expect(env.ENABLE_GIT_MONITOR).toBe(true);
     });
-
   });
 
   describe('Logging Configuration', () => {

@@ -9,8 +9,7 @@
 // === Hero ===
 export const HERO = {
   title: 'Design System',
-  lede:
-    "The reference for everything Raven looks like and how to build new screens that fit. Read Intent first, then Composed Patterns to see the vocabulary in use. Every section below is itself built from the patterns it documents.",
+  lede: 'The reference for everything Raven looks like and how to build new screens that fit. Read Intent first, then Composed Patterns to see the vocabulary in use. Every section below is itself built from the patterns it documents.',
   meta: [
     { k: 'Sections', v: '10 · use TOC chips below' },
     { k: 'Aesthetic', v: 'Quiet · dense · technical · live' },
@@ -18,7 +17,10 @@ export const HERO = {
     { k: 'Theme', v: 'Light · Dark · toggle in footer' }
   ],
   badges: [
-    { label: 'LOCAL-FIRST', items: ['No tracker pixels', 'No CDN webfonts (after first paint)', 'Built to render offline'] }
+    {
+      label: 'LOCAL-FIRST',
+      items: ['No tracker pixels', 'No CDN webfonts (after first paint)', 'Built to render offline']
+    }
   ]
 };
 
@@ -58,12 +60,12 @@ export const INTENT = {
   // Vocabulary the system uses for itself. Use the left column. Avoid the right.
   tone: [
     { use: 'event', not: 'record', why: 'events are append-only; record implies mutability' },
-    { use: 'agent', not: 'bot', why: "these are AI coding agents, not chatbots" },
+    { use: 'agent', not: 'bot', why: 'these are AI coding agents, not chatbots' },
     { use: 'session', not: 'run', why: 'a session is bounded by an agent lifecycle' },
     { use: 'project', not: 'workspace', why: 'workspace implies multi-user' },
     { use: 'watcher', not: 'listener', why: "watchers don't react; they observe" },
     { use: 'captured', not: 'logged', why: 'logged implies a side effect; captured is passive' },
-    { use: 'live', not: 'real-time', why: "real-time is overloaded; live is unambiguous" },
+    { use: 'live', not: 'real-time', why: 'real-time is overloaded; live is unambiguous' },
     { use: 'observe', not: 'monitor', why: 'monitor implies action; observe is passive' },
     { use: 'diff', not: 'change', why: 'a diff is the artifact; change is what you do to it' },
     { use: 'inference', not: 'call', why: 'inference is what an LLM does; call is what code does' }
@@ -73,34 +75,48 @@ export const INTENT = {
   touchstones: [
     {
       name: 'Bloomberg Terminal',
-      body:
-        'Dense, mono, every cell carries information. Not pretty — informative. The benchmark for "I came here to read data, not be marketed to."'
+      body: 'Dense, mono, every cell carries information. Not pretty — informative. The benchmark for "I came here to read data, not be marketed to."'
     },
     {
       name: 'Datadog APM',
-      body:
-        'Calm operational chrome with a live indicator that never overwhelms the data. Demonstrates that "live" can be ambient, not anxious.'
+      body: 'Calm operational chrome with a live indicator that never overwhelms the data. Demonstrates that "live" can be ambient, not anxious.'
     },
     {
       name: 'Linear',
-      body:
-        'Bracketed actions, calm dark UI, Inter + JetBrains Mono pairing. Proves that minimal can still feel polished.'
+      body: 'Bracketed actions, calm dark UI, Inter + JetBrains Mono pairing. Proves that minimal can still feel polished.'
     },
     {
       name: 'Palantir Foundry / Sightline',
-      body:
-        "Strict typographic hierarchy with semantic color discipline — the rigor we keep. (Raven shipped a Foundry-violet draft early on; it's now phosphor green on black, but the typographic discipline is unchanged.)"
+      body: "Strict typographic hierarchy with semantic color discipline — the rigor we keep. (Raven shipped a Foundry-violet draft early on; it's now phosphor green on black, but the typographic discipline is unchanged.)"
     }
   ],
 
   // Folder convention. Find a file, find the layer.
   folders: [
-    { path: 'lib/components/layout/', what: 'Page chrome — PageLayout, PageHeader, PageSection. The five-zone shell every page wears.' },
-    { path: 'lib/components/ui/', what: 'Small reusable primitives — RefreshButton, ToolbarButton, FilterToggle, TabButton, EmptyState, LoadingState. Coverage enforced by validate:design-coverage.' },
-    { path: 'lib/pages/', what: 'One Svelte file per route. Iterates over content/, never holds large data inline.' },
-    { path: 'lib/content/', what: 'Data-only modules — about.js, system.js, design.js. Pages iterate over these arrays.' },
-    { path: 'lib/utils/', what: 'Pure helpers — chartUtils, formatUtils, numberFormat, createPageApi. No DOM, no side effects beyond what the name implies.' },
-    { path: 'lib/styles/', what: 'Global stylesheets only — animations, livepage chrome, the style-lab variant scopes. Page-level <style> blocks are forbidden by validate:patterns on migrated pages.' }
+    {
+      path: 'lib/components/layout/',
+      what: 'Page chrome — PageLayout, PageHeader, PageSection. The five-zone shell every page wears.'
+    },
+    {
+      path: 'lib/components/ui/',
+      what: 'Small reusable primitives — RefreshButton, ToolbarButton, FilterToggle, TabButton, EmptyState, LoadingState. Coverage enforced by validate:design-coverage.'
+    },
+    {
+      path: 'lib/pages/',
+      what: 'One Svelte file per route. Iterates over content/, never holds large data inline.'
+    },
+    {
+      path: 'lib/content/',
+      what: 'Data-only modules — about.js, system.js, design.js. Pages iterate over these arrays.'
+    },
+    {
+      path: 'lib/utils/',
+      what: 'Pure helpers — chartUtils, formatUtils, numberFormat, createPageApi. No DOM, no side effects beyond what the name implies.'
+    },
+    {
+      path: 'lib/styles/',
+      what: 'Global stylesheets only — animations, livepage chrome, the style-lab variant scopes. Page-level <style> blocks are forbidden by validate:patterns on migrated pages.'
+    }
   ]
 };
 
@@ -114,17 +130,61 @@ export const PATTERN_SUBGROUPS = [
 
 // Named primitive list — used in subgroup D.
 export const PRIMITIVES = [
-  { name: 'PageLayout', variants: ['default', 'dashboard'], use: 'Canonical shell. Default for content pages, dashboard for full-bleed live pages.' },
-  { name: 'PageHeader', variants: ['(props: title, description, actions)'], use: 'h1 + description + optional actions snippet.' },
-  { name: 'PageSection', variants: ['(props: title, meta)'], use: 'Numbered uppercase muted label + slotted body.' },
-  { name: 'ProseBlock', variants: ['default (42rem)', 'wide (48rem)'], use: 'Reading-width container. Wrap prose-heavy units (heros, manifestos, principle bodies) inside otherwise full-bleed pages. Data UI — tables, grids, charts — stays full width.' },
-  { name: 'RefreshButton', variants: ['(props: onClick, loading, label)'], use: 'Canonical refresh button used in 23+ page headers. Has built-in loading state.' },
-  { name: 'ToolbarButton', variants: ['default', 'primary', 'danger'], use: 'Secondary toolbar action (Export, Auto-refresh, Filter). One styling source for all toolbar buttons.' },
-  { name: 'FilterToggle', variants: ['(props: active, onClick)'], use: 'Bordered active/inactive filter pill — severity filters, search-type toggles.' },
-  { name: 'TabButton', variants: ['(props: active, onClick)'], use: 'Connected tab segment for time-range pickers (Today / 7d / 30d / All).' },
-  { name: 'EmptyState', variants: ['default', 'compact'], use: 'Centered no-data card. Use for "no events match these filters" — never silently filtered out.' },
-  { name: 'LoadingState', variants: ['(props: message)'], use: 'Centered spinner card while initial data loads. Same shell as EmptyState; semantically distinct.' },
-  { name: 'MermaidDiagram', variants: ['(props: source, ariaLabel, fallback)'], use: 'Theme-aware architecture diagrams. Lazy-loads mermaid; observes documentElement to flip on theme change.' }
+  {
+    name: 'PageLayout',
+    variants: ['default', 'dashboard'],
+    use: 'Canonical shell. Default for content pages, dashboard for full-bleed live pages.'
+  },
+  {
+    name: 'PageHeader',
+    variants: ['(props: title, description, actions)'],
+    use: 'h1 + description + optional actions snippet.'
+  },
+  {
+    name: 'PageSection',
+    variants: ['(props: title, meta)'],
+    use: 'Numbered uppercase muted label + slotted body.'
+  },
+  {
+    name: 'ProseBlock',
+    variants: ['default (42rem)', 'wide (48rem)'],
+    use: 'Reading-width container. Wrap prose-heavy units (heros, manifestos, principle bodies) inside otherwise full-bleed pages. Data UI — tables, grids, charts — stays full width.'
+  },
+  {
+    name: 'RefreshButton',
+    variants: ['(props: onClick, loading, label)'],
+    use: 'Canonical refresh button used in 23+ page headers. Has built-in loading state.'
+  },
+  {
+    name: 'ToolbarButton',
+    variants: ['default', 'primary', 'danger'],
+    use: 'Secondary toolbar action (Export, Auto-refresh, Filter). One styling source for all toolbar buttons.'
+  },
+  {
+    name: 'FilterToggle',
+    variants: ['(props: active, onClick)'],
+    use: 'Bordered active/inactive filter pill — severity filters, search-type toggles.'
+  },
+  {
+    name: 'TabButton',
+    variants: ['(props: active, onClick)'],
+    use: 'Connected tab segment for time-range pickers (Today / 7d / 30d / All).'
+  },
+  {
+    name: 'EmptyState',
+    variants: ['default', 'compact'],
+    use: 'Centered no-data card. Use for "no events match these filters" — never silently filtered out.'
+  },
+  {
+    name: 'LoadingState',
+    variants: ['(props: message)'],
+    use: 'Centered spinner card while initial data loads. Same shell as EmptyState; semantically distinct.'
+  },
+  {
+    name: 'MermaidDiagram',
+    variants: ['(props: source, ariaLabel, fallback)'],
+    use: 'Theme-aware architecture diagrams. Lazy-loads mermaid; observes documentElement to flip on theme change.'
+  }
 ];
 
 // === 02 Page Architecture ===
@@ -133,7 +193,7 @@ export const PAGE_ZONES = [
     tag: '01',
     name: 'Status bar',
     purpose: 'Brand prompt + page label + live status',
-    body: "Top of every content page. RAVEN.SYSTEM :: PAGE LABEL on the left, websocket-connected dot on the right. Pulses when alive, dim when disconnected."
+    body: 'Top of every content page. RAVEN.SYSTEM :: PAGE LABEL on the left, websocket-connected dot on the right. Pulses when alive, dim when disconnected.'
   },
   {
     tag: '02',
@@ -151,7 +211,7 @@ export const PAGE_ZONES = [
     tag: '04',
     name: 'Sub-blocks',
     purpose: 'h3 for divisions inside a section',
-    body: 'Inside a PageSection, use h3 with `text-sm font-semibold text-heading mb-3` for sub-divisions. Don\'t hand-roll a second numbered scheme; sub-blocks are flat.'
+    body: "Inside a PageSection, use h3 with `text-sm font-semibold text-heading mb-3` for sub-divisions. Don't hand-roll a second numbered scheme; sub-blocks are flat."
   },
   {
     tag: '04½',
@@ -226,7 +286,7 @@ export const STATES = [
   {
     tag: 'LOADING',
     primitive: '<LoadingState>',
-    desc: "Centered spinner card while initial data loads. Same shell as EmptyState; semantically distinct so screen readers can tell them apart.",
+    desc: 'Centered spinner card while initial data loads. Same shell as EmptyState; semantically distinct so screen readers can tell them apart.',
     demo: { kind: 'loading' }
   },
   {
@@ -255,8 +315,7 @@ export const STATES = [
 // reader sees the rationale before the swatches.
 export const PHOSPHOR_RATIONALE = {
   headline: 'Why phosphor green on raven black',
-  body:
-    "A raven is mostly black. Different shades of black, with one bright tell on the wing when light hits it. The base palette is the bird (raven black, warm grey surfaces, near-white headings); the accent is the tell — phosphor green, a single bright color reserved for things that demand attention: links, primary CTAs, the brand prompt, the live indicator. Borrowed from Bloomberg / VT100 / CRT terminals where green meant the system was on and you should look. Functional state colors (success / error / warning / info) keep their hues so meaning never collapses into brand.",
+  body: 'A raven is mostly black. Different shades of black, with one bright tell on the wing when light hits it. The base palette is the bird (raven black, warm grey surfaces, near-white headings); the accent is the tell — phosphor green, a single bright color reserved for things that demand attention: links, primary CTAs, the brand prompt, the live indicator. Borrowed from Bloomberg / VT100 / CRT terminals where green meant the system was on and you should look. Functional state colors (success / error / warning / info) keep their hues so meaning never collapses into brand.',
   rules: [
     'Phosphor accent is reserved for actions and the brand prompt — never for body text or decoration.',
     'Success stays a slightly cooler green than accent so a "healthy" pill never looks like a "click me" pill.',
@@ -269,18 +328,26 @@ export const PHOSPHOR_RATIONALE = {
 // page mirrors the live mapping rather than duplicating it.
 // design-system-allow: hex (vendor brand colors)
 export const BRAND_COLORS = [
-  { name: 'Claude / Claude Code', color: '#FF6B35', use: 'Anthropic orange — most common agent on the timeline' },
-  { name: 'Codex',                color: '#10A37F', use: 'OpenAI emerald — Codex CLI sessions' },
-  { name: 'Ollama',               color: '#06b6d4', use: 'Cyan — local Ollama inference (changed from amber to avoid colliding with Claude orange)' },
-  { name: 'GPT / ChatGPT',        color: '#10a37f', use: 'OpenAI emerald — same family as Codex' },
-  { name: 'Cursor',               color: '#10b981', use: 'Cursor brand green' },
-  { name: 'Copilot',              color: '#0ea5e9', use: 'GitHub Copilot blue' },
-  { name: 'Aider',                color: '#8b5cf6', use: 'Aider violet' },
-  { name: 'Llama / CodeLlama',    color: '#7C3AED', use: 'Meta-tier violet' },
-  { name: 'Mistral',              color: '#E11D48', use: 'Mistral red' },
-  { name: 'Qwen',                 color: '#14B8A6', use: 'Qwen teal' },
-  { name: 'DeepSeek',             color: '#0EA5E9', use: 'DeepSeek blue' },
-  { name: 'Manual',               color: '#6b7280', use: 'Neutral grey for non-attributed activity' }
+  {
+    name: 'Claude / Claude Code',
+    color: '#FF6B35',
+    use: 'Anthropic orange — most common agent on the timeline'
+  },
+  { name: 'Codex', color: '#10A37F', use: 'OpenAI emerald — Codex CLI sessions' },
+  {
+    name: 'Ollama',
+    color: '#06b6d4',
+    use: 'Cyan — local Ollama inference (changed from amber to avoid colliding with Claude orange)'
+  },
+  { name: 'GPT / ChatGPT', color: '#10a37f', use: 'OpenAI emerald — same family as Codex' },
+  { name: 'Cursor', color: '#10b981', use: 'Cursor brand green' },
+  { name: 'Copilot', color: '#0ea5e9', use: 'GitHub Copilot blue' },
+  { name: 'Aider', color: '#8b5cf6', use: 'Aider violet' },
+  { name: 'Llama / CodeLlama', color: '#7C3AED', use: 'Meta-tier violet' },
+  { name: 'Mistral', color: '#E11D48', use: 'Mistral red' },
+  { name: 'Qwen', color: '#14B8A6', use: 'Qwen teal' },
+  { name: 'DeepSeek', color: '#0EA5E9', use: 'DeepSeek blue' },
+  { name: 'Manual', color: '#6b7280', use: 'Neutral grey for non-attributed activity' }
 ];
 
 export const BRAND_COLORS_RULE =
@@ -289,7 +356,11 @@ export const BRAND_COLORS_RULE =
 export const SURFACE_TOKENS = [
   { name: '--bg', utility: 'bg-canvas', role: 'Page background' },
   { name: '--surface', utility: 'bg-surface', role: 'Card / panel background' },
-  { name: '--surface-2', utility: 'bg-surface-2', role: 'Recessed surface (table headers, inputs, embeds)' },
+  {
+    name: '--surface-2',
+    utility: 'bg-surface-2',
+    role: 'Recessed surface (table headers, inputs, embeds)'
+  },
   { name: '--border', utility: 'border-border', role: 'Default borders and dividers' }
 ];
 
@@ -308,7 +379,11 @@ export const SEMANTIC_TOKENS = [
 ];
 
 export const SUBTLE_TOKENS = [
-  { name: '--accent-subtle', utility: 'bg-accent-subtle', role: 'Tinted backdrop for accent badges' },
+  {
+    name: '--accent-subtle',
+    utility: 'bg-accent-subtle',
+    role: 'Tinted backdrop for accent badges'
+  },
   { name: '--success-subtle', utility: 'bg-success-subtle', role: 'Backdrop for healthy badges' },
   { name: '--error-subtle', utility: 'bg-error-subtle', role: 'Backdrop for error badges' },
   { name: '--warning-subtle', utility: 'bg-warning-subtle', role: 'Backdrop for caution callouts' }
@@ -316,12 +391,37 @@ export const SUBTLE_TOKENS = [
 
 // === 05 Typography ===
 export const TYPE_SCALE = [
-  { name: '--text-xs', utility: 'text-xs', size: '12px', sample: 'Smallest label · meta · timestamps' },
-  { name: '--text-sm', utility: 'text-sm', size: '13px', sample: 'Caption · dim metadata · table cells' },
-  { name: '--text-base', utility: 'text-base', size: '14px', sample: 'Default body — most prose lives here' },
-  { name: '--text-lg', utility: 'text-lg', size: '15px', sample: 'Slightly larger body for emphasis' },
+  {
+    name: '--text-xs',
+    utility: 'text-xs',
+    size: '12px',
+    sample: 'Smallest label · meta · timestamps'
+  },
+  {
+    name: '--text-sm',
+    utility: 'text-sm',
+    size: '13px',
+    sample: 'Caption · dim metadata · table cells'
+  },
+  {
+    name: '--text-base',
+    utility: 'text-base',
+    size: '14px',
+    sample: 'Default body — most prose lives here'
+  },
+  {
+    name: '--text-lg',
+    utility: 'text-lg',
+    size: '15px',
+    sample: 'Slightly larger body for emphasis'
+  },
   { name: '--text-xl', utility: 'text-xl', size: '16px', sample: 'Hero lede · dashboard h1' },
-  { name: '--text-2xl', utility: 'text-2xl', size: '18px', sample: 'Page heading (PageHeader default)' },
+  {
+    name: '--text-2xl',
+    utility: 'text-2xl',
+    size: '18px',
+    sample: 'Page heading (PageHeader default)'
+  },
   { name: '--text-3xl', utility: 'text-3xl', size: '20px', sample: 'Section title · subhead' },
   { name: '--text-4xl', utility: 'text-4xl', size: '24px', sample: 'Headline · big emphasis' },
   { name: '--text-5xl', utility: 'text-5xl', size: '28px', sample: 'Display · hero numerals' }
@@ -374,15 +474,39 @@ export const MOTION_TOKENS = [
   { name: '--duration-fast', value: '150ms', use: 'Hover state changes, focus rings' },
   { name: '--duration-base', value: '200ms', use: 'Default transitions, fades, slides' },
   { name: '--duration-slow', value: '300ms', use: 'Drawers, modals, expand/collapse' },
-  { name: '--ease-smooth', value: 'cubic-bezier(0.4, 0, 0.2, 1)', use: 'Default easing — symmetric in/out' },
-  { name: '--ease-out-expo', value: 'cubic-bezier(0.16, 1, 0.3, 1)', use: 'Decisive arrivals — drawers, toasts' }
+  {
+    name: '--ease-smooth',
+    value: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    use: 'Default easing — symmetric in/out'
+  },
+  {
+    name: '--ease-out-expo',
+    value: 'cubic-bezier(0.16, 1, 0.3, 1)',
+    use: 'Decisive arrivals — drawers, toasts'
+  }
 ];
 
 export const CALLOUTS = [
-  { tone: 'warning', label: '! Security Model', body: 'Bind only to 127.0.0.1 unless every host on the bound network is trusted.' },
-  { tone: 'success', label: '✓ Healthy', body: 'All probes returning within budget. No degraded subsystems.' },
-  { tone: 'info', label: 'i Tip', body: 'You can press Cmd-K from any page to jump to the command palette.' },
-  { tone: 'error', label: '✗ Failure', body: 'Migration 0042 cannot be applied — column already exists.' }
+  {
+    tone: 'warning',
+    label: '! Security Model',
+    body: 'Bind only to 127.0.0.1 unless every host on the bound network is trusted.'
+  },
+  {
+    tone: 'success',
+    label: '✓ Healthy',
+    body: 'All probes returning within budget. No degraded subsystems.'
+  },
+  {
+    tone: 'info',
+    label: 'i Tip',
+    body: 'You can press Cmd-K from any page to jump to the command palette.'
+  },
+  {
+    tone: 'error',
+    label: '✗ Failure',
+    body: 'Migration 0042 cannot be applied — column already exists.'
+  }
 ];
 
 // === 09 Principles ===
@@ -390,13 +514,13 @@ export const CALLOUTS = [
 export const PRINCIPLES = [
   'Use semantic utilities (<code>bg-surface</code>, <code>text-heading</code>, <code>text-accent</code>, <code>text-success</code>) instead of hex or arbitrary <code>text-[var(--…)]</code> tokens. They flip with theme.',
   'Every page wraps in <code>&lt;PageLayout&gt;</code> from <code>lib/components/layout</code>. Content pages use the default variant; dashboards (Overview, Live, Activity) use <code>variant="dashboard"</code>.',
-  'The page <code>h1</code> + description belongs in <code>&lt;PageHeader title=… description=…&gt;</code>. The small uppercase section label belongs in <code>&lt;PageSection title=… meta=…&gt;</code>. Don\'t hand-roll these.',
+  "The page <code>h1</code> + description belongs in <code>&lt;PageHeader title=… description=…&gt;</code>. The small uppercase section label belongs in <code>&lt;PageSection title=… meta=…&gt;</code>. Don't hand-roll these.",
   'Section cards inside a PageSection use <code>bg-surface border border-border rounded-lg p-5</code> with an uppercase mono label heading.',
-  'Status dots are 6px circles (<code>w-1.5 h-1.5</code>) with semantic backgrounds. Don\'t reinvent shapes — the matching size across status bars is what makes the live indicator legible at a glance.',
+  "Status dots are 6px circles (<code>w-1.5 h-1.5</code>) with semantic backgrounds. Don't reinvent shapes — the matching size across status bars is what makes the live indicator legible at a glance.",
   'Mono font is reserved for technical content: session IDs, paths, durations, code, model names.',
   'The System page is the gold standard for content-style screens — match its header, status grid, and detail-card patterns when adding new ones.',
   'Animations live in <code>lib/styles/animations.css</code>. Page-level <code>&lt;style&gt;</code> blocks are forbidden on migrated pages — lift to that file or compose with Tailwind utilities.',
   'Brand-identity hex colors (per-agent, per-vendor) are the only allowed exception to the no-raw-hex rule. Mark with a leader <code>// design-system-allow: hex</code> comment.',
   'Static page content (decisions, principles, tool catalogs, etc.) lives in <code>lib/content/</code>. Pages iterate; markup stays small.',
-  'Rules are enforced by <code>npm run validate:patterns</code> (ratcheted — only applies to pages that import <code>PageLayout</code>, so legacy pages don\'t block CI but cannot regress once migrated). Coverage of the primitive library against this page is checked by <code>npm run validate:design-coverage</code>.'
+  "Rules are enforced by <code>npm run validate:patterns</code> (ratcheted — only applies to pages that import <code>PageLayout</code>, so legacy pages don't block CI but cannot regress once migrated). Coverage of the primitive library against this page is checked by <code>npm run validate:design-coverage</code>."
 ];
