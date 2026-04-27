@@ -260,17 +260,6 @@ describe('Environment Configuration', () => {
       expect(env.ENABLE_GIT_MONITOR).toBe(true);
     });
 
-    test('should have ENABLE_DEBUG_ROUTES default to false', async () => {
-      delete process.env.ENABLE_DEBUG_ROUTES;
-      const { env } = await import('../../config/environment.js');
-      expect(env.ENABLE_DEBUG_ROUTES).toBe(false);
-    });
-
-    test('should allow enabling debug routes', async () => {
-      process.env.ENABLE_DEBUG_ROUTES = 'true';
-      const { env } = await import('../../config/environment.js');
-      expect(env.ENABLE_DEBUG_ROUTES).toBe(true);
-    });
   });
 
   describe('Logging Configuration', () => {

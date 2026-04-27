@@ -99,10 +99,8 @@ const baseEnv = {
   ENABLE_METRICS: getBoolEnv('ENABLE_METRICS', true),
   ENABLE_TRIGGERS: getBoolEnv('ENABLE_TRIGGERS', true),
   ENABLE_GIT_MONITOR: getBoolEnv('ENABLE_GIT_MONITOR', true),
-  ENABLE_DEBUG_ROUTES: getBoolEnv('ENABLE_DEBUG_ROUTES', false),
 
   // Observability
-  ENABLE_TRACING: getBoolEnv('ENABLE_TRACING', false),
   METRICS_PORT: getIntEnv('METRICS_PORT', 9090),
 
   // Projects
@@ -172,7 +170,6 @@ export function printConfig() {
   logger.info(`   Auth: ${env.DISABLE_AUTH ? 'Disabled' : 'Enabled'}`);
   logger.info(`   Log Level: ${env.LOG_LEVEL}`);
   logger.info(`   Structured Logging: ${env.STRUCTURED_LOGGING}`);
-  logger.info(`   Tracing: ${env.ENABLE_TRACING}`);
   logger.info(`   Cache Size: ${env.MAX_CACHE_SIZE}`);
   logger.info(`   DB Directory: ${env.DB_DIR}`);
   logger.info('');

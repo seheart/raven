@@ -175,13 +175,6 @@ export interface SocketIOServer {
 }
 
 /**
- * File processing lock interface
- */
-interface FileProcessingLock {
-  acquire(filepath: string): Promise<() => void>;
-}
-
-/**
  * Session activity data
  */
 export interface SessionActivity {
@@ -197,26 +190,6 @@ export interface SessionActivity {
  */
 export interface SessionTracker {
   recordActivity(projectName: ProjectName, activity: SessionActivity): void;
-}
-
-/**
- * Developer database code pattern
- */
-interface DeveloperCodePattern {
-  project: string;
-  language: string;
-  file_type: string;
-  edit_type: 'create' | 'modify' | 'delete';
-  lines_added: number;
-  lines_removed: number;
-  timestamp: ISOTimestamp;
-}
-
-/**
- * Developer database interface
- */
-interface DeveloperDatabase {
-  logCodePattern(pattern: DeveloperCodePattern): void;
 }
 
 /**
@@ -237,24 +210,6 @@ export interface RavenDatabase {
   ): number;
   clearSyntaxErrors(filepath: string): void;
   clearPatternWarnings(filepath: string): void;
-}
-
-/**
- * FileChangeHandler constructor options
- */
-export interface FileChangeHandlerOptions {
-  projectPaths: Map<ProjectName, string>;
-  projectDatabases: Map<ProjectName, RavenDatabase>;
-  projectGitMonitors: Map<ProjectName, unknown>;
-  projectSnapshotDirs: Map<ProjectName, string>;
-  fileCache: Map<string, string>;
-  io: SocketIOServer;
-  SESSION_ID: SessionID;
-  fileProcessingLock: FileProcessingLock;
-  developerDB: DeveloperDatabase | null;
-  sessionTracker: SessionTracker | null;
-  addToFileCache: (filepath: string, content: string) => void;
-  emitGitStatusUpdate: (projectName: ProjectName) => void;
 }
 
 /**

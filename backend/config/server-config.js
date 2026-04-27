@@ -98,7 +98,6 @@ export const serverConfig = {
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
     sessionSecret: process.env.SESSION_SECRET,
     disableAuth: process.env.DISABLE_AUTH === 'true',
-    enableTracing: process.env.ENABLE_TRACING === 'true',
     maxRequestSize: process.env.MAX_REQUEST_SIZE || '10mb'
   },
 

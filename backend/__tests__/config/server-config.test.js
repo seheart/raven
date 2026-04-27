@@ -303,19 +303,6 @@ describe('ServerConfig', () => {
       expect(module.serverConfig.security.disableAuth).toBe(true);
     });
 
-    test('should have ENABLE_TRACING false by default', async () => {
-      delete process.env.ENABLE_TRACING;
-      const module = await import('../../config/server-config.js');
-
-      expect(module.serverConfig.security.enableTracing).toBe(false);
-    });
-
-    test('should set ENABLE_TRACING true when env is true', async () => {
-      process.env.ENABLE_TRACING = 'true';
-      const module = await import('../../config/server-config.js');
-
-      expect(module.serverConfig.security.enableTracing).toBe(true);
-    });
   });
 
   describe('Logging configuration', () => {
