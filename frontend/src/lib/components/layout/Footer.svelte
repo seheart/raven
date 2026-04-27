@@ -1,6 +1,5 @@
 <script>
   import { websocketService } from '../../services/websocket.js';
-  import { api } from '../../apiClient.js';
   import { onMount } from 'svelte';
   import settings, { uiSettings } from '../../stores/settingsStore.js';
 
@@ -15,7 +14,6 @@
   } = $props();
 
   let connected = $state(false);
-  let gitBranch = $state('');
   let isDark = $derived($uiSettings.theme === 'dark');
 
   function toggleTheme() {
@@ -28,23 +26,8 @@
     }, 2000);
     connected = websocketService.isConnected();
 
-    // Fetch git status immediately on mount
-    api
-      .get('/git/status')
-      .then(data => {
-        gitBranch = data?.current || data?.branch || '';
-      })
-      .catch(() => {});
-
-    // Listen for git status updates via WebSocket
-    const handleGit = data => {
-      gitBranch = data?.branch || data?.current || '';
-    };
-    websocketService.on('git-status', handleGit);
-
     return () => {
       clearInterval(interval);
-      websocketService.off('git-status', handleGit);
     };
   });
 </script>
@@ -116,10 +99,6 @@
           />
         </svg>
       </a>
-      {#if gitBranch}
-        <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-        <span class="text-xs text-[var(--muted)] font-mono">{gitBranch}</span>
-      {/if}
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <button
         onclick={toggleTheme}
