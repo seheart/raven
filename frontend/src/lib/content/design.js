@@ -14,8 +14,8 @@ export const HERO = {
   meta: [
     { k: 'Sections', v: '10 · use TOC chips below' },
     { k: 'Aesthetic', v: 'Quiet · dense · technical · live' },
-    { k: 'Brand', v: 'Raven · sentence-case' },
-    { k: 'Theme', v: 'Live · :root.dark flips on toggle' }
+    { k: 'Brand', v: 'Phosphor green on raven black · one bright tell' },
+    { k: 'Theme', v: 'Light · Dark · toggle in footer' }
   ],
   badges: [
     { label: 'LOCAL-FIRST', items: ['No tracker pixels', 'No CDN webfonts (after first paint)', 'Built to render offline'] }
@@ -89,7 +89,7 @@ export const INTENT = {
     {
       name: 'Palantir Foundry / Sightline',
       body:
-        'Strict typographic hierarchy with semantic color discipline. The Foundry palette is where Raven\'s violet-on-ink came from.'
+        "Strict typographic hierarchy with semantic color discipline — the rigor we keep. (Raven shipped a Foundry-violet draft early on; it's now phosphor green on black, but the typographic discipline is unchanged.)"
     }
   ],
 
@@ -100,7 +100,7 @@ export const INTENT = {
     { path: 'lib/pages/', what: 'One Svelte file per route. Iterates over content/, never holds large data inline.' },
     { path: 'lib/content/', what: 'Data-only modules — about.js, system.js, design.js. Pages iterate over these arrays.' },
     { path: 'lib/utils/', what: 'Pure helpers — chartUtils, formatUtils, numberFormat, createPageApi. No DOM, no side effects beyond what the name implies.' },
-    { path: 'lib/styles/', what: 'animations.css and livepage.css only. Page-level <style> blocks are forbidden by validate:patterns.' }
+    { path: 'lib/styles/', what: 'Global stylesheets only — animations, livepage chrome, the style-lab variant scopes. Page-level <style> blocks are forbidden by validate:patterns on migrated pages.' }
   ]
 };
 
@@ -205,7 +205,7 @@ export const STATES = [
   {
     tag: 'LIVE',
     primitive: 'pulsing dot + text',
-    desc: 'A pulsing 1.5px dot on success-green. Reserved for "I\'m alive" — running agent, polling job, websocket connected. Never a spinner.',
+    desc: 'A pulsing 6px circle (Tailwind w-1.5 h-1.5) on success-green. Reserved for "I\'m alive" — running agent, polling job, websocket connected. Never a spinner.',
     demo: { kind: 'live' }
   },
   {
@@ -235,6 +235,42 @@ export const STATES = [
 ];
 
 // === 04 Colors ===
+
+// Why the brand is what it is. Goes above the token tables so the
+// reader sees the rationale before the swatches.
+export const PHOSPHOR_RATIONALE = {
+  headline: 'Why phosphor green on raven black',
+  body:
+    "A raven is mostly black. Different shades of black, with one bright tell on the wing when light hits it. The base palette is the bird (raven black, warm grey surfaces, near-white headings); the accent is the tell — phosphor green, a single bright color reserved for things that demand attention: links, primary CTAs, the brand prompt, the live indicator. Borrowed from Bloomberg / VT100 / CRT terminals where green meant the system was on and you should look. Functional state colors (success / error / warning / info) keep their hues so meaning never collapses into brand.",
+  rules: [
+    'Phosphor accent is reserved for actions and the brand prompt — never for body text or decoration.',
+    'Success stays a slightly cooler green than accent so a "healthy" pill never looks like a "click me" pill.',
+    'In dark mode the accent inverts brightness (#4ade80) so primary CTAs become near-white-on-black; in light mode they stay green-on-cream.'
+  ]
+};
+
+// Per-agent brand colors — vendor identities used in charts, timeline
+// rows, and agent name pills. Sourced from utils/agentBrand.js so this
+// page mirrors the live mapping rather than duplicating it.
+// design-system-allow: hex (vendor brand colors)
+export const BRAND_COLORS = [
+  { name: 'Claude / Claude Code', color: '#FF6B35', use: 'Anthropic orange — most common agent on the timeline' },
+  { name: 'Codex',                color: '#10A37F', use: 'OpenAI emerald — Codex CLI sessions' },
+  { name: 'Ollama',               color: '#06b6d4', use: 'Cyan — local Ollama inference (changed from amber to avoid colliding with Claude orange)' },
+  { name: 'GPT / ChatGPT',        color: '#10a37f', use: 'OpenAI emerald — same family as Codex' },
+  { name: 'Cursor',               color: '#10b981', use: 'Cursor brand green' },
+  { name: 'Copilot',              color: '#0ea5e9', use: 'GitHub Copilot blue' },
+  { name: 'Aider',                color: '#8b5cf6', use: 'Aider violet' },
+  { name: 'Llama / CodeLlama',    color: '#7C3AED', use: 'Meta-tier violet' },
+  { name: 'Mistral',              color: '#E11D48', use: 'Mistral red' },
+  { name: 'Qwen',                 color: '#14B8A6', use: 'Qwen teal' },
+  { name: 'DeepSeek',             color: '#0EA5E9', use: 'DeepSeek blue' },
+  { name: 'Manual',               color: '#6b7280', use: 'Neutral grey for non-attributed activity' }
+];
+
+export const BRAND_COLORS_RULE =
+  "Vendor brand colors are the only allowed exception to the no-raw-hex rule. They live in lib/utils/agentBrand.js as a single source of truth and are tagged design-system-allow: hex. Pages call getAgentColor(name) instead of hardcoding hex per page — that's how the recent Ollama swap (amber → cyan) propagated everywhere with one edit.";
+
 export const SURFACE_TOKENS = [
   { name: '--bg', utility: 'bg-canvas', role: 'Page background' },
   { name: '--surface', utility: 'bg-surface', role: 'Card / panel background' },
@@ -341,7 +377,7 @@ export const PRINCIPLES = [
   'Every page wraps in <code>&lt;PageLayout&gt;</code> from <code>lib/components/layout</code>. Content pages use the default variant; dashboards (Overview, Live, Activity) use <code>variant="dashboard"</code>.',
   'The page <code>h1</code> + description belongs in <code>&lt;PageHeader title=… description=…&gt;</code>. The small uppercase section label belongs in <code>&lt;PageSection title=… meta=…&gt;</code>. Don\'t hand-roll these.',
   'Section cards inside a PageSection use <code>bg-surface border border-border rounded-lg p-5</code> with an uppercase mono label heading.',
-  'Status dots are 8px circles (<code>w-2 h-2</code>) with semantic backgrounds. Don\'t reinvent shapes.',
+  'Status dots are 6px circles (<code>w-1.5 h-1.5</code>) with semantic backgrounds. Don\'t reinvent shapes — the matching size across status bars is what makes the live indicator legible at a glance.',
   'Mono font is reserved for technical content: session IDs, paths, durations, code, model names.',
   'The System page is the gold standard for content-style screens — match its header, status grid, and detail-card patterns when adding new ones.',
   'Animations live in <code>lib/styles/animations.css</code>. Page-level <code>&lt;style&gt;</code> blocks are forbidden on migrated pages — lift to that file or compose with Tailwind utilities.',

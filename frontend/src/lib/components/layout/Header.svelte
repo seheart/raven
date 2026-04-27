@@ -176,9 +176,10 @@
       {/each}
     </nav>
 
-    <!-- Activity Stats (real data) — hidden on mobile -->
+    <!-- Activity Stats (real data) — hidden until xl so the nav has
+         room at typical laptop widths after the type-scale bump. -->
     <div
-      class="hidden md:flex gap-2 lg:gap-3 text-xs font-mono text-[var(--muted)] pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
+      class="hidden xl:flex gap-2 lg:gap-3 text-xs font-mono text-[var(--muted)] pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
     >
       <span>{stats.files} files</span>
       <span>{stats.edits} edits</span>
@@ -186,8 +187,8 @@
       <span class="text-[var(--error)]">-{stats.deletes}</span>
     </div>
 
-    <!-- CPU / Memory — hidden on mobile -->
-    <div class="hidden lg:flex items-center gap-3 pl-3 border-l border-[var(--border)] text-xs font-mono shrink-0">
+    <!-- CPU / Memory — only on widescreen displays -->
+    <div class="hidden 2xl:flex items-center gap-3 pl-3 border-l border-[var(--border)] text-xs font-mono shrink-0">
       <div class="flex items-center gap-1.5" title="CPU: {cpu.toFixed(1)}%">
         <span class="text-[var(--muted)]">CPU</span>
         <div class="w-12 h-1.5 bg-[var(--bg)] rounded overflow-hidden">

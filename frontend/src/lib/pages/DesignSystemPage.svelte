@@ -24,6 +24,9 @@
     PAGE_ZONES,
     PAGE_SKELETON,
     STATES,
+    PHOSPHOR_RATIONALE,
+    BRAND_COLORS,
+    BRAND_COLORS_RULE,
     SURFACE_TOKENS,
     TEXT_TOKENS,
     SEMANTIC_TOKENS,
@@ -644,6 +647,21 @@
     <!-- 04 // Colors -->
     <div id="sect-colors"></div>
     <PageSection title="04 // Colors" meta="theme-aware tokens · flip on :root.dark">
+
+      <!-- Why phosphor — the rationale before any swatch -->
+      <div class="bg-surface border border-border rounded-lg p-5 mb-8">
+        <div class="flex items-baseline gap-3 mb-3">
+          <span class="w-3 h-3 rounded-full bg-accent flex-shrink-0"></span>
+          <h3 class="text-base font-semibold text-heading">{PHOSPHOR_RATIONALE.headline}</h3>
+        </div>
+        <p class="text-sm text-body font-sans leading-relaxed mb-3">{PHOSPHOR_RATIONALE.body}</p>
+        <ul class="text-xs font-mono text-muted space-y-1 list-none pl-0">
+          {#each PHOSPHOR_RATIONALE.rules as r (r)}
+            <li class="pl-3 relative before:content-['→'] before:absolute before:left-0 before:text-accent">{r}</li>
+          {/each}
+        </ul>
+      </div>
+
       <h3 class="text-sm font-semibold text-heading mb-3">Surfaces</h3>
       <p class="text-sm text-muted font-sans mb-4">Background and border tokens. These swap automatically between light and dark themes.</p>
       <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -706,7 +724,7 @@
 
       <h3 class="text-sm font-semibold text-heading mb-3">Callouts</h3>
       <p class="text-sm text-muted font-sans mb-4">Inline notices. Left bar carries the semantic; pair with a label glyph (<code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">!</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">✓</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">i</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">✗</code>).</p>
-      <div class="space-y-3">
+      <div class="space-y-3 mb-8">
         {#each CALLOUTS as c (c.tone)}
           {@const cls = toneClasses(c.tone)}
           <div class="rounded-r p-4 border-l-4 {cls.border} {cls.tint}">
@@ -714,6 +732,31 @@
             <div class="text-sm text-body font-sans">{c.body}</div>
           </div>
         {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Brand colors <span class="text-xs font-mono text-muted ml-2 normal-case font-normal">vendor identities · per-agent</span></h3>
+      <p class="text-sm text-muted font-sans mb-4">{BRAND_COLORS_RULE}</p>
+      <div class="bg-surface border border-border rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-2 w-16">Swatch</th>
+              <th class="text-left font-semibold px-3 py-2">Agent</th>
+              <th class="text-left font-semibold px-3 py-2 hidden md:table-cell w-24">Hex</th>
+              <th class="text-left font-semibold px-3 py-2">Used for</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each BRAND_COLORS as b (b.name)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2"><div class="w-6 h-6 rounded border border-border" style="background: {b.color};"></div></td>
+                <td class="px-3 py-2 text-body font-sans font-semibold">{b.name}</td>
+                <td class="px-3 py-2 hidden md:table-cell"><code class="font-mono text-xs text-muted">{b.color}</code></td>
+                <td class="px-3 py-2 text-muted font-sans">{b.use}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     </PageSection>
 
