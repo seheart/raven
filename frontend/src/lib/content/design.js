@@ -265,15 +265,15 @@ export const SUBTLE_TOKENS = [
 
 // === 05 Typography ===
 export const TYPE_SCALE = [
-  { name: '--text-xs', utility: 'text-xs', size: '10px', sample: 'Smallest label' },
-  { name: '--text-sm', utility: 'text-sm', size: '11px', sample: 'Caption / dim metadata' },
-  { name: '--text-base', utility: 'text-base', size: '12px', sample: 'Default body' },
-  { name: '--text-lg', utility: 'text-lg', size: '13px', sample: 'Slightly larger body' },
-  { name: '--text-xl', utility: 'text-xl', size: '14px', sample: 'Hero / dashboard h1' },
-  { name: '--text-2xl', utility: 'text-2xl', size: '15px', sample: 'Page heading (PageHeader default)' },
-  { name: '--text-3xl', utility: 'text-3xl', size: '16px', sample: 'Section title' },
-  { name: '--text-4xl', utility: 'text-4xl', size: '18px', sample: 'Subhead' },
-  { name: '--text-5xl', utility: 'text-5xl', size: '20px', sample: 'Big emphasis' }
+  { name: '--text-xs', utility: 'text-xs', size: '12px', sample: 'Smallest label · meta · timestamps' },
+  { name: '--text-sm', utility: 'text-sm', size: '13px', sample: 'Caption · dim metadata · table cells' },
+  { name: '--text-base', utility: 'text-base', size: '14px', sample: 'Default body — most prose lives here' },
+  { name: '--text-lg', utility: 'text-lg', size: '15px', sample: 'Slightly larger body for emphasis' },
+  { name: '--text-xl', utility: 'text-xl', size: '16px', sample: 'Hero lede · dashboard h1' },
+  { name: '--text-2xl', utility: 'text-2xl', size: '18px', sample: 'Page heading (PageHeader default)' },
+  { name: '--text-3xl', utility: 'text-3xl', size: '20px', sample: 'Section title · subhead' },
+  { name: '--text-4xl', utility: 'text-4xl', size: '24px', sample: 'Headline · big emphasis' },
+  { name: '--text-5xl', utility: 'text-5xl', size: '28px', sample: 'Display · hero numerals' }
 ];
 
 export const TYPE_WEIGHTS = [

@@ -58,16 +58,18 @@
   --radius-lg: 6px;
   --radius-xl: 8px;
 
-  /* Font sizes (canonical scale — drives text-* utilities AND var(--text-*) */
-  --text-xs: 10px;
-  --text-sm: 11px;
-  --text-base: 12px;
-  --text-lg: 13px;
-  --text-xl: 14px;
-  --text-2xl: 15px;
-  --text-3xl: 16px;
-  --text-4xl: 18px;
-  --text-5xl: 20px;
+  /* Font sizes (canonical scale — drives text-* utilities AND var(--text-*).
+     ANT-feel sizing: +2–8px from the original tight scale, so body text
+     reads at 14px instead of 12. The whole app feels less cramped. */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 15px;
+  --text-xl: 16px;
+  --text-2xl: 18px;
+  --text-3xl: 20px;
+  --text-4xl: 24px;
+  --text-5xl: 28px;
 }
 
 /* === Design Tokens — Raven Black palette ===
