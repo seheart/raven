@@ -64,6 +64,7 @@
   "dependencies": {
     "chart.js": "^4.5.1",
     "dompurify": "^3.3.0",
+    "mermaid": "^11.14.0",
     "socket.io-client": "^4.8.1"
   }
 }
