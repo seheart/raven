@@ -11,10 +11,33 @@
  */
 
 /* === 1a — Pure Mono ===
- * Zero brand color. The current Raven baseline. Listed for comparison.
+ * Zero brand color. Grayscale fallback. The base app is now Phosphor
+ * Green (1c), so this block explicitly overrides accent back to black/
+ * white to show what mono would look like.
  */
 .variant-1a {
-  /* No overrides — inherits :root / :root.dark. */
+  --accent: #0a0a0a;
+  --accent-2: #2d2d2d;
+  --color-accent: #0a0a0a;
+  --accent-subtle: #ebe8e1;
+  --color-accent-subtle: #ebe8e1;
+  --btn-primary-bg: #0a0a0a;
+  --btn-primary-hover: #2d2d2d;
+  --btn-primary-text: #ffffff;
+  --link: #0a0a0a;
+  --link-hover: #2d2d2d;
+}
+:root.dark .variant-1a {
+  --accent: #ebebeb;
+  --accent-2: #ffffff;
+  --color-accent: #ebebeb;
+  --accent-subtle: rgba(235, 235, 235, 0.10);
+  --color-accent-subtle: rgba(235, 235, 235, 0.10);
+  --btn-primary-bg: #ebebeb;
+  --btn-primary-hover: #ffffff;
+  --btn-primary-text: #0a0a0a;
+  --link: #ebebeb;
+  --link-hover: #ffffff;
 }
 
 /* === 1b — Steel Iridescence ===

@@ -55,16 +55,17 @@
 </button>
 
 <style>
-  /* Subtle white-edge glow on the primary CTA in dark mode — the
-     iridescent flash on a raven's wing. Light mode stays flat. */
+  /* Subtle phosphor-green bloom on the primary CTA in dark mode — the
+     CRT halo you'd get from a single bright terminal. Light mode stays
+     flat. */
   :global(html.dark) .primary-glow {
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-      0 0 12px rgba(255, 255, 255, 0.10);
+      inset 0 0 0 1px rgba(74, 222, 128, 0.45),
+      0 0 12px rgba(74, 222, 128, 0.15);
   }
   :global(html.dark) .primary-glow:hover:not(:disabled) {
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-      0 0 18px rgba(255, 255, 255, 0.18);
+      inset 0 0 0 1px rgba(74, 222, 128, 0.6),
+      0 0 18px rgba(74, 222, 128, 0.25);
   }
 </style>

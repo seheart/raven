@@ -73,13 +73,13 @@
   --text-5xl: 28px;
 }
 
-/* === Design Tokens — Raven Black palette ===
-   A raven is mostly black. Different shades, but black is the truth. The
-   brand is monochromatic — pure black ink on warm cream paper (light),
-   off-white on near-pure black (dark). Functional state colors stay
-   distinct (success/error/warning/info) because they carry meaning. The
-   iridescence on a real raven's feathers shows up only as a barely-there
-   cool tint in the dark-mode body gradient. */
+/* === Design Tokens — Raven Phosphor palette ===
+   Black base, phosphor-green accent. The black canvas / grey surfaces /
+   near-white headings are the truth of a raven; the phosphor green is
+   the live-system tell — borrowed from Bloomberg / VT100 / CRT. Used
+   only on links, primary CTAs, and the brand prompt. Functional state
+   colors stay distinct (success/error/warning/info) because they carry
+   meaning, even though success and accent both sit in the green family. */
 :root {
   /* Surfaces — warm cream paper */
   --bg: #f6f4ef;
@@ -90,9 +90,9 @@
   --muted: #6b6b6b;
   --border: #d4d2cc;
 
-  /* Accent — pure raven black for primary actions, links, focus */
-  --accent: #0a0a0a;
-  --accent-2: #2d2d2d;
+  /* Accent — phosphor green for primary actions, links, focus */
+  --accent: #006633;
+  --accent-2: #008040;
   --success: #2d7a4a;
   --error: #b62a4a;
   --warning: #b8740c;
@@ -103,35 +103,35 @@
   --pill-error: #b62a4a;
   --pill-mod: #b8740c;
 
-  /* Buttons — primary is black-on-white, signature raven contrast */
-  --btn-primary-bg: #0a0a0a;
+  /* Buttons — primary is phosphor-green on white */
+  --btn-primary-bg: #006633;
   --btn-primary-text: #ffffff;
-  --btn-primary-hover: #2d2d2d;
+  --btn-primary-hover: #008040;
   --btn-secondary-bg: #ebe8e1;
   --btn-secondary-text: #1a1a1a;
   --btn-secondary-hover: #d4d2cc;
   --btn-ghost-bg: transparent;
-  --btn-ghost-text: #0a0a0a;
+  --btn-ghost-text: #006633;
   --btn-ghost-hover: #ebe8e1;
   --btn-disabled-bg: #ebe8e1;
   --btn-disabled-text: #9a9a9a;
 
   /* Links */
-  --link: #0a0a0a;
-  --link-hover: #2d2d2d;
-  --link-visited: #4a4a4a;
+  --link: #006633;
+  --link-hover: #008040;
+  --link-visited: #00502a;
 
   /* Inputs */
   --input-bg: #ffffff;
   --input-border: #d4d2cc;
-  --input-focus-border: #0a0a0a;
+  --input-focus-border: #006633;
   --input-text: #1a1a1a;
   --input-placeholder: #9a9a9a;
 
   /* Chips */
   --chip-bg: #ebe8e1;
   --chip-text: #1a1a1a;
-  --chip-accent: #0a0a0a;
+  --chip-accent: #006633;
 
   /* Code */
   --code-bg: #f0eeea;
@@ -139,8 +139,8 @@
   --code-border: #d4d2cc;
 
   /* Highlights */
-  --highlight: rgba(0, 0, 0, 0.06);
-  --selection: rgba(0, 0, 0, 0.14);
+  --highlight: rgba(0, 102, 51, 0.10);
+  --selection: rgba(0, 102, 51, 0.20);
 
   /* Semantic aliases */
   --text-primary: var(--text-heading);
@@ -153,7 +153,7 @@
   --primary: var(--accent);
 
   /* Subtle variants — pale tints of each semantic color */
-  --accent-subtle: #ebe8e1;
+  --accent-subtle: #e0f0e6;
   --success-subtle: #e6f3ec;
   --error-subtle: #f7e8ec;
   --warning-subtle: #f5ead4;
@@ -190,9 +190,8 @@
   --icon-lg: 32px;
 }
 
-/* === Dark Theme — the actual Raven. Black, with a barely-there cool
-   iridescence in the body gradient (the real bird's wings glint in
-   light — most of the time it's just black). === */
+/* === Dark Theme — black with phosphor-green accent. The CRT/Bloomberg
+   aesthetic: a dark room with one terminal glowing green. === */
 html.dark {
   --bg: #0a0a0a;
   --surface: #161616;
@@ -202,9 +201,9 @@ html.dark {
   --muted: #777777;
   --border: #2a2a2a;
 
-  /* Accent inverts in dark mode: near-white actions on near-black canvas */
-  --accent: #ebebeb;
-  --accent-2: #ffffff;
+  /* Phosphor green accent — bright on near-black, the live-system tell */
+  --accent: #4ade80;
+  --accent-2: #6ce895;
   --success: #5fc88a;
   --error: #ef5d6e;
   --warning: #f5b045;
@@ -214,40 +213,40 @@ html.dark {
   --pill-error: #ef5d6e;
   --pill-mod: #f5b045;
 
-  --btn-primary-bg: #ebebeb;
+  --btn-primary-bg: #4ade80;
   --btn-primary-text: #0a0a0a;
-  --btn-primary-hover: #ffffff;
+  --btn-primary-hover: #6ce895;
   --btn-secondary-bg: #1f1f1f;
   --btn-secondary-text: #c8c8c8;
   --btn-secondary-hover: #2a2a2a;
   --btn-ghost-bg: transparent;
-  --btn-ghost-text: #ebebeb;
-  --btn-ghost-hover: rgba(235, 235, 235, 0.08);
+  --btn-ghost-text: #4ade80;
+  --btn-ghost-hover: rgba(74, 222, 128, 0.10);
   --btn-disabled-bg: #1f1f1f;
   --btn-disabled-text: #555555;
 
-  --link: #ebebeb;
-  --link-hover: #ffffff;
-  --link-visited: #b0b0b0;
+  --link: #4ade80;
+  --link-hover: #6ce895;
+  --link-visited: #3aa663;
 
   --input-bg: #161616;
   --input-border: #2a2a2a;
-  --input-focus-border: #ebebeb;
+  --input-focus-border: #4ade80;
   --input-text: #c8c8c8;
   --input-placeholder: #555555;
 
   --chip-bg: #1f1f1f;
   --chip-text: #c8c8c8;
-  --chip-accent: #ebebeb;
+  --chip-accent: #4ade80;
 
   --code-bg: #111111;
   --code-text: #c8c8c8;
   --code-border: #2a2a2a;
 
-  --highlight: rgba(255, 255, 255, 0.06);
-  --selection: rgba(255, 255, 255, 0.14);
+  --highlight: rgba(74, 222, 128, 0.12);
+  --selection: rgba(74, 222, 128, 0.24);
 
-  --accent-subtle: rgba(235, 235, 235, 0.10);
+  --accent-subtle: rgba(74, 222, 128, 0.12);
   --success-subtle: rgba(95, 200, 138, 0.12);
   --error-subtle: rgba(239, 93, 110, 0.12);
   --warning-subtle: rgba(245, 176, 69, 0.12);
@@ -258,13 +257,13 @@ html.dark {
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.6);
 }
 
-/* Wing iridescence — barely-there cool gradient overlay on the body in
-   dark mode. A real raven's feathers glint blue-green in good light;
-   most of the time you only see black. Keep it that subtle. */
+/* Wing iridescence — barely-there phosphor-green wash on the body in
+   dark mode. The CRT-bloom you'd get from a single bright terminal in
+   a dark room. Keep it subtle. */
 html.dark body {
   background-image:
-    radial-gradient(80% 60% at 0% 0%, rgba(180, 200, 220, 0.025), transparent 50%),
-    radial-gradient(60% 50% at 100% 100%, rgba(150, 180, 170, 0.018), transparent 50%);
+    radial-gradient(80% 60% at 0% 0%, rgba(74, 222, 128, 0.030), transparent 50%),
+    radial-gradient(60% 50% at 100% 100%, rgba(74, 222, 128, 0.018), transparent 50%);
   background-attachment: fixed;
 }
 

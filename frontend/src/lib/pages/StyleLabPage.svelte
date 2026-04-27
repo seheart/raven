@@ -31,9 +31,9 @@
   };
 
   const VARIANTS = [
-    { id: '1a', cls: 'variant-1a', name: 'Pure Mono', tag: 'no color · current Raven baseline' },
+    { id: '1c', cls: 'variant-1c', name: 'Phosphor Green', tag: '★ current Raven baseline · Bloomberg · CRT' },
+    { id: '1a', cls: 'variant-1a', name: 'Pure Mono', tag: 'no accent · falls back to grey' },
     { id: '1b', cls: 'variant-1b', name: 'Steel Iridescence', tag: 'cool blue-grey · raven-feather realistic' },
-    { id: '1c', cls: 'variant-1c', name: 'Phosphor Green', tag: 'Bloomberg · CRT terminal · punchy' },
     { id: '1d', cls: 'variant-1d', name: 'Amber Terminal', tag: 'BBS warmth · VT100 nostalgia' },
     { id: '1e', cls: 'variant-1e', name: 'Restrained Violet', tag: 'Foundry callback · dialed down' },
     { id: '1f', cls: 'variant-1f', name: 'Crimson Wax', tag: 'single dramatic red · used sparingly' }
