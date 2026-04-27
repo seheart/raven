@@ -380,6 +380,33 @@
           : systemMetrics;
       recentFiles = Array.isArray(data.fileEvents) ? data.fileEvents : [];
       recentAgentEvents = Array.isArray(data.agentEvents) ? data.agentEvents : [];
+
+      // Seed the Latest Change panel from the most recent file event so
+      // it survives page reloads and persists between websocket events.
+      // Only seed if we don't already have a (newer) live diff.
+      if (!latestDiff && recentFiles.length > 0) {
+        const recent = recentFiles.find(
+          f => f.filepath && f.change_type !== 'unlink'
+        );
+        if (recent) {
+          api
+            .get(`/file-diff/${encodeURIComponent(recent.filepath)}`)
+            .then(diffData => {
+              if (diffData?.diff && !latestDiff) {
+                latestDiff = {
+                  filepath: diffData.filepath || recent.filepath,
+                  diff: diffData.diff,
+                  change_type: diffData.type || recent.change_type,
+                  agent_source: recent.agent_source,
+                  timestamp: recent.timestamp
+                };
+              }
+            })
+            .catch(() => {
+              /* diff is supplementary */
+            });
+        }
+      }
       agents = Array.isArray(data.agentsStatus) ? data.agentsStatus : [];
       agentStatus = agents[0] || null;
 
