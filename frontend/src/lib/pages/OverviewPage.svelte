@@ -80,7 +80,6 @@
   let statsFlash = $state({});
   let cpuHistory = $state(new Array(30).fill(0));
   let memHistory = $state(new Array(30).fill(0));
-  let activityLevel = $state(0); // 0-1, drives ambient warmth
   let workingStates = $state({}); // agentName -> { text, cycle }
   const workingTexts = [
     'Reading files...',
@@ -164,13 +163,6 @@
       ...workingStates,
       [agentName]: { text, cycle }
     };
-    // Update activity level
-    activityLevel = Math.min(1, activityLevel + 0.15);
-    ephemeralTimers.push(
-      setTimeout(() => {
-        activityLevel = Math.max(0, activityLevel - 0.05);
-      }, 3000)
-    );
     // Clear working state after 8s of inactivity
     clearTimeout(workingAgentTimers[agentName]);
     workingAgentTimers[agentName] = setTimeout(() => {
@@ -666,11 +658,7 @@
 </script>
 
 <PageLayout variant="dashboard">
-<div
-  class="h-[calc(100vh-6rem)] p-4 pb-2 flex flex-col transition-all duration-[3000ms]"
-  style="background: color-mix(in srgb, var(--bg) {100 -
-    activityLevel * 8}%, var(--accent) {activityLevel * 8}%)"
->
+<div class="h-[calc(100vh-6rem)] p-4 pb-2 flex flex-col">
   <div class="mx-auto px-2 flex flex-col flex-1 min-h-0 w-full">
     <div class="mb-3">
       <PageHeader size="medium" title="Dashboard" description="Real-time monitoring">
