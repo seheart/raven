@@ -11,7 +11,7 @@ const BRAND = {
   aider: { color: '#8b5cf6', name: 'Aider' },
   chatgpt: { color: '#10a37f', name: 'ChatGPT' },
   gpt: { color: '#10a37f', name: 'GPT' },
-  ollama: { color: '#F39C12', name: 'Ollama' },
+  ollama: { color: '#06b6d4', name: 'Ollama' },
   llama: { color: '#8B5CF6', name: 'Llama' },
   mistral: { color: '#E11D48', name: 'Mistral' },
   codellama: { color: '#7C3AED', name: 'Code Llama' },

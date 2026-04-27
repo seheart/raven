@@ -10,6 +10,7 @@
   import { websocketService } from '../services/websocket.js';
   import { projectFilter } from '../projectFilterStore.js';
   import { get } from 'svelte/store';
+  import { getAgentColor } from '../utils/agentBrand.js';
   import {
     createChart,
     destroyChart,
@@ -181,19 +182,11 @@
 
 
   function getAgentColorByName(name) {
-    // These are brand colors for agent identification — intentionally static
-    // They work on both light and dark backgrounds at these saturation levels
-    const agentColors = {
-      'Claude Code': 'var(--accent)',
-      claude: 'var(--accent)',
-      Ollama: 'var(--warning)',
-      ollama: 'var(--warning)',
-      'lm-studio': 'var(--success)',
-      cursor: 'var(--success)',
-      aider: 'var(--accent)',
-      copilot: 'var(--info)'
-    };
-    return agentColors[name] || 'var(--muted)';
+    // Brand colors for agent identification — intentionally static, sourced
+    // from utils/agentBrand.js so updates there propagate everywhere.
+    // The previous theme-token approach broke when --accent flipped from
+    // violet to phosphor green and started colliding with --success.
+    return getAgentColor(name, 'var(--muted)');
   }
 
   // Flash stat on change — single timeout clears all, no race condition
@@ -228,8 +221,10 @@
     return 'var(--accent)';
   }
 
-  // Chart color palette — per-agent brand identity. design-system-allow: hex
-  const agentChartColors = { 'Claude Code': '#FF6B35', 'Ollama': '#F5A623' };
+  // Chart color palette — per-agent brand identity flows through
+  // getAgentColor() from agentBrand.js so there's one source of truth
+  // (updating Ollama there propagates to every chart).
+  // design-system-allow: hex (vendor brand fallbacks)
   const defaultAgentColors = ['#10A37F', '#4285F4', '#A855F7', '#EC4899'];
 
   // Bucket recentFiles + recentAgentEvents into buckets grouped by agent.
@@ -279,7 +274,7 @@
 
     let colorIdx = 0;
     const datasets = Object.entries(agentBuckets).map(([agent, data]) => {
-      const color = agentChartColors[agent] || defaultAgentColors[colorIdx++ % defaultAgentColors.length];
+      const color = getAgentColor(agent, defaultAgentColors[colorIdx++ % defaultAgentColors.length]);
       return {
         label: agent,
         data,

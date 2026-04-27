@@ -10,11 +10,19 @@ function getCSSColor(varName) {
 }
 
 /**
- * Get theme-aware chart colors
+ * Get theme-aware chart colors.
+ *
+ * `primary` is intentionally mapped to --info (blue), NOT --accent. The
+ * brand accent (phosphor green) collides with --success (also green)
+ * inside multi-series charts where you commonly draw "primary series"
+ * alongside a success/error reference line. Charts get a clean four-way
+ * distinction (blue / green / red / amber). Use `accent` if you really
+ * want the brand color for a single-series chart.
  */
 export function getChartColors() {
   return {
-    primary: getCSSColor('--accent') || '#4f7df5',
+    primary: getCSSColor('--info') || '#3858a8',
+    accent: getCSSColor('--accent') || '#006633',
     success: getCSSColor('--success') || '#22c55e',
     warning: getCSSColor('--warning') || '#f59e0b',
     error: getCSSColor('--error') || '#ef4444',
