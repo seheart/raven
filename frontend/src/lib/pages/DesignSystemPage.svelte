@@ -121,7 +121,10 @@
           {#each [
             { name: 'PageLayout', variants: ['default', 'dashboard'], use: 'Canonical shell. Use default for content pages, dashboard for full-bleed live pages.' },
             { name: 'PageHeader', variants: ['default', 'medium', 'compact'], use: 'h1 + description + actions snippet. medium = text-xl, compact = text-sm.' },
-            { name: 'PageSection', variants: ['(props: title, meta)'], use: 'Small uppercase muted label + slotted body. Use for grouped content within a page.' }
+            { name: 'PageSection', variants: ['(props: title, meta)'], use: 'Small uppercase muted label + slotted body. Use for grouped content within a page.' },
+            { name: 'RefreshButton', variants: ['(props: onClick, loading)'], use: 'Canonical refresh button used in 23 page headers. Has built-in loading state.' },
+            { name: 'ToolbarButton', variants: ['default', 'primary', 'danger'], use: 'Secondary toolbar action (Export, Auto-refresh, etc.). One styling source for all toolbar buttons.' },
+            { name: 'EmptyState', variants: ['(props: icon, title, description)', 'default', 'compact'], use: 'Centered no-data card. Replaces the bg-surface+rounded+p-12 placeholder pattern.' }
           ] as p (p.name)}
             <div class="grid grid-cols-1 sm:grid-cols-[160px_1fr_2fr] gap-3 items-baseline border-b border-[var(--border)] pb-3 last:border-b-0 last:pb-0">
               <code class="font-mono text-sm text-[var(--accent)]">&lt;{p.name}&gt;</code>

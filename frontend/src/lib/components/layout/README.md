@@ -72,6 +72,43 @@ Brand/identity colors (per-agent identity hex) can be marked with
 `DesignSystemPage.svelte` is allowlisted from rules 5–8 because it
 intentionally renders example token names and example markup as strings.
 
+## Page-action primitives (`lib/components/ui/`)
+
+Use these in the `actions` snippet of `<PageHeader>` and alongside other
+toolbar controls. They replace duplicated markup that used to live in
+every page.
+
+- **`<RefreshButton>`** — the standard `↻ Refresh` button with a `loading`
+  state (`...` while loading, `↻` idle). Used in 23 places.
+- **`<ToolbarButton>`** — the canonical secondary action (Export, filter
+  toggles, etc.). Variants: `default`, `primary`, `danger`.
+- **`<EmptyState>`** — centered no-data card with optional icon, title,
+  description, and actions snippet. Replaces the duplicated
+  `bg-surface border border-border rounded-lg p-12 text-center` block.
+
+```svelte
+<PageHeader title="Errors" description="…">
+  {#snippet actions()}
+    <ToolbarButton onClick={exportCSV}>Export CSV</ToolbarButton>
+    <RefreshButton onClick={loadData} loading={loading} />
+  {/snippet}
+</PageHeader>
+
+{#if items.length === 0}
+  <EmptyState icon="📭" title="Nothing yet" description="…" />
+{/if}
+```
+
+## Shared utility modules (`lib/utils/`)
+
+- **`agentBrand.js`** — per-agent brand color + display name. Use
+  `getAgentBrand(name)` or `getAgentColor(name)` instead of hand-rolling
+  an `AGENT_CONFIG` table on each page.
+- **`chartUtils.js`** — `getChartColors()` returns theme-aware colors for
+  Chart.js (flips with dark mode). Use this instead of the
+  `getComputedStyle(document.body).getPropertyValue('--accent') || '#…'`
+  fallback pattern.
+
 ## Coverage check
 
 Run `npm run validate:design-coverage` to see which `lib/components/ui/`
