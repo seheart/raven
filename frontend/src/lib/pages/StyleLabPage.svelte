@@ -86,7 +86,7 @@
         <div class="text-[20px] font-bold text-heading mb-2" role="heading" aria-level="3">{DEMO.title}</div>
         <p class="text-[14px] text-body font-sans leading-relaxed mb-6">{DEMO.lede}</p>
 
-        <div class="space-y-1 text-[12px] font-mono mb-8 max-w-md">
+        <div class="space-y-1 text-[12px] font-mono mb-8 max-w-[28rem]">
           {#each DEMO.meta as m (m.k)}
             <div class="flex items-baseline gap-2">
               <span class="text-muted w-32 flex-shrink-0">{m.k}</span>
@@ -204,7 +204,7 @@
         <div class="text-[26px] font-mono text-heading mb-2" role="heading" aria-level="3">{DEMO.title}</div>
         <p class="text-[15px] font-mono text-body leading-relaxed mb-6">{DEMO.lede}</p>
 
-        <table class="text-[14px] font-mono mb-8 w-full max-w-lg">
+        <table class="text-[14px] font-mono mb-8 w-full max-w-[32rem]">
           <tbody>
             {#each DEMO.meta as m (m.k)}
               <tr class="border-b border-info/15">
@@ -268,7 +268,7 @@
     <div id="variant-document"></div>
     <PageSection title="04 // Variant — Section 1. (whitepaper)" meta="serif · spacious · academic paper feel">
 
-      <div class="bg-surface rounded-lg p-10 max-w-3xl mx-auto" style="font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, ui-serif, serif;">
+      <div class="bg-surface rounded-lg p-10 max-w-[48rem] mx-auto" style="font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, ui-serif, serif;">
         <!-- Hero -->
         <div class="text-[14px] uppercase tracking-[0.2em] text-muted mb-4">{DEMO.label}</div>
         <div class="text-[36px] text-heading leading-tight mb-3" role="heading" aria-level="3">{DEMO.title}</div>
@@ -319,7 +319,7 @@
             <div class="text-[32px] font-bold text-heading leading-tight" role="heading" aria-level="3">{DEMO.title}</div>
           </div>
         </div>
-        <p class="text-[18px] text-body font-sans leading-relaxed mb-8 max-w-2xl">{DEMO.lede}</p>
+        <p class="text-[18px] text-body font-sans leading-relaxed mb-8 max-w-[42rem]">{DEMO.lede}</p>
 
         <div class="flex flex-wrap gap-x-8 gap-y-2 mb-10 text-[14px]">
           {#each DEMO.meta as m (m.k)}
@@ -374,7 +374,7 @@
     <div id="variant-hash"></div>
     <PageSection title="06 // Variant — # Markdown" meta="GitHub-style · clean sans · familiar">
 
-      <div class="bg-surface border border-border rounded p-8 max-w-3xl">
+      <div class="bg-surface border border-border rounded p-8 max-w-[48rem]">
         <!-- Hero -->
         <div class="text-[13px] text-muted mb-2">{DEMO.label}</div>
         <div class="text-[32px] font-bold text-heading leading-tight pb-3 border-b border-border mb-4" role="heading" aria-level="3">
