@@ -101,6 +101,36 @@
     return (recentFiles.length / minutes).toFixed(1);
   });
 
+  // Unified Agents list — top-level agents (Claude Code, Ollama, …) merged
+  // with sub-agent Task spawns (Explore, general-purpose, …), sorted by
+  // most-recent activity. Each row carries a `kind` so the chip and label
+  // can render consistently regardless of source.
+  const allAgents = $derived.by(() => {
+    const top = (agents || []).map(a => ({
+      kind: 'top',
+      key: `top:${a.agent_name}`,
+      label: a.agent_name,
+      chip: a.agent_name,
+      detail: a.is_running ? `${a.requests_handled || 0} requests` : 'idle',
+      time: a.last_seen,
+      color: getAgentColor(a.agent_name, 'var(--muted)')
+    }));
+    const subs = (recentSubagents || []).map(a => ({
+      kind: 'sub',
+      key: `sub:${a.id}`,
+      label: a.description || a.agent_id?.slice(0, 12) || 'sub-agent',
+      chip: a.agent_type || 'agent',
+      detail: a.project_name || a.model || '',
+      time: a.started_at,
+      color: getTypeColor(a.agent_type)
+    }));
+    return [...top, ...subs].sort((a, b) => {
+      const ta = a.time ? new Date(a.time).getTime() : 0;
+      const tb = b.time ? new Date(b.time).getTime() : 0;
+      return tb - ta;
+    });
+  });
+
   function formatTime(timestamp) {
     if (!timestamp) return '';
     const d = new Date(timestamp);
@@ -885,30 +915,37 @@
 
     <!-- Sub-Agents + Latest Diff + Activity Trend -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
-      <!-- Sub-Agents -->
+      <!-- Agents — top-level + sub-agents in one list, most recent first -->
       <div
         class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col"
-        onclick={() => navigate('/analysis/subagents')}
-        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/subagents')}
+        onclick={() => navigate('/analysis/monitoring')}
+        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/monitoring')}
         role="link"
         tabindex="0"
       >
         <div class="flex justify-between items-center mb-2">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Sub-Agents</h3>
-          <span class="text-[10px] text-muted">→</span>
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Agents</h3>
+          <span class="text-[10px] text-muted">{allAgents.length} · →</span>
         </div>
-        {#if recentSubagents.length > 0}
+        {#if allAgents.length > 0}
           <div class="space-y-1 overflow-y-auto flex-1">
-            {#each recentSubagents.slice(0, 8) as agent (agent.id)}
+            {#each allAgents.slice(0, 10) as agent (agent.key)}
               <div class="flex items-center gap-2 py-0.5">
-                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex-shrink-0" style="background: {getTypeColor(agent.agent_type)}">{agent.agent_type || 'agent'}</span>
-                <span class="text-[10px] text-body truncate flex-1">{agent.description || agent.agent_id?.slice(0, 12)}</span>
-                <span class="text-[9px] text-muted font-mono flex-shrink-0">{formatTime(agent.started_at)}</span>
+                <span
+                  class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex-shrink-0"
+                  style="background: {agent.color}"
+                  title={agent.kind === 'top' ? 'Top-level agent' : 'Sub-agent (Task spawn)'}
+                >{agent.chip}</span>
+                <span class="text-[10px] text-body truncate flex-1">{agent.label}</span>
+                {#if agent.detail}
+                  <span class="text-[9px] text-muted font-mono flex-shrink-0 hidden sm:inline">{agent.detail}</span>
+                {/if}
+                <span class="text-[9px] text-muted font-mono flex-shrink-0">{formatTime(agent.time)}</span>
               </div>
             {/each}
           </div>
         {:else}
-          <div class="text-xs text-muted py-2">No sub-agents yet</div>
+          <div class="text-xs text-muted py-2">No agents yet</div>
         {/if}
       </div>
 
