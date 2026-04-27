@@ -158,6 +158,29 @@ else
 fi
 echo ""
 
+# 8.5 Tailwind v4 max-w-* token-hijack: max-w-{xs,sm,md,lg,xl,2xl,...} resolve
+# to --spacing-* tokens (2-32px), almost never what the author wanted. Use
+# arbitrary rem values: max-w-[28rem]. Catches the bug that broke the 404
+# page (max-w-md = 6px → text wrapped at 50px wide).
+echo "Checking for hijacked max-w-* size utilities..."
+MAXW_VIOLATIONS=0
+for f in $(find src -name "*.svelte" 2>/dev/null); do
+  if grep -nE "\bmax-w-(xs|sm|md|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|prose)\b" "$f" > /tmp/maxw-hits.$$ 2>/dev/null; then
+    if [ -s /tmp/maxw-hits.$$ ]; then
+      echo "❌ $f: max-w-* size utility resolves to spacing token (2-32px). Use max-w-[Nrem]."
+      cat /tmp/maxw-hits.$$ | sed 's/^/   /'
+      MAXW_VIOLATIONS=$((MAXW_VIOLATIONS + 1))
+    fi
+  fi
+  rm -f /tmp/maxw-hits.$$
+done
+if [ $MAXW_VIOLATIONS -eq 0 ]; then
+  echo "✅ No hijacked max-w-* utilities"
+else
+  ERRORS=$((ERRORS + MAXW_VIOLATIONS))
+fi
+echo ""
+
 # 8. Migrated pages must not contain <style> blocks — lift to lib/styles/
 echo "Checking migrated pages for <style> blocks..."
 STYLE_VIOLATIONS=0

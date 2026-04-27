@@ -800,7 +800,7 @@
                       class="border-b border-border hover:bg-canvas transition-colors"
                       class:bg-warning-subtle={elevated}
                     >
-                      <td class="px-3 py-2 text-sm font-mono text-body max-w-xs truncate">
+                      <td class="px-3 py-2 text-sm font-mono text-body max-w-[20rem] truncate">
                         {c.filepath?.split('/').slice(-2).join('/') || c.filepath}
                       </td>
                       <td class="px-3 py-2">

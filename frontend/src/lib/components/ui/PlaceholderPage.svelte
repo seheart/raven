@@ -9,7 +9,7 @@
 </script>
 
 <div class="p-6 flex items-center justify-center min-h-[400px]">
-  <div class="text-center max-w-md">
+  <div class="text-center max-w-[28rem]">
     <div class="text-6xl mb-4"></div>
     <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-2">{title}</h1>
     <p class="text-[var(--muted)]">{description}</p>

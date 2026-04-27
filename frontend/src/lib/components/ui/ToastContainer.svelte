@@ -37,7 +37,7 @@
 <div class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
   {#each $toasts as toast (toast.id)}
     <div
-      class="pointer-events-auto min-w-[300px] max-w-md rounded-lg border-2 shadow-lg px-4 py-3 flex items-start gap-3 {getToastStyles(
+      class="pointer-events-auto min-w-[300px] max-w-[28rem] rounded-lg border-2 shadow-lg px-4 py-3 flex items-start gap-3 {getToastStyles(
         toast.type
       )}"
       transition:fly={{ y: 50, duration: 200 }}

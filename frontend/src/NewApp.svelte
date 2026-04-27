@@ -156,7 +156,7 @@
     <svelte:boundary>
       {#snippet failed(error, reset)}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
-          <div class="text-center max-w-lg">
+          <div class="text-center max-w-[32rem]">
             <div class="text-4xl font-bold text-[var(--error)] mb-4 font-mono">Error</div>
             <h1 class="text-xl font-bold text-[var(--text-heading)] mb-2">Something went wrong</h1>
             <p class="text-sm text-[var(--muted)] font-sans mb-2">
@@ -462,7 +462,7 @@
         {/await}
       {:else}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
-          <div class="text-center max-w-md">
+          <div class="text-center max-w-[28rem]">
             <div class="text-6xl font-bold text-[var(--muted)] mb-4 font-mono">404</div>
             <h1 class="text-xl font-bold text-[var(--text-heading)] mb-2">Page Not Found</h1>
             <p class="text-sm text-[var(--muted)] font-sans mb-6">

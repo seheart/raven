@@ -138,7 +138,7 @@
         </button>
       </div>
 
-      <div class="bg-surface border border-border rounded-lg p-5 max-w-xl">
+      <div class="bg-surface border border-border rounded-lg p-5 max-w-[36rem]">
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-5">
           {editingProject === 'new' ? 'Add Project' : `Edit: ${formData.name}`}
         </h3>

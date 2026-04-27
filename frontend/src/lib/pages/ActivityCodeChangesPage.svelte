@@ -327,7 +327,7 @@
                       {event.change_type?.toUpperCase() || 'UNKNOWN'}
                     </span>
                   </td>
-                  <td class="px-3 py-2 text-sm font-mono text-body max-w-md">
+                  <td class="px-3 py-2 text-sm font-mono text-body max-w-[28rem]">
                     <div class="truncate" title={event.filepath}>
                       {event.filepath || 'Unknown'}
                     </div>

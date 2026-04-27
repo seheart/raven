@@ -334,7 +334,7 @@
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm text-muted font-mono truncate max-w-md">
+                      <span class="text-sm text-muted font-mono truncate max-w-[28rem]">
                         {project.path || 'N/A'}
                       </span>
                       {#if project.path}

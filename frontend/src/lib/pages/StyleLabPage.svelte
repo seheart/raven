@@ -55,21 +55,31 @@
       </div>
     </div>
 
-    <!-- Hero -->
-    <section>
-      <PageHeader title="Style Lab — Color Variants" />
-      <p class="mt-4 text-base text-body font-sans leading-relaxed">
-        Six accent treatments on top of V01 Terminal //. The base palette (black canvas, grey surfaces, near-white headings) stays the same across all six — only the brand accent shifts. Toggle the theme to see how each behaves in light and dark.
-      </p>
-
-      <div class="mt-6 flex flex-wrap gap-1.5">
-        {#each VARIANTS as v (v.id)}
-          <a
-            href="#variant-{v.id}"
-            class="px-3 py-1.5 text-xs font-mono bg-surface border border-border rounded hover:border-accent transition-colors"
-          ><span class="text-accent">{v.id}</span> · {v.name}</a>
-        {/each}
+    <!-- Hero — two-column: prose main + variant jump-nav aside -->
+    <section class="flex flex-col lg:flex-row gap-8">
+      <div class="flex-1 min-w-0 max-w-[48rem]">
+        <PageHeader title="Style Lab — Color Variants" />
+        <p class="mt-4 text-base text-body font-sans leading-relaxed">
+          Six accent treatments on top of V01 Terminal //. The base palette (black canvas, grey surfaces, near-white headings) stays the same across all six — only the brand accent shifts. Toggle the theme to see how each behaves in light and dark.
+        </p>
       </div>
+
+      <aside class="lg:w-72 lg:flex-shrink-0">
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Variants</div>
+          <nav class="flex flex-col gap-0.5" aria-label="Jump to variant">
+            {#each VARIANTS as v (v.id)}
+              <a
+                href="#variant-{v.id}"
+                class="text-xs font-mono text-body hover:text-accent hover:bg-canvas px-2 py-1.5 rounded transition-colors flex items-baseline gap-2"
+              >
+                <span class="text-accent">{v.id}</span>
+                <span>{v.name}</span>
+              </a>
+            {/each}
+          </nav>
+        </div>
+      </aside>
     </section>
 
     <!-- Variants — same demo, different accent -->
