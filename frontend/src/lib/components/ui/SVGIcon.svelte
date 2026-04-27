@@ -1,3 +1,4 @@
+<!-- design-system-skip: utility/infrastructure component, not a user-facing primitive -->
 <script>
   /**
    * Reusable SVG icon component to eliminate duplication across components

@@ -1,3 +1,4 @@
+<!-- design-system-skip: utility/infrastructure component, not a user-facing primitive -->
 <script>
   import { toasts } from '../../toastStore.js';
   import { fly } from 'svelte/transition';

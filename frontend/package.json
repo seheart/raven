@@ -21,6 +21,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "validate:patterns": "bash scripts/validate-patterns.sh",
+    "validate:design-coverage": "bash scripts/check-design-system-coverage.sh",
     "check": "svelte-check --tsconfig ./jsconfig.json",
     "validate": "npm run check && npm run lint && npm run lint:css && npm run validate:patterns",
     "test:e2e": "playwright test",

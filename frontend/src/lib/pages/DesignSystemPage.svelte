@@ -5,54 +5,62 @@
    */
   import { PageLayout, PageHeader } from '../components/layout/index.js';
 
+  // Bare CSS-var names are the underlying tokens; the `utility` is the
+  // Tailwind class that pages should reach for. The two have a 1:1 mapping
+  // wired up in app.css under @theme.
+
   const surfaceTokens = [
-    { name: '--bg', role: 'Page background' },
-    { name: '--surface', role: 'Card / panel background' },
-    { name: '--surface-2', role: 'Recessed surface (table rows, embeds)' },
-    { name: '--border', role: 'Default borders and dividers' }
+    { name: '--bg', utility: 'bg-canvas', role: 'Page background' },
+    { name: '--surface', utility: 'bg-surface', role: 'Card / panel background' },
+    { name: '--surface-2', utility: 'bg-surface-2', role: 'Recessed surface (table rows, embeds)' },
+    { name: '--border', utility: 'border-border', role: 'Default borders and dividers' }
   ];
 
   const textTokens = [
-    { name: '--text-heading', role: 'Headings, key numbers' },
-    { name: '--text', role: 'Default body text' },
-    { name: '--muted', role: 'Captions, hints, dim metadata' }
+    { name: '--text-heading', utility: 'text-heading', role: 'Headings, key numbers' },
+    { name: '--text', utility: 'text-body', role: 'Default body text' },
+    { name: '--muted', utility: 'text-muted', role: 'Captions, hints, dim metadata' }
   ];
 
   const semanticTokens = [
-    { name: '--accent', role: 'Primary action, links, focus' },
-    { name: '--success', role: 'Online, healthy, pass' },
-    { name: '--error', role: 'Offline, fail, destructive' },
-    { name: '--warning', role: 'Disconnected, caution' },
-    { name: '--info', role: 'Informational accent' }
+    { name: '--accent', utility: 'text-accent / bg-accent', role: 'Primary action, links, focus' },
+    { name: '--success', utility: 'text-success / bg-success', role: 'Online, healthy, pass' },
+    { name: '--error', utility: 'text-error / bg-error', role: 'Offline, fail, destructive' },
+    { name: '--warning', utility: 'text-warning / bg-warning', role: 'Disconnected, caution' },
+    { name: '--info', utility: 'text-info / bg-info', role: 'Informational accent' }
   ];
 
   const subtleTokens = [
-    { name: '--accent-subtle', role: 'Tinted backdrop for accent badges' },
-    { name: '--success-subtle', role: 'Backdrop for healthy badges' },
-    { name: '--error-subtle', role: 'Backdrop for error badges' }
+    { name: '--accent-subtle', utility: 'bg-accent-subtle', role: 'Tinted backdrop for accent badges' },
+    { name: '--success-subtle', utility: 'bg-success-subtle', role: 'Backdrop for healthy badges' },
+    { name: '--error-subtle', utility: 'bg-error-subtle', role: 'Backdrop for error badges' },
+    { name: '--warning-subtle', utility: 'bg-warning-subtle', role: 'Backdrop for caution callouts' }
   ];
 
+  // Canonical font-size scale (matches Tailwind utility scale post phase-1
+  // hygiene; var(--text-*) and the Tailwind `text-*` class have identical
+  // values now — they used to be off-by-one).
   const typeScale = [
-    { name: '--text-xs', size: '11px', sample: 'Caption / label' },
-    { name: '--text-sm', size: '12px', sample: 'Hint or secondary' },
-    { name: '--text-base', size: '14px', sample: 'Default body' },
-    { name: '--text-lg', size: '15px', sample: 'Slightly larger body' },
-    { name: '--text-xl', size: '16px', sample: 'Section heading' },
-    { name: '--text-2xl', size: '17px', sample: 'Card label' },
-    { name: '--text-3xl', size: '20px', sample: 'Subhead' },
-    { name: '--text-4xl', size: '22px', sample: 'Page title' },
-    { name: '--text-5xl', size: '26px', sample: 'Big emphasis' }
+    { name: '--text-xs', utility: 'text-xs', size: '10px', sample: 'Smallest label' },
+    { name: '--text-sm', utility: 'text-sm', size: '11px', sample: 'Caption / dim metadata' },
+    { name: '--text-base', utility: 'text-base', size: '12px', sample: 'Default body' },
+    { name: '--text-lg', utility: 'text-lg', size: '13px', sample: 'Slightly larger body' },
+    { name: '--text-xl', utility: 'text-xl', size: '14px', sample: 'Hero / dashboard h1' },
+    { name: '--text-2xl', utility: 'text-2xl', size: '15px', sample: 'Page heading (PageHeader default)' },
+    { name: '--text-3xl', utility: 'text-3xl', size: '16px', sample: 'Section title' },
+    { name: '--text-4xl', utility: 'text-4xl', size: '18px', sample: 'Subhead' },
+    { name: '--text-5xl', utility: 'text-5xl', size: '20px', sample: 'Big emphasis' }
   ];
 
   const spacingScale = [
-    { name: '--space-xs', value: 2 },
-    { name: '--space-sm', value: 4 },
-    { name: '--space-md', value: 6 },
-    { name: '--space-lg', value: 8 },
-    { name: '--space-xl', value: 12 },
-    { name: '--space-2xl', value: 16 },
-    { name: '--space-3xl', value: 24 },
-    { name: '--space-4xl', value: 32 }
+    { name: '--spacing-xs', value: 2 },
+    { name: '--spacing-sm', value: 4 },
+    { name: '--spacing-md', value: 6 },
+    { name: '--spacing-lg', value: 8 },
+    { name: '--spacing-xl', value: 12 },
+    { name: '--spacing-2xl', value: 16 },
+    { name: '--spacing-3xl', value: 24 },
+    { name: '--spacing-4xl', value: 32 }
   ];
 
   const radiusScale = [
@@ -95,6 +103,42 @@
   />
 
   <div class="space-y-6">
+      <!-- Layout primitives — the contract for every page -->
+      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
+          Layout primitives
+        </h3>
+        <p class="text-sm text-[var(--muted)] font-sans mb-4">
+          Every page wraps in <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">&lt;PageLayout&gt;</code>.
+          The h1 + description goes in <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">&lt;PageHeader&gt;</code>.
+          Section headings go in <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">&lt;PageSection&gt;</code>.
+          Hand-rolling this chrome is forbidden by the lint rules in <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">scripts/validate-patterns.sh</code>.
+        </p>
+        <div class="space-y-3">
+          {#each [
+            { name: 'PageLayout', variants: ['default', 'dashboard'], use: 'Canonical shell. Use default for content pages, dashboard for full-bleed live pages.' },
+            { name: 'PageHeader', variants: ['default', 'medium', 'compact'], use: 'h1 + description + actions snippet. medium = text-xl, compact = text-sm.' },
+            { name: 'PageSection', variants: ['(props: title, meta)'], use: 'Small uppercase muted label + slotted body. Use for grouped content within a page.' }
+          ] as p (p.name)}
+            <div class="grid grid-cols-1 sm:grid-cols-[160px_1fr_2fr] gap-3 items-baseline border-b border-[var(--border)] pb-3 last:border-b-0 last:pb-0">
+              <code class="font-mono text-sm text-[var(--accent)]">&lt;{p.name}&gt;</code>
+              <div class="flex flex-wrap gap-1.5">
+                {#each p.variants as v (v)}
+                  <code class="font-mono text-[10px] bg-[var(--surface-2)] px-1.5 py-0.5 rounded text-[var(--muted)]">{v}</code>
+                {/each}
+              </div>
+              <span class="text-sm text-[var(--muted)] font-sans">{p.use}</span>
+            </div>
+          {/each}
+        </div>
+        <pre class="mt-4 text-xs font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded p-3 overflow-x-auto leading-relaxed text-[var(--text)]">{`<PageLayout>
+  <PageHeader title="…" description="…">
+    {#snippet actions()}<button>Refresh</button>{/snippet}
+  </PageHeader>
+  <PageSection title="…" meta="live (14)">…</PageSection>
+</PageLayout>`}</pre>
+      </section>
+
       <!-- Colors — Surfaces -->
       <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
         <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
@@ -111,7 +155,8 @@
                 style="background: var({t.name});"
               ></div>
               <div class="flex flex-col gap-0.5 min-w-0">
-                <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
+                <code class="font-mono text-xs text-[var(--accent)]">{t.utility}</code>
+                <code class="font-mono text-[10px] text-[var(--muted)]">{t.name}</code>
                 <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
               </div>
             </div>
@@ -132,7 +177,10 @@
               <span class="text-base font-sans" style="color: var({t.name});">
                 The quick brown fox jumps over the lazy dog
               </span>
-              <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
+              <div class="flex flex-col gap-0.5">
+                <code class="font-mono text-xs text-[var(--accent)]">{t.utility}</code>
+                <code class="font-mono text-[10px] text-[var(--muted)]">{t.name}</code>
+              </div>
               <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
             </div>
           {/each}
@@ -158,7 +206,8 @@
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded flex-shrink-0" style="background: var({t.name});"></div>
               <div class="flex flex-col gap-0.5 min-w-0">
-                <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
+                <code class="font-mono text-xs text-[var(--accent)]">{t.utility}</code>
+                <code class="font-mono text-[10px] text-[var(--muted)]">{t.name}</code>
                 <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
               </div>
             </div>
@@ -175,7 +224,8 @@
                 style="background: var({t.name});"
               ></div>
               <div class="flex flex-col gap-0.5 min-w-0">
-                <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
+                <code class="font-mono text-xs text-[var(--accent)]">{t.utility}</code>
+                <code class="font-mono text-[10px] text-[var(--muted)]">{t.name}</code>
                 <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
               </div>
             </div>

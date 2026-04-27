@@ -72,6 +72,18 @@ Brand/identity colors (per-agent identity hex) can be marked with
 `DesignSystemPage.svelte` is allowlisted from rules 5–8 because it
 intentionally renders example token names and example markup as strings.
 
+## Coverage check
+
+Run `npm run validate:design-coverage` to see which `lib/components/ui/`
+primitives are not yet shown in `DesignSystemPage.svelte`. Today the count
+is high (~26) — the page currently shows pattern HTML inline (`<button>`)
+instead of importing the actual primitive (`<Button>`). Closing this gap
+is a separate effort; the tool is available so progress is visible.
+
+Components that aren't user-facing primitives (logos, infrastructure
+toast containers, etc.) opt out with a leading
+`<!-- design-system-skip: ... -->` comment.
+
 ## Semantic utilities
 
 Use these instead of `text-[var(--text-heading)]` etc:

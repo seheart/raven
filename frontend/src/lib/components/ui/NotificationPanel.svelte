@@ -1,3 +1,4 @@
+<!-- design-system-skip: utility/infrastructure component, not a user-facing primitive -->
 <script>
   import { logger } from '../../logger.js';
   import { notificationHistory, unreadCount } from '../../stores/notificationHistory.js';
