@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection, ProseBlock } from '../components/layout/index.js';
   import { websocketService } from '../services/websocket.js';
   import MermaidDiagram from '../components/MermaidDiagram.svelte';
   import {
@@ -99,51 +99,66 @@
       </div>
     </div>
 
-    <!-- Hero -->
-    <section>
-      <PageHeader title="Raven" description={HERO.title} />
+    <!-- Hero — two-column: prose-heavy main + actions aside -->
+    <section class="flex flex-col lg:flex-row gap-8">
+      <!-- Main column -->
+      <div class="flex-1 min-w-0 max-w-[48rem]">
+        <PageHeader title="Raven" description={HERO.title} />
 
-      <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
+        <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
 
-      <div class="mt-6 space-y-1.5 text-sm font-mono">
-        <div class="flex items-baseline gap-2">
-          <span class="text-muted w-32 flex-shrink-0">What it is</span>
-          <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
-          <span class="text-body flex-1 min-w-0">{HERO.whatItIs}</span>
+        <div class="mt-6 space-y-1.5 text-sm font-mono">
+          <div class="flex items-baseline gap-2">
+            <span class="text-muted w-32 flex-shrink-0">What it is</span>
+            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+            <span class="text-body flex-1 min-w-0">{HERO.whatItIs}</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-muted w-32 flex-shrink-0">What it does</span>
+            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+            <span class="text-body flex-1 min-w-0">{HERO.whatItDoes}</span>
+          </div>
         </div>
-        <div class="flex items-baseline gap-2">
-          <span class="text-muted w-32 flex-shrink-0">What it does</span>
-          <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
-          <span class="text-body flex-1 min-w-0">{HERO.whatItDoes}</span>
+
+        <div class="mt-4 bg-warning/10 border-l-4 border-warning rounded-r p-4">
+          <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! What it doesn't do</div>
+          <div class="text-sm text-body font-sans">{HERO.whatItDoesnt}</div>
         </div>
-      </div>
 
-      <div class="mt-4 bg-warning/10 border-l-4 border-warning rounded-r p-4">
-        <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! What it doesn't do</div>
-        <div class="text-sm text-body font-sans">{HERO.whatItDoesnt}</div>
-      </div>
-
-      <div class="mt-4 flex flex-wrap gap-2">
-        <a href="/overview" class="px-3 py-1.5 bg-accent text-canvas border border-accent rounded text-sm font-sans hover:opacity-90 transition-colors">[ Open dashboard → ]</a>
-        <a href="#sect-quickstart" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ Quick start ]</a>
-        <a href="/system" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ System diagnostics ]</a>
-        <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ ★ GitHub ]</a>
-      </div>
-
-      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
-        {#each HERO.badges as badge (badge.label)}
-          <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
-          {#each badge.items as item, i (item)}
-            <span>{item}</span>
-            {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
+        <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
+          {#each HERO.badges as badge (badge.label)}
+            <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
+            {#each badge.items as item, i (item)}
+              <span>{item}</span>
+              {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
+            {/each}
           {/each}
-        {/each}
+        </div>
       </div>
+
+      <!-- Aside: quick actions -->
+      <aside class="lg:w-72 lg:flex-shrink-0">
+        <div class="bg-surface border border-border rounded-lg p-4 lg:sticky lg:top-20">
+          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Get started</div>
+          <div class="flex flex-col gap-1.5">
+            <a href="/overview" class="text-sm font-sans px-3 py-2 bg-accent text-canvas rounded text-center hover:opacity-90 transition-opacity">Open dashboard →</a>
+            <a href="#sect-quickstart" class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors">Quick start</a>
+            <a href="/system" class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors">System diagnostics</a>
+            <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors">★ GitHub</a>
+          </div>
+          <div class="mt-4 pt-4 border-t border-border text-xs font-mono text-muted leading-relaxed">
+            MIT · single repo<br/>
+            no agreement to sign
+          </div>
+        </div>
+      </aside>
     </section>
 
     <!-- 01 // Who this is for -->
     <PageSection title="01 // Who this is for">
-      <p class="text-sm text-muted font-sans mb-4">Four people we built this for. If you're one of them, you'll know in two paragraphs.</p>
+      <ProseBlock>
+        <p class="text-sm text-muted font-sans mb-4">Four people we built this for. If you're one of them, you'll know in two paragraphs.</p>
+      </ProseBlock>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         {#each PERSONAS as p (p.tag)}
           <div class="bg-surface border border-border rounded-lg p-4">
@@ -162,7 +177,9 @@
 
     <!-- 02 // Who this isn't for -->
     <PageSection title="02 // Who this isn't for" meta="filter early — save us both time">
-      <p class="text-sm text-body font-sans mb-4">Honest filter. Raven optimizes hard for the personas above and that means real trade-offs against everyone else.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-4">Honest filter. Raven optimizes hard for the personas above and that means real trade-offs against everyone else.</p>
+      </ProseBlock>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         {#each NOT_FOR as n (n.who)}
           <div class="bg-surface border border-dashed border-border rounded-lg p-4">
@@ -200,16 +217,20 @@
 
     <!-- 04 // Why this exists -->
     <PageSection title="04 // Why this exists">
-      <div class="space-y-3 text-sm text-body font-sans leading-relaxed">
-        {#each WHY as p, i (i)}
-          <p class={i === 0 ? 'text-base' : ''}>{p}</p>
-        {/each}
-      </div>
+      <ProseBlock>
+        <div class="space-y-3 text-sm text-body font-sans leading-relaxed">
+          {#each WHY as p, i (i)}
+            <p class={i === 0 ? 'text-base' : ''}>{p}</p>
+          {/each}
+        </div>
+      </ProseBlock>
     </PageSection>
 
     <!-- 05 // What makes it different -->
     <PageSection title="05 // What makes it different">
-      <p class="text-sm text-body font-sans mb-4">Five things that set Raven apart from generic monitoring tools. Each maps to a load-bearing architectural choice.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-4">Five things that set Raven apart from generic monitoring tools. Each maps to a load-bearing architectural choice.</p>
+      </ProseBlock>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         {#each DIFFERENTIATORS as d, i (d.name)}
           <div class="bg-surface border border-border rounded-lg p-4">
@@ -225,7 +246,9 @@
 
     <!-- 06 // Architecture -->
     <PageSection title="06 // Architecture">
-      <p class="text-sm text-muted font-sans mb-4">One pass through the system. Watchers observe, the database accumulates, the trigger and insights tiers analyze, the broadcaster pushes to the dashboard.</p>
+      <ProseBlock>
+        <p class="text-sm text-muted font-sans mb-4">One pass through the system. Watchers observe, the database accumulates, the trigger and insights tiers analyze, the broadcaster pushes to the dashboard.</p>
+      </ProseBlock>
 
       <div class="bg-surface border border-border rounded-lg p-6 mb-6">
         <MermaidDiagram source={ARCHITECTURE_DIAGRAM} ariaLabel="Raven architecture flow">
@@ -237,8 +260,10 @@
         </MermaidDiagram>
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Roles</h3>
-      <p class="text-sm text-muted font-sans mb-4">Each tier has one job. Watchers don't know about the database; the trigger engine doesn't know about the dashboard.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Roles</h3>
+        <p class="text-sm text-muted font-sans mb-4">Each tier has one job. Watchers don't know about the database; the trigger engine doesn't know about the dashboard.</p>
+      </ProseBlock>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         {#each ROLES as r (r.role)}
           <div class="bg-surface border border-border border-l-4 {colorClass(r.color).split(' ')[0]} rounded-r-lg p-4">
@@ -307,8 +332,10 @@
 
     <!-- 09 // Decisions -->
     <PageSection title="09 // Decisions" meta="an audit trail of architectural choices">
-      <h3 class="text-sm font-semibold text-heading mb-2">Decisions made</h3>
-      <p class="text-sm text-muted font-sans mb-4">The questions we walked through and the calls we made. Preserved as an audit trail — if a decision turns out wrong later, the original framing is still here.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-2">Decisions made</h3>
+        <p class="text-sm text-muted font-sans mb-4">The questions we walked through and the calls we made. Preserved as an audit trail — if a decision turns out wrong later, the original framing is still here.</p>
+      </ProseBlock>
       <div class="space-y-3 mb-8">
         {#each RESOLVED_DECISIONS as d, i (d.q)}
           <div class="bg-surface border border-border rounded-lg p-4">
@@ -322,8 +349,10 @@
         {/each}
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-2">Still open</h3>
-      <p class="text-sm text-muted font-sans mb-4">Items intentionally parked. Each has a clear shape and a reason for the deferral.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-2">Still open</h3>
+        <p class="text-sm text-muted font-sans mb-4">Items intentionally parked. Each has a clear shape and a reason for the deferral.</p>
+      </ProseBlock>
       <div class="space-y-3">
         {#each STILL_OPEN as q (q.q)}
           <div class="bg-surface border border-dashed border-border rounded-lg p-4">
@@ -351,7 +380,9 @@
 
     <!-- 11 // Try it -->
     <PageSection title="11 // Try it">
-      <p class="text-base text-body font-sans leading-relaxed mb-4">If you got this far and any of the four personas above sounded like you — clone it, run it, see what it catches on a project you've forgotten about. <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">github.com/seheart/raven</a> — MIT, single repo, no agreement to sign.</p>
+      <ProseBlock>
+        <p class="text-base text-body font-sans leading-relaxed mb-4">If you got this far and any of the four personas above sounded like you — clone it, run it, see what it catches on a project you've forgotten about. <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">github.com/seheart/raven</a> — MIT, single repo, no agreement to sign.</p>
+      </ProseBlock>
       <div class="flex flex-wrap gap-2">
         <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-accent text-canvas border border-accent rounded text-sm font-sans hover:opacity-90 transition-colors">[ ★ Star on GitHub ]</a>
         <a href="#sect-quickstart" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ Quick start ↑ ]</a>
@@ -362,19 +393,21 @@
 
     <!-- 12 // Manifest -->
     <PageSection title="12 // Manifest">
-      <div class="space-y-1.5 text-sm font-mono">
-        {#each MANIFEST as row (row.k)}
-          <div class="flex items-baseline gap-2">
-            <span class="text-muted w-24 flex-shrink-0">{row.k}</span>
-            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
-            {#if row.link}
-              <a href={row.link} target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">{row.v}</a>
-            {:else}
-              <span class="text-body">{row.v}</span>
-            {/if}
-          </div>
-        {/each}
-      </div>
+      <ProseBlock>
+        <div class="space-y-1.5 text-sm font-mono">
+          {#each MANIFEST as row (row.k)}
+            <div class="flex items-baseline gap-2">
+              <span class="text-muted w-24 flex-shrink-0">{row.k}</span>
+              <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+              {#if row.link}
+                <a href={row.link} target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">{row.v}</a>
+              {:else}
+                <span class="text-body">{row.v}</span>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      </ProseBlock>
     </PageSection>
 
   </div>

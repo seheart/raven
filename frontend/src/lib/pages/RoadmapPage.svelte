@@ -3,7 +3,7 @@
    * Roadmap — what's in flight, what's queued, what's parked.
    * Hand-curated. Edit this file as the project evolves.
    */
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, ProseBlock } from '../components/layout/index.js';
 
   const now = [
     {
@@ -153,10 +153,35 @@
       </div>
     </div>
 
-    <PageHeader
-      title="Roadmap"
-      description="What's in flight, what's queued, and what's parked. Sized in t-shirts (XS / S / M / L / XL). Open questions are bigger calls that need a design pass before they become work."
-    />
+    <!-- Hero — two-column: prose main + size legend aside -->
+    <div class="flex flex-col lg:flex-row gap-8">
+      <div class="flex-1 min-w-0 max-w-[48rem]">
+        <PageHeader
+          title="Roadmap"
+          description="What's in flight, what's queued, and what's parked. Sized in t-shirts (XS / S / M / L / XL). Open questions are bigger calls that need a design pass before they become work."
+        />
+      </div>
+
+      <aside class="lg:w-72 lg:flex-shrink-0">
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Size legend</div>
+          <dl class="space-y-1.5 text-sm font-mono">
+            {#each [
+              { k: 'XS', v: 'typo · copy tweak' },
+              { k: 'S', v: '~1 day refactor' },
+              { k: 'M', v: '2–3 day feature' },
+              { k: 'L', v: 'week-long initiative' },
+              { k: 'XL', v: '2+ weeks · multi-phase' }
+            ] as row (row.k)}
+              <div class="flex items-baseline gap-3">
+                <dt class="text-accent w-7 flex-shrink-0">{row.k}</dt>
+                <dd class="text-muted">{row.v}</dd>
+              </div>
+            {/each}
+          </dl>
+        </div>
+      </aside>
+    </div>
 
     <!-- 01 // Now -->
     <section>

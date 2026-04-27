@@ -117,6 +117,7 @@ export const PRIMITIVES = [
   { name: 'PageLayout', variants: ['default', 'dashboard'], use: 'Canonical shell. Default for content pages, dashboard for full-bleed live pages.' },
   { name: 'PageHeader', variants: ['(props: title, description, actions)'], use: 'h1 + description + optional actions snippet.' },
   { name: 'PageSection', variants: ['(props: title, meta)'], use: 'Numbered uppercase muted label + slotted body.' },
+  { name: 'ProseBlock', variants: ['default (42rem)', 'wide (48rem)'], use: 'Reading-width container. Wrap prose-heavy units (heros, manifestos, principle bodies) inside otherwise full-bleed pages. Data UI — tables, grids, charts — stays full width.' },
   { name: 'RefreshButton', variants: ['(props: onClick, loading, label)'], use: 'Canonical refresh button used in 23+ page headers. Has built-in loading state.' },
   { name: 'ToolbarButton', variants: ['default', 'primary', 'danger'], use: 'Secondary toolbar action (Export, Auto-refresh, Filter). One styling source for all toolbar buttons.' },
   { name: 'FilterToggle', variants: ['(props: active, onClick)'], use: 'Bordered active/inactive filter pill — severity filters, search-type toggles.' },
@@ -138,7 +139,7 @@ export const PAGE_ZONES = [
     tag: '02',
     name: 'Hero',
     purpose: 'Title + lede + meta rows + actions',
-    body: 'PageHeader for title and description, dotted-leader meta rows for key/value pairs, optional callouts and CTAs underneath, LOCAL-FIRST badge as a closer. Aim for 4–8 meta rows; everything else moves down.'
+    body: 'PageHeader for title and description, dotted-leader meta rows for key/value pairs, optional callouts and CTAs underneath, LOCAL-FIRST badge as a closer. Aim for 4–8 meta rows; everything else moves down. Wrap the whole hero in <ProseBlock width="wide"> so the lede and meta rows sit at a comfortable reading width while the rest of the page stays full-bleed.'
   },
   {
     tag: '03',
@@ -151,6 +152,12 @@ export const PAGE_ZONES = [
     name: 'Sub-blocks',
     purpose: 'h3 for divisions inside a section',
     body: 'Inside a PageSection, use h3 with `text-sm font-semibold text-heading mb-3` for sub-divisions. Don\'t hand-roll a second numbered scheme; sub-blocks are flat.'
+  },
+  {
+    tag: '04½',
+    name: 'Reading width',
+    purpose: 'ProseBlock around prose, leave data full-width',
+    body: 'Pages are full-bleed by default — tables, charts, card grids, dashboards take all the room. Prose is different: paragraphs over ~90 characters are hard to track. Wrap prose-heavy units (heros, manifestos, principle bodies, callout text) in <ProseBlock> (42rem) or <ProseBlock width="wide"> (48rem). Data UI stays outside the wrapper.'
   },
   {
     tag: '05',

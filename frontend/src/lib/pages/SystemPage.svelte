@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection, ProseBlock } from '../components/layout/index.js';
   import { createPageApi } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
   import {
@@ -148,45 +148,53 @@
       </div>
     </div>
 
-    <!-- Hero -->
-    <section>
-      <PageHeader title={HERO.title} />
+    <!-- Hero — two-column: prose-heavy main + vital stats aside -->
+    <section class="flex flex-col lg:flex-row gap-8">
+      <!-- Main column -->
+      <div class="flex-1 min-w-0 max-w-[48rem]">
+        <PageHeader title={HERO.title} />
 
-      <div class="mt-4 space-y-1.5 text-sm font-mono">
-        {#each [
-          { k: 'Runtime', v: intro?.platform_label },
-          { k: 'Agents', v: intro?.agent_count },
-          { k: 'Tables', v: intro?.table_count },
-          { k: 'Endpoints', v: intro?.endpoint_count },
-          { k: 'Uptime', v: fmtUptime(intro?.uptime_seconds) },
-          { k: 'PID', v: intro?.pid },
-          { k: 'Scope', v: 'Local · Host-Only' }
-        ] as row (row.k)}
-          <div class="flex items-baseline gap-2">
-            <span class="text-muted w-32 flex-shrink-0">{row.k}</span>
-            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
-            <span class="text-body">{row.v ?? '—'}</span>
-          </div>
-        {/each}
-      </div>
+        <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
 
-      <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
-
-      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
-        {#each HERO.badges as badge (badge.label)}
-          <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
-          {#each badge.items as item, i (item)}
-            <span>{item}</span>
-            {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
+        <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
+          {#each HERO.badges as badge (badge.label)}
+            <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
+            {#each badge.items as item, i (item)}
+              <span>{item}</span>
+              {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
+            {/each}
           {/each}
-        {/each}
+        </div>
+
+        {#if loadError}
+          <div class="mt-4 bg-error/10 border border-error/30 text-error rounded-lg p-3 text-sm">
+            Failed to load system data: {loadError}
+          </div>
+        {/if}
       </div>
 
-      {#if loadError}
-        <div class="mt-4 bg-error/10 border border-error/30 text-error rounded-lg p-3 text-sm">
-          Failed to load system data: {loadError}
+      <!-- Aside: vital stats -->
+      <aside class="lg:w-72 lg:flex-shrink-0">
+        <div class="bg-surface border border-border rounded-lg p-4 lg:sticky lg:top-20">
+          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Vital stats</div>
+          <dl class="space-y-1.5 text-sm font-mono">
+            {#each [
+              { k: 'Runtime', v: intro?.platform_label },
+              { k: 'Agents', v: intro?.agent_count },
+              { k: 'Tables', v: intro?.table_count },
+              { k: 'Endpoints', v: intro?.endpoint_count },
+              { k: 'Uptime', v: fmtUptime(intro?.uptime_seconds) },
+              { k: 'PID', v: intro?.pid },
+              { k: 'Scope', v: 'Local · Host-Only' }
+            ] as row (row.k)}
+              <div class="flex items-baseline justify-between gap-3">
+                <dt class="text-muted">{row.k}</dt>
+                <dd class="text-body text-right truncate">{row.v ?? '—'}</dd>
+              </div>
+            {/each}
+          </dl>
         </div>
-      {/if}
+      </aside>
     </section>
 
     <!-- 01 // Architecture -->
@@ -338,7 +346,9 @@
     <!-- 07 // Installed Models -->
     {#if models.length > 0}
       <PageSection title="07 // Installed Models" meta="live · fit assessment vs. usable VRAM">
-        <p class="text-sm text-body font-sans mb-3">Each model's GGUF size shown alongside whether it fits in usable VRAM (total minus display headroom). Overflow models spill to CPU and run an order of magnitude slower.</p>
+        <ProseBlock>
+          <p class="text-sm text-body font-sans mb-3">Each model's GGUF size shown alongside whether it fits in usable VRAM (total minus display headroom). Overflow models spill to CPU and run an order of magnitude slower.</p>
+        </ProseBlock>
         <div class="bg-surface border border-border rounded-lg overflow-hidden">
           <table class="w-full text-sm">
             <thead class="bg-canvas">
@@ -375,7 +385,9 @@
 
     <!-- 08 // Provisioning -->
     <PageSection title="08 // Provisioning">
-      <p class="text-sm text-body font-sans mb-4">Capacity vs. orchestration. Raven's <strong>capacity</strong> is provisioned — what's missing is more <strong>orchestration</strong> on top.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-4">Capacity vs. orchestration. Raven's <strong>capacity</strong> is provisioned — what's missing is more <strong>orchestration</strong> on top.</p>
+      </ProseBlock>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-surface border border-border rounded-lg p-4">
           <h3 class="text-xs font-semibold text-success uppercase tracking-wide mb-3">Now — Provisioned</h3>
@@ -406,7 +418,9 @@
 
     <!-- 09 // Tool Catalog -->
     <PageSection title="09 // Tool Catalog" meta="selected · backup · manual · excluded">
-      <p class="text-sm text-body font-sans mb-4">The "why these and not those" rationale for Raven's stack. Filter by tier to focus.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-4">The "why these and not those" rationale for Raven's stack. Filter by tier to focus.</p>
+      </ProseBlock>
 
       <!-- Tier filter chips -->
       <div class="flex flex-wrap gap-2 mb-4">
@@ -473,7 +487,9 @@
 
     <!-- 10 // Key Design Decisions -->
     <PageSection title="10 // Key Design Decisions">
-      <p class="text-sm text-muted font-sans mb-4">Implementation-level choices behind the running system. Architectural decisions (data model, scope, single-host) live on the About page.</p>
+      <ProseBlock>
+        <p class="text-sm text-muted font-sans mb-4">Implementation-level choices behind the running system. Architectural decisions (data model, scope, single-host) live on the About page.</p>
+      </ProseBlock>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         {#each SYSTEM_DECISIONS as d (d.head)}
           <div class="bg-surface border border-border rounded-lg p-4">
@@ -486,7 +502,9 @@
 
     <!-- 11 // Governance -->
     <PageSection title="11 // Governance" meta="every gate, linter, validator, CI check — in one place">
-      <p class="text-sm text-body font-sans mb-6">What's protecting you from breaking things. Each gate runs locally (via the pre-commit hook on git commit, or manually) AND in CI on every push. Bypassing locally with <code class="font-mono text-accent">--no-verify</code> is caught by CI.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-6">What's protecting you from breaking things. Each gate runs locally (via the pre-commit hook on git commit, or manually) AND in CI on every push. Bypassing locally with <code class="font-mono text-accent">--no-verify</code> is caught by CI.</p>
+      </ProseBlock>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Quality gates</h3>
       <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
@@ -616,10 +634,12 @@
         </table>
       </div>
 
-      <div class="bg-warning/10 border-l-4 border-warning rounded-r p-4">
-        <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! {GOVERNANCE.invoke.summary}</div>
-        <div class="text-sm text-body font-sans">{GOVERNANCE.invoke.body}</div>
-      </div>
+      <ProseBlock width="wide">
+        <div class="bg-warning/10 border-l-4 border-warning rounded-r p-4">
+          <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! {GOVERNANCE.invoke.summary}</div>
+          <div class="text-sm text-body font-sans">{GOVERNANCE.invoke.body}</div>
+        </div>
+      </ProseBlock>
     </PageSection>
 
   </div>

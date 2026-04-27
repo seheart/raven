@@ -5,7 +5,7 @@
    * markup, live demos, and iteration over those arrays.
    */
   import { onMount } from 'svelte';
-  import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection, ProseBlock } from '../components/layout/index.js';
   import {
     EmptyState,
     LoadingState,
@@ -68,9 +68,9 @@
 </script>
 
 <PageLayout>
-  <div class="space-y-12">
+  <div class="space-y-8">
 
-    <!-- Status bar -->
+    <!-- Status bar — full width across canvas -->
     <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
       <div class="flex items-center gap-2">
         <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
@@ -93,56 +93,55 @@
       </div>
     </div>
 
-    <!-- Hero -->
-    <section>
-      <PageHeader title={HERO.title} />
+    <!-- Two-column doc layout: scrolling main + sticky on-this-page aside -->
+    <div class="flex flex-col lg:flex-row gap-8">
+      <main class="flex-1 min-w-0 max-w-[64rem] space-y-12">
 
-      <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
+        <!-- Hero -->
+        <section>
+          <PageHeader title={HERO.title} />
 
-      <div class="mt-4 space-y-1.5 text-sm font-mono">
-        {#each HERO.meta as row (row.k)}
-          <div class="flex items-baseline gap-2">
-            <span class="text-muted w-32 flex-shrink-0">{row.k}</span>
-            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
-            <span class="text-body">{row.v}</span>
+          <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
+
+          <div class="mt-4 space-y-1.5 text-sm font-mono">
+            {#each HERO.meta as row (row.k)}
+              <div class="flex items-baseline gap-2">
+                <span class="text-muted w-32 flex-shrink-0">{row.k}</span>
+                <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+                <span class="text-body">{row.v}</span>
+              </div>
+            {/each}
           </div>
-        {/each}
-      </div>
 
-      <div class="mt-4 bg-warning/10 border-l-4 border-warning rounded-r p-4">
-        <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! You are here</div>
-        <div class="text-sm text-body font-sans">
-          This page is itself built from the patterns it documents. Use the chips below to jump.
-        </div>
-      </div>
+          <div class="mt-4 bg-warning/10 border-l-4 border-warning rounded-r p-4">
+            <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! You are here</div>
+            <div class="text-sm text-body font-sans">
+              This page is itself built from the patterns it documents. The jump-nav on the right follows you as you scroll.
+            </div>
+          </div>
 
-      <div class="mt-4 flex flex-wrap gap-1.5">
-        {#each TOC as t (t.slug)}
-          <a
-            href="#sect-{t.slug}"
-            class="px-2.5 py-1 text-xs font-mono bg-surface border border-border rounded hover:border-accent transition-colors"
-          >{t.label}</a>
-        {/each}
-      </div>
-
-      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
-        {#each HERO.badges as badge (badge.label)}
-          <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
-          {#each badge.items as item, i (item)}
-            <span>{item}</span>
-            {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
-          {/each}
-        {/each}
-      </div>
-    </section>
+          <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
+            {#each HERO.badges as badge (badge.label)}
+              <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
+              {#each badge.items as item, i (item)}
+                <span>{item}</span>
+                {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
+              {/each}
+            {/each}
+          </div>
+        </section>
 
     <!-- 00 // Intent -->
     <div id="sect-intent"></div>
     <PageSection title="00 // Intent" meta="read this before building a new screen">
-      <p class="text-base text-body font-sans leading-relaxed mb-6">{INTENT.manifesto}</p>
+      <ProseBlock>
+        <p class="text-base text-body font-sans leading-relaxed mb-6">{INTENT.manifesto}</p>
+      </ProseBlock>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Adjectives</h3>
-      <p class="text-sm text-muted font-sans mb-3">An instant emotional read. If a new screen doesn't feel like these five words, it doesn't belong.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Adjectives</h3>
+        <p class="text-sm text-muted font-sans mb-3">An instant emotional read. If a new screen doesn't feel like these five words, it doesn't belong.</p>
+      </ProseBlock>
       <div class="mb-6 flex flex-wrap items-center gap-2">
         {#each INTENT.adjectives as adj, i (adj)}
           <span class="text-base font-semibold text-accent">{adj}</span>
@@ -152,8 +151,10 @@
         {/each}
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Visual tension</h3>
-      <p class="text-sm text-muted font-sans mb-3">Lock the register. Each pair: what to do, what to avoid.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Visual tension</h3>
+        <p class="text-sm text-muted font-sans mb-3">Lock the register. Each pair: what to do, what to avoid.</p>
+      </ProseBlock>
       <ul class="mb-6 space-y-2 list-none">
         {#each INTENT.tension as t (t.do)}
           <li class="flex items-baseline gap-2 flex-wrap text-sm">
@@ -165,8 +166,10 @@
         {/each}
       </ul>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Tone of voice</h3>
-      <p class="text-sm text-muted font-sans mb-3">The vocabulary the system uses for itself. Use the left column. Avoid the right.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Tone of voice</h3>
+        <p class="text-sm text-muted font-sans mb-3">The vocabulary the system uses for itself. Use the left column. Avoid the right.</p>
+      </ProseBlock>
       <div class="mb-6 bg-surface border border-border rounded-lg overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-canvas">
@@ -188,8 +191,10 @@
         </table>
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Touchstones</h3>
-      <p class="text-sm text-muted font-sans mb-3">References for finding inspiration in the right corner of style space.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Touchstones</h3>
+        <p class="text-sm text-muted font-sans mb-3">References for finding inspiration in the right corner of style space.</p>
+      </ProseBlock>
       <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
         {#each INTENT.touchstones as t (t.name)}
           <div class="bg-surface border border-border rounded-lg p-4">
@@ -199,8 +204,10 @@
         {/each}
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Folder convention</h3>
-      <p class="text-sm text-muted font-sans mb-3">Find a file, find the layer. Every page-level concern lives under exactly one of these.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Folder convention</h3>
+        <p class="text-sm text-muted font-sans mb-3">Find a file, find the layer. Every page-level concern lives under exactly one of these.</p>
+      </ProseBlock>
       <div class="bg-surface border border-border rounded-lg overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-canvas">
@@ -224,7 +231,9 @@
     <!-- 01 // Composed Patterns -->
     <div id="sect-patterns"></div>
     <PageSection title="01 // Composed Patterns" meta="the actual UI vocabulary you'll reach for">
-      <p class="text-sm text-body font-sans mb-6">Reusable component shapes. Reach for these before inventing something new — every screen on Raven is assembled from this kit. Grouped into four sub-systems.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-6">Reusable component shapes. Reach for these before inventing something new — every screen on Raven is assembled from this kit. Grouped into four sub-systems.</p>
+      </ProseBlock>
 
       <!-- Subgroup index -->
       <div class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-2">
@@ -240,11 +249,13 @@
       </div>
 
       <!-- Subgroup A: Chrome -->
-      <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2">
-        <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">A</span>
-        Chrome
-      </h3>
-      <p class="text-sm text-muted font-sans mb-4">Page frame: status bar, hero, sections, callouts. Every content page wears this.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2">
+          <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">A</span>
+          Chrome
+        </h3>
+        <p class="text-sm text-muted font-sans mb-4">Page frame: status bar, hero, sections, callouts. Every content page wears this.</p>
+      </ProseBlock>
 
       <!-- Status bar demo -->
       <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Status bar</h4>
@@ -299,11 +310,13 @@
       </div>
 
       <!-- Subgroup B: Data -->
-      <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
-        <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">B</span>
-        Data
-      </h3>
-      <p class="text-sm text-muted font-sans mb-4">Tables, forms, badges, cards, status pills.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
+          <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">B</span>
+          Data
+        </h3>
+        <p class="text-sm text-muted font-sans mb-4">Tables, forms, badges, cards, status pills.</p>
+      </ProseBlock>
 
       <!-- Buttons -->
       <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Buttons</h4>
@@ -442,11 +455,13 @@
       </div>
 
       <!-- Subgroup C: Live -->
-      <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
-        <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">C</span>
-        Live
-      </h3>
-      <p class="text-sm text-muted font-sans mb-4">Things that breathe — pulsing dots, websocket status, idle indicators.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
+          <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">C</span>
+          Live
+        </h3>
+        <p class="text-sm text-muted font-sans mb-4">Things that breathe — pulsing dots, websocket status, idle indicators.</p>
+      </ProseBlock>
 
       <div class="mb-4 bg-surface border border-border rounded-lg p-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -470,17 +485,19 @@
       </div>
 
       <!-- Subgroup D: Utilities -->
-      <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
-        <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">D</span>
-        Utilities
-      </h3>
-      <p class="text-sm text-muted font-sans mb-2">
-        The DRY layer — primitives in <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">lib/components/ui/</code>.
-      </p>
-      <p class="text-xs font-mono text-muted mb-4">
-        Coverage of every <code>ui/</code> primitive against this page is enforced by
-        <code class="text-accent">npm run validate:design-coverage</code>.
-      </p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
+          <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">D</span>
+          Utilities
+        </h3>
+        <p class="text-sm text-muted font-sans mb-2">
+          The DRY layer — primitives in <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">lib/components/ui/</code>.
+        </p>
+        <p class="text-xs font-mono text-muted mb-4">
+          Coverage of every <code>ui/</code> primitive against this page is enforced by
+          <code class="text-accent">npm run validate:design-coverage</code>.
+        </p>
+      </ProseBlock>
 
       <!-- Live demos of each primitive — each name must appear literally
            somewhere in this file for validate:design-coverage to pass. -->
@@ -566,7 +583,9 @@
     <!-- 02 // Page Architecture -->
     <div id="sect-architecture"></div>
     <PageSection title="02 // Page Architecture" meta="the rhythm every content page follows">
-      <p class="text-sm text-body font-sans mb-6">Every Raven content page settles into the same five-zone rhythm. Build a new page by walking down this list — status bar, hero, numbered sections, sub-blocks, footer — and you'll match the rest of the system without thinking about it.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-6">Every Raven content page settles into the same five-zone rhythm. Build a new page by walking down this list — status bar, hero, numbered sections, sub-blocks, footer — and you'll match the rest of the system without thinking about it.</p>
+      </ProseBlock>
 
       <div class="mb-6 space-y-3">
         {#each PAGE_ZONES as zone (zone.tag)}
@@ -583,15 +602,19 @@
         {/each}
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Reference: a typical render order</h3>
-      <p class="text-sm text-muted font-sans mb-3">Copy this skeleton when starting a new page. Add the inline-script theme bootstrap to <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">index.html</code> only — it's already there.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Reference: a typical render order</h3>
+        <p class="text-sm text-muted font-sans mb-3">Copy this skeleton when starting a new page. Add the inline-script theme bootstrap to <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">index.html</code> only — it's already there.</p>
+      </ProseBlock>
       <pre class="bg-canvas border border-border rounded p-4 text-xs font-mono text-body overflow-x-auto leading-relaxed">{PAGE_SKELETON}</pre>
     </PageSection>
 
     <!-- 03 // States -->
     <div id="sect-states"></div>
     <PageSection title="03 // States" meta="empty · live · error · action · loading · missing">
-      <p class="text-sm text-body font-sans mb-6">Universal state patterns. Empty states are direct (icon + title + description, no decorative illustrations). Errors show the raw message in mono. Live state is signaled by motion — a pulsing dot, never a spinner. Action confirmations live in callouts after a redirect, not as toast notifications.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-6">Universal state patterns. Empty states are direct (icon + title + description, no decorative illustrations). Errors show the raw message in mono. Live state is signaled by motion — a pulsing dot, never a spinner. Action confirmations live in callouts after a redirect, not as toast notifications.</p>
+      </ProseBlock>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {#each STATES as s (s.tag)}
@@ -649,21 +672,25 @@
     <PageSection title="04 // Colors" meta="theme-aware tokens · flip on :root.dark">
 
       <!-- Why phosphor — the rationale before any swatch -->
-      <div class="bg-surface border border-border rounded-lg p-5 mb-8">
-        <div class="flex items-baseline gap-3 mb-3">
-          <span class="w-3 h-3 rounded-full bg-accent flex-shrink-0"></span>
-          <h3 class="text-base font-semibold text-heading">{PHOSPHOR_RATIONALE.headline}</h3>
+      <ProseBlock width="wide">
+        <div class="bg-surface border border-border rounded-lg p-5 mb-8">
+          <div class="flex items-baseline gap-3 mb-3">
+            <span class="w-3 h-3 rounded-full bg-accent flex-shrink-0"></span>
+            <h3 class="text-base font-semibold text-heading">{PHOSPHOR_RATIONALE.headline}</h3>
+          </div>
+          <p class="text-sm text-body font-sans leading-relaxed mb-3">{PHOSPHOR_RATIONALE.body}</p>
+          <ul class="text-xs font-mono text-muted space-y-1 list-none pl-0">
+            {#each PHOSPHOR_RATIONALE.rules as r (r)}
+              <li class="pl-3 relative before:content-['→'] before:absolute before:left-0 before:text-accent">{r}</li>
+            {/each}
+          </ul>
         </div>
-        <p class="text-sm text-body font-sans leading-relaxed mb-3">{PHOSPHOR_RATIONALE.body}</p>
-        <ul class="text-xs font-mono text-muted space-y-1 list-none pl-0">
-          {#each PHOSPHOR_RATIONALE.rules as r (r)}
-            <li class="pl-3 relative before:content-['→'] before:absolute before:left-0 before:text-accent">{r}</li>
-          {/each}
-        </ul>
-      </div>
+      </ProseBlock>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Surfaces</h3>
-      <p class="text-sm text-muted font-sans mb-4">Background and border tokens. These swap automatically between light and dark themes.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Surfaces</h3>
+        <p class="text-sm text-muted font-sans mb-4">Background and border tokens. These swap automatically between light and dark themes.</p>
+      </ProseBlock>
       <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {#each SURFACE_TOKENS as t (t.name)}
           <div class="flex items-center gap-3">
@@ -677,8 +704,10 @@
         {/each}
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Text</h3>
-      <p class="text-sm text-muted font-sans mb-4">Live samples — toggle the theme via the footer to see them shift.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Text</h3>
+        <p class="text-sm text-muted font-sans mb-4">Live samples — toggle the theme via the footer to see them shift.</p>
+      </ProseBlock>
       <div class="mb-6 bg-surface border border-border rounded-lg p-5 space-y-3">
         {#each TEXT_TOKENS as t (t.name)}
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_180px_1fr] gap-3 items-baseline border-b border-border pb-3 last:border-b-0 last:pb-0">
@@ -692,8 +721,10 @@
         {/each}
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Semantic</h3>
-      <p class="text-sm text-muted font-sans mb-4">Outcome-driven. Each color has one job. Don't reuse them for decoration.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Semantic</h3>
+        <p class="text-sm text-muted font-sans mb-4">Outcome-driven. Each color has one job. Don't reuse them for decoration.</p>
+      </ProseBlock>
       <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {#each SEMANTIC_TOKENS as t (t.name)}
           <div class="flex items-center gap-3">
@@ -707,8 +738,10 @@
         {/each}
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Subtle tints</h3>
-      <p class="text-sm text-muted font-sans mb-4">Low-saturation backgrounds. Pair with the matching semantic color for text.</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Subtle tints</h3>
+        <p class="text-sm text-muted font-sans mb-4">Low-saturation backgrounds. Pair with the matching semantic color for text.</p>
+      </ProseBlock>
       <div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {#each SUBTLE_TOKENS as t (t.name)}
           <div class="flex items-center gap-3">
@@ -722,20 +755,26 @@
         {/each}
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Callouts</h3>
-      <p class="text-sm text-muted font-sans mb-4">Inline notices. Left bar carries the semantic; pair with a label glyph (<code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">!</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">✓</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">i</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">✗</code>).</p>
-      <div class="space-y-3 mb-8">
-        {#each CALLOUTS as c (c.tone)}
-          {@const cls = toneClasses(c.tone)}
-          <div class="rounded-r p-4 border-l-4 {cls.border} {cls.tint}">
-            <div class="text-xs font-mono uppercase tracking-wide mb-1 {cls.text}">{c.label}</div>
-            <div class="text-sm text-body font-sans">{c.body}</div>
-          </div>
-        {/each}
-      </div>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Callouts</h3>
+        <p class="text-sm text-muted font-sans mb-4">Inline notices. Left bar carries the semantic; pair with a label glyph (<code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">!</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">✓</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">i</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">✗</code>).</p>
+      </ProseBlock>
+      <ProseBlock width="wide">
+        <div class="space-y-3 mb-8">
+          {#each CALLOUTS as c (c.tone)}
+            {@const cls = toneClasses(c.tone)}
+            <div class="rounded-r p-4 border-l-4 {cls.border} {cls.tint}">
+              <div class="text-xs font-mono uppercase tracking-wide mb-1 {cls.text}">{c.label}</div>
+              <div class="text-sm text-body font-sans">{c.body}</div>
+            </div>
+          {/each}
+        </div>
+      </ProseBlock>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Brand colors <span class="text-xs font-mono text-muted ml-2 normal-case font-normal">vendor identities · per-agent</span></h3>
-      <p class="text-sm text-muted font-sans mb-4">{BRAND_COLORS_RULE}</p>
+      <ProseBlock>
+        <h3 class="text-sm font-semibold text-heading mb-3">Brand colors <span class="text-xs font-mono text-muted ml-2 normal-case font-normal">vendor identities · per-agent</span></h3>
+        <p class="text-sm text-muted font-sans mb-4">{BRAND_COLORS_RULE}</p>
+      </ProseBlock>
       <div class="bg-surface border border-border rounded-lg overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-canvas">
@@ -763,7 +802,9 @@
     <!-- 05 // Typography -->
     <div id="sect-type"></div>
     <PageSection title="05 // Typography">
-      <p class="text-sm text-body font-sans mb-6">Two families: <strong>Inter</strong> for prose, <strong>JetBrains Mono</strong> for technical content. Mono is reserved for things that must align character-for-character — IDs, paths, durations, code, model names.</p>
+      <ProseBlock>
+        <p class="text-sm text-body font-sans mb-6">Two families: <strong>Inter</strong> for prose, <strong>JetBrains Mono</strong> for technical content. Mono is reserved for things that must align character-for-character — IDs, paths, durations, code, model names.</p>
+      </ProseBlock>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Scale</h3>
       <div class="mb-6 bg-surface border border-border rounded-lg p-5 space-y-3">
@@ -803,7 +844,9 @@
     <!-- 06 // Spacing -->
     <div id="sect-spacing"></div>
     <PageSection title="06 // Spacing scale">
-      <p class="text-sm text-muted font-sans mb-4">Eight steps. Always reference the token, never raw px.</p>
+      <ProseBlock>
+        <p class="text-sm text-muted font-sans mb-4">Eight steps. Always reference the token, never raw px.</p>
+      </ProseBlock>
       <div class="bg-surface border border-border rounded-lg p-5 space-y-2">
         {#each SPACING_SCALE as s (s.name)}
           <div class="grid grid-cols-[140px_1fr_60px] gap-3 items-center">
@@ -836,11 +879,13 @@
     <!-- 08 // Motion -->
     <div id="sect-motion"></div>
     <PageSection title="08 // Motion">
-      <p class="text-sm text-muted font-sans mb-4">
-        Hover the swatch to feel each duration. Easing is symmetric by default; reach for
-        <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">--ease-out-expo</code>
-        when something should land decisively (toasts, drawers).
-      </p>
+      <ProseBlock>
+        <p class="text-sm text-muted font-sans mb-4">
+          Hover the swatch to feel each duration. Easing is symmetric by default; reach for
+          <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">--ease-out-expo</code>
+          when something should land decisively (toasts, drawers).
+        </p>
+      </ProseBlock>
       <div class="bg-surface border border-border rounded-lg p-5 space-y-3">
         {#each MOTION_TOKENS as t (t.name)}
           <div class="grid grid-cols-1 sm:grid-cols-[60px_180px_1fr] gap-3 items-center border-b border-border pb-3 last:border-b-0 last:pb-0">
@@ -860,17 +905,40 @@
     <!-- 09 // Principles -->
     <div id="sect-principles"></div>
     <PageSection title="09 // Compliance principles">
-      <ol class="list-decimal pl-5 space-y-2 text-sm text-body font-sans leading-relaxed">
-        {#each PRINCIPLES as p (p)}
-          <!-- eslint-disable-next-line svelte/no-at-html-tags -- principles is a hard-coded static array; values are author-controlled markup, never user input -->
-          <li>{@html p}</li>
-        {/each}
-      </ol>
+      <ProseBlock>
+        <ol class="list-decimal pl-5 space-y-2 text-sm text-body font-sans leading-relaxed">
+          {#each PRINCIPLES as p (p)}
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- principles is a hard-coded static array; values are author-controlled markup, never user input -->
+            <li>{@html p}</li>
+          {/each}
+        </ol>
 
-      <div class="mt-6">
-        <a href="#sect-intent" class="inline-block px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ ↑ back to top ]</a>
-      </div>
+        <div class="mt-6">
+          <a href="#sect-intent" class="inline-block px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ ↑ back to top ]</a>
+        </div>
+      </ProseBlock>
     </PageSection>
+
+      </main>
+
+      <!-- Persistent jump-nav: sticky throughout page scroll -->
+      <aside class="lg:w-72 lg:flex-shrink-0 w-full">
+        <div class="bg-surface border border-border rounded-lg p-4 lg:sticky lg:top-16">
+          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">On this page</div>
+          <nav class="flex flex-col gap-0.5" aria-label="Jump to section">
+            {#each TOC as t (t.slug)}
+              <a
+                href="#sect-{t.slug}"
+                class="text-xs font-mono text-body hover:text-accent hover:bg-canvas px-2 py-1.5 rounded transition-colors flex items-baseline gap-2"
+              >
+                <span class="text-muted">→</span>
+                <span>{t.label}</span>
+              </a>
+            {/each}
+          </nav>
+        </div>
+      </aside>
+    </div>
 
   </div>
 </PageLayout>
