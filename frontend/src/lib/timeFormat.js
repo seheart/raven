@@ -161,4 +161,3 @@ export function formatRelativeTime(timestamp) {
   if (seconds > 5) return `${seconds}s ago`;
   return 'just now';
 }
-

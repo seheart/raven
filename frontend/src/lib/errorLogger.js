@@ -81,4 +81,3 @@ export function setupGlobalErrorHandler() {
 
   logger.info(' Global error handlers installed');
 }
-

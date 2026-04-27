@@ -31,7 +31,7 @@ interface SyntaxCheckResult {
 /**
  * Syntax Checker - validates code syntax across multiple languages
  */
-export class SyntaxChecker {
+class SyntaxChecker {
   private supportedExtensions: Map<string, string>;
 
   constructor() {
