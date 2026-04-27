@@ -678,10 +678,20 @@ export class RavenDB {
   }
 
   /**
-   * Get aggregated statistics for all agents
-   * @returns Array of agent statistics including event counts and durations
+   * Get aggregated statistics for all agents.
+   *
+   * Memoized for AGENT_STATS_TTL_MS — both the SSE broadcast (every ~2s) and
+   * the /api/agent-stats route hit this with the same query. The full
+   * GROUP BY scan over agent_events isn't free; 2s of staleness is invisible.
    */
+  private agentStatsCache: { value: AgentStats[]; expiresAt: number } | null = null;
+  private static readonly AGENT_STATS_TTL_MS = 2000;
+
   getAgentStats(): AgentStats[] {
+    const now = Date.now();
+    if (this.agentStatsCache && this.agentStatsCache.expiresAt > now) {
+      return this.agentStatsCache.value;
+    }
     const stmt = this.db.prepare(`
       SELECT
         agent,
@@ -693,7 +703,9 @@ export class RavenDB {
       ORDER BY event_count DESC
     `);
 
-    return stmt.all() as AgentStats[];
+    const value = stmt.all() as AgentStats[];
+    this.agentStatsCache = { value, expiresAt: now + RavenDB.AGENT_STATS_TTL_MS };
+    return value;
   }
 
   // ==================== File Events ====================
@@ -1488,6 +1500,14 @@ export class RavenDB {
       } catch {
         // Table may not exist yet — skip silently
       }
+    }
+
+    // Reclaim freed pages incrementally (no-op unless auto_vacuum=incremental).
+    // Without this, retention deletes pile up free pages that never shrink the file.
+    try {
+      this.db.pragma('incremental_vacuum');
+    } catch {
+      // Pragma is best-effort; if auto_vacuum is off it does nothing.
     }
 
     return results;

@@ -41,6 +41,7 @@ import { pauseManager } from './pause-manager.js';
 import { EventBus, FileWatcher, GitMonitor, getDiff, createPatch } from './modules/index.js';
 import type { FileEvent, GitStatusEvent } from './modules/index.js';
 import { logger } from './utils/logger.js';
+import { shouldSkipDiff, capDiff } from './utils/file-processing-helpers.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { rateLimitStatus, apiLimiter, setupHelmet } from './middleware/security.js';
 import { cacheMiddleware, stopCacheCleanup } from './services/cache-service.js';
@@ -100,7 +101,8 @@ const io = new SocketIOServer(httpServer, {
 
 // Debounced broadcaster for agent-stats. Telemetry events arrive faster than
 // dashboards need refreshes; coalescing to ~2s cuts duplicate aggregate queries
-// without making the UI feel stale.
+// without making the UI feel stale. db.getAgentStats() is itself memoized for
+// 2s — see RavenDB.AGENT_STATS_TTL_MS — so the route and broadcast share results.
 let agentStatsBroadcastTimer: NodeJS.Timeout | null = null;
 const AGENT_STATS_BROADCAST_MS = 2000;
 function scheduleAgentStatsBroadcast(): void {
@@ -654,17 +656,19 @@ EventBus.onFileEvent(async (event: FileEvent) => {
       projectManager.getCachedContentForPath(absolutePath) ||
       fileWatcher.getCachedContent(absolutePath);
 
-    if (event.type === 'change' && oldContent && event.content) {
-      diff = getDiff(oldContent, event.content)
-        .map(d => {
-          const prefix = d.added ? '+' : d.removed ? '-' : ' ';
-          // Apply prefix to each line within the chunk
-          return d.value
-            .split('\n')
-            .map(line => `${prefix}${line}`)
-            .join('\n');
-        })
-        .join('');
+    if (event.type === 'change' && oldContent && event.content && !shouldSkipDiff(event.path)) {
+      diff = capDiff(
+        getDiff(oldContent, event.content)
+          .map(d => {
+            const prefix = d.added ? '+' : d.removed ? '-' : ' ';
+            // Apply prefix to each line within the chunk
+            return d.value
+              .split('\n')
+              .map(line => `${prefix}${line}`)
+              .join('\n');
+          })
+          .join('')
+      );
     }
 
     // Prefix filepath with project name so it's identifiable across projects
