@@ -254,7 +254,7 @@
                   <button
                     onclick={() => getProjectHealth(project.name)}
                     disabled={healthNarratives[project.name]?.loading}
-                    class="px-2 py-1 bg-accent text-white rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
+                    class="px-2 py-1 bg-accent text-canvas rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
                   >
                     {healthNarratives[project.name]?.loading ? 'Analyzing...' : 'AI Summary'}
                   </button>

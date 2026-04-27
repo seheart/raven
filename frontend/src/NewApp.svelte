@@ -168,7 +168,7 @@
             <div class="flex gap-3 justify-center">
               <button
                 onclick={reset}
-                class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity"
+                class="px-4 py-2 bg-[var(--accent)] text-canvas rounded text-sm font-sans hover:opacity-90 transition-opacity"
               >
                 Try Again
               </button>
@@ -470,7 +470,7 @@
             </p>
             <button
               onclick={() => navigate('/overview')}
-              class="px-4 py-2 bg-[var(--accent)] text-white rounded text-sm font-sans hover:opacity-90 transition-opacity"
+              class="px-4 py-2 bg-[var(--accent)] text-canvas rounded text-sm font-sans hover:opacity-90 transition-opacity"
             >
               Back to Dashboard
             </button>

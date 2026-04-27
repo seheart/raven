@@ -26,7 +26,7 @@
   type="button"
   onclick={onClick}
   class="px-3 py-1.5 text-xs font-sans transition-colors border-0 cursor-pointer {active
-    ? 'bg-accent text-white'
+    ? 'bg-accent text-canvas'
     : 'text-muted hover:text-body'}"
 >
   {@render children?.()}

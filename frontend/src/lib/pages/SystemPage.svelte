@@ -412,13 +412,13 @@
       <div class="flex flex-wrap gap-2 mb-4">
         <button
           type="button"
-          class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === 'all' ? 'bg-accent text-white border-accent' : 'bg-surface border-border hover:border-accent'}"
+          class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === 'all' ? 'bg-accent text-canvas border-accent' : 'bg-surface border-border hover:border-accent'}"
           onclick={() => (toolTier = 'all')}
         >All</button>
         {#each TOOL_CATALOG as g (g.tier)}
           <button
             type="button"
-            class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === g.tier ? 'bg-accent text-white border-accent' : 'bg-surface border-border hover:border-accent'}"
+            class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === g.tier ? 'bg-accent text-canvas border-accent' : 'bg-surface border-border hover:border-accent'}"
             onclick={() => (toolTier = g.tier)}
           >{g.tier}</button>
         {/each}

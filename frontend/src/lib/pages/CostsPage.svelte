@@ -234,7 +234,7 @@
     {/snippet}
   </PageHeader>
   <div class="flex items-center gap-2 -mt-4">
-    <span class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi ? 'bg-warning text-black' : 'bg-accent text-white'}">{isApi ? 'API Billing' : planName}</span>
+    <span class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi ? 'bg-warning text-black' : 'bg-accent text-canvas'}">{isApi ? 'API Billing' : planName}</span>
     <p class="text-sm text-muted font-sans">
       {isApi ? 'Estimated API costs and token consumption' : 'Token consumption across sessions'}
     </p>

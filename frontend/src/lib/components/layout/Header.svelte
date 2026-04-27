@@ -166,7 +166,7 @@
           onclick={e => handleNavClick(e, tab.path)}
           class={`px-2 lg:px-3 py-1.5 rounded text-sm transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
             activeTab === tab.id
-              ? 'bg-[var(--accent)] text-white font-semibold'
+              ? 'bg-[var(--accent)] text-canvas font-semibold'
               : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] font-medium'
           }`}
           aria-current={activeTab === tab.id ? 'page' : undefined}
@@ -254,7 +254,7 @@
             onclick={e => handleSubNavClick(e, subTab.id)}
             class={`px-3 py-1 rounded text-xs transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
               activeSubTab === subTab.id
-                ? 'bg-[var(--accent)] text-white font-semibold'
+                ? 'bg-[var(--accent)] text-canvas font-semibold'
                 : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] font-medium'
             }`}
             aria-current={activeSubTab === subTab.id ? 'page' : undefined}

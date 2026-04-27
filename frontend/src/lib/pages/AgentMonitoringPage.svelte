@@ -744,7 +744,7 @@
               >
               {#each selectedEventTypes as type (type)}
                 <button
-                  class="inline-flex items-center gap-1 px-2 py-1 bg-accent text-white rounded text-xs font-sans font-semibold"
+                  class="inline-flex items-center gap-1 px-2 py-1 bg-accent text-canvas rounded text-xs font-sans font-semibold"
                   onclick={() => toggleEventType(type)}
                 >
                   Type: {type}
@@ -752,7 +752,7 @@
               {/each}
               {#if dateRange !== 'all'}
                 <button
-                  class="inline-flex items-center gap-1 px-2 py-1 bg-accent text-white rounded text-xs font-sans font-semibold"
+                  class="inline-flex items-center gap-1 px-2 py-1 bg-accent text-canvas rounded text-xs font-sans font-semibold"
                   onclick={() => (dateRange = 'all')}
                 >
                   Range: {dateRange}
@@ -792,7 +792,7 @@
                 <div class="text-sm text-body font-mono mb-1">
                   {#if event.agent_name}
                     <span
-                      class="inline-block px-2 py-0.5 mr-2 bg-accent text-white rounded text-sm font-semibold uppercase tracking-wide"
+                      class="inline-block px-2 py-0.5 mr-2 bg-accent text-canvas rounded text-sm font-semibold uppercase tracking-wide"
                     >
                       {event.agent_name}
                     </span>

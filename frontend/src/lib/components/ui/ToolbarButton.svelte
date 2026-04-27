@@ -36,7 +36,7 @@
 
   const variantClass = $derived(
     variant === 'primary'
-      ? 'bg-accent text-white border-accent hover:opacity-90'
+      ? 'bg-accent text-canvas border-accent hover:opacity-90'
       : variant === 'danger'
         ? 'bg-surface text-error border-error hover:bg-error-subtle'
         : 'bg-surface border-border hover:border-accent'
@@ -55,16 +55,16 @@
 </button>
 
 <style>
-  /* Subtle violet glow on the primary CTA in dark mode — Raven's eye
-     catching light. Light mode stays flat. */
+  /* Subtle white-edge glow on the primary CTA in dark mode — the
+     iridescent flash on a raven's wing. Light mode stays flat. */
   :global(html.dark) .primary-glow {
     box-shadow:
-      inset 0 0 0 1px rgba(189, 158, 255, 0.4),
-      0 0 12px rgba(164, 126, 255, 0.18);
+      inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+      0 0 12px rgba(255, 255, 255, 0.10);
   }
   :global(html.dark) .primary-glow:hover:not(:disabled) {
     box-shadow:
-      inset 0 0 0 1px rgba(189, 158, 255, 0.6),
-      0 0 18px rgba(164, 126, 255, 0.3);
+      inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+      0 0 18px rgba(255, 255, 255, 0.18);
   }
 </style>

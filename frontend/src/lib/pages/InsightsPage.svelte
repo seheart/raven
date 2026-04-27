@@ -161,7 +161,7 @@
           <button
             onclick={generateSummary}
             disabled={generating || !status.available}
-            class="px-3 py-1.5 bg-accent text-white rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
+            class="px-3 py-1.5 bg-accent text-canvas rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
           >
             {generating ? 'Generating...' : 'Summary'}
           </button>
@@ -206,7 +206,7 @@
         { value: 'project_health', label: 'Project Health' }
       ] as tab (tab.value)}
         <button
-          class="px-2.5 py-1 text-xs font-sans rounded transition-colors {filterType === tab.value ? 'bg-accent text-white' : 'text-muted hover:text-body hover:bg-surface'}"
+          class="px-2.5 py-1 text-xs font-sans rounded transition-colors {filterType === tab.value ? 'bg-accent text-canvas' : 'text-muted hover:text-body hover:bg-surface'}"
           onclick={() => (filterType = tab.value)}
         >
           {tab.label}

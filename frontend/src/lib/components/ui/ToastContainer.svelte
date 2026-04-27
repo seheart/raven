@@ -14,7 +14,7 @@
       return 'bg-[var(--warning)] text-white border-[var(--warning)]';
     case 'info':
     default:
-      return 'bg-[var(--accent)] text-white border-[var(--accent)]';
+      return 'bg-[var(--accent)] text-canvas border-[var(--accent)]';
     }
   }
 

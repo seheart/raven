@@ -124,7 +124,7 @@
       </div>
 
       <div class="mt-4 flex flex-wrap gap-2">
-        <a href="/overview" class="px-3 py-1.5 bg-accent text-white border border-accent rounded text-sm font-sans hover:opacity-90 transition-colors">[ Open dashboard → ]</a>
+        <a href="/overview" class="px-3 py-1.5 bg-accent text-canvas border border-accent rounded text-sm font-sans hover:opacity-90 transition-colors">[ Open dashboard → ]</a>
         <a href="#sect-quickstart" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ Quick start ]</a>
         <a href="/system" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ System diagnostics ]</a>
         <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ ★ GitHub ]</a>
@@ -353,7 +353,7 @@
     <PageSection title="11 // Try it">
       <p class="text-base text-body font-sans leading-relaxed mb-4">If you got this far and any of the four personas above sounded like you — clone it, run it, see what it catches on a project you've forgotten about. <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">github.com/seheart/raven</a> — MIT, single repo, no agreement to sign.</p>
       <div class="flex flex-wrap gap-2">
-        <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-accent text-white border border-accent rounded text-sm font-sans hover:opacity-90 transition-colors">[ ★ Star on GitHub ]</a>
+        <a href="https://github.com/seheart/raven" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-accent text-canvas border border-accent rounded text-sm font-sans hover:opacity-90 transition-colors">[ ★ Star on GitHub ]</a>
         <a href="#sect-quickstart" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ Quick start ↑ ]</a>
         <a href="/overview" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ Live dashboard → ]</a>
         <a href="/system" class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ System ]</a>

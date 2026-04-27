@@ -174,7 +174,7 @@
             {#each sessions as session (session.session_id)}
               <button
                 onclick={() => selectSession(session.session_id)}
-                class="w-full text-left px-3 py-2 rounded text-sm transition-colors border-0 cursor-pointer {selectedSession === session.session_id ? 'bg-accent text-white' : 'bg-canvas text-body hover:bg-border'}"
+                class="w-full text-left px-3 py-2 rounded text-sm transition-colors border-0 cursor-pointer {selectedSession === session.session_id ? 'bg-accent text-canvas' : 'bg-canvas text-body hover:bg-border'}"
               >
                 <div class="font-medium truncate">{session.project_name || session.session_id?.slice(0, 12)}</div>
                 <div class="text-xs {selectedSession === session.session_id ? 'text-white/70' : 'text-muted'}">{session.agent_count} agents · {formatTime(session.last_spawn)}</div>

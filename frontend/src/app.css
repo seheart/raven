@@ -70,22 +70,26 @@
   --text-5xl: 20px;
 }
 
-/* === Design Tokens — Raven Foundry palette ===
-   Black canvas, deep aubergine surfaces, violet wing-glow on dark.
-   Lavender paper, deep purple ink on light. Sharp 4px geometry. */
+/* === Design Tokens — Raven Black palette ===
+   A raven is mostly black. Different shades, but black is the truth. The
+   brand is monochromatic — pure black ink on warm cream paper (light),
+   off-white on near-pure black (dark). Functional state colors stay
+   distinct (success/error/warning/info) because they carry meaning. The
+   iridescence on a real raven's feathers shows up only as a barely-there
+   cool tint in the dark-mode body gradient. */
 :root {
-  /* Surfaces */
-  --bg: #f6f3fa;
+  /* Surfaces — warm cream paper */
+  --bg: #f6f4ef;
   --surface: #ffffff;
-  --surface-2: #ece6f2;
-  --text: #1f1530;
-  --text-heading: #0a0418;
-  --muted: #6a5878;
-  --border: #d6cee0;
+  --surface-2: #ebe8e1;
+  --text: #1a1a1a;
+  --text-heading: #000000;
+  --muted: #6b6b6b;
+  --border: #d4d2cc;
 
-  /* Accent + state colors */
-  --accent: #5e2c8c;
-  --accent-2: #7a3eb0;
+  /* Accent — pure raven black for primary actions, links, focus */
+  --accent: #0a0a0a;
+  --accent-2: #2d2d2d;
   --success: #2d7a4a;
   --error: #b62a4a;
   --warning: #b8740c;
@@ -96,44 +100,44 @@
   --pill-error: #b62a4a;
   --pill-mod: #b8740c;
 
-  /* Buttons */
-  --btn-primary-bg: #5e2c8c;
+  /* Buttons — primary is black-on-white, signature raven contrast */
+  --btn-primary-bg: #0a0a0a;
   --btn-primary-text: #ffffff;
-  --btn-primary-hover: #7a3eb0;
-  --btn-secondary-bg: #ece6f2;
-  --btn-secondary-text: #1f1530;
-  --btn-secondary-hover: #d6cee0;
+  --btn-primary-hover: #2d2d2d;
+  --btn-secondary-bg: #ebe8e1;
+  --btn-secondary-text: #1a1a1a;
+  --btn-secondary-hover: #d4d2cc;
   --btn-ghost-bg: transparent;
-  --btn-ghost-text: #5e2c8c;
-  --btn-ghost-hover: #ebe2f3;
-  --btn-disabled-bg: #ece6f2;
-  --btn-disabled-text: #9a8eaa;
+  --btn-ghost-text: #0a0a0a;
+  --btn-ghost-hover: #ebe8e1;
+  --btn-disabled-bg: #ebe8e1;
+  --btn-disabled-text: #9a9a9a;
 
   /* Links */
-  --link: #5e2c8c;
-  --link-hover: #7a3eb0;
-  --link-visited: #4a1f6e;
+  --link: #0a0a0a;
+  --link-hover: #2d2d2d;
+  --link-visited: #4a4a4a;
 
   /* Inputs */
   --input-bg: #ffffff;
-  --input-border: #d6cee0;
-  --input-focus-border: #5e2c8c;
-  --input-text: #1f1530;
-  --input-placeholder: #9a8eaa;
+  --input-border: #d4d2cc;
+  --input-focus-border: #0a0a0a;
+  --input-text: #1a1a1a;
+  --input-placeholder: #9a9a9a;
 
   /* Chips */
-  --chip-bg: #ece6f2;
-  --chip-text: #1f1530;
-  --chip-accent: #5e2c8c;
+  --chip-bg: #ebe8e1;
+  --chip-text: #1a1a1a;
+  --chip-accent: #0a0a0a;
 
   /* Code */
-  --code-bg: #f0eaf6;
-  --code-text: #1f1530;
-  --code-border: #d6cee0;
+  --code-bg: #f0eeea;
+  --code-text: #1a1a1a;
+  --code-border: #d4d2cc;
 
   /* Highlights */
-  --highlight: rgba(94, 44, 140, 0.1);
-  --selection: rgba(94, 44, 140, 0.2);
+  --highlight: rgba(0, 0, 0, 0.06);
+  --selection: rgba(0, 0, 0, 0.14);
 
   /* Semantic aliases */
   --text-primary: var(--text-heading);
@@ -146,7 +150,7 @@
   --primary: var(--accent);
 
   /* Subtle variants — pale tints of each semantic color */
-  --accent-subtle: #ebe2f3;
+  --accent-subtle: #ebe8e1;
   --success-subtle: #e6f3ec;
   --error-subtle: #f7e8ec;
   --warning-subtle: #f5ead4;
@@ -183,18 +187,21 @@
   --icon-lg: 32px;
 }
 
-/* === Dark Theme — the actual Raven. Black with violet wing-iridescence. === */
+/* === Dark Theme — the actual Raven. Black, with a barely-there cool
+   iridescence in the body gradient (the real bird's wings glint in
+   light — most of the time it's just black). === */
 html.dark {
-  --bg: #08050d;
-  --surface: #110a1c;
-  --surface-2: #190f29;
-  --text: #c8b8d8;
-  --text-heading: #f5edff;
-  --muted: #7a6a8e;
-  --border: #2a1d3d;
+  --bg: #0a0a0a;
+  --surface: #161616;
+  --surface-2: #1f1f1f;
+  --text: #c8c8c8;
+  --text-heading: #fafafa;
+  --muted: #777777;
+  --border: #2a2a2a;
 
-  --accent: #a47eff;
-  --accent-2: #bd9eff;
+  /* Accent inverts in dark mode: near-white actions on near-black canvas */
+  --accent: #ebebeb;
+  --accent-2: #ffffff;
   --success: #5fc88a;
   --error: #ef5d6e;
   --warning: #f5b045;
@@ -204,40 +211,40 @@ html.dark {
   --pill-error: #ef5d6e;
   --pill-mod: #f5b045;
 
-  --btn-primary-bg: #a47eff;
-  --btn-primary-text: #08050d;
-  --btn-primary-hover: #bd9eff;
-  --btn-secondary-bg: #190f29;
-  --btn-secondary-text: #c8b8d8;
-  --btn-secondary-hover: #2a1d3d;
+  --btn-primary-bg: #ebebeb;
+  --btn-primary-text: #0a0a0a;
+  --btn-primary-hover: #ffffff;
+  --btn-secondary-bg: #1f1f1f;
+  --btn-secondary-text: #c8c8c8;
+  --btn-secondary-hover: #2a2a2a;
   --btn-ghost-bg: transparent;
-  --btn-ghost-text: #a47eff;
-  --btn-ghost-hover: rgba(164, 126, 255, 0.12);
-  --btn-disabled-bg: #190f29;
-  --btn-disabled-text: #4d3f5e;
+  --btn-ghost-text: #ebebeb;
+  --btn-ghost-hover: rgba(235, 235, 235, 0.08);
+  --btn-disabled-bg: #1f1f1f;
+  --btn-disabled-text: #555555;
 
-  --link: #a47eff;
-  --link-hover: #bd9eff;
-  --link-visited: #8b65e8;
+  --link: #ebebeb;
+  --link-hover: #ffffff;
+  --link-visited: #b0b0b0;
 
-  --input-bg: #110a1c;
-  --input-border: #2a1d3d;
-  --input-focus-border: #a47eff;
-  --input-text: #c8b8d8;
-  --input-placeholder: #4d3f5e;
+  --input-bg: #161616;
+  --input-border: #2a2a2a;
+  --input-focus-border: #ebebeb;
+  --input-text: #c8c8c8;
+  --input-placeholder: #555555;
 
-  --chip-bg: #190f29;
-  --chip-text: #c8b8d8;
-  --chip-accent: #a47eff;
+  --chip-bg: #1f1f1f;
+  --chip-text: #c8c8c8;
+  --chip-accent: #ebebeb;
 
-  --code-bg: #0e0817;
-  --code-text: #c8b8d8;
-  --code-border: #2a1d3d;
+  --code-bg: #111111;
+  --code-text: #c8c8c8;
+  --code-border: #2a2a2a;
 
-  --highlight: rgba(164, 126, 255, 0.15);
-  --selection: rgba(164, 126, 255, 0.3);
+  --highlight: rgba(255, 255, 255, 0.06);
+  --selection: rgba(255, 255, 255, 0.14);
 
-  --accent-subtle: rgba(164, 126, 255, 0.14);
+  --accent-subtle: rgba(235, 235, 235, 0.10);
   --success-subtle: rgba(95, 200, 138, 0.12);
   --error-subtle: rgba(239, 93, 110, 0.12);
   --warning-subtle: rgba(245, 176, 69, 0.12);
@@ -248,12 +255,13 @@ html.dark {
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.6);
 }
 
-/* Wing iridescence — very subtle violet→ink gradient overlay on the body
-   in dark mode. Adds depth without screaming. */
+/* Wing iridescence — barely-there cool gradient overlay on the body in
+   dark mode. A real raven's feathers glint blue-green in good light;
+   most of the time you only see black. Keep it that subtle. */
 html.dark body {
   background-image:
-    radial-gradient(80% 60% at 0% 0%, rgba(164, 126, 255, 0.04), transparent 50%),
-    radial-gradient(60% 50% at 100% 100%, rgba(107, 155, 255, 0.025), transparent 50%);
+    radial-gradient(80% 60% at 0% 0%, rgba(180, 200, 220, 0.025), transparent 50%),
+    radial-gradient(60% 50% at 100% 100%, rgba(150, 180, 170, 0.018), transparent 50%);
   background-attachment: fixed;
 }
 
@@ -279,7 +287,7 @@ body {
 
 ::selection {
   background: var(--accent);
-  color: white;
+  color: var(--bg);
 }
 
 /* === Scrollbar === */
@@ -298,19 +306,24 @@ body {
   background: var(--muted);
 }
 
-/* === Typography === */
-strong {
-  color: var(--text-heading);
-  font-weight: 600;
-}
+/* === Typography ===
+   Wrapped in @layer base so Tailwind utilities (e.g. .text-canvas on a
+   primary CTA) win the cascade. Without the layer, bare `a { color }`
+   would sit unlayered and beat any utility class. */
+@layer base {
+  strong {
+    color: var(--text-heading);
+    font-weight: 600;
+  }
 
-a {
-  color: var(--link);
-  text-decoration: none;
-}
-a:hover {
-  color: var(--link-hover);
-  text-decoration: underline;
+  a {
+    color: var(--link);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+  }
 }
 
 /* === Layout === */

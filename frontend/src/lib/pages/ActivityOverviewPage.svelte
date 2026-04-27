@@ -821,7 +821,7 @@
               groupActivitiesBySession();
             }}
             class="px-4 py-2 text-sm font-semibold rounded transition-all border {groupBySession
-              ? 'bg-accent text-white border-accent'
+              ? 'bg-accent text-canvas border-accent'
               : 'bg-canvas text-body border-border hover:border-accent'}"
           >
             Session View
@@ -845,7 +845,7 @@
           onclick={() => setFilter('all')}
           class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
           'all'
-            ? 'bg-accent text-white border-accent'
+            ? 'bg-accent text-canvas border-accent'
             : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           All ({total})
@@ -854,7 +854,7 @@
           onclick={() => setFilter('file')}
           class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
           'file'
-            ? 'bg-accent text-white border-accent'
+            ? 'bg-accent text-canvas border-accent'
             : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           Files ({stats.file})
@@ -863,7 +863,7 @@
           onclick={() => setFilter('agent')}
           class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
           'agent'
-            ? 'bg-accent text-white border-accent'
+            ? 'bg-accent text-canvas border-accent'
             : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           Agents ({stats.agent})
@@ -872,7 +872,7 @@
           onclick={() => setFilter('system')}
           class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
           'system'
-            ? 'bg-accent text-white border-accent'
+            ? 'bg-accent text-canvas border-accent'
             : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           System ({stats.system})
