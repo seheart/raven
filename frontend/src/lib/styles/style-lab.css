@@ -1,0 +1,160 @@
+/* Style Lab — color variants on top of V01 Terminal // (black base).
+ * Each .variant-* class overrides the accent-related tokens (--accent,
+ * --color-accent, --accent-subtle, --link, --btn-primary-*) so any
+ * descendant using bg-accent / text-accent / etc. picks up the variant
+ * color. The base palette (bg, surface, text, headings, success/error/
+ * warning/info state colors) stays black-and-grey across all six.
+ *
+ * NOTE: --color-accent is the Tailwind v4 @theme alias that powers
+ * .bg-accent / .text-accent. Overriding only --accent is not enough
+ * because those alias values were already resolved at :root.
+ */
+
+/* === 1a — Pure Mono ===
+ * Zero brand color. The current Raven baseline. Listed for comparison.
+ */
+.variant-1a {
+  /* No overrides — inherits :root / :root.dark. */
+}
+
+/* === 1b — Steel Iridescence ===
+ * The cool blue-grey shimmer on a real raven's feathers. Restrained.
+ */
+.variant-1b {
+  --accent: #2d3e50;
+  --accent-2: #3d556e;
+  --color-accent: #2d3e50;
+  --accent-subtle: #e6ebf0;
+  --color-accent-subtle: #e6ebf0;
+  --btn-primary-bg: #2d3e50;
+  --btn-primary-hover: #3d556e;
+  --btn-primary-text: #ffffff;
+  --link: #2d3e50;
+  --link-hover: #3d556e;
+}
+:root.dark .variant-1b {
+  --accent: #8fa4bd;
+  --accent-2: #a8bcd4;
+  --color-accent: #8fa4bd;
+  --accent-subtle: rgba(143, 164, 189, 0.12);
+  --color-accent-subtle: rgba(143, 164, 189, 0.12);
+  --btn-primary-bg: #8fa4bd;
+  --btn-primary-hover: #a8bcd4;
+  --btn-primary-text: #0a0a0a;
+  --link: #8fa4bd;
+  --link-hover: #a8bcd4;
+}
+
+/* === 1c — Phosphor Green ===
+ * Bloomberg / CRT terminal punch. "Live" reads as actually live.
+ */
+.variant-1c {
+  --accent: #006633;
+  --accent-2: #008040;
+  --color-accent: #006633;
+  --accent-subtle: #e0f0e6;
+  --color-accent-subtle: #e0f0e6;
+  --btn-primary-bg: #006633;
+  --btn-primary-hover: #008040;
+  --btn-primary-text: #ffffff;
+  --link: #006633;
+  --link-hover: #008040;
+}
+:root.dark .variant-1c {
+  --accent: #4ade80;
+  --accent-2: #6ce895;
+  --color-accent: #4ade80;
+  --accent-subtle: rgba(74, 222, 128, 0.12);
+  --color-accent-subtle: rgba(74, 222, 128, 0.12);
+  --btn-primary-bg: #4ade80;
+  --btn-primary-hover: #6ce895;
+  --btn-primary-text: #0a0a0a;
+  --link: #4ade80;
+  --link-hover: #6ce895;
+}
+
+/* === 1d — Amber Terminal ===
+ * BBS-amber warmth. VT100 nostalgia without the gimmick.
+ */
+.variant-1d {
+  --accent: #a85c00;
+  --accent-2: #c46d00;
+  --color-accent: #a85c00;
+  --accent-subtle: #fdeed5;
+  --color-accent-subtle: #fdeed5;
+  --btn-primary-bg: #a85c00;
+  --btn-primary-hover: #c46d00;
+  --btn-primary-text: #ffffff;
+  --link: #a85c00;
+  --link-hover: #c46d00;
+}
+:root.dark .variant-1d {
+  --accent: #fbbf24;
+  --accent-2: #fcd34d;
+  --color-accent: #fbbf24;
+  --accent-subtle: rgba(251, 191, 36, 0.12);
+  --color-accent-subtle: rgba(251, 191, 36, 0.12);
+  --btn-primary-bg: #fbbf24;
+  --btn-primary-hover: #fcd34d;
+  --btn-primary-text: #0a0a0a;
+  --link: #fbbf24;
+  --link-hover: #fcd34d;
+}
+
+/* === 1e — Restrained Violet ===
+ * Foundry callback, dialed way down. Most things stay grey; only
+ * primary action and links get violet. Less neon than the original.
+ */
+.variant-1e {
+  --accent: #4a3470;
+  --accent-2: #5c4287;
+  --color-accent: #4a3470;
+  --accent-subtle: #ece6f3;
+  --color-accent-subtle: #ece6f3;
+  --btn-primary-bg: #4a3470;
+  --btn-primary-hover: #5c4287;
+  --btn-primary-text: #ffffff;
+  --link: #4a3470;
+  --link-hover: #5c4287;
+}
+:root.dark .variant-1e {
+  --accent: #c4a8f5;
+  --accent-2: #d4bdfa;
+  --color-accent: #c4a8f5;
+  --accent-subtle: rgba(196, 168, 245, 0.12);
+  --color-accent-subtle: rgba(196, 168, 245, 0.12);
+  --btn-primary-bg: #c4a8f5;
+  --btn-primary-hover: #d4bdfa;
+  --btn-primary-text: #0a0a0a;
+  --link: #c4a8f5;
+  --link-hover: #d4bdfa;
+}
+
+/* === 1f — Crimson Wax ===
+ * Single dramatic red, used sparingly. Like the one red feather, or a
+ * sealing-wax stamp. Reserved — works because the rest is black.
+ */
+.variant-1f {
+  --accent: #8b1f2e;
+  --accent-2: #a32636;
+  --color-accent: #8b1f2e;
+  --accent-subtle: #f8e3e6;
+  --color-accent-subtle: #f8e3e6;
+  --btn-primary-bg: #8b1f2e;
+  --btn-primary-hover: #a32636;
+  --btn-primary-text: #ffffff;
+  --link: #8b1f2e;
+  --link-hover: #a32636;
+}
+:root.dark .variant-1f {
+  --accent: #f87171;
+  --accent-2: #fb8585;
+  --color-accent: #f87171;
+  --accent-subtle: rgba(248, 113, 113, 0.12);
+  --color-accent-subtle: rgba(248, 113, 113, 0.12);
+  --btn-primary-bg: #f87171;
+  --btn-primary-hover: #fb8585;
+  --btn-primary-text: #0a0a0a;
+  --link: #f87171;
+  --link-hover: #fb8585;
+}
