@@ -2,6 +2,18 @@
   import { onMount } from 'svelte';
   import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
   import { createPageApi } from '../apiClient.js';
+  import { websocketService } from '../services/websocket.js';
+  import {
+    HERO,
+    ARCHITECTURE,
+    STACK_SECTIONS,
+    PARAMETERS,
+    PROVISIONING,
+    TOOL_CATALOG,
+    SYSTEM_DECISIONS,
+    GOVERNANCE
+  } from '../content/system.js';
+
   const { api } = createPageApi();
 
   /** @type {any} */
@@ -18,6 +30,10 @@
   let modelsMeta = $state({ usable_vram_gib: null, vram_total_gib: null });
   /** @type {string|null} */
   let loadError = $state(null);
+  let websocketConnected = $state(false);
+
+  // Tool catalog tier filter
+  let toolTier = $state('all');
 
   onMount(async () => {
     try {
@@ -42,381 +58,569 @@
     } catch (err) {
       loadError = err instanceof Error ? err.message : String(err);
     }
+
+    websocketConnected = websocketService.isConnected();
+    const updateStatus = () => { websocketConnected = websocketService.isConnected(); };
+    websocketService.on('connect', updateStatus);
+    websocketService.on('disconnect', updateStatus);
+    return () => {
+      websocketService.off('connect', updateStatus);
+      websocketService.off('disconnect', updateStatus);
+    };
   });
 
-  // -------- Static content (edit here as the project evolves) --------
-
-  const stackSections = [
-    {
-      title: 'Frontend',
-      items: [
-        { name: 'Svelte 5', role: 'UI framework with runes-based reactivity', url: 'https://svelte.dev' },
-        { name: 'Vite', role: 'Dev server and build tool', url: 'https://vitejs.dev' },
-        { name: 'Tailwind CSS 4', role: 'Utility-first styling on CSS variable tokens', url: 'https://tailwindcss.com' },
-        { name: 'Chart.js', role: 'Time-series and breakdown charts', url: 'https://www.chartjs.org' },
-        { name: 'socket.io-client', role: 'Realtime updates from the backend', url: 'https://socket.io' },
-        { name: 'DOMPurify', role: 'Sanitizes any rendered HTML', url: 'https://github.com/cure53/DOMPurify' }
-      ]
-    },
-    {
-      title: 'Backend',
-      items: [
-        { name: 'Node.js + TypeScript', role: 'Runtime and type-checked source for the API server' },
-        { name: 'Express', role: 'HTTP routing and middleware', url: 'https://expressjs.com' },
-        { name: 'Socket.IO', role: 'WebSocket transport pushing live events to the UI', url: 'https://socket.io' },
-        { name: 'better-sqlite3', role: 'Synchronous SQLite driver — Raven stores everything locally', url: 'https://github.com/WiseLibs/better-sqlite3' },
-        { name: 'chokidar', role: 'File watcher that picks up Claude session logs', url: 'https://github.com/paulmillr/chokidar' },
-        { name: 'simple-git', role: 'Reads branch and status info shown in footer/overview', url: 'https://github.com/steveukx/git-js' },
-        { name: 'winston', role: 'Structured server logs', url: 'https://github.com/winstonjs/winston' }
-      ]
-    },
-    {
-      title: 'Security & API',
-      items: [
-        { name: 'helmet', role: 'Sets safe-by-default HTTP headers', url: 'https://helmetjs.github.io' },
-        { name: 'express-rate-limit', role: 'Per-route request limiting' },
-        { name: 'cors / compression', role: 'Cross-origin handling and gzip on responses' },
-        { name: 'joi', role: 'Request payload validation', url: 'https://joi.dev' },
-        { name: 'jsonwebtoken + bcryptjs', role: 'Token signing and password hashing primitives' },
-        { name: 'Swagger UI', role: 'Interactive API docs from JSDoc-annotated routes' },
-        { name: 'prom-client', role: 'Prometheus-compatible metrics endpoint' }
-      ]
-    },
-    {
-      title: 'Testing & Quality',
-      items: [
-        { name: 'Vitest', role: 'Frontend unit tests', url: 'https://vitest.dev' },
-        { name: 'Playwright', role: 'End-to-end browser tests', url: 'https://playwright.dev' },
-        { name: 'Jest + Supertest', role: 'Backend unit and HTTP integration tests' },
-        { name: 'ESLint + Prettier', role: 'Linting and formatting across JS, TS, Svelte' },
-        { name: 'svelte-check + tsc', role: 'Type-checking for Svelte components and backend TS' },
-        { name: 'validate-patterns.sh', role: 'Design-system governance — bans raw hex, raw h1/h2, scoped style blocks, and arbitrary tokens on migrated pages.' }
-      ]
-    }
-  ];
-
-  const architecture = [
-    { head: 'Watchers', body: 'chokidar tails Claude/Codex/Ollama session logs and the working tree.' },
-    { head: 'Pipeline', body: 'Events are normalized, categorized, scored, and persisted in SQLite.' },
-    { head: 'API', body: 'Express + Socket.IO expose REST endpoints and live event streams.' },
-    { head: 'Frontend', body: 'Svelte 5 renders dashboards; charts, alerts, code-health views.' },
-    { head: 'You', body: 'A single browser tab — local-first, no cloud, runs on localhost.' }
-  ];
-
-  const parameters = [
-    { label: 'Backend port', value: '9100' },
-    { label: 'Frontend port (dev)', value: '9000' },
-    { label: 'Database', value: 'SQLite (local file)' },
-    { label: 'Auth (dev)', value: 'Disabled — bound to localhost' },
-    { label: 'Retention', value: 'Unlimited (manual prune)' },
-    { label: 'WebSocket transport', value: 'Socket.IO (polling + WS upgrade)' }
-  ];
-
-  const provisioning = {
-    now: [
-      { label: 'Live session monitoring (Claude, Codex, Ollama)' },
-      { label: 'Code-health self-analysis' },
-      { label: 'Cost tracking and per-agent breakdowns' },
-      { label: 'Sub-agent orchestration trees' },
-      { label: 'Pattern detection + trigger engine' },
-      { label: 'Health monitor with alerting' },
-      { label: 'System & API introspection (this page)' },
-      { label: 'Design system: tokens, layout primitives, ratcheted lint governance (33 pages migrated)' }
-    ],
-    next: [
-      { label: 'Inline diff scoring & risk annotations', detail: 'Per-file scoring with per-line callouts.' },
-      { label: 'Multi-machine roll-up', detail: 'Aggregate sessions across hosts.' },
-      { label: 'Decision audit trail', detail: 'Structured decision log feeding the About page.' },
-      { label: 'Plugin surface for custom triggers', detail: 'User-authored JS rules with a sandbox.' }
-    ]
-  };
-
-  // -------- Helpers --------
-
   /** @param {number|null|undefined} n */
-  function fmtGiB(n) {
-    if (n == null) return '—';
-    return `${n.toFixed(1)} GiB`;
-  }
+  function fmtGiB(n) { return n == null ? '—' : `${n.toFixed(1)} GiB`; }
+
   /** @param {number|null|undefined} s */
   function fmtUptime(s) {
     if (s == null) return '—';
     const sec = Math.floor(s);
-    const h = Math.floor(sec / 3600);
+    const d = Math.floor(sec / 86400);
+    const h = Math.floor((sec % 86400) / 3600);
     const m = Math.floor((sec % 3600) / 60);
-    const r = sec % 60;
+    if (d > 0) return `${d}d ${h}h`;
     if (h > 0) return `${h}h ${m}m`;
-    if (m > 0) return `${m}m ${r}s`;
-    return `${r}s`;
+    return `${m}m`;
   }
+
   /** @param {string} method */
   function methodBadgeClass(method) {
     switch (method) {
-      case 'GET':
-        return 'bg-info/15 text-info';
-      case 'POST':
-        return 'bg-success/15 text-success';
+      case 'GET': return 'bg-info/15 text-info';
+      case 'POST': return 'bg-success/15 text-success';
       case 'PUT':
-      case 'PATCH':
-        return 'bg-warning/15 text-warning';
-      case 'DELETE':
-        return 'bg-error/15 text-error';
-      default:
-        return 'bg-surface-2 text-muted';
+      case 'PATCH': return 'bg-warning/15 text-warning';
+      case 'DELETE': return 'bg-error/15 text-error';
+      default: return 'bg-surface-2 text-muted';
     }
   }
+
   /** @param {string} fit */
   function fitBadgeClass(fit) {
     switch (fit) {
-      case 'fits':
-        return 'bg-success/15 text-success';
-      case 'tight':
-        return 'bg-warning/15 text-warning';
-      case 'overflow':
-        return 'bg-error/15 text-error';
-      default:
-        return 'bg-surface-2 text-muted';
+      case 'fits': return 'bg-success/15 text-success';
+      case 'tight': return 'bg-warning/15 text-warning';
+      case 'overflow': return 'bg-error/15 text-error';
+      default: return 'bg-surface-2 text-muted';
     }
   }
+
+  /** @param {string} status */
+  function statusBadgeClass(status) {
+    switch (status) {
+      case 'selected': return 'bg-success/15 text-success';
+      case 'backup': return 'bg-info/15 text-info';
+      case 'manual': return 'bg-warning/15 text-warning';
+      case 'excluded': return 'bg-error/15 text-error';
+      default: return 'bg-surface-2 text-muted';
+    }
+  }
+
+  const TIER_DOT_CLASS = {
+    accent: 'bg-accent',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    info: 'bg-info'
+  };
+  function tierDotClass(c) { return TIER_DOT_CLASS[c] || TIER_DOT_CLASS.accent; }
+
+  const visibleTiers = $derived(
+    toolTier === 'all' ? TOOL_CATALOG : TOOL_CATALOG.filter(g => g.tier === toolTier)
+  );
 </script>
 
 <PageLayout>
-  <PageHeader
-    title="System"
-    description="How Raven is built and how the running instance looks right now — stack, schema, routes, hardware, and decisions."
-  />
+  <div class="space-y-12">
 
-  {#if loadError}
-    <div class="bg-error/10 border border-error/30 text-error rounded-lg p-3 text-sm">
-      Failed to load system data: {loadError}
+    <!-- Status bar -->
+    <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
+        <span aria-hidden="true">::</span>
+        <span class="uppercase tracking-wide">Architecture · Stack · State</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full {websocketConnected ? 'bg-success animate-pulse' : 'bg-warning'}"></span>
+        <span class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}">
+          {websocketConnected ? 'Operational' : 'Disconnected'}
+        </span>
+      </div>
     </div>
-  {/if}
 
-  <!-- Metadata bar -->
-  <section class="bg-surface border border-border rounded-lg p-4">
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-3 text-sm font-mono">
-      {#each [
-        { k: 'Platform', v: intro?.platform_label },
-        { k: 'Agents', v: intro?.agent_count },
-        { k: 'Tables', v: intro?.table_count },
-        { k: 'Endpoints', v: intro?.endpoint_count },
-        { k: 'Uptime', v: fmtUptime(intro?.uptime_seconds) },
-        { k: 'PID', v: intro?.pid }
-      ] as row (row.k)}
-        <div class="flex flex-col gap-0.5">
-          <span class="text-muted uppercase tracking-wide">{row.k}</span>
-          <span class="text-body truncate" title={row.v ?? '—'}>{row.v ?? '—'}</span>
-        </div>
-      {/each}
-    </div>
-  </section>
+    <!-- Hero -->
+    <section>
+      <PageHeader title={HERO.title} />
 
-  <PageSection title="Architecture">
-    <div class="flex flex-wrap gap-2 items-stretch">
-      {#each architecture as box, i (box.head)}
-        <div class="flex items-stretch gap-2 flex-1 min-w-[180px]">
-          <div class="bg-surface border border-border rounded-lg p-3 flex-1">
-            <div class="font-mono text-sm font-semibold text-accent mb-1">
-              {box.head}
-            </div>
-            <div class="text-sm text-muted font-sans leading-relaxed">{box.body}</div>
+      <div class="mt-4 space-y-1.5 text-sm font-mono">
+        {#each [
+          { k: 'Runtime', v: intro?.platform_label },
+          { k: 'Agents', v: intro?.agent_count },
+          { k: 'Tables', v: intro?.table_count },
+          { k: 'Endpoints', v: intro?.endpoint_count },
+          { k: 'Uptime', v: fmtUptime(intro?.uptime_seconds) },
+          { k: 'PID', v: intro?.pid },
+          { k: 'Scope', v: 'Local · Host-Only' }
+        ] as row (row.k)}
+          <div class="flex items-baseline gap-2">
+            <span class="text-muted w-32 flex-shrink-0">{row.k}</span>
+            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+            <span class="text-body">{row.v ?? '—'}</span>
           </div>
-          {#if i < architecture.length - 1}
-            <div class="flex items-center text-muted font-mono text-lg select-none">→</div>
-          {/if}
-        </div>
-      {/each}
-    </div>
-  </PageSection>
+        {/each}
+      </div>
 
-  <PageSection title="Stack">
-    <div class="space-y-4">
-      {#each stackSections as section (section.title)}
-        <div class="bg-surface border border-border rounded-lg p-5">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-            {section.title}
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            {#each section.items as item (item.name)}
-              <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
-                <div class="font-mono text-body sm:w-44 sm:flex-shrink-0">
-                  {#if item.url}
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">{item.name}</a>
-                  {:else}
-                    {item.name}
-                  {/if}
+      <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
+        {#each HERO.badges as badge (badge.label)}
+          <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
+          {#each badge.items as item, i (item)}
+            <span>{item}</span>
+            {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
+          {/each}
+        {/each}
+      </div>
+
+      {#if loadError}
+        <div class="mt-4 bg-error/10 border border-error/30 text-error rounded-lg p-3 text-sm">
+          Failed to load system data: {loadError}
+        </div>
+      {/if}
+    </section>
+
+    <!-- 01 // Architecture -->
+    <PageSection title="01 // Architecture">
+      <div class="flex flex-wrap gap-2 items-stretch">
+        {#each ARCHITECTURE as box, i (box.head)}
+          <div class="flex items-stretch gap-2 flex-1 min-w-[180px]">
+            <div class="bg-surface border border-border rounded-lg p-3 flex-1">
+              <div class="font-mono text-sm font-semibold text-accent mb-1">{box.head}</div>
+              <div class="text-sm text-muted font-sans leading-relaxed">{box.body}</div>
+            </div>
+            {#if i < ARCHITECTURE.length - 1}
+              <div class="flex items-center text-muted font-mono text-lg select-none">→</div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </PageSection>
+
+    <!-- 02 // Stack -->
+    <PageSection title="02 // Stack">
+      <div class="space-y-4">
+        {#each STACK_SECTIONS as section (section.title)}
+          <div class="bg-surface border border-border rounded-lg p-5">
+            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">{section.title}</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              {#each section.items as item (item.name)}
+                <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
+                  <div class="font-mono text-body sm:w-44 sm:flex-shrink-0">
+                    {#if item.url}
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">{item.name}</a>
+                    {:else}
+                      {item.name}
+                    {/if}
+                  </div>
+                  <div class="text-muted font-sans flex-1">{item.role}</div>
                 </div>
-                <div class="text-muted font-sans flex-1">{item.role}</div>
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/each}
-    </div>
-  </PageSection>
-
-  <PageSection title="Data Model" meta="live ({tables.length} tables)">
-    {#if tables.length === 0}
-      <div class="text-sm text-muted italic">Loading…</div>
-    {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {#each tables as t (t.name)}
-          <div class="bg-surface border border-border rounded-lg p-3">
-            <div class="flex items-baseline justify-between gap-3 mb-2">
-              <span class="font-mono text-sm text-accent">{t.name}</span>
-              <span class="text-xs font-mono text-muted">{t.row_count.toLocaleString()} rows</span>
-            </div>
-            <div class="text-sm font-mono text-muted leading-relaxed break-words">
-              {t.columns.join(' · ')}
+              {/each}
             </div>
           </div>
         {/each}
       </div>
-    {/if}
-  </PageSection>
+    </PageSection>
 
-  <PageSection title="Public API" meta="live ({routes.length} endpoints)">
-    {#if routes.length === 0}
-      <div class="text-sm text-muted italic">Loading…</div>
-    {:else}
-      <div class="bg-surface border border-border rounded-lg overflow-hidden">
-        <div class="max-h-96 overflow-y-auto">
+    <!-- 03 // Data Model -->
+    <PageSection title="03 // Data Model" meta="live · auto-generated from sqlite_master">
+      {#if tables.length === 0}
+        <div class="text-sm text-muted italic">Loading…</div>
+      {:else}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {#each tables as t (t.name)}
+            <div class="bg-surface border border-border rounded-lg p-3">
+              <div class="flex items-baseline justify-between gap-3 mb-2">
+                <span class="font-mono text-sm text-accent">{t.name}</span>
+                <span class="text-xs font-mono text-muted">{t.row_count.toLocaleString()} rows</span>
+              </div>
+              <div class="text-sm font-mono text-muted leading-relaxed break-words">
+                {t.columns.join(' · ')}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </PageSection>
+
+    <!-- 04 // Public API -->
+    <PageSection title="04 // Public API" meta="live · auto-generated from Express routes">
+      {#if routes.length === 0}
+        <div class="text-sm text-muted italic">Loading…</div>
+      {:else}
+        <div class="bg-surface border border-border rounded-lg overflow-hidden">
+          <div class="max-h-96 overflow-y-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-canvas sticky top-0 z-10">
+                <tr class="text-xs text-muted uppercase tracking-wide">
+                  <th class="text-left font-semibold px-4 py-2 w-20">Method</th>
+                  <th class="text-left font-semibold px-4 py-2">Path</th>
+                  <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Summary</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each routes as r (r.methods.join(',') + r.path)}
+                  <tr class="border-t border-border">
+                    <td class="px-4 py-1.5">
+                      {#each r.methods as m (m)}
+                        <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded {methodBadgeClass(m)} mr-1">{m}</span>
+                      {/each}
+                    </td>
+                    <td class="px-4 py-1.5 font-mono text-body break-all">{r.path}</td>
+                    <td class="px-4 py-1.5 text-muted hidden md:table-cell">{r.summary}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {/if}
+    </PageSection>
+
+    <!-- 05 // Parameters -->
+    <PageSection title="05 // Parameters">
+      <div class="bg-surface border border-border rounded-lg p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          {#each PARAMETERS as p (p.label)}
+            <div class="flex justify-between gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
+              <span class="text-muted">{p.label}</span>
+              <span class="font-mono text-body text-right">{p.value}</span>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </PageSection>
+
+    <!-- 06 // Capacity -->
+    <PageSection title="06 // Capacity" meta="live · CPU / RAM / GPU / disk">
+      {#if !hardware}
+        <div class="text-sm text-muted italic">Loading…</div>
+      {:else}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="text-xs text-muted uppercase tracking-wide mb-1">CPU</div>
+            <div class="font-mono text-sm text-body break-words leading-tight">{hardware.cpu}</div>
+            <div class="text-xs text-muted mt-1">{hardware.cores} threads</div>
+          </div>
+          <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="text-xs text-muted uppercase tracking-wide mb-1">RAM</div>
+            <div class="font-mono text-lg text-body">{fmtGiB(hardware.ram_gib)}</div>
+            <div class="text-xs text-muted mt-1">{fmtGiB(hardware.ram_free_gib)} free</div>
+          </div>
+          <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="text-xs text-muted uppercase tracking-wide mb-1">GPU</div>
+            <div class="font-mono text-sm text-body break-words leading-tight">{hardware.gpu ?? '—'}</div>
+            <div class="text-xs text-muted mt-1">
+              {hardware.vram_total_gib != null ? `${fmtGiB(hardware.vram_total_gib)} total · ${fmtGiB(hardware.vram_free_gib)} free` : 'no nvidia-smi'}
+            </div>
+          </div>
+          <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="text-xs text-muted uppercase tracking-wide mb-1">Disk</div>
+            <div class="font-mono text-lg text-body">{fmtGiB(hardware.disk_total_gib)}</div>
+            <div class="text-xs text-muted mt-1">{fmtGiB(hardware.disk_free_gib)} free</div>
+          </div>
+        </div>
+        <div class="mt-3 text-xs font-mono text-muted leading-relaxed">
+          {hardware.os} · kernel {hardware.kernel} · arch {hardware.arch}{hardware.vram_usable_gib != null ? ` · ~${fmtGiB(hardware.vram_usable_gib)} usable VRAM for models` : ''}
+        </div>
+      {/if}
+    </PageSection>
+
+    <!-- 07 // Installed Models -->
+    {#if models.length > 0}
+      <PageSection title="07 // Installed Models" meta="live · fit assessment vs. usable VRAM">
+        <p class="text-sm text-body font-sans mb-3">Each model's GGUF size shown alongside whether it fits in usable VRAM (total minus display headroom). Overflow models spill to CPU and run an order of magnitude slower.</p>
+        <div class="bg-surface border border-border rounded-lg overflow-hidden">
           <table class="w-full text-sm">
-            <thead class="bg-canvas sticky top-0 z-10">
+            <thead class="bg-canvas">
               <tr class="text-xs text-muted uppercase tracking-wide">
-                <th class="text-left font-semibold px-4 py-2 w-20">Method</th>
-                <th class="text-left font-semibold px-4 py-2">Path</th>
-                <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Summary</th>
+                <th class="text-left font-semibold px-4 py-2">Fit</th>
+                <th class="text-left font-semibold px-4 py-2">Model</th>
+                <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Size</th>
+                <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Params</th>
+                <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Quant</th>
               </tr>
             </thead>
             <tbody>
-              {#each routes as r (r.methods.join(',') + r.path)}
+              {#each models as m (m.name)}
                 <tr class="border-t border-border">
                   <td class="px-4 py-1.5">
-                    {#each r.methods as m (m)}
-                      <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded {methodBadgeClass(m)} mr-1">{m}</span>
-                    {/each}
+                    <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded uppercase {fitBadgeClass(m.fit)}">{m.fit}</span>
                   </td>
-                  <td class="px-4 py-1.5 font-mono text-body break-all">{r.path}</td>
-                  <td class="px-4 py-1.5 text-muted hidden md:table-cell">{r.summary}</td>
+                  <td class="px-4 py-1.5 font-mono text-body">{m.name}</td>
+                  <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.size_gb != null ? `${m.size_gb.toFixed(2)} GiB` : '—'}</td>
+                  <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.params ?? '—'}</td>
+                  <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.quantization ?? '—'}</td>
                 </tr>
               {/each}
             </tbody>
           </table>
         </div>
-      </div>
+        {#if modelsMeta.usable_vram_gib != null}
+          <div class="mt-2 text-xs font-mono text-muted">
+            Fit assessed against ~{fmtGiB(modelsMeta.usable_vram_gib)} usable VRAM (of {fmtGiB(modelsMeta.vram_total_gib)} total).
+          </div>
+        {/if}
+      </PageSection>
     {/if}
-  </PageSection>
 
-  <PageSection title="Parameters">
-    <div class="bg-surface border border-border rounded-lg p-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-        {#each parameters as p (p.label)}
-          <div class="flex justify-between gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
-            <span class="text-muted">{p.label}</span>
-            <span class="font-mono text-body text-right">{p.value}</span>
+    <!-- 08 // Provisioning -->
+    <PageSection title="08 // Provisioning">
+      <p class="text-sm text-body font-sans mb-4">Capacity vs. orchestration. Raven's <strong>capacity</strong> is provisioned — what's missing is more <strong>orchestration</strong> on top.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <h3 class="text-xs font-semibold text-success uppercase tracking-wide mb-3">Now — Provisioned</h3>
+          <ul class="space-y-1.5 text-sm">
+            {#each PROVISIONING.now as item (item.label)}
+              <li class="flex gap-2">
+                <span class="text-success flex-shrink-0">✓</span>
+                <span class="text-body">{item.label}</span>
+              </li>
+            {/each}
+          </ul>
+        </div>
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <h3 class="text-xs font-semibold text-info uppercase tracking-wide mb-3">Next — To Build</h3>
+          <ol class="space-y-2 text-sm list-decimal list-inside">
+            {#each PROVISIONING.next as item (item.label)}
+              <li class="text-body">
+                <span class="font-medium">{item.label}</span>
+                {#if item.detail}
+                  <div class="ml-5 text-sm text-muted font-sans mt-0.5">{item.detail}</div>
+                {/if}
+              </li>
+            {/each}
+          </ol>
+        </div>
+      </div>
+    </PageSection>
+
+    <!-- 09 // Tool Catalog -->
+    <PageSection title="09 // Tool Catalog" meta="selected · backup · manual · excluded">
+      <p class="text-sm text-body font-sans mb-4">The "why these and not those" rationale for Raven's stack. Filter by tier to focus.</p>
+
+      <!-- Tier filter chips -->
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button
+          type="button"
+          class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === 'all' ? 'bg-accent text-white border-accent' : 'bg-surface border-border hover:border-accent'}"
+          onclick={() => (toolTier = 'all')}
+        >All</button>
+        {#each TOOL_CATALOG as g (g.tier)}
+          <button
+            type="button"
+            class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === g.tier ? 'bg-accent text-white border-accent' : 'bg-surface border-border hover:border-accent'}"
+            onclick={() => (toolTier = g.tier)}
+          >{g.tier}</button>
+        {/each}
+      </div>
+
+      {#each visibleTiers as group (group.tier)}
+        <div class="mb-6">
+          <h3 class="flex items-center gap-2 text-sm font-semibold text-heading mb-2">
+            <span class="w-2 h-2 rounded-full {tierDotClass(group.color)}"></span>
+            {group.tier}
+          </h3>
+          <p class="text-sm text-muted font-sans mb-3">{group.blurb}</p>
+          <div class="bg-surface border border-border rounded-lg overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-canvas">
+                <tr class="text-xs text-muted uppercase tracking-wide">
+                  <th class="text-left font-semibold px-3 py-2">Status</th>
+                  <th class="text-left font-semibold px-3 py-2">Tool</th>
+                  <th class="text-left font-semibold px-3 py-2 hidden md:table-cell">Provider</th>
+                  <th class="text-left font-semibold px-3 py-2 hidden lg:table-cell">Cost</th>
+                  <th class="text-left font-semibold px-3 py-2 hidden lg:table-cell">License</th>
+                  <th class="text-left font-semibold px-3 py-2">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each group.tools as t (t.name)}
+                  <tr class="border-t border-border align-top">
+                    <td class="px-3 py-2">
+                      <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded uppercase {statusBadgeClass(t.status)}">{t.status}</span>
+                    </td>
+                    <td class="px-3 py-2 font-mono text-body">
+                      <div class="font-semibold">{t.name}</div>
+                      <div class="text-xs font-sans text-muted mt-0.5">{t.bestFor}</div>
+                    </td>
+                    <td class="px-3 py-2 text-muted font-sans hidden md:table-cell">{t.provider}</td>
+                    <td class="px-3 py-2 font-mono text-muted hidden lg:table-cell">{t.cost}</td>
+                    <td class="px-3 py-2 font-mono text-muted hidden lg:table-cell">{t.license}</td>
+                    <td class="px-3 py-2 text-body font-sans">
+                      {t.notes}
+                      {#if t.status === 'excluded' && t.reason}
+                        <div class="text-xs text-muted mt-1">— {t.reason}</div>
+                      {/if}
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {/each}
+    </PageSection>
+
+    <!-- 10 // Key Design Decisions -->
+    <PageSection title="10 // Key Design Decisions">
+      <p class="text-sm text-muted font-sans mb-4">Implementation-level choices behind the running system. Architectural decisions (data model, scope, single-host) live on the About page.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {#each SYSTEM_DECISIONS as d (d.head)}
+          <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="text-sm font-semibold text-accent mb-2">{d.head}</div>
+            <p class="text-sm text-body font-sans leading-relaxed">{d.body}</p>
           </div>
         {/each}
       </div>
-    </div>
-  </PageSection>
+    </PageSection>
 
-  <PageSection title="Hardware Capacity" meta="live">
-    {#if !hardware}
-      <div class="text-sm text-muted italic">Loading…</div>
-    {:else}
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="bg-surface border border-border rounded-lg p-4">
-          <div class="text-xs text-muted uppercase tracking-wide mb-1">CPU</div>
-          <div class="font-mono text-sm text-body break-words leading-tight">{hardware.cpu}</div>
-          <div class="text-xs text-muted mt-1">{hardware.cores} threads</div>
-        </div>
-        <div class="bg-surface border border-border rounded-lg p-4">
-          <div class="text-xs text-muted uppercase tracking-wide mb-1">RAM</div>
-          <div class="font-mono text-lg text-body">{fmtGiB(hardware.ram_gib)}</div>
-          <div class="text-xs text-muted mt-1">{fmtGiB(hardware.ram_free_gib)} free</div>
-        </div>
-        <div class="bg-surface border border-border rounded-lg p-4">
-          <div class="text-xs text-muted uppercase tracking-wide mb-1">GPU</div>
-          <div class="font-mono text-sm text-body break-words leading-tight">{hardware.gpu ?? '—'}</div>
-          <div class="text-xs text-muted mt-1">
-            {hardware.vram_total_gib != null ? `${fmtGiB(hardware.vram_total_gib)} total · ${fmtGiB(hardware.vram_free_gib)} free` : 'no nvidia-smi'}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded-lg p-4">
-          <div class="text-xs text-muted uppercase tracking-wide mb-1">Disk</div>
-          <div class="font-mono text-lg text-body">{fmtGiB(hardware.disk_total_gib)}</div>
-          <div class="text-xs text-muted mt-1">{fmtGiB(hardware.disk_free_gib)} free</div>
-        </div>
-      </div>
-      <div class="mt-3 text-xs font-mono text-muted leading-relaxed">
-        {hardware.os} · kernel {hardware.kernel} · arch {hardware.arch}{hardware.vram_usable_gib != null ? ` · ~${fmtGiB(hardware.vram_usable_gib)} usable VRAM for models` : ''}
-      </div>
-    {/if}
-  </PageSection>
+    <!-- 11 // Governance -->
+    <PageSection title="11 // Governance" meta="every gate, linter, validator, CI check — in one place">
+      <p class="text-sm text-body font-sans mb-6">What's protecting you from breaking things. Each gate runs locally (via the pre-commit hook on git commit, or manually) AND in CI on every push. Bypassing locally with <code class="font-mono text-accent">--no-verify</code> is caught by CI.</p>
 
-  {#if models.length > 0}
-    <PageSection title="Installed Models" meta="live ({models.length})">
-      <div class="bg-surface border border-border rounded-lg overflow-hidden">
+      <h3 class="text-sm font-semibold text-heading mb-3">Quality gates</h3>
+      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
         <table class="w-full text-sm">
           <thead class="bg-canvas">
             <tr class="text-xs text-muted uppercase tracking-wide">
-              <th class="text-left font-semibold px-4 py-2">Fit</th>
-              <th class="text-left font-semibold px-4 py-2">Model</th>
-              <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Size</th>
-              <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Params</th>
-              <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Quant</th>
+              <th class="text-left font-semibold px-3 py-2">Gate</th>
+              <th class="text-left font-semibold px-3 py-2">What it catches</th>
+              <th class="text-left font-semibold px-3 py-2 hidden md:table-cell">Where it runs</th>
+              <th class="text-left font-semibold px-3 py-2 hidden lg:table-cell">Config</th>
             </tr>
           </thead>
           <tbody>
-            {#each models as m (m.name)}
-              <tr class="border-t border-border">
-                <td class="px-4 py-1.5">
-                  <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded uppercase {fitBadgeClass(m.fit)}">{m.fit}</span>
+            {#each GOVERNANCE.gates as g (g.name)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2 font-mono text-body font-semibold">{g.name}</td>
+                <td class="px-3 py-2 text-body font-sans">{g.what}</td>
+                <td class="px-3 py-2 hidden md:table-cell">
+                  <span class="inline-block px-2 py-0.5 text-xs font-mono bg-success/15 text-success rounded">{g.where}</span>
                 </td>
-                <td class="px-4 py-1.5 font-mono text-body">{m.name}</td>
-                <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.size_gb != null ? `${m.size_gb.toFixed(2)} GiB` : '—'}</td>
-                <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.params ?? '—'}</td>
-                <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.quantization ?? '—'}</td>
+                <td class="px-3 py-2 font-mono text-muted hidden lg:table-cell"><code>{g.config}</code></td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
-      {#if modelsMeta.usable_vram_gib != null}
-        <div class="mt-2 text-xs font-mono text-muted">
-          Fit assessed against ~{fmtGiB(modelsMeta.usable_vram_gib)} usable VRAM (of {fmtGiB(modelsMeta.vram_total_gib)} total).
-        </div>
-      {/if}
-    </PageSection>
-  {/if}
 
-  <PageSection title="Provisioning Roadmap">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-surface border border-border rounded-lg p-4">
-        <h3 class="text-xs font-semibold text-success uppercase tracking-wide mb-3">Now — Provisioned</h3>
-        <ul class="space-y-1.5 text-sm">
-          {#each provisioning.now as item (item.label)}
-            <li class="flex gap-2">
-              <span class="text-success flex-shrink-0">✓</span>
-              <span class="text-body">{item.label}</span>
-            </li>
-          {/each}
-        </ul>
+      <h3 class="text-sm font-semibold text-heading mb-3">Design-system linter rules <span class="text-xs font-mono text-muted ml-2">{GOVERNANCE.dsRules.length} active</span></h3>
+      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-2">Rule</th>
+              <th class="text-left font-semibold px-3 py-2">What it forbids / warns</th>
+              <th class="text-left font-semibold px-3 py-2 hidden md:table-cell">Fix</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each GOVERNANCE.dsRules as r (r.name)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2 font-mono text-accent"><code>{r.name}</code></td>
+                <td class="px-3 py-2 text-body font-sans">{r.kind}</td>
+                <td class="px-3 py-2 text-muted font-sans hidden md:table-cell">{r.fix}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
-      <div class="bg-surface border border-border rounded-lg p-4">
-        <h3 class="text-xs font-semibold text-info uppercase tracking-wide mb-3">Next — To Build</h3>
-        <ol class="space-y-2 text-sm list-decimal list-inside">
-          {#each provisioning.next as item (item.label)}
-            <li class="text-body">
-              <span class="font-medium">{item.label}</span>
-              {#if item.detail}
-                <div class="ml-5 text-sm text-muted font-sans mt-0.5">{item.detail}</div>
-              {/if}
-            </li>
-          {/each}
-        </ol>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">CI workflow <span class="text-xs font-mono text-muted ml-2">.github/workflows/ci.yml</span></h3>
+      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-2">Job</th>
+              <th class="text-left font-semibold px-3 py-2">What it does</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each GOVERNANCE.ci as c (c.job)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2 font-mono text-body"><code>{c.job}</code></td>
+                <td class="px-3 py-2 text-body font-sans">{c.what}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
-    </div>
-  </PageSection>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Test suites</h3>
+      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-2">Path</th>
+              <th class="text-left font-semibold px-3 py-2">What's there</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each GOVERNANCE.tests as t (t.path)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2 font-mono text-body"><code>{t.path}</code></td>
+                <td class="px-3 py-2 text-body font-sans">{t.what}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Dev tools</h3>
+      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-2">Tool</th>
+              <th class="text-left font-semibold px-3 py-2">What it does</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each GOVERNANCE.devTools as d (d.name)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2 font-mono text-body"><code>{d.name}</code></td>
+                <td class="px-3 py-2 text-body font-sans">{d.what}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Convention docs</h3>
+      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-2">Path</th>
+              <th class="text-left font-semibold px-3 py-2">What's there</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each GOVERNANCE.docs as d (d.path)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2 font-mono text-body"><code>{d.path}</code></td>
+                <td class="px-3 py-2 text-body font-sans">{d.what}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-warning/10 border-l-4 border-warning rounded-r p-4">
+        <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! {GOVERNANCE.invoke.summary}</div>
+        <div class="text-sm text-body font-sans">{GOVERNANCE.invoke.body}</div>
+      </div>
+    </PageSection>
+
+  </div>
 </PageLayout>
