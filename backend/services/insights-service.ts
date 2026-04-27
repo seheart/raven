@@ -475,12 +475,88 @@ Keep it under 200 words. Be specific about file names and projects.`;
   // unboundedly during the 15s debounce window.
   private static readonly DIFF_RISK_MAX_PENDING = 50;
 
+  // Files we never send to the LLM — binaries, images, lockfiles, etc.
+  // Their "diffs" are noise and the model can't meaningfully score them.
+  private static readonly DIFF_RISK_SKIP_EXTENSIONS = new Set([
+    // images
+    'png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'bmp', 'tiff', 'svg',
+    // video / audio
+    'mp4', 'webm', 'mov', 'avi', 'mp3', 'wav', 'ogg', 'flac',
+    // archives & binaries
+    'zip', 'tar', 'gz', 'bz2', '7z', 'rar', 'pdf', 'wasm', 'exe', 'dll', 'so',
+    // build/compiled
+    'class', 'jar', 'pyc', 'pyo', 'o', 'a',
+    // lockfiles (large, generated, low-signal)
+    'lock'
+  ]);
+
+  // Recently-scored content cache. Same diff content → skip rescore for 5 min.
+  private recentlyScored: Map<string, number> = new Map();
+  private static readonly DIFF_RISK_CACHE_TTL_MS = 5 * 60 * 1000;
+  private static readonly DIFF_RISK_CACHE_MAX = 200;
+
+  private isBinaryOrSkipped(filepath: string): boolean {
+    const lower = filepath.toLowerCase();
+    const lastDot = lower.lastIndexOf('.');
+    if (lastDot === -1) return false;
+    const ext = lower.slice(lastDot + 1);
+    if (InsightsService.DIFF_RISK_SKIP_EXTENSIONS.has(ext)) return true;
+    // Also skip lockfile basenames
+    const base = lower.split('/').pop() || '';
+    if (
+      base === 'package-lock.json' ||
+      base === 'yarn.lock' ||
+      base === 'pnpm-lock.yaml' ||
+      base === 'poetry.lock' ||
+      base === 'cargo.lock' ||
+      base === 'go.sum' ||
+      base === 'composer.lock'
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  // FNV-1a 32-bit hash. Cheap and stable for cache keying. Not crypto.
+  private hashContent(s: string): string {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = (h * 0x01000193) >>> 0;
+    }
+    return h.toString(16);
+  }
+
   /**
    * Queue a diff for batched risk scoring. Files are collected over a 15-second
-   * window and then scored in a single ollama call to avoid VRAM pressure.
-   * On overflow, the oldest pending item is dropped.
+   * window and then scored.
+   *
+   * Three guards prevent runaway:
+   *  - Binary/image/lockfile extensions are skipped (LLM can't score them).
+   *  - Same filepath in the queue is deduped — only the latest diff is kept.
+   *  - Recently-scored identical content (by hash) is skipped for 5 minutes.
+   *  - On overflow past 50, the oldest distinct file is dropped.
    */
   queueDiffRisk(eventId: number, filepath: string, diff: string, changeType: string): void {
+    if (this.isBinaryOrSkipped(filepath)) {
+      logger.debug(`Skipping diff risk for ${filepath} (binary/skipped extension)`);
+      return;
+    }
+
+    const contentHash = this.hashContent(`${filepath}|${diff}`);
+    const lastScored = this.recentlyScored.get(contentHash);
+    if (lastScored && Date.now() - lastScored < InsightsService.DIFF_RISK_CACHE_TTL_MS) {
+      logger.debug(`Skipping diff risk for ${filepath} — identical content scored recently`);
+      return;
+    }
+
+    // Dedupe by filepath: drop any earlier queued entry for the same file,
+    // keep only this newest one. Avoids 50× same-file queueing during a storm.
+    const existingIdx = this.pendingDiffRisks.findIndex(p => p.filepath === filepath);
+    if (existingIdx !== -1) {
+      this.pendingDiffRisks.splice(existingIdx, 1);
+    }
+
     this.pendingDiffRisks.push({ eventId, filepath, diff, changeType });
     if (this.pendingDiffRisks.length > InsightsService.DIFF_RISK_MAX_PENDING) {
       const dropped = this.pendingDiffRisks.length - InsightsService.DIFF_RISK_MAX_PENDING;
@@ -501,7 +577,27 @@ Keep it under 200 words. Be specific about file names and projects.`;
 
     // Score each item sequentially (global concurrency gate handles the rest)
     for (const item of batch) {
-      await this.scoreDiffRiskSingle(item.eventId, item.filepath, item.diff, item.changeType);
+      const contentHash = this.hashContent(`${item.filepath}|${item.diff}`);
+      // Re-check cache at flush time — content may have been scored by another
+      // path between queue and flush (rare but possible).
+      const lastScored = this.recentlyScored.get(contentHash);
+      if (lastScored && Date.now() - lastScored < InsightsService.DIFF_RISK_CACHE_TTL_MS) {
+        continue;
+      }
+      const result = await this.scoreDiffRiskSingle(
+        item.eventId,
+        item.filepath,
+        item.diff,
+        item.changeType
+      );
+      if (result) {
+        this.recentlyScored.set(contentHash, Date.now());
+        // Bounded cache — drop oldest entries if it grows too big.
+        if (this.recentlyScored.size > InsightsService.DIFF_RISK_CACHE_MAX) {
+          const oldest = this.recentlyScored.keys().next().value;
+          if (oldest) this.recentlyScored.delete(oldest);
+        }
+      }
     }
   }
 
