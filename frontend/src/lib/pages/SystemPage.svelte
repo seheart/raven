@@ -88,9 +88,9 @@
         { name: 'Vitest', role: 'Frontend unit tests', url: 'https://vitest.dev' },
         { name: 'Playwright', role: 'End-to-end browser tests', url: 'https://playwright.dev' },
         { name: 'Jest + Supertest', role: 'Backend unit and HTTP integration tests' },
-        { name: 'Storybook', role: 'Component workshop and visual regression sandbox', url: 'https://storybook.js.org' },
         { name: 'ESLint + Prettier', role: 'Linting and formatting across JS, TS, Svelte' },
-        { name: 'svelte-check + tsc', role: 'Type-checking for Svelte components and backend TS' }
+        { name: 'svelte-check + tsc', role: 'Type-checking for Svelte components and backend TS' },
+        { name: 'validate-patterns.sh', role: 'Design-system governance — bans raw hex, raw h1/h2, scoped style blocks, and arbitrary tokens on migrated pages.' }
       ]
     }
   ];
@@ -120,7 +120,8 @@
       { label: 'Sub-agent orchestration trees' },
       { label: 'Pattern detection + trigger engine' },
       { label: 'Health monitor with alerting' },
-      { label: 'System & API introspection (this page)' }
+      { label: 'System & API introspection (this page)' },
+      { label: 'Design system: tokens, layout primitives, ratcheted lint governance (33 pages migrated)' }
     ],
     next: [
       { label: 'Inline diff scoring & risk annotations', detail: 'Per-file scoring with per-line callouts.' },

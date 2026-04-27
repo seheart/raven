@@ -92,7 +92,10 @@
     'Section cards inside a PageSection use <code>bg-surface border border-border rounded-lg p-5</code> with an uppercase mono label heading.',
     'Status dots are 8px circles (<code>w-2 h-2</code>) with semantic backgrounds. Don\'t reinvent shapes.',
     'Mono font is reserved for technical content: session IDs, paths, durations, code, model names.',
-    'The System page is the gold standard for content-style screens — match its header, status grid, and detail-card patterns when adding new ones.'
+    'The System page is the gold standard for content-style screens — match its header, status grid, and detail-card patterns when adding new ones.',
+    'Animations live in <code>lib/styles/animations.css</code>. Page-level <code>&lt;style&gt;</code> blocks are forbidden on migrated pages — lift to that file or compose with Tailwind utilities.',
+    'Brand-identity hex colors (per-agent, per-vendor) are the only allowed exception to the no-raw-hex rule. Mark with a leader <code>// design-system-allow: hex</code> comment.',
+    'Rules are enforced by <code>npm run validate:patterns</code> (ratcheted — only applies to pages that import <code>PageLayout</code>, so legacy pages don\'t block CI but cannot regress once migrated). Coverage of the primitive library against this page is checked by <code>npm run validate:design-coverage</code>.'
   ];
 </script>
 
