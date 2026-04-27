@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
@@ -509,10 +509,7 @@
         <p class="text-sm text-muted font-sans">Loading tracked files...</p>
       </div>
     {:else if files.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <p class="text-sm font-semibold text-heading mb-2">No files tracked yet</p>
-        <p class="text-sm text-muted font-sans">Edit files to start tracking</p>
-      </div>
+      <EmptyState title="No files tracked yet" description="Edit files to start tracking" />
     {:else}
       <!-- Statistics Header -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -655,11 +652,7 @@
       <!-- File List -->
       <div class="space-y-2 mb-6">
         {#if filteredFiles.length === 0}
-          <div class="bg-surface border border-border rounded-lg p-8 text-center">
-            <p class="text-sm text-muted font-sans">
-              No files match your filters. Try adjusting your search or filters.
-            </p>
-          </div>
+          <EmptyState size="compact" title="No files match" description="Try adjusting your search or filters." />
         {:else}
           {#each filteredFiles as filepath (filepath)}
             <div

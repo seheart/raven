@@ -4,7 +4,7 @@
   import { formatShortDateTime } from '../timeFormat.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import ProjectBadge from '../ProjectBadge.svelte';
@@ -375,29 +375,13 @@
 
         <!-- Trigger Rules Grid -->
         {#if filteredTriggers.length === 0 && triggers.length > 0}
-          <div class="bg-surface border border-border rounded-lg p-8 text-center">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-              No Matching Triggers
-            </h3>
-            <p class="text-sm text-muted font-sans">
-              Try adjusting your search or filters.
-            </p>
-          </div>
+          <EmptyState size="compact" title="No Matching Triggers" description="Try adjusting your search or filters." />
         {:else if triggers.length === 0}
-          <div class="bg-surface border border-border rounded-lg p-8 text-center">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-              No Triggers Configured
-            </h3>
-            <p class="text-sm text-muted font-sans mb-2">
-              Create triggers in <code
-                class="bg-canvas px-2 py-1 rounded text-accent font-mono"
-                >.raven/config.toml</code
-              > to get started.
-            </p>
-            <p class="text-xs text-muted font-sans italic">
-              Example triggers are created automatically when Raven first runs.
-            </p>
-          </div>
+          <EmptyState
+            size="compact"
+            title="No Triggers Configured"
+            description="Create triggers in .raven/config.toml to get started. Example triggers are created automatically when Raven first runs."
+          />
         {:else}
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {#each filteredTriggers as trigger (trigger.name)}
@@ -535,24 +519,13 @@
 
         <!-- Triggered Events -->
         {#if filteredEvents.length === 0 && triggeredEvents.length > 0}
-          <div class="bg-surface border border-border rounded-lg p-8 text-center">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-              No Events for Selected Project
-            </h3>
-            <p class="text-sm text-muted font-sans">Try selecting a different project.</p>
-          </div>
+          <EmptyState size="compact" title="No Events for Selected Project" description="Try selecting a different project." />
         {:else if triggeredEvents.length === 0}
-          <div class="bg-surface border border-border rounded-lg p-8 text-center">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-              No Triggered Events
-            </h3>
-            <p class="text-sm text-muted font-sans">
-              No triggers have fired yet. Events will appear here when conditions are met.
-            </p>
-            <p class="text-xs text-muted font-sans italic mt-2">
-              Real-time updates via WebSocket
-            </p>
-          </div>
+          <EmptyState
+            size="compact"
+            title="No Triggered Events"
+            description="No triggers have fired yet. Events will appear here when conditions are met. Real-time updates via WebSocket."
+          />
         {:else}
           <div class="space-y-2">
             {#each filteredEvents as event (event.id)}
@@ -632,16 +605,11 @@
               </div>
             </div>
           {:else}
-            <div
-              class="bg-surface border border-border rounded-lg p-8 text-center"
-            >
-              <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                No Statistics Available
-              </h3>
-              <p class="text-sm text-muted font-sans">
-                Statistics will appear here once triggers start firing.
-              </p>
-            </div>
+            <EmptyState
+              size="compact"
+              title="No Statistics Available"
+              description="Statistics will appear here once triggers start firing."
+            />
           {/if}
         </div>
       {/if}

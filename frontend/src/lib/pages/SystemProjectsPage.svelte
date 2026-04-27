@@ -3,6 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { renderMarkdown } from '../utils/markdown.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { ToolbarButton, EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let config = $state({ autoDiscover: true, basePath: '', projects: [] });
@@ -238,22 +239,17 @@
           {/each}
         </div>
       {:else if error}
-        <div class="bg-surface border border-border rounded-lg p-8 text-center">
-          <p class="text-sm text-error mb-3">{error}</p>
-          <button
-            onclick={loadConfig}
-            class="px-3 py-1.5 bg-accent text-white rounded text-sm">Retry</button
-          >
-        </div>
+        <EmptyState size="compact" title={error}>
+          {#snippet actions()}
+            <ToolbarButton variant="primary" onClick={loadConfig}>Retry</ToolbarButton>
+          {/snippet}
+        </EmptyState>
       {:else if config.projects.length === 0}
-        <div class="bg-surface border border-border rounded-lg p-8 text-center">
-          <p class="text-sm text-muted mb-3">No projects configured</p>
-          <button
-            onclick={discoverProjects}
-            class="px-3 py-1.5 bg-accent text-white rounded text-sm"
-            >Discover Projects</button
-          >
-        </div>
+        <EmptyState size="compact" title="No projects configured">
+          {#snippet actions()}
+            <ToolbarButton variant="primary" onClick={discoverProjects}>Discover Projects</ToolbarButton>
+          {/snippet}
+        </EmptyState>
       {:else}
         <div class="bg-surface border border-border rounded-lg">
           <div class="divide-y divide-[var(--border)]">

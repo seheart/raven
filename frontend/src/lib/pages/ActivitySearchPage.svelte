@@ -4,6 +4,7 @@
   import { logger } from '../logger.js';
   import { formatDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { EmptyState } from '../components/ui/index.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -243,19 +244,9 @@
         <div class="text-sm text-muted font-sans">Searching...</div>
       </div>
     {:else if !hasSearched}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div class="text-sm font-semibold text-heading mb-2">Start Searching</div>
-        <div class="text-sm text-muted font-sans">
-          Enter a search term to find files, events, and activity
-        </div>
-      </div>
+      <EmptyState title="Start Searching" description="Enter a search term to find files, events, and activity" />
     {:else if filteredResults.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div class="text-sm font-semibold text-heading mb-2">No Results Found</div>
-        <div class="text-sm text-muted font-sans">
-          No matches for "{searchQuery}". Try a different search term.
-        </div>
-      </div>
+      <EmptyState title="No Results Found" description="No matches for &quot;{searchQuery}&quot;. Try a different search term." />
     {:else}
       <!-- Results Header -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

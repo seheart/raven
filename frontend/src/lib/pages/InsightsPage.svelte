@@ -4,6 +4,7 @@
   import { formatTimeOnly as formatTime, formatShortDateTime } from '../timeFormat.js';
   import { renderMarkdown } from '../utils/markdown.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let insights = $state([]);
@@ -217,12 +218,11 @@
     {#if loading}
       <div class="text-center py-12 text-sm text-muted">Loading insights...</div>
     {:else if filteredInsights.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-8 text-center">
-        <div class="text-lg text-muted mb-2">No insights yet</div>
-        <p class="text-sm text-muted font-sans mb-4">
-          Use the buttons above to generate AI-powered analysis of your development activity.
-        </p>
-      </div>
+      <EmptyState
+        size="compact"
+        title="No insights yet"
+        description="Use the buttons above to generate AI-powered analysis of your development activity."
+      />
     {:else}
       <div class="space-y-3">
         {#each filteredInsights as insight (insight.id)}

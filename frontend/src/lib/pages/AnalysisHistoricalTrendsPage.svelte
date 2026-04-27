@@ -3,7 +3,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
    * Historical Trends Page
@@ -432,12 +432,11 @@
         </button>
       </div>
     {:else if initialized && trends.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-8 text-center">
-        <p class="text-sm text-muted font-sans mb-2">
-          No activity data for the selected period
-        </p>
-        <p class="text-sm text-muted font-sans">Try selecting a longer time range</p>
-      </div>
+      <EmptyState
+        size="compact"
+        title="No activity data for the selected period"
+        description="Try selecting a longer time range"
+      />
     {:else}
       <!-- Summary Stats -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">

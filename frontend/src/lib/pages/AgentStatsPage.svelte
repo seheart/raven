@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, EmptyState, LoadingState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   /**
@@ -506,26 +506,14 @@
     </div>
 
     {#if loading}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div
-          class="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4"
-        ></div>
-        <p class="text-sm text-muted font-sans">Loading agent statistics...</p>
-      </div>
+      <LoadingState message="Loading agent statistics..." />
     {:else if agentStats.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <p class="text-sm text-muted mb-2 font-sans">No agent statistics available</p>
-        <p class="text-sm text-muted opacity-80 font-sans">
-          Agent activity will appear here once detected by Raven.
-        </p>
-      </div>
+      <EmptyState
+        title="No agent statistics available"
+        description="Agent activity will appear here once detected by Raven."
+      />
     {:else if filteredStats.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <p class="text-sm text-muted mb-2 font-sans">No agents match your search</p>
-        <p class="text-sm text-muted opacity-80 font-sans">
-          Try adjusting your search query.
-        </p>
-      </div>
+      <EmptyState title="No agents match your search" description="Try adjusting your search query." />
     {:else}
       <div class="text-sm text-muted mb-3 font-mono">
         Showing <strong class="text-accent">{filteredStats.length}</strong> of

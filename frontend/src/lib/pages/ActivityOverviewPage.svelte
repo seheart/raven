@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
@@ -992,32 +992,21 @@
           <div class="text-muted">Loading activities...</div>
         </div>
       {:else if activities.length === 0}
-        <div class="bg-surface border border-border rounded-lg p-12 text-center">
-          <h3 class="text-sm font-semibold text-heading mb-2">No Activities Found</h3>
-          {#if selectedType !== 'all'}
-            <p class="text-muted mb-4">
-              No <strong>{selectedType}</strong> activities found. Try changing filters or search query.
-            </p>
-          {:else if searchQuery}
-            <p class="text-muted mb-4">
-              No activities match "<strong>{searchQuery}</strong>". Try a different search term.
-            </p>
-          {:else}
-            <p class="text-muted mb-4">
-              No activity has been logged yet. Start coding and Raven will track all changes!
-            </p>
-          {/if}
-          <button
-            onclick={() => {
-              selectedType = 'all';
-              searchQuery = '';
-              loadActivities();
-            }}
-            class="px-4 py-2 bg-accent text-white rounded text-sm font-semibold hover:opacity-90"
-          >
-            Clear Filters
-          </button>
-        </div>
+        <EmptyState
+          title="No Activities Found"
+          description={selectedType !== 'all'
+            ? `No ${selectedType} activities found. Try changing filters or search query.`
+            : searchQuery
+              ? `No activities match "${searchQuery}". Try a different search term.`
+              : 'No activity has been logged yet. Start coding and Raven will track all changes!'}
+        >
+          {#snippet actions()}
+            <ToolbarButton
+              variant="primary"
+              onClick={() => { selectedType = 'all'; searchQuery = ''; loadActivities(); }}
+            >Clear Filters</ToolbarButton>
+          {/snippet}
+        </EmptyState>
       {:else if groupBySession && sessions.length > 0}
         <!-- Session Grouped View -->
         {#each sessions as session (session.id)}

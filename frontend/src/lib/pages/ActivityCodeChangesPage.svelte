@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { formatDateTime, formatTimeOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState } from '../components/ui/index.js';
   /**
    * Activity Code Changes Page - Detailed file change log with real-time updates
    */
@@ -279,14 +279,10 @@
         <div class="text-sm text-muted font-sans">Loading changes...</div>
       </div>
     {:else if filteredEvents.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div class="text-sm font-semibold text-heading mb-2">No changes found</div>
-        <div class="text-sm text-muted font-sans">
-          {searchQuery || selectedType !== 'all'
-            ? 'Try adjusting your filters'
-            : 'Waiting for code changes to be detected'}
-        </div>
-      </div>
+      <EmptyState
+        title="No changes found"
+        description={searchQuery || selectedType !== 'all' ? 'Try adjusting your filters' : 'Waiting for code changes to be detected'}
+      />
     {:else}
       <div class="bg-surface border border-border rounded-lg overflow-hidden">
         <div class="overflow-x-auto">

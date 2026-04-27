@@ -4,7 +4,7 @@
   import { formatShortDateTime } from '../timeFormat.js';
   import { websocketService } from '../services/websocket.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let data = $state({ latest: null, history: [], is_running: false });
@@ -327,20 +327,17 @@
       </div>
     {:else if !displayRun}
       <!-- No data state -->
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div class="text-4xl mb-4 opacity-30">&#x1F50D;</div>
-        <h3 class="text-lg font-bold text-heading mb-2">No Analysis Yet</h3>
-        <p class="text-sm text-muted font-sans mb-6">
-          The first automated analysis will run shortly, or you can trigger one now.
-        </p>
-        <button
-          onclick={triggerAnalysis}
-          disabled={triggering}
-          class="px-4 py-2 bg-accent text-white rounded text-sm font-sans hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {triggering ? 'Starting...' : 'Run Analysis'}
-        </button>
-      </div>
+      <EmptyState
+        icon="🔍"
+        title="No Analysis Yet"
+        description="The first automated analysis will run shortly, or you can trigger one now."
+      >
+        {#snippet actions()}
+          <ToolbarButton variant="primary" onClick={triggerAnalysis} disabled={triggering}>
+            {triggering ? 'Starting...' : 'Run Analysis'}
+          </ToolbarButton>
+        {/snippet}
+      </EmptyState>
     {:else}
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">

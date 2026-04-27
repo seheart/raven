@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
   /**
    * Analysis Performance Page
    * Performance profiling with 3 tabs: Metrics, Trend Charts, Correlations
@@ -501,12 +501,10 @@
           {/if}
         </div>
       {:else}
-        <div class="bg-surface border border-border rounded-lg p-12 text-center">
-          <p class="text-muted text-sm">No performance data available yet.</p>
-          <p class="text-sm text-muted mt-2">
-            Metrics are collected automatically when monitoring is active.
-          </p>
-        </div>
+        <EmptyState
+          title="No performance data available yet"
+          description="Metrics are collected automatically when monitoring is active."
+        />
       {/if}
     {:else if activeTab === 'charts'}
       <!-- TREND CHARTS TAB -->
@@ -722,12 +720,10 @@
           </div>
         </div>
       {:else}
-        <div class="bg-surface border border-border rounded-lg p-12 text-center">
-          <p class="text-muted text-sm">No metrics data available for charts.</p>
-          <p class="text-sm text-muted mt-2">
-            Charts will appear once performance data is collected.
-          </p>
-        </div>
+        <EmptyState
+          title="No metrics data available for charts"
+          description="Charts will appear once performance data is collected."
+        />
       {/if}
     {:else if activeTab === 'correlations'}
       <!-- CORRELATIONS TAB -->
@@ -856,15 +852,10 @@
           </div>
         </div>
       {:else}
-        <div class="bg-surface border border-border rounded-lg p-12 text-center">
-          <p class="text-muted text-sm">No performance correlations found.</p>
-          <p class="text-sm text-muted mt-2">
-            Correlations show which file changes coincide with CPU/memory spikes.
-          </p>
-          <p class="text-xs text-muted mt-2">
-            Make some file changes while the system is under load to see correlations.
-          </p>
-        </div>
+        <EmptyState
+          title="No performance correlations found"
+          description="Correlations show which file changes coincide with CPU/memory spikes. Make some file changes while the system is under load to see correlations."
+        />
       {/if}
     {/if}
 </PageLayout>

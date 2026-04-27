@@ -3,7 +3,7 @@
   import { logger } from '../logger.js';
   import { projectFilter } from '../projectFilterStore.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, EmptyState, LoadingState } from '../components/ui/index.js';
   /**
    * Project Health Details Page
    * Comprehensive health analysis for a single project
@@ -109,22 +109,13 @@
   </PageHeader>
 
     {#if loading && !healthData}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div
-          class="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4"
-        ></div>
-        <p class="text-sm text-muted font-sans">Calculating health score...</p>
-      </div>
+      <LoadingState message="Calculating health score..." />
     {:else if error}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <p class="text-sm text-error mb-2">{error}</p>
-        <button
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors mt-4"
-          onclick={loadHealthSummary}
-        >
-          Try Again
-        </button>
-      </div>
+      <EmptyState title={error}>
+        {#snippet actions()}
+          <ToolbarButton onClick={loadHealthSummary}>Try Again</ToolbarButton>
+        {/snippet}
+      </EmptyState>
     {:else if healthData}
       <!-- Overall Health Score -->
       <div class="bg-surface border border-border rounded-lg p-5 mb-6">

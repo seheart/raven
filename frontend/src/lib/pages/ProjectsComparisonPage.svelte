@@ -3,7 +3,7 @@
   import { logger } from '../logger.js';
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, EmptyState, LoadingState } from '../components/ui/index.js';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
@@ -264,26 +264,17 @@
     </div>
 
     {#if loading}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div
-          class="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4"
-        ></div>
-        <p class="text-sm text-muted font-sans">Loading projects...</p>
-      </div>
+      <LoadingState message="Loading projects..." />
     {:else if projects.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <p class="text-sm text-muted mb-2">No projects found</p>
-        <p class="text-xs text-muted opacity-80">
-          Projects are automatically discovered when you start monitoring code with Raven.
-        </p>
-      </div>
+      <EmptyState
+        title="No projects found"
+        description="Projects are automatically discovered when you start monitoring code with Raven."
+      />
     {:else if filteredProjects.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <p class="text-sm text-muted mb-2">No projects match your filters</p>
-        <p class="text-xs text-muted opacity-80">
-          Try adjusting your search or status filter.
-        </p>
-      </div>
+      <EmptyState
+        title="No projects match your filters"
+        description="Try adjusting your search or status filter."
+      />
     {:else}
       <!-- Table -->
       <div class="bg-surface border border-border rounded-lg overflow-hidden">
