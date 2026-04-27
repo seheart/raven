@@ -45,7 +45,9 @@
   };
 
   function resolveColors() {
-    const s = getComputedStyle(document.body);
+    // Read from <html> not <body> — the dark class lives on
+    // documentElement (Tailwind v4 token-cascade requirement).
+    const s = getComputedStyle(document.documentElement);
     colors.accent = s.getPropertyValue('--accent').trim() || colors.accent;
     colors.success = s.getPropertyValue('--success').trim() || colors.success;
     colors.error = s.getPropertyValue('--error').trim() || colors.error;
@@ -388,7 +390,7 @@
       clearTimeout(themeDebounce);
       themeDebounce = setTimeout(resolveColors, 100);
     });
-    themeObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
     const resizeObs = new ResizeObserver(() => handleResize());
     resizeObs.observe(canvas.parentElement);
