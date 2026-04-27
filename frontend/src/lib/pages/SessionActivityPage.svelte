@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { formatTimeOnly, formatDateOnly, formatShortDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let data = $state({ entries: [], sessions: [], currentSession: null });
@@ -120,13 +120,11 @@
         {/each}
       </div>
     {:else if data.entries.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div class="text-4xl mb-4 opacity-30">💬</div>
-        <h3 class="text-lg font-bold text-heading mb-2">No Activity Yet</h3>
-        <p class="text-sm text-muted font-sans">
-          Start a conversation with Claude Code to see activity here.
-        </p>
-      </div>
+      <EmptyState
+        icon="💬"
+        title="No Activity Yet"
+        description="Start a conversation with Claude Code to see activity here."
+      />
     {:else}
       <!-- Session Picker + Filters -->
       <div class="flex flex-wrap gap-3 mb-6 items-center">

@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { formatTimeOnly, formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState } from '../components/ui/index.js';
   /**
    * Activity Timeline Page
    * Visual chronological timeline of events
@@ -269,10 +269,7 @@
         <div class="text-sm text-muted font-sans">Loading timeline...</div>
       </div>
     {:else if groupedEvents.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <div class="text-sm font-semibold text-heading mb-2">No events found</div>
-        <div class="text-sm text-muted font-sans">Try adjusting your filters</div>
-      </div>
+      <EmptyState title="No events found" description="Try adjusting your filters" />
     {:else}
       <div class="space-y-6">
         {#each groupedEvents as group, index (index)}

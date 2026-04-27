@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
 
@@ -137,9 +137,7 @@
         {/each}
       </div>
     {:else if errors.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-12 text-center">
-        <p class="text-sm text-muted">No errors found</p>
-      </div>
+      <EmptyState title="No errors found" />
     {:else}
       <div class="bg-surface border border-border rounded-lg">
         <div class="divide-y divide-[var(--border)]">

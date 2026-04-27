@@ -4,7 +4,7 @@
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState } from '../components/ui/index.js';
 
   let models = $state([]);
   let loading = $state(true);
@@ -101,13 +101,10 @@
 
       <!-- Model Cards -->
       {#if models.length === 0}
-        <div class="bg-surface border border-border rounded-lg p-12 text-center">
-          <p class="text-sm text-muted">No models detected yet</p>
-          <p class="text-xs text-muted mt-2">
-            Models appear when they're detected running locally or when events are logged via the
-            telemetry API
-          </p>
-        </div>
+        <EmptyState
+          title="No models detected yet"
+          description="Models appear when they're detected running locally or when events are logged via the telemetry API."
+        />
       {:else}
         <div class="space-y-4">
           {#each models as model (model.name)}
