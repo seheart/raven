@@ -33,12 +33,15 @@
   const pendingGroup = new Map(); // key -> { type, label, count, timer }
 
 
+  // Fallback values — only used if CSS-var lookup fails. Resolved values
+  // come from --accent, --success, etc. via resolveColors() below, so the
+  // canvas re-tints automatically when the theme changes. design-system-allow: hex
   let colors = {
-    accent: '#6b8eff',
-    success: '#22c55e',
-    error: '#ef4444',
-    warning: '#f59e0b',
-    muted: '#8888a0'
+    accent: '#a47eff',
+    success: '#5fc88a',
+    error: '#ef5d6e',
+    warning: '#f5b045',
+    muted: '#7a6a8e'
   };
 
   function resolveColors() {

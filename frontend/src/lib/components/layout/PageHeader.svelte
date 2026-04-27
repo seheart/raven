@@ -37,7 +37,7 @@
 {:else if size === 'medium'}
   <header class="flex items-center justify-between gap-4">
     <div class="flex items-center gap-3 min-w-0 flex-1">
-      <h1 class="text-xl font-bold text-heading">{title}</h1>
+      <h1 class="text-xl font-bold text-heading tracking-[-0.025em]">{title}</h1>
       {#if description}
         <span class="text-xs text-muted font-sans">{description}</span>
       {/if}
@@ -49,7 +49,7 @@
 {:else}
   <header class="flex items-start justify-between gap-4">
     <div class="min-w-0 flex-1">
-      <h1 class="text-2xl font-bold text-heading mb-1">{title}</h1>
+      <h1 class="text-2xl font-bold text-heading tracking-[-0.025em] mb-1">{title}</h1>
       {#if description}
         <p class="text-sm text-muted font-sans">{description}</p>
       {/if}
