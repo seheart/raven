@@ -22,8 +22,8 @@
   /** @type {Props} */
   let { children, width = 'default', align = 'left', class: extra = '' } = $props();
 
-  const widthClass = width === 'wide' ? 'max-w-[48rem]' : 'max-w-[42rem]';
-  const alignClass = align === 'center' ? 'mx-auto' : '';
+  const widthClass = $derived(width === 'wide' ? 'max-w-[48rem]' : 'max-w-[42rem]');
+  const alignClass = $derived(align === 'center' ? 'mx-auto' : '');
 </script>
 
 <div class="{widthClass} {alignClass} {extra}">

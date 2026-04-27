@@ -3,7 +3,7 @@
    * Roadmap — what's in flight, what's queued, what's parked.
    * Hand-curated. Edit this file as the project evolves.
    */
-  import { PageLayout, PageHeader, ProseBlock } from '../components/layout/index.js';
+  import { PageLayout, PageHeader } from '../components/layout/index.js';
 
   const now = [
     {

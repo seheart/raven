@@ -138,8 +138,8 @@ export const PAGE_ZONES = [
   {
     tag: '02',
     name: 'Hero',
-    purpose: 'Title + lede + meta rows + actions',
-    body: 'PageHeader for title and description, dotted-leader meta rows for key/value pairs, optional callouts and CTAs underneath, LOCAL-FIRST badge as a closer. Aim for 4–8 meta rows; everything else moves down. Wrap the whole hero in <ProseBlock width="wide"> so the lede and meta rows sit at a comfortable reading width while the rest of the page stays full-bleed.'
+    purpose: 'Two-column: title/lede main + complementary aside',
+    body: 'Heros split the canvas into a flex row: a constrained main column (`flex-1 min-w-0 max-w-[48rem]`) on the left holding PageHeader + lede + dotted-leader meta rows + callouts + LOCAL-FIRST badge, and an aside (`lg:w-72 lg:flex-shrink-0`) on the right holding complementary content — a CTA stack (About), a vital-stats card (System), a size legend (Roadmap), or a sticky jump-nav (Design). Both columns earn their space; nothing dead. Aim for 4–8 meta rows in main; offload anything else to the aside or a section below.'
   },
   {
     tag: '03',
@@ -155,9 +155,9 @@ export const PAGE_ZONES = [
   },
   {
     tag: '04½',
-    name: 'Reading width',
-    purpose: 'ProseBlock around prose, leave data full-width',
-    body: 'Pages are full-bleed by default — tables, charts, card grids, dashboards take all the room. Prose is different: paragraphs over ~90 characters are hard to track. Wrap prose-heavy units (heros, manifestos, principle bodies, callout text) in <ProseBlock> (42rem) or <ProseBlock width="wide"> (48rem). Data UI stays outside the wrapper.'
+    name: 'Doc-page layout',
+    purpose: 'Long reference pages get a sticky right-side jump-nav',
+    body: 'Pages with many sections (Design, About, System) wrap their entire content area in a top-level two-column flex: a scrolling main column (`max-w-[64rem]`) on the left and a sticky aside (`lg:sticky lg:top-16`) on the right with an "On this page" jump-nav. The aside follows the user as they scroll so any section is one click away. Inline ProseBlock is the secondary tool — use it for prose paragraphs inside sections that would otherwise stretch past ~90 characters.'
   },
   {
     tag: '05',
@@ -168,9 +168,9 @@ export const PAGE_ZONES = [
 ];
 
 export const PAGE_SKELETON = `<PageLayout>
-  <div class="space-y-12">
+  <div class="space-y-8">
 
-    <!-- 01 Status bar -->
+    <!-- 01 Status bar — full-width metadata strip -->
     <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
       <div class="flex items-center gap-2">
         <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
@@ -183,15 +183,23 @@ export const PAGE_SKELETON = `<PageLayout>
       </div>
     </div>
 
-    <!-- 02 Hero -->
-    <section>
-      <PageHeader title="Page" description="One-line description." />
-      <!-- meta rows, callouts, badges, CTAs go here -->
+    <!-- 02 Hero — two-column: prose main + aside -->
+    <section class="flex flex-col lg:flex-row gap-8">
+      <div class="flex-1 min-w-0 max-w-[48rem]">
+        <PageHeader title="Page" description="One-line description." />
+        <!-- lede paragraph, meta rows, callouts, badges go here -->
+      </div>
+      <aside class="lg:w-72 lg:flex-shrink-0">
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <!-- CTA stack, vital stats, legend, or "on this page" nav -->
+        </div>
+      </aside>
     </section>
 
     <!-- 03 Numbered sections -->
     <PageSection title="01 // First section" meta="optional caveat">
-      <!-- block content -->
+      <!-- block content; wrap prose paragraphs in <ProseBlock> if they
+           would otherwise stretch past ~90 characters -->
     </PageSection>
 
     <PageSection title="02 // Second section">

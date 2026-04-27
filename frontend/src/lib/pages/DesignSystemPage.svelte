@@ -42,15 +42,39 @@
   } from '../content/design.js';
 
   let websocketConnected = $state(false);
+  let activeSlug = $state(TOC[0]?.slug ?? 'intent');
 
   onMount(() => {
     websocketConnected = websocketService.isConnected();
     const updateStatus = () => { websocketConnected = websocketService.isConnected(); };
     websocketService.on('connect', updateStatus);
     websocketService.on('disconnect', updateStatus);
+
+    // Track which section is in view — drives the sticky jump-nav highlight.
+    // rootMargin shrinks the observer's "viewport" to a thin band near the
+    // top of the screen so the active link advances as you cross each
+    // section heading rather than when a section's bottom comes into view.
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries
+        .filter(e => e.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible.length > 0) {
+        activeSlug = visible[0].target.id.replace('sect-', '');
+      }
+    }, {
+      rootMargin: '-80px 0px -70% 0px',
+      threshold: 0
+    });
+
+    for (const t of TOC) {
+      const el = document.getElementById(`sect-${t.slug}`);
+      if (el) observer.observe(el);
+    }
+
     return () => {
       websocketService.off('connect', updateStatus);
       websocketService.off('disconnect', updateStatus);
+      observer.disconnect();
     };
   });
 
@@ -236,7 +260,7 @@
       </ProseBlock>
 
       <!-- Subgroup index -->
-      <div class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-2">
+      <div class="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {#each PATTERN_SUBGROUPS as g (g.tag)}
           <div class="bg-surface border border-border rounded-lg p-3">
             <div class="flex items-center gap-2 mb-1">
@@ -273,24 +297,25 @@
         </div>
       </div>
 
-      <!-- Hero meta block demo -->
-      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Hero meta block</h4>
-      <div class="mb-4 bg-surface border border-border rounded-lg p-4">
+      <!-- Hero meta block demo — constrained to ~30rem to mimic the
+           hero's main column where this pattern lives in the wild. -->
+      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Hero meta block <span class="text-muted/60 normal-case font-normal">· lives in hero main column at ~48rem</span></h4>
+      <div class="mb-4 bg-surface border border-border rounded-lg p-4 max-w-[30rem]">
         <div class="space-y-1.5 text-sm font-mono">
           <div class="flex items-baseline gap-2">
-            <span class="text-muted w-32 flex-shrink-0">Status</span>
+            <span class="text-muted w-24 flex-shrink-0">Status</span>
             <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
             <span class="text-body">Operational</span>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="text-muted w-32 flex-shrink-0">Open</span>
+            <span class="text-muted w-24 flex-shrink-0">Open</span>
             <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
             <span class="text-body">4</span>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="text-muted w-32 flex-shrink-0">Severity</span>
+            <span class="text-muted w-24 flex-shrink-0">Severity</span>
             <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
-            <span class="text-body">
+            <span class="text-body flex items-center gap-1">
               <span class="inline-block px-1.5 py-0.5 text-xs font-mono bg-error/15 text-error rounded">high 1</span>
               <span class="inline-block px-1.5 py-0.5 text-xs font-mono bg-warning/15 text-warning rounded">med 3</span>
               <span class="inline-block px-1.5 py-0.5 text-xs font-mono bg-info/15 text-info rounded">low 12</span>
@@ -671,21 +696,20 @@
     <div id="sect-colors"></div>
     <PageSection title="04 // Colors" meta="theme-aware tokens · flip on :root.dark">
 
-      <!-- Why phosphor — the rationale before any swatch -->
-      <ProseBlock width="wide">
-        <div class="bg-surface border border-border rounded-lg p-5 mb-8">
-          <div class="flex items-baseline gap-3 mb-3">
-            <span class="w-3 h-3 rounded-full bg-accent flex-shrink-0"></span>
-            <h3 class="text-base font-semibold text-heading">{PHOSPHOR_RATIONALE.headline}</h3>
-          </div>
-          <p class="text-sm text-body font-sans leading-relaxed mb-3">{PHOSPHOR_RATIONALE.body}</p>
-          <ul class="text-xs font-mono text-muted space-y-1 list-none pl-0">
-            {#each PHOSPHOR_RATIONALE.rules as r (r)}
-              <li class="pl-3 relative before:content-['→'] before:absolute before:left-0 before:text-accent">{r}</li>
-            {/each}
-          </ul>
+      <!-- Why phosphor — the rationale before any swatch.
+           No inner ProseBlock; the main column already constrains. -->
+      <div class="bg-surface border border-border rounded-lg p-5 mb-8">
+        <div class="flex items-baseline gap-3 mb-3">
+          <span class="w-3 h-3 rounded-full bg-accent flex-shrink-0"></span>
+          <h3 class="text-base font-semibold text-heading">{PHOSPHOR_RATIONALE.headline}</h3>
         </div>
-      </ProseBlock>
+        <p class="text-sm text-body font-sans leading-relaxed mb-3">{PHOSPHOR_RATIONALE.body}</p>
+        <ul class="text-xs font-mono text-muted space-y-1 list-none pl-0">
+          {#each PHOSPHOR_RATIONALE.rules as r (r)}
+            <li class="pl-3 relative before:content-['→'] before:absolute before:left-0 before:text-accent">{r}</li>
+          {/each}
+        </ul>
+      </div>
 
       <ProseBlock>
         <h3 class="text-sm font-semibold text-heading mb-3">Surfaces</h3>
@@ -905,7 +929,7 @@
     <!-- 09 // Principles -->
     <div id="sect-principles"></div>
     <PageSection title="09 // Compliance principles">
-      <ProseBlock>
+      <ProseBlock width="wide">
         <ol class="list-decimal pl-5 space-y-2 text-sm text-body font-sans leading-relaxed">
           {#each PRINCIPLES as p (p)}
             <!-- eslint-disable-next-line svelte/no-at-html-tags -- principles is a hard-coded static array; values are author-controlled markup, never user input -->
@@ -927,11 +951,17 @@
           <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">On this page</div>
           <nav class="flex flex-col gap-0.5" aria-label="Jump to section">
             {#each TOC as t (t.slug)}
+              {@const active = activeSlug === t.slug}
               <a
                 href="#sect-{t.slug}"
-                class="text-xs font-mono text-body hover:text-accent hover:bg-canvas px-2 py-1.5 rounded transition-colors flex items-baseline gap-2"
+                class={`text-xs font-mono px-2 py-1.5 rounded transition-colors flex items-baseline gap-2 ${
+                  active
+                    ? 'text-accent bg-canvas font-semibold'
+                    : 'text-body hover:text-accent hover:bg-canvas'
+                }`}
+                aria-current={active ? 'location' : undefined}
               >
-                <span class="text-muted">→</span>
+                <span class={active ? 'text-accent' : 'text-muted'}>→</span>
                 <span>{t.label}</span>
               </a>
             {/each}
