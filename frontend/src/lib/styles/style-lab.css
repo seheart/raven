@@ -181,3 +181,189 @@
   --link: #f87171;
   --link-hover: #fb8585;
 }
+
+/* ============================================================================
+ * Light-mode variants (L01–L10) — for /light-lab review only.
+ *
+ * Each .light-variant-Lxx scope forces the LIGHT base palette (so it renders
+ * the same regardless of the user's current theme) AND swaps the accent
+ * tokens. The 10 variants explore non-green options for the daytime palette
+ * because phosphor green on cream reads "nature/wellness" rather than
+ * "serious raven."
+ *
+ * Convention: each variant overrides bg/surface/text/border (so demos
+ * always look like daytime), then accent + button + link tokens.
+ * ========================================================================= */
+
+.light-variant-base {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-2: #ebe8e1;
+  --text: #1a1a1a;
+  --text-heading: #000000;
+  --muted: #6b6b6b;
+  --border: #d4d2cc;
+  --color-bg: #f6f4ef;
+  --color-surface: #ffffff;
+  --color-surface-2: #ebe8e1;
+  --color-canvas: #f6f4ef;
+  --color-text: #1a1a1a;
+  --color-heading: #000000;
+  --color-body: #1a1a1a;
+  --color-muted: #6b6b6b;
+  --color-border: #d4d2cc;
+}
+
+/* L01 — Ink Black · monochromatic, no chromatic accent · Linear/NYT vibe */
+.light-variant-L01 {
+  --accent: #000000;
+  --accent-2: #1a1a1a;
+  --color-accent: #000000;
+  --accent-subtle: #ebe8e1;
+  --color-accent-subtle: #ebe8e1;
+  --btn-primary-bg: #000000;
+  --btn-primary-hover: #1a1a1a;
+  --btn-primary-text: #ffffff;
+  --link: #000000;
+  --link-hover: #1a1a1a;
+}
+
+/* L02 — Press Vermilion · WSJ/FT masthead red · serious news */
+.light-variant-L02 {
+  --accent: #9c2027;
+  --accent-2: #b32830;
+  --color-accent: #9c2027;
+  --accent-subtle: #f5e3e4;
+  --color-accent-subtle: #f5e3e4;
+  --btn-primary-bg: #9c2027;
+  --btn-primary-hover: #b32830;
+  --btn-primary-text: #ffffff;
+  --link: #9c2027;
+  --link-hover: #b32830;
+}
+
+/* L03 — Stripe Navy · deep ledger blue · finance/SaaS gravitas */
+.light-variant-L03 {
+  --accent: #0a2540;
+  --accent-2: #1a3a5e;
+  --color-accent: #0a2540;
+  --accent-subtle: #e3eaf2;
+  --color-accent-subtle: #e3eaf2;
+  --btn-primary-bg: #0a2540;
+  --btn-primary-hover: #1a3a5e;
+  --btn-primary-text: #ffffff;
+  --link: #0a2540;
+  --link-hover: #1a3a5e;
+}
+
+/* L04 — Espresso · dark warm brown · printer's ink on aged paper */
+.light-variant-L04 {
+  --accent: #3e2c1f;
+  --accent-2: #5a4030;
+  --color-accent: #3e2c1f;
+  --accent-subtle: #ede4d8;
+  --color-accent-subtle: #ede4d8;
+  --btn-primary-bg: #3e2c1f;
+  --btn-primary-hover: #5a4030;
+  --btn-primary-text: #ffffff;
+  --link: #3e2c1f;
+  --link-hover: #5a4030;
+}
+
+/* L05 — Iron Charcoal · warm dark grey · letterpress restraint */
+.light-variant-L05 {
+  --accent: #2a2a2a;
+  --accent-2: #404040;
+  --color-accent: #2a2a2a;
+  --accent-subtle: #e8e6e1;
+  --color-accent-subtle: #e8e6e1;
+  --btn-primary-bg: #2a2a2a;
+  --btn-primary-hover: #404040;
+  --btn-primary-text: #ffffff;
+  --link: #2a2a2a;
+  --link-hover: #404040;
+}
+
+/* L06 — Slate Steel · cool blue-grey on cooler off-white · technical manual */
+.light-variant-L06 {
+  --bg: #f7f7f5;
+  --color-bg: #f7f7f5;
+  --color-canvas: #f7f7f5;
+  --surface-2: #e8e8e5;
+  --color-surface-2: #e8e8e5;
+  --border: #cfcfcb;
+  --color-border: #cfcfcb;
+  --accent: #3a4757;
+  --accent-2: #52606e;
+  --color-accent: #3a4757;
+  --accent-subtle: #e7eaee;
+  --color-accent-subtle: #e7eaee;
+  --btn-primary-bg: #3a4757;
+  --btn-primary-hover: #52606e;
+  --btn-primary-text: #ffffff;
+  --link: #3a4757;
+  --link-hover: #52606e;
+}
+
+/* L07 — Crimson Wax · saturated dark red · archival, wax-seal */
+.light-variant-L07 {
+  --accent: #7a1c1c;
+  --accent-2: #962525;
+  --color-accent: #7a1c1c;
+  --accent-subtle: #f0d9d9;
+  --color-accent-subtle: #f0d9d9;
+  --btn-primary-bg: #7a1c1c;
+  --btn-primary-hover: #962525;
+  --btn-primary-text: #ffffff;
+  --link: #7a1c1c;
+  --link-hover: #962525;
+}
+
+/* L08 — Royal Indigo · deep blue-purple · academic/scholarly ink */
+.light-variant-L08 {
+  --accent: #2d2a8a;
+  --accent-2: #3d3aa8;
+  --color-accent: #2d2a8a;
+  --accent-subtle: #e1dff1;
+  --color-accent-subtle: #e1dff1;
+  --btn-primary-bg: #2d2a8a;
+  --btn-primary-hover: #3d3aa8;
+  --btn-primary-text: #ffffff;
+  --link: #2d2a8a;
+  --link-hover: #3d3aa8;
+}
+
+/* L09 — Forest Ink · DEEP dark green (not phosphor) · law-library leather */
+.light-variant-L09 {
+  --accent: #0d3320;
+  --accent-2: #175033;
+  --color-accent: #0d3320;
+  --accent-subtle: #dde8e0;
+  --color-accent-subtle: #dde8e0;
+  --btn-primary-bg: #0d3320;
+  --btn-primary-hover: #175033;
+  --btn-primary-text: #ffffff;
+  --link: #0d3320;
+  --link-hover: #175033;
+}
+
+/* L10 — Plum Vellum · dark plum on warmer vellum bg · vintage publishing */
+.light-variant-L10 {
+  --bg: #faf5e8;
+  --color-bg: #faf5e8;
+  --color-canvas: #faf5e8;
+  --surface-2: #ede5d2;
+  --color-surface-2: #ede5d2;
+  --border: #d8cfb9;
+  --color-border: #d8cfb9;
+  --accent: #5b1f3a;
+  --accent-2: #7a2a4f;
+  --color-accent: #5b1f3a;
+  --accent-subtle: #ecdde2;
+  --color-accent-subtle: #ecdde2;
+  --btn-primary-bg: #5b1f3a;
+  --btn-primary-hover: #7a2a4f;
+  --btn-primary-text: #ffffff;
+  --link: #5b1f3a;
+  --link-hover: #7a2a4f;
+}
