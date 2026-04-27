@@ -124,7 +124,10 @@
             { name: 'PageSection', variants: ['(props: title, meta)'], use: 'Small uppercase muted label + slotted body. Use for grouped content within a page.' },
             { name: 'RefreshButton', variants: ['(props: onClick, loading)'], use: 'Canonical refresh button used in 23 page headers. Has built-in loading state.' },
             { name: 'ToolbarButton', variants: ['default', 'primary', 'danger'], use: 'Secondary toolbar action (Export, Auto-refresh, etc.). One styling source for all toolbar buttons.' },
-            { name: 'EmptyState', variants: ['(props: icon, title, description)', 'default', 'compact'], use: 'Centered no-data card. Replaces the bg-surface+rounded+p-12 placeholder pattern.' }
+            { name: 'FilterToggle', variants: ['(props: active, onClick)'], use: 'Bordered active/inactive filter pill — severity filters, search-type toggles.' },
+            { name: 'TabButton', variants: ['(props: active, onClick)'], use: 'Connected tab segment for time-range pickers (Today / 7d / 30d / All).' },
+            { name: 'EmptyState', variants: ['(props: icon, title, description)', 'default', 'compact'], use: 'Centered no-data card. Replaces the bg-surface+rounded+p-12 placeholder pattern.' },
+            { name: 'LoadingState', variants: ['(props: message)'], use: 'Centered spinner card while initial data loads. Same shell as EmptyState; semantically distinct.' }
           ] as p (p.name)}
             <div class="grid grid-cols-1 sm:grid-cols-[160px_1fr_2fr] gap-3 items-baseline border-b border-[var(--border)] pb-3 last:border-b-0 last:pb-0">
               <code class="font-mono text-sm text-[var(--accent)]">&lt;{p.name}&gt;</code>

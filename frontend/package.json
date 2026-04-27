@@ -23,7 +23,7 @@
     "validate:patterns": "bash scripts/validate-patterns.sh",
     "validate:design-coverage": "bash scripts/check-design-system-coverage.sh",
     "check": "svelte-check --tsconfig ./jsconfig.json",
-    "validate": "npm run check && npm run lint && npm run lint:css && npm run validate:patterns",
+    "validate": "npm run check && npm run lint && npm run lint:css && npm run validate:patterns && npm run validate:design-coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
