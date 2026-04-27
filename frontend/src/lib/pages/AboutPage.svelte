@@ -82,7 +82,7 @@
 </script>
 
 <PageLayout>
-  <div class="space-y-12 max-w-5xl mx-auto w-full">
+  <div class="space-y-12">
 
     <!-- Status bar -->
     <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
