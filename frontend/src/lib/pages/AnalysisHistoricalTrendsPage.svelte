@@ -3,6 +3,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
    * Historical Trends Page
@@ -369,25 +370,9 @@
     {#snippet actions()}
       <div class="flex items-center gap-3 flex-wrap">
         <span class="text-xs text-muted font-mono">{timeSinceUpdate}</span>
-        <button
-          onclick={exportToCSV}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
-          Export CSV
-        </button>
-        <button
-          onclick={exportToJSON}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
-          Export JSON
-        </button>
-        <button
-          onclick={loadTrends}
-          disabled={loading}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors disabled:opacity-50"
-        >
-          {loading ? '' : '↻'} Refresh
-        </button>
+        <ToolbarButton onClick={exportToCSV}>Export CSV</ToolbarButton>
+        <ToolbarButton onClick={exportToJSON}>Export JSON</ToolbarButton>
+        <RefreshButton onClick={loadTrends} loading={loading} />
       </div>
     {/snippet}
   </PageHeader>

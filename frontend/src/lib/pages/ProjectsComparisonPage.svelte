@@ -3,7 +3,7 @@
   import { logger } from '../logger.js';
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
@@ -232,12 +232,7 @@
   <PageHeader title="Projects Comparison" description="Compare all monitored projects side-by-side">
     {#snippet actions()}
       <div class="flex items-center gap-3">
-        <button
-          onclick={exportCSV}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
-          Export
-        </button>
+        <ToolbarButton onClick={exportCSV}>Export</ToolbarButton>
         <RefreshButton onClick={() => loadProjects()} loading={loading} />
       </div>
     {/snippet}

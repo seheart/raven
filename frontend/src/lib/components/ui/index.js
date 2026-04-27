@@ -45,6 +45,7 @@ export { default as MultiSelect } from './MultiSelect.svelte';
 
 // Page-action primitives
 export { default as RefreshButton } from './RefreshButton.svelte';
+export { default as ToolbarButton } from './ToolbarButton.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
 
 // Utility Components

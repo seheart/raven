@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
   /**
    * Analysis Performance Page
    * Performance profiling with 3 tabs: Metrics, Trend Charts, Correlations
@@ -262,18 +262,8 @@
     {#snippet actions()}
       <div class="flex items-center gap-3 flex-wrap">
         <span class="text-xs text-muted font-mono">{timeAgo}</span>
-        <button
-          onclick={exportToJSON}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
-          Export JSON
-        </button>
-        <button
-          onclick={exportToCSV}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
-          Export CSV
-        </button>
+        <ToolbarButton onClick={exportToJSON}>Export JSON</ToolbarButton>
+        <ToolbarButton onClick={exportToCSV}>Export CSV</ToolbarButton>
         <RefreshButton onClick={() => fetchAllData(true)} loading={loading} />
       </div>
     {/snippet}

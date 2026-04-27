@@ -2,7 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   /**
@@ -480,19 +480,8 @@
 
         <RefreshButton onClick={loadStats} loading={loading} />
 
-        <button
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          onclick={exportCSV}
-        >
-          CSV
-        </button>
-
-        <button
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          onclick={exportJSON}
-        >
-          JSON
-        </button>
+        <ToolbarButton onClick={exportCSV}>CSV</ToolbarButton>
+        <ToolbarButton onClick={exportJSON}>JSON</ToolbarButton>
       </div>
 
       <div class="flex items-center gap-4 text-sm font-mono">

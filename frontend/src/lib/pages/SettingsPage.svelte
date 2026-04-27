@@ -6,6 +6,7 @@
 
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { ToolbarButton } from '../components/ui/index.js';
   const { api } = createPageApi();
 
   let currentSettings = $state(get(settings));
@@ -85,12 +86,7 @@
   <PageHeader title="Settings" description="Application preferences and configuration">
     {#snippet actions()}
       <div class="flex items-center gap-3">
-        <button
-          onclick={exportSettings}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
-          Export
-        </button>
+        <ToolbarButton onClick={exportSettings}>Export</ToolbarButton>
         <label
           class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors cursor-pointer"
         >
