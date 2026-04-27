@@ -1,358 +1,310 @@
 <script>
   /**
-   * Design System Page — tokens and primitives used across Raven.
-   * New screens should pull from here; deviations should be intentional.
+   * Design System page — 10 numbered sections matching the rhythm of About
+   * and System. Static data lives in lib/content/design.js; this file is
+   * markup, live demos, and iteration over those arrays.
    */
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { onMount } from 'svelte';
+  import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
+  import {
+    EmptyState,
+    LoadingState,
+    RefreshButton,
+    ToolbarButton,
+    FilterToggle,
+    TabButton
+  } from '../components/ui/index.js';
+  import { websocketService } from '../services/websocket.js';
+  import {
+    HERO,
+    TOC,
+    INTENT,
+    PATTERN_SUBGROUPS,
+    PRIMITIVES,
+    PAGE_ZONES,
+    PAGE_SKELETON,
+    STATES,
+    SURFACE_TOKENS,
+    TEXT_TOKENS,
+    SEMANTIC_TOKENS,
+    SUBTLE_TOKENS,
+    TYPE_SCALE,
+    TYPE_WEIGHTS,
+    TYPE_FAMILIES,
+    SPACING_SCALE,
+    RADIUS_SCALE,
+    MOTION_TOKENS,
+    CALLOUTS,
+    PRINCIPLES
+  } from '../content/design.js';
 
-  // Bare CSS-var names are the underlying tokens; the `utility` is the
-  // Tailwind class that pages should reach for. The two have a 1:1 mapping
-  // wired up in app.css under @theme.
+  let websocketConnected = $state(false);
 
-  const surfaceTokens = [
-    { name: '--bg', utility: 'bg-canvas', role: 'Page background' },
-    { name: '--surface', utility: 'bg-surface', role: 'Card / panel background' },
-    { name: '--surface-2', utility: 'bg-surface-2', role: 'Recessed surface (table rows, embeds)' },
-    { name: '--border', utility: 'border-border', role: 'Default borders and dividers' }
-  ];
+  onMount(() => {
+    websocketConnected = websocketService.isConnected();
+    const updateStatus = () => { websocketConnected = websocketService.isConnected(); };
+    websocketService.on('connect', updateStatus);
+    websocketService.on('disconnect', updateStatus);
+    return () => {
+      websocketService.off('connect', updateStatus);
+      websocketService.off('disconnect', updateStatus);
+    };
+  });
 
-  const textTokens = [
-    { name: '--text-heading', utility: 'text-heading', role: 'Headings, key numbers' },
-    { name: '--text', utility: 'text-body', role: 'Default body text' },
-    { name: '--muted', utility: 'text-muted', role: 'Captions, hints, dim metadata' }
-  ];
-
-  const semanticTokens = [
-    { name: '--accent', utility: 'text-accent / bg-accent', role: 'Primary action, links, focus' },
-    { name: '--success', utility: 'text-success / bg-success', role: 'Online, healthy, pass' },
-    { name: '--error', utility: 'text-error / bg-error', role: 'Offline, fail, destructive' },
-    { name: '--warning', utility: 'text-warning / bg-warning', role: 'Disconnected, caution' },
-    { name: '--info', utility: 'text-info / bg-info', role: 'Informational accent' }
-  ];
-
-  const subtleTokens = [
-    { name: '--accent-subtle', utility: 'bg-accent-subtle', role: 'Tinted backdrop for accent badges' },
-    { name: '--success-subtle', utility: 'bg-success-subtle', role: 'Backdrop for healthy badges' },
-    { name: '--error-subtle', utility: 'bg-error-subtle', role: 'Backdrop for error badges' },
-    { name: '--warning-subtle', utility: 'bg-warning-subtle', role: 'Backdrop for caution callouts' }
-  ];
-
-  // Canonical font-size scale (matches Tailwind utility scale post phase-1
-  // hygiene; var(--text-*) and the Tailwind `text-*` class have identical
-  // values now — they used to be off-by-one).
-  const typeScale = [
-    { name: '--text-xs', utility: 'text-xs', size: '10px', sample: 'Smallest label' },
-    { name: '--text-sm', utility: 'text-sm', size: '11px', sample: 'Caption / dim metadata' },
-    { name: '--text-base', utility: 'text-base', size: '12px', sample: 'Default body' },
-    { name: '--text-lg', utility: 'text-lg', size: '13px', sample: 'Slightly larger body' },
-    { name: '--text-xl', utility: 'text-xl', size: '14px', sample: 'Hero / dashboard h1' },
-    { name: '--text-2xl', utility: 'text-2xl', size: '15px', sample: 'Page heading (PageHeader default)' },
-    { name: '--text-3xl', utility: 'text-3xl', size: '16px', sample: 'Section title' },
-    { name: '--text-4xl', utility: 'text-4xl', size: '18px', sample: 'Subhead' },
-    { name: '--text-5xl', utility: 'text-5xl', size: '20px', sample: 'Big emphasis' }
-  ];
-
-  const spacingScale = [
-    { name: '--spacing-xs', value: 2 },
-    { name: '--spacing-sm', value: 4 },
-    { name: '--spacing-md', value: 6 },
-    { name: '--spacing-lg', value: 8 },
-    { name: '--spacing-xl', value: 12 },
-    { name: '--spacing-2xl', value: 16 },
-    { name: '--spacing-3xl', value: 24 },
-    { name: '--spacing-4xl', value: 32 }
-  ];
-
-  const radiusScale = [
-    { name: '--radius-sm', value: '3px', use: 'Pills, chips' },
-    { name: '--radius', value: '4px', use: 'Inputs, default cards' },
-    { name: '--radius-lg', value: '6px', use: 'Buttons, primary cards' },
-    { name: '--radius-xl', value: '8px', use: 'Modals, large surfaces' }
-  ];
-
-  const motionTokens = [
-    { name: '--duration-fast', value: '150ms', use: 'Hover state changes, focus rings' },
-    { name: '--duration-base', value: '200ms', use: 'Default transitions, fades, slides' },
-    { name: '--duration-slow', value: '300ms', use: 'Drawers, modals, expand/collapse' },
-    { name: '--ease-smooth', value: 'cubic-bezier(0.4, 0, 0.2, 1)', use: 'Default easing — symmetric in/out' },
-    { name: '--ease-out-expo', value: 'cubic-bezier(0.16, 1, 0.3, 1)', use: 'Decisive arrivals — drawers, toasts' }
-  ];
-
-  const callouts = [
-    { tone: 'warning', label: '! Security Model', body: 'Bind only to 127.0.0.1 unless every host on the bound network is trusted.' },
-    { tone: 'success', label: '✓ Healthy', body: 'All probes returning within budget. No degraded subsystems.' },
-    { tone: 'info', label: 'i Tip', body: 'You can press Cmd-K from any page to jump to the command palette.' },
-    { tone: 'error', label: '✗ Failure', body: 'Migration 0042 cannot be applied — column already exists.' }
-  ];
-
-  const principles = [
-    'Use semantic utilities (<code>bg-surface</code>, <code>text-heading</code>, <code>text-accent</code>, <code>text-success</code>) instead of hex or arbitrary <code>text-[var(--…)]</code> tokens. They flip with theme.',
-    'Every page wraps in <code>&lt;PageLayout&gt;</code> from <code>lib/components/layout</code>. Content pages use the default variant; dashboards (Overview, Live, Activity) use <code>variant="dashboard"</code>.',
-    'The page <code>h1</code> + description belongs in <code>&lt;PageHeader title=… description=…&gt;</code>. The small uppercase section label belongs in <code>&lt;PageSection title=… meta=…&gt;</code>. Don\'t hand-roll these.',
-    'Section cards inside a PageSection use <code>bg-surface border border-border rounded-lg p-5</code> with an uppercase mono label heading.',
-    'Status dots are 8px circles (<code>w-2 h-2</code>) with semantic backgrounds. Don\'t reinvent shapes.',
-    'Mono font is reserved for technical content: session IDs, paths, durations, code, model names.',
-    'The System page is the gold standard for content-style screens — match its header, status grid, and detail-card patterns when adding new ones.',
-    'Animations live in <code>lib/styles/animations.css</code>. Page-level <code>&lt;style&gt;</code> blocks are forbidden on migrated pages — lift to that file or compose with Tailwind utilities.',
-    'Brand-identity hex colors (per-agent, per-vendor) are the only allowed exception to the no-raw-hex rule. Mark with a leader <code>// design-system-allow: hex</code> comment.',
-    'Rules are enforced by <code>npm run validate:patterns</code> (ratcheted — only applies to pages that import <code>PageLayout</code>, so legacy pages don\'t block CI but cannot regress once migrated). Coverage of the primitive library against this page is checked by <code>npm run validate:design-coverage</code>.'
-  ];
+  // Map callout tone → border + text class so the "color: var(--{tone})"
+  // pattern stays in the design system rather than inline styles.
+  const TONE_CLASS = {
+    warning: { border: 'border-warning', tint: 'bg-warning/10', text: 'text-warning' },
+    success: { border: 'border-success', tint: 'bg-success/10', text: 'text-success' },
+    info: { border: 'border-info', tint: 'bg-info/10', text: 'text-info' },
+    error: { border: 'border-error', tint: 'bg-error/10', text: 'text-error' }
+  };
+  function toneClasses(tone) {
+    return TONE_CLASS[tone] || TONE_CLASS.info;
+  }
 </script>
 
 <PageLayout>
-  <PageHeader
-    title="Design System"
-    description="Tokens and primitives used across Raven. New screens should pull from here; deviations should be intentional."
-  />
+  <div class="space-y-12">
 
-  <div class="space-y-6">
-      <!-- Layout primitives — the contract for every page -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Layout primitives
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Every page wraps in <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">&lt;PageLayout&gt;</code>.
-          The h1 + description goes in <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">&lt;PageHeader&gt;</code>.
-          Section headings go in <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">&lt;PageSection&gt;</code>.
-          Hand-rolling this chrome is forbidden by the lint rules in <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">scripts/validate-patterns.sh</code>.
-        </p>
-        <div class="space-y-3">
-          {#each [
-            { name: 'PageLayout', variants: ['default', 'dashboard'], use: 'Canonical shell. Use default for content pages, dashboard for full-bleed live pages.' },
-            { name: 'PageHeader', variants: ['default', 'medium', 'compact'], use: 'h1 + description + actions snippet. medium = text-xl, compact = text-sm.' },
-            { name: 'PageSection', variants: ['(props: title, meta)'], use: 'Small uppercase muted label + slotted body. Use for grouped content within a page.' },
-            { name: 'RefreshButton', variants: ['(props: onClick, loading)'], use: 'Canonical refresh button used in 23 page headers. Has built-in loading state.' },
-            { name: 'ToolbarButton', variants: ['default', 'primary', 'danger'], use: 'Secondary toolbar action (Export, Auto-refresh, etc.). One styling source for all toolbar buttons.' },
-            { name: 'FilterToggle', variants: ['(props: active, onClick)'], use: 'Bordered active/inactive filter pill — severity filters, search-type toggles.' },
-            { name: 'TabButton', variants: ['(props: active, onClick)'], use: 'Connected tab segment for time-range pickers (Today / 7d / 30d / All).' },
-            { name: 'EmptyState', variants: ['(props: icon, title, description)', 'default', 'compact'], use: 'Centered no-data card. Replaces the bg-surface+rounded+p-12 placeholder pattern.' },
-            { name: 'LoadingState', variants: ['(props: message)'], use: 'Centered spinner card while initial data loads. Same shell as EmptyState; semantically distinct.' }
-          ] as p (p.name)}
-            <div class="grid grid-cols-1 sm:grid-cols-[160px_1fr_2fr] gap-3 items-baseline border-b border-[var(--border)] pb-3 last:border-b-0 last:pb-0">
-              <code class="font-mono text-sm text-[var(--accent)]">&lt;{p.name}&gt;</code>
-              <div class="flex flex-wrap gap-1.5">
-                {#each p.variants as v (v)}
-                  <code class="font-mono text-[10px] bg-[var(--surface-2)] px-1.5 py-0.5 rounded text-[var(--muted)]">{v}</code>
-                {/each}
-              </div>
-              <span class="text-sm text-[var(--muted)] font-sans">{p.use}</span>
-            </div>
-          {/each}
-        </div>
-        <pre class="mt-4 text-xs font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded p-3 overflow-x-auto leading-relaxed text-[var(--text)]">{`<PageLayout>
-  <PageHeader title="…" description="…">
-    {#snippet actions()}<button>Refresh</button>{/snippet}
-  </PageHeader>
-  <PageSection title="…" meta="live (14)">…</PageSection>
-</PageLayout>`}</pre>
-      </section>
+    <!-- Status bar -->
+    <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
+        <span aria-hidden="true">::</span>
+        <span class="uppercase tracking-wide">Design Reference</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a
+          href="/src/app.css"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-muted hover:text-accent transition-colors"
+        >[ View app.css ]</a>
+        <span class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full {websocketConnected ? 'bg-success animate-pulse' : 'bg-warning'}"></span>
+          <span class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}">
+            {websocketConnected ? 'Operational' : 'Disconnected'}
+          </span>
+        </span>
+      </div>
+    </div>
 
-      <!-- Colors — Surfaces -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Colors — Surfaces
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Background and border tokens. These swap automatically between light and dark themes.
-        </p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {#each surfaceTokens as t (t.name)}
-            <div class="flex items-center gap-3">
-              <div
-                class="w-10 h-10 rounded border border-[var(--border)] flex-shrink-0"
-                style="background: var({t.name});"
-              ></div>
-              <div class="flex flex-col gap-0.5 min-w-0">
-                <code class="font-mono text-xs text-[var(--accent)]">{t.utility}</code>
-                <code class="font-mono text-[10px] text-[var(--muted)]">{t.name}</code>
-                <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
-              </div>
-            </div>
-          {/each}
-        </div>
-      </section>
+    <!-- Hero -->
+    <section>
+      <PageHeader title={HERO.title} />
 
-      <!-- Colors — Text -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Colors — Text
-        </h3>
-        <div class="space-y-3">
-          {#each textTokens as t (t.name)}
-            <div
-              class="grid grid-cols-1 sm:grid-cols-[1fr_180px_1fr] gap-3 items-baseline border-b border-[var(--border)] pb-3 last:border-b-0 last:pb-0"
-            >
-              <span class="text-base font-sans" style="color: var({t.name});">
-                The quick brown fox jumps over the lazy dog
-              </span>
-              <div class="flex flex-col gap-0.5">
-                <code class="font-mono text-xs text-[var(--accent)]">{t.utility}</code>
-                <code class="font-mono text-[10px] text-[var(--muted)]">{t.name}</code>
-              </div>
-              <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
-            </div>
-          {/each}
-        </div>
-      </section>
+      <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
 
-      <!-- Colors — Semantic -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Colors — Semantic
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Use the meaning, not the hex. <code
-            class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded"
-            >--success</code
-          >
-          is always green, <code
-            class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--error</code
-          > is always red.
-        </p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          {#each semanticTokens as t (t.name)}
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded flex-shrink-0" style="background: var({t.name});"></div>
-              <div class="flex flex-col gap-0.5 min-w-0">
-                <code class="font-mono text-xs text-[var(--accent)]">{t.utility}</code>
-                <code class="font-mono text-[10px] text-[var(--muted)]">{t.name}</code>
-                <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
-              </div>
-            </div>
-          {/each}
-        </div>
-        <h4 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-3 font-mono">
-          Subtle variants
-        </h4>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {#each subtleTokens as t (t.name)}
-            <div class="flex items-center gap-3">
-              <div
-                class="w-10 h-10 rounded border border-[var(--border)] flex-shrink-0"
-                style="background: var({t.name});"
-              ></div>
-              <div class="flex flex-col gap-0.5 min-w-0">
-                <code class="font-mono text-xs text-[var(--accent)]">{t.utility}</code>
-                <code class="font-mono text-[10px] text-[var(--muted)]">{t.name}</code>
-                <span class="text-sm text-[var(--muted)] font-sans">{t.role}</span>
-              </div>
-            </div>
-          {/each}
-        </div>
-      </section>
+      <div class="mt-4 space-y-1.5 text-sm font-mono">
+        {#each HERO.meta as row (row.k)}
+          <div class="flex items-baseline gap-2">
+            <span class="text-muted w-32 flex-shrink-0">{row.k}</span>
+            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+            <span class="text-body">{row.v}</span>
+          </div>
+        {/each}
+      </div>
 
-      <!-- Typography -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Typography
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Inter (<code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded"
-            >--sans</code
-          >) for everything except technical content — session IDs, paths, durations, model names —
-          which uses JetBrains Mono (<code
-            class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--mono</code
-          >).
-        </p>
-        <div class="space-y-3">
-          {#each typeScale as t (t.name)}
-            <div
-              class="grid grid-cols-[140px_60px_1fr] gap-3 items-baseline border-b border-[var(--border)] pb-3 last:border-b-0 last:pb-0"
-            >
-              <code class="font-mono text-xs text-[var(--muted)]">{t.name}</code>
-              <span class="font-mono text-xs text-[var(--muted)]">{t.size}</span>
-              <span class="text-[var(--text)] font-sans" style="font-size: var({t.name});"
-                >{t.sample}</span
-              >
-            </div>
-          {/each}
+      <div class="mt-4 bg-warning/10 border-l-4 border-warning rounded-r p-4">
+        <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! You are here</div>
+        <div class="text-sm text-body font-sans">
+          This page is itself built from the patterns it documents. Use the chips below to jump.
         </div>
-      </section>
+      </div>
 
-      <!-- Spacing scale -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Spacing scale
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Pull from these tokens instead of hand-rolling rem values.
-        </p>
-        <div class="space-y-2">
-          {#each spacingScale as s (s.name)}
-            <div class="grid grid-cols-[140px_1fr_60px] gap-3 items-center">
-              <code class="font-mono text-xs text-[var(--text)]">{s.name}</code>
-              <div class="flex items-center">
-                <div
-                  class="h-3 bg-[var(--accent)] rounded-sm"
-                  style="width: var({s.name});"
-                ></div>
-              </div>
-              <span class="font-mono text-xs text-[var(--muted)]">{s.value}px</span>
-            </div>
-          {/each}
-        </div>
-      </section>
+      <div class="mt-4 flex flex-wrap gap-1.5">
+        {#each TOC as t (t.slug)}
+          <a
+            href="#sect-{t.slug}"
+            class="px-2.5 py-1 text-xs font-mono bg-surface border border-border rounded hover:border-accent transition-colors"
+          >{t.label}</a>
+        {/each}
+      </div>
 
-      <!-- Radius scale -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Radius scale
-        </h3>
-        <div class="space-y-3">
-          {#each radiusScale as r (r.name)}
-            <div class="grid grid-cols-[60px_140px_1fr] gap-3 items-center">
-              <div
-                class="w-9 h-9 bg-[var(--accent)]"
-                style="border-radius: var({r.name});"
-              ></div>
-              <code class="font-mono text-xs text-[var(--text)]">{r.name}</code>
-              <span class="text-sm text-[var(--muted)] font-sans">
-                <span class="font-mono text-[var(--text)]">{r.value}</span> · {r.use}
-              </span>
-            </div>
+      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
+        {#each HERO.badges as badge (badge.label)}
+          <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
+          {#each badge.items as item, i (item)}
+            <span>{item}</span>
+            {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
           {/each}
-        </div>
-      </section>
+        {/each}
+      </div>
+    </section>
 
-      <!-- Motion -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Motion
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Hover the swatch to feel each duration. Easing is symmetric by default; reach for
-          <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--ease-out-expo</code>
-          when something should land decisively (toasts, drawers).
-        </p>
-        <div class="space-y-3">
-          {#each motionTokens as t (t.name)}
-            <div class="grid grid-cols-1 sm:grid-cols-[60px_180px_1fr] gap-3 items-center border-b border-[var(--border)] pb-3 last:border-b-0 last:pb-0">
-              <div
-                class="motion-demo w-9 h-9 bg-[var(--accent)] rounded"
-                style="transition: transform var({t.name}) var(--ease-smooth);"
-              ></div>
-              <code class="font-mono text-xs text-[var(--text)]">{t.name}</code>
-              <span class="text-sm text-[var(--muted)] font-sans">
-                <span class="font-mono text-[var(--text)]">{t.value}</span> · {t.use}
-              </span>
+    <!-- 00 // Intent -->
+    <div id="sect-intent"></div>
+    <PageSection title="00 // Intent" meta="read this before building a new screen">
+      <p class="text-base text-body font-sans leading-relaxed mb-6">{INTENT.manifesto}</p>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Adjectives</h3>
+      <p class="text-sm text-muted font-sans mb-3">An instant emotional read. If a new screen doesn't feel like these five words, it doesn't belong.</p>
+      <div class="mb-6 flex flex-wrap items-center gap-2">
+        {#each INTENT.adjectives as adj, i (adj)}
+          <span class="text-base font-semibold text-accent">{adj}</span>
+          {#if i < INTENT.adjectives.length - 1}
+            <span class="text-muted/40" aria-hidden="true">·</span>
+          {/if}
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Visual tension</h3>
+      <p class="text-sm text-muted font-sans mb-3">Lock the register. Each pair: what to do, what to avoid.</p>
+      <ul class="mb-6 space-y-2 list-none">
+        {#each INTENT.tension as t (t.do)}
+          <li class="flex items-baseline gap-2 flex-wrap text-sm">
+            <span class="text-success font-mono">+</span>
+            <span class="text-body font-semibold">{t.do}</span>
+            <span class="text-muted text-xs uppercase tracking-wide">not</span>
+            <span class="text-muted italic">{t.not}</span>
+          </li>
+        {/each}
+      </ul>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Tone of voice</h3>
+      <p class="text-sm text-muted font-sans mb-3">The vocabulary the system uses for itself. Use the left column. Avoid the right.</p>
+      <div class="mb-6 bg-surface border border-border rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-2 w-32">Use</th>
+              <th class="text-left font-semibold px-3 py-2 w-32">Not</th>
+              <th class="text-left font-semibold px-3 py-2">Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each INTENT.tone as g (g.use)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2 font-mono text-success"><code>{g.use}</code></td>
+                <td class="px-3 py-2 font-mono text-error/70 line-through"><code>{g.not}</code></td>
+                <td class="px-3 py-2 text-muted font-sans">{g.why}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Touchstones</h3>
+      <p class="text-sm text-muted font-sans mb-3">References for finding inspiration in the right corner of style space.</p>
+      <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+        {#each INTENT.touchstones as t (t.name)}
+          <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="text-sm font-semibold text-accent mb-1">{t.name}</div>
+            <p class="text-sm text-body font-sans leading-relaxed">{t.body}</p>
+          </div>
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Folder convention</h3>
+      <p class="text-sm text-muted font-sans mb-3">Find a file, find the layer. Every page-level concern lives under exactly one of these.</p>
+      <div class="bg-surface border border-border rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-2">Folder</th>
+              <th class="text-left font-semibold px-3 py-2">What lives there</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each INTENT.folders as f (f.path)}
+              <tr class="border-t border-border align-top">
+                <td class="px-3 py-2 font-mono text-accent"><code>{f.path}</code></td>
+                <td class="px-3 py-2 text-body font-sans">{f.what}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </PageSection>
+
+    <!-- 01 // Composed Patterns -->
+    <div id="sect-patterns"></div>
+    <PageSection title="01 // Composed Patterns" meta="the actual UI vocabulary you'll reach for">
+      <p class="text-sm text-body font-sans mb-6">Reusable component shapes. Reach for these before inventing something new — every screen on Raven is assembled from this kit. Grouped into four sub-systems.</p>
+
+      <!-- Subgroup index -->
+      <div class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-2">
+        {#each PATTERN_SUBGROUPS as g (g.tag)}
+          <div class="bg-surface border border-border rounded-lg p-3">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">{g.tag}</span>
+              <span class="text-sm font-semibold text-heading">{g.name}</span>
             </div>
-          {/each}
+            <p class="text-xs text-muted font-sans">{g.desc}</p>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Subgroup A: Chrome -->
+      <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2">
+        <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">A</span>
+        Chrome
+      </h3>
+      <p class="text-sm text-muted font-sans mb-4">Page frame: status bar, hero, sections, callouts. Every content page wears this.</p>
+
+      <!-- Status bar demo -->
+      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Status bar</h4>
+      <div class="mb-4 bg-surface border border-border rounded-lg p-3">
+        <div class="flex items-center justify-between text-xs font-mono text-muted">
+          <div class="flex items-center gap-2">
+            <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
+            <span aria-hidden="true">::</span>
+            <span class="uppercase tracking-wide">Sample page</span>
+          </div>
+          <span class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
+            <span class="uppercase tracking-wide text-success">Operational</span>
+          </span>
         </div>
-      </section>
+      </div>
+
+      <!-- Hero meta block demo -->
+      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Hero meta block</h4>
+      <div class="mb-4 bg-surface border border-border rounded-lg p-4">
+        <div class="space-y-1.5 text-sm font-mono">
+          <div class="flex items-baseline gap-2">
+            <span class="text-muted w-32 flex-shrink-0">Status</span>
+            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+            <span class="text-body">Operational</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-muted w-32 flex-shrink-0">Open</span>
+            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+            <span class="text-body">4</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-muted w-32 flex-shrink-0">Severity</span>
+            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
+            <span class="text-body">
+              <span class="inline-block px-1.5 py-0.5 text-xs font-mono bg-error/15 text-error rounded">high 1</span>
+              <span class="inline-block px-1.5 py-0.5 text-xs font-mono bg-warning/15 text-warning rounded">med 3</span>
+              <span class="inline-block px-1.5 py-0.5 text-xs font-mono bg-info/15 text-info rounded">low 12</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section divider demo -->
+      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Section heading (PageSection)</h4>
+      <div class="mb-6 bg-surface border border-border rounded-lg p-4">
+        <h2 class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
+          0N // Section Title
+          <span class="text-muted/60 font-normal">· N matching · brief context</span>
+        </h2>
+        <p class="text-sm text-body font-sans">The section body. Mix tables, callouts, action rows, whatever the section needs.</p>
+      </div>
+
+      <!-- Subgroup B: Data -->
+      <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
+        <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">B</span>
+        Data
+      </h3>
+      <p class="text-sm text-muted font-sans mb-4">Tables, forms, badges, cards, status pills.</p>
 
       <!-- Buttons -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Buttons
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Global utility classes from <code
-            class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">app.css</code
-          >. Use <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded"
-            >.btn-primary</code
-          > for the main action; the rest for secondary controls.
-        </p>
+      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Buttons</h4>
+      <div class="mb-4 bg-surface border border-border rounded-lg p-4">
         <div class="flex flex-wrap gap-2 items-center">
           <button class="btn btn-primary" type="button">Primary</button>
           <button class="btn btn-primary" type="button" disabled>Disabled</button>
@@ -366,91 +318,51 @@
           <button class="btn btn-primary" type="button">Default size</button>
           <button class="btn btn-lg btn-primary" type="button">Large</button>
         </div>
-      </section>
+      </div>
 
       <!-- Badges & Pills -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Badges & Pills
-        </h3>
-        <div class="flex flex-wrap gap-2 items-center mb-4">
+      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Badges &amp; pills</h4>
+      <div class="mb-4 bg-surface border border-border rounded-lg p-4">
+        <div class="flex flex-wrap gap-2 items-center mb-3">
           <span class="badge badge-success">Success</span>
           <span class="badge badge-error">Error</span>
           <span class="badge badge-warning">Warning</span>
           <span class="badge badge-info">Info</span>
         </div>
-        <p class="text-sm text-[var(--muted)] font-sans mb-3">
-          Pills are used for diff status (added / deleted / modified):
-        </p>
         <div class="flex flex-wrap gap-2 items-center">
           <span class="pill add">Add</span>
           <span class="pill del">Del</span>
           <span class="pill mod">Mod</span>
         </div>
-      </section>
-
-      <!-- Status indicators -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Status indicators
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Same green / amber / red pattern across every page. Used in System, Footer, and dashboards.
-        </p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="flex items-center gap-2 text-sm">
-            <span class="w-2 h-2 rounded-full bg-[var(--success)]"></span>
-            <span class="font-mono text-[var(--text)]">Online</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse"></span>
-            <span class="font-mono text-[var(--text)]">Active</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="w-2 h-2 rounded-full bg-[var(--warning)]"></span>
-            <span class="font-mono text-[var(--text)]">Warning</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="w-2 h-2 rounded-full bg-[var(--error)]"></span>
-            <span class="font-mono text-[var(--text)]">Offline</span>
-          </div>
-        </div>
-      </section>
+      </div>
 
       <!-- Forms -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Forms
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Inputs use <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--surface-2</code>
-          backgrounds with a 1px <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--border</code>.
-          Focus ring is the accent color.
-        </p>
+      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Forms</h4>
+      <div class="mb-4 bg-surface border border-border rounded-lg p-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-text">Text input</label>
+            <label class="block text-xs font-mono text-muted uppercase tracking-wide mb-1.5" for="ds-text">Text input</label>
             <input
               id="ds-text"
               type="text"
               placeholder="e.g. /home/seth/Projects/raven"
-              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              class="w-full bg-surface-2 border border-border rounded px-3 py-2 text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>
           <div>
-            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-search">Search</label>
+            <label class="block text-xs font-mono text-muted uppercase tracking-wide mb-1.5" for="ds-search">Search</label>
             <input
               id="ds-search"
               type="search"
               placeholder="Search events..."
-              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-sans text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              class="w-full bg-surface-2 border border-border rounded px-3 py-2 text-sm font-sans text-body placeholder:text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>
           <div>
-            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-select">Select</label>
+            <label class="block text-xs font-mono text-muted uppercase tracking-wide mb-1.5" for="ds-select">Select</label>
             <select
               id="ds-select"
-              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-sans text-[var(--text)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              class="w-full bg-surface-2 border border-border rounded px-3 py-2 text-sm font-sans text-body focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             >
               <option>Last 24 hours</option>
               <option>Last 7 days</option>
@@ -458,198 +370,472 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-disabled">Disabled</label>
+            <label class="block text-xs font-mono text-muted uppercase tracking-wide mb-1.5" for="ds-disabled">Disabled</label>
             <input
               id="ds-disabled"
               type="text"
               value="read-only"
               disabled
-              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--muted)] opacity-60 cursor-not-allowed"
+              class="w-full bg-surface-2 border border-border rounded px-3 py-2 text-sm font-mono text-muted opacity-60 cursor-not-allowed"
             />
           </div>
           <div class="md:col-span-2">
-            <label class="block text-xs font-mono text-[var(--muted)] uppercase tracking-wide mb-1.5" for="ds-textarea">Textarea</label>
+            <label class="block text-xs font-mono text-muted uppercase tracking-wide mb-1.5" for="ds-textarea">Textarea</label>
             <textarea
               id="ds-textarea"
-              rows="3"
+              rows="2"
               placeholder="Notes or commit message..."
-              class="w-full bg-[var(--surface-2,var(--surface))] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              class="w-full bg-surface-2 border border-border rounded px-3 py-2 text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             ></textarea>
           </div>
-          <div class="md:col-span-2 flex flex-wrap items-center gap-6 pt-2">
-            <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
-              <input type="checkbox" checked class="accent-[var(--accent)]" />
+          <div class="md:col-span-2 flex flex-wrap items-center gap-6 pt-1">
+            <label class="flex items-center gap-2 text-sm text-body cursor-pointer">
+              <input type="checkbox" checked class="accent-accent" />
               <span>Pause monitoring</span>
             </label>
-            <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
-              <input type="checkbox" class="accent-[var(--accent)]" />
+            <label class="flex items-center gap-2 text-sm text-body cursor-pointer">
+              <input type="checkbox" class="accent-accent" />
               <span>Auto-refresh</span>
             </label>
-            <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
-              <input type="radio" name="ds-radio" checked class="accent-[var(--accent)]" />
-              <span>Subscription billing</span>
+            <label class="flex items-center gap-2 text-sm text-body cursor-pointer">
+              <input type="radio" name="ds-radio" checked class="accent-accent" />
+              <span>Subscription</span>
             </label>
-            <label class="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
-              <input type="radio" name="ds-radio" class="accent-[var(--accent)]" />
+            <label class="flex items-center gap-2 text-sm text-body cursor-pointer">
+              <input type="radio" name="ds-radio" class="accent-accent" />
               <span>API metering</span>
             </label>
           </div>
         </div>
-      </section>
+      </div>
 
       <!-- Tables -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Tables
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Borders top-and-between only — no outer rule. Header is uppercase mono on a recessed
-          surface; body text stays in the page font.
-        </p>
-        <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg overflow-hidden">
-          <table class="w-full text-sm">
-            <thead class="bg-[var(--surface-2,var(--surface))]">
-              <tr class="text-xs text-[var(--muted)] uppercase tracking-wide">
-                <th class="text-left font-semibold px-4 py-2">Agent</th>
-                <th class="text-left font-semibold px-4 py-2">Project</th>
-                <th class="text-left font-semibold px-4 py-2">Events</th>
-                <th class="text-right font-semibold px-4 py-2">Cost</th>
+      <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">Dense data table</h4>
+      <div class="mb-4 bg-surface border border-border rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-canvas">
+            <tr class="text-xs text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-4 py-2">Agent</th>
+              <th class="text-left font-semibold px-4 py-2">Project</th>
+              <th class="text-left font-semibold px-4 py-2">Events</th>
+              <th class="text-right font-semibold px-4 py-2">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each [
+              { agent: 'claude-code', project: 'raven', events: 1248, cost: '$0.42' },
+              { agent: 'codex', project: 'ant', events: 304, cost: '$0.11' },
+              { agent: 'ollama', project: 'sonar', events: 96, cost: '—' }
+            ] as row (row.agent)}
+              <tr class="border-t border-border">
+                <td class="px-4 py-2 font-mono text-body">{row.agent}</td>
+                <td class="px-4 py-2 text-body">{row.project}</td>
+                <td class="px-4 py-2 font-mono text-muted">{row.events.toLocaleString()}</td>
+                <td class="px-4 py-2 font-mono text-body text-right">{row.cost}</td>
               </tr>
-            </thead>
-            <tbody>
-              {#each [
-                { agent: 'claude-code', project: 'raven', events: 1248, cost: '$0.42' },
-                { agent: 'codex', project: 'ant', events: 304, cost: '$0.11' },
-                { agent: 'ollama', project: 'sonar', events: 96, cost: '—' }
-              ] as row (row.agent)}
-                <tr class="border-t border-[var(--border)]">
-                  <td class="px-4 py-2 font-mono text-[var(--text)]">{row.agent}</td>
-                  <td class="px-4 py-2 text-[var(--text)]">{row.project}</td>
-                  <td class="px-4 py-2 font-mono text-[var(--muted)]">{row.events.toLocaleString()}</td>
-                  <td class="px-4 py-2 font-mono text-[var(--text)] text-right">{row.cost}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            {/each}
+          </tbody>
+        </table>
+      </div>
 
-      <!-- Callouts -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Callouts
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Inline notices. Left bar carries the semantic; never use color alone — pair with a label
-          glyph (<code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">!</code>,
-          <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">✓</code>,
-          <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">i</code>,
-          <code class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">✗</code>).
-        </p>
-        <div class="space-y-3">
-          {#each callouts as c (c.tone)}
+      <!-- Subgroup C: Live -->
+      <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
+        <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">C</span>
+        Live
+      </h3>
+      <p class="text-sm text-muted font-sans mb-4">Things that breathe — pulsing dots, websocket status, idle indicators.</p>
+
+      <div class="mb-4 bg-surface border border-border rounded-lg p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="flex items-center gap-2 text-sm">
+            <span class="w-2 h-2 rounded-full bg-success"></span>
+            <span class="font-mono text-body">Online</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+            <span class="font-mono text-body">Active</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="w-2 h-2 rounded-full bg-warning"></span>
+            <span class="font-mono text-body">Warning</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="w-2 h-2 rounded-full bg-error"></span>
+            <span class="font-mono text-body">Offline</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subgroup D: Utilities -->
+      <h3 class="text-sm font-semibold text-heading mb-3 flex items-center gap-2 mt-8">
+        <span class="text-xs font-mono font-bold text-accent w-5 h-5 inline-flex items-center justify-center bg-accent-subtle rounded">D</span>
+        Utilities
+      </h3>
+      <p class="text-sm text-muted font-sans mb-2">
+        The DRY layer — primitives in <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">lib/components/ui/</code>.
+      </p>
+      <p class="text-xs font-mono text-muted mb-4">
+        Coverage of every <code>ui/</code> primitive against this page is enforced by
+        <code class="text-accent">npm run validate:design-coverage</code>.
+      </p>
+
+      <!-- Live demos of each primitive — each name must appear literally
+           somewhere in this file for validate:design-coverage to pass. -->
+      <div class="space-y-4">
+        <!-- RefreshButton -->
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <div class="flex items-baseline justify-between gap-3 mb-3">
+            <code class="font-mono text-sm text-accent">&lt;RefreshButton&gt;</code>
+            <span class="text-xs font-mono text-muted">(props: onClick, loading, label)</span>
+          </div>
+          <div class="flex flex-wrap gap-3 mb-3">
+            <RefreshButton onClick={() => {}} />
+            <RefreshButton onClick={() => {}} loading={true} />
+            <RefreshButton onClick={() => {}} label="Reload" />
+          </div>
+          <p class="text-xs text-muted font-sans">Canonical refresh button used in 23+ page headers. Built-in loading state.</p>
+        </div>
+
+        <!-- ToolbarButton -->
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <div class="flex items-baseline justify-between gap-3 mb-3">
+            <code class="font-mono text-sm text-accent">&lt;ToolbarButton&gt;</code>
+            <span class="text-xs font-mono text-muted">variant: default · primary · danger</span>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-3">
+            <ToolbarButton onClick={() => {}}>Export</ToolbarButton>
+            <ToolbarButton onClick={() => {}} variant="primary">Run now</ToolbarButton>
+            <ToolbarButton onClick={() => {}} variant="danger">Clear all</ToolbarButton>
+            <ToolbarButton onClick={() => {}} disabled={true}>Disabled</ToolbarButton>
+          </div>
+          <p class="text-xs text-muted font-sans">Secondary toolbar action (Export, Auto-refresh, filter toggles). One styling source for all toolbar buttons.</p>
+        </div>
+
+        <!-- FilterToggle -->
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <div class="flex items-baseline justify-between gap-3 mb-3">
+            <code class="font-mono text-sm text-accent">&lt;FilterToggle&gt;</code>
+            <span class="text-xs font-mono text-muted">(props: active, onClick)</span>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-3">
+            <FilterToggle active={true} onClick={() => {}}>High</FilterToggle>
+            <FilterToggle active={false} onClick={() => {}}>Medium</FilterToggle>
+            <FilterToggle active={false} onClick={() => {}}>Low</FilterToggle>
+          </div>
+          <p class="text-xs text-muted font-sans">Bordered active/inactive filter pill — severity filters, search-type toggles.</p>
+        </div>
+
+        <!-- TabButton -->
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <div class="flex items-baseline justify-between gap-3 mb-3">
+            <code class="font-mono text-sm text-accent">&lt;TabButton&gt;</code>
+            <span class="text-xs font-mono text-muted">(props: active, onClick)</span>
+          </div>
+          <div class="inline-flex">
+            <TabButton active={false} onClick={() => {}}>Today</TabButton>
+            <TabButton active={true} onClick={() => {}}>7d</TabButton>
+            <TabButton active={false} onClick={() => {}}>30d</TabButton>
+            <TabButton active={false} onClick={() => {}}>All</TabButton>
+          </div>
+          <p class="text-xs text-muted font-sans mt-3">Connected tab segment for time-range pickers.</p>
+        </div>
+
+        <!-- Reference table for the rest — name + variants + use line -->
+        <div class="bg-surface border border-border rounded-lg p-5">
+          <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-3">All primitives</h4>
+          <div class="space-y-3">
+            {#each PRIMITIVES as p (p.name)}
+              <div class="grid grid-cols-1 sm:grid-cols-[180px_1fr_2fr] gap-3 items-baseline border-b border-border pb-3 last:border-b-0 last:pb-0">
+                <code class="font-mono text-sm text-accent">&lt;{p.name}&gt;</code>
+                <div class="flex flex-wrap gap-1.5">
+                  {#each p.variants as v (v)}
+                    <code class="font-mono text-[10px] bg-surface-2 px-1.5 py-0.5 rounded text-muted">{v}</code>
+                  {/each}
+                </div>
+                <span class="text-sm text-muted font-sans">{p.use}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+    </PageSection>
+
+    <!-- 02 // Page Architecture -->
+    <div id="sect-architecture"></div>
+    <PageSection title="02 // Page Architecture" meta="the rhythm every content page follows">
+      <p class="text-sm text-body font-sans mb-6">Every Raven content page settles into the same five-zone rhythm. Build a new page by walking down this list — status bar, hero, numbered sections, sub-blocks, footer — and you'll match the rest of the system without thinking about it.</p>
+
+      <div class="mb-6 space-y-3">
+        {#each PAGE_ZONES as zone (zone.tag)}
+          <div class="bg-surface border border-border rounded-lg p-4 flex gap-4">
+            <div class="font-mono text-sm font-bold text-accent w-8 flex-shrink-0">{zone.tag}</div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold text-heading mb-1">
+                <code class="font-mono text-accent">{zone.name}</code>
+                <span class="text-muted font-sans font-normal">— {zone.purpose}</span>
+              </div>
+              <p class="text-sm text-body font-sans leading-relaxed">{zone.body}</p>
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Reference: a typical render order</h3>
+      <p class="text-sm text-muted font-sans mb-3">Copy this skeleton when starting a new page. Add the inline-script theme bootstrap to <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">index.html</code> only — it's already there.</p>
+      <pre class="bg-canvas border border-border rounded p-4 text-xs font-mono text-body overflow-x-auto leading-relaxed">{PAGE_SKELETON}</pre>
+    </PageSection>
+
+    <!-- 03 // States -->
+    <div id="sect-states"></div>
+    <PageSection title="03 // States" meta="empty · live · error · action · loading · missing">
+      <p class="text-sm text-body font-sans mb-6">Universal state patterns. Empty states are direct (icon + title + description, no decorative illustrations). Errors show the raw message in mono. Live state is signaled by motion — a pulsing dot, never a spinner. Action confirmations live in callouts after a redirect, not as toast notifications.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {#each STATES as s (s.tag)}
+          <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="flex items-baseline justify-between gap-3 mb-3">
+              <span class="text-xs font-mono font-bold text-accent uppercase tracking-wide">{s.tag}</span>
+              <code class="text-xs font-mono text-muted">{s.primitive}</code>
+            </div>
+
+            <div class="mb-3 bg-canvas border border-border rounded p-3 min-h-[110px] flex items-center justify-center">
+              {#if s.demo.kind === 'empty'}
+                <EmptyState
+                  icon="📭"
+                  title="No matches"
+                  description="No events match those filters. Try clearing them."
+                  size="compact"
+                />
+              {:else if s.demo.kind === 'live'}
+                <div class="flex items-center gap-3 text-sm">
+                  <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
+                  <span class="font-mono text-success uppercase tracking-wide text-xs">Reviewing</span>
+                  <span class="text-body"><strong>claude-code</strong> on <strong>raven</strong> · elapsed <strong>42s</strong></span>
+                </div>
+              {:else if s.demo.kind === 'loading'}
+                <LoadingState message="Loading sessions…" />
+              {:else if s.demo.kind === 'error'}
+                <div class="bg-error/10 border-l-4 border-error rounded-r p-3 w-full">
+                  <div class="text-xs font-mono uppercase tracking-wide text-error mb-1">✗ Error 503</div>
+                  <code class="block text-sm font-mono text-body">Ollama unavailable</code>
+                  <code class="block text-xs font-mono text-muted mt-1">$ systemctl --user status ollama</code>
+                </div>
+              {:else if s.demo.kind === 'action'}
+                <div class="bg-success/10 border-l-4 border-success rounded-r p-3 w-full">
+                  <div class="text-xs font-mono uppercase tracking-wide text-success mb-1">✓ Updated</div>
+                  <div class="text-sm text-body font-sans"><code class="font-mono text-accent">retention.event_days</code> changed to <code class="font-mono text-accent">14</code>.</div>
+                </div>
+              {:else if s.demo.kind === 'missing'}
+                <div class="bg-error/10 border-l-4 border-error rounded-r p-3 w-full">
+                  <div class="flex items-center gap-3">
+                    <strong class="text-body line-through">/home/seth/Projects/gone</strong>
+                    <span class="inline-block px-2 py-0.5 text-xs font-mono bg-error/15 text-error rounded uppercase tracking-wide">missing</span>
+                  </div>
+                </div>
+              {/if}
+            </div>
+
+            <p class="text-xs text-muted font-sans leading-relaxed">{s.desc}</p>
+          </div>
+        {/each}
+      </div>
+    </PageSection>
+
+    <!-- 04 // Colors -->
+    <div id="sect-colors"></div>
+    <PageSection title="04 // Colors" meta="theme-aware tokens · flip on :root.dark">
+      <h3 class="text-sm font-semibold text-heading mb-3">Surfaces</h3>
+      <p class="text-sm text-muted font-sans mb-4">Background and border tokens. These swap automatically between light and dark themes.</p>
+      <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {#each SURFACE_TOKENS as t (t.name)}
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded border border-border flex-shrink-0" style="background: var({t.name});"></div>
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <code class="font-mono text-xs text-accent">{t.utility}</code>
+              <code class="font-mono text-[10px] text-muted">{t.name}</code>
+              <span class="text-sm text-muted font-sans">{t.role}</span>
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Text</h3>
+      <p class="text-sm text-muted font-sans mb-4">Live samples — toggle the theme via the footer to see them shift.</p>
+      <div class="mb-6 bg-surface border border-border rounded-lg p-5 space-y-3">
+        {#each TEXT_TOKENS as t (t.name)}
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_180px_1fr] gap-3 items-baseline border-b border-border pb-3 last:border-b-0 last:pb-0">
+            <span class="text-base font-sans" style="color: var({t.name});">The quick brown fox jumps over the lazy dog</span>
+            <div class="flex flex-col gap-0.5">
+              <code class="font-mono text-xs text-accent">{t.utility}</code>
+              <code class="font-mono text-[10px] text-muted">{t.name}</code>
+            </div>
+            <span class="text-sm text-muted font-sans">{t.role}</span>
+          </div>
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Semantic</h3>
+      <p class="text-sm text-muted font-sans mb-4">Outcome-driven. Each color has one job. Don't reuse them for decoration.</p>
+      <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {#each SEMANTIC_TOKENS as t (t.name)}
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded flex-shrink-0" style="background: var({t.name});"></div>
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <code class="font-mono text-xs text-accent">{t.utility}</code>
+              <code class="font-mono text-[10px] text-muted">{t.name}</code>
+              <span class="text-sm text-muted font-sans">{t.role}</span>
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Subtle tints</h3>
+      <p class="text-sm text-muted font-sans mb-4">Low-saturation backgrounds. Pair with the matching semantic color for text.</p>
+      <div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {#each SUBTLE_TOKENS as t (t.name)}
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded border border-border flex-shrink-0" style="background: var({t.name});"></div>
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <code class="font-mono text-xs text-accent">{t.utility}</code>
+              <code class="font-mono text-[10px] text-muted">{t.name}</code>
+              <span class="text-sm text-muted font-sans">{t.role}</span>
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Callouts</h3>
+      <p class="text-sm text-muted font-sans mb-4">Inline notices. Left bar carries the semantic; pair with a label glyph (<code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">!</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">✓</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">i</code>, <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">✗</code>).</p>
+      <div class="space-y-3">
+        {#each CALLOUTS as c (c.tone)}
+          {@const cls = toneClasses(c.tone)}
+          <div class="rounded-r p-4 border-l-4 {cls.border} {cls.tint}">
+            <div class="text-xs font-mono uppercase tracking-wide mb-1 {cls.text}">{c.label}</div>
+            <div class="text-sm text-body font-sans">{c.body}</div>
+          </div>
+        {/each}
+      </div>
+    </PageSection>
+
+    <!-- 05 // Typography -->
+    <div id="sect-type"></div>
+    <PageSection title="05 // Typography">
+      <p class="text-sm text-body font-sans mb-6">Two families: <strong>Inter</strong> for prose, <strong>JetBrains Mono</strong> for technical content. Mono is reserved for things that must align character-for-character — IDs, paths, durations, code, model names.</p>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Scale</h3>
+      <div class="mb-6 bg-surface border border-border rounded-lg p-5 space-y-3">
+        {#each TYPE_SCALE as t (t.name)}
+          <div class="grid grid-cols-[140px_60px_1fr] gap-3 items-baseline border-b border-border pb-3 last:border-b-0 last:pb-0">
+            <code class="font-mono text-xs text-muted">{t.name}</code>
+            <span class="font-mono text-xs text-muted">{t.size}</span>
+            <span class="text-body font-sans" style="font-size: var({t.name});">{t.sample}</span>
+          </div>
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Weights</h3>
+      <div class="mb-6 bg-surface border border-border rounded-lg p-5 space-y-3">
+        {#each TYPE_WEIGHTS as w (w.name)}
+          <div class="grid grid-cols-[180px_60px_1fr] gap-3 items-baseline border-b border-border pb-3 last:border-b-0 last:pb-0">
+            <code class="font-mono text-xs text-accent">{w.name}</code>
+            <span class="font-mono text-xs text-muted">{w.value}</span>
+            <span class="text-body font-sans text-base" style="font-weight: {w.value};">{w.sample}</span>
+          </div>
+        {/each}
+      </div>
+
+      <h3 class="text-sm font-semibold text-heading mb-3">Families</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {#each TYPE_FAMILIES as f (f.name)}
+          <div class="bg-surface border border-border rounded-lg p-5">
+            <div class="text-sm font-semibold text-heading mb-1">{f.name}</div>
+            <code class="font-mono text-xs text-accent">{f.cssVar}</code>
+            <p class="text-xs text-muted font-sans mt-2 mb-3">{f.use}</p>
+            <p class="text-base" style="font-family: var({f.cssVar});">{f.sample}</p>
+          </div>
+        {/each}
+      </div>
+    </PageSection>
+
+    <!-- 06 // Spacing -->
+    <div id="sect-spacing"></div>
+    <PageSection title="06 // Spacing scale">
+      <p class="text-sm text-muted font-sans mb-4">Eight steps. Always reference the token, never raw px.</p>
+      <div class="bg-surface border border-border rounded-lg p-5 space-y-2">
+        {#each SPACING_SCALE as s (s.name)}
+          <div class="grid grid-cols-[140px_1fr_60px] gap-3 items-center">
+            <code class="font-mono text-xs text-body">{s.name}</code>
+            <div class="flex items-center">
+              <div class="h-3 bg-accent rounded-sm" style="width: var({s.name});"></div>
+            </div>
+            <span class="font-mono text-xs text-muted">{s.value}px</span>
+          </div>
+        {/each}
+      </div>
+    </PageSection>
+
+    <!-- 07 // Radius -->
+    <div id="sect-radius"></div>
+    <PageSection title="07 // Radius scale">
+      <div class="bg-surface border border-border rounded-lg p-5 space-y-3">
+        {#each RADIUS_SCALE as r (r.name)}
+          <div class="grid grid-cols-[60px_140px_1fr] gap-3 items-center">
+            <div class="w-9 h-9 bg-accent" style="border-radius: var({r.name});"></div>
+            <code class="font-mono text-xs text-body">{r.name}</code>
+            <span class="text-sm text-muted font-sans">
+              <span class="font-mono text-body">{r.value}</span> · {r.use}
+            </span>
+          </div>
+        {/each}
+      </div>
+    </PageSection>
+
+    <!-- 08 // Motion -->
+    <div id="sect-motion"></div>
+    <PageSection title="08 // Motion">
+      <p class="text-sm text-muted font-sans mb-4">
+        Hover the swatch to feel each duration. Easing is symmetric by default; reach for
+        <code class="font-mono text-xs bg-surface-2 px-1.5 py-0.5 rounded">--ease-out-expo</code>
+        when something should land decisively (toasts, drawers).
+      </p>
+      <div class="bg-surface border border-border rounded-lg p-5 space-y-3">
+        {#each MOTION_TOKENS as t (t.name)}
+          <div class="grid grid-cols-1 sm:grid-cols-[60px_180px_1fr] gap-3 items-center border-b border-border pb-3 last:border-b-0 last:pb-0">
             <div
-              class="rounded-r p-4 border-l-4"
-              style="background: var(--{c.tone})/10; border-color: var(--{c.tone}); background-color: color-mix(in oklab, var(--{c.tone}) 10%, transparent);"
-            >
-              <div
-                class="text-xs font-mono uppercase tracking-wide mb-1"
-                style="color: var(--{c.tone});"
-              >{c.label}</div>
-              <div class="text-sm text-[var(--text)] font-sans">{c.body}</div>
-            </div>
-          {/each}
-        </div>
-      </section>
-
-      <!-- Page header pattern -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Page header pattern
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Title left, supporting metadata under it, actions on the right. Mirrors System.
-        </p>
-        <div class="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-          <div class="flex justify-between items-start flex-wrap gap-4">
-            <div>
-              <h2 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Example Page</h2>
-              <p class="text-sm text-[var(--muted)] font-sans">
-                Raven v0.0.0 · Uptime: 12m
-              </p>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="text-xs text-[var(--muted)] font-mono">just now</span>
-              <button
-                type="button"
-                class="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
-              >
-                ↻ Refresh
-              </button>
-            </div>
+              class="motion-demo w-9 h-9 bg-accent rounded"
+              style="transition: transform var({t.name}) var(--ease-smooth);"
+            ></div>
+            <code class="font-mono text-xs text-body">{t.name}</code>
+            <span class="text-sm text-muted font-sans">
+              <span class="font-mono text-body">{t.value}</span> · {t.use}
+            </span>
           </div>
-        </div>
-      </section>
+        {/each}
+      </div>
+    </PageSection>
 
-      <!-- Card patterns -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Card patterns
-        </h3>
-        <p class="text-sm text-[var(--muted)] font-sans mb-4">
-          Status tile (left) and detail card (right). Both live on a <code
-            class="font-mono text-xs bg-[var(--surface-2)] px-1.5 py-0.5 rounded">--bg</code
-          > page.
-        </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[var(--bg)] p-4 rounded">
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded p-4">
-            <div class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-              Backend
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-[var(--success)]"></span>
-              <span class="text-sm font-mono text-[var(--text)]">Online</span>
-            </div>
-          </div>
-          <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-            <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">
-              Server Details
-            </h3>
-            <div class="space-y-3 text-sm">
-              <div class="flex justify-between border-b border-[var(--border)] pb-2">
-                <span class="text-[var(--muted)]">Session</span>
-                <span class="font-mono text-[var(--text)] text-xs">abc123def...</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-[var(--muted)]">Active Agents</span>
-                <span class="font-mono text-[var(--text)]">3</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    <!-- 09 // Principles -->
+    <div id="sect-principles"></div>
+    <PageSection title="09 // Compliance principles">
+      <ol class="list-decimal pl-5 space-y-2 text-sm text-body font-sans leading-relaxed">
+        {#each PRINCIPLES as p (p)}
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -- principles is a hard-coded static array; values are author-controlled markup, never user input -->
+          <li>{@html p}</li>
+        {/each}
+      </ol>
 
-      <!-- Compliance principles -->
-      <section class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-4 font-mono">
-          Compliance principles
-        </h3>
-        <ol
-          class="list-decimal pl-5 space-y-2 text-sm text-[var(--text)] font-sans leading-relaxed"
-        >
-          {#each principles as p (p)}
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -- principles is a hard-coded static array; values are author-controlled markup, never user input -->
-            <li>{@html p}</li>
-          {/each}
-        </ol>
-      </section>
+      <div class="mt-6">
+        <a href="#sect-intent" class="inline-block px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors">[ ↑ back to top ]</a>
+      </div>
+    </PageSection>
+
   </div>
 </PageLayout>
 
 <style>
   /* Inline code chips inside the principles list — keep them visible */
   ol :global(code) {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
     background: var(--surface-2);
     padding: 1px 6px;
