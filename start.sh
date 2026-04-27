@@ -147,7 +147,6 @@ curl -s --max-time 5 "$BASE/top-modified-files" > /dev/null 2>&1 & CURL_PIDS+=($
 curl -s --max-time 5 "$BASE/longest-edits" > /dev/null 2>&1 & CURL_PIDS+=($!)
 curl -s --max-time 5 "$BASE/projects" > /dev/null 2>&1 & CURL_PIDS+=($!)
 curl -s --max-time 5 "$BASE/sessions" > /dev/null 2>&1 & CURL_PIDS+=($!)
-curl -s --max-time 5 "$BASE/sessions/stats" > /dev/null 2>&1 & CURL_PIDS+=($!)
 curl -s --max-time 5 "$BASE/conversations" > /dev/null 2>&1 & CURL_PIDS+=($!)
 curl -s --max-time 5 "$BASE/conversations/stats" > /dev/null 2>&1 & CURL_PIDS+=($!)
 curl -s --max-time 5 "$BASE/storage" > /dev/null 2>&1 & CURL_PIDS+=($!)

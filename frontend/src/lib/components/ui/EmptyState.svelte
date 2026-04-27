@@ -15,7 +15,7 @@
   /** @type {Props} */
   let { title, description, icon, size = 'default', actions } = $props();
 
-  const padding = size === 'compact' ? 'p-8' : 'p-12';
+  const padding = $derived(size === 'compact' ? 'p-8' : 'p-12');
 </script>
 
 <div class="bg-surface border border-border rounded-lg {padding} text-center">

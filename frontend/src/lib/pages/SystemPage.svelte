@@ -293,7 +293,7 @@
               {#each routes as r (r.methods.join(',') + r.path)}
                 <tr class="border-t border-border">
                   <td class="px-4 py-1.5">
-                    {#each r.methods as m}
+                    {#each r.methods as m (m)}
                       <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded {methodBadgeClass(m)} mr-1">{m}</span>
                     {/each}
                   </td>

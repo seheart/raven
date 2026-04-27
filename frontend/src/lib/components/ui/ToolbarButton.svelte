@@ -34,12 +34,13 @@
     children
   } = $props();
 
-  const variantClass =
+  const variantClass = $derived(
     variant === 'primary'
       ? 'bg-accent text-white border-accent hover:opacity-90'
       : variant === 'danger'
         ? 'bg-surface text-error border-error hover:bg-error-subtle'
-        : 'bg-surface border-border hover:border-accent';
+        : 'bg-surface border-border hover:border-accent'
+  );
 </script>
 
 <button

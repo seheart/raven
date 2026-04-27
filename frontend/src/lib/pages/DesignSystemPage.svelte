@@ -638,6 +638,7 @@
           class="list-decimal pl-5 space-y-2 text-sm text-[var(--text)] font-sans leading-relaxed"
         >
           {#each principles as p (p)}
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- principles is a hard-coded static array; values are author-controlled markup, never user input -->
             <li>{@html p}</li>
           {/each}
         </ol>
