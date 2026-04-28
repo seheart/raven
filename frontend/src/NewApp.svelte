@@ -460,6 +460,14 @@
         {:catch}
           <PlaceholderPage title="Light Lab" description="Failed to load" />
         {/await}
+      {:else if activeTab === 'pulse-lab'}
+        {#await import('./lib/pages/PulseLabPage.svelte')}
+          <PlaceholderPage title="Pulse Lab" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Pulse Lab" description="Failed to load" />
+        {/await}
       {:else if activeTab === 'roadmap'}
         {#await import('./lib/pages/RoadmapPage.svelte')}
           <PlaceholderPage title="Roadmap" description="Loading..." />
