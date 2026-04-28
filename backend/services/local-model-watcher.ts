@@ -58,6 +58,7 @@ export class LocalModelWatcher {
   private onModelDetected: ((model: DetectedModel) => void) | null = null;
   private onModelStatusChanged: ((model: DetectedModel, previousStatus: string) => void) | null =
     null;
+  private onModelHeartbeat: ((model: DetectedModel) => void) | null = null;
   private pollMs: number;
   private idlePollMs: number;
   private isIdle: boolean = false;
@@ -89,14 +90,22 @@ export class LocalModelWatcher {
   }
 
   /**
-   * Start watching for local models
+   * Start watching for local models.
+   *
+   * - `callback` fires once when a model first transitions to running.
+   * - `statusCallback` fires when a model transitions running ↔ stopped.
+   * - `heartbeatCallback` fires on every successful scan while a model is
+   *   running, so consumers can keep `last_seen` / models list fresh
+   *   without triggering log/notification side-effects each tick.
    */
   async start(
     callback?: (model: DetectedModel) => void,
-    statusCallback?: (model: DetectedModel, previousStatus: string) => void
+    statusCallback?: (model: DetectedModel, previousStatus: string) => void,
+    heartbeatCallback?: (model: DetectedModel) => void
   ): Promise<void> {
     this.onModelDetected = callback || null;
     this.onModelStatusChanged = statusCallback || null;
+    this.onModelHeartbeat = heartbeatCallback || null;
 
     // Initial scan
     await this.scan();
@@ -138,6 +147,12 @@ export class LocalModelWatcher {
 
           if (wasNew && model.status === 'running' && this.onModelDetected) {
             this.onModelDetected(model);
+          }
+          // Heartbeat fires every successful scan so the consumer's
+          // registry can refresh last_seen / models without waiting for
+          // a status transition.
+          if (model.status === 'running' && this.onModelHeartbeat) {
+            this.onModelHeartbeat(model);
           }
         }
       } catch {

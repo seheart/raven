@@ -3712,6 +3712,7 @@ httpServer.listen(PORT, BIND_HOST, async () => {
       if (existing) {
         existing.is_running = model.status === 'running';
         existing.last_seen = model.lastChecked;
+        existing.models_available = model.models;
       }
 
       // Emit notification via WebSocket
@@ -3723,6 +3724,17 @@ httpServer.listen(PORT, BIND_HOST, async () => {
         models: model.models,
         timestamp: model.lastChecked
       });
+    },
+    model => {
+      // Heartbeat — fires every successful scan while the model is
+      // running. Silently refresh registry state so last_seen and
+      // models_available stay current without log/notification spam.
+      const existing = agentRegistry.get(model.name);
+      if (existing) {
+        existing.is_running = model.status === 'running';
+        existing.last_seen = model.lastChecked;
+        existing.models_available = model.models;
+      }
     }
   );
 
