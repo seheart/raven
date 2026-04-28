@@ -282,22 +282,35 @@
     ctx.arc(cx, cy, coreSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // 3D wireframe icosahedron core — two rotation passes:
+    // 3D wireframe icosahedron core — three layered motions:
     //   1. The planet's own spin: stable, faster, two-axis tumble.
     //   2. The camera orbiting it: slower, wandering — combined sine
     //      waves at non-rational frequencies make the path feel
-    //      organic instead of a perfect circle, like a ship drifting
-    //      around at varying altitude.
-    // Edges sort back-to-front so closer ones render brighter.
+    //      organic instead of a perfect circle.
+    //   3. The camera distance: mostly cruising (~3.5–4.3 units away),
+    //      with brief fly-bys that dive close (~1.15 units, just outside
+    //      the unit-sphere surface). When close, the near-side vertices
+    //      get massive scaling factors → close nodes pop big in your face,
+    //      far nodes shrink — gives the "almost hit it" sensation.
+    // Edges sort back-to-front so closer ones render brighter; vertex
+    // dots and stroke width scale with the projection factor too, so
+    // proximity reads in size as well as brightness.
     const planetAx = time * 0.45;
     const planetAy = time * 0.65;
     const camYaw = time * 0.18 + Math.sin(time * 0.13) * 0.6;
     const camPitch = Math.sin(time * 0.09) * 0.4 + Math.cos(time * 0.21) * 0.2;
+
+    // Camera distance: 3.8 ± 0.5 cruising, dives toward ~1.15 during a
+    // fly-by spike. pow(…, 8) keeps the dives sparse and sudden.
+    const camCruise = 3.8 + Math.sin(time * 0.11) * 0.5;
+    const flyByTrigger = Math.pow(Math.max(0, Math.sin(time * 0.18 + 1.3)), 8);
+    const camDist = Math.max(1.15, camCruise - flyByTrigger * 2.4);
+
     const sphereRadius = 14 + Math.sin(time * 2) * 1.5 + activity * 6;
     const projected = ICO_VERTS.map(v => {
       const planet = rotateXYZ(v, planetAx, planetAy);
       const orbit = rotateXYZ(planet, camPitch, camYaw);
-      return project(orbit, cx, cy, sphereRadius, 4);
+      return project(orbit, cx, cy, sphereRadius, camDist);
     });
     const edgesByDepth = ICO_EDGES
       .map(([a, b]) => ({ a, b, mid: (projected[a].depth + projected[b].depth) / 2 }))
@@ -306,24 +319,30 @@
     for (const { a, b, mid } of edgesByDepth) {
       const pa = projected[a];
       const pb = projected[b];
-      // depth -1..+1 → alpha 0.18..0.95; closer edges read brighter.
+      // Skip edges crossing behind the camera (shouldn't happen with the
+      // 1.15 floor, but cheap insurance).
+      if (pa.f <= 0.1 || pb.f <= 0.1) continue;
       const t = (mid + 1) / 2;
       const alpha = 0.18 + t * 0.77 * (0.55 + activity * 0.45);
+      const fAvg = (pa.f + pb.f) / 2;
       ctx.strokeStyle = rgba(colors.accent, alpha);
-      ctx.lineWidth = 0.7 + t * 0.9;
+      // Stroke thickens as edges fly past close; capped so it doesn't go absurd.
+      ctx.lineWidth = (0.7 + t * 0.9) * Math.min(fAvg, 2.5);
       ctx.beginPath();
       ctx.moveTo(pa.x, pa.y);
       ctx.lineTo(pb.x, pb.y);
       ctx.stroke();
     }
 
-    // Vertex dots — only the camera-facing ones, for a subtle "lit" feel.
+    // Vertex dots — only the camera-facing ones, scaled by projection
+    // factor so a near-miss vertex pops big and bright.
     for (const p of projected) {
       if (p.depth < 0.1) continue;
       const t = (p.depth + 1) / 2;
+      const sizeBoost = Math.min(p.f, 5); // cap so peak dives don't render plate-sized dots
       ctx.fillStyle = rgba(colors.accent, 0.4 + t * 0.5);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 1.2 + t * 1.1, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, (1.2 + t * 1.1) * sizeBoost, 0, Math.PI * 2);
       ctx.fill();
     }
 
