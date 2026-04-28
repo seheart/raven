@@ -282,13 +282,23 @@
     ctx.arc(cx, cy, coreSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // 3D wireframe icosahedron core. Rotates on two axes; the breath term
-    // pulses the radius in sync with the existing rhythm. Edges are sorted
-    // back-to-front so closer ones render brighter.
-    const ax = time * 0.45;
-    const ay = time * 0.65;
+    // 3D wireframe icosahedron core — two rotation passes:
+    //   1. The planet's own spin: stable, faster, two-axis tumble.
+    //   2. The camera orbiting it: slower, wandering — combined sine
+    //      waves at non-rational frequencies make the path feel
+    //      organic instead of a perfect circle, like a ship drifting
+    //      around at varying altitude.
+    // Edges sort back-to-front so closer ones render brighter.
+    const planetAx = time * 0.45;
+    const planetAy = time * 0.65;
+    const camYaw = time * 0.18 + Math.sin(time * 0.13) * 0.6;
+    const camPitch = Math.sin(time * 0.09) * 0.4 + Math.cos(time * 0.21) * 0.2;
     const sphereRadius = 14 + Math.sin(time * 2) * 1.5 + activity * 6;
-    const projected = ICO_VERTS.map(v => project(rotateXYZ(v, ax, ay), cx, cy, sphereRadius, 4));
+    const projected = ICO_VERTS.map(v => {
+      const planet = rotateXYZ(v, planetAx, planetAy);
+      const orbit = rotateXYZ(planet, camPitch, camYaw);
+      return project(orbit, cx, cy, sphereRadius, 4);
+    });
     const edgesByDepth = ICO_EDGES
       .map(([a, b]) => ({ a, b, mid: (projected[a].depth + projected[b].depth) / 2 }))
       .sort((p, q) => p.mid - q.mid);
