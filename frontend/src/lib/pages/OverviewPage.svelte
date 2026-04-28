@@ -867,10 +867,7 @@
     <div class="flex flex-wrap items-center gap-2 mb-3 bg-surface border border-border rounded px-3 py-2">
       <!-- Stats inline -->
       {#each [
-        { key: 'total_events', label: 'Events', value: stats.total_events, tip: 'Total file-change events recorded today across watched projects.' },
-        { key: 'edits', label: 'Edits', value: stats.edits, tip: 'File modifications today (existing files changed).' },
-        { key: 'creates', label: 'Creates', value: stats.creates, color: 'var(--success)', tip: 'New files added today.' },
-        { key: 'deletes', label: 'Deletes', value: stats.deletes, color: 'var(--error)', tip: 'Files removed today.' }
+        { key: 'total_events', label: 'Events', value: stats.total_events, tip: 'Total file-change events recorded today across watched projects.' }
       ] as stat (stat.key)}
         <span class="text-[11px] font-mono {statsFlash[stat.key] ? 'stat-flash' : ''}" title={stat.tip}>
           <span class="text-muted">{stat.label}</span>
