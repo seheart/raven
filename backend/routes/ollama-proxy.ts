@@ -46,6 +46,30 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
     }
   });
 
+  /**
+   * Pull rich perf numbers out of Ollama's final response object.
+   * Ollama returns durations in nanoseconds, which we convert to ms /
+   * tokens-per-second so they're directly usable in the dashboard.
+   * Missing fields → 0; tps is 0 if the corresponding duration is 0.
+   */
+  function extractMetrics(parsed: any) {
+    const promptTokens = parsed.prompt_eval_count || 0;
+    const genTokens = parsed.eval_count || 0;
+    const promptDurNs = parsed.prompt_eval_duration || 0;
+    const evalDurNs = parsed.eval_duration || 0;
+    return {
+      tokens: promptTokens + genTokens,
+      prompt_tokens: promptTokens,
+      gen_tokens: genTokens,
+      prompt_tps: promptDurNs > 0 ? +(promptTokens / (promptDurNs / 1e9)).toFixed(2) : 0,
+      gen_tps: evalDurNs > 0 ? +(genTokens / (evalDurNs / 1e9)).toFixed(2) : 0,
+      load_ms: Math.round((parsed.load_duration || 0) / 1e6),
+      prompt_ms: Math.round(promptDurNs / 1e6),
+      gen_ms: Math.round(evalDurNs / 1e6),
+      total_ms: Math.round((parsed.total_duration || 0) / 1e6)
+    };
+  }
+
   function registerAgent(modelName: string, incrementRequests: boolean) {
     if (!agentRegistry.has(modelName)) {
       agentRegistry.set(modelName, {
@@ -94,7 +118,9 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         const reader = ollamaResponse.body.getReader();
         const decoder = new TextDecoder();
         const modelName = req.body?.model || 'unknown';
-        let totalTokens = 0;
+        // Captured from the final NDJSON line where Ollama emits done:true
+        // with all the eval_* and *_duration fields.
+        let metrics = extractMetrics({});
 
         try {
           while (true) {
@@ -114,7 +140,7 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
               try {
                 const parsed = JSON.parse(line);
                 if (parsed.done && parsed.total_duration) {
-                  totalTokens = (parsed.prompt_eval_count || 0) + (parsed.eval_count || 0);
+                  metrics = extractMetrics(parsed);
                 }
               } catch (parseErr: any) {
                 logger.debug(`Ollama stream: NDJSON parse skip (${parseErr?.message})`);
@@ -144,11 +170,11 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
           null,
           null,
           durationMs,
-          `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${totalTokens} tokens)`,
+          `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${metrics.tokens} tokens, ${metrics.gen_tps} tps)`,
           {
             model: modelName,
-            tokens: totalTokens,
             endpoint: ollamaPath,
+            ...metrics,
             prompt_preview:
               typeof req.body?.prompt === 'string' ? req.body.prompt.substring(0, 100) : undefined
           },
@@ -162,12 +188,12 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
           type: 'inference',
           agent_name: modelName,
           duration_ms: durationMs,
-          tokens: totalTokens,
+          ...metrics,
           timestamp: new Date().toISOString()
         });
 
         logger.info(
-          `🤖 Ollama ${modelName}: ${ollamaPath} (${totalTokens} tokens, ${durationMs}ms)`
+          `🤖 Ollama ${modelName}: ${ollamaPath} (${metrics.tokens} tok, gen ${metrics.gen_tps} tps, ${durationMs}ms)`
         );
       } else {
         const data = await ollamaResponse.text();
@@ -177,10 +203,9 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         const modelName = req.body?.model || 'Ollama';
 
         if (ollamaPath === '/api/generate' || ollamaPath === '/api/chat') {
-          let tokens = 0;
+          let metrics = extractMetrics({});
           try {
-            const parsed = JSON.parse(data);
-            tokens = (parsed.prompt_eval_count || 0) + (parsed.eval_count || 0);
+            metrics = extractMetrics(JSON.parse(data));
           } catch (parseErr: any) {
             logger.debug(`Ollama response parse skip (${parseErr?.message})`);
           }
@@ -192,8 +217,8 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             null,
             null,
             durationMs,
-            `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${tokens} tokens)`,
-            { model: modelName, tokens, endpoint: ollamaPath },
+            `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${metrics.tokens} tokens, ${metrics.gen_tps} tps)`,
+            { model: modelName, endpoint: ollamaPath, ...metrics },
             SESSION_ID,
             null
           );
@@ -204,11 +229,13 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             type: 'inference',
             agent_name: modelName,
             duration_ms: durationMs,
-            tokens,
+            ...metrics,
             timestamp: new Date().toISOString()
           });
 
-          logger.info(`🤖 Ollama ${modelName}: ${ollamaPath} (${tokens} tokens, ${durationMs}ms)`);
+          logger.info(
+            `🤖 Ollama ${modelName}: ${ollamaPath} (${metrics.tokens} tok, gen ${metrics.gen_tps} tps, ${durationMs}ms)`
+          );
         } else if (ollamaPath !== '/api/tags' && ollamaPath !== '/') {
           db.insertAgentEvent(
             new Date().toISOString(),

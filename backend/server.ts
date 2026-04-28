@@ -1226,6 +1226,191 @@ app.get('/api/local-models', (req: Request, res: Response) => {
 });
 
 // GET /api/models — Per-model stats across all agents
+// ── Dev: seed synthetic inference events ─────────────────────────────
+// POST /api/dev/seed-inferences { count?: number, intervalMs?: number }
+// Streams N realistic inference events over the websocket so the LLM
+// Lab can be evaluated visually without burning real GPU. Does NOT
+// write to the DB — refresh the page and the synthetic data is gone.
+app.post('/api/dev/seed-inferences', (req: Request, res: Response) => {
+  const count = Math.min(Math.max(parseInt(req.body?.count) || 15, 1), 100);
+  const intervalMs = Math.min(Math.max(parseInt(req.body?.intervalMs) || 600, 100), 5000);
+
+  // Synthetic but realistic profiles. Each maps to a model with typical
+  // tps ranges so the colors in the card spread across success/warning/error.
+  const profiles = [
+    { model: 'qwen2.5-coder:14b', genTpsRange: [22, 32], promptTpsRange: [180, 240], avgTokens: 80 },
+    { model: 'gemma3:12b', genTpsRange: [25, 35], promptTpsRange: [150, 220], avgTokens: 60 },
+    { model: 'llama3.1:8b', genTpsRange: [40, 60], promptTpsRange: [300, 450], avgTokens: 100 },
+    { model: 'qwen2.5-coder:32b', genTpsRange: [8, 14], promptTpsRange: [60, 110], avgTokens: 120 },
+    { model: 'llama3.3:70b', genTpsRange: [4, 8], promptTpsRange: [25, 50], avgTokens: 150 }
+  ];
+
+  const rand = (min: number, max: number) => min + Math.random() * (max - min);
+
+  // Optional `model` filter: if provided, every event uses that model
+  // (with sensible default tps if it's not in the profiles list). Lets
+  // the demo focus pulses on a specific resident model.
+  const modelFilter = typeof req.body?.model === 'string' ? req.body.model : null;
+  const filtered = modelFilter
+    ? [
+        profiles.find(p => p.model === modelFilter) || {
+          model: modelFilter,
+          genTpsRange: [20, 30],
+          promptTpsRange: [150, 220],
+          avgTokens: 80
+        }
+      ]
+    : profiles;
+
+  let fired = 0;
+  const fireOne = () => {
+    const p = filtered[Math.floor(Math.random() * filtered.length)];
+    const genTps = +rand(p.genTpsRange[0], p.genTpsRange[1]).toFixed(2);
+    const promptTps = +rand(p.promptTpsRange[0], p.promptTpsRange[1]).toFixed(2);
+    const genTokens = Math.floor(rand(p.avgTokens * 0.5, p.avgTokens * 1.6));
+    const promptTokens = Math.floor(rand(20, 150));
+    const genMs = Math.round((genTokens / genTps) * 1000);
+    const promptMs = Math.round((promptTokens / promptTps) * 1000);
+    const totalMs = genMs + promptMs + Math.floor(rand(20, 80));
+
+    io.emit('agent-event', {
+      type: 'inference',
+      agent_name: p.model,
+      duration_ms: totalMs,
+      tokens: promptTokens + genTokens,
+      prompt_tokens: promptTokens,
+      gen_tokens: genTokens,
+      prompt_tps: promptTps,
+      gen_tps: genTps,
+      load_ms: 0,
+      prompt_ms: promptMs,
+      gen_ms: genMs,
+      total_ms: totalMs,
+      timestamp: new Date().toISOString()
+    });
+
+    fired++;
+    if (fired < count) setTimeout(fireOne, intervalMs);
+  };
+
+  setTimeout(fireOne, 50);
+  return res.json({ seeding: count, interval_ms: intervalMs });
+});
+
+// ── Ollama detail endpoints ──────────────────────────────────────────
+// /api/ollama/ps      — currently resident models (VRAM, TTL)
+// /api/ollama/library — installed model catalog (size, family, quant)
+// /api/gpu            — nvidia-smi metrics (VRAM, temp, util, power)
+
+const OLLAMA_INTERNAL_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+
+app.get('/api/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Response) => {
+  try {
+    const r = await fetch(`${OLLAMA_INTERNAL_URL}/api/ps`, {
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
+    const data = (await r.json()) as { models?: any[] };
+    // Strip the giant `details.families` array and keep the useful bits.
+    const models = (data.models || []).map((m: any) => ({
+      name: m.name,
+      size: m.size,
+      size_vram: m.size_vram,
+      vram_pct_of_model: m.size > 0 ? +((m.size_vram / m.size) * 100).toFixed(1) : 0,
+      expires_at: m.expires_at,
+      parameter_size: m.details?.parameter_size,
+      quantization: m.details?.quantization_level,
+      family: m.details?.family
+    }));
+    return res.json({ models, count: models.length });
+  } catch (err: any) {
+    return res.status(503).json({ error: 'Ollama unreachable', detail: err.message });
+  }
+});
+
+app.get('/api/ollama/library', cacheMiddleware(30000), async (_req: Request, res: Response) => {
+  try {
+    const r = await fetch(`${OLLAMA_INTERNAL_URL}/api/tags`, {
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
+    const data = (await r.json()) as { models?: any[] };
+    const models = (data.models || []).map((m: any) => ({
+      name: m.name,
+      size: m.size,
+      modified_at: m.modified_at,
+      parameter_size: m.details?.parameter_size,
+      quantization: m.details?.quantization_level,
+      family: m.details?.family
+    }));
+    return res.json({ models, count: models.length });
+  } catch (err: any) {
+    return res.status(503).json({ error: 'Ollama unreachable', detail: err.message });
+  }
+});
+
+app.get('/api/gpu', cacheMiddleware(2000), async (_req: Request, res: Response) => {
+  // nvidia-smi --query-gpu emits comma-separated values, one row per GPU.
+  // We ask for the fields we care about in a fixed order.
+  const { spawn } = await import('child_process');
+  const fields = [
+    'name',
+    'memory.total',
+    'memory.used',
+    'memory.free',
+    'utilization.gpu',
+    'utilization.memory',
+    'temperature.gpu',
+    'power.draw',
+    'power.limit'
+  ];
+  const proc = spawn('nvidia-smi', [
+    `--query-gpu=${fields.join(',')}`,
+    '--format=csv,noheader,nounits'
+  ]);
+  let stdout = '';
+  let stderr = '';
+  proc.stdout.on('data', (b: Buffer) => (stdout += b.toString()));
+  proc.stderr.on('data', (b: Buffer) => (stderr += b.toString()));
+  proc.on('close', (code: number) => {
+    if (code !== 0) {
+      return res.status(503).json({
+        error: 'nvidia-smi failed',
+        detail: stderr.trim() || `exit ${code}`,
+        gpus: []
+      });
+    }
+    const gpus = stdout
+      .trim()
+      .split('\n')
+      .map((line: string) => {
+        const v = line.split(',').map(s => s.trim());
+        const total = parseFloat(v[1]) || 0;
+        const used = parseFloat(v[2]) || 0;
+        return {
+          name: v[0],
+          vram_total_mib: total,
+          vram_used_mib: used,
+          vram_free_mib: parseFloat(v[3]) || 0,
+          vram_pct: total > 0 ? +((used / total) * 100).toFixed(1) : 0,
+          gpu_util_pct: parseFloat(v[4]) || 0,
+          mem_util_pct: parseFloat(v[5]) || 0,
+          temp_c: parseFloat(v[6]) || 0,
+          power_draw_w: parseFloat(v[7]) || 0,
+          power_limit_w: parseFloat(v[8]) || 0
+        };
+      });
+    return res.json({ gpus, count: gpus.length });
+  });
+  proc.on('error', (err: Error) => {
+    return res.status(503).json({
+      error: 'nvidia-smi unavailable (NVIDIA GPU + drivers required)',
+      detail: err.message,
+      gpus: []
+    });
+  });
+});
+
 app.get('/api/models', cacheMiddleware(5000), (req: Request, res: Response) => {
   try {
     // Get per-agent stats from agent_events
