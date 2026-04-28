@@ -101,20 +101,44 @@
     return (recentFiles.length / minutes).toFixed(1);
   });
 
+  // Describe a single agent event in one short line. "Edit call" + a file
+  // path becomes "Edit · style.css"; commands or non-path files render as
+  // just the tool. Used to surface what an agent is actually doing in the
+  // Agents panel rather than the bare agent name.
+  function describeAgentAction(event) {
+    if (!event) return '';
+    const tool = (event.message || '').split(' ')[0] || event.event_type || '';
+    const file = event.file || '';
+    if (file.startsWith('/') && file.includes('.')) {
+      const base = file.split('/').pop();
+      return tool ? `${tool} · ${base}` : base;
+    }
+    if (file.startsWith('/api/')) return tool ? `${tool} · ${file}` : file;
+    return tool;
+  }
+
   // Unified Agents list — top-level agents (Claude Code, Ollama, …) merged
   // with sub-agent Task spawns (Explore, general-purpose, …), sorted by
   // most-recent activity. Each row carries a `kind` so the chip and label
-  // can render consistently regardless of source.
+  // can render consistently regardless of source. Top-level agents show
+  // their most recent tool action (Edit · style.css, Bash, POST /api/…)
+  // instead of the redundant agent name — the chip already says who.
   const allAgents = $derived.by(() => {
-    const top = (agents || []).map(a => ({
-      kind: 'top',
-      key: `top:${a.agent_name}`,
-      label: a.agent_name,
-      chip: a.agent_name,
-      detail: a.is_running ? `${a.requests_handled || 0} requests` : 'idle',
-      time: a.last_seen,
-      color: getAgentColor(a.agent_name, 'var(--muted)')
-    }));
+    const top = (agents || []).map(a => {
+      const lastEvent = (recentAgentEvents || []).find(
+        e => e.agent === a.agent_name && (e.event_type === 'tool_call' || e.file)
+      );
+      const action = describeAgentAction(lastEvent);
+      return {
+        kind: 'top',
+        key: `top:${a.agent_name}`,
+        label: action || (a.is_running ? 'active' : 'idle'),
+        chip: a.agent_name,
+        detail: `${(a.requests_handled || 0).toLocaleString()} reqs`,
+        time: a.last_seen,
+        color: getAgentColor(a.agent_name, 'var(--muted)')
+      };
+    });
     const subs = (recentSubagents || []).map(a => ({
       kind: 'sub',
       key: `sub:${a.id}`,
