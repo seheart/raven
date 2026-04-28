@@ -32,6 +32,58 @@
   // Coalesce identical events fired within GROUP_WINDOW_MS into one bigger burst.
   const pendingGroup = new Map(); // key -> { type, label, count, timer }
 
+  // ── 3D wireframe core ────────────────────────────────────────────────────
+  // Icosahedron geometry — 12 vertices on a unit sphere, 30 edges. Rotating
+  // wireframe at the center reads as "the system is thinking" with real
+  // dimensionality instead of a flat circle.
+  const PHI = (1 + Math.sqrt(5)) / 2;
+  // prettier-ignore
+  const ICO_VERTS = [
+    [-1,  PHI, 0], [ 1,  PHI, 0], [-1, -PHI, 0], [ 1, -PHI, 0],
+    [ 0, -1,  PHI], [ 0,  1,  PHI], [ 0, -1, -PHI], [ 0,  1, -PHI],
+    [ PHI, 0, -1], [ PHI, 0,  1], [-PHI, 0, -1], [-PHI, 0,  1]
+  ].map(([x, y, z]) => {
+    // Normalize to unit sphere so radius is consistent.
+    const len = Math.sqrt(x * x + y * y + z * z);
+    return [x / len, y / len, z / len];
+  });
+  // prettier-ignore
+  const ICO_EDGES = [
+    [0,1],[0,5],[0,7],[0,10],[0,11],
+    [1,5],[1,7],[1,8],[1,9],
+    [2,3],[2,4],[2,6],[2,10],[2,11],
+    [3,4],[3,6],[3,8],[3,9],
+    [4,5],[4,9],[4,11],
+    [5,9],[5,11],
+    [6,7],[6,8],[6,10],
+    [7,8],[7,10],
+    [8,9],
+    [10,11]
+  ];
+
+  function rotateXYZ(v, ax, ay) {
+    // Rotate around Y first, then X. Two axes give a tumbling motion that
+    // shows every face over a full cycle.
+    let [x, y, z] = v;
+    const cy = Math.cos(ay), sy = Math.sin(ay);
+    [x, z] = [x * cy + z * sy, -x * sy + z * cy];
+    const cx = Math.cos(ax), sx = Math.sin(ax);
+    [y, z] = [y * cx - z * sx, y * sx + z * cx];
+    return [x, y, z];
+  }
+
+  function project(v, originX, originY, scale, depth) {
+    // Simple weak-perspective projection — depth pushes farther verts smaller.
+    const [x, y, z] = v;
+    const f = depth / (depth - z);
+    return {
+      x: originX + x * scale * f,
+      y: originY + y * scale * f,
+      depth: z, // -1..1, higher means closer (positive z toward camera)
+      f
+    };
+  }
+
 
   // Fallback values — only used if CSS-var lookup fails. Resolved values
   // come from --accent, --success, etc. via resolveColors() below, so the
@@ -220,22 +272,50 @@
 
     ensureAmbient();
 
-    // Core glow — scales with activity
-    const coreSize = 18 + Math.sin(time * 2) * 4 + activity * 20;
+    // Core glow — radial halo that scales with activity
+    const coreSize = 22 + Math.sin(time * 2) * 5 + activity * 25;
     const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreSize);
-    coreGrad.addColorStop(0, rgba(colors.accent, 0.12 + activity * 0.08));
+    coreGrad.addColorStop(0, rgba(colors.accent, 0.15 + activity * 0.1));
     coreGrad.addColorStop(1, rgba(colors.accent, 0));
     ctx.fillStyle = coreGrad;
     ctx.beginPath();
     ctx.arc(cx, cy, coreSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // Core dot
-    const breath = 3 + Math.sin(time * 2) * 1.2 + activity * 2;
-    ctx.fillStyle = rgba(colors.accent, 0.7);
-    ctx.beginPath();
-    ctx.arc(cx, cy, breath, 0, Math.PI * 2);
-    ctx.fill();
+    // 3D wireframe icosahedron core. Rotates on two axes; the breath term
+    // pulses the radius in sync with the existing rhythm. Edges are sorted
+    // back-to-front so closer ones render brighter.
+    const ax = time * 0.45;
+    const ay = time * 0.65;
+    const sphereRadius = 14 + Math.sin(time * 2) * 1.5 + activity * 6;
+    const projected = ICO_VERTS.map(v => project(rotateXYZ(v, ax, ay), cx, cy, sphereRadius, 4));
+    const edgesByDepth = ICO_EDGES
+      .map(([a, b]) => ({ a, b, mid: (projected[a].depth + projected[b].depth) / 2 }))
+      .sort((p, q) => p.mid - q.mid);
+
+    for (const { a, b, mid } of edgesByDepth) {
+      const pa = projected[a];
+      const pb = projected[b];
+      // depth -1..+1 → alpha 0.18..0.95; closer edges read brighter.
+      const t = (mid + 1) / 2;
+      const alpha = 0.18 + t * 0.77 * (0.55 + activity * 0.45);
+      ctx.strokeStyle = rgba(colors.accent, alpha);
+      ctx.lineWidth = 0.7 + t * 0.9;
+      ctx.beginPath();
+      ctx.moveTo(pa.x, pa.y);
+      ctx.lineTo(pb.x, pb.y);
+      ctx.stroke();
+    }
+
+    // Vertex dots — only the camera-facing ones, for a subtle "lit" feel.
+    for (const p of projected) {
+      if (p.depth < 0.1) continue;
+      const t = (p.depth + 1) / 2;
+      ctx.fillStyle = rgba(colors.accent, 0.4 + t * 0.5);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.2 + t * 1.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Ripples
     ripples = ripples.filter(r => {
