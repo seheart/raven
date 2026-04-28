@@ -7,6 +7,7 @@
   import { logger } from './lib/logger.js';
   import { api } from './lib/apiClient.js';
   import Header from './lib/components/layout/Header.svelte';
+  import VitalsStrip from './lib/components/layout/VitalsStrip.svelte';
   import Footer from './lib/components/layout/Footer.svelte';
   // Eagerly import frequently visited pages, lazy-load the rest
   import AnalysisPage from './lib/pages/AnalysisPage.svelte';
@@ -150,6 +151,7 @@
     onSettingsClick={handleSettingsClick}
     onLogoutClick={handleLogoutClick}
   />
+  <VitalsStrip />
 
   <!-- Main Content -->
   <main class="pb-16">
@@ -467,6 +469,14 @@
           <Component />
         {:catch}
           <PlaceholderPage title="Pulse Lab" description="Failed to load" />
+        {/await}
+      {:else if activeTab === 'llm-lab'}
+        {#await import('./lib/pages/LlmLabPage.svelte')}
+          <PlaceholderPage title="LLM Lab" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="LLM Lab" description="Failed to load" />
         {/await}
       {:else if activeTab === 'roadmap'}
         {#await import('./lib/pages/RoadmapPage.svelte')}

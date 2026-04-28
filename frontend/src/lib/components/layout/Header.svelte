@@ -13,11 +13,9 @@
     _onLogoutClick = () => {}
   } = $props();
 
-  import { websocketService } from '../../services/websocket.js';
 
   let stats = $state({ files: 0, edits: 0, creates: 0, deletes: 0 });
-  let cpu = $state(0);
-  let mem = $state(0);
+  // CPU/MEM display moved to VitalsStrip; state removed.
   let projects = $state([]);
   let currentFilter = $state(get(projectFilter));
 
@@ -120,29 +118,10 @@
     loadStats();
     loadProjects();
 
-    // Fetch initial metrics
-    api
-      .get('/system-metrics?limit=1')
-      .then(data => {
-        if (Array.isArray(data) && data[0]) {
-          cpu = data[0].cpu_percent || 0;
-          mem = data[0].memory_percent || 0;
-        }
-      })
-      .catch(() => {});
-
-    // Live metrics via WebSocket
-    const handleMetrics = data => {
-      cpu = data.cpu_percent || 0;
-      mem = data.memory_percent || 0;
-    };
-    websocketService.on('system-metrics', handleMetrics);
-
     const interval = setInterval(loadStats, 30000);
     return () => {
       clearInterval(interval);
       unsubFilter();
-      websocketService.off('system-metrics', handleMetrics);
     };
   });
 </script>
@@ -187,37 +166,7 @@
       <span class="text-[var(--error)]">-{stats.deletes}</span>
     </div>
 
-    <!-- CPU / Memory — only on widescreen displays -->
-    <div class="hidden 2xl:flex items-center gap-3 pl-3 border-l border-[var(--border)] text-xs font-mono shrink-0">
-      <div class="flex items-center gap-1.5" title="CPU: {cpu.toFixed(1)}%">
-        <span class="text-[var(--muted)]">CPU</span>
-        <div class="w-12 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
-          <div
-            class="h-full transition-all duration-500 rounded"
-            style="width: {cpu}%; background: {cpu > 80
-              ? 'var(--error)'
-              : cpu > 50
-                ? 'var(--warning)'
-                : 'var(--success)'}"
-          ></div>
-        </div>
-        <span class="text-[var(--text)] w-8">{cpu.toFixed(0)}%</span>
-      </div>
-      <div class="flex items-center gap-1.5" title="Memory: {mem.toFixed(1)}%">
-        <span class="text-[var(--muted)]">MEM</span>
-        <div class="w-12 h-1.5 bg-[var(--bg)] rounded overflow-hidden">
-          <div
-            class="h-full transition-all duration-500 rounded"
-            style="width: {mem}%; background: {mem > 85
-              ? 'var(--error)'
-              : mem > 60
-                ? 'var(--warning)'
-                : 'var(--success)'}"
-          ></div>
-        </div>
-        <span class="text-[var(--text)] w-8">{mem.toFixed(0)}%</span>
-      </div>
-    </div>
+    <!-- CPU / MEM bars moved to the global VitalsStrip below the header. -->
 
     <!-- Project Filter — hidden on small screens -->
     {#if projects.length > 0}

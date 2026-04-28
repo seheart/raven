@@ -18,6 +18,7 @@
     getChartColors
   } from '../utils/chartUtils.js';
   import NebulaActivity from '../components/NebulaActivity.svelte';
+  import ActiveModelCard from '../components/llm-lab/ActiveModelCard.svelte';
 
   // State
   let stats = $state({
@@ -858,8 +859,14 @@
           {/if}
         </div>
       </div>
-      <div class="md:col-span-2">
+      <div>
         <NebulaActivity />
+      </div>
+      <!-- Active Models column. GPU health lives in the global VitalsStrip
+           below the header now, so this column is dedicated to active
+           models — scales cleanly as more models load. -->
+      <div class="flex flex-col min-h-0 overflow-auto">
+        <ActiveModelCard />
       </div>
     </div>
 
