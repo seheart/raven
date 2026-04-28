@@ -18,6 +18,15 @@
   let activity = 0;
   let ripples = [];
 
+  // Accumulated angles / phases. We integrate angular velocity over dt
+  // every frame instead of multiplying `time × coefficient`. The naïve
+  // form snaps the whole rotation forward whenever activity changes
+  // (because `time` has already accumulated), causing flash-rotations.
+  let planetAngleX = 0;
+  let planetAngleY = 0;
+  let camYawAngle = 0;
+  let breathPhase = 0;
+
   let eventTimestamps = [];
   let eventRate = 0;
   let gridColor = 'rgba(100,100,140,0.04)'; // cached, updated on theme change
@@ -246,10 +255,20 @@
   }
 
   function draw() {
-    time += 0.016;
+    const dt = 0.016;
+    time += dt;
     ctx.clearRect(0, 0, width, height);
     updateEventRate();
     activity *= 0.998;
+
+    // Integrate angular velocities. Velocity blends with activity; the
+    // accumulated angle keeps moving smoothly even as the velocity
+    // changes underneath it, so an activity spike speeds up rotation
+    // gracefully instead of teleporting forward.
+    planetAngleX += (0.45 + activity * 0.8) * dt;
+    planetAngleY += (0.65 + activity * 1.2) * dt;
+    camYawAngle += (0.18 + activity * 0.25) * dt;
+    breathPhase += (2 + activity * 2.5) * dt;
 
     // Grid (gridColor cached, updated on theme change)
     ctx.strokeStyle = gridColor;
@@ -272,11 +291,10 @@
 
     ensureAmbient();
 
-    // Core glow — halo grows hard with activity. At rest ~22px, at full
-    // activity ~70px. Breath frequency speeds up too so a busy bird is
-    // visibly hyperventilating, not just bigger.
-    const breathFreq = 2 + activity * 3.5;
-    const coreSize = 22 + Math.sin(time * breathFreq) * 6 + activity * 50;
+    // Core glow — halo grows with activity. Breath uses the integrated
+    // breathPhase so the rhythm doesn't jump phase when activity shifts
+    // its frequency.
+    const coreSize = 22 + Math.sin(breathPhase) * 6 + activity * 50;
     const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreSize);
     coreGrad.addColorStop(0, rgba(colors.accent, 0.15 + activity * 0.18));
     coreGrad.addColorStop(1, rgba(colors.accent, 0));
@@ -302,16 +320,20 @@
     // busy bird → tumbles, swings wide, dives close, vibrates with
     // excitement. Eased with a² for the dive depth so moderate
     // activity stays cool and the chaos really sells at peak.
+    // Rotation angles are accumulated above (planetAngleX/Y, camYawAngle).
     const a2 = activity * activity;
 
-    // Planet spin: 0.45–1.85 / 0.65–3.05 rad·s⁻¹ — at peak it spins
-    // fast enough that the eye reads "blur" rather than rotation.
-    const planetAx = time * (0.45 + activity * 1.4);
-    const planetAy = time * (0.65 + activity * 2.4);
+    // Use the integrated angles directly. Peak velocities (at activity=1):
+    //   planetAx  1.25 rad·s⁻¹  ~5.0 s/rev
+    //   planetAy  1.85 rad·s⁻¹  ~3.4 s/rev
+    //   camYaw    0.43 rad·s⁻¹  ~14.6 s/rev (orbit cadence)
+    const planetAx = planetAngleX;
+    const planetAy = planetAngleY;
 
-    // Camera orbit: amplitude grows so swings sweep wider when busy.
-    const camYaw =
-      time * (0.18 + activity * 0.4) + Math.sin(time * 0.13) * (0.6 + activity * 0.8);
+    // Camera orbit yaw uses the integrated angle plus a wandering
+    // sine-amplitude term. Pitch can stay time-based — its sin(time)
+    // factor is bounded so phase shifts don't accumulate.
+    const camYaw = camYawAngle + Math.sin(time * 0.13) * (0.6 + activity * 0.8);
     const camPitch =
       Math.sin(time * 0.09) * (0.4 + activity * 0.5) + Math.cos(time * 0.21) * 0.2;
 
@@ -325,10 +347,9 @@
     const flyByTrigger = Math.pow(Math.max(0, Math.sin(time * 0.18 + 1.3)), flyByExp);
     const camDist = Math.max(1.05, camCruise - flyByTrigger * flyByDive);
 
-    // Sphere radius pulses faster with activity (breathFreq from halo
-    // section above), and the activity-driven growth term jumps from
-    // ×6 to ×14 so a busy bird is visibly bigger.
-    const sphereRadius = 14 + Math.sin(time * breathFreq) * 1.5 + activity * 14;
+    // Sphere radius pulses on the integrated breath phase (same source
+    // as the halo) so the two stay in sync.
+    const sphereRadius = 14 + Math.sin(breathPhase) * 1.5 + activity * 14;
 
     // Excitement wobble — high-frequency origin jitter that only kicks
     // in at moderate-to-high activity (a²) so a calm bird sits still
