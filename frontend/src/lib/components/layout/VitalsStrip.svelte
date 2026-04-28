@@ -93,6 +93,11 @@
   {#if gpu}
     <span class="text-[var(--border)]">|</span>
 
+    <!-- GPU name — labels the GPU group, always inline -->
+    <span class="text-[var(--text)] text-[10px] font-semibold tracking-wide" title={gpu.name}>
+      {gpu.name.replace('NVIDIA GeForce ', '')}
+    </span>
+
     <!-- GPU VRAM -->
     <div
       class="flex items-center gap-1.5"
@@ -118,9 +123,6 @@
     <span class="text-[var(--muted)]" title="Power draw / limit (watts)">
       pwr <span class="font-semibold text-[var(--text)]">{gpu.power_draw_w.toFixed(0)}<span class="text-[var(--muted)] font-normal">/{gpu.power_limit_w.toFixed(0)}W</span></span>
     </span>
-
-    <!-- GPU name pinned right -->
-    <span class="ml-auto text-[var(--muted)] text-[10px] truncate">{gpu.name.replace('NVIDIA GeForce ', '')}</span>
   {:else if gpuError}
     <span class="text-[var(--border)]">|</span>
     <span class="text-[10px] text-[var(--muted)] italic">no GPU</span>
