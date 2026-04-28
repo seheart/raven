@@ -3597,6 +3597,40 @@ app.use(errorHandler);
 // reported either way so users can verify which interface is in use.
 const BIND_HOST = process.env.RAVEN_BIND || '127.0.0.1';
 
+// ── Transparent Ollama proxy ─────────────────────────────────────────
+// When TRANSPARENT_OLLAMA_PORT is set (typically 11434, Ollama's default
+// port), Raven also listens on Ollama's conventional port and forwards
+// every request to the real Ollama (now on OLLAMA_URL, e.g.,
+// http://127.0.0.1:11435). This lets every tool that uses default
+// Ollama settings be observed without per-app config.
+//
+// Setup:  systemd override sets OLLAMA_HOST=127.0.0.1:11435 on Ollama,
+//         start.sh sets TRANSPARENT_OLLAMA_PORT=11434 + OLLAMA_URL to 11435.
+const TRANSPARENT_OLLAMA_PORT = parseInt(process.env.TRANSPARENT_OLLAMA_PORT || '0', 10);
+if (TRANSPARENT_OLLAMA_PORT > 0) {
+  const transparentApp = express();
+  transparentApp.use(express.json({ limit: '50mb' }));
+  transparentApp.use(
+    '/',
+    createOllamaProxyRouter({ db, io, logger, sessionId: SESSION_ID, agentRegistry })
+  );
+  const transparentServer = transparentApp.listen(TRANSPARENT_OLLAMA_PORT, BIND_HOST);
+  transparentServer.on('listening', () => {
+    logger.info(
+      `🔀 Transparent Ollama proxy: ${BIND_HOST}:${TRANSPARENT_OLLAMA_PORT} → ${process.env.OLLAMA_URL || 'http://localhost:11434'}`
+    );
+  });
+  transparentServer.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      logger.error(
+        `Transparent Ollama proxy: port ${TRANSPARENT_OLLAMA_PORT} already in use. Move Ollama to a different port (set OLLAMA_HOST=127.0.0.1:11435 in its systemd override) before starting Raven.`
+      );
+    } else {
+      logger.error(`Transparent Ollama proxy: ${err.message}`);
+    }
+  });
+}
+
 httpServer.listen(PORT, BIND_HOST, async () => {
   // Detect LAN IP for mobile access
   const nets = os.networkInterfaces();

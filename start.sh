@@ -86,7 +86,13 @@ fi
 # ── Start servers ───────────────────────────────────
 start_spin "Starting servers..."
 cd backend
-nohup env NODE_ENV=development DISABLE_AUTH=true node dist/server.js > /tmp/raven-backend.log 2>&1 &
+# Transparent Ollama proxy: Raven listens on 11434 (Ollama's default port)
+# and forwards to Ollama on 11435 (set via systemd override). Any tool
+# using default Ollama settings is observed without per-app config.
+nohup env NODE_ENV=development DISABLE_AUTH=true \
+  OLLAMA_URL="${OLLAMA_URL:-http://127.0.0.1:11435}" \
+  TRANSPARENT_OLLAMA_PORT="${TRANSPARENT_OLLAMA_PORT:-11434}" \
+  node dist/server.js > /tmp/raven-backend.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > /tmp/raven-backend.pid
 disown
