@@ -18,16 +18,6 @@
   let activity = 0;
   let ripples = [];
 
-  // Mood overlays — momentary emotional reactions of the icosahedron
-  // core to specific event categories. Each pulse decays per frame in
-  // draw(); spawnBurst() bumps the right one based on event type.
-  //   create → "happy" — extra spin boost, bloom, success-green tint
-  //   delete → "wince" — origin jitter (shake), squash, error-red tint
-  //   tool   → "blip"  — tiny breathy expansion, very subtle
-  let createPulse = 0;
-  let deletePulse = 0;
-  let toolPulse = 0;
-
   let eventTimestamps = [];
   let eventRate = 0;
   let gridColor = 'rgba(100,100,140,0.04)'; // cached, updated on theme change
@@ -134,20 +124,6 @@
     return rgb ? `rgba(${rgb.r},${rgb.g},${rgb.b},${a})` : `rgba(150,150,200,${a})`;
   }
 
-  // Linear blend between two hex colors. Used to tint the icosahedron
-  // toward success-green during a create pulse or error-red during
-  // a delete pulse without permanently changing the accent.
-  function blendHex(hexA, hexB, t) {
-    const a = hexToRgb(hexA);
-    const b = hexToRgb(hexB);
-    if (!a || !b) return hexA;
-    const r = Math.round(a.r + (b.r - a.r) * t);
-    const g = Math.round(a.g + (b.g - a.g) * t);
-    const bl = Math.round(a.b + (b.b - a.b) * t);
-    const hex = (n) => n.toString(16).padStart(2, '0');
-    return `#${hex(r)}${hex(g)}${hex(bl)}`;
-  }
-
   const TYPE_COLORS = {
     tool_call: 'muted',
     tool_result: 'muted',
@@ -244,16 +220,6 @@
 
     activity = Math.min(1, activity + 0.12 * sizeBoost);
     ripples.push({ born: time, color, maxRadius: (50 + eventRate * 25) * sizeBoost });
-
-    // Mood pulse — bumps the right emotional state based on event type.
-    // Caps prevent runaway overlap when many events arrive together.
-    if (type === 'file_create' || type === 'file_add') {
-      createPulse = Math.min(1.5, createPulse + 0.6 * sizeBoost);
-    } else if (type === 'file_delete') {
-      deletePulse = Math.min(1.5, deletePulse + 0.7 * sizeBoost);
-    } else if (type === 'tool_call' || type === 'inference') {
-      toolPulse = Math.min(1, toolPulse + 0.15 * sizeBoost);
-    }
   }
 
 
@@ -285,14 +251,6 @@
     updateEventRate();
     activity *= 0.998;
 
-    // Decay mood pulses per-frame. Different rates by feel:
-    //   create ~1.4s — let the happy spin breathe
-    //   delete ~1.0s — quick wince, then recover
-    //   tool   ~0.4s — fast blip, can fire constantly without smearing
-    createPulse = Math.max(0, createPulse - 0.012);
-    deletePulse = Math.max(0, deletePulse - 0.022);
-    toolPulse = Math.max(0, toolPulse - 0.045);
-
     // Grid (gridColor cached, updated on theme change)
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5;
@@ -314,20 +272,14 @@
 
     ensureAmbient();
 
-    // Core glow — radial halo that scales with activity. Color
-    // anticipates the mood overlay below so they read as one object.
-    const haloColor =
-      createPulse > 0.05
-        ? blendHex(colors.accent, colors.success, Math.min(1, createPulse * 0.8))
-        : deletePulse > 0.05
-          ? blendHex(colors.accent, colors.error, Math.min(1, deletePulse * 0.8))
-          : colors.accent;
-    const coreSize =
-      (22 + Math.sin(time * 2) * 5 + activity * 25) *
-      (1 + createPulse * 0.25 - deletePulse * 0.15);
+    // Core glow — halo grows hard with activity. At rest ~22px, at full
+    // activity ~70px. Breath frequency speeds up too so a busy bird is
+    // visibly hyperventilating, not just bigger.
+    const breathFreq = 2 + activity * 3.5;
+    const coreSize = 22 + Math.sin(time * breathFreq) * 6 + activity * 50;
     const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreSize);
-    coreGrad.addColorStop(0, rgba(haloColor, 0.15 + activity * 0.1 + createPulse * 0.08));
-    coreGrad.addColorStop(1, rgba(haloColor, 0));
+    coreGrad.addColorStop(0, rgba(colors.accent, 0.15 + activity * 0.18));
+    coreGrad.addColorStop(1, rgba(colors.accent, 0));
     ctx.fillStyle = coreGrad;
     ctx.beginPath();
     ctx.arc(cx, cy, coreSize, 0, Math.PI * 2);
@@ -346,47 +298,50 @@
     // Edges sort back-to-front so closer ones render brighter; vertex
     // dots and stroke width scale with the projection factor too, so
     // proximity reads in size as well as brightness.
-    // Happy spin boost on creates — rotation rates accelerate during
-    // the pulse, giving a brief joyful twirl that decays naturally.
-    const planetAx = time * (0.45 + createPulse * 1.0);
-    const planetAy = time * (0.65 + createPulse * 1.8);
-    const camYaw = time * 0.18 + Math.sin(time * 0.13) * 0.6;
-    const camPitch = Math.sin(time * 0.09) * 0.4 + Math.cos(time * 0.21) * 0.2;
+    // Every motion scales with activity. Calm bird → barely moves;
+    // busy bird → tumbles, swings wide, dives close, vibrates with
+    // excitement. Eased with a² for the dive depth so moderate
+    // activity stays cool and the chaos really sells at peak.
+    const a2 = activity * activity;
 
-    // Camera distance: 3.8 ± 0.5 cruising, dives toward ~1.15 during a
-    // fly-by spike. pow(…, 8) keeps the dives sparse and sudden.
+    // Planet spin: 0.45–1.85 / 0.65–3.05 rad·s⁻¹ — at peak it spins
+    // fast enough that the eye reads "blur" rather than rotation.
+    const planetAx = time * (0.45 + activity * 1.4);
+    const planetAy = time * (0.65 + activity * 2.4);
+
+    // Camera orbit: amplitude grows so swings sweep wider when busy.
+    const camYaw =
+      time * (0.18 + activity * 0.4) + Math.sin(time * 0.13) * (0.6 + activity * 0.8);
+    const camPitch =
+      Math.sin(time * 0.09) * (0.4 + activity * 0.5) + Math.cos(time * 0.21) * 0.2;
+
+    // Fly-bys: more frequent (lower pow exponent → wider spike windows)
+    // and dive deeper as activity climbs. Idle: rare 8th-power spikes
+    // dive to ~1.15. Peak: 5th-power spikes dive to ~1.05 (a hair off
+    // the unit-sphere surface) so close vertices truly fly past.
+    const flyByExp = 8 - activity * 3;
+    const flyByDive = 2.4 + a2 * 1.1;
     const camCruise = 3.8 + Math.sin(time * 0.11) * 0.5;
-    const flyByTrigger = Math.pow(Math.max(0, Math.sin(time * 0.18 + 1.3)), 8);
-    const camDist = Math.max(1.15, camCruise - flyByTrigger * 2.4);
+    const flyByTrigger = Math.pow(Math.max(0, Math.sin(time * 0.18 + 1.3)), flyByExp);
+    const camDist = Math.max(1.05, camCruise - flyByTrigger * flyByDive);
 
-    // Mood overlays:
-    //   bloom on create  → +15% radius
-    //   tiny breath on tool → +3% radius
-    //   wince on delete  → -18% radius (squash)
-    const moodScale =
-      1 + createPulse * 0.15 + toolPulse * 0.03 - deletePulse * 0.18;
-    const sphereRadius = (14 + Math.sin(time * 2) * 1.5 + activity * 6) * moodScale;
+    // Sphere radius pulses faster with activity (breathFreq from halo
+    // section above), and the activity-driven growth term jumps from
+    // ×6 to ×14 so a busy bird is visibly bigger.
+    const sphereRadius = 14 + Math.sin(time * breathFreq) * 1.5 + activity * 14;
 
-    // High-frequency origin jitter on delete — looks like a wince/shake
-    // (uses two different sin frequencies so it's not a clean line).
-    const shakeAmp = deletePulse * 4;
-    const drawCx = cx + Math.sin(time * 60) * shakeAmp;
-    const drawCy = cy + Math.cos(time * 53) * shakeAmp;
+    // Excitement wobble — high-frequency origin jitter that only kicks
+    // in at moderate-to-high activity (a²) so a calm bird sits still
+    // but a busy one visibly vibrates.
+    const wobbleAmp = a2 * 3;
+    const drawCx = cx + Math.sin(time * 47) * wobbleAmp;
+    const drawCy = cy + Math.cos(time * 41) * wobbleAmp;
 
     const projected = ICO_VERTS.map(v => {
       const planet = rotateXYZ(v, planetAx, planetAy);
       const orbit = rotateXYZ(planet, camPitch, camYaw);
       return project(orbit, drawCx, drawCy, sphereRadius, camDist);
     });
-
-    // Tint: blend accent toward success on create, error on delete.
-    // Tool blip stays accent-colored (color isn't its tell, expansion is).
-    const coreColor =
-      createPulse > 0.05
-        ? blendHex(colors.accent, colors.success, Math.min(1, createPulse * 0.8))
-        : deletePulse > 0.05
-          ? blendHex(colors.accent, colors.error, Math.min(1, deletePulse * 0.8))
-          : colors.accent;
     const edgesByDepth = ICO_EDGES
       .map(([a, b]) => ({ a, b, mid: (projected[a].depth + projected[b].depth) / 2 }))
       .sort((p, q) => p.mid - q.mid);
@@ -394,14 +349,12 @@
     for (const { a, b, mid } of edgesByDepth) {
       const pa = projected[a];
       const pb = projected[b];
-      // Skip edges crossing behind the camera (shouldn't happen with the
-      // 1.15 floor, but cheap insurance).
+      // Skip edges crossing behind the camera (cheap clipping insurance).
       if (pa.f <= 0.1 || pb.f <= 0.1) continue;
       const t = (mid + 1) / 2;
       const alpha = 0.18 + t * 0.77 * (0.55 + activity * 0.45);
       const fAvg = (pa.f + pb.f) / 2;
-      ctx.strokeStyle = rgba(coreColor, alpha);
-      // Stroke thickens as edges fly past close; capped so it doesn't go absurd.
+      ctx.strokeStyle = rgba(colors.accent, alpha);
       ctx.lineWidth = (0.7 + t * 0.9) * Math.min(fAvg, 2.5);
       ctx.beginPath();
       ctx.moveTo(pa.x, pa.y);
@@ -415,7 +368,7 @@
       if (p.depth < 0.1) continue;
       const t = (p.depth + 1) / 2;
       const sizeBoost = Math.min(p.f, 5); // cap so peak dives don't render plate-sized dots
-      ctx.fillStyle = rgba(coreColor, 0.4 + t * 0.5);
+      ctx.fillStyle = rgba(colors.accent, 0.4 + t * 0.5);
       ctx.beginPath();
       ctx.arc(p.x, p.y, (1.2 + t * 1.1) * sizeBoost, 0, Math.PI * 2);
       ctx.fill();
