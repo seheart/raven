@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit';
 import type { Server as IOServer } from 'socket.io';
 import type { RavenDB } from '../db.js';
 import { getAgentColor } from '../utils/agent-colors.js';
+import { attributeConnection } from '../utils/process-attribution.js';
 
 interface MinimalLogger {
   debug: (msg: string) => void;
@@ -25,6 +26,9 @@ interface OllamaProxyDeps {
   sessionId: string;
   agentRegistry: Map<string, any>;
   ollamaUrl?: string;
+  // Returns the current list of known projects so each inference can be
+  // attributed to the project directory of the calling process.
+  getProjects?: () => Array<{ name: string; path: string }>;
 }
 
 export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
@@ -95,6 +99,21 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
     const ollamaPath = req.path;
     const targetUrl = `${OLLAMA_URL}${ollamaPath}`;
     const startTime = Date.now();
+
+    // Resolve which project triggered this call (if any) by walking
+    // /proc from the source TCP port. Best-effort, cached, falls back
+    // to null on any error. Only worth attributing inference endpoints.
+    const isInferenceEndpoint = ollamaPath === '/api/generate' || ollamaPath === '/api/chat';
+    let project: string | null = null;
+    if (isInferenceEndpoint && req.socket.remotePort) {
+      try {
+        const projects = deps.getProjects?.() || [];
+        const attr = await attributeConnection(req.socket.remotePort, projects);
+        project = attr.project;
+      } catch {
+        project = null;
+      }
+    }
 
     try {
       const fetchOptions: RequestInit = {
@@ -174,12 +193,13 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
           {
             model: modelName,
             endpoint: ollamaPath,
+            project,
             ...metrics,
             prompt_preview:
               typeof req.body?.prompt === 'string' ? req.body.prompt.substring(0, 100) : undefined
           },
           SESSION_ID,
-          null
+          project
         );
 
         registerAgent(modelName, true);
@@ -188,12 +208,13 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
           type: 'inference',
           agent_name: modelName,
           duration_ms: durationMs,
+          project,
           ...metrics,
           timestamp: new Date().toISOString()
         });
 
         logger.info(
-          `🤖 Ollama ${modelName}: ${ollamaPath} (${metrics.tokens} tok, gen ${metrics.gen_tps} tps, ${durationMs}ms)`
+          `🤖 Ollama ${modelName}${project ? ` [${project}]` : ''}: ${ollamaPath} (${metrics.tokens} tok, gen ${metrics.gen_tps} tps, ${durationMs}ms)`
         );
       } else {
         const data = await ollamaResponse.text();
@@ -218,9 +239,9 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             null,
             durationMs,
             `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${metrics.tokens} tokens, ${metrics.gen_tps} tps)`,
-            { model: modelName, endpoint: ollamaPath, ...metrics },
+            { model: modelName, endpoint: ollamaPath, project, ...metrics },
             SESSION_ID,
-            null
+            project
           );
 
           registerAgent(modelName, true);
@@ -229,12 +250,13 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             type: 'inference',
             agent_name: modelName,
             duration_ms: durationMs,
+            project,
             ...metrics,
             timestamp: new Date().toISOString()
           });
 
           logger.info(
-            `🤖 Ollama ${modelName}: ${ollamaPath} (${metrics.tokens} tok, gen ${metrics.gen_tps} tps, ${durationMs}ms)`
+            `🤖 Ollama ${modelName}${project ? ` [${project}]` : ''}: ${ollamaPath} (${metrics.tokens} tok, gen ${metrics.gen_tps} tps, ${durationMs}ms)`
           );
         } else if (ollamaPath !== '/api/tags' && ollamaPath !== '/') {
           db.insertAgentEvent(

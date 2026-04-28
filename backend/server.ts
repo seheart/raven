@@ -1014,7 +1014,14 @@ app.use('/api', createMetricsRouter(db));
 app.use('/api', createTriggersRouter(triggerEngine));
 app.use(
   '/ollama',
-  createOllamaProxyRouter({ db, io, logger, sessionId: SESSION_ID, agentRegistry })
+  createOllamaProxyRouter({
+    db,
+    io,
+    logger,
+    sessionId: SESSION_ID,
+    agentRegistry,
+    getProjects: () => knownProjectsCache
+  })
 );
 app.use('/api/system', createSystemRouter({ db, agentRegistry }));
 
@@ -1312,16 +1319,30 @@ app.get('/api/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Resp
     if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
     const data = (await r.json()) as { models?: any[] };
     // Strip the giant `details.families` array and keep the useful bits.
-    const models = (data.models || []).map((m: any) => ({
-      name: m.name,
-      size: m.size,
-      size_vram: m.size_vram,
-      vram_pct_of_model: m.size > 0 ? +((m.size_vram / m.size) * 100).toFixed(1) : 0,
-      expires_at: m.expires_at,
-      parameter_size: m.details?.parameter_size,
-      quantization: m.details?.quantization_level,
-      family: m.details?.family
-    }));
+    // Look up the most recent project that called each resident model so
+    // the dashboard's Active Models row can show a project chip even
+    // before any websocket inference fires post-mount.
+    const lastProjectStmt = db.db.prepare(`
+      SELECT COALESCE(project_name, json_extract(metadata, '$.project')) AS project
+      FROM agent_events
+      WHERE event_type = 'inference' AND agent = ?
+        AND COALESCE(project_name, json_extract(metadata, '$.project')) IS NOT NULL
+      ORDER BY timestamp DESC LIMIT 1
+    `);
+    const models = (data.models || []).map((m: any) => {
+      const row = lastProjectStmt.get(m.name) as { project: string | null } | undefined;
+      return {
+        name: m.name,
+        size: m.size,
+        size_vram: m.size_vram,
+        vram_pct_of_model: m.size > 0 ? +((m.size_vram / m.size) * 100).toFixed(1) : 0,
+        expires_at: m.expires_at,
+        parameter_size: m.details?.parameter_size,
+        quantization: m.details?.quantization_level,
+        family: m.details?.family,
+        last_project: row?.project ?? null
+      };
+    });
     return res.json({ models, count: models.length });
   } catch (err: any) {
     return res.status(503).json({ error: 'Ollama unreachable', detail: err.message });
@@ -2071,6 +2092,22 @@ function sanitizeProjectId(id: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9\-_]/g, '-')
     .substring(0, 50);
+}
+
+// In-memory cache of project name+path pairs, refreshed every 30s.
+// Used by the Ollama proxy to attribute inferences to projects without
+// hitting disk on every request. Populated by refreshKnownProjects()
+// at startup and on a timer.
+let knownProjectsCache: Array<{ name: string; path: string }> = [];
+async function refreshKnownProjects(): Promise<void> {
+  try {
+    const config = await loadProjectsConfig();
+    knownProjectsCache = config.projects
+      .filter(p => typeof p.path === 'string' && p.path.length > 0)
+      .map(p => ({ name: p.name, path: p.path }));
+  } catch {
+    // Keep last good cache on read failure
+  }
 }
 
 // Load projects configuration
@@ -3797,7 +3834,14 @@ if (TRANSPARENT_OLLAMA_PORT > 0) {
   transparentApp.use(express.json({ limit: '50mb' }));
   transparentApp.use(
     '/',
-    createOllamaProxyRouter({ db, io, logger, sessionId: SESSION_ID, agentRegistry })
+    createOllamaProxyRouter({
+    db,
+    io,
+    logger,
+    sessionId: SESSION_ID,
+    agentRegistry,
+    getProjects: () => knownProjectsCache
+  })
   );
   const transparentServer = transparentApp.listen(TRANSPARENT_OLLAMA_PORT, BIND_HOST);
   transparentServer.on('listening', () => {
@@ -4032,6 +4076,13 @@ httpServer.listen(PORT, BIND_HOST, async () => {
     });
   }, PROCESS_CHECK_INTERVAL);
   processCheckTimer.unref(); // Don't prevent Node from exiting
+
+  // Seed + periodically refresh the project cache used for inference
+  // attribution. 30s is plenty: project additions/removals are rare.
+  await refreshKnownProjects();
+  setInterval(() => {
+    refreshKnownProjects().catch(() => {});
+  }, 30_000).unref();
 
   logger.info('✅ All services started successfully');
 });

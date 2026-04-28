@@ -24,7 +24,7 @@
 
   function ensureState(name) {
     if (!modelState[name]) {
-      modelState[name] = { flashId: 0, tpsHistory: [], loadedAt: Date.now() };
+      modelState[name] = { flashId: 0, tpsHistory: [], loadedAt: Date.now(), lastProject: null };
     }
     return modelState[name];
   }
@@ -98,7 +98,10 @@
       const seenNames = new Set();
       for (const m of data.models || []) {
         seenNames.add(m.name);
-        ensureState(m.name);
+        const s = ensureState(m.name);
+        // Seed lastProject from history so the chip shows on page load.
+        // Live websocket events overwrite this with newer values.
+        if (!s.lastProject && m.last_project) s.lastProject = m.last_project;
       }
       // Drop state for models that are no longer resident.
       for (const k of Object.keys(modelState)) {
@@ -128,6 +131,7 @@
       if (tps > 0) {
         s.tpsHistory = [...s.tpsHistory, tps].slice(-20);
       }
+      if (data.project) s.lastProject = data.project;
     };
     websocketService.on('agent-event', onAgentEvent);
 
@@ -183,6 +187,14 @@
               <span class="font-mono text-sm text-[var(--text)] font-semibold truncate">{m.name}</span>
               <span class="text-[10px] text-[var(--muted)] font-mono">{m.parameter_size}</span>
               <span class="text-[10px] text-[var(--muted)] font-mono">{m.quantization}</span>
+              {#if s.lastProject}
+                <span
+                  class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]"
+                  title="Last inference came from project '{s.lastProject}'"
+                >
+                  {s.lastProject}
+                </span>
+              {/if}
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               {#if s.tpsHistory.length > 1}

@@ -35,12 +35,16 @@
       const inf = (data.events || data || [])
         .filter(e => e.event_type === 'inference')
         .slice(0, MAX);
-      events = inf.map(e => ({
-        timestamp: e.timestamp,
-        model: e.agent,
-        ...(typeof e.metadata === 'string' ? safeParse(e.metadata) : e.metadata || {}),
-        duration_ms: e.duration_ms
-      }));
+      events = inf.map(e => {
+        const meta = typeof e.metadata === 'string' ? safeParse(e.metadata) : e.metadata || {};
+        return {
+          timestamp: e.timestamp,
+          model: e.agent,
+          project: meta.project ?? e.project_name ?? null,
+          ...meta,
+          duration_ms: e.duration_ms
+        };
+      });
     } catch (e) {
       error = e.message || 'history fetch failed';
     }
@@ -58,6 +62,7 @@
         {
           timestamp: data.timestamp,
           model: data.agent_name,
+          project: data.project ?? null,
           tokens: data.tokens,
           prompt_tokens: data.prompt_tokens,
           gen_tokens: data.gen_tokens,
@@ -94,7 +99,14 @@
       {#each events as e (e.timestamp + e.model)}
         <div class="flex items-baseline gap-3 text-[11px] font-mono py-1 border-b border-[var(--border)] last:border-b-0">
           <span class="text-[var(--muted)] w-16 flex-shrink-0">{fmtTime(e.timestamp)}</span>
-          <span class="text-[var(--text)] truncate flex-1 min-w-[6rem]" title={e.model}>{e.model}</span>
+          <span class="text-[var(--text)] truncate min-w-[6rem]" title={e.model}>{e.model}</span>
+          {#if e.project}
+            <span
+              class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] flex-shrink-0"
+              title="Project: {e.project}"
+            >{e.project}</span>
+          {/if}
+          <span class="flex-1"></span>
           <span class="text-[var(--muted)]">
             <span class="text-[var(--text)]">{e.tokens || '—'}</span> tok
           </span>
