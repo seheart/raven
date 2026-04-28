@@ -351,12 +351,12 @@
     // as the halo) so the two stay in sync.
     const sphereRadius = 14 + Math.sin(breathPhase) * 1.5 + activity * 14;
 
-    // Excitement wobble — high-frequency origin jitter that only kicks
-    // in at moderate-to-high activity (a²) so a calm bird sits still
-    // but a busy one visibly vibrates.
-    const wobbleAmp = a2 * 3;
-    const drawCx = cx + Math.sin(time * 47) * wobbleAmp;
-    const drawCy = cy + Math.cos(time * 41) * wobbleAmp;
+    // Excitement wobble — gentle origin drift that only kicks in at
+    // moderate-to-high activity (a²). Frequencies kept low (~1-2 Hz
+    // visible) so it reads as breathing-with-life, not vibrating.
+    const wobbleAmp = a2 * 1.2;
+    const drawCx = cx + Math.sin(time * 11) * wobbleAmp;
+    const drawCy = cy + Math.cos(time * 9) * wobbleAmp;
 
     const projected = ICO_VERTS.map(v => {
       const planet = rotateXYZ(v, planetAx, planetAy);
