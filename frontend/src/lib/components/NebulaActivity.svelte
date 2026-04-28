@@ -42,33 +42,63 @@
   const pendingGroup = new Map(); // key -> { type, label, count, timer }
 
   // ── 3D wireframe core ────────────────────────────────────────────────────
-  // Icosahedron geometry — 12 vertices on a unit sphere, 30 edges. Rotating
-  // wireframe at the center reads as "the system is thinking" with real
-  // dimensionality instead of a flat circle.
-  const PHI = (1 + Math.sqrt(5)) / 2;
-  // prettier-ignore
-  const ICO_VERTS = [
-    [-1,  PHI, 0], [ 1,  PHI, 0], [-1, -PHI, 0], [ 1, -PHI, 0],
-    [ 0, -1,  PHI], [ 0,  1,  PHI], [ 0, -1, -PHI], [ 0,  1, -PHI],
-    [ PHI, 0, -1], [ PHI, 0,  1], [-PHI, 0, -1], [-PHI, 0,  1]
-  ].map(([x, y, z]) => {
-    // Normalize to unit sphere so radius is consistent.
-    const len = Math.sqrt(x * x + y * y + z * z);
-    return [x / len, y / len, z / len];
-  });
-  // prettier-ignore
-  const ICO_EDGES = [
-    [0,1],[0,5],[0,7],[0,10],[0,11],
-    [1,5],[1,7],[1,8],[1,9],
-    [2,3],[2,4],[2,6],[2,10],[2,11],
-    [3,4],[3,6],[3,8],[3,9],
-    [4,5],[4,9],[4,11],
-    [5,9],[5,11],
-    [6,7],[6,8],[6,10],
-    [7,8],[7,10],
-    [8,9],
-    [10,11]
-  ];
+  // Node-sphere geometry — N nodes evenly distributed on a unit sphere via
+  // Fibonacci spiral (no pole-clustering), each connected to its K nearest
+  // neighbors. The mesh holds shape under rotation and reads as a denser
+  // "thinking surface" than the original 12-vertex icosahedron.
+  const NODE_COUNT = 50;
+  const NEIGHBORS = 3;
+
+  const NODES = (() => {
+    const phi = Math.PI * (3 - Math.sqrt(5));
+    const arr = [];
+    for (let i = 0; i < NODE_COUNT; i++) {
+      const y = 1 - (i / (NODE_COUNT - 1)) * 2;
+      const r = Math.sqrt(Math.max(0, 1 - y * y));
+      const t = phi * i;
+      arr.push([Math.cos(t) * r, y, Math.sin(t) * r]);
+    }
+    return arr;
+  })();
+
+  // K-nearest-neighbor edges, undirected (a < b).
+  const EDGES = (() => {
+    const set = new Set();
+    for (let i = 0; i < NODES.length; i++) {
+      const a = NODES[i];
+      const dists = [];
+      for (let j = 0; j < NODES.length; j++) {
+        if (i === j) continue;
+        const b = NODES[j];
+        const dx = a[0] - b[0], dy = a[1] - b[1], dz = a[2] - b[2];
+        dists.push({ j, d: dx * dx + dy * dy + dz * dz });
+      }
+      dists.sort((p, q) => p.d - q.d);
+      for (let m = 0; m < NEIGHBORS; m++) {
+        const lo = Math.min(i, dists[m].j);
+        const hi = Math.max(i, dists[m].j);
+        set.add(lo * 1000 + hi);
+      }
+    }
+    return Array.from(set).map(k => [Math.floor(k / 1000), k % 1000]);
+  })();
+
+  // Adjacency list — used to propagate burst glow along edges.
+  const ADJ = (() => {
+    const m = Array.from({ length: NODE_COUNT }, () => []);
+    for (const [a, b] of EDGES) {
+      m[a].push(b);
+      m[b].push(a);
+    }
+    return m;
+  })();
+
+  // Per-node burst glow + propagation queue. A burst lights one node;
+  // glow then spreads 2 hops outward via BFS, one hop per ~80ms, so
+  // each event ripples through a small patch of the surface.
+  const nodeGlow = new Float32Array(NODE_COUNT);
+  const nodeGlowColor = new Array(NODE_COUNT).fill(null);
+  let nodeGlowQueue = [];
 
   function rotateXYZ(v, ax, ay) {
     // Rotate around Y first, then X. Two axes give a tumbling motion that
@@ -229,6 +259,12 @@
 
     activity = Math.min(1, activity + 0.12 * sizeBoost);
     ripples.push({ born: time, color, maxRadius: (50 + eventRate * 25) * sizeBoost });
+
+    // Light a random node on the sphere and queue propagation 2 hops out.
+    const startNode = Math.floor(Math.random() * NODE_COUNT);
+    nodeGlow[startNode] = 1;
+    nodeGlowColor[startNode] = color;
+    nodeGlowQueue.push({ from: [startNode], color, at: time + 0.08, depth: 0 });
   }
 
 
@@ -303,53 +339,29 @@
     ctx.arc(cx, cy, coreSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // 3D wireframe icosahedron core — three layered motions:
+    // 3D node-sphere core — two layered motions:
     //   1. The planet's own spin: stable, faster, two-axis tumble.
     //   2. The camera orbiting it: slower, wandering — combined sine
     //      waves at non-rational frequencies make the path feel
     //      organic instead of a perfect circle.
-    //   3. The camera distance: mostly cruising (~3.5–4.3 units away),
-    //      with brief fly-bys that dive close (~1.15 units, just outside
-    //      the unit-sphere surface). When close, the near-side vertices
-    //      get massive scaling factors → close nodes pop big in your face,
-    //      far nodes shrink — gives the "almost hit it" sensation.
+    // Camera distance is fixed (no fly-by dives): with 50 nodes a deep
+    // dive would balloon many vertices simultaneously and read as
+    // chaotic instead of "near miss".
     // Edges sort back-to-front so closer ones render brighter; vertex
-    // dots and stroke width scale with the projection factor too, so
-    // proximity reads in size as well as brightness.
-    // Every motion scales with activity. Calm bird → barely moves;
-    // busy bird → tumbles, swings wide, dives close, vibrates with
-    // excitement. Eased with a² for the dive depth so moderate
-    // activity stays cool and the chaos really sells at peak.
-    // Rotation angles are accumulated above (planetAngleX/Y, camYawAngle).
+    // dots also scale with projection factor so proximity reads in size.
+    // Bursts light a random node and propagate glow 2 hops outward
+    // along edges, so each event spreads through a small patch of the
+    // surface instead of just flashing one dot.
     const a2 = activity * activity;
 
-    // Use the integrated angles directly. Peak velocities (at activity=1):
-    //   planetAx  1.25 rad·s⁻¹  ~5.0 s/rev
-    //   planetAy  1.85 rad·s⁻¹  ~3.4 s/rev
-    //   camYaw    0.43 rad·s⁻¹  ~14.6 s/rev (orbit cadence)
     const planetAx = planetAngleX;
     const planetAy = planetAngleY;
-
-    // Camera orbit yaw uses the integrated angle plus a wandering
-    // sine-amplitude term. Pitch can stay time-based — its sin(time)
-    // factor is bounded so phase shifts don't accumulate.
-    const camYaw = camYawAngle + Math.sin(time * 0.13) * (0.6 + activity * 0.8);
+    const camYaw = camYawAngle + Math.sin(time * 0.13) * (0.5 + activity * 0.6);
     const camPitch =
-      Math.sin(time * 0.09) * (0.4 + activity * 0.5) + Math.cos(time * 0.21) * 0.2;
+      Math.sin(time * 0.09) * (0.35 + activity * 0.4) + Math.cos(time * 0.21) * 0.18;
+    const camDist = 3.2;
 
-    // Fly-bys: more frequent (lower pow exponent → wider spike windows)
-    // and dive deeper as activity climbs. Idle: rare 8th-power spikes
-    // dive to ~1.15. Peak: 5th-power spikes dive to ~1.05 (a hair off
-    // the unit-sphere surface) so close vertices truly fly past.
-    const flyByExp = 8 - activity * 3;
-    const flyByDive = 2.4 + a2 * 1.1;
-    const camCruise = 3.8 + Math.sin(time * 0.11) * 0.5;
-    const flyByTrigger = Math.pow(Math.max(0, Math.sin(time * 0.18 + 1.3)), flyByExp);
-    const camDist = Math.max(1.05, camCruise - flyByTrigger * flyByDive);
-
-    // Sphere radius pulses on the integrated breath phase (same source
-    // as the halo) so the two stay in sync.
-    const sphereRadius = 14 + Math.sin(breathPhase) * 1.5 + activity * 14;
+    const sphereRadius = 18 + Math.sin(breathPhase) * 2 + activity * 16;
 
     // Excitement wobble — gentle origin drift that only kicks in at
     // moderate-to-high activity (a²). Frequencies kept low (~1-2 Hz
@@ -358,40 +370,77 @@
     const drawCx = cx + Math.sin(time * 11) * wobbleAmp;
     const drawCy = cy + Math.cos(time * 9) * wobbleAmp;
 
-    const projected = ICO_VERTS.map(v => {
+    // Process scheduled glow propagation steps (one BFS hop per ~80ms).
+    nodeGlowQueue = nodeGlowQueue.filter(p => {
+      if (time < p.at) return true;
+      const next = new Set();
+      for (const idx of p.from) {
+        for (const nb of ADJ[idx]) {
+          if (nodeGlow[nb] < 0.5) {
+            nodeGlow[nb] = Math.max(nodeGlow[nb], 0.7 - p.depth * 0.25);
+            nodeGlowColor[nb] = p.color;
+            next.add(nb);
+          }
+        }
+      }
+      if (p.depth >= 2 || next.size === 0) return false;
+      p.from = Array.from(next);
+      p.at = time + 0.08;
+      p.depth++;
+      return true;
+    });
+
+    const projected = NODES.map((v, i) => {
       const planet = rotateXYZ(v, planetAx, planetAy);
       const orbit = rotateXYZ(planet, camPitch, camYaw);
-      return project(orbit, drawCx, drawCy, sphereRadius, camDist);
+      nodeGlow[i] *= 0.96;
+      return {
+        ...project(orbit, drawCx, drawCy, sphereRadius, camDist),
+        glow: nodeGlow[i],
+        glowColor: nodeGlowColor[i]
+      };
     });
-    const edgesByDepth = ICO_EDGES
+    const edgesByDepth = EDGES
       .map(([a, b]) => ({ a, b, mid: (projected[a].depth + projected[b].depth) / 2 }))
       .sort((p, q) => p.mid - q.mid);
 
     for (const { a, b, mid } of edgesByDepth) {
       const pa = projected[a];
       const pb = projected[b];
-      // Skip edges crossing behind the camera (cheap clipping insurance).
       if (pa.f <= 0.1 || pb.f <= 0.1) continue;
       const t = (mid + 1) / 2;
-      const alpha = 0.18 + t * 0.77 * (0.55 + activity * 0.45);
+      const glowBoost = (pa.glow + pb.glow) * 0.35;
       const fAvg = (pa.f + pb.f) / 2;
-      ctx.strokeStyle = rgba(colors.accent, alpha);
-      ctx.lineWidth = (0.7 + t * 0.9) * Math.min(fAvg, 2.5);
+      ctx.strokeStyle = rgba(colors.accent, 0.10 + t * 0.42 + glowBoost);
+      ctx.lineWidth = (0.5 + t * 0.6) * Math.min(fAvg, 2.5);
       ctx.beginPath();
       ctx.moveTo(pa.x, pa.y);
       ctx.lineTo(pb.x, pb.y);
       ctx.stroke();
     }
 
-    // Vertex dots — only the camera-facing ones, scaled by projection
-    // factor so a near-miss vertex pops big and bright.
+    // Vertex dots — camera-facing only (small overlap so the rim fills
+    // in). Halo only when glowing, so the scene stays clean at rest.
     for (const p of projected) {
-      if (p.depth < 0.1) continue;
+      if (p.depth < -0.05) continue;
       const t = (p.depth + 1) / 2;
-      const sizeBoost = Math.min(p.f, 5); // cap so peak dives don't render plate-sized dots
-      ctx.fillStyle = rgba(colors.accent, 0.4 + t * 0.5);
+      const baseColor = p.glow > 0.05 && p.glowColor ? p.glowColor : colors.accent;
+      const r = (0.6 + t * 0.7 + p.glow * 1.4) * Math.min(p.f, 2.2);
+
+      if (p.glow > 0.1) {
+        const haloR = r * 4;
+        const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, haloR);
+        halo.addColorStop(0, rgba(baseColor, 0.4 * p.glow));
+        halo.addColorStop(1, rgba(baseColor, 0));
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, haloR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = rgba(baseColor, 0.4 + t * 0.45 + p.glow * 0.3);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, (1.2 + t * 1.1) * sizeBoost, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
       ctx.fill();
     }
 
