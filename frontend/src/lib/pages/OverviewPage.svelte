@@ -101,20 +101,37 @@
     return (recentFiles.length / minutes).toFixed(1);
   });
 
-  // Describe a single agent event in one short line. "Edit call" + a file
-  // path becomes "Edit · style.css"; commands or non-path files render as
-  // just the tool. Used to surface what an agent is actually doing in the
-  // Agents panel rather than the bare agent name.
+  // Describe a single agent event in one short line.
+  //   Edit  + /path/style.css     → "Edit · style.css"
+  //   Read  + /path/server.ts     → "Read · server.ts"
+  //   Bash  + "cd … && npm build" → "Bash · npm build"
+  //   POST  + "/api/generate"     → "POST · /api/generate"
+  // The Bash branch strips leading "cd … && " navigation prefixes so we
+  // see the actual command, then keeps the first ~36 chars.
   function describeAgentAction(event) {
     if (!event) return '';
     const tool = (event.message || '').split(' ')[0] || event.event_type || '';
-    const file = event.file || '';
-    if (file.startsWith('/') && file.includes('.')) {
-      const base = file.split('/').pop();
+    const raw = event.file || '';
+    if (!raw) return tool;
+
+    // API route — keep as-is (Ollama POST /api/generate, etc.)
+    if (raw.startsWith('/api/')) return tool ? `${tool} · ${raw}` : raw;
+
+    // Looks like a real file path — show just the basename
+    const looksLikePath =
+      raw.startsWith('/') && raw.includes('.') && !raw.includes(' ') && !raw.includes('&&');
+    if (looksLikePath) {
+      const base = raw.split('/').pop();
       return tool ? `${tool} · ${base}` : base;
     }
-    if (file.startsWith('/api/')) return tool ? `${tool} · ${file}` : file;
-    return tool;
+
+    // Otherwise treat as a shell command (Bash). Strip "cd <path> && "
+    // navigation, take the first meaningful command, cap length.
+    let cmd = raw.replace(/^cd\s+\S+\s*&&\s*/i, '').trim();
+    cmd = cmd.split(/\s*&&\s*|\s*\|\s*|\s*;\s*/)[0]; // first command in chain
+    cmd = cmd.replace(/\s+/g, ' ').slice(0, 36);
+    if (cmd.length === 36 && raw.length > 36) cmd += '…';
+    return tool ? `${tool} · ${cmd}` : cmd;
   }
 
   // Unified Agents list — top-level agents (Claude Code, Ollama, …) merged
@@ -129,10 +146,13 @@
         e => e.agent === a.agent_name && (e.event_type === 'tool_call' || e.file)
       );
       const action = describeAgentAction(lastEvent);
+      const fullCommand =
+        lastEvent?.file && lastEvent.file !== action ? lastEvent.file : null;
       return {
         kind: 'top',
         key: `top:${a.agent_name}`,
         label: action || (a.is_running ? 'active' : 'idle'),
+        labelTitle: fullCommand,
         chip: a.agent_name,
         detail: `${(a.requests_handled || 0).toLocaleString()} reqs`,
         time: a.last_seen,
@@ -960,7 +980,7 @@
                   style="background: {agent.color}"
                   title={agent.kind === 'top' ? 'Top-level agent' : 'Sub-agent (Task spawn)'}
                 >{agent.chip}</span>
-                <span class="text-[10px] text-body truncate flex-1">{agent.label}</span>
+                <span class="text-[10px] text-body truncate flex-1" title={agent.labelTitle || agent.label}>{agent.label}</span>
                 {#if agent.detail}
                   <span class="text-[9px] text-muted font-mono flex-shrink-0 hidden sm:inline">{agent.detail}</span>
                 {/if}
