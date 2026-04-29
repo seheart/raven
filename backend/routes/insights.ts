@@ -6,8 +6,13 @@ import express, { Request, Response, Router } from 'express';
 import { asyncHandler } from '../middleware/async-handler.js';
 import type { InsightsService } from '../services/insights-service.js';
 import type { RavenDB } from '../db.js';
+import type { DiffRiskRepository } from '../repositories/diff-risk-repository.js';
 
-export function createInsightsRouter(insightsService: InsightsService, db: RavenDB): Router {
+export function createInsightsRouter(
+  insightsService: InsightsService,
+  db: RavenDB,
+  diffRiskRepo: DiffRiskRepository
+): Router {
   const router = express.Router();
 
   // GET /api/insights — List recent insights
@@ -121,7 +126,7 @@ export function createInsightsRouter(insightsService: InsightsService, db: Raven
     '/diff-risk-scores',
     asyncHandler(async (req: Request, res: Response) => {
       const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 50);
-      const scores = db.getRecentDiffRiskScores(limit);
+      const scores = diffRiskRepo.recent(limit);
       res.json(scores);
     })
   );

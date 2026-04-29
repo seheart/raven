@@ -204,5 +204,3 @@ export class PerformanceMonitor {
     return this.getStats();
   }
 }
-
-export default PerformanceMonitor;

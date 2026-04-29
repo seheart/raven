@@ -32,7 +32,7 @@ interface ProjectPath {
   path: string;
 }
 
-export interface AttributionResult {
+interface AttributionResult {
   pid: number | null;
   cwd: string | null;
   project: string | null;

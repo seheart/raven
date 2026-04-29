@@ -207,5 +207,3 @@ export class OllamaLogWatcher {
     });
   }
 }
-
-export default OllamaLogWatcher;

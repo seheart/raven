@@ -209,6 +209,7 @@ export const settings = {
 };
 
 // Convenience getters for commonly used settings
+/** @public */
 export const getSetting = path => {
   const current = get(settingsStore);
   const keys = path.split('.');
@@ -225,4 +226,3 @@ export const getSetting = path => {
 // Check if a notification type is enabled
 // Get theme
 // Get refresh interval
-export default settings;

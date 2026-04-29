@@ -33,6 +33,7 @@ websocketService.on('analysis-progress', progress => {
  * @param {number} [options.timeout=15000] - Request timeout in milliseconds (default: 15s)
  * @returns {Promise<any>} Parsed JSON response or text if not JSON
  * @throws {Error} Throws on HTTP errors (4xx, 5xx), network failures, or timeouts
+ * @public
  */
 export async function apiFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;

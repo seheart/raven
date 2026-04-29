@@ -102,11 +102,3 @@ export function buildTimeFilterQuery(
   return { query, params };
 }
 
-/**
- * Validate table name to prevent SQL injection.
- * Only allows alphanumeric characters and underscores.
- */
-export function isValidTableName(tableName: string): boolean {
-  const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-  return validPattern.test(tableName) && tableName.length <= 64;
-}

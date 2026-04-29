@@ -8,22 +8,25 @@ import request from 'supertest';
 import { createInsightsRouter } from '../../dist/routes/insights.js';
 import { InsightsService } from '../../dist/services/insights-service.js';
 import { RavenDB } from '../../dist/db.js';
+import { createDiffRiskRepository } from '../../dist/repositories/diff-risk-repository.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
 let app;
 let db;
+let diffRiskRepo;
 let tmpDir;
 
 beforeAll(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'raven-insights-routes-'));
   db = new RavenDB(join(tmpDir, 'test.db'));
+  diffRiskRepo = createDiffRiskRepository(db);
   const service = new InsightsService(db, 'http://localhost:99999', 'test-model');
 
   app = express();
   app.use(express.json());
-  app.use('/api/insights', createInsightsRouter(service, db));
+  app.use('/api/insights', createInsightsRouter(service, db, diffRiskRepo));
 });
 
 afterAll(() => {
@@ -96,7 +99,7 @@ describe('Insights Routes', () => {
   });
 
   test('GET /api/insights/diff-risk-scores returns scores after insert', async () => {
-    db.insertDiffRiskScore(
+    diffRiskRepo.insert(
       1,
       '/test.js',
       6,
@@ -114,7 +117,7 @@ describe('Insights Routes', () => {
   });
 
   test('GET /api/insights/diff-risk-scores respects limit', async () => {
-    db.insertDiffRiskScore(
+    diffRiskRepo.insert(
       2,
       '/a.js',
       3,
@@ -123,7 +126,7 @@ describe('Insights Routes', () => {
       'test-model',
       'sess'
     );
-    db.insertDiffRiskScore(
+    diffRiskRepo.insert(
       3,
       '/b.js',
       8,

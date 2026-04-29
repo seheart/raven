@@ -73,6 +73,7 @@ const PROJECT_COLORS = [
  * @example
  * getProjectColor('raven'); // Returns consistent color for 'raven'
  */
+/** @public */
 export function getProjectColor(projectName) {
   if (!projectName) return PROJECT_COLORS[0];
 

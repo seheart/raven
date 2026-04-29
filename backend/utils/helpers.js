@@ -296,22 +296,3 @@ export function cleanDescription(subject) {
     .trim();
 }
 
-export default {
-  getAgentColor,
-  calculateFileHash,
-  generateDiff,
-  detectLanguage,
-  detectProjectFromPath,
-  formatBytes,
-  parseDuration,
-  sleep,
-  retry,
-  sanitizeFilename,
-  isValidJSON,
-  deepClone,
-  truncate,
-  getWeekKey,
-  getWeekNumber,
-  detectChangeType,
-  cleanDescription
-};

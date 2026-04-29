@@ -178,5 +178,3 @@ export function getConfig(path, defaultValue = undefined) {
 
   return value;
 }
-
-export default serverConfig;

@@ -25,7 +25,9 @@
     "test:all": "npm run test && npm run test:e2e",
     "playwright:install": "playwright install --with-deps",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint:dead": "knip --include duplicates,exports,types,dependencies,devDependencies,unlisted,binaries",
+    "lint:dead:full": "knip"
   },
   "keywords": [
     "svelte",
@@ -41,6 +43,7 @@
     "concurrently": "^9.1.2",
     "glob": "^11.0.3",
     "husky": "^9.1.7",
+    "knip": "^6.9.0",
     "lint-staged": "^16.2.6",
     "playwright": "^1.56.1"
   }

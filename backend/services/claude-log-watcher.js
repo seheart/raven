@@ -594,5 +594,3 @@ export class ClaudeLogWatcher {
     }));
   }
 }
-
-export default ClaudeLogWatcher;

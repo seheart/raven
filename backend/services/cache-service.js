@@ -81,7 +81,7 @@ class SimpleCache {
   }
 }
 
-export const cache = new SimpleCache(500);
+const cache = new SimpleCache(500);
 
 const cacheCleanupInterval = setInterval(() => {
   const cleaned = cache.cleanup();
@@ -117,5 +117,3 @@ export function cacheMiddleware(ttl = 5000) {
     next();
   };
 }
-
-export default cache;

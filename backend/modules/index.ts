@@ -1,42 +1,22 @@
 /**
  * Raven Modules - Barrel Export
  *
- * Central export point for all Raven TypeScript modules.
- * Import from this file to access all modular functionality.
+ * Central export point for the modules used outside this directory.
+ * Items only used internally are deliberately not re-exported here.
  *
  * @example
- * import { EventBus, FileWatcher, GitMonitor, telemetryCollector } from './modules/index.js';
+ * import { EventBus, FileWatcher, GitMonitor, getDiff } from './modules/index.js';
  */
 
-// EventBus - Central event system
+// EventBus + the event payload types consumers actually use
 export { EventBus } from './eventBus.js';
-export type {
-  FileEvent,
-  GitStatusEvent,
-  TelemetryEvent,
-  TriggerFiredEvent,
-  AgentEvent
-} from './eventBus.js';
+export type { FileEvent, GitStatusEvent } from './eventBus.js';
 
-// Diff utilities
-export {
-  getDiff,
-  getCharDiff,
-  createPatch,
-  getDiffStats,
-  areIdentical,
-  getSimilarity
-} from './diff.js';
-export type { DiffResult, DiffStats } from './diff.js';
-
-// Telemetry collector
-export { TelemetryCollector, telemetryCollector } from './telemetry.js';
-export type { TelemetryConfig } from './telemetry.js';
+// Diff utilities used by callers outside this folder
+export { getDiff } from './diff.js';
 
 // File watcher
 export { FileWatcher } from './watcher.js';
-export type { WatcherConfig } from './watcher.js';
 
 // Git monitor
 export { GitMonitor } from './git.js';
-export type { GitMonitorConfig } from './git.js';

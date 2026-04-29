@@ -23,7 +23,7 @@ import { FileWatcher } from '../modules/watcher.js';
 
 // ==================== Types ====================
 
-export interface ProjectConfig {
+interface ProjectConfig {
   id: string;
   name: string;
   path: string;
@@ -33,7 +33,7 @@ export interface ProjectConfig {
   retentionDays?: number;
 }
 
-export interface ProjectsConfig {
+interface ProjectsConfig {
   autoDiscover: boolean;
   basePath: string;
   projects: ProjectConfig[];
@@ -567,5 +567,3 @@ export class ProjectManager {
       .substring(0, 50);
   }
 }
-
-export default ProjectManager;

@@ -1,7 +1,7 @@
 <script>
   import { websocketService } from '../../services/websocket.js';
   import { onMount } from 'svelte';
-  import settings, { uiSettings } from '../../stores/settingsStore.js';
+  import { settings, uiSettings } from '../../stores/settingsStore.js';
 
   let {
     version = '2.2.0',

@@ -10,7 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 
-export interface HealthCheckResult {
+interface HealthCheckResult {
   category: string;
   name: string;
   status: 'healthy' | 'warning' | 'critical';

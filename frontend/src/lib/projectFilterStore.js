@@ -63,5 +63,3 @@ availableProjects.subscribe(projects => {
   }
 });
 
-// Re-export utility for convenience
-export { matchesFilter, ALL_PROJECTS };

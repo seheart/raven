@@ -77,7 +77,7 @@ export function formatDurationMinutes(minutes) {
  * @param {string|Date} timestamp - Timestamp to format
  * @returns {string} Relative time string
  */
-export function formatRelativeTime(timestamp) {
+function formatRelativeTime(timestamp) {
   const now = Date.now();
   const then = new Date(timestamp).getTime();
   const diff = now - then;

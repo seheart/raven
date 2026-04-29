@@ -9,7 +9,7 @@
  * - Suspicious imports
  */
 
-export interface Pattern {
+interface Pattern {
   id: string;
   name: string;
   description: string;

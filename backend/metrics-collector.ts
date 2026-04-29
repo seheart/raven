@@ -15,6 +15,7 @@ import { EventBus, TelemetryEvent } from './modules/eventBus.js';
 import { telemetryCollector } from './modules/telemetry.js';
 import type { Server as SocketIOServer } from 'socket.io';
 import { logger } from './utils/logger.js';
+import { createMetricsRepository, type MetricsRepository } from './repositories/metrics-repository.js';
 
 const dnsResolve4 = promisify(dns.resolve4);
 
@@ -32,7 +33,7 @@ const KNOWN_AI_ENDPOINTS = [
 ];
 
 export class MetricsCollector {
-  private db: RavenDB;
+  private metricsRepo: MetricsRepository;
   private sessionId: string;
   private io: SocketIOServer | null;
   private processInterval: NodeJS.Timeout | null = null;
@@ -54,7 +55,7 @@ export class MetricsCollector {
   ];
 
   constructor(db: RavenDB, sessionId: string, io: SocketIOServer | null = null) {
-    this.db = db;
+    this.metricsRepo = createMetricsRepository(db);
     this.sessionId = sessionId;
     this.io = io;
 
@@ -83,7 +84,7 @@ export class MetricsCollector {
       const memory_total_mb = Math.floor(mem.total / (1024 * 1024));
 
       // Insert into database
-      this.db.insertSystemMetrics(
+      this.metricsRepo.insertSystemMetrics(
         new Date(event.ts).toISOString(),
         event.cpu,
         event.mem,
@@ -246,7 +247,7 @@ export class MetricsCollector {
         const procDetails = await this.getLinuxProcessDetails(proc.pid);
         const activityState = this.deriveActivityState(cpu_usage, net.apiConnections);
 
-        this.db.insertProcessMetrics(
+        this.metricsRepo.insertProcessMetrics(
           new Date().toISOString(),
           name,
           proc.pid,

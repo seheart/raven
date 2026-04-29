@@ -65,7 +65,7 @@ export interface TriggerFiredEvent {
 /**
  * Agent event payload
  */
-export interface AgentEvent {
+interface AgentEvent {
   agent: string;
   eventType: string;
   file?: string;

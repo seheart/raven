@@ -12,7 +12,7 @@ import { EventBus, FileEvent } from './eventBus.js';
 import { relative } from 'path';
 import { logger } from '../utils/logger.js';
 
-export interface WatcherConfig {
+interface WatcherConfig {
   watchPath: string;
   ignored?: (string | RegExp)[];
   debounceMs?: number;

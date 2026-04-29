@@ -29,5 +29,3 @@ export function performanceMonitoring(req, res, next) {
 
   next();
 }
-
-export default performanceMonitoring;

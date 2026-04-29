@@ -120,4 +120,4 @@ export class KeyboardService {
 }
 
 // Singleton instance
-export const keyboard = new KeyboardService();
+const keyboard = new KeyboardService();

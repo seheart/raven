@@ -4,16 +4,19 @@
 
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import { RavenDB } from '../../dist/db.js';
+import { createDiffRiskRepository } from '../../dist/repositories/diff-risk-repository.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
 let db;
+let diffRiskRepo;
 let tmpDir;
 
 beforeAll(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'raven-risk-test-'));
   db = new RavenDB(join(tmpDir, 'test.db'));
+  diffRiskRepo = createDiffRiskRepository(db);
 });
 
 afterAll(() => {
@@ -23,7 +26,7 @@ afterAll(() => {
 
 describe('Diff Risk Scores', () => {
   test('insertDiffRiskScore returns an ID', () => {
-    const id = db.insertDiffRiskScore(
+    const id = diffRiskRepo.insert(
       1,
       '/src/app.js',
       7,
@@ -36,7 +39,7 @@ describe('Diff Risk Scores', () => {
   });
 
   test('insertDiffRiskScore with low risk score', () => {
-    const id = db.insertDiffRiskScore(
+    const id = diffRiskRepo.insert(
       2,
       '/src/utils.js',
       2,
@@ -49,7 +52,7 @@ describe('Diff Risk Scores', () => {
   });
 
   test('getRecentDiffRiskScores returns scores sorted by timestamp', () => {
-    const scores = db.getRecentDiffRiskScores(10);
+    const scores = diffRiskRepo.recent(10);
     expect(scores.length).toBe(2);
     expect(scores[0]).toHaveProperty('event_id');
     expect(scores[0]).toHaveProperty('filepath');
@@ -60,12 +63,12 @@ describe('Diff Risk Scores', () => {
   });
 
   test('getRecentDiffRiskScores respects limit', () => {
-    const scores = db.getRecentDiffRiskScores(1);
+    const scores = diffRiskRepo.recent(1);
     expect(scores.length).toBe(1);
   });
 
   test('getDiffRiskScoreByEventId returns correct score', () => {
-    const score = db.getDiffRiskScoreByEventId(1);
+    const score = diffRiskRepo.byEventId(1);
     expect(score).not.toBeNull();
     expect(score.filepath).toBe('/src/app.js');
     expect(score.score).toBe(7);
@@ -73,17 +76,17 @@ describe('Diff Risk Scores', () => {
   });
 
   test('getDiffRiskScoreByEventId returns null for nonexistent event', () => {
-    const score = db.getDiffRiskScoreByEventId(9999);
+    const score = diffRiskRepo.byEventId(9999);
     expect(score).toBeNull();
   });
 
   test('scores have correct value range', () => {
     // Insert scores at boundary values
-    db.insertDiffRiskScore(10, '/a.js', 1, 'Safe', new Date().toISOString(), null, null);
-    db.insertDiffRiskScore(11, '/b.js', 10, 'Dangerous', new Date().toISOString(), null, null);
+    diffRiskRepo.insert(10, '/a.js', 1, 'Safe', new Date().toISOString(), null, null);
+    diffRiskRepo.insert(11, '/b.js', 10, 'Dangerous', new Date().toISOString(), null, null);
 
-    const low = db.getDiffRiskScoreByEventId(10);
-    const high = db.getDiffRiskScoreByEventId(11);
+    const low = diffRiskRepo.byEventId(10);
+    const high = diffRiskRepo.byEventId(11);
     expect(low.score).toBe(1);
     expect(high.score).toBe(10);
   });

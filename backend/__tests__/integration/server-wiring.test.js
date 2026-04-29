@@ -126,7 +126,9 @@ describe('server-wiring (source-level guards)', () => {
   });
 
   test('isPathAllowed rejects non-relative escapes via path.relative()', () => {
-    expect(serverSource).toMatch(/pathRelative\(base, resolved\)/);
-    expect(serverSource).not.toMatch(/return resolved\.startsWith\(base\)/);
+    // isPathAllowed lives in services/projects-config.ts since the projects-routes extraction.
+    const source = readFileSync(join(REPO_ROOT, 'services', 'projects-config.ts'), 'utf8');
+    expect(source).toMatch(/pathRelative\(base, resolved\)/);
+    expect(source).not.toMatch(/return resolved\.startsWith\(base\)/);
   });
 });

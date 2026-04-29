@@ -140,10 +140,18 @@
     // documentElement (Tailwind v4 token-cascade requirement).
     const s = getComputedStyle(document.documentElement);
     colors.accent = s.getPropertyValue('--accent').trim() || colors.accent;
-    colors.success = s.getPropertyValue('--success').trim() || colors.success;
-    colors.error = s.getPropertyValue('--error').trim() || colors.error;
     colors.warning = s.getPropertyValue('--warning').trim() || colors.warning;
     colors.muted = s.getPropertyValue('--muted').trim() || colors.muted;
+
+    // Override success/error with vibrant variants for the pulse only.
+    // The theme's --success / --error are intentionally muted for UI
+    // surfaces, but at small particle sizes they read too close to the
+    // grey of routine tool calls. Edits and deletes are the highest-
+    // signal events on the dashboard — they need to pop.
+    // design-system-allow: hex
+    colors.success = '#22dd66';
+    // design-system-allow: hex
+    colors.error = '#ff3b4a';
 
     const bg = s.getPropertyValue('--surface').trim();
     const bgRgb = hexToRgb(bg);
@@ -640,15 +648,13 @@
       Tools
     </span>
     <span class="flex items-center gap-1.5">
-      <span class="w-1.5 h-1.5 rounded-full" style="background: var(--accent);"></span>
-      Chat
-    </span>
-    <span class="flex items-center gap-1.5">
-      <span class="w-1.5 h-1.5 rounded-full" style="background: var(--success);"></span>
+      <!-- design-system-allow: hex (matches the vibrant burst color) -->
+      <span class="w-1.5 h-1.5 rounded-full" style="background: #22dd66;"></span>
       Edits
     </span>
     <span class="flex items-center gap-1.5">
-      <span class="w-1.5 h-1.5 rounded-full" style="background: var(--error);"></span>
+      <!-- design-system-allow: hex (matches the vibrant burst color) -->
+      <span class="w-1.5 h-1.5 rounded-full" style="background: #ff3b4a;"></span>
       Deletes
     </span>
   </div>

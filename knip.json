@@ -1,0 +1,47 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/**/*.{js,cjs}"],
+      "ignore": ["e2e/**"],
+      "ignoreBinaries": ["prettier", "tsc"],
+      "ignoreDependencies": ["better-sqlite3"]
+    },
+    "backend": {
+      "entry": [
+        "server.ts",
+        "run-migrations.js",
+        "healthcheck.js",
+        "scripts/**/*.{ts,js}",
+        "migrations/**/*.{ts,js}"
+      ],
+      "project": ["**/*.{ts,js}"],
+      "ignore": [
+        "dist/**",
+        "__tests__/**",
+        "tests/**",
+        "test-shims/**",
+        "logs/**"
+      ],
+      "ignoreDependencies": ["@types/.*", "jest"],
+      "ignoreBinaries": ["open", "dot"]
+    },
+    "frontend": {
+      "entry": ["src/NewApp.svelte"],
+      "project": ["src/**/*.{js,ts,svelte}"],
+      "ignore": [
+        "dist/**",
+        "src/test/**",
+        "src/mocks/**",
+        "src/**/*.test.{js,ts}"
+      ],
+      "ignoreDependencies": [
+        "chart.js",
+        "dompurify",
+        "mermaid",
+        "msw",
+        "prettier-plugin-svelte"
+      ]
+    }
+  }
+}

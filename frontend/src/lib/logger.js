@@ -140,7 +140,7 @@ export const logger = new Logger('Raven');
 // Export named loggers for specific contexts
 export const wsLogger = new Logger('WebSocket');
 // Export Logger class for custom instances
-export { Logger, LOG_LEVELS };
+export { Logger };
 
 /**
  * Export helper to create contextual loggers

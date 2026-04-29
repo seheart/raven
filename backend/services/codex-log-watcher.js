@@ -500,5 +500,3 @@ export class CodexLogWatcher {
     return Array.from(seen.values());
   }
 }
-
-export default CodexLogWatcher;

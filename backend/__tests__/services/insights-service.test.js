@@ -6,17 +6,23 @@
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import { InsightsService } from '../../dist/services/insights-service.js';
 import { RavenDB } from '../../dist/db.js';
+import { createAgentEventsRepository } from '../../dist/repositories/agent-events-repository.js';
+import { createFileEventsRepository } from '../../dist/repositories/file-events-repository.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
 let db;
+let agentEventsRepo;
+let fileEventsRepo;
 let tmpDir;
 let service;
 
 beforeAll(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'raven-insights-test-'));
   db = new RavenDB(join(tmpDir, 'test.db'));
+  agentEventsRepo = createAgentEventsRepository(db);
+  fileEventsRepo = createFileEventsRepository(db);
   // Use a fake Ollama URL — tests that call Ollama will get null back (offline)
   service = new InsightsService(db, 'http://localhost:99999', 'test-model');
 });
@@ -63,7 +69,7 @@ describe('InsightsService - Generate Methods (Ollama Offline)', () => {
 
   test('generateSummary returns null when Ollama is offline (with events)', async () => {
     // Insert some test data
-    db.insertEvent(
+    fileEventsRepo.insert(
       new Date().toISOString(),
       '/test.js',
       'change',
@@ -76,7 +82,7 @@ describe('InsightsService - Generate Methods (Ollama Offline)', () => {
       'proj',
       null
     );
-    db.insertAgentEvent(
+    agentEventsRepo.insert(
       new Date().toISOString(),
       'claude',
       'tool_call',
@@ -211,7 +217,7 @@ describe('InsightsService - Concurrent Generation', () => {
   test('concurrent calls of same type are blocked', async () => {
     // Insert data so generateDailyDigest has something to work with
     for (let i = 0; i < 5; i++) {
-      db.insertEvent(
+      fileEventsRepo.insert(
         new Date().toISOString(),
         `/file${i}.js`,
         'change',

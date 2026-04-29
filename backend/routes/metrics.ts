@@ -1,9 +1,15 @@
 import express, { Request, Response, Router } from 'express';
 import type { RavenDB } from '../db.js';
+import type { ApiLatencyRepository } from '../repositories/api-latency-repository.js';
+import type { MetricsRepository } from '../repositories/metrics-repository.js';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { safeInt } from '../utils/request-helpers.js';
 
-export function createMetricsRouter(db: RavenDB): Router {
+export function createMetricsRouter(
+  db: RavenDB,
+  apiLatencyRepo: ApiLatencyRepository,
+  metricsRepo: MetricsRepository
+): Router {
   const router = express.Router();
 
   router.get('/system-metrics', cacheMiddleware(2000), (req: Request, res: Response) => {
@@ -43,7 +49,7 @@ export function createMetricsRouter(db: RavenDB): Router {
     try {
       const { agent } = req.params;
       const limit = safeInt(req.query.limit, 100);
-      const metrics = db.getProcessMetricsByAgent(agent, limit);
+      const metrics = metricsRepo.processMetricsByAgent(agent, limit);
       return res.json(metrics);
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
@@ -56,7 +62,7 @@ export function createMetricsRouter(db: RavenDB): Router {
       const dayAgo = now - 24 * 60 * 60 * 1000;
       const start_time = (req.query.start_time as string) || new Date(dayAgo).toISOString();
       const end_time = (req.query.end_time as string) || new Date(now).toISOString();
-      const stats = db.getMetricsStats(start_time, end_time);
+      const stats = metricsRepo.metricsStats(start_time, end_time);
       return res.json(stats);
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
@@ -65,7 +71,7 @@ export function createMetricsRouter(db: RavenDB): Router {
 
   router.get('/process-activity', cacheMiddleware(2000), (_req: Request, res: Response) => {
     try {
-      const activity = db.getLatestProcessActivity();
+      const activity = metricsRepo.latestProcessActivity();
       return res.json(activity);
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
@@ -76,8 +82,8 @@ export function createMetricsRouter(db: RavenDB): Router {
     try {
       const limit = safeInt(req.query.limit, 100);
       const minutes = safeInt(req.query.minutes, 60);
-      const recent = db.getRecentApiLatency(limit);
-      const stats = db.getApiLatencyStats(minutes);
+      const recent = apiLatencyRepo.recent(limit);
+      const stats = apiLatencyRepo.stats(minutes);
       return res.json({ recent, stats });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
@@ -87,7 +93,7 @@ export function createMetricsRouter(db: RavenDB): Router {
   router.get('/performance-correlations', cacheMiddleware(10000), (req: Request, res: Response) => {
     try {
       const time_window_seconds = safeInt(req.query.time_window_seconds, 5);
-      const correlations = db.correlateEventsWithMetrics(time_window_seconds);
+      const correlations = metricsRepo.correlateEventsWithMetrics(time_window_seconds);
       return res.json(correlations);
     } catch (error: any) {
       return res.status(500).json({ error: error.message });

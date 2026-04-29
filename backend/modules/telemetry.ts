@@ -10,12 +10,12 @@ import { EventBus, TelemetryEvent } from './eventBus.js';
 import * as si from 'systeminformation';
 import { logger } from '../utils/logger.js';
 
-export interface TelemetryConfig {
+interface TelemetryConfig {
   intervalMs: number;
   enableNetworkMetrics: boolean;
 }
 
-export class TelemetryCollector {
+class TelemetryCollector {
   private intervalId: NodeJS.Timeout | null = null;
   private config: TelemetryConfig;
   private idleIntervalMs: number = 60000; // 60s when idle

@@ -33,7 +33,7 @@ interface DetectedModel {
   lastChecked: string;
 }
 
-export interface ModelLoadEvent {
+interface ModelLoadEvent {
   endpoint: string; // 'Ollama' etc. — which service has the new model
   model: string;
   observedAt: string;

@@ -1,0 +1,362 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Raven Backend API",
+    "version": "1.0.0",
+    "description": "\n# Raven Backend API\n\nReal-time monitoring and telemetry system for Claude Code development sessions.\n\n## Features\n- Real-time telemetry collection from Claude Code agents\n- Multi-project workspace support\n- Developer activity tracking\n- Custom triggers and automation\n- Git integration and monitoring\n- File system watching with intelligent caching\n- Session replay and analytics\n\n## Usage\nThis is a local-first tool. The API is unauthenticated and intended to be bound to localhost only.\n    ",
+    "contact": {
+      "name": "Raven API Support"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:9100",
+      "description": "Development server"
+    },
+    {
+      "url": "http://localhost:9100",
+      "description": "Default local server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Telemetry",
+      "description": "Real-time telemetry event collection"
+    },
+    {
+      "name": "Dashboard",
+      "description": "Dashboard statistics and visualizations"
+    },
+    {
+      "name": "Projects",
+      "description": "Project management and configuration"
+    },
+    {
+      "name": "File System",
+      "description": "File watching and tracking"
+    },
+    {
+      "name": "Git",
+      "description": "Git integration and monitoring"
+    },
+    {
+      "name": "Sessions",
+      "description": "Session management and replay"
+    },
+    {
+      "name": "Health",
+      "description": "Health checks and system status"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "TelemetryEvent": {
+        "type": "object",
+        "required": [
+          "agent",
+          "event",
+          "message"
+        ],
+        "properties": {
+          "agent": {
+            "type": "string",
+            "example": "code-editor",
+            "description": "Agent identifier"
+          },
+          "event": {
+            "type": "string",
+            "example": "file_edit",
+            "description": "Event type"
+          },
+          "message": {
+            "type": "string",
+            "example": "Edited file.js",
+            "description": "Event message"
+          },
+          "file": {
+            "type": "string",
+            "example": "src/app.js",
+            "description": "Related file path"
+          },
+          "lines_changed": {
+            "type": "integer",
+            "example": 42,
+            "description": "Number of lines changed"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "example": 1500,
+            "description": "Operation duration"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata"
+          }
+        }
+      },
+      "TelemetryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "event_id": {
+            "type": "integer"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          }
+        }
+      },
+      "DashboardStats": {
+        "type": "object",
+        "properties": {
+          "total_events": {
+            "type": "integer",
+            "description": "Total events across all projects"
+          },
+          "total_files": {
+            "type": "integer",
+            "description": "Total unique files touched"
+          },
+          "total_agents": {
+            "type": "integer",
+            "description": "Number of active agents"
+          },
+          "total_lines_changed": {
+            "type": "integer",
+            "description": "Total lines of code changed"
+          },
+          "active_sessions": {
+            "type": "integer",
+            "description": "Number of active sessions"
+          },
+          "uptime_seconds": {
+            "type": "number",
+            "description": "Server uptime"
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "raven"
+          },
+          "path": {
+            "type": "string",
+            "example": "/Users/seth/projects/raven"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "lastActivity": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "statusCode": {
+            "type": "integer",
+            "description": "HTTP status code"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/telemetry": {
+      "post": {
+        "tags": [
+          "Telemetry"
+        ],
+        "summary": "Submit telemetry event",
+        "description": "Submit a real-time telemetry event from Claude Code agent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelemetryEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event recorded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid event data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard-stats": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get aggregated dashboard statistics",
+        "description": "Retrieve comprehensive statistics across all projects",
+        "responses": {
+          "200": {
+            "description": "Dashboard statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "List all projects",
+        "responses": {
+          "200": {
+            "description": "List of projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{name}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get project details",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check endpoint",
+        "description": "Get system health status and diagnostics",
+        "responses": {
+          "200": {
+            "description": "System is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "uptime": {
+                      "type": "number"
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "database": {
+                          "type": "string",
+                          "enum": [
+                            "healthy",
+                            "unhealthy"
+                          ]
+                        },
+                        "telemetry_bridge": {
+                          "type": "string",
+                          "enum": [
+                            "healthy",
+                            "unhealthy"
+                          ]
+                        },
+                        "file_watcher": {
+                          "type": "string",
+                          "enum": [
+                            "healthy",
+                            "unhealthy"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

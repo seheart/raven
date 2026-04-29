@@ -5,11 +5,16 @@
 
 import express, { Request, Response, Router } from 'express';
 import type { RavenDB } from '../db.js';
+import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { parseLimit, parseDateRange, buildTimeFilterQuery } from '../utils/request-helpers.js';
 
-export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>): Router {
+export function createAgentsRouter(
+  db: RavenDB,
+  agentRegistry: Map<string, any>,
+  agentEventsRepo: AgentEventsRepository
+): Router {
   const router = express.Router();
 
   /**
@@ -70,7 +75,7 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
     asyncHandler(async (req: Request, res: Response) => {
       const { agent } = req.params;
       const limit = parseLimit(req);
-      const events = db.getEventsByAgent(agent, limit);
+      const events = agentEventsRepo.byAgent(agent, limit);
       res.json(events);
     })
   );
@@ -83,7 +88,7 @@ export function createAgentsRouter(db: RavenDB, agentRegistry: Map<string, any>)
     '/agent-stats',
     cacheMiddleware(3000),
     asyncHandler(async (req: Request, res: Response) => {
-      const agentEvents = db.getAgentStats();
+      const agentEvents = agentEventsRepo.totals();
 
       // Use a 30-day window to avoid full table scan on large datasets
       const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();

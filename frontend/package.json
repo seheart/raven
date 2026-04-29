@@ -27,7 +27,10 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "openapi:gen": "openapi-typescript ../backend/config/openapi.json -o src/lib/api-types.d.ts",
+    "lint:types": "type-coverage --ignore-catch --at-least 88.5",
+    "lint:types:report": "type-coverage --ignore-catch --detail"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
@@ -45,6 +48,7 @@
     "html-validate": "^10.2.1",
     "jsdom": "^27.2.0",
     "msw": "^2.12.2",
+    "openapi-typescript": "^7.13.0",
     "playwright": "^1.56.1",
     "postcss": "^8.5.10",
     "postcss-html": "^1.8.0",
@@ -56,9 +60,9 @@
     "svelte": "^5.39.6",
     "svelte-check": "^4.3.3",
     "tailwindcss": "^4.1.17",
+    "type-coverage": "^2.29.7",
     "typescript": "^5.9.3",
     "vite": "^7.1.7",
-    "vite-plugin-compression2": "^2.3.1",
     "vitest": "^3.2.4"
   },
   "dependencies": {

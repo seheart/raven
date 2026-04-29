@@ -11,7 +11,7 @@ import fs from 'fs/promises';
 import { join } from 'path';
 import { logger } from '../utils/logger.js';
 
-export interface GitMonitorConfig {
+interface GitMonitorConfig {
   repoPath: string;
   pollIntervalMs?: number;
   enableAutoPoll?: boolean;

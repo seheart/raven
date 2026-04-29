@@ -9,6 +9,7 @@ import express, { Request, Response, Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { Server as IOServer } from 'socket.io';
 import type { RavenDB } from '../db.js';
+import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
 import { getAgentColor } from '../utils/agent-colors.js';
 import { attributeConnection } from '../utils/process-attribution.js';
 
@@ -25,6 +26,7 @@ interface OllamaProxyDeps {
   logger: MinimalLogger;
   sessionId: string;
   agentRegistry: Map<string, any>;
+  agentEventsRepo: AgentEventsRepository;
   ollamaUrl?: string;
   // Returns the current list of known projects so each inference can be
   // attributed to the project directory of the calling process.
@@ -32,7 +34,7 @@ interface OllamaProxyDeps {
 }
 
 export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
-  const { db, io, logger, sessionId: SESSION_ID, agentRegistry } = deps;
+  const { io, logger, sessionId: SESSION_ID, agentRegistry, agentEventsRepo } = deps;
   const OLLAMA_URL = deps.ollamaUrl || process.env.OLLAMA_URL || 'http://localhost:11434';
 
   const router = express.Router();
@@ -184,7 +186,7 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         }
 
         const durationMs = Date.now() - startTime;
-        db.insertAgentEvent(
+        agentEventsRepo.insert(
           new Date().toISOString(),
           modelName,
           'inference',
@@ -237,7 +239,7 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             logger.debug(`Ollama response parse skip (${parseErr?.message})`);
           }
 
-          db.insertAgentEvent(
+          agentEventsRepo.insert(
             new Date().toISOString(),
             modelName,
             'inference',
@@ -265,7 +267,7 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             `🤖 Ollama ${modelName}${project ? ` [${project}]` : ''}: ${ollamaPath} (${metrics.tokens} tok, gen ${metrics.gen_tps} tps, ${durationMs}ms)`
           );
         } else if (ollamaPath !== '/api/tags' && ollamaPath !== '/') {
-          db.insertAgentEvent(
+          agentEventsRepo.insert(
             new Date().toISOString(),
             modelName,
             'api_call',

@@ -51,10 +51,11 @@ export function navigate(path) {
   router.navigate(path);
 }
 
+/** @public */
 export function getPath() {
   return router.path;
 }
 
-export function isActive(path) {
+function isActive(path) {
   return router.isActive(path);
 }
