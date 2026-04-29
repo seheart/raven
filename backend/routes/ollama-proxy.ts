@@ -100,12 +100,14 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
     const targetUrl = `${OLLAMA_URL}${ollamaPath}`;
     const startTime = Date.now();
 
-    // Resolve which project triggered this call (if any) by walking
-    // /proc from the source TCP port. Best-effort, cached, falls back
-    // to null on any error. Only worth attributing inference endpoints.
-    const isInferenceEndpoint = ollamaPath === '/api/generate' || ollamaPath === '/api/chat';
+    // Resolve which project triggered this call by walking /proc from
+    // the source TCP port. Best-effort, cached, falls back to null on
+    // any error. Done for every request so we can attribute model
+    // touches via /api/show, /api/embeddings, /api/pull etc — not just
+    // inference. Tells us "who is keeping qwen warm" even when the
+    // calling app is only polling for model info.
     let project: string | null = null;
-    if (isInferenceEndpoint && req.socket.remotePort) {
+    if (req.socket.remotePort) {
       try {
         const projects = deps.getProjects?.() || [];
         const attr = await attributeConnection(req.socket.remotePort, projects);
@@ -221,7 +223,11 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         res.status(ollamaResponse.status).send(data);
 
         const durationMs = Date.now() - startTime;
-        const modelName = req.body?.model || 'Ollama';
+        // /api/generate, /api/chat, /api/embeddings use `model`; /api/show,
+        // /api/pull, /api/delete use `name`. Prefer either so api_call
+        // rows carry the real model name (and thus surface in
+        // /api/ollama/ps's last_project lookup).
+        const modelName = req.body?.model || req.body?.name || 'Ollama';
 
         if (ollamaPath === '/api/generate' || ollamaPath === '/api/chat') {
           let metrics = extractMetrics({});
@@ -267,9 +273,9 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             null,
             durationMs,
             `Ollama API: ${req.method} ${ollamaPath}`,
-            { endpoint: ollamaPath, method: req.method },
+            { endpoint: ollamaPath, method: req.method, project },
             SESSION_ID,
-            null
+            project
           );
         }
       }

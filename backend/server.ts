@@ -1319,13 +1319,13 @@ app.get('/api/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Resp
     if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
     const data = (await r.json()) as { models?: any[] };
     // Strip the giant `details.families` array and keep the useful bits.
-    // Look up the most recent project that called each resident model so
-    // the dashboard's Active Models row can show a project chip even
-    // before any websocket inference fires post-mount.
+    // Look up the most recent project that touched each resident model
+    // (any endpoint — generate, chat, show, embeddings, pull...) so the
+    // chip appears even when an app is only polling for model info.
     const lastProjectStmt = db.db.prepare(`
       SELECT COALESCE(project_name, json_extract(metadata, '$.project')) AS project
       FROM agent_events
-      WHERE event_type = 'inference' AND agent = ?
+      WHERE agent = ?
         AND COALESCE(project_name, json_extract(metadata, '$.project')) IS NOT NULL
       ORDER BY timestamp DESC LIMIT 1
     `);

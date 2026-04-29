@@ -58,10 +58,14 @@ async function findPidByPort(srcPort: number): Promise<number | null> {
       if (parts.length < 10) continue;
       // local_address is HEX_IP:HEX_PORT — match suffix only, IP family is irrelevant.
       if (!parts[1].endsWith(':' + portHex)) continue;
-      // State 01 = ESTABLISHED. Skip TIME_WAIT etc. so we don't match a stale row.
-      if (parts[3] !== '01') continue;
+      // Accept any non-listening state. Short bursty client connections can
+      // transition past ESTABLISHED (to CLOSE_WAIT etc.) before our handler
+      // runs, especially for HTTP/1 without keep-alive — being too strict
+      // here was dropping attributions for poll-style traffic.
+      if (parts[3] === '0A') continue; // skip LISTEN
       inode = parts[9];
-      break;
+      // Don't break on first match; prefer ESTABLISHED if we find one.
+      if (parts[3] === '01') break;
     }
     if (inode) break;
   }
