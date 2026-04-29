@@ -1319,14 +1319,22 @@ app.get('/api/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Resp
     if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
     const data = (await r.json()) as { models?: any[] };
     // Strip the giant `details.families` array and keep the useful bits.
-    // Look up the most recent project that touched each resident model
-    // (any endpoint — generate, chat, show, embeddings, pull...) so the
-    // chip appears even when an app is only polling for model info.
+    // Look up the most recent project that ACTUALLY USED each resident
+    // model — only load-triggering endpoints count: /api/generate,
+    // /api/chat (logged as event_type='inference'), and /api/embeddings.
+    // /api/show, /api/ps, /api/tags etc. are read-only metadata and
+    // would falsely attribute to whoever polls most. Apps that gate
+    // their own model use (e.g., ATF refuses non-Gemma) would be
+    // misattributed for models loaded by other tools entirely.
     const lastProjectStmt = db.db.prepare(`
       SELECT COALESCE(project_name, json_extract(metadata, '$.project')) AS project
       FROM agent_events
       WHERE agent = ?
         AND COALESCE(project_name, json_extract(metadata, '$.project')) IS NOT NULL
+        AND (
+          event_type = 'inference'
+          OR (event_type = 'api_call' AND json_extract(metadata, '$.endpoint') = '/api/embeddings')
+        )
       ORDER BY timestamp DESC LIMIT 1
     `);
     const models = (data.models || []).map((m: any) => {
