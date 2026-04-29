@@ -22,13 +22,6 @@
 
   const next = [
     {
-      title: 'Move --text-* tokens into @theme',
-      detail:
-        'Currently in :root, so Tailwind utilities (text-sm, text-base, etc.) use Tailwind\'s defaults — not raven\'s tokens. Moving to @theme means future scale tweaks cascade automatically. Will require auditing pages where text-sm was being used as 14px body — those become 12px after the move.',
-      size: 'M',
-      blocking: 'Full-page audit first; safer with a clean baseline.'
-    },
-    {
       title: 'Inline diff scoring & risk annotations',
       detail:
         'Per-file scoring with per-line callouts in the diff viewer. Hooks into the existing pattern detector and self-analysis service. Surfaces risk inline rather than in a separate report.',
@@ -52,12 +45,6 @@
       detail:
         'Trigger rules cover the obvious cases. Learned thresholds per-agent would catch slow drift (a worker that suddenly takes 3× longer, a model that starts looping). Question: how much state should Raven hold?',
       size: 'M'
-    },
-    {
-      title: 'Cleanup: remove unused Container.svelte',
-      detail:
-        'lib/components/ui/Container.svelte is unreferenced and still encodes the old max-w-* caps. Delete it (or wire it up properly with full-width as default).',
-      size: 'XS'
     },
     {
       title: 'Cleanup: text-xs audit on remaining pages',
@@ -92,6 +79,34 @@
   ];
 
   const recentlyShipped = [
+    {
+      label: 'Backend architecture refactor',
+      detail: 'server.ts split 4,282 → 755 lines (routes/ + services/ extraction). db.ts split 1,523 → 441 lines into 15 repositories. Repository pattern enforced via dependency-cruiser.'
+    },
+    {
+      label: 'Route validation + OpenAPI codegen',
+      detail: 'zod boundary validation on 11 routes; openapi-typescript pipeline (npm run openapi:dump + openapi:gen). Frontend consumes via JSDoc-imported types in src/lib/typedApi.js.'
+    },
+    {
+      label: 'Governance tooling in CI',
+      detail: 'Knip (dead-code detection), dependency-cruiser (architectural rules), type-coverage --ignore-catch ratchet. Backend coverage 88.23% → 91.57%.'
+    },
+    {
+      label: 'Frontend component test growth',
+      detail: '22 test files / 148 tests (was 7/82). ui/ primitives, layout primitives, Header chrome, llm-lab cards. Patterns: vi.hoisted for forward-ref mocks, jsdom getAnimations stub for Svelte transitions.'
+    },
+    {
+      label: 'Post-extraction cleanup',
+      detail: 'Dashboard aggregators moved to dashboard-repository. Prepared statements cached at factory init in errors-, pattern-warnings-, agent-events-, dashboard-repository. routes/metrics.ts standardized on `error instanceof Error` pattern. ESLint guard against db.db.prepare() in routes/.'
+    },
+    {
+      label: '--text-* tokens in @theme',
+      detail: 'Moved from :root into Tailwind v4 @theme. Tailwind utilities (text-sm, text-base) now read raven\'s scale, so future tweaks cascade automatically.'
+    },
+    {
+      label: 'Container.svelte cleanup',
+      detail: 'Removed the unused max-w-* container component; full-width is the default everywhere.'
+    },
     {
       label: 'System page port',
       detail: 'Live data model, API routes, hardware capacity, installed Ollama models, provisioning roadmap.'
