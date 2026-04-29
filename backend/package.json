@@ -30,7 +30,7 @@
     "lint:types:report": "type-coverage --ignore-catch --detail"
   },
   "dependencies": {
-    "better-sqlite3": "^11.8.1",
+    "better-sqlite3": "^12.9.0",
     "chokidar": "^4.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
