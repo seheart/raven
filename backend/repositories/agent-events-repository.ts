@@ -213,6 +213,35 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
     LIMIT 100
   `);
 
+  const conversationsAllStmt = db.db.prepare(
+    `SELECT * FROM agent_events
+     WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')
+     ORDER BY timestamp DESC LIMIT ? OFFSET ?`
+  );
+  const conversationsByTypeStmt = db.db.prepare(
+    `SELECT * FROM agent_events
+     WHERE event_type = ?
+     ORDER BY timestamp DESC LIMIT ? OFFSET ?`
+  );
+  const conversationsTotalStmt = db.db.prepare(
+    `SELECT COUNT(*) as total FROM agent_events
+     WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')`
+  );
+  const conversationStatsTotalStmt = db.db.prepare(
+    `SELECT COUNT(*) as total FROM agent_events
+     WHERE event_type IN ('conversation', 'user_message', 'assistant_text', 'tool_call', 'tool_result')`
+  );
+  const conversationStatsTypeStmt = db.db.prepare(
+    `SELECT event_type, COUNT(*) as count FROM agent_events
+     WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')
+     GROUP BY event_type`
+  );
+  const conversationStatsProjectStmt = db.db.prepare(
+    `SELECT project_name, COUNT(*) as count FROM agent_events
+     WHERE project_name IS NOT NULL
+     GROUP BY project_name`
+  );
+
   return {
     insert(timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name) {
       const result = insertStmt.run(
@@ -265,39 +294,23 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
 
     conversations(eventType, limit, offset) {
       const filterAll = !eventType || eventType === 'all';
-      const baseFilter = `event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')`;
-      const where = filterAll ? `WHERE ${baseFilter}` : `WHERE event_type = ?`;
-      const sql = `SELECT * FROM agent_events ${where} ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
       const conversations = filterAll
-        ? db.db.prepare(sql).all(limit, offset)
-        : db.db.prepare(sql).all(eventType, limit, offset);
-      const totalRow = db.db
-        .prepare(`SELECT COUNT(*) as total FROM agent_events WHERE ${baseFilter}`)
-        .get() as { total: number } | undefined;
+        ? conversationsAllStmt.all(limit, offset)
+        : conversationsByTypeStmt.all(eventType, limit, offset);
+      const totalRow = conversationsTotalStmt.get() as { total: number } | undefined;
       return { conversations, total: totalRow?.total ?? 0 };
     },
 
     conversationStats() {
-      const totalRow = db.db
-        .prepare(
-          `SELECT COUNT(*) as total FROM agent_events
-           WHERE event_type IN ('conversation', 'user_message', 'assistant_text', 'tool_call', 'tool_result')`
-        )
-        .get() as { total: number } | undefined;
-      const typeRows = db.db
-        .prepare(
-          `SELECT event_type, COUNT(*) as count FROM agent_events
-           WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')
-           GROUP BY event_type`
-        )
-        .all() as Array<{ event_type: string; count: number }>;
-      const projectRows = db.db
-        .prepare(
-          `SELECT project_name, COUNT(*) as count FROM agent_events
-           WHERE project_name IS NOT NULL
-           GROUP BY project_name`
-        )
-        .all() as Array<{ project_name: string; count: number }>;
+      const totalRow = conversationStatsTotalStmt.get() as { total: number } | undefined;
+      const typeRows = conversationStatsTypeStmt.all() as Array<{
+        event_type: string;
+        count: number;
+      }>;
+      const projectRows = conversationStatsProjectStmt.all() as Array<{
+        project_name: string;
+        count: number;
+      }>;
 
       const by_type: Record<string, number> = {};
       for (const r of typeRows) by_type[r.event_type] = r.count;

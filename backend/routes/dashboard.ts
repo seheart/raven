@@ -38,7 +38,7 @@ export function createDashboardRouter({
       const projectFilter = project && project !== 'all' ? project : undefined;
       const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
 
-      const stats = metricsRepo.dashboardStats(sessionId, projectFilter);
+      const stats = dashboardRepo.dashboardStats(sessionId, projectFilter);
       stats.total_agents = agentRegistry.size;
       stats.app_errors = errorsRepo.countUnresolved();
 
@@ -87,7 +87,7 @@ export function createDashboardRouter({
   router.get('/dashboard-stats', cacheMiddleware(3000), (req: Request, res: Response) => {
     try {
       const project = req.query.project as string | undefined;
-      const stats = metricsRepo.dashboardStats(sessionId, project);
+      const stats = dashboardRepo.dashboardStats(sessionId, project);
       stats.total_agents = agentRegistry.size;
       stats.app_errors = errorsRepo.countUnresolved();
       return res.json(stats);

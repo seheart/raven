@@ -325,17 +325,18 @@ scheduleDaily(18, () => {
 
 const agentRegistry = new Map<string, AgentInfo>();
 
-const apiLatencyRepositoryEarly = createApiLatencyRepository(db);
+const apiLatencyRepository = createApiLatencyRepository(db);
 const agentEventsRepository = createAgentEventsRepository(db);
 const fileEventsRepository = createFileEventsRepository(db);
 const metricsRepository = createMetricsRepository(db);
+const dashboardRepository = createDashboardRepository(db);
 const diffRiskRepository = createDiffRiskRepository(db);
 const createAgentEventHandler = createAgentEventHandlerFactory({
   db,
   io,
   sessionId: SESSION_ID,
   agentRegistry,
-  apiLatencyRepo: apiLatencyRepositoryEarly
+  apiLatencyRepo: apiLatencyRepository
 });
 
 // Initialize log watchers — one per agent CLI we monitor.
@@ -447,7 +448,7 @@ app.use(
 app.use('/api/session', createLiveSessionRouter(db));
 
 // Mount events routes
-app.use('/api', createEventsRouter(db, fileEventsRepository, metricsRepository));
+app.use('/api', createEventsRouter(db, fileEventsRepository, dashboardRepository));
 
 // Mount agents routes
 app.use('/api', createAgentsRouter(db, agentRegistry, agentEventsRepository));
@@ -458,9 +459,6 @@ app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
 // Mount insights routes (LLM-powered analysis)
 app.use('/api/insights', createInsightsRouter(insightsService, db, diffRiskRepository));
 const errorsRepository = createErrorsRepository(db);
-const apiLatencyRepository = apiLatencyRepositoryEarly;
-// agentEventsRepository declared early at module top so the broadcaster
-// closure and routes mounted before service init can reference it.
 app.use('/api/errors', createErrorsRouter(errorsRepository, io));
 app.use('/api', createOllamaDetailRouter(agentEventsRepository));
 app.use('/api/conversations', createConversationsRouter(agentEventsRepository));
@@ -490,7 +488,6 @@ app.use(
   })
 );
 app.use('/api/pattern-warnings', createPatternWarningsRouter(patternWarningsRepository));
-const dashboardRepository = createDashboardRepository(db);
 app.use('/api/trends', createTrendsRouter(dashboardRepository));
 app.use('/api/metrics', createMetricsOverviewRouter(dashboardRepository));
 app.use(
@@ -532,7 +529,7 @@ app.use('/api/session-activity', createSessionActivityRouter());
 
 // Extracted route modules
 app.use('/api/git', createGitRouter(gitMonitor));
-app.use('/api', createMetricsRouter(db, apiLatencyRepository, metricsRepository));
+app.use('/api', createMetricsRouter(apiLatencyRepository, metricsRepository, dashboardRepository));
 app.use('/api', createTriggersRouter(triggerEngine));
 app.use(
   '/ollama',
@@ -561,25 +558,6 @@ if (existsSync(frontendDistPath)) {
   });
   logger.info(`📦 Serving frontend from ${frontendDistPath}`);
 }
-
-// ==================== Dashboard Aggregator ====================
-
-// One round-trip for the Overview page. Replaces nine parallel calls the
-// frontend used to make on every loadData(). The legacy endpoints stay
-// (other pages use them); this just collapses the dashboard's fan-out.
-// /api/longest-edits is served by createEventsRouter (mounted at /api above).
-// The previous inline handler was unreachable dead code and has been removed.
-
-// ==================== Agents ====================
-// All agent routes (agents-status, agent-events, events-by-agent, agent-stats, agent-profiles)
-// are handled by the agents router (routes/agents.ts)
-
-// ==================== System Metrics ====================
-
-// Metrics, Git, and Triggers routes are now in their own modules
-// (see app.use calls further up)
-
-// ==================== Storage APIs (extracted to routes/storage.ts) ====================
 
 // ==================== WebSocket ====================
 

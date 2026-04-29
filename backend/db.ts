@@ -435,34 +435,6 @@ export class RavenDB {
     );
   }
 
-  // ==================== Agent Events ====================
-  // Moved to repositories/agent-events-repository.ts.
-
-  // ==================== File Events ====================
-  // Moved to repositories/file-events-repository.ts.
-
-  // ==================== System / Process / Dashboard Metrics ====================
-  // Moved to repositories/metrics-repository.ts.
-  // ==================== Syntax Errors ====================
-  // Moved to repositories/syntax-errors-repository.ts.
-
-  // ==================== Pattern Warnings ====================
-  // Moved to repositories/pattern-warnings-repository.ts.
-
-  // ==================== Test Results ====================
-  // Moved to repositories/test-results-repository.ts.
-
-  // ==================== Diff Risk Scores ====================
-  // Moved to repositories/diff-risk-repository.ts.
-
-  /**
-   * Delete old data beyond retention limits.
-   * Returns number of rows deleted per table.
-   */
-  /**
-   * Close the database connection
-   * Should be called during application shutdown to ensure data integrity
-   */
   close(): void {
     this.db.close();
   }

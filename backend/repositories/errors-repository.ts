@@ -50,6 +50,50 @@ export interface ErrorsRepository {
 }
 
 export function createErrorsRepository(db: RavenDB): ErrorsRepository {
+  // `list()` builds dynamic WHERE clauses based on filters, so its statements
+  // are prepared on demand. The four shapes are cached after first use.
+  const listStmtCache = new Map<string, ReturnType<typeof db.db.prepare>>();
+  const totalStmtCache = new Map<string, ReturnType<typeof db.db.prepare>>();
+  const getListStmt = (whereClause: string) => {
+    let s = listStmtCache.get(whereClause);
+    if (!s) {
+      s = db.db.prepare(
+        `SELECT * FROM app_errors ${whereClause} ORDER BY timestamp DESC LIMIT ? OFFSET ?`
+      );
+      listStmtCache.set(whereClause, s);
+    }
+    return s;
+  };
+  const getTotalStmt = (whereClause: string) => {
+    let s = totalStmtCache.get(whereClause);
+    if (!s) {
+      s = db.db.prepare(`SELECT COUNT(*) as total FROM app_errors ${whereClause}`);
+      totalStmtCache.set(whereClause, s);
+    }
+    return s;
+  };
+
+  const insertStmt = db.db.prepare(
+    `INSERT INTO app_errors (timestamp, error_type, message, stack, component, severity, url, user_agent, metadata)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const statsTotalStmt = db.db.prepare(
+    'SELECT COUNT(*) as total FROM app_errors WHERE resolved = 0'
+  );
+  const statsBySeverityStmt = db.db.prepare(
+    'SELECT severity, COUNT(*) as count FROM app_errors WHERE resolved = 0 GROUP BY severity'
+  );
+  const statsByComponentStmt = db.db.prepare(
+    'SELECT component, COUNT(*) as count FROM app_errors WHERE resolved = 0 GROUP BY component ORDER BY count DESC LIMIT 10'
+  );
+  const statsRecentStmt = db.db.prepare(
+    'SELECT * FROM app_errors WHERE resolved = 0 ORDER BY timestamp DESC LIMIT 5'
+  );
+  const clearStmt = db.db.prepare('DELETE FROM app_errors');
+  const countUnresolvedStmt = db.db.prepare(
+    'SELECT COUNT(*) as count FROM app_errors WHERE resolved = 0'
+  );
+
   return {
     list({ limit, offset, search, severity }) {
       let whereClause = 'WHERE 1=1';
@@ -64,68 +108,45 @@ export function createErrorsRepository(db: RavenDB): ErrorsRepository {
         params.push(severity);
       }
 
-      const totalResult = db.db
-        .prepare(`SELECT COUNT(*) as total FROM app_errors ${whereClause}`)
-        .get(...params) as { total: number };
-
-      const errors = db.db
-        .prepare(
-          `SELECT * FROM app_errors ${whereClause} ORDER BY timestamp DESC LIMIT ? OFFSET ?`
-        )
-        .all(...params, limit, offset) as AppErrorRow[];
-
+      const totalStmt = getTotalStmt(whereClause) as {
+        get: (...args: unknown[]) => { total: number };
+      };
+      const listStmt = getListStmt(whereClause) as {
+        all: (...args: unknown[]) => AppErrorRow[];
+      };
+      const totalResult = totalStmt.get(...params);
+      const errors = listStmt.all(...params, limit, offset);
       return { errors, total: totalResult.total };
     },
 
     insert({ error_type, message, stack, component, severity, url, user_agent, metadata }) {
-      db.db
-        .prepare(
-          `INSERT INTO app_errors (timestamp, error_type, message, stack, component, severity, url, user_agent, metadata)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .run(
-          new Date().toISOString(),
-          error_type || 'Error',
-          message || 'Unknown error',
-          stack || null,
-          component || 'unknown',
-          severity || 'error',
-          url || null,
-          user_agent || null,
-          metadata ? JSON.stringify(metadata) : null
-        );
+      insertStmt.run(
+        new Date().toISOString(),
+        error_type || 'Error',
+        message || 'Unknown error',
+        stack || null,
+        component || 'unknown',
+        severity || 'error',
+        url || null,
+        user_agent || null,
+        metadata ? JSON.stringify(metadata) : null
+      );
     },
 
     getStats() {
-      const totalRow = db.db
-        .prepare('SELECT COUNT(*) as total FROM app_errors WHERE resolved = 0')
-        .get() as { total: number } | undefined;
-      const bySeverity = db.db
-        .prepare(
-          'SELECT severity, COUNT(*) as count FROM app_errors WHERE resolved = 0 GROUP BY severity'
-        )
-        .all() as { severity: string; count: number }[];
-      const byComponent = db.db
-        .prepare(
-          'SELECT component, COUNT(*) as count FROM app_errors WHERE resolved = 0 GROUP BY component ORDER BY count DESC LIMIT 10'
-        )
-        .all() as { component: string; count: number }[];
-      const recent = db.db
-        .prepare(
-          'SELECT * FROM app_errors WHERE resolved = 0 ORDER BY timestamp DESC LIMIT 5'
-        )
-        .all() as AppErrorRow[];
+      const totalRow = statsTotalStmt.get() as { total: number } | undefined;
+      const bySeverity = statsBySeverityStmt.all() as { severity: string; count: number }[];
+      const byComponent = statsByComponentStmt.all() as { component: string; count: number }[];
+      const recent = statsRecentStmt.all() as AppErrorRow[];
       return { total: totalRow?.total ?? 0, bySeverity, byComponent, recent };
     },
 
     clear() {
-      db.db.prepare('DELETE FROM app_errors').run();
+      clearStmt.run();
     },
 
     countUnresolved() {
-      const row = db.db
-        .prepare('SELECT COUNT(*) as count FROM app_errors WHERE resolved = 0')
-        .get() as { count: number } | undefined;
+      const row = countUnresolvedStmt.get() as { count: number } | undefined;
       return row?.count ?? 0;
     }
   };

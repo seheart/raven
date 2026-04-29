@@ -1,47 +1,28 @@
 import express, { Request, Response, Router } from 'express';
-import type { RavenDB } from '../db.js';
 import type { ApiLatencyRepository } from '../repositories/api-latency-repository.js';
+import type { DashboardRepository } from '../repositories/dashboard-repository.js';
 import type { MetricsRepository } from '../repositories/metrics-repository.js';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { safeInt } from '../utils/request-helpers.js';
 
 export function createMetricsRouter(
-  db: RavenDB,
   apiLatencyRepo: ApiLatencyRepository,
-  metricsRepo: MetricsRepository
+  metricsRepo: MetricsRepository,
+  dashboardRepo: DashboardRepository
 ): Router {
   const router = express.Router();
 
   router.get('/system-metrics', cacheMiddleware(2000), (req: Request, res: Response) => {
     try {
       const limit = safeInt(req.query.limit, 100);
-      const startTime = req.query.start_time as string;
-      const endTime = req.query.end_time as string;
-
-      let query = `
-        SELECT id, timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes
-        FROM raven_metrics
-      `;
-      const params: any[] = [];
-
-      if (startTime && endTime) {
-        query += ' WHERE timestamp BETWEEN ? AND ?';
-        params.push(startTime, endTime);
-      } else if (startTime) {
-        query += ' WHERE timestamp >= ?';
-        params.push(startTime);
-      } else if (endTime) {
-        query += ' WHERE timestamp <= ?';
-        params.push(endTime);
-      }
-
-      query += ' ORDER BY timestamp DESC LIMIT ?';
-      params.push(limit);
-
-      const metrics = db.db.prepare(query).all(...params);
+      const startTime = req.query.start_time as string | undefined;
+      const endTime = req.query.end_time as string | undefined;
+      const metrics = metricsRepo.systemMetricsInRange(startTime, endTime, limit);
       return res.json(metrics);
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -51,8 +32,10 @@ export function createMetricsRouter(
       const limit = safeInt(req.query.limit, 100);
       const metrics = metricsRepo.processMetricsByAgent(agent, limit);
       return res.json(metrics);
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -64,8 +47,10 @@ export function createMetricsRouter(
       const end_time = (req.query.end_time as string) || new Date(now).toISOString();
       const stats = metricsRepo.metricsStats(start_time, end_time);
       return res.json(stats);
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -73,8 +58,10 @@ export function createMetricsRouter(
     try {
       const activity = metricsRepo.latestProcessActivity();
       return res.json(activity);
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -85,18 +72,22 @@ export function createMetricsRouter(
       const recent = apiLatencyRepo.recent(limit);
       const stats = apiLatencyRepo.stats(minutes);
       return res.json({ recent, stats });
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 
   router.get('/performance-correlations', cacheMiddleware(10000), (req: Request, res: Response) => {
     try {
       const time_window_seconds = safeInt(req.query.time_window_seconds, 5);
-      const correlations = metricsRepo.correlateEventsWithMetrics(time_window_seconds);
+      const correlations = dashboardRepo.correlateEventsWithMetrics(time_window_seconds);
       return res.json(correlations);
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 

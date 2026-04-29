@@ -5,8 +5,8 @@
 
 import express, { Request, Response, Router } from 'express';
 import type { RavenDB } from '../db.js';
+import type { DashboardRepository } from '../repositories/dashboard-repository.js';
 import type { FileEventsRepository } from '../repositories/file-events-repository.js';
-import type { MetricsRepository } from '../repositories/metrics-repository.js';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import {
@@ -19,7 +19,7 @@ import {
 export function createEventsRouter(
   db: RavenDB,
   fileEventsRepo: FileEventsRepository,
-  metricsRepo: MetricsRepository
+  dashboardRepo: DashboardRepository
 ): Router {
   const router = express.Router();
 
@@ -73,7 +73,7 @@ export function createEventsRouter(
     cacheMiddleware(10000),
     asyncHandler(async (req: Request, res: Response) => {
       const limit = parseLimit(req, 10);
-      const edits = metricsRepo.longestEdits(limit);
+      const edits = dashboardRepo.longestEdits(limit);
       res.json(edits);
     })
   );

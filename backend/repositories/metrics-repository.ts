@@ -2,11 +2,6 @@
  * Metrics Repository — owns the runtime metrics tables:
  *  - `raven_metrics` (system-level CPU/mem/network)
  *  - `process_metrics` (per-agent process telemetry)
- *
- * Also owns a few cross-table aggregators that the dashboard pages depend on
- * (dashboard stats, top-modified files, longest edits, event ↔ metric
- * correlation). These all read from `events` + `agent_events` + `raven_metrics`,
- * so keeping them together avoids a tangle of repo-to-repo calls.
  */
 
 import type { RavenDB } from '../db.js';
@@ -50,35 +45,6 @@ interface MetricsStatsRow {
   sample_count: number;
 }
 
-interface PerformanceCorrelation {
-  event_id: number;
-  event_timestamp: string;
-  filepath: string;
-  change_type: string;
-  diff_size: number;
-  cpu_percent: number;
-  mem_percent: number;
-}
-
-interface FileStats {
-  filepath: string;
-  edit_count: number;
-  total_lines_changed: number;
-  last_modified: string;
-}
-
-interface DashboardStats {
-  total_events: number;
-  total_files: number;
-  total_agents: number;
-  session_duration_seconds: number;
-  active_files_today: number;
-  creates: number;
-  edits: number;
-  deletes: number;
-  app_errors: number;
-}
-
 export interface MetricsRepository {
   insertSystemMetrics(
     timestamp: string,
@@ -92,6 +58,13 @@ export interface MetricsRepository {
   ): number;
 
   recentSystemMetrics(limit?: number): SystemMetricsRow[];
+
+  /** Recent system metrics filtered by optional start/end timestamps. */
+  systemMetricsInRange(
+    start_time: string | undefined,
+    end_time: string | undefined,
+    limit: number
+  ): SystemMetricsRow[];
 
   metricsStats(start_time: string, end_time: string): MetricsStatsRow;
 
@@ -117,18 +90,6 @@ export interface MetricsRepository {
 
   /** Latest process activity per tracked agent. */
   latestProcessActivity(): ProcessMetricsRow[];
-
-  /** Correlate recent file events with system metrics in ±N seconds windows. */
-  correlateEventsWithMetrics(time_window_seconds?: number): PerformanceCorrelation[];
-
-  /** Top files modified within a session, by edit count. */
-  topModifiedFilesForSession(session_id: string, limit?: number): FileStats[];
-
-  /** Largest agent_events edits by lines_changed. */
-  longestEdits(limit?: number): unknown[];
-
-  /** Comprehensive dashboard stats for a session, optionally project-filtered. */
-  dashboardStats(session_id: string, project?: string): DashboardStats;
 }
 
 export function createMetricsRepository(db: RavenDB): MetricsRepository {
@@ -140,6 +101,30 @@ export function createMetricsRepository(db: RavenDB): MetricsRepository {
   const recentSystemStmt = db.db.prepare(`
     SELECT id, timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes
     FROM raven_metrics
+    ORDER BY timestamp DESC
+    LIMIT ?
+  `);
+
+  const systemMetricsBothStmt = db.db.prepare(`
+    SELECT id, timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes
+    FROM raven_metrics
+    WHERE timestamp BETWEEN ? AND ?
+    ORDER BY timestamp DESC
+    LIMIT ?
+  `);
+
+  const systemMetricsAfterStmt = db.db.prepare(`
+    SELECT id, timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes
+    FROM raven_metrics
+    WHERE timestamp >= ?
+    ORDER BY timestamp DESC
+    LIMIT ?
+  `);
+
+  const systemMetricsBeforeStmt = db.db.prepare(`
+    SELECT id, timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes
+    FROM raven_metrics
+    WHERE timestamp <= ?
     ORDER BY timestamp DESC
     LIMIT ?
   `);
@@ -179,41 +164,6 @@ export function createMetricsRepository(db: RavenDB): MetricsRepository {
     ) latest ON pm.agent_name = latest.agent_name AND pm.timestamp = latest.max_ts
   `);
 
-  const recentEventsForCorrelationStmt = db.db.prepare(`
-    SELECT id, timestamp, filepath, change_type, LENGTH(diff) as diff_size
-    FROM events
-    WHERE filepath IS NOT NULL
-    ORDER BY timestamp DESC
-    LIMIT 20
-  `);
-
-  const correlationMetricStmt = db.db.prepare(`
-    SELECT AVG(cpu_percent) as cpu_percent, AVG(memory_percent) as mem_percent
-    FROM raven_metrics
-    WHERE timestamp >= ? AND timestamp <= ?
-  `);
-
-  const topFilesForSessionStmt = db.db.prepare(`
-    SELECT
-      file as filepath,
-      COUNT(*) as edit_count,
-      COALESCE(SUM(lines_changed), 0) as total_lines_changed,
-      MAX(timestamp) as last_modified
-    FROM agent_events
-    WHERE session_id = ? AND file IS NOT NULL
-    GROUP BY file
-    ORDER BY edit_count DESC
-    LIMIT ?
-  `);
-
-  const longestEditsStmt = db.db.prepare(`
-    SELECT file as filepath, lines_changed, timestamp, agent
-    FROM agent_events
-    WHERE lines_changed IS NOT NULL
-    ORDER BY lines_changed DESC
-    LIMIT ?
-  `);
-
   return {
     insertSystemMetrics(timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes, session_id) {
       const result = insertSystemStmt.run(
@@ -230,6 +180,15 @@ export function createMetricsRepository(db: RavenDB): MetricsRepository {
     },
 
     recentSystemMetrics(limit = 100) {
+      return recentSystemStmt.all(limit) as SystemMetricsRow[];
+    },
+
+    systemMetricsInRange(start_time, end_time, limit) {
+      if (start_time && end_time) {
+        return systemMetricsBothStmt.all(start_time, end_time, limit) as SystemMetricsRow[];
+      }
+      if (start_time) return systemMetricsAfterStmt.all(start_time, limit) as SystemMetricsRow[];
+      if (end_time) return systemMetricsBeforeStmt.all(end_time, limit) as SystemMetricsRow[];
       return recentSystemStmt.all(limit) as SystemMetricsRow[];
     },
 
@@ -273,121 +232,6 @@ export function createMetricsRepository(db: RavenDB): MetricsRepository {
 
     latestProcessActivity() {
       return latestProcessStmt.all() as ProcessMetricsRow[];
-    },
-
-    correlateEventsWithMetrics(time_window_seconds = 5) {
-      const recentEvents = recentEventsForCorrelationStmt.all() as Array<{
-        id: number;
-        timestamp: string;
-        filepath: string;
-        change_type: string;
-        diff_size: number | null;
-      }>;
-      if (recentEvents.length === 0) return [];
-
-      const windowMs = time_window_seconds * 1000;
-      const results: PerformanceCorrelation[] = [];
-      for (const event of recentEvents) {
-        const eventTime = new Date(event.timestamp).getTime();
-        const lower = new Date(eventTime - windowMs).toISOString();
-        const upper = new Date(eventTime + windowMs).toISOString();
-        const metrics = correlationMetricStmt.get(lower, upper) as
-          | { cpu_percent: number | null; mem_percent: number | null }
-          | undefined;
-        results.push({
-          event_id: event.id,
-          event_timestamp: event.timestamp,
-          filepath: event.filepath,
-          change_type: event.change_type,
-          diff_size: event.diff_size || 0,
-          cpu_percent: metrics?.cpu_percent || 0,
-          mem_percent: metrics?.mem_percent || 0
-        });
-      }
-      return results;
-    },
-
-    topModifiedFilesForSession(session_id, limit = 10) {
-      return topFilesForSessionStmt.all(session_id, limit) as FileStats[];
-    },
-
-    longestEdits(limit = 10) {
-      return longestEditsStmt.all(limit);
-    },
-
-    dashboardStats(session_id, project) {
-      const projectFilter = project && project !== 'all' && project.trim() ? project : null;
-      const whereClause = projectFilter ? 'WHERE project_name = ?' : '';
-      const params = projectFilter ? [projectFilter] : [];
-
-      const eventStats = db.db
-        .prepare(
-          `SELECT
-            COUNT(*) as total_events,
-            COUNT(DISTINCT filepath) as total_files,
-            SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END) as creates,
-            SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits,
-            SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes
-          FROM events ${whereClause}`
-        )
-        .get(...params) as {
-        total_events: number;
-        total_files: number;
-        creates: number;
-        edits: number;
-        deletes: number;
-      } | undefined;
-
-      const durationSql = projectFilter
-        ? `SELECT MIN(ts) as first_ts, MAX(ts) as last_ts FROM (
-            SELECT timestamp as ts FROM events WHERE project_name = ?
-            UNION ALL
-            SELECT timestamp as ts FROM agent_events WHERE project_name = ?
-          )`
-        : `SELECT MIN(ts) as first_ts, MAX(ts) as last_ts FROM (
-            SELECT timestamp as ts FROM events
-            UNION ALL
-            SELECT timestamp as ts FROM agent_events
-          )`;
-      const durationParams = projectFilter ? [projectFilter, projectFilter] : [];
-      const durationRow = db.db.prepare(durationSql).get(...durationParams) as
-        | { first_ts: string | null; last_ts: string | null }
-        | undefined;
-
-      let session_duration_seconds = 0;
-      if (durationRow?.first_ts && durationRow?.last_ts) {
-        const first = new Date(durationRow.first_ts).getTime();
-        const last = new Date(durationRow.last_ts).getTime();
-        if (!isNaN(first) && !isNaN(last)) {
-          session_duration_seconds = Math.floor((last - first) / 1000);
-        }
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-      const activeTodaySql = projectFilter
-        ? `SELECT COUNT(DISTINCT filepath) as count FROM events WHERE filepath IS NOT NULL AND timestamp >= ? AND project_name = ?`
-        : `SELECT COUNT(DISTINCT filepath) as count FROM events WHERE filepath IS NOT NULL AND timestamp >= ?`;
-      const activeTodayParams = projectFilter
-        ? [today + 'T00:00:00', projectFilter]
-        : [today + 'T00:00:00'];
-      const activeTodayRow = db.db.prepare(activeTodaySql).get(...activeTodayParams) as
-        | { count: number }
-        | undefined;
-      // session_id intentionally unused — current implementation aggregates
-      // across the database; session-scoped stats land in dashboardRepo.
-      void session_id;
-
-      return {
-        total_events: eventStats?.total_events || 0,
-        total_files: eventStats?.total_files || 0,
-        total_agents: 0, // Filled in by the route from agent registry
-        session_duration_seconds,
-        active_files_today: activeTodayRow?.count || 0,
-        creates: eventStats?.creates || 0,
-        edits: eventStats?.edits || 0,
-        deletes: eventStats?.deletes || 0,
-        app_errors: 0 // Filled in by the route from errors repo
-      };
     }
   };
 }

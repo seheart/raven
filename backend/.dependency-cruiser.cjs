@@ -55,6 +55,9 @@ module.exports = {
     {
       name: 'no-raw-sql-in-routes',
       severity: 'error',
+      // NOTE: depcruise can only flag imports. Direct `db.db.prepare()` / `db.db.exec()`
+      // calls via the RavenDB connection still slip through here; the ESLint rule
+      // `no-restricted-syntax` in eslint.config.js targets that syntactic pattern.
       comment:
         'Route handlers must go through services or repositories — raw better-sqlite3 imports in routes/ are forbidden.',
       from: { path: '^routes/' },

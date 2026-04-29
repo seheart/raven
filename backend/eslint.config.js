@@ -33,5 +33,22 @@ export default [
       'eol-last': ['error', 'always']
     }
   },
+  {
+    // Routes must go through repositories — flag direct SQL via db.db.{prepare,exec,transaction}.
+    // Complements the dependency-cruiser `no-raw-sql-in-routes` rule, which only blocks the
+    // `import 'better-sqlite3'` form. Existing offenders are baselined; new code is blocked.
+    files: ['routes/**/*.ts', 'routes/**/*.js'],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector:
+            "MemberExpression[object.object.name='db'][object.property.name='db'][property.name=/^(prepare|exec|transaction)$/]",
+          message:
+            'Routes must not run SQL directly — add a method to the appropriate repository in repositories/ instead.'
+        }
+      ]
+    }
+  },
   prettierConfig
 ];
