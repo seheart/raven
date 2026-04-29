@@ -28,8 +28,15 @@ interface DetectedModel {
   type: string;
   endpoint?: string;
   status: 'running' | 'stopped' | 'unknown';
-  models: string[];
+  models: string[]; // installed library (what's available)
+  resident?: string[]; // currently loaded into VRAM (subset of installed)
   lastChecked: string;
+}
+
+export interface ModelLoadEvent {
+  endpoint: string; // 'Ollama' etc. — which service has the new model
+  model: string;
+  observedAt: string;
 }
 
 // Known local model endpoints and their detection methods
@@ -59,6 +66,10 @@ export class LocalModelWatcher {
   private onModelStatusChanged: ((model: DetectedModel, previousStatus: string) => void) | null =
     null;
   private onModelHeartbeat: ((model: DetectedModel) => void) | null = null;
+  private onModelLoaded: ((event: ModelLoadEvent) => void) | null = null;
+  // Per-endpoint set of models we observed resident on the previous
+  // scan. Diff against the next scan tells us "what just got loaded."
+  private prevResidentByEndpoint: Map<string, Set<string>> = new Map();
   private pollMs: number;
   private idlePollMs: number;
   private isIdle: boolean = false;
@@ -97,15 +108,21 @@ export class LocalModelWatcher {
    * - `heartbeatCallback` fires on every successful scan while a model is
    *   running, so consumers can keep `last_seen` / models list fresh
    *   without triggering log/notification side-effects each tick.
+   * - `loadedCallback` fires when a specific model transitions from
+   *   absent → resident in `/api/ps`. Lets consumers snapshot active
+   *   TCP connections and attribute the loader, even when the load
+   *   came from a tool that bypassed Raven's proxy.
    */
   async start(
     callback?: (model: DetectedModel) => void,
     statusCallback?: (model: DetectedModel, previousStatus: string) => void,
-    heartbeatCallback?: (model: DetectedModel) => void
+    heartbeatCallback?: (model: DetectedModel) => void,
+    loadedCallback?: (event: ModelLoadEvent) => void
   ): Promise<void> {
     this.onModelDetected = callback || null;
     this.onModelStatusChanged = statusCallback || null;
     this.onModelHeartbeat = heartbeatCallback || null;
+    this.onModelLoaded = loadedCallback || null;
 
     // Initial scan
     await this.scan();
@@ -154,6 +171,32 @@ export class LocalModelWatcher {
           if (model.status === 'running' && this.onModelHeartbeat) {
             this.onModelHeartbeat(model);
           }
+
+          // Detect newly-resident models by diffing current vs previous
+          // resident set. The FIRST scan for an endpoint just records
+          // the baseline — without it every already-loaded model would
+          // look "newly loaded" at startup. Subsequent scans fire one
+          // onModelLoaded event per net-new model.
+          // Detect newly-resident models by diffing the resident set
+          // (from /api/ps, NOT /api/tags). First scan establishes the
+          // baseline silently; subsequent scans fire onModelLoaded for
+          // each net-new model so the consumer can snapshot active
+          // connections and attribute the loader.
+          if (model.status === 'running' && this.onModelLoaded && model.resident) {
+            const prev = this.prevResidentByEndpoint.get(endpoint.name);
+            const current = new Set(model.resident);
+            if (prev !== undefined) {
+              const observedAt = model.lastChecked;
+              for (const name of current) {
+                if (!prev.has(name)) {
+                  this.onModelLoaded({ endpoint: endpoint.name, model: name, observedAt });
+                }
+              }
+            }
+            this.prevResidentByEndpoint.set(endpoint.name, current);
+          } else if (model.status !== 'running') {
+            this.prevResidentByEndpoint.delete(endpoint.name);
+          }
         }
       } catch {
         // Endpoint not reachable — model not running
@@ -186,8 +229,12 @@ export class LocalModelWatcher {
       let models: string[] = [];
       let status: 'running' | 'stopped' = 'stopped';
 
+      let resident: string[] | undefined = undefined;
       if (endpoint.type === 'ollama') {
-        // Ollama API: GET /api/tags returns running models
+        // /api/tags = installed library; /api/ps = currently resident
+        // (a subset of installed that's loaded into VRAM right now).
+        // We need both: installed for service-up detection, resident
+        // for "what just got loaded?" diff.
         const response = await fetch(`${endpoint.url}/api/tags`, {
           signal: controller.signal
         });
@@ -195,6 +242,16 @@ export class LocalModelWatcher {
           const data = (await response.json()) as any;
           models = (data.models || []).map((m: any) => m.name || m.model);
           status = 'running';
+          // Resident set is best-effort — failure here doesn't downgrade status.
+          try {
+            const ps = await fetch(`${endpoint.url}/api/ps`, { signal: controller.signal });
+            if (ps.ok) {
+              const psData = (await ps.json()) as any;
+              resident = (psData.models || []).map((m: any) => m.name || m.model);
+            }
+          } catch {
+            // ignore
+          }
         }
       } else if (endpoint.type === 'lm-studio') {
         // LM Studio exposes OpenAI-compatible API
@@ -226,6 +283,7 @@ export class LocalModelWatcher {
           endpoint: endpoint.url,
           status,
           models,
+          resident,
           lastChecked: new Date().toISOString()
         };
       }

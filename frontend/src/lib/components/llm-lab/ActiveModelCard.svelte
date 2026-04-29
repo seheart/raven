@@ -102,6 +102,7 @@
         // Seed lastProject from history so the chip shows on page load.
         // Live websocket events overwrite this with newer values.
         if (!s.lastProject && m.last_project) s.lastProject = m.last_project;
+        if (m.last_loaded_by) s.loadedBy = m.last_loaded_by;
       }
       // Drop state for models that are no longer resident.
       for (const k of Object.keys(modelState)) {
@@ -190,9 +191,18 @@
               {#if s.lastProject}
                 <span
                   class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]"
-                  title="Last inference came from project '{s.lastProject}'"
+                  title={s.loadedBy
+                    ? `Last used by '${s.lastProject}'\nLoaded by: ${s.loadedBy.project ?? s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'}`
+                    : `Last used by '${s.lastProject}'`}
                 >
                   {s.lastProject}
+                </span>
+              {:else if s.loadedBy && (s.loadedBy.project || s.loadedBy.cwd)}
+                <span
+                  class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--muted)]"
+                  title={`Loaded by ${s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'} — no inference yet`}
+                >
+                  loaded by {s.loadedBy.project ?? s.loadedBy.cwd?.split('/').pop() ?? '?'}
                 </span>
               {/if}
             </div>

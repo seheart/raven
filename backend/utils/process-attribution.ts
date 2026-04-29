@@ -143,3 +143,84 @@ export async function attributeConnection(
   const cwd = await getProcessCwdCached(pid);
   return { pid, cwd, project: cwdToProject(cwd, projects) };
 }
+
+/**
+ * Find all PIDs currently holding a connection (any state) where the
+ * REMOTE end is the given port — i.e., processes calling out to that
+ * service. Used to detect who loaded a model into Ollama at the moment
+ * we observe `/api/ps` go from "absent" to "resident."
+ *
+ * Best-effort: a process whose request already completed before we
+ * scanned won't appear. We pick up long-lived ones (ollama run from a
+ * terminal, Aider/Continue with keep-alive, etc.).
+ */
+export async function findPidsByDestPort(destPort: number): Promise<number[]> {
+  const portHex = destPort.toString(16).toUpperCase().padStart(4, '0');
+  const inodes = new Set<string>();
+
+  for (const tcpFile of ['/proc/net/tcp', '/proc/net/tcp6']) {
+    let text: string;
+    try {
+      text = await fs.readFile(tcpFile, 'utf-8');
+    } catch {
+      continue;
+    }
+    const lines = text.split('\n').slice(1);
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 10) continue;
+      // rem_address (parts[2]) is HEX_IP:HEX_PORT — match where the
+      // connection goes TO destPort. Skip LISTEN sockets (they have
+      // rem_address 00000000:0000).
+      if (!parts[2].endsWith(':' + portHex)) continue;
+      if (parts[3] === '0A') continue; // LISTEN
+      if (parts[9] && parts[9] !== '0') inodes.add(parts[9]);
+    }
+  }
+
+  if (inodes.size === 0) return [];
+
+  const pids = new Set<number>();
+  try {
+    const entries = await fs.readdir('/proc');
+    for (const e of entries) {
+      if (!/^\d+$/.test(e)) continue;
+      let fdEntries: string[];
+      try {
+        fdEntries = await fs.readdir(`/proc/${e}/fd`);
+      } catch {
+        continue;
+      }
+      for (const fd of fdEntries) {
+        let link: string;
+        try {
+          link = await fs.readlink(`/proc/${e}/fd/${fd}`);
+        } catch {
+          continue;
+        }
+        const m = /^socket:\[(\d+)\]$/.exec(link);
+        if (m && inodes.has(m[1])) {
+          pids.add(parseInt(e, 10));
+          break; // this PID has at least one matching socket; move on
+        }
+      }
+    }
+  } catch {
+    // /proc unreadable
+  }
+
+  return Array.from(pids);
+}
+
+export async function getProcessCmd(pid: number): Promise<string | null> {
+  try {
+    const buf = await fs.readFile(`/proc/${pid}/cmdline`, 'utf-8');
+    return buf.replace(/\0/g, ' ').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getProcessCwd(pid: number): Promise<string | null> {
+  return getProcessCwdCached(pid);
+}

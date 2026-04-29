@@ -56,6 +56,7 @@ import { HealthMonitor } from './services/health-monitor.js';
 import { createHealthMonitoringRouter } from './routes/health-monitoring.js';
 import { ProjectManager } from './services/project-manager.js';
 import { LocalModelWatcher } from './services/local-model-watcher.js';
+import { findPidsByDestPort, getProcessCwd, getProcessCmd, cwdToProject } from './utils/process-attribution.js';
 import { InsightsService } from './services/insights-service.js';
 import { createInsightsRouter } from './routes/insights.js';
 import { calculateCost } from './services/token-cost-calculator.js';
@@ -1319,13 +1320,10 @@ app.get('/api/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Resp
     if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
     const data = (await r.json()) as { models?: any[] };
     // Strip the giant `details.families` array and keep the useful bits.
-    // Look up the most recent project that ACTUALLY USED each resident
-    // model — only load-triggering endpoints count: /api/generate,
-    // /api/chat (logged as event_type='inference'), and /api/embeddings.
-    // /api/show, /api/ps, /api/tags etc. are read-only metadata and
-    // would falsely attribute to whoever polls most. Apps that gate
-    // their own model use (e.g., ATF refuses non-Gemma) would be
-    // misattributed for models loaded by other tools entirely.
+    // last_project: most recent project that actually USED the model
+    // (only load-triggering endpoints — generate/chat/embeddings).
+    // Read-only metadata calls (/api/show, /api/ps) are excluded so
+    // policy-gated apps don't get misattributed for models they refuse.
     const lastProjectStmt = db.db.prepare(`
       SELECT COALESCE(project_name, json_extract(metadata, '$.project')) AS project
       FROM agent_events
@@ -1337,8 +1335,28 @@ app.get('/api/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Resp
         )
       ORDER BY timestamp DESC LIMIT 1
     `);
+
+    // last_loaded_by: who put the model into VRAM. Captured by the
+    // model-load watcher when /api/ps shows a transition from absent
+    // → resident; covers direct-Ollama callers that bypass Raven.
+    // May be null if the loader's connection had already closed by
+    // the time the watcher noticed.
+    const lastLoadStmt = db.db.prepare(`
+      SELECT
+        COALESCE(project_name, json_extract(metadata, '$.project')) AS project,
+        json_extract(metadata, '$.loader_cmd') AS cmd,
+        json_extract(metadata, '$.loader_cwd') AS cwd,
+        timestamp
+      FROM agent_events
+      WHERE agent = ? AND event_type = 'model_load'
+      ORDER BY timestamp DESC LIMIT 1
+    `);
+
     const models = (data.models || []).map((m: any) => {
-      const row = lastProjectStmt.get(m.name) as { project: string | null } | undefined;
+      const proj = lastProjectStmt.get(m.name) as { project: string | null } | undefined;
+      const load = lastLoadStmt.get(m.name) as
+        | { project: string | null; cmd: string | null; cwd: string | null; timestamp: string }
+        | undefined;
       return {
         name: m.name,
         size: m.size,
@@ -1348,7 +1366,10 @@ app.get('/api/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Resp
         parameter_size: m.details?.parameter_size,
         quantization: m.details?.quantization_level,
         family: m.details?.family,
-        last_project: row?.project ?? null
+        last_project: proj?.project ?? null,
+        last_loaded_by: load
+          ? { project: load.project, cmd: load.cmd, cwd: load.cwd, at: load.timestamp }
+          : null
       };
     });
     return res.json({ models, count: models.length });
@@ -4005,6 +4026,71 @@ httpServer.listen(PORT, BIND_HOST, async () => {
         existing.is_running = model.status === 'running';
         existing.last_seen = model.lastChecked;
         existing.models_available = model.models;
+      }
+    },
+    async loadEvent => {
+      // A model just transitioned absent → resident. Snapshot active
+      // TCP connections to Ollama (127.0.0.1:11435) and try to find
+      // the loading process. Catches direct-Ollama callers (e.g.,
+      // `ollama run` from a terminal, Aider, Continue) that bypass
+      // Raven's proxy and would otherwise be invisible to attribution.
+      try {
+        const ollamaPort = parseInt(
+          (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').split(':').pop() || '11434',
+          10
+        );
+        const pids = await findPidsByDestPort(ollamaPort);
+
+        // Filter out Raven's own backend (it forwards through the
+        // proxy and would otherwise show up here as the "loader").
+        const ravenPid = process.pid;
+        const candidates: Array<{ pid: number; cwd: string | null; cmd: string | null; project: string | null }> = [];
+        for (const pid of pids) {
+          if (pid === ravenPid) continue;
+          const cwd = await getProcessCwd(pid);
+          const cmd = await getProcessCmd(pid);
+          const project = cwdToProject(cwd, knownProjectsCache);
+          candidates.push({ pid, cwd, cmd, project });
+        }
+
+        // Prefer a candidate that maps to a known project, else first.
+        const loader = candidates.find(c => c.project) ?? candidates[0] ?? null;
+
+        db.insertAgentEvent(
+          loadEvent.observedAt,
+          loadEvent.model,
+          'model_load',
+          null,
+          null,
+          null,
+          loader?.cwd
+            ? `${loadEvent.model} loaded by ${loader.project ?? `pid ${loader.pid}`} (${loader.cwd})`
+            : `${loadEvent.model} loaded (loader not captured)`,
+          {
+            endpoint: loadEvent.endpoint,
+            loader_pid: loader?.pid ?? null,
+            loader_cwd: loader?.cwd ?? null,
+            loader_cmd: loader?.cmd ?? null,
+            project: loader?.project ?? null
+          },
+          SESSION_ID,
+          loader?.project ?? null
+        );
+
+        logger.info(
+          `📥 Model loaded: ${loadEvent.model}${loader?.project ? ` [${loader.project}]` : loader?.cmd ? ` [${loader.cmd.slice(0, 40)}]` : ' (loader unknown)'}`
+        );
+
+        io.emit('model-loaded', {
+          model: loadEvent.model,
+          endpoint: loadEvent.endpoint,
+          project: loader?.project ?? null,
+          loader_cwd: loader?.cwd ?? null,
+          loader_cmd: loader?.cmd ?? null,
+          timestamp: loadEvent.observedAt
+        });
+      } catch (err: any) {
+        logger.warn(`Model load attribution failed: ${err?.message}`);
       }
     }
   );
