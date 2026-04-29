@@ -59,7 +59,7 @@
     "@types/node": "^24.9.2",
     "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
-    "@typescript-eslint/parser": "^8.46.2",
+    "@typescript-eslint/parser": "^8.59.1",
     "autocannon": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "dependency-cruiser": "^17.3.10",
