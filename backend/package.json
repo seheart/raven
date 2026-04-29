@@ -39,7 +39,7 @@
     "express-rate-limit": "^8.1.0",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.9",
     "simple-git": "^3.28.0",
     "socket.io": "^4.8.1",
     "systeminformation": "^5.27.11",
