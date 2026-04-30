@@ -12,6 +12,7 @@ import type { RavenDB } from '../db.js';
 import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
 import { getAgentColor } from '../utils/agent-colors.js';
 import { attributeConnection } from '../utils/process-attribution.js';
+import { recordLoadHint } from '../services/recent-load-hints.js';
 
 interface MinimalLogger {
   debug: (msg: string) => void;
@@ -109,14 +110,37 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
     // inference. Tells us "who is keeping qwen warm" even when the
     // calling app is only polling for model info.
     let project: string | null = null;
+    let attrPid: number | null = null;
+    let attrCwd: string | null = null;
     if (req.socket.remotePort) {
       try {
         const projects = deps.getProjects?.() || [];
         const attr = await attributeConnection(req.socket.remotePort, projects);
         project = attr.project;
+        attrPid = attr.pid;
+        attrCwd = attr.cwd;
       } catch {
         project = null;
       }
+    }
+
+    // Record a hint so the local-model watcher can find the real loader
+    // when Ollama swaps a model into VRAM. Without this, callers routed
+    // through the proxy are invisible to /proc-scan attribution.
+    const hintModel =
+      typeof req.body?.model === 'string'
+        ? req.body.model
+        : typeof req.body?.name === 'string'
+          ? req.body.name
+          : null;
+    if (
+      hintModel &&
+      (ollamaPath === '/api/chat' ||
+        ollamaPath === '/api/generate' ||
+        ollamaPath === '/api/embed' ||
+        ollamaPath === '/api/embeddings')
+    ) {
+      recordLoadHint({ model: hintModel, pid: attrPid, cwd: attrCwd, project });
     }
 
     try {

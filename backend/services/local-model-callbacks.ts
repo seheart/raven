@@ -19,6 +19,7 @@ import {
   getProcessCmd,
   cwdToProject
 } from '../utils/process-attribution.js';
+import { findLoadHint } from './recent-load-hints.js';
 
 interface LocalModel {
   name: string;
@@ -128,24 +129,40 @@ export function createLocalModelCallbacks(deps: CallbacksDeps): LocalModelCallba
         (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').split(':').pop() || '11434',
         10
       );
-      const pids = await findPidsByDestPort(ollamaPort);
-
-      const ravenPid = process.pid;
-      const candidates: Array<{
+      // Prefer a fresh proxy-side hint over /proc scanning. The proxy
+      // captures pid/cwd from the actual incoming socket, which catches
+      // containerized callers and short-lived clients that the /proc
+      // scan misses (and avoids picking the wrong long-lived keep-alive
+      // connection when several apps talk to Ollama).
+      const hint = findLoadHint(loadEvent.model);
+      let loader: {
         pid: number;
         cwd: string | null;
         cmd: string | null;
         project: string | null;
-      }> = [];
-      for (const pid of pids) {
-        if (pid === ravenPid) continue;
-        const cwd = await getProcessCwd(pid);
-        const cmd = await getProcessCmd(pid);
-        const project = cwdToProject(cwd, getProjects());
-        candidates.push({ pid, cwd, cmd, project });
-      }
+      } | null = null;
 
-      const loader = candidates.find(c => c.project) ?? candidates[0] ?? null;
+      if (hint && hint.pid !== null) {
+        const cmd = await getProcessCmd(hint.pid);
+        loader = { pid: hint.pid, cwd: hint.cwd, cmd, project: hint.project };
+      } else {
+        const pids = await findPidsByDestPort(ollamaPort);
+        const ravenPid = process.pid;
+        const candidates: Array<{
+          pid: number;
+          cwd: string | null;
+          cmd: string | null;
+          project: string | null;
+        }> = [];
+        for (const pid of pids) {
+          if (pid === ravenPid) continue;
+          const cwd = await getProcessCwd(pid);
+          const cmd = await getProcessCmd(pid);
+          const project = cwdToProject(cwd, getProjects());
+          candidates.push({ pid, cwd, cmd, project });
+        }
+        loader = candidates.find(c => c.project) ?? candidates[0] ?? null;
+      }
 
       agentEventsRepo.insert(
         loadEvent.observedAt,

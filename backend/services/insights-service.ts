@@ -7,6 +7,7 @@
 
 import { logger } from '../utils/logger.js';
 import type { RavenDB } from '../db.js';
+import { recordLoadHint } from './recent-load-hints.js';
 
 interface InsightSummary {
   id: string;
@@ -1005,6 +1006,17 @@ Keep it under 150 words.`;
 
     // Wait for global concurrency slot (max 1 concurrent ollama call)
     await this.acquireOllamaSlot();
+
+    // Record a load hint so the model-load watcher attributes the upcoming
+    // VRAM swap to Raven (not octopus's idle keep-alive). Insights bypasses
+    // the transparent proxy and goes direct to OLLAMA_URL, so the proxy's
+    // hint path doesn't see this call.
+    recordLoadHint({
+      model: this.model,
+      pid: process.pid,
+      cwd: process.cwd(),
+      project: 'raven'
+    });
 
     try {
       const res = await fetch(`${this.ollamaUrl}/api/generate`, {
