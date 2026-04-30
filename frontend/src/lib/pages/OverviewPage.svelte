@@ -328,7 +328,14 @@
         bump(e.agent_source || findAgentAt(e.timestamp) || 'Other', bucket);
       }
     });
+    // Filter status-only Ollama proxy traffic (`/api/ps`, `/api/version`,
+    // etc. — logged with agent='Ollama' as a catchall when no model is in
+    // the request body). Keeps real LLM usage visible (model-named agents
+    // like `nomic-embed-text` and `gemma3:12b` still bucket normally).
+    const isStatusOnly = e =>
+      e.event_type === 'api_call' && (e.agent === 'Ollama' || e.agent_name === 'Ollama');
     recentAgentEvents.forEach(e => {
+      if (isStatusOnly(e)) return;
       const bucket = Math.floor((now - new Date(e.timestamp)) / bucketMs);
       if (bucket >= 0 && bucket < bucketCount) bump(e.agent || 'Other', bucket);
     });
