@@ -31,10 +31,12 @@ const hints: LoadHint[] = [];
 /**
  * Ollama's /api/ps reports tagged names ("nomic-embed-text:latest"); clients
  * often send untagged ("nomic-embed-text"), which Ollama treats as :latest.
- * Normalize so hint write and lookup compare apples to apples.
+ * Also defensively handles a trailing colon ("model:") and whitespace.
  */
 function canonical(model: string): string {
-  return model.includes(':') ? model : `${model}:latest`;
+  const [name, ...rest] = model.trim().split(':');
+  const tag = rest.join(':').trim();
+  return `${name}:${tag || 'latest'}`;
 }
 
 export function recordLoadHint(hint: Omit<LoadHint, 'at'>): void {

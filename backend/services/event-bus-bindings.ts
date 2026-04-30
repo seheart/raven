@@ -54,6 +54,18 @@ interface BindingsDeps {
   fileEventsRepo: FileEventsRepository;
 }
 
+/**
+ * Count lines the way a human would. `"a\nb\nc\n".split('\n').length` returns
+ * 4 (trailing empty); `"".split('\n').length` returns 1. Both wrong for the
+ * Nebula's per-line burst sizing. This counts the number of distinct lines
+ * including a trailing line without a newline, and treats empty as zero.
+ */
+function countLines(content: string): number {
+  if (content.length === 0) return 0;
+  const newlines = (content.match(/\n/g) ?? []).length;
+  return content.endsWith('\n') ? newlines : newlines + 1;
+}
+
 async function saveSnapshot(snapshotsDir: string, filepath: string, content: string): Promise<void> {
   try {
     const timestamp = Date.now();
@@ -105,7 +117,7 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
       if (event.type === 'change' && oldContent && event.content && !shouldSkipDiff(event.path)) {
         const chunks = getDiff(oldContent, event.content);
         for (const c of chunks) {
-          const n = c.count ?? c.value.split('\n').length;
+          const n = c.count ?? countLines(c.value);
           if (c.added) linesAdded += n;
           else if (c.removed) linesRemoved += n;
         }
@@ -121,9 +133,9 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
             .join('')
         );
       } else if (event.type === 'add' && event.content) {
-        linesAdded = event.content.split('\n').length;
+        linesAdded = countLines(event.content);
       } else if (event.type === 'unlink' && oldContent) {
-        linesRemoved = oldContent.split('\n').length;
+        linesRemoved = countLines(oldContent);
       }
 
       // Prefix filepath with project name so it's identifiable across projects.
