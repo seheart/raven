@@ -18,12 +18,15 @@ export function createInsightsRouter(
   // 503 generate/* routes when the kill switch is set, instead of silently
   // returning null bodies (the previous behavior was confusing — looked
   // like "no activity to summarize" when it was actually disabled).
+  // The disabled flag is read at construction, so toggling it requires a
+  // restart — message reflects that to avoid users setting the env var
+  // on a running process and wondering why nothing changed.
   const requireEnabled = (_req: Request, res: Response, next: () => void): void => {
     if (insightsService.isDisabled()) {
       res.status(503).json({
         error: 'Insights disabled',
         message:
-          "Raven's local-LLM insights are disabled. Set RAVEN_INSIGHTS_DISABLED=0 (or unset) to re-enable."
+          "Raven's local-LLM insights are disabled. Restart with RAVEN_INSIGHTS_DISABLED=0 (or unset) to re-enable."
       });
       return;
     }

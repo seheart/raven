@@ -26,8 +26,8 @@ const BASE_URL = API_CONFIG.BASE_URL;
  * @property {string} change_type - Type of change (add, change, unlink)
  * @property {string} timestamp - ISO timestamp
  * @property {string} [project] - Project name
- * @property {number} [lines_added] - Lines added
- * @property {number} [lines_deleted] - Lines deleted
+ * @property {number} [chars_added] - Characters added (post-diff)
+ * @property {number} [chars_removed] - Characters removed (post-diff)
  */
 
 /**

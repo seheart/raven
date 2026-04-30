@@ -133,9 +133,14 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         : typeof req.body?.name === 'string'
           ? req.body.name
           : null;
+    // Only record a hint when we actually resolved a caller pid. A null
+    // pid is useless to the watcher (consume-then-fall-through wastes a
+    // ring slot) and signals attribution failure that /proc-scan is no
+    // worse off recovering from.
     let removeHint: (() => void) | null = null;
     if (
       hintModel &&
+      attrPid !== null &&
       (ollamaPath === '/api/chat' ||
         ollamaPath === '/api/generate' ||
         ollamaPath === '/api/embed' ||
@@ -160,6 +165,13 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
       }
 
       const ollamaResponse = await fetch(targetUrl, fetchOptions);
+
+      // 4xx/5xx means Ollama refused the request (model-not-found, OOM,
+      // bad params) — no VRAM swap happened, so the hint must not survive
+      // to mis-attribute a later real load of the same model. Network
+      // errors fall through to the outer catch which also calls remover.
+      if (!ollamaResponse.ok) removeHint?.();
+
       const isStreaming =
         req.body?.stream !== false &&
         (ollamaPath === '/api/generate' || ollamaPath === '/api/chat');
