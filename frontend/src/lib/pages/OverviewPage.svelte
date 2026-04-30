@@ -1030,7 +1030,7 @@
 
       <!-- Activity Trend -->
       <div class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-0">
-        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">Event Rate (5m)</h3>
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">Agent Activity (5m)</h3>
         <div class="flex-1 min-h-0">
           <canvas id="chart-trend"></canvas>
         </div>
