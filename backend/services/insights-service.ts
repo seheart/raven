@@ -110,6 +110,10 @@ export class InsightsService {
     `);
   }
 
+  isDisabled(): boolean {
+    return this.disabled;
+  }
+
   async isAvailable(): Promise<boolean> {
     if (this.disabled) return false;
     try {
@@ -1023,8 +1027,9 @@ Keep it under 150 words.`;
     // Record a load hint so the model-load watcher attributes the upcoming
     // VRAM swap to Raven (not octopus's idle keep-alive). Insights bypasses
     // the transparent proxy and goes direct to OLLAMA_URL, so the proxy's
-    // hint path doesn't see this call.
-    recordLoadHint({
+    // hint path doesn't see this call. Remove the hint on failure so it
+    // can't mis-attribute a later real load of the same model.
+    const removeHint = recordLoadHint({
       model: this.model,
       pid: process.pid,
       cwd: process.cwd(),
@@ -1050,6 +1055,7 @@ Keep it under 150 words.`;
 
       if (!res.ok) {
         logger.error(`Ollama returned ${res.status}`);
+        removeHint();
         this.recordFailure();
         return null;
       }
@@ -1059,6 +1065,7 @@ Keep it under 150 words.`;
       return data.response?.trim() || null;
     } catch (err: any) {
       logger.error(`Ollama call failed: ${err.message}`);
+      removeHint();
       this.recordFailure();
       return null;
     } finally {

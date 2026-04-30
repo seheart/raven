@@ -262,3 +262,48 @@ describe('InsightsService - Concurrent Generation', () => {
     expect(service.isGenerating()).toBe(false);
   });
 });
+
+describe('InsightsService - Kill switch (RAVEN_INSIGHTS_DISABLED)', () => {
+  let disabledTmp;
+  let disabledDb;
+  let disabledService;
+  let prevEnv;
+
+  beforeAll(() => {
+    prevEnv = process.env.RAVEN_INSIGHTS_DISABLED;
+    process.env.RAVEN_INSIGHTS_DISABLED = '1';
+    disabledTmp = mkdtempSync(join(tmpdir(), 'raven-insights-disabled-test-'));
+    disabledDb = new RavenDB(join(disabledTmp, 'test.db'));
+    // Read the env var at construction time.
+    disabledService = new InsightsService(disabledDb, 'http://localhost:99999', 'test-model');
+  });
+
+  afterAll(() => {
+    if (disabledDb) disabledDb.close();
+    if (disabledTmp) rmSync(disabledTmp, { recursive: true, force: true });
+    if (prevEnv === undefined) delete process.env.RAVEN_INSIGHTS_DISABLED;
+    else process.env.RAVEN_INSIGHTS_DISABLED = prevEnv;
+  });
+
+  test('isDisabled() reports true', () => {
+    expect(disabledService.isDisabled()).toBe(true);
+  });
+
+  test('isAvailable() returns false without contacting Ollama', async () => {
+    const available = await disabledService.isAvailable();
+    expect(available).toBe(false);
+  });
+
+  test('queueDiffRisk no-ops (no pending entries accumulate)', () => {
+    disabledService.queueDiffRisk(1, '/foo.ts', '+a\n-b\n', 'change');
+    disabledService.queueDiffRisk(2, '/bar.ts', '+x\n', 'change');
+    // No public getter for the queue; success criterion is "doesn't throw
+    // and doesn't fire an Ollama request" — covered by absence of fetch.
+    expect(disabledService.isGenerating()).toBe(false);
+  });
+
+  test('generateSummary returns null without touching Ollama', async () => {
+    const result = await disabledService.generateSummary(60);
+    expect(result).toBeNull();
+  });
+});

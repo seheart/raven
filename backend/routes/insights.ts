@@ -15,6 +15,21 @@ export function createInsightsRouter(
 ): Router {
   const router = express.Router();
 
+  // 503 generate/* routes when the kill switch is set, instead of silently
+  // returning null bodies (the previous behavior was confusing — looked
+  // like "no activity to summarize" when it was actually disabled).
+  const requireEnabled = (_req: Request, res: Response, next: () => void): void => {
+    if (insightsService.isDisabled()) {
+      res.status(503).json({
+        error: 'Insights disabled',
+        message:
+          "Raven's local-LLM insights are disabled. Set RAVEN_INSIGHTS_DISABLED=0 (or unset) to re-enable."
+      });
+      return;
+    }
+    next();
+  };
+
   // GET /api/insights — List recent insights
   router.get(
     '/',
@@ -53,6 +68,7 @@ export function createInsightsRouter(
   // POST /api/insights/generate/summary
   router.post(
     '/generate/summary',
+    requireEnabled,
     asyncHandler(async (req: Request, res: Response) => {
       const windowMinutes = Math.min(parseInt(req.body?.windowMinutes, 10) || 60, 1440);
       const insight = await insightsService.generateSummary(windowMinutes);
@@ -67,6 +83,7 @@ export function createInsightsRouter(
   // POST /api/insights/generate/review
   router.post(
     '/generate/review',
+    requireEnabled,
     asyncHandler(async (req: Request, res: Response) => {
       const insight = await insightsService.generateCodeReview();
       if (!insight) {
@@ -80,6 +97,7 @@ export function createInsightsRouter(
   // POST /api/insights/generate/digest — Generate daily digest
   router.post(
     '/generate/digest',
+    requireEnabled,
     asyncHandler(async (req: Request, res: Response) => {
       const insight = await insightsService.generateDailyDigest();
       if (!insight) {
@@ -93,6 +111,7 @@ export function createInsightsRouter(
   // POST /api/insights/generate/agent-comparison
   router.post(
     '/generate/agent-comparison',
+    requireEnabled,
     asyncHandler(async (req: Request, res: Response) => {
       const insight = await insightsService.generateAgentComparison();
       if (!insight) {
@@ -106,6 +125,7 @@ export function createInsightsRouter(
   // POST /api/insights/generate/project-health
   router.post(
     '/generate/project-health',
+    requireEnabled,
     asyncHandler(async (req: Request, res: Response) => {
       const { projectName } = req.body;
       if (!projectName) {

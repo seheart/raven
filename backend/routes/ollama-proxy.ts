@@ -133,6 +133,7 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         : typeof req.body?.name === 'string'
           ? req.body.name
           : null;
+    let removeHint: (() => void) | null = null;
     if (
       hintModel &&
       (ollamaPath === '/api/chat' ||
@@ -140,7 +141,12 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         ollamaPath === '/api/embed' ||
         ollamaPath === '/api/embeddings')
     ) {
-      recordLoadHint({ model: hintModel, pid: attrPid, cwd: attrCwd, project });
+      removeHint = recordLoadHint({
+        model: hintModel,
+        pid: attrPid,
+        cwd: attrCwd,
+        project
+      });
     }
 
     try {
@@ -307,6 +313,7 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
       }
     } catch (error: any) {
       logger.error(`Ollama proxy error: ${error.message}`);
+      removeHint?.();
       return res.status(502).json({
         error: 'Ollama not reachable',
         message: `Could not connect to ${OLLAMA_URL}. Is Ollama running?`

@@ -39,16 +39,29 @@ function canonical(model: string): string {
   return `${name}:${tag || 'latest'}`;
 }
 
-export function recordLoadHint(hint: Omit<LoadHint, 'at'>): void {
-  if (!hint.model) return;
-  hints.push({ ...hint, model: canonical(hint.model), at: Date.now() });
+/**
+ * Records a hint and returns a function that removes it. Callers should
+ * call the remover if the request that produced the hint fails before
+ * touching Ollama (network error, abort, non-2xx without a load) — a
+ * stale hint can otherwise mis-attribute the next real load of the same
+ * model to whoever recorded it.
+ */
+export function recordLoadHint(hint: Omit<LoadHint, 'at'>): () => void {
+  if (!hint.model) return () => {};
+  const entry: LoadHint = { ...hint, model: canonical(hint.model), at: Date.now() };
+  hints.push(entry);
   if (hints.length > MAX_HINTS) hints.splice(0, hints.length - MAX_HINTS);
+  return () => {
+    const i = hints.indexOf(entry);
+    if (i !== -1) hints.splice(i, 1);
+  };
 }
 
 /**
  * Most recent hint for `model` within `withinMs`. Hints are appended in
  * time order, so we walk from newest backwards and stop as soon as we
- * cross the cutoff.
+ * cross the cutoff. **Consumes** the matched hint so a single recorded
+ * call doesn't get blamed for two consecutive loads.
  */
 export function findLoadHint(model: string, withinMs = 30_000): LoadHint | null {
   const target = canonical(model);
@@ -56,7 +69,10 @@ export function findLoadHint(model: string, withinMs = 30_000): LoadHint | null 
   for (let i = hints.length - 1; i >= 0; i--) {
     const h = hints[i];
     if (h.at < cutoff) break;
-    if (h.model === target) return h;
+    if (h.model === target) {
+      hints.splice(i, 1);
+      return h;
+    }
   }
   return null;
 }
