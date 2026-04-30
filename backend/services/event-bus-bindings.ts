@@ -95,14 +95,22 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
 
       // Build a minimal diff for change events with prior cached content.
       let diff: string | null = null;
+      let linesAdded = 0;
+      let linesRemoved = 0;
       const absolutePath = join(eventProjectPath, event.path);
       const oldContent =
         projectManager.getCachedContentForPath(absolutePath) ||
         fileWatcher.getCachedContent(absolutePath);
 
       if (event.type === 'change' && oldContent && event.content && !shouldSkipDiff(event.path)) {
+        const chunks = getDiff(oldContent, event.content);
+        for (const c of chunks) {
+          const n = c.count ?? c.value.split('\n').length;
+          if (c.added) linesAdded += n;
+          else if (c.removed) linesRemoved += n;
+        }
         diff = capDiff(
-          getDiff(oldContent, event.content)
+          chunks
             .map(d => {
               const prefix = d.added ? '+' : d.removed ? '-' : ' ';
               return d.value
@@ -112,6 +120,10 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
             })
             .join('')
         );
+      } else if (event.type === 'add' && event.content) {
+        linesAdded = event.content.split('\n').length;
+      } else if (event.type === 'unlink' && oldContent) {
+        linesRemoved = oldContent.split('\n').length;
       }
 
       // Prefix filepath with project name so it's identifiable across projects.
@@ -168,7 +180,9 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
         event_size: event.size,
         file_hash: event.hash,
         project_name: eventProjectName,
-        agent_source: agentSource
+        agent_source: agentSource,
+        lines_added: linesAdded,
+        lines_removed: linesRemoved
       });
 
       triggerEngine.evaluate({

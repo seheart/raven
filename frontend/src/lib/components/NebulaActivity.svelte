@@ -207,16 +207,17 @@
     else statusText = 'Idle';
   }
 
-  // Group identical bursts (same type+label) within a 200ms window into one
-  // bigger burst with a count badge. Reduces visual noise during edit storms.
-  function queueBurst(type, label) {
+  // Group identical bursts (same type+label) within a 200ms window. `count`
+  // is summed (so back-to-back saves combine line counts), reducing visual
+  // noise during edit storms.
+  function queueBurst(type, label, count = 1) {
     const key = `${type}|${label || ''}`;
     const pending = pendingGroup.get(key);
     if (pending) {
-      pending.count++;
+      pending.count += count;
       return;
     }
-    const entry = { type, label, count: 1, timer: null };
+    const entry = { type, label, count, timer: null };
     entry.timer = setTimeout(() => {
       pendingGroup.delete(key);
       spawnBurst(entry.type, entry.label, entry.count);
@@ -229,9 +230,13 @@
     const color = colors[TYPE_COLORS[type] || 'muted'];
     const cx = width / 2;
     const cy = height / 2;
-    // Bigger bursts when grouped — particles, ripple, and core all scale.
-    const sizeBoost = Math.min(2, 1 + Math.log2(count));
-    const particleCount = Math.floor((4 + Math.floor(Math.random() * 5)) * sizeBoost);
+    // For file edits/deletes `count` is lines changed — one ball per line, so
+    // a 50-line refactor reads as a real explosion. Capped at 80 so a delete
+    // of a 10k-line file doesn't melt the canvas. Floor of 4 keeps tiny
+    // single-line edits from being a lonely speck. Ripple/core still scale
+    // logarithmically so the visual size doesn't grow unbounded.
+    const sizeBoost = Math.min(2.5, 1 + Math.log2(count));
+    const particleCount = Math.min(80, Math.max(4, count));
     const burstAngle = Math.random() * Math.PI * 2;
 
     for (let i = 0; i < particleCount && particles.length < MAX_PARTICLES; i++) {
@@ -253,7 +258,12 @@
     }
 
     if (label) {
-      const text = count > 1 ? `${label} ×${count}` : label;
+      // Sign the count so adds and deletes are distinguishable in side-by-side
+      // bursts (e.g. an edit shows `foo.ts +12` next to `foo.ts −5`).
+      const sign =
+        type === 'file_delete' ? '−' :
+        type === 'file_edit' || type === 'file_create' || type === 'file_add' ? '+' : '×';
+      const text = count > 1 || sign === '+' || sign === '−' ? `${label} ${sign}${count}` : label;
       labels.push({
         text: text.slice(0, 32),
         x: cx + (Math.random() - 0.5) * 20,
@@ -590,11 +600,22 @@
 
     const handleFileChange = data => {
       const label = data?.file?.split('/').pop() || data?.filepath?.split('/').pop() || '';
-      const changeType = data?.change_type || 'change';
-      const type =
-        changeType === 'unlink' ? 'file_delete' :
-        changeType === 'add' ? 'file_create' : 'file_edit';
-      queueBurst(type, label);
+      const linesAdded = data?.lines_added || 0;
+      const linesRemoved = data?.lines_removed || 0;
+
+      // Per-line bursts: one green ball per added line, one red per removed.
+      // An edit (line replacement) naturally shows both colors at once because
+      // the diff library reports it as `removed: 1` + `added: 1`. Files with
+      // no line counts (binary, missing snapshot) fall back to one burst.
+      if (linesAdded > 0) queueBurst('file_edit', label, linesAdded);
+      if (linesRemoved > 0) queueBurst('file_delete', label, linesRemoved);
+      if (linesAdded === 0 && linesRemoved === 0) {
+        const changeType = data?.change_type || 'change';
+        const type =
+          changeType === 'unlink' ? 'file_delete' :
+          changeType === 'add' ? 'file_create' : 'file_edit';
+        queueBurst(type, label);
+      }
     };
 
     websocketService.on('agent-event', handleAgentEvent);
