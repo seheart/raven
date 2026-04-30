@@ -230,13 +230,15 @@
     const color = colors[TYPE_COLORS[type] || 'muted'];
     const cx = width / 2;
     const cy = height / 2;
-    // For file edits/deletes `count` is lines changed — one ball per line, so
-    // a 50-line refactor reads as a real explosion. Capped at 80 so a delete
-    // of a 10k-line file doesn't melt the canvas. Floor of 4 keeps tiny
-    // single-line edits from being a lonely speck. Ripple/core still scale
+    // For file edits `count` is characters changed. Sqrt scaling so a
+    // typo (3 chars) still reads as a small puff (~3 particles → floor 4),
+    // a paragraph rewrite (~500 chars) feels substantial (~45 particles),
+    // and a refactor (5000+ chars) becomes a real explosion (capped 100).
+    // Linear-by-char would saturate at the cap after ~80 chars and lose
+    // all signal across orders of magnitude. Ripple/core still scale
     // logarithmically so the visual size doesn't grow unbounded.
-    const sizeBoost = Math.min(2.5, 1 + Math.log2(count));
-    const particleCount = Math.min(80, Math.max(4, count));
+    const sizeBoost = Math.min(2.5, 1 + Math.log2(Math.max(1, count)));
+    const particleCount = Math.min(100, Math.max(4, Math.round(Math.sqrt(count) * 2)));
     const burstAngle = Math.random() * Math.PI * 2;
 
     for (let i = 0; i < particleCount && particles.length < MAX_PARTICLES; i++) {
@@ -600,16 +602,18 @@
 
     const handleFileChange = data => {
       const label = data?.file?.split('/').pop() || data?.filepath?.split('/').pop() || '';
-      const linesAdded = data?.lines_added || 0;
-      const linesRemoved = data?.lines_removed || 0;
+      const charsAdded = data?.chars_added || 0;
+      const charsRemoved = data?.chars_removed || 0;
 
-      // Per-line bursts: one green ball per added line, one red per removed.
-      // An edit (line replacement) naturally shows both colors at once because
-      // the diff library reports it as `removed: 1` + `added: 1`. Files with
-      // no line counts (binary, missing snapshot) fall back to one burst.
-      if (linesAdded > 0) queueBurst('file_edit', label, linesAdded);
-      if (linesRemoved > 0) queueBurst('file_delete', label, linesRemoved);
-      if (linesAdded === 0 && linesRemoved === 0) {
+      // Per-character bursts: a long single-line minified file or a multi-
+      // hundred-character HTML edit gets a burst proportional to actual
+      // scope, not just newlines crossed. spawnBurst's sqrt scaling keeps
+      // a 5000-char refactor visually intense without saturating the
+      // canvas. Edits show both colors because the diff library splits a
+      // line replacement into removed-bytes + added-bytes.
+      if (charsAdded > 0) queueBurst('file_edit', label, charsAdded);
+      if (charsRemoved > 0) queueBurst('file_delete', label, charsRemoved);
+      if (charsAdded === 0 && charsRemoved === 0) {
         const changeType = data?.change_type || 'change';
         const type =
           changeType === 'unlink' ? 'file_delete' :

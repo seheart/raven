@@ -54,18 +54,6 @@ interface BindingsDeps {
   fileEventsRepo: FileEventsRepository;
 }
 
-/**
- * Count lines the way a human would. `"a\nb\nc\n".split('\n').length` returns
- * 4 (trailing empty); `"".split('\n').length` returns 1. Both wrong for the
- * Nebula's per-line burst sizing. This counts the number of distinct lines
- * including a trailing line without a newline, and treats empty as zero.
- */
-function countLines(content: string): number {
-  if (content.length === 0) return 0;
-  const newlines = (content.match(/\n/g) ?? []).length;
-  return content.endsWith('\n') ? newlines : newlines + 1;
-}
-
 async function saveSnapshot(snapshotsDir: string, filepath: string, content: string): Promise<void> {
   try {
     const timestamp = Date.now();
@@ -106,9 +94,13 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
       const eventProjectPath = event.projectPath || watchPath;
 
       // Build a minimal diff for change events with prior cached content.
+      // Per-character add/remove counts power the Nebula's burst sizing —
+      // characters not lines because a single line can be hundreds of chars
+      // (templated HTML, minified JS, long prose) and the user wants the
+      // burst to reflect actual scope of change, not just newlines crossed.
       let diff: string | null = null;
-      let linesAdded = 0;
-      let linesRemoved = 0;
+      let charsAdded = 0;
+      let charsRemoved = 0;
       const absolutePath = join(eventProjectPath, event.path);
       const oldContent =
         projectManager.getCachedContentForPath(absolutePath) ||
@@ -117,9 +109,8 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
       if (event.type === 'change' && oldContent && event.content && !shouldSkipDiff(event.path)) {
         const chunks = getDiff(oldContent, event.content);
         for (const c of chunks) {
-          const n = c.count ?? countLines(c.value);
-          if (c.added) linesAdded += n;
-          else if (c.removed) linesRemoved += n;
+          if (c.added) charsAdded += c.value.length;
+          else if (c.removed) charsRemoved += c.value.length;
         }
         diff = capDiff(
           chunks
@@ -133,9 +124,9 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
             .join('')
         );
       } else if (event.type === 'add' && event.content) {
-        linesAdded = countLines(event.content);
+        charsAdded = event.content.length;
       } else if (event.type === 'unlink' && oldContent) {
-        linesRemoved = countLines(oldContent);
+        charsRemoved = oldContent.length;
       }
 
       // Prefix filepath with project name so it's identifiable across projects.
@@ -193,8 +184,8 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
         file_hash: event.hash,
         project_name: eventProjectName,
         agent_source: agentSource,
-        lines_added: linesAdded,
-        lines_removed: linesRemoved
+        chars_added: charsAdded,
+        chars_removed: charsRemoved
       });
 
       triggerEngine.evaluate({
