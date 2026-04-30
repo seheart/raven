@@ -92,6 +92,7 @@ cd backend
 nohup env NODE_ENV=development DISABLE_AUTH=true \
   OLLAMA_URL="${OLLAMA_URL:-http://127.0.0.1:11435}" \
   TRANSPARENT_OLLAMA_PORT="${TRANSPARENT_OLLAMA_PORT:-11434}" \
+  RAVEN_INSIGHTS_DISABLED="${RAVEN_INSIGHTS_DISABLED:-1}" \
   node dist/server.js > /tmp/raven-backend.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > /tmp/raven-backend.pid

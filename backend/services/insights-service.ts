@@ -71,6 +71,11 @@ export class InsightsService {
     'llama3.1:8b'
   ];
 
+  // Kill switch: when RAVEN_INSIGHTS_DISABLED=1, every Ollama-bound method
+  // short-circuits. Lets users opt out of Raven's local-LLM usage without
+  // taking down Ollama itself (which other apps may be sharing).
+  private readonly disabled: boolean = process.env.RAVEN_INSIGHTS_DISABLED === '1';
+
   constructor(
     db: RavenDB,
     ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434',
@@ -80,6 +85,10 @@ export class InsightsService {
     this.ollamaUrl = ollamaUrl;
     // Explicit arg or env var pins the model. Empty → resolved lazily on first call.
     this.model = model ?? process.env.OLLAMA_MODEL ?? '';
+
+    if (this.disabled) {
+      logger.info('InsightsService disabled via RAVEN_INSIGHTS_DISABLED=1');
+    }
 
     // Create insights table if not exists
     this.db.db.exec(`
@@ -102,6 +111,7 @@ export class InsightsService {
   }
 
   async isAvailable(): Promise<boolean> {
+    if (this.disabled) return false;
     try {
       const res = await fetch(`${this.ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(3000) });
       if (res.ok) this.resetCircuitOnProbe();
@@ -569,6 +579,7 @@ Keep it under 200 words. Be specific about file names and projects.`;
    *  - On overflow past 50, the oldest distinct file is dropped.
    */
   queueDiffRisk(eventId: number, filepath: string, diff: string, changeType: string): void {
+    if (this.disabled) return;
     if (this.isBinaryOrSkipped(filepath)) {
       logger.debug(`Skipping diff risk for ${filepath} (binary/skipped extension)`);
       return;
@@ -991,6 +1002,8 @@ Keep it under 150 words.`;
     numPredict: number,
     timeoutMs: number
   ): Promise<string | null> {
+    if (this.disabled) return null;
+
     // Circuit breaker: reject immediately if circuit is open
     if (this.isCircuitOpen()) {
       const remainingSec = Math.ceil((this.circuitOpenUntil - Date.now()) / 1000);
