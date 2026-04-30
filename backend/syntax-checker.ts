@@ -7,8 +7,8 @@
 
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { join } from 'path';
 import { readFile } from 'fs/promises';
+import ts from 'typescript';
 import { logger } from './utils/logger.js';
 
 const execFileAsync = promisify(execFile);
@@ -40,7 +40,7 @@ class SyntaxChecker {
       ['.js', 'javascript'],
       ['.mjs', 'javascript'],
       ['.cjs', 'javascript'],
-      ['.jsx', 'javascript'],
+      ['.jsx', 'typescript'],
       ['.ts', 'typescript'],
       ['.tsx', 'typescript'],
       ['.py', 'python'],
@@ -167,43 +167,47 @@ class SyntaxChecker {
   }
 
   /**
-   * Check TypeScript syntax
+   * Check TypeScript / TSX / JSX syntax via the TypeScript parser API.
+   *
+   * Uses ts.createSourceFile so we only get parser diagnostics (TS1xxx) —
+   * no module resolution, no type checking, no tsconfig dependency. This
+   * sidesteps TS17004 ("Cannot use JSX unless the '--jsx' flag is provided"),
+   * which fires when tsc is invoked on a .tsx file outside its project.
    */
   private async checkTypeScript(filePath: string): Promise<SyntaxError[]> {
-    try {
-      // Try using tsc if available
-      await execFileAsync('npx', ['tsc', '--noEmit', '--skipLibCheck', filePath], {
-        timeout: 10000,
-        cwd: join(filePath, '..')
-      });
-      return [];
-    } catch (error: any) {
-      const errors: SyntaxError[] = [];
-      const output = error.stderr || error.stdout || '';
-      const lines = output.split('\n');
+    const source = await readFile(filePath, 'utf8');
+    const ext = this.getExtension(filePath);
+    const scriptKind =
+      ext === '.tsx'
+        ? ts.ScriptKind.TSX
+        : ext === '.jsx'
+          ? ts.ScriptKind.JSX
+          : ext === '.ts'
+            ? ts.ScriptKind.TS
+            : ts.ScriptKind.JS;
 
-      for (const line of lines) {
-        // Match patterns like: file.ts(10,5): error TS1234: message
-        const match = line.match(/.*\((\d+),(\d+)\):\s*error\s*TS\d+:\s*(.+)/);
-        if (match) {
-          errors.push({
-            file: filePath,
-            line: parseInt(match[1]),
-            column: parseInt(match[2]),
-            message: match[3].trim(),
-            severity: 'error',
-            language: 'typescript'
-          });
-        }
-      }
+    const sourceFile = ts.createSourceFile(
+      filePath,
+      source,
+      ts.ScriptTarget.Latest,
+      /* setParentNodes */ false,
+      scriptKind
+    );
 
-      // If TypeScript is not available, fall back to JavaScript check
-      if (errors.length === 0) {
-        return this.checkJavaScript(filePath);
-      }
+    const diagnostics = (sourceFile as any).parseDiagnostics as ts.DiagnosticWithLocation[];
+    if (!diagnostics || diagnostics.length === 0) return [];
 
-      return errors;
-    }
+    return diagnostics.map(diag => {
+      const { line, character } = ts.getLineAndCharacterOfPosition(sourceFile, diag.start ?? 0);
+      return {
+        file: filePath,
+        line: line + 1,
+        column: character + 1,
+        message: ts.flattenDiagnosticMessageText(diag.messageText, '\n'),
+        severity: 'error' as const,
+        language: 'typescript'
+      };
+    });
   }
 
   /**
