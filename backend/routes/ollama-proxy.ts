@@ -264,6 +264,13 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         );
       } else {
         const data = await ollamaResponse.text();
+        // Forward the upstream Content-Type so JSON callers don't see
+        // text/html (Express's default when res.send() is given a string).
+        // Ollama always returns application/json for non-streaming endpoints;
+        // we forward the header verbatim if present, fall back to JSON if not.
+        const upstreamContentType =
+          ollamaResponse.headers.get('content-type') || 'application/json';
+        res.setHeader('Content-Type', upstreamContentType);
         res.status(ollamaResponse.status).send(data);
 
         const durationMs = Date.now() - startTime;
