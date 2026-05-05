@@ -3,7 +3,28 @@
  * Provides in-memory caching with TTL and automatic expiration
  */
 
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
+
+interface CacheItem {
+  value: unknown;
+  expiry: number;
+  created: number;
+}
+
+interface CacheStats {
+  size: number;
+  maxSize: number;
+  hits: number;
+  misses: number;
+  hitRate: string;
+}
+
 class SimpleCache {
+  private cache: Map<string, CacheItem>;
+  private maxSize: number;
+  private hits: number;
+  private misses: number;
+
   constructor(maxSize = 500) {
     this.cache = new Map();
     this.maxSize = maxSize;
@@ -11,7 +32,7 @@ class SimpleCache {
     this.misses = 0;
   }
 
-  get(key) {
+  get(key: string): unknown {
     const item = this.cache.get(key);
 
     if (!item) {
@@ -32,10 +53,12 @@ class SimpleCache {
     return item.value;
   }
 
-  set(key, value, ttl = 5000) {
+  set(key: string, value: unknown, ttl = 5000): void {
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
 
     this.cache.set(key, {
@@ -45,17 +68,17 @@ class SimpleCache {
     });
   }
 
-  delete(key) {
+  delete(key: string): void {
     this.cache.delete(key);
   }
 
-  clear() {
+  clear(): void {
     this.cache.clear();
     this.hits = 0;
     this.misses = 0;
   }
 
-  getStats() {
+  getStats(): CacheStats {
     const total = this.hits + this.misses;
     return {
       size: this.cache.size,
@@ -66,7 +89,7 @@ class SimpleCache {
     };
   }
 
-  cleanup() {
+  cleanup(): number {
     const now = Date.now();
     let cleaned = 0;
 
@@ -91,25 +114,27 @@ const cacheCleanupInterval = setInterval(() => {
 }, 60000);
 cacheCleanupInterval.unref();
 
-export function stopCacheCleanup() {
+export function stopCacheCleanup(): void {
   clearInterval(cacheCleanupInterval);
 }
 
-export function cacheMiddleware(ttl = 5000) {
-  return (req, res, next) => {
+export function cacheMiddleware(ttl = 5000): RequestHandler {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (req.method !== 'GET') {
-      return next();
+      next();
+      return;
     }
 
     const key = req.method + ':' + (req.originalUrl || req.url);
     const cached = cache.get(key);
 
-    if (cached) {
-      return res.json(cached);
+    if (cached !== null) {
+      res.json(cached);
+      return;
     }
 
     const originalJson = res.json.bind(res);
-    res.json = function (data) {
+    res.json = function (data: unknown): Response {
       cache.set(key, data, ttl);
       return originalJson(data);
     };
