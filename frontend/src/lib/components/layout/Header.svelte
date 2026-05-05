@@ -107,9 +107,12 @@
   async function loadProjects() {
     try {
       const data = await api.get('/projects');
-      const names = (data.projects || []).filter(p => p.enabled).map(p => p.name);
-      projects = names;
-      availableProjects.set(names);
+      // Keep the full project objects locally so the dropdown can show
+      // displayName when set; the global store stays as just names since
+      // other components consume it as a string array.
+      const enabled = (data.projects || []).filter(p => p.enabled);
+      projects = enabled;
+      availableProjects.set(enabled.map(p => p.name));
     } catch {
       // Silent fail
     }
@@ -175,12 +178,12 @@
         <select
           value={currentFilter}
           onchange={e => setProjectFilter(e.target.value)}
-          class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-xs font-mono text-[var(--text)] cursor-pointer hover:border-[var(--accent)] transition-colors"
+          class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text)] cursor-pointer hover:border-[var(--accent)] transition-colors"
           aria-label="Filter by project"
         >
           <option value="all">All Projects</option>
-          {#each projects as proj (proj)}
-            <option value={proj}>{proj}</option>
+          {#each projects as proj (proj.name)}
+            <option value={proj.name}>{proj.displayName || proj.name}</option>
           {/each}
         </select>
       </div>

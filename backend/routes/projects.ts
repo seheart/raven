@@ -31,6 +31,15 @@ const ProjectName = z
   .max(MAX_PROJECT_NAME_LENGTH)
   .regex(/^[a-zA-Z0-9\s\-_]+$/, 'name must be alphanumeric / space / - / _');
 
+// displayName is a human label — apostrophes, punctuation OK, just length capped.
+const DisplayName = z.string().min(1).max(120);
+// mission is a short purpose statement — newlines stripped, length capped.
+const Mission = z
+  .string()
+  .min(1)
+  .max(280)
+  .transform(s => s.replace(/\s+/g, ' ').trim());
+
 const IgnorePatterns = z.array(z.string().max(199)).max(100);
 const FileSize = z.coerce.number().int().min(MIN_FILE_SIZE).max(MAX_FILE_SIZE);
 const RetentionDays = z.coerce.number().int().min(MIN_RETENTION_DAYS).max(MAX_RETENTION_DAYS);
@@ -41,6 +50,8 @@ const ProjectIdParam = z.object({
 
 const CreateProjectSchema = z.object({
   name: ProjectName,
+  displayName: DisplayName.optional(),
+  mission: Mission.optional(),
   path: z.string().min(1).max(4096),
   enabled: z.boolean().optional(),
   ignorePatterns: IgnorePatterns.optional(),
@@ -51,6 +62,8 @@ const CreateProjectSchema = z.object({
 const UpdateProjectSchema = z
   .object({
     name: ProjectName,
+    displayName: DisplayName,
+    mission: Mission,
     enabled: z.boolean(),
     ignorePatterns: IgnorePatterns,
     maxFileSize: FileSize,
@@ -146,6 +159,8 @@ export function createProjectsRouter({
       const newProject: ProjectConfig = {
         id,
         name: body.name.trim(),
+        displayName: body.displayName?.trim(),
+        mission: body.mission,
         path: body.path,
         enabled: body.enabled ?? true,
         ignorePatterns: body.ignorePatterns ?? [],
@@ -188,6 +203,7 @@ export function createProjectsRouter({
 
       const sanitized: Partial<ProjectConfig> = { ...updates };
       if (sanitized.name) sanitized.name = sanitized.name.trim();
+      if (sanitized.displayName) sanitized.displayName = sanitized.displayName.trim();
 
       const previousEnabled = config.projects[idx].enabled;
       config.projects[idx] = {

@@ -16,7 +16,21 @@ import { logger } from '../utils/logger.js';
 
 export interface ProjectConfig {
   id: string;
+  /** The repo / directory name. Stable; used as a foreign key in events tables. */
   name: string;
+  /**
+   * Optional human-friendly label ("Mom's UK Trip Planner"). Frontend
+   * surfaces this everywhere a project is shown to a user. Falls back
+   * to `name` when unset, so existing projects keep working unchanged.
+   */
+  displayName?: string;
+  /**
+   * Optional one-line purpose ("Plan a 10-day trip with Mom for her
+   * birthday"). Used in narrative surfaces (daily digest, recap, the
+   * Insights service's project-health prompt) so synthesized text can
+   * reference *why* the project exists, not just *that* it exists.
+   */
+  mission?: string;
   path: string;
   enabled: boolean;
   ignorePatterns?: string[];
@@ -62,18 +76,25 @@ export function sanitizeProjectId(id: string): string {
     .substring(0, 50);
 }
 
+export interface KnownProject {
+  name: string;
+  path: string;
+  displayName?: string;
+  mission?: string;
+}
+
 export interface ProjectsConfigService {
   load(): Promise<ProjectsConfig>;
   save(config: ProjectsConfig): Promise<void>;
-  /** Returns the cached `[{ name, path }]` projects for fast lookups. */
-  getKnownProjects(): Array<{ name: string; path: string }>;
+  /** Returns the cached projects for fast lookups (Ollama proxy attribution etc). */
+  getKnownProjects(): KnownProject[];
   /** Refresh the in-memory cache from disk. Safe to call repeatedly. */
   refreshKnownProjects(): Promise<void>;
 }
 
 export function createProjectsConfigService(ravenDir: string): ProjectsConfigService {
   const configPath = join(ravenDir, 'projects.json');
-  let knownProjects: Array<{ name: string; path: string }> = [];
+  let knownProjects: KnownProject[] = [];
 
   async function load(): Promise<ProjectsConfig> {
     try {
@@ -108,7 +129,12 @@ export function createProjectsConfigService(ravenDir: string): ProjectsConfigSer
         const config = await load();
         knownProjects = config.projects
           .filter(p => typeof p.path === 'string' && p.path.length > 0)
-          .map(p => ({ name: p.name, path: p.path }));
+          .map(p => ({
+            name: p.name,
+            path: p.path,
+            displayName: p.displayName,
+            mission: p.mission
+          }));
       } catch {
         // Keep last good cache on read failure
       }
